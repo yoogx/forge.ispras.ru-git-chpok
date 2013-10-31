@@ -30,6 +30,7 @@ pok_ret_t pok_buffer_init (void)
 
    for (n=0 ; n < POK_CONFIG_NB_BUFFERS ; n++)
    {
+      pok_buffers[n].name[0]              = '\0';
       pok_buffers[n].ready                = FALSE;
       pok_buffers[n].full                 = FALSE;
       pok_buffers[n].empty                = TRUE;

@@ -27,7 +27,6 @@
 #include <middleware/buffer.h>
 
 extern pok_buffer_t    pok_buffers[POK_CONFIG_NB_BUFFERS];
-extern char*           pok_buffers_names[POK_CONFIG_NB_BUFFERS];
 pok_size_t             pok_buffers_data_index = 0;
 
 
@@ -40,15 +39,23 @@ pok_ret_t pok_buffer_create (char*                                 name,
    uint8_t     n;
    pok_ret_t   ret;
 
+   if (  size > 0x7FFFFFFF - pok_buffers_data_index ||
+         pok_buffers_data_index + size >= 1024) {
+      return POK_ERRNO_EINVAL;
+   }
+
+   // try to find existing buffer
    for (n=0 ; n < POK_CONFIG_NB_BUFFERS ; n++)
    {
-      if (streq (name, pok_buffers_names[n]))
-      {
-         if (pok_buffers[n].ready == TRUE)
-         {
-            return POK_ERRNO_READY;
-         }
+      if (pok_buffers[n].ready && POK_BUFFER_NAME_EQ(name, pok_buffers[n].name)) {
+         return POK_ERRNO_READY;
+      }
+   }
 
+   // create a new one
+   for (n=0 ; n < POK_CONFIG_NB_BUFFERS ; n++)
+   {
+      if (pok_buffers[n].ready == FALSE) {
          ret = pok_event_create (&pok_buffers[n].lock);
 
          if (ret != POK_ERRNO_OK)
@@ -65,6 +72,7 @@ pok_ret_t pok_buffer_create (char*                                 name,
          pok_buffers[n].off_e                = 0;
          pok_buffers[n].off_b                = 0;
          pok_buffers[n].discipline           = discipline;
+         strncpy(pok_buffers[n].name, name, POK_BUFFER_MAX_NAME_LENGTH);
 
          pok_buffers_data_index              = pok_buffers_data_index + size;
 

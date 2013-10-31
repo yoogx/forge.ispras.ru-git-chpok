@@ -58,6 +58,7 @@ pok_ret_t pok_buffer_receive (const pok_buffer_id_t                id,
       if (timeout == 0)
       {
          pok_event_unlock (pok_buffers[id].lock);
+         return POK_ERRNO_EMPTY;
       }
       else
       {

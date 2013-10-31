@@ -56,7 +56,7 @@ pok_ret_t pok_buffer_send (const pok_buffer_id_t              id,
       return POK_ERRNO_EINVAL;
    }
 
-   if (len > (pok_buffers[id].size * pok_buffers[id].msgsize))
+   if (len > pok_buffers[id].msgsize)
    {
       return POK_ERRNO_EINVAL;
    }

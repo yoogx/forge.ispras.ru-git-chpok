@@ -24,6 +24,10 @@
 #define POK_BUFFER_DISCIPLINE_FIFO 1
 #define POK_BUFFER_DISCIPLINE_PRIORITY 2
 
+// must be at least MAX_NAME_LENGTH of ARINC653
+#define POK_BUFFER_MAX_NAME_LENGTH 30
+#define POK_BUFFER_NAME_EQ(x, y) (strncmp((x), (y), POK_BUFFER_MAX_NAME_LENGTH) == 0)
+
 #include <types.h>
 #include <errno.h>
 
@@ -42,6 +46,7 @@ typedef struct
    pok_range_t                waiting_processes;
    pok_queueing_discipline_t  discipline;
    pok_event_id_t             lock;
+   char                       name[POK_BUFFER_MAX_NAME_LENGTH];
 }pok_buffer_t;
 
 typedef struct
@@ -69,8 +74,8 @@ pok_ret_t pok_buffer_send (const pok_buffer_id_t              id,
                            const pok_port_size_t              len, 
                            const uint64_t                     timeout);
 
-pok_ret_t pok_port_buffer_status (const pok_buffer_id_t            id,
-                                  const pok_buffer_status_t*       status);
+pok_ret_t pok_buffer_status (const pok_buffer_id_t            id,
+                                   pok_buffer_status_t*       status);
 
 pok_ret_t pok_buffer_id (char*                                     name,
                          pok_buffer_id_t*                          id);

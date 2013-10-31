@@ -24,7 +24,6 @@
 #include <libc/string.h>
 
 extern pok_buffer_t    pok_buffers[POK_CONFIG_NB_BUFFERS];
-extern char*           pok_buffers_names[POK_CONFIG_NB_BUFFERS];
 
 pok_ret_t pok_buffer_id (char*                                 name, 
                          pok_buffer_id_t*                      id)
@@ -33,7 +32,7 @@ pok_ret_t pok_buffer_id (char*                                 name,
 
    for (n=0 ; n < POK_CONFIG_NB_BUFFERS ; n++)
    {
-      if (streq (name, pok_buffers_names[n]))
+      if (POK_BUFFER_NAME_EQ(name, pok_buffers[n].name))
       {
          *id = n;
 

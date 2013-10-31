@@ -34,7 +34,7 @@ pok_ret_t pok_buffer_status (const pok_buffer_id_t  id,
    }
 
    /* FIXME : should fix this later */
-   status->nb_messages = 0;
+   status->nb_messages = (pok_buffers[id].off_e - pok_buffers[id].off_b) / pok_buffers[id].msgsize;
    status->max_messages = pok_buffers[id].size / pok_buffers[id].msgsize;
    status->message_size = pok_buffers[id].msgsize;
    status->waiting_processes = 0;
