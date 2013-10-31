@@ -46,4 +46,5 @@ typedef enum
 #define pok_current_partition_get_operating_mode(op_mode) pok_syscall2(POK_SYSCALL_PARTITION_GET_OPERATING_MODE,(uint32_t)op_mode,0)
 
 #define pok_current_partition_get_start_condition(start_condition) pok_syscall2(POK_SYSCALL_PARTITION_GET_START_CONDITION,(uint32_t)start_condition,0)
+
 #endif

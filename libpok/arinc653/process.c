@@ -25,6 +25,10 @@
 #include <arinc653/process.h>
 #include <libc/string.h>
 
+#include <core/partition.h>
+
+#define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
+
 void GET_PROCESS_ID (PROCESS_NAME_TYPE process_name[MAX_NAME_LENGTH],
 										 PROCESS_ID_TYPE   *process_id,
 										 RETURN_CODE_TYPE  *return_code )
@@ -271,21 +275,26 @@ void DELAYED_START (PROCESS_ID_TYPE   process_id,
   }
 }
 
-#ifndef POK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE
-void LOCK_PREEMPTION (LOCK_LEVEL_TYPE     *lock_level,
-											RETURN_CODE_TYPE    *return_code )
+void LOCK_PREEMPTION (LOCK_LEVEL_TYPE *LOCK_LEVEL, RETURN_CODE_TYPE *RETURN_CODE)
 {
-	 (void) lock_level;
-	 *return_code = NOT_AVAILABLE;
+    pok_ret_t ret = pok_partition_inc_lock_level(LOCK_LEVEL);
+    switch (ret) {
+        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR(POK_ERRNO_MODE, NO_ACTION);
+        MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG); // yes, it's an error here...
+        default: *RETURN_CODE = INVALID_CONFIG; // shouldn't happen
+    }
 }
 
-void UNLOCK_PREEMPTION (LOCK_LEVEL_TYPE   *lock_level,
-												RETURN_CODE_TYPE  *return_code )
-
+void UNLOCK_PREEMPTION (LOCK_LEVEL_TYPE *LOCK_LEVEL, RETURN_CODE_TYPE *RETURN_CODE)
 {
-	 (void) lock_level;
-	 *return_code = NOT_AVAILABLE;
+    pok_ret_t ret = pok_partition_dec_lock_level(LOCK_LEVEL);
+    switch (ret) {
+        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR(POK_ERRNO_MODE, NO_ACTION);
+        MAP_ERROR(POK_ERRNO_EINVAL, NO_ACTION); // ...but here it's just NO_ACTION
+        default: *RETURN_CODE = INVALID_CONFIG; // shouldn't happen
+    }
 }
-#endif
 
 #endif

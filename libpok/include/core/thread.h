@@ -91,5 +91,9 @@ pok_ret_t      pok_thread_resume(const uint32_t thread_id);
  * similar to: pok_ret_t      pok_thread_stop (const uint32_t tid);
  */
 
+#define pok_partition_inc_lock_level(lock_level) pok_syscall2(POK_SYSCALL_PARTITION_INC_LOCK_LEVEL,(uint32_t)lock_level,0)
+
+#define pok_partition_dec_lock_level(lock_level) pok_syscall2(POK_SYSCALL_PARTITION_DEC_LOCK_LEVEL,(uint32_t)lock_level,0)
+
 #endif /* __POK_NEEDS_THREADS */
 #endif /* __POK_THREAD_H__ */

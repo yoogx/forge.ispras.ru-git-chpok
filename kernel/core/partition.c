@@ -429,6 +429,30 @@ pok_ret_t pok_current_partition_get_start_condition (pok_start_condition_t *star
   return POK_ERRNO_OK;
 }
 
+pok_ret_t pok_current_partition_inc_lock_level(uint32_t *lock_level)
+{
+  if (POK_CURRENT_PARTITION.mode != POK_PARTITION_MODE_NORMAL) {
+    return POK_ERRNO_MODE;
+  }
+  if (POK_CURRENT_PARTITION.lock_level >= 1000) { // XXX
+    return POK_ERRNO_EINVAL;
+  }
+  *lock_level = ++POK_CURRENT_PARTITION.lock_level;
+  return POK_ERRNO_OK;
+}
+
+pok_ret_t pok_current_partition_dec_lock_level(uint32_t *lock_level)
+{
+  if (POK_CURRENT_PARTITION.mode != POK_PARTITION_MODE_NORMAL) {
+    return POK_ERRNO_MODE;
+  }
+  if (POK_CURRENT_PARTITION.lock_level == 0) {
+    return POK_ERRNO_EINVAL;
+  }
+  *lock_level = --POK_CURRENT_PARTITION.lock_level;
+  return POK_ERRNO_OK;
+}
+
 #ifdef POK_NEEDS_ERROR_HANDLING
 
 /**
