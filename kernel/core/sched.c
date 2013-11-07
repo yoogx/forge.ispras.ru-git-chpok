@@ -239,6 +239,10 @@ uint32_t	pok_elect_thread(uint8_t new_partition_id)
             break;
          }
 #endif
+         if (new_partition->lock_level > 0) {
+            elected = new_partition->current_thread;
+            break;
+         }
          if ( (POK_SCHED_CURRENT_THREAD != IDLE_THREAD) && 
               (POK_SCHED_CURRENT_THREAD != POK_CURRENT_PARTITION.thread_main) 
 #ifdef POK_NEEDS_ERROR_HANDLING

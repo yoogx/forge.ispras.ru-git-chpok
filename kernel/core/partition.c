@@ -450,6 +450,9 @@ pok_ret_t pok_current_partition_dec_lock_level(uint32_t *lock_level)
     return POK_ERRNO_EINVAL;
   }
   *lock_level = --POK_CURRENT_PARTITION.lock_level;
+  if (POK_CURRENT_PARTITION.lock_level == 0) {
+    pok_sched();
+  }
   return POK_ERRNO_OK;
 }
 
