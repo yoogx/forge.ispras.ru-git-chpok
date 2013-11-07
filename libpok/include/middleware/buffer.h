@@ -59,20 +59,20 @@ typedef struct
 
 
 pok_ret_t pok_buffer_create (char*                                 name, 
-                             const pok_port_size_t                 size, 
+                             const pok_port_size_t                 num_messages, 
                              const pok_port_size_t                 msg_size, 
                              const pok_queueing_discipline_t       discipline,
                              pok_buffer_id_t*                      id);
 
 pok_ret_t pok_buffer_receive (const pok_buffer_id_t                id, 
-                              const uint64_t                       timeout, 
+                              const int64_t                       timeout, 
                               void*                                data, 
                               pok_port_size_t*                     len);
 
 pok_ret_t pok_buffer_send (const pok_buffer_id_t              id, 
                            const void*                        data, 
                            const pok_port_size_t              len, 
-                           const uint64_t                     timeout);
+                           const int64_t                     timeout);
 
 pok_ret_t pok_buffer_status (const pok_buffer_id_t            id,
                                    pok_buffer_status_t*       status);

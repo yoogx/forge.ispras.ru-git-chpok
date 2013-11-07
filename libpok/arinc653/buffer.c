@@ -78,7 +78,7 @@ void CREATE_BUFFER (
        return;
    }
 
-   core_ret = pok_buffer_create (BUFFER_NAME, MAX_MESSAGE_SIZE * MAX_NB_MESSAGE, MAX_MESSAGE_SIZE, core_discipline, &core_id);
+   core_ret = pok_buffer_create (BUFFER_NAME, MAX_NB_MESSAGE, MAX_MESSAGE_SIZE, core_discipline, &core_id);
    
    *BUFFER_ID = core_id + 1;
 

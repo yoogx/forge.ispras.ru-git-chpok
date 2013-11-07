@@ -30,7 +30,7 @@ extern pok_buffer_t    pok_buffers[POK_CONFIG_NB_BUFFERS];
 extern char            pok_buffers_data[1024];
 
 pok_ret_t pok_buffer_receive (const pok_buffer_id_t                id, 
-                              const uint64_t                       timeout, 
+                              const int64_t                       timeout, 
                               void*                                data, 
                               pok_port_size_t*                     len)
 {
@@ -62,7 +62,8 @@ pok_ret_t pok_buffer_receive (const pok_buffer_id_t                id,
       }
       else
       {
-         ret = pok_event_wait (pok_buffers[id].lock, timeout);
+         // ARINC's INFINITE_TIME_VALUE (-1) translates to 0 timeout of pok
+         ret = pok_event_wait (pok_buffers[id].lock, timeout > 0 ? timeout : 0);
          if (ret != POK_ERRNO_OK)
          {
             pok_event_unlock (pok_buffers[id].lock);
@@ -71,8 +72,12 @@ pok_ret_t pok_buffer_receive (const pok_buffer_id_t                id,
       }
    }
 
-   memcpy (data, &pok_buffers_data[pok_buffers[id].index + pok_buffers[id].off_b], pok_buffers[id].msgsize);
-   pok_buffers[id].off_b = (pok_buffers[id].off_b + pok_buffers[id].msgsize) % pok_buffers[id].size;
+   size_t offset = pok_buffers[id].index + pok_buffers[id].off_b;
+   pok_port_size_t msglen = *(pok_port_size_t *) &pok_buffers_data[offset];
+   offset += sizeof(msglen);
+   memcpy (data, &pok_buffers_data[offset], msglen);
+   pok_buffers[id].off_b = (pok_buffers[id].off_b + pok_buffers[id].msgsize + sizeof(pok_port_size_t)) % pok_buffers[id].size;
+
    if (pok_buffers[id].off_b == pok_buffers[id].off_e)
    {
       pok_buffers[id].empty = TRUE;
@@ -80,7 +85,7 @@ pok_ret_t pok_buffer_receive (const pok_buffer_id_t                id,
 
    pok_buffers[id].full = FALSE;
 
-   *len = pok_buffers[id].msgsize;
+   *len = msglen;
 
    pok_event_unlock (pok_buffers[id].lock);
 

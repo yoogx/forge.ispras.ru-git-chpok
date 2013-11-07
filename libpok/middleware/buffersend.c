@@ -32,7 +32,7 @@ extern char            pok_buffers_data[1024];
 pok_ret_t pok_buffer_send (const pok_buffer_id_t              id, 
                            const void*                        data, 
                            const pok_port_size_t              len, 
-                           const uint64_t                     timeout)
+                           const int64_t                     timeout)
 {
    pok_ret_t      ret;
 
@@ -81,8 +81,11 @@ pok_ret_t pok_buffer_send (const pok_buffer_id_t              id,
       }
    }
 
-   memcpy (&pok_buffers_data[pok_buffers[id].index + pok_buffers[id].off_e], data, len);
-   pok_buffers[id].off_e = (pok_buffers[id].off_e + len ) % pok_buffers[id].size;
+   size_t offset = pok_buffers[id].index + pok_buffers[id].off_e;
+   *(pok_port_size_t *) &pok_buffers_data[offset] = len;
+   offset += sizeof(pok_port_size_t);
+   memcpy (&pok_buffers_data[offset], data, len);
+   pok_buffers[id].off_e = (pok_buffers[id].off_e + pok_buffers[id].msgsize + sizeof(pok_port_size_t)) % pok_buffers[id].size;
 
    if (pok_buffers[id].off_e == pok_buffers[id].off_b)
    {

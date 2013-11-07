@@ -31,13 +31,16 @@ pok_size_t             pok_buffers_data_index = 0;
 
 
 pok_ret_t pok_buffer_create (char*                                 name, 
-                             const pok_port_size_t                 size, 
+                             const pok_port_size_t                 num_messages, 
                              const pok_port_size_t                 msg_size, 
                              const pok_queueing_discipline_t       discipline,
                              pok_buffer_id_t*                      id)
 {
    uint8_t     n;
    pok_ret_t   ret;
+
+   // leave some space to save message length
+   const pok_port_size_t size = num_messages * (msg_size + sizeof(pok_port_size_t));
 
    if (  size > 0x7FFFFFFF - pok_buffers_data_index ||
          pok_buffers_data_index + size >= 1024) {
