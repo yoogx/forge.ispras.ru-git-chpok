@@ -21,16 +21,24 @@
 #include <arinc653/time.h>
 
 #include <core/thread.h>
+#include <core/time.h>
 #include <types.h>
 
 
-#ifndef POK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE
 void TIMED_WAIT (SYSTEM_TIME_TYPE delay_time, RETURN_CODE_TYPE *return_code)
 {
-   (void) delay_time;
-   *return_code = NOT_AVAILABLE;
+   // delay_time is in ns
+   // since we need to sleep AT LEAST specified time,
+   // round ms value up
+   // FIXME leaving out (uint32_t) cast makes compiler generate 64-bit division
+   //       which requires a library function
+   //       which isn't implemented
+   uint32_t delay_ms = (uint32_t) delay_time / 1000;
+   if ((uint32_t) delay_time % 1000) delay_ms += 1;
+
+   pok_syscall2(POK_SYSCALL_THREAD_SLEEP, delay_ms, 0);
+   *return_code = NO_ERROR;
 }
-#endif
 
 void PERIODIC_WAIT (RETURN_CODE_TYPE *return_code)
 {
@@ -39,13 +47,15 @@ void PERIODIC_WAIT (RETURN_CODE_TYPE *return_code)
    *return_code = core_ret;
 }
 
-#ifndef POK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE
 void GET_TIME (SYSTEM_TIME_TYPE *system_time, RETURN_CODE_TYPE *return_code)
 {
-   (void) system_time;
-   *return_code = NOT_AVAILABLE;
+   uint64_t time;
+   pok_time_get(&time);
+   *system_time = time * 1000;
+   *return_code = NO_ERROR;
 }
 
+#ifndef POK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE
 void REPLENISH (SYSTEM_TIME_TYPE budget_time, RETURN_CODE_TYPE *return_code)
 {
    (void) budget_time;
