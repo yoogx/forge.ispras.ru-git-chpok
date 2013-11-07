@@ -32,7 +32,7 @@ static const int     tab_size = 8;
 static char *const   vga_base = (char *)0xb8000;
 struct s_cons        g_cons;
 
-#if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
+#if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS) || defined (POK_NEEDS_SERIAL)
 #define  COM1      0x3F8
 
 int is_transmit_empty() {
@@ -56,7 +56,7 @@ void pok_cons_print_char (const char c)
    int                  i;
 #endif
 
-#if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
+#if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS) || defined (POK_NEEDS_SERIAL)
    write_serial (c);
 #endif
 
