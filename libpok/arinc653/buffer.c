@@ -25,6 +25,7 @@
 #include <core/partition.h>
 
 #define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
+#define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
  
 void CREATE_BUFFER ( 
        /*in */ BUFFER_NAME_TYPE         BUFFER_NAME, 
@@ -86,7 +87,7 @@ void CREATE_BUFFER (
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
       MAP_ERROR(POK_ERRNO_READY, NO_ACTION);
       MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG);
-      default: *RETURN_CODE = INVALID_CONFIG; // random error status, should never happen 
+      MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
    }
 }
  
@@ -110,7 +111,8 @@ void SEND_BUFFER (
       MAP_ERROR(POK_ERRNO_EINVAL, INVALID_PARAM);
       MAP_ERROR(POK_ERRNO_FULL, NOT_AVAILABLE);
       MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
-      default: *RETURN_CODE = INVALID_PARAM; // random error status, should never happen
+      MAP_ERROR(POK_ERRNO_TIMEOUT, TIMED_OUT);
+      MAP_ERROR_DEFAULT(INVALID_PARAM); // random error status, should never happen 
    }
 }
  
@@ -135,7 +137,8 @@ void RECEIVE_BUFFER (
       MAP_ERROR(POK_ERRNO_EINVAL, INVALID_PARAM);
       MAP_ERROR(POK_ERRNO_EMPTY, NOT_AVAILABLE);
       MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
-      default: *RETURN_CODE = INVALID_PARAM; // random error status, should never happen
+      MAP_ERROR(POK_ERRNO_TIMEOUT, TIMED_OUT);
+      MAP_ERROR_DEFAULT(INVALID_PARAM); // random error status, should never happen 
    }
 }
  
