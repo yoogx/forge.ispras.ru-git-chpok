@@ -21,17 +21,23 @@
 #ifdef POK_NEEDS_MIDDLEWARE
 #ifdef POK_NEEDS_BLACKBOARDS
 
+// must be at least MAX_NAME_LENGTH of ARINC653
+#define POK_BLACKBOARD_MAX_NAME_LENGTH 30
+#define POK_BLACKBOARD_NAME_EQ(x, y) (strncmp((x), (y), POK_BLACKBOARD_MAX_NAME_LENGTH) == 0)
+
 #include <types.h>
 #include <errno.h>
 
 typedef struct
 {
    pok_size_t          size;
+   pok_size_t          current_message_size;
    pok_bool_t          empty;
    pok_range_t         waiting_processes;
    pok_size_t          index;
    pok_bool_t          ready;
    pok_event_id_t      lock;
+   char                name[POK_BLACKBOARD_MAX_NAME_LENGTH];
 }pok_blackboard_t;
 
 typedef struct

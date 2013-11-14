@@ -56,6 +56,8 @@ pok_ret_t pok_blackboard_display (const pok_blackboard_id_t   id,
    pok_event_lock (pok_blackboards[id].lock);
 
    memcpy (&pok_blackboards_data[pok_blackboards[id].index], message, len);
+   pok_blackboards[id].current_message_size = len;
+   pok_blackboards[id].empty = FALSE;
 
    pok_event_unlock (pok_blackboards[id].lock);
 

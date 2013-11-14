@@ -21,6 +21,8 @@
 #include <arinc653/blackboard.h>
 #include <middleware/blackboard.h>
 
+#define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
+#define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
  
 void CREATE_BLACKBOARD ( 
        /*in */ BLACKBOARD_NAME_TYPE     BLACKBOARD_NAME, 
@@ -32,7 +34,13 @@ void CREATE_BLACKBOARD (
    pok_ret_t            core_ret;
 
    core_ret = pok_blackboard_create (BLACKBOARD_NAME, MAX_MESSAGE_SIZE, &core_id);
-   *RETURN_CODE = core_ret;
+ 
+   switch (core_ret) {
+      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      MAP_ERROR(POK_ERRNO_READY, NO_ACTION);
+      MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG);
+      MAP_ERROR_DEFAULT(INVALID_CONFIG);
+   }
 }
  
 void DISPLAY_BLACKBOARD ( 
@@ -43,7 +51,13 @@ void DISPLAY_BLACKBOARD (
 {
    pok_ret_t core_ret;
    core_ret = pok_blackboard_display (BLACKBOARD_ID, MESSAGE_ADDR, LENGTH);
-   *RETURN_CODE = core_ret;
+  
+   switch (core_ret) {
+      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      MAP_ERROR(POK_ERRNO_SIZE, INVALID_PARAM);
+      MAP_ERROR(POK_ERRNO_EINVAL, INVALID_PARAM);
+      MAP_ERROR_DEFAULT(INVALID_PARAM);
+   }
 }
  
 void READ_BLACKBOARD ( 
@@ -55,7 +69,12 @@ void READ_BLACKBOARD (
 {
    pok_ret_t core_ret;
    core_ret = pok_blackboard_read (BLACKBOARD_ID, TIME_OUT, MESSAGE_ADDR, LENGTH);
-   *RETURN_CODE = core_ret;
+   switch (core_ret) {
+      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      MAP_ERROR(POK_ERRNO_EINVAL, INVALID_PARAM);
+      MAP_ERROR(POK_ERRNO_UNAVAILABLE, NOT_AVAILABLE);
+      MAP_ERROR_DEFAULT(INVALID_PARAM);
+   }
 }
  
 void CLEAR_BLACKBOARD ( 
@@ -81,8 +100,18 @@ void GET_BLACKBOARD_STATUS (
        /*out*/ BLACKBOARD_STATUS_TYPE   *BLACKBOARD_STATUS, 
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-   (void) BLACKBOARD_ID;
-   (void) BLACKBOARD_STATUS;
-   *RETURN_CODE = NOT_AVAILABLE;
+    pok_ret_t core_ret;
+    pok_blackboard_status_t status;
+    core_ret = pok_blackboard_status(BLACKBOARD_ID, &status);
+
+    if (core_ret == POK_ERRNO_OK) {
+        BLACKBOARD_STATUS->EMPTY_INDICATOR = status.empty;
+        BLACKBOARD_STATUS->MAX_MESSAGE_SIZE = status.msg_size;
+        BLACKBOARD_STATUS->WAITING_PROCESSES = status.waiting_processes;
+
+        *RETURN_CODE = NO_ERROR;
+    } else {
+        *RETURN_CODE = INVALID_PARAM;
+    }
 }
 #endif

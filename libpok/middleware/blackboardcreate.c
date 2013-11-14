@@ -26,7 +26,6 @@
 #include <middleware/blackboard.h>
 
 extern pok_blackboard_t    pok_blackboards[POK_CONFIG_NB_BLACKBOARDS];
-extern char*               pok_blackboards_names[POK_CONFIG_NB_BLACKBOARDS];
 pok_size_t                 pok_blackboards_data_index = 0;
 
 pok_ret_t pok_blackboard_create (char*                             name, 
@@ -36,15 +35,17 @@ pok_ret_t pok_blackboard_create (char*                             name,
    pok_ret_t   ret;
    uint8_t     n;
 
+   // try to find existing blackboard
+   for (n=0;  n < POK_CONFIG_NB_BLACKBOARDS ; n++) {
+      if (pok_blackboards[n].ready && POK_BLACKBOARD_NAME_EQ(pok_blackboards[n].name, name)) {
+         return POK_ERRNO_READY;
+      }
+   }
+
+   // create a new one
    for (n=0 ; n < POK_CONFIG_NB_BLACKBOARDS ; n++)
    {
-      if (streq (name, pok_blackboards_names[n]))
-      {
-         if (pok_blackboards[n].ready == TRUE)
-         {
-            return POK_ERRNO_READY;
-         }
-
+      if (!pok_blackboards[n].ready) {
          ret = pok_event_create (&pok_blackboards[n].lock);
 
          if (ret != POK_ERRNO_OK)
@@ -59,6 +60,7 @@ pok_ret_t pok_blackboard_create (char*                             name,
          pok_blackboards[n].size                = msg_size;
          *id                                    = n;
          pok_blackboards_data_index             = pok_blackboards_data_index + msg_size;
+         strncpy(pok_blackboards[n].name, name, POK_BLACKBOARD_MAX_NAME_LENGTH);
          return POK_ERRNO_OK;
       }
    }

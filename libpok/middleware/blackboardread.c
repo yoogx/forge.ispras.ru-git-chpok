@@ -52,16 +52,21 @@ pok_ret_t pok_blackboard_read (const pok_blackboard_id_t   id,
    /* FIXME : Protect with mutexes when empty, ... */ 
    /* See what is the condition to use the timeout */
 
+   pok_ret_t ret;
    pok_event_lock (pok_blackboards[id].lock);
 
-   memcpy (data, &pok_blackboards_data[pok_blackboards[id].index], pok_blackboards[id].size);
-
+   if (pok_blackboards[id].empty) {
+      // TODO ...
+      pok_event_unlock(pok_blackboards[id].lock);
+      ret = POK_ERRNO_UNAVAILABLE;
+   } else {
+      *len = pok_blackboards[id].current_message_size;
+      memcpy (data, &pok_blackboards_data[pok_blackboards[id].index], *len);
+      ret = POK_ERRNO_OK;
+   }
+    
    pok_event_unlock (pok_blackboards[id].lock);
-
-   /* FIXME : return right size */
-   *len = pok_blackboards[id].size;
-
-   return POK_ERRNO_OK;
+   return ret;
 }
 
 #endif
