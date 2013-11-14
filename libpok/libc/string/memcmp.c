@@ -21,21 +21,14 @@
 
 int memcmp (const void* v1, const void* v2, size_t n)
 {
-   uint32_t *s1;
-   uint32_t *s2;
+   const unsigned char *s1 = v1;
+   const unsigned char *s2 = v2;
    size_t  i;
 
-   s1 = (uint32_t*) v1;
-   s2 = (uint32_t*) v2;
-
    for (i = 0; i < n; i++) {
-		if (*s1 != *s2) {
-			return *(const uint32_t *)s1 >
-			       *(const uint32_t *)s2 ? 1 : -1;
-		}
-		s1++;
-		s2++;
-	}
+      int diff = s1[i] - s2[i];
+      if (diff) return diff;
+   }
    return 0;
 }
 
