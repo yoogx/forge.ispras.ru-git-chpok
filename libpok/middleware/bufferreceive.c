@@ -63,7 +63,12 @@ pok_ret_t pok_buffer_receive (const pok_buffer_id_t                id,
       else
       {
          // ARINC's INFINITE_TIME_VALUE (-1) translates to 0 timeout of pok
-         ret = pok_event_wait (pok_buffers[id].lock, timeout > 0 ? timeout : 0);
+         // XXX 64-bit division
+         uint64_t delay_ms = (uint32_t) timeout / 1000000;
+         if ((uint32_t) timeout % 1000000) delay_ms++;
+         pok_buffers[i].waiting_processes++;
+         ret = pok_event_wait (pok_buffers[id].lock, delay_ms > 0 ? delay_ms : 0);
+         pok_buffers[i].waiting_processes--;
          if (ret != POK_ERRNO_OK)
          {
             pok_event_unlock (pok_buffers[id].lock);
@@ -83,6 +88,11 @@ pok_ret_t pok_buffer_receive (const pok_buffer_id_t                id,
       pok_buffers[id].empty = TRUE;
    }
 
+   if (pok_buffers[id].full && pok_buffers[id].waiting_processes > 0) {
+      // if it was full and someone was waiting on it...
+      // TODO reschedule
+   }
+
    pok_buffers[id].full = FALSE;
 
    *len = msglen;
@@ -90,6 +100,8 @@ pok_ret_t pok_buffer_receive (const pok_buffer_id_t                id,
    pok_event_unlock (pok_buffers[id].lock);
 
    pok_event_broadcast (pok_buffers[id].lock);
+
+   // TODO yield here IF there're processes waiting
 
    return POK_ERRNO_OK;
 }

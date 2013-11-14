@@ -74,7 +74,16 @@ void GET_PROCESS_STATUS (PROCESS_ID_TYPE     process_id,
 			return ;
 		}
 	process_status->DEADLINE_TIME = attr.deadline;
-	process_status->PROCESS_STATE = attr.state;
+#define MAP_STATUS(from, to) case (from): process_status->PROCESS_STATE = (to); break
+        switch (attr.state) {
+            MAP_STATUS(POK_STATE_STOPPED, DORMANT);
+            MAP_STATUS(POK_STATE_RUNNABLE, READY);
+            MAP_STATUS(POK_STATE_WAITING, WAITING);
+            MAP_STATUS(POK_STATE_LOCK, WAITING);
+            MAP_STATUS(POK_STATE_WAIT_NEXT_ACTIVATION, WAITING);
+            MAP_STATUS(POK_STATE_DELAYED_START, WAITING);
+        }
+#undef MAP_STATUS
 	strcpy(process_status->ATTRIBUTES.NAME, arinc_process_attribute[process_id].NAME);
 	process_status->ATTRIBUTES.BASE_PRIORITY = arinc_process_attribute[process_id].BASE_PRIORITY;
 	process_status->ATTRIBUTES.DEADLINE = HARD;

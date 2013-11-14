@@ -29,6 +29,17 @@
 
 #define POK_DEFAULT_STACK_SIZE 2048
 
+// must match to kernel/include/core/sched.h
+typedef enum
+{
+  POK_STATE_STOPPED = 0,
+  POK_STATE_RUNNABLE = 1,
+  POK_STATE_WAITING = 2,
+  POK_STATE_LOCK = 3,
+  POK_STATE_WAIT_NEXT_ACTIVATION = 4,
+  POK_STATE_DELAYED_START = 5
+} pok_state_t;
+
 typedef struct
 {
 	 uint8_t      priority;

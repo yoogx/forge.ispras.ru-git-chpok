@@ -33,8 +33,8 @@ void TIMED_WAIT (SYSTEM_TIME_TYPE delay_time, RETURN_CODE_TYPE *return_code)
    // FIXME leaving out (uint32_t) cast makes compiler generate 64-bit division
    //       which requires a library function
    //       which isn't implemented
-   uint32_t delay_ms = (uint32_t) delay_time / 1000;
-   if ((uint32_t) delay_time % 1000) delay_ms += 1;
+   uint32_t delay_ms = (uint32_t) delay_time / 1000000;
+   if ((uint32_t) delay_time % 1000000) delay_ms += 1;
 
    pok_syscall2(POK_SYSCALL_THREAD_SLEEP, delay_ms, 0);
    *return_code = NO_ERROR;

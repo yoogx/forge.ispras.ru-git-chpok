@@ -32,6 +32,7 @@ extern uint8_t pok_current_partition;
 extern uint32_t  current_thread;
 #define POK_SCHED_CURRENT_THREAD current_thread
 
+// must match to libpok/include/core/thread.h
 typedef enum
 {
   POK_STATE_STOPPED = 0,

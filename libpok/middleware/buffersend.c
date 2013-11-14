@@ -72,7 +72,12 @@ pok_ret_t pok_buffer_send (const pok_buffer_id_t              id,
       }
       else
       {
-         ret = pok_event_wait (pok_buffers[id].lock, timeout);
+         // XXX 64-bit division
+         uint64_t delay_ms = (uint32_t) timeout / 1000000;
+         if ((uint32_t) timeout % 1000000) delay_ms++;
+         pok_buffers[i].waiting_processes++;
+         ret = pok_event_wait (pok_buffers[id].lock, timeout > 0 ? delay_ms : 0);
+         pok_buffers[i].waiting_processes--;
          if (ret != POK_ERRNO_OK)
          {
             pok_event_unlock (pok_buffers[id].lock);
@@ -92,6 +97,10 @@ pok_ret_t pok_buffer_send (const pok_buffer_id_t              id,
       pok_buffers[id].full = TRUE;
    }
 
+   if (pok_buffers[id].empty && pok_buffers[i].waiting_processes > 0) {
+      // if it was empty and someone is waiting on it...
+      // TODO need to reschedule
+   }
    pok_buffers[id].empty = FALSE;
 
    pok_event_unlock (pok_buffers[id].lock);
