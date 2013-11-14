@@ -22,6 +22,7 @@
 #include <errno.h>
 #include <types.h>
 #include <core/event.h>
+#include <core/thread.h>
 #include <core/time.h>
 #include <libc/string.h>
 #include <middleware/buffer.h>
@@ -75,9 +76,9 @@ pok_ret_t pok_buffer_send (const pok_buffer_id_t              id,
          // XXX 64-bit division
          uint64_t delay_ms = (uint32_t) timeout / 1000000;
          if ((uint32_t) timeout % 1000000) delay_ms++;
-         pok_buffers[i].waiting_processes++;
+         pok_buffers[id].waiting_processes++;
          ret = pok_event_wait (pok_buffers[id].lock, timeout > 0 ? delay_ms : 0);
-         pok_buffers[i].waiting_processes--;
+         pok_buffers[id].waiting_processes--;
          if (ret != POK_ERRNO_OK)
          {
             pok_event_unlock (pok_buffers[id].lock);
@@ -97,15 +98,17 @@ pok_ret_t pok_buffer_send (const pok_buffer_id_t              id,
       pok_buffers[id].full = TRUE;
    }
 
-   if (pok_buffers[id].empty && pok_buffers[i].waiting_processes > 0) {
-      // if it was empty and someone is waiting on it...
-      // TODO need to reschedule
-   }
+   pok_bool_t gotta_yield = pok_buffers[id].empty && pok_buffers[id].waiting_processes > 0;
+   
    pok_buffers[id].empty = FALSE;
 
    pok_event_unlock (pok_buffers[id].lock);
 
    pok_event_broadcast (pok_buffers[id].lock);
+
+   if (gotta_yield) {
+      pok_thread_yield();
+   }
 
    return POK_ERRNO_OK;
 }

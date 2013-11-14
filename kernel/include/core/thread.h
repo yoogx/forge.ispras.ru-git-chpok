@@ -105,6 +105,7 @@ pok_ret_t      pok_thread_get_status (const uint32_t id, pok_thread_attr_t *attr
 pok_ret_t      pok_thread_set_priority (const uint32_t id, const uint32_t priority);
 pok_ret_t      pok_thread_resume (const uint32_t id);
 pok_ret_t      pok_thread_suspend_target (const uint32_t id);
+pok_ret_t      pok_thread_yield(void);
 
 #ifdef POK_NEEDS_PARTITIONS
 pok_ret_t		pok_partition_thread_create (uint32_t* thread_id,

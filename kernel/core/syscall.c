@@ -138,6 +138,9 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
    case POK_SYSCALL_THREAD_SUSPEND_TARGET:
 	   return pok_thread_suspend_target (args->arg1);
 	   break;
+   case POK_SYSCALL_THREAD_YIELD:
+           return pok_thread_yield();
+           break;
 
 #ifdef POK_NEEDS_ERROR_HANDLING
 

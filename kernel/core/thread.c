@@ -270,6 +270,12 @@ pok_ret_t pok_thread_suspend (void)
 }
 #endif
 
+pok_ret_t pok_thread_yield (void)
+{
+   pok_sched ();
+   return POK_ERRNO_OK;
+}
+
 #ifdef POK_NEEDS_ERROR_HANDLING
 pok_ret_t pok_thread_restart (const uint32_t tid)
 {

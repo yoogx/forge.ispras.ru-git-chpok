@@ -106,5 +106,7 @@ pok_ret_t      pok_thread_resume(const uint32_t thread_id);
 
 #define pok_partition_dec_lock_level(lock_level) pok_syscall2(POK_SYSCALL_PARTITION_DEC_LOCK_LEVEL,(uint32_t)lock_level,0)
 
+#define pok_thread_yield() pok_syscall2(POK_SYSCALL_THREAD_YIELD, 0, 0)
+
 #endif /* __POK_NEEDS_THREADS */
 #endif /* __POK_THREAD_H__ */
