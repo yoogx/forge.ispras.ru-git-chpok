@@ -109,6 +109,7 @@ void SEND_BUFFER (
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
       MAP_ERROR(POK_ERRNO_EINVAL, INVALID_PARAM);
       MAP_ERROR(POK_ERRNO_FULL, NOT_AVAILABLE);
+      MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
       default: *RETURN_CODE = INVALID_PARAM; // random error status, should never happen
    }
 }
@@ -133,6 +134,7 @@ void RECEIVE_BUFFER (
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
       MAP_ERROR(POK_ERRNO_EINVAL, INVALID_PARAM);
       MAP_ERROR(POK_ERRNO_EMPTY, NOT_AVAILABLE);
+      MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
       default: *RETURN_CODE = INVALID_PARAM; // random error status, should never happen
    }
 }
