@@ -27,12 +27,18 @@ extern pok_blackboard_t    pok_blackboards[POK_CONFIG_NB_BLACKBOARDS];
 
 pok_ret_t pok_blackboard_clear (const pok_blackboard_id_t id)
 {
-   if (id > POK_CONFIG_NB_BLACKBOARDS)
+   if (id >= POK_CONFIG_NB_BLACKBOARDS)
    {
       return POK_ERRNO_EINVAL;
    }
 
+   if (!pok_blackboards[id].ready) {
+      return POK_ERRNO_EINVAL;
+   }
+
+   pok_event_lock(pok_blackboards[id].lock);
    pok_blackboards[id].empty = TRUE;
+   pok_event_unlock(pok_blackboards[id].lock);
    return POK_ERRNO_OK;
 }
 

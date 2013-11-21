@@ -25,16 +25,15 @@
 #include <middleware/blackboard.h>
 
 extern pok_blackboard_t    pok_blackboards[POK_CONFIG_NB_BLACKBOARDS];
-extern char                pok_blackboards_data[1024];
+extern char                pok_blackboards_data[];
 
 
 pok_ret_t pok_blackboard_read (const pok_blackboard_id_t   id, 
-                               const uint64_t              timeout,
+                               const int64_t               timeout,
                                void*                       data,
                                pok_port_size_t*            len)
 {
-   (void) timeout;
-   if (id > POK_CONFIG_NB_BLACKBOARDS)
+   if (id >= POK_CONFIG_NB_BLACKBOARDS)
    {
       return POK_ERRNO_EINVAL;
    }
@@ -49,24 +48,34 @@ pok_ret_t pok_blackboard_read (const pok_blackboard_id_t   id,
       return POK_ERRNO_EINVAL;
    }
 
-   /* FIXME : Protect with mutexes when empty, ... */ 
-   /* See what is the condition to use the timeout */
-
    pok_ret_t ret;
    pok_event_lock (pok_blackboards[id].lock);
 
-   if (pok_blackboards[id].empty) {
-      // TODO ...
-      pok_event_unlock(pok_blackboards[id].lock);
-      ret = POK_ERRNO_UNAVAILABLE;
-   } else {
-      *len = pok_blackboards[id].current_message_size;
-      memcpy (data, &pok_blackboards_data[pok_blackboards[id].index], *len);
-      ret = POK_ERRNO_OK;
+   while (pok_blackboards[id].empty) {
+      if (timeout == 0) {
+         pok_event_unlock(pok_blackboards[id].lock);
+         return POK_ERRNO_EMPTY;
+      } else {
+         // ARINC's INFINITE_TIME_VALUE (-1) translates to 0 timeout of pok
+         // XXX 64-bit division
+         uint64_t delay_ms = (uint32_t) timeout / 1000000;
+         if ((uint32_t) timeout % 1000000) delay_ms++;
+         pok_blackboards[id].waiting_processes++;
+         ret = pok_event_wait (pok_blackboards[id].lock, delay_ms > 0 ? delay_ms : 0);
+         pok_blackboards[id].waiting_processes--;
+         if (ret != POK_ERRNO_OK)
+         {
+            pok_event_unlock (pok_blackboards[id].lock);
+            return ret;
+         }
+      }
    }
-    
+
+   *len = pok_blackboards[id].current_message_size;
+   memcpy (data, &pok_blackboards_data[pok_blackboards[id].index], *len);
+
    pok_event_unlock (pok_blackboards[id].lock);
-   return ret;
+   return POK_ERRNO_OK;
 }
 
 #endif

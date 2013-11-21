@@ -53,7 +53,7 @@ pok_ret_t pok_blackboard_create (char*                   name,
                                  pok_blackboard_id_t*    id);
 
 pok_ret_t pok_blackboard_read (const pok_blackboard_id_t      id,
-                               const uint64_t                 timeout,
+                               const int64_t                  timeout,
                                void*                          data,
                                pok_port_size_t*               len);
 

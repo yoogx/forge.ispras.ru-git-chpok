@@ -35,6 +35,8 @@ pok_ret_t pok_blackboard_create (char*                             name,
    pok_ret_t   ret;
    uint8_t     n;
 
+   // XXX global blackboard create lock?
+
    // try to find existing blackboard
    for (n=0;  n < POK_CONFIG_NB_BLACKBOARDS ; n++) {
       if (pok_blackboards[n].ready && POK_BLACKBOARD_NAME_EQ(pok_blackboards[n].name, name)) {

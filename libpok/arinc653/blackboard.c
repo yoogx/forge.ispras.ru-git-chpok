@@ -41,6 +41,8 @@ void CREATE_BLACKBOARD (
       MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG);
       MAP_ERROR_DEFAULT(INVALID_CONFIG);
    }
+
+   *BLACKBOARD_ID = core_id + 1;
 }
  
 void DISPLAY_BLACKBOARD ( 
@@ -50,7 +52,12 @@ void DISPLAY_BLACKBOARD (
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
    pok_ret_t core_ret;
-   core_ret = pok_blackboard_display (BLACKBOARD_ID, MESSAGE_ADDR, LENGTH);
+   
+   if (BLACKBOARD_ID == 0) {
+      core_ret = POK_ERRNO_EINVAL;
+   } else {
+      core_ret = pok_blackboard_display (BLACKBOARD_ID - 1, MESSAGE_ADDR, LENGTH);
+   }
   
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
@@ -68,11 +75,18 @@ void READ_BLACKBOARD (
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
    pok_ret_t core_ret;
-   core_ret = pok_blackboard_read (BLACKBOARD_ID, TIME_OUT, MESSAGE_ADDR, LENGTH);
+   if (BLACKBOARD_ID == 0) {
+      core_ret = POK_ERRNO_EINVAL;
+   } else {
+       core_ret = pok_blackboard_read (BLACKBOARD_ID - 1, TIME_OUT, MESSAGE_ADDR, LENGTH);
+   }
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
       MAP_ERROR(POK_ERRNO_EINVAL, INVALID_PARAM);
+      MAP_ERROR(POK_ERRNO_EMPTY, NOT_AVAILABLE);
       MAP_ERROR(POK_ERRNO_UNAVAILABLE, NOT_AVAILABLE);
+      MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
+      MAP_ERROR(POK_ERRNO_TIMEOUT, TIMED_OUT);
       MAP_ERROR_DEFAULT(INVALID_PARAM);
    }
 }
@@ -81,8 +95,17 @@ void CLEAR_BLACKBOARD (
        /*in */ BLACKBOARD_ID_TYPE       BLACKBOARD_ID, 
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-   (void) BLACKBOARD_ID;
-   *RETURN_CODE = NOT_AVAILABLE;
+   pok_ret_t core_ret;
+   if (BLACKBOARD_ID == 0) {
+      core_ret = POK_ERRNO_EINVAL;
+   } else {
+      core_ret = pok_blackboard_clear(BLACKBOARD_ID - 1);
+   }
+   switch (core_ret) {
+      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      MAP_ERROR(POK_ERRNO_EINVAL, INVALID_PARAM);
+      MAP_ERRNO_DEFAULT(INVALID_PARAM);
+   }
 }
  
 void GET_BLACKBOARD_ID ( 
@@ -90,9 +113,17 @@ void GET_BLACKBOARD_ID (
        /*out*/ BLACKBOARD_ID_TYPE       *BLACKBOARD_ID, 
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-   (void) BLACKBOARD_NAME;
-   (void) BLACKBOARD_ID;
-   *RETURN_CODE = NOT_AVAILABLE;
+   pok_ret_t core_ret;
+   pok_blackboard_id_t id;
+   core_ret = pok_blackboard_id(BLACKBOARD_NAME, &id);
+   switch (core_ret) {
+      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG);
+      MAP_ERRNO_DEFAULT(INVALID_PARAM);
+   }
+   if (core_ret == POK_ERRNO_OK) {
+      *BLACKBOARD_ID = id + 1;
+   }
 }
  
 void GET_BLACKBOARD_STATUS ( 
@@ -102,10 +133,14 @@ void GET_BLACKBOARD_STATUS (
 {
     pok_ret_t core_ret;
     pok_blackboard_status_t status;
-    core_ret = pok_blackboard_status(BLACKBOARD_ID, &status);
+    if (BLACKBOARD_ID == 0) {
+      core_ret = POK_ERRNO_EINVAL;
+    } else {
+      core_ret = pok_blackboard_status(BLACKBOARD_ID - 1, &status);
+    }
 
     if (core_ret == POK_ERRNO_OK) {
-        BLACKBOARD_STATUS->EMPTY_INDICATOR = status.empty;
+        BLACKBOARD_STATUS->EMPTY_INDICATOR = status.empty ? EMPTY : OCCUPIED;
         BLACKBOARD_STATUS->MAX_MESSAGE_SIZE = status.msg_size;
         BLACKBOARD_STATUS->WAITING_PROCESSES = status.waiting_processes;
 

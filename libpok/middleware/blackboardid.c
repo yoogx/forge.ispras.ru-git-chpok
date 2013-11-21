@@ -33,7 +33,7 @@ pok_ret_t pok_blackboard_id (char*                name,
 
    for (n=0 ; n < POK_CONFIG_NB_BLACKBOARDS ; n++)
    {
-      if (streq (name, pok_blackboards_names[n]))
+      if (POK_BLACKBOARD_NAME_EQ(name, pok_blackboards[n].name))
       {
          *id = n;
          return POK_ERRNO_OK;

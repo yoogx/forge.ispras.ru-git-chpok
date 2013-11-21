@@ -22,6 +22,7 @@
 #include <errno.h>
 #include <core/event.h>
 #include <libc/string.h>
+#include <core/thread.h>
 #include <middleware/blackboard.h>
 
 extern pok_blackboard_t    pok_blackboards[POK_CONFIG_NB_BLACKBOARDS];
@@ -33,7 +34,7 @@ pok_ret_t pok_blackboard_display (const pok_blackboard_id_t   id,
                                   const pok_port_size_t       len)
 {
 
-   if (id > POK_CONFIG_NB_BLACKBOARDS)
+   if (id >= POK_CONFIG_NB_BLACKBOARDS)
    {
       return POK_ERRNO_EINVAL;
    }
@@ -53,6 +54,11 @@ pok_ret_t pok_blackboard_display (const pok_blackboard_id_t   id,
       return POK_ERRNO_EINVAL;
    }
 
+   if (pok_blackboards[id].size < len || len < 0)
+   {
+      return POK_ERRNO_EINVAL;
+   }
+
    pok_event_lock (pok_blackboards[id].lock);
 
    memcpy (&pok_blackboards_data[pok_blackboards[id].index], message, len);
@@ -60,6 +66,10 @@ pok_ret_t pok_blackboard_display (const pok_blackboard_id_t   id,
    pok_blackboards[id].empty = FALSE;
 
    pok_event_unlock (pok_blackboards[id].lock);
+
+   pok_event_broadcast (pok_blackboards[id].lock);
+
+   pok_thread_yield();
 
    return POK_ERRNO_OK;
 }

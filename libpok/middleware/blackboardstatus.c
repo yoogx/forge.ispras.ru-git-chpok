@@ -28,8 +28,12 @@ extern pok_blackboard_t    pok_blackboards[POK_CONFIG_NB_BLACKBOARDS];
 pok_ret_t pok_blackboard_status (const pok_blackboard_id_t id,
                                  pok_blackboard_status_t*  status)
 {
-   if (id > POK_CONFIG_NB_BLACKBOARDS)
+   if (id >= POK_CONFIG_NB_BLACKBOARDS)
    {
+      return POK_ERRNO_EINVAL;
+   }
+
+   if (!pok_blackboards[id].ready) {
       return POK_ERRNO_EINVAL;
    }
 
