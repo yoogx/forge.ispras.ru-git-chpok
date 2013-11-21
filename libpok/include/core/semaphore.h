@@ -28,6 +28,12 @@
 
 #define POK_SEMAPHORE_DISCIPLINE_FIFO 1
 
+typedef struct {
+    int32_t current_value;
+    int32_t maximum_value;
+    int32_t waiting_processes; 
+} pok_sem_status_t;
+
 
 pok_ret_t pok_sem_create (pok_sem_id_t*                        id,
                           const pok_sem_value_t                current_value,

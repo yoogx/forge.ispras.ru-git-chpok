@@ -27,26 +27,31 @@
 #include <arinc653/semaphore.h>
 #include <core/semaphore.h>
 
-#define CHECK_SEM_INIT if (pok_arinc653_semaphores_initialized == 0) \
-                       { \
-                          uint16_t bla; \
-                          for (bla = 0 ; bla < POK_CONFIG_ARINC653_NB_SEMAPHORES ; bla++) \
-                          {\
-                             pok_arinc653_semaphores_layers[bla].ready = 0;\
-                          }\
-                       }\
-                       pok_arinc653_semaphores_initialized = 1;
-
-pok_bool_t           pok_arinc653_semaphores_initialized = 0;
+// must be at least MAX_NAME_LENGTH of ARINC653
+#define POK_SEM_MAX_NAME_LENGTH 30
+#define POK_SEM_NAME_EQ(x, y) (strncmp((x), (y), POK_SEM_MAX_NAME_LENGTH) == 0)
 
 typedef struct
 {
    pok_bool_t        ready;
    pok_sem_id_t      core_id;
-}pok_arinc653_semaphore_layer_t;
+   char              name[POK_SEM_MAX_NAME_LENGTH];
+} pok_arinc653_semaphore_layer_t;
 
-extern char*                           pok_arinc653_semaphores_names[POK_CONFIG_ARINC653_NB_SEMAPHORES];
 pok_arinc653_semaphore_layer_t         pok_arinc653_semaphores_layers[POK_CONFIG_ARINC653_NB_SEMAPHORES];
+
+pok_bool_t           pok_arinc653_semaphores_initialized = 0;
+
+static void init_semaphores(void)
+{
+   size_t i;
+   for (i = 0; i < POK_CONFIG_ARINC653_NB_SEMAPHORES; i++) {
+      pok_arinc653_semaphores_layers[i].ready = 0;
+   }
+   pok_arinc653_semaphores_initialized = 1;
+}
+
+#define CHECK_SEM_INIT if (!pok_arinc653_semaphores_initialized) init_semaphores();
 
 void CREATE_SEMAPHORE (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
                        SEMAPHORE_VALUE_TYPE CURRENT_VALUE,
@@ -64,39 +69,57 @@ void CREATE_SEMAPHORE (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
 
    *RETURN_CODE = INVALID_CONFIG;
 
-   GET_SEMAPHORE_ID (SEMAPHORE_NAME, SEMAPHORE_ID, &return_code_name);
+   // XXX global creation lock?
 
-   if (return_code_name == INVALID_CONFIG)
-   {
-      *RETURN_CODE = INVALID_CONFIG;
-      return;
+   // try to find existing one
+   size_t i;
+   for (i = 0; i < POK_CONFIG_ARINC653_NB_SEMAPHORES; i++) {
+      if (pok_arinc653_semaphores_layers[i].ready && 
+          POK_SEM_NAME_EQ(SEMAPHORE_NAME, pok_arinc653_semaphores_layers[i].name)) 
+      {
+         *RETURN_CODE = NO_ACTION;
+         return;
+      }
    }
 
-
-   if (*SEMAPHORE_ID > POK_CONFIG_ARINC653_NB_SEMAPHORES)
-   {
-      *RETURN_CODE = INVALID_CONFIG;
-      return;
-   }
-
-   if (pok_arinc653_semaphores_layers[*SEMAPHORE_ID].ready)
-   {
-      *RETURN_CODE = NO_ACTION;
-      return;
-   }
-
-   core_ret = pok_sem_create (&sem_id, CURRENT_VALUE, MAXIMUM_VALUE, QUEUING_DISCIPLINE);
-
-   if (core_ret != POK_ERRNO_OK)
-   {
+   // create a new one
+   // ...but first, check the parameters
+   if (CURRENT_VALUE > MAXIMUM_VALUE) {
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
+   pok_queueing_discipline_t discipline;
+   switch (QUEUING_DISCIPLINE) {
+      // XXX lockobj doesn't seem to care about locking policy anyway...
+      case FIFO: discipline = 0; break;
+      case PRIORITY: discipline = 1; break;
+      default: 
+         *RETURN_CODE = INVALID_PARAM;
+         return; 
+   }
+   for (i = 0; i < POK_CONFIG_ARINC653_NB_SEMAPHORES; i++) {
+      if (!pok_arinc653_semaphores_layers[i].ready) {
 
-   pok_arinc653_semaphores_layers[*SEMAPHORE_ID].ready     = 1;
-   pok_arinc653_semaphores_layers[*SEMAPHORE_ID].core_id   = sem_id;
+         core_ret = pok_sem_create(&sem_id, CURRENT_VALUE, MAXIMUM_VALUE, QUEUING_DISCIPLINE);
+         if (core_ret != POK_ERRNO_OK) {
+            // XXX figure out exact cause of the error
+            *RETURN_CODE = INVALID_PARAM;
+            printf("couldn't create underlying semaphore %d\n", (int) core_ret);
+            return;
+         }
 
-   *RETURN_CODE = NO_ERROR;
+         pok_arinc653_semaphores_layers[i].ready = 1;
+         pok_arinc653_semaphores_layers[i].core_id = sem_id;
+         strncpy(pok_arinc653_semaphores_layers[i].name, SEMAPHORE_NAME, POK_SEM_MAX_NAME_LENGTH);
+         *RETURN_CODE = NO_ERROR;
+         *SEMAPHORE_ID = i;
+         return;
+      }
+   }
+
+   // out of semaphores
+   *RETURN_CODE = INVALID_CONFIG;
+   return;
 }
 
 void WAIT_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
@@ -107,12 +130,13 @@ void WAIT_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
 
    CHECK_SEM_INIT;
 
-   if (SEMAPHORE_ID > POK_CONFIG_ARINC653_NB_SEMAPHORES)
+   if (SEMAPHORE_ID >= POK_CONFIG_ARINC653_NB_SEMAPHORES)
    {
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
 
+   // XXX convert ns to ms?
    core_ret = pok_sem_wait (pok_arinc653_semaphores_layers[SEMAPHORE_ID].core_id, TIME_OUT);
 
    *RETURN_CODE = INVALID_PARAM;
@@ -135,7 +159,7 @@ void SIGNAL_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
 
    CHECK_SEM_INIT;
 
-   if (SEMAPHORE_ID > POK_CONFIG_ARINC653_NB_SEMAPHORES)
+   if (SEMAPHORE_ID >= POK_CONFIG_ARINC653_NB_SEMAPHORES)
    {
       *RETURN_CODE = INVALID_PARAM;
       return;
@@ -157,18 +181,15 @@ void GET_SEMAPHORE_ID (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
                        SEMAPHORE_ID_TYPE *SEMAPHORE_ID,
                        RETURN_CODE_TYPE *RETURN_CODE )
 {
-   uint16_t i;
-   uint16_t len;
+   size_t i;
 
    CHECK_SEM_INIT;
-
-   len = strlen (SEMAPHORE_NAME);
 
    *RETURN_CODE = INVALID_CONFIG;
 
    for (i = 0 ; i < POK_CONFIG_ARINC653_NB_SEMAPHORES ; i++)
    {
-      if (strncmp (pok_arinc653_semaphores_names[i], SEMAPHORE_NAME, len) == 0)
+      if (POK_SEM_NAME_EQ(pok_arinc653_semaphores_layers[i].name, SEMAPHORE_NAME))
       {
          *SEMAPHORE_ID = i;
          *RETURN_CODE = NO_ERROR;
@@ -181,10 +202,29 @@ void GET_SEMAPHORE_STATUS (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
                            SEMAPHORE_STATUS_TYPE *SEMAPHORE_STATUS,
                            RETURN_CODE_TYPE *RETURN_CODE )
 {
-   (void) SEMAPHORE_ID;
-   (void) SEMAPHORE_STATUS;
-
    CHECK_SEM_INIT;
+
+   if (SEMAPHORE_ID >= POK_CONFIG_ARINC653_NB_SEMAPHORES) {
+      *RETURN_CODE = INVALID_PARAM;
+      return;
+   }
+   if (!pok_arinc653_semaphores_layers[SEMAPHORE_ID].ready) {
+      *RETURN_CODE = INVALID_PARAM;
+      return;
+   }
+
+   pok_sem_status_t status;
+   pok_ret_t core_ret = pok_sem_status(SEMAPHORE_ID, &status);
+   
+   if (core_ret != POK_ERRNO_OK) {
+      // shouldn't happen
+      *RETURN_CODE = INVALID_PARAM;
+      return;
+   }
+
+   SEMAPHORE_STATUS->CURRENT_VALUE = status.current_value;
+   SEMAPHORE_STATUS->MAXIMUM_VALUE = status.maximum_value;
+   SEMAPHORE_STATUS->WAITING_PROCESSES = status.waiting_processes;
 
    *RETURN_CODE = NO_ERROR;
 }

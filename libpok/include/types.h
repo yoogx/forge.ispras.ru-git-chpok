@@ -40,7 +40,6 @@ typedef uint8_t   pok_mutex_id_t;
 typedef uint16_t  pok_event_id_t;
 typedef uint8_t   pok_sem_id_t;
 typedef uint8_t   pok_partition_id_t;
-typedef uint8_t   pok_sem_status_t;
 typedef uint16_t  pok_sem_value_t;
 
 typedef uint64_t  pok_time_t;
