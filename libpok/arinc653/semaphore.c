@@ -32,6 +32,9 @@
 #define POK_SEM_MAX_NAME_LENGTH 30
 #define POK_SEM_NAME_EQ(x, y) (strncmp((x), (y), POK_SEM_MAX_NAME_LENGTH) == 0)
 
+#define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
+#define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
+
 typedef struct
 {
    pok_bool_t        ready;
@@ -153,21 +156,38 @@ void WAIT_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
-
-   // XXX convert ns to ms?
-   core_ret = pok_sem_wait (pok_arinc653_semaphores_layers[SEMAPHORE_ID].core_id, TIME_OUT);
-
-   *RETURN_CODE = INVALID_PARAM;
-
-   if (core_ret == POK_ERRNO_OK)
+   
+   if (!pok_arinc653_semaphores_layers[SEMAPHORE_ID].ready) 
    {
-      *RETURN_CODE = NO_ERROR;
+      *RETURN_CODE = INVALID_PARAM;
+      return;
    }
 
-   if (core_ret == POK_ERRNO_TIMEOUT)
-   {
-      *RETURN_CODE = TIMED_OUT;
+   if (TIME_OUT == 0) {
+     // check semaphore without blocking
+     core_ret = pok_sem_trywait(pok_arinc653_semaphores_layers[SEMAPHORE_ID].core_id);
+     switch (core_ret) {
+        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR(POK_ERRNO_TIMEOUT, NOT_AVAILABLE);
+        MAP_ERROR_DEFAULT(INVALID_PARAM);
+     }
+   } else {
+      uint64_t delay_ms;
+      if (TIME_OUT < 0) {
+         delay_ms = 0;
+      } else {
+         delay_ms = (uint32_t) TIME_OUT / 1000000;
+         if ((uint32_t) TIME_OUT % 1000000) delay_ms++;
+      }
+      core_ret = pok_sem_wait (pok_arinc653_semaphores_layers[SEMAPHORE_ID].core_id, delay_ms);
+
+      switch (core_ret) {
+         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+         MAP_ERROR(POK_ERRNO_TIMEOUT, TIMED_OUT);
+         MAP_ERROR_DEFAULT(INVALID_PARAM);
+      }
    }
+
 }
 
 void SIGNAL_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
@@ -178,6 +198,12 @@ void SIGNAL_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
    CHECK_SEM_INIT;
 
    if (SEMAPHORE_ID >= POK_CONFIG_ARINC653_NB_SEMAPHORES)
+   {
+      *RETURN_CODE = INVALID_PARAM;
+      return;
+   }
+
+   if (!pok_arinc653_semaphores_layers[SEMAPHORE_ID].ready) 
    {
       *RETURN_CODE = INVALID_PARAM;
       return;

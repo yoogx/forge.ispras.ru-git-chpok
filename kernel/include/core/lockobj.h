@@ -109,7 +109,8 @@ typedef enum
    LOCKOBJ_OPERATION_UNLOCK = 2,
    LOCKOBJ_OPERATION_WAIT = 3,
    LOCKOBJ_OPERATION_SIGNAL = 4,
-   LOCKOBJ_OPERATION_BROADCAST = 5
+   LOCKOBJ_OPERATION_BROADCAST = 5,
+   LOCKOBJ_OPERATION_TRYLOCK = 6,
 }pok_lockobj_operation_t;
 
 typedef struct
@@ -131,7 +132,7 @@ typedef struct {
 pok_ret_t pok_lockobj_create (pok_lockobj_t* obj, const pok_lockobj_attr_t* attr);
 pok_ret_t pok_lockobj_init ();
 pok_ret_t pok_lockobj_partition_create (pok_lockobj_id_t* id, const pok_lockobj_attr_t* attr);
-pok_ret_t pok_lockobj_lock (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* attr);
+pok_ret_t pok_lockobj_lock (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* attr, bool_t noblock);
 pok_ret_t pok_lockobj_unlock (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* attr);
 pok_ret_t pok_lockobj_eventwait (pok_lockobj_t* obj, const uint64_t timeout);
 pok_ret_t pok_lockobj_eventsignal (pok_lockobj_t* obj);

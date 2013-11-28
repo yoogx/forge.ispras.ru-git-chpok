@@ -45,6 +45,8 @@ pok_ret_t pok_sem_create (pok_sem_id_t*                        id,
 pok_ret_t pok_sem_wait (pok_sem_id_t       id,
                         uint64_t           timeout);
 
+pok_ret_t pok_sem_trywait (pok_sem_id_t    id);
+
 pok_ret_t pok_sem_signal (pok_sem_id_t     id);
 
 pok_ret_t pok_sem_id (char*            name,
