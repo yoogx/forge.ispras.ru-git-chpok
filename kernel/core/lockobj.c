@@ -488,6 +488,33 @@ pok_ret_t pok_lockobj_partition_wrapper (const pok_lockobj_id_t id, const pok_lo
    }
    return POK_ERRNO_EINVAL;
 }
+
+pok_ret_t pok_lockobj_partition_status(pok_lockobj_id_t id, pok_lockobj_status_t *status)
+{
+   if (id < pok_partitions[POK_SCHED_CURRENT_PARTITION].lockobj_index_low)
+   {
+      return POK_ERRNO_EINVAL;
+   }
+   
+   if ( id >= pok_partitions[POK_SCHED_CURRENT_PARTITION].lockobj_index_high)
+   {
+      return POK_ERRNO_EINVAL;
+   }
+
+   const pok_lockobj_t *obj = &pok_partitions_lockobjs[id];
+
+   if (!obj->initialized) 
+   {
+      return POK_ERRNO_LOCKOBJ_NOTREADY;
+   }
+   
+   status->current_value = obj->current_value;
+   status->maximum_value = obj->max_value;
+   status->waiting_processes = 0; // XXX
+
+   return POK_ERRNO_OK;
+}
+
 #endif
 
 #endif

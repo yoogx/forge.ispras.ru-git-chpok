@@ -120,6 +120,13 @@ typedef struct
    uint64_t                   time;
 }pok_lockobj_lockattr_t;
 
+// in user space it's called pok_sem_status_t
+// layout is the same
+typedef struct {
+    uint32_t current_value;
+    uint32_t maximum_value;
+    uint32_t waiting_processes; 
+} pok_lockobj_status_t; 
 
 pok_ret_t pok_lockobj_create (pok_lockobj_t* obj, const pok_lockobj_attr_t* attr);
 pok_ret_t pok_lockobj_init ();
@@ -130,5 +137,6 @@ pok_ret_t pok_lockobj_eventwait (pok_lockobj_t* obj, const uint64_t timeout);
 pok_ret_t pok_lockobj_eventsignal (pok_lockobj_t* obj);
 pok_ret_t pok_lockobj_eventbroadcast (pok_lockobj_t* obj);
 pok_ret_t pok_lockobj_partition_wrapper (const pok_lockobj_id_t id, const pok_lockobj_lockattr_t* attr);
+pok_ret_t pok_lockobj_partition_status (const pok_lockobj_id_t id, pok_lockobj_status_t* attr);
 
 #endif

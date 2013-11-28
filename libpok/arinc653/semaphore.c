@@ -214,7 +214,7 @@ void GET_SEMAPHORE_STATUS (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
    }
 
    pok_sem_status_t status;
-   pok_ret_t core_ret = pok_sem_status(SEMAPHORE_ID, &status);
+   pok_ret_t core_ret = pok_sem_status(pok_arinc653_semaphores_layers[SEMAPHORE_ID].core_id, &status);
    
    if (core_ret != POK_ERRNO_OK) {
       // shouldn't happen

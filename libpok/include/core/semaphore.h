@@ -28,10 +28,12 @@
 
 #define POK_SEMAPHORE_DISCIPLINE_FIFO 1
 
+// in kernel it's called pok_lockobj_status_t
+// layout is the same
 typedef struct {
-    int32_t current_value;
-    int32_t maximum_value;
-    int32_t waiting_processes; 
+    uint32_t current_value;
+    uint32_t maximum_value;
+    uint32_t waiting_processes; 
 } pok_sem_status_t;
 
 

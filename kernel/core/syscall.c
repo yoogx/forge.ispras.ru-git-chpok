@@ -314,14 +314,19 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
       case POK_SYSCALL_LOCKOBJ_OPERATION:
          if (args->arg2 == NULL)
          {
-            return pok_lockobj_partition_wrapper ((const uint8_t) args->arg1, NULL);
+            return pok_lockobj_partition_wrapper ((pok_lockobj_id_t) args->arg1, NULL);
          }
          else
          {
             POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg2 + infos->base_addr)
-            return pok_lockobj_partition_wrapper   ((const uint8_t) args->arg1,
+            return pok_lockobj_partition_wrapper   ((pok_lockobj_id_t) args->arg1,
                                                    (pok_lockobj_lockattr_t*) (args->arg2 + infos->base_addr));
          }
+         break;
+      case POK_SYSCALL_LOCKOBJ_STATUS:
+         POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg2 + infos->base_addr)
+         return pok_lockobj_partition_status((pok_lockobj_id_t) args->arg1, 
+                                             (pok_lockobj_status_t*) (args->arg2 + infos->base_addr));
          break;
 #endif /* POK_NEEDS_LOCKOBJECTS */
 

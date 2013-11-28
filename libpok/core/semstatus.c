@@ -20,13 +20,14 @@
 #include <types.h>
 #include <errno.h>
 #include <core/semaphore.h>
+#include <core/syscall.h>
 
 pok_ret_t pok_sem_status (pok_sem_id_t       id,
                           pok_sem_status_t*  status)
 {
-   (void)id;
-   (void)status;
-   return POK_ERRNO_UNAVAILABLE;
+  return pok_syscall2  (POK_SYSCALL_LOCKOBJ_STATUS,
+			(uint32_t)id,
+			(uint32_t)status);
 }
 
 #endif

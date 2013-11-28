@@ -65,6 +65,7 @@ typedef enum
 #if defined (POK_NEEDS_LOCKOBJECTS) || defined (POK_NEEDS_MUTEXES) || defined (POK_NEEDS_SEMAPHORES) || defined (POK_NEEDS_EVENTS) || defined (POK_NEEDS_BUFFERS) || defined (POK_NEEDS_BLACKBOARDS)
 	 POK_SYSCALL_LOCKOBJ_CREATE                      = 201,
 	 POK_SYSCALL_LOCKOBJ_OPERATION                   = 202,
+	 POK_SYSCALL_LOCKOBJ_STATUS                      = 203,
 #endif
 #ifdef POK_NEEDS_ERROR_HANDLING
 	 POK_SYSCALL_ERROR_HANDLER_CREATE                = 301,
