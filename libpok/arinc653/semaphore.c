@@ -27,6 +27,7 @@
 #include <arinc653/semaphore.h>
 #include <core/semaphore.h>
 #include <core/partition.h>
+#include <core/thread.h>
 
 // must be at least MAX_NAME_LENGTH of ARINC653
 #define POK_SEM_MAX_NAME_LENGTH 30
@@ -215,6 +216,8 @@ void SIGNAL_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
    if (core_ret == POK_ERRNO_OK)
    {
       *RETURN_CODE = NO_ERROR;
+      // XXX should yield only if there're waiting processes
+      pok_thread_yield();
    }
    else
    {
