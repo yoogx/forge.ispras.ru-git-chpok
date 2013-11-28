@@ -134,7 +134,7 @@ void CREATE_SEMAPHORE (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
          pok_arinc653_semaphores_layers[i].core_id = sem_id;
          strncpy(pok_arinc653_semaphores_layers[i].name, SEMAPHORE_NAME, POK_SEM_MAX_NAME_LENGTH);
          *RETURN_CODE = NO_ERROR;
-         *SEMAPHORE_ID = i;
+         *SEMAPHORE_ID = i + 1;
          return;
       }
    }
@@ -152,13 +152,20 @@ void WAIT_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
 
    CHECK_SEM_INIT;
 
-   if (SEMAPHORE_ID >= POK_CONFIG_ARINC653_NB_SEMAPHORES)
+   if (SEMAPHORE_ID == 0) {
+      *RETURN_CODE = INVALID_PARAM;
+      return;
+   }
+
+   size_t sem_layer_idx = SEMAPHORE_ID - 1;
+
+   if (sem_layer_idx >= POK_CONFIG_ARINC653_NB_SEMAPHORES)
    {
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
    
-   if (!pok_arinc653_semaphores_layers[SEMAPHORE_ID].ready) 
+   if (!pok_arinc653_semaphores_layers[sem_layer_idx].ready) 
    {
       *RETURN_CODE = INVALID_PARAM;
       return;
@@ -166,7 +173,7 @@ void WAIT_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
 
    if (TIME_OUT == 0) {
      // check semaphore without blocking
-     core_ret = pok_sem_trywait(pok_arinc653_semaphores_layers[SEMAPHORE_ID].core_id);
+     core_ret = pok_sem_trywait(pok_arinc653_semaphores_layers[sem_layer_idx].core_id);
      switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
         MAP_ERROR(POK_ERRNO_TIMEOUT, NOT_AVAILABLE);
@@ -180,7 +187,7 @@ void WAIT_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
          delay_ms = (uint32_t) TIME_OUT / 1000000;
          if ((uint32_t) TIME_OUT % 1000000) delay_ms++;
       }
-      core_ret = pok_sem_wait (pok_arinc653_semaphores_layers[SEMAPHORE_ID].core_id, delay_ms);
+      core_ret = pok_sem_wait (pok_arinc653_semaphores_layers[sem_layer_idx].core_id, delay_ms);
 
       switch (core_ret) {
          MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
@@ -199,19 +206,26 @@ void SIGNAL_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
 
    CHECK_SEM_INIT;
 
-   if (SEMAPHORE_ID >= POK_CONFIG_ARINC653_NB_SEMAPHORES)
+   if (SEMAPHORE_ID == 0) {
+      *RETURN_CODE = INVALID_PARAM;
+      return;
+   }
+
+   size_t sem_layer_idx = SEMAPHORE_ID - 1;
+
+   if (sem_layer_idx >= POK_CONFIG_ARINC653_NB_SEMAPHORES)
    {
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
 
-   if (!pok_arinc653_semaphores_layers[SEMAPHORE_ID].ready) 
+   if (!pok_arinc653_semaphores_layers[sem_layer_idx].ready) 
    {
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
 
-   core_ret = pok_sem_signal (pok_arinc653_semaphores_layers[SEMAPHORE_ID].core_id);
+   core_ret = pok_sem_signal (pok_arinc653_semaphores_layers[sem_layer_idx].core_id);
 
    if (core_ret == POK_ERRNO_OK)
    {
@@ -239,7 +253,7 @@ void GET_SEMAPHORE_ID (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
    {
       if (POK_SEM_NAME_EQ(pok_arinc653_semaphores_layers[i].name, SEMAPHORE_NAME))
       {
-         *SEMAPHORE_ID = i;
+         *SEMAPHORE_ID = i + 1;
          *RETURN_CODE = NO_ERROR;
          break;
       }
@@ -252,17 +266,24 @@ void GET_SEMAPHORE_STATUS (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
 {
    CHECK_SEM_INIT;
 
-   if (SEMAPHORE_ID >= POK_CONFIG_ARINC653_NB_SEMAPHORES) {
+   if (SEMAPHORE_ID == 0) {
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
-   if (!pok_arinc653_semaphores_layers[SEMAPHORE_ID].ready) {
+
+   size_t sem_layer_idx = SEMAPHORE_ID - 1;
+
+   if (sem_layer_idx >= POK_CONFIG_ARINC653_NB_SEMAPHORES) {
+      *RETURN_CODE = INVALID_PARAM;
+      return;
+   }
+   if (!pok_arinc653_semaphores_layers[sem_layer_idx].ready) {
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
 
    pok_sem_status_t status;
-   pok_ret_t core_ret = pok_sem_status(pok_arinc653_semaphores_layers[SEMAPHORE_ID].core_id, &status);
+   pok_ret_t core_ret = pok_sem_status(pok_arinc653_semaphores_layers[sem_layer_idx].core_id, &status);
    
    if (core_ret != POK_ERRNO_OK) {
       // shouldn't happen
