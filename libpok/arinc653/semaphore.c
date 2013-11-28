@@ -26,6 +26,7 @@
 #include <arinc653/types.h>
 #include <arinc653/semaphore.h>
 #include <core/semaphore.h>
+#include <core/partition.h>
 
 // must be at least MAX_NAME_LENGTH of ARINC653
 #define POK_SEM_MAX_NAME_LENGTH 30
@@ -70,6 +71,16 @@ void CREATE_SEMAPHORE (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
    *RETURN_CODE = INVALID_CONFIG;
 
    // XXX global creation lock?
+   //
+
+#ifdef POK_NEEDS_PARTITIONS
+   pok_partition_mode_t operating_mode;
+   pok_current_partition_get_operating_mode(&operating_mode);
+   if (operating_mode == POK_PARTITION_MODE_NORMAL) {
+      *RETURN_CODE = INVALID_MODE;
+      return;
+   }
+#endif 
 
    // try to find existing one
    size_t i;
@@ -84,7 +95,10 @@ void CREATE_SEMAPHORE (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
 
    // create a new one
    // ...but first, check the parameters
-   if (CURRENT_VALUE > MAXIMUM_VALUE) {
+   if (CURRENT_VALUE < 0 || 
+       MAXIMUM_VALUE < 0 ||
+       CURRENT_VALUE > MAXIMUM_VALUE) 
+   {
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
@@ -103,8 +117,12 @@ void CREATE_SEMAPHORE (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
          core_ret = pok_sem_create(&sem_id, CURRENT_VALUE, MAXIMUM_VALUE, QUEUING_DISCIPLINE);
          if (core_ret != POK_ERRNO_OK) {
             // XXX figure out exact cause of the error
+            if (core_ret == POK_ERRNO_LOCKOBJ_UNAVAILABLE) {
+                // out of underlying lock objects
+                *RETURN_CODE = INVALID_CONFIG;
+                return;
+            }
             *RETURN_CODE = INVALID_PARAM;
-            printf("couldn't create underlying semaphore %d\n", (int) core_ret);
             return;
          }
 
