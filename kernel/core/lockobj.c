@@ -312,6 +312,12 @@ pok_ret_t pok_lockobj_lock (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* at
          return POK_ERRNO_TIMEOUT;
       }
 
+      if (POK_CURRENT_PARTITION.lock_level > 0) {
+         // thread would block on itself
+         SPIN_UNLOCK (obj->spin);
+         return POK_ERRNO_MODE;
+      }
+
       /*
        * attr->time corresponds to the timeout for the waiting object
        */
@@ -330,6 +336,7 @@ pok_ret_t pok_lockobj_lock (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* at
             if (POK_GETTICK() >= timeout)
             {
                obj->thread_state[POK_SCHED_CURRENT_THREAD] = LOCKOBJ_STATE_UNLOCK;
+               SPIN_UNLOCK (obj->spin);
                return POK_ERRNO_TIMEOUT;
             }
          }
@@ -340,6 +347,7 @@ pok_ret_t pok_lockobj_lock (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* at
          
          SPIN_UNLOCK (obj->spin);
          pok_sched();     /* reschedule baby, reschedule !! */
+         SPIN_LOCK (obj->spin);
       }
       
       switch (obj->kind)
@@ -371,6 +379,8 @@ pok_ret_t pok_lockobj_lock (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* at
         pok_sched_unlock_thread (POK_SCHED_CURRENT_THREAD);
       }
    }
+
+   SPIN_UNLOCK (obj->spin);
 
    return POK_ERRNO_OK;
 }

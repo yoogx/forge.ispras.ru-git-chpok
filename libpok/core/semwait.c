@@ -22,6 +22,7 @@
 #include <core/semaphore.h>
 #include <core/lockobj.h>
 #include <core/syscall.h>
+#include <core/time.h>
 
 pok_ret_t pok_sem_wait (pok_sem_id_t       id,
                         uint64_t           timeout)
@@ -29,7 +30,13 @@ pok_ret_t pok_sem_wait (pok_sem_id_t       id,
    pok_lockobj_lockattr_t lockattr;
    lockattr.operation   = LOCKOBJ_OPERATION_LOCK;
    lockattr.obj_kind    = POK_LOCKOBJ_KIND_SEMAPHORE;
-   lockattr.time        = timeout;
+   if (timeout > 0)
+   {
+      pok_time_gettick (&lockattr.time);
+      lockattr.time        += timeout;
+   } else {
+      lockattr.time         = 0; // infinite
+   }
    return (pok_syscall2 (POK_SYSCALL_LOCKOBJ_OPERATION, (uint32_t)id, (uint32_t)&lockattr));
 }
 
