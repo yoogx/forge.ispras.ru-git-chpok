@@ -388,6 +388,7 @@ pok_ret_t pok_lockobj_lock (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* at
 pok_ret_t pok_lockobj_unlock (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* attr)
 {
    uint32_t res;
+   pok_ret_t ret;
 
    (void) attr;         /* unused at this time */
    
@@ -399,6 +400,7 @@ pok_ret_t pok_lockobj_unlock (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* 
    res = 0;
    SPIN_LOCK (obj->spin);
 
+   ret = POK_ERRNO_OK;
    switch (obj->kind)
    {
       case POK_LOCKOBJ_KIND_SEMAPHORE:
@@ -406,6 +408,9 @@ pok_ret_t pok_lockobj_unlock (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* 
          if (obj->current_value < obj->max_value)
          {
             obj->current_value++;
+         } else 
+         {
+            ret = POK_ERRNO_FULL;
          }
          obj->is_locked = FALSE;
          break;
@@ -442,7 +447,7 @@ pok_ret_t pok_lockobj_unlock (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* 
    obj->thread_state[POK_SCHED_CURRENT_THREAD] = LOCKOBJ_STATE_UNLOCK;
    SPIN_UNLOCK (obj->spin);
 
-   return POK_ERRNO_OK;
+   return ret;
 }
 
 #ifdef POK_NEEDS_LOCKOBJECTS

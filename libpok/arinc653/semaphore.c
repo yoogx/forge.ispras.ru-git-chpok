@@ -227,9 +227,13 @@ void SIGNAL_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
 
    core_ret = pok_sem_signal (pok_arinc653_semaphores_layers[sem_layer_idx].core_id);
 
-   if (core_ret == POK_ERRNO_OK)
+   if (core_ret == POK_ERRNO_OK || core_ret == POK_ERRNO_FULL)
    {
       *RETURN_CODE = NO_ERROR;
+      if (core_ret == POK_ERRNO_FULL) {
+         // semaphore's value is already at max
+         *RETURN_CODE = NO_ACTION;
+      }
       // XXX should yield only if there're waiting processes
       pok_thread_yield();
    }
