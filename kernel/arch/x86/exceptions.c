@@ -227,7 +227,7 @@ INTERRUPT_HANDLER (exception_invalidopcode)
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
 
    #ifdef POK_NEEDS_DEBUG
-   printf ("[KERNEL] Raise exception invalid opcode fault, current thread: %d\n", POK_SCHED_CURRENT_THREAD);
+   printf ("[KERNEL] Raise exception invalid opcode fault, current thread: %d, EIP: 0x%x\n", POK_SCHED_CURRENT_THREAD, frame->eip);
    #endif
 
   pok_error_declare (POK_ERROR_KIND_ILLEGAL_REQUEST);
