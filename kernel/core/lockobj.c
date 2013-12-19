@@ -456,8 +456,6 @@ pok_ret_t pok_lockobj_partition_wrapper (const pok_lockobj_id_t id, const pok_lo
    /* First, we check that the locked object belongs to the partition
     * If not, we return an error
     */
-   pok_ret_t ret;
-
    if (id < pok_partitions[POK_SCHED_CURRENT_PARTITION].lockobj_index_low)
    {
       return POK_ERRNO_EINVAL;
@@ -476,45 +474,26 @@ pok_ret_t pok_lockobj_partition_wrapper (const pok_lockobj_id_t id, const pok_lo
    switch (attr->operation)
    {
       case LOCKOBJ_OPERATION_LOCK:
-         ret = pok_lockobj_lock (&pok_partitions_lockobjs[id], attr, FALSE);
-         return ret;
-         break;
+         return pok_lockobj_lock (&pok_partitions_lockobjs[id], attr, FALSE);
 
       case LOCKOBJ_OPERATION_TRYLOCK:
-         ret = pok_lockobj_lock(&pok_partitions_lockobjs[id], attr, TRUE);
-         return ret;
-         break;
+         return pok_lockobj_lock(&pok_partitions_lockobjs[id], attr, TRUE);
 
       case LOCKOBJ_OPERATION_UNLOCK:
-         {
-            ret = pok_lockobj_unlock (&pok_partitions_lockobjs[id], attr);
-            return ret;
-            break;
-         }
+         return pok_lockobj_unlock (&pok_partitions_lockobjs[id], attr);
 
       case LOCKOBJ_OPERATION_WAIT:
-         {
-            ret = pok_lockobj_eventwait (&pok_partitions_lockobjs[id], attr->time);
-            return ret;
-            break;
-         }
+         return pok_lockobj_eventwait (&pok_partitions_lockobjs[id], attr->time);
 
       case LOCKOBJ_OPERATION_SIGNAL:
-         {
-            ret = pok_lockobj_eventsignal (&pok_partitions_lockobjs[id]);
-            break;
-         }
+         return pok_lockobj_eventsignal (&pok_partitions_lockobjs[id]);
 
       case LOCKOBJ_OPERATION_BROADCAST:
-         {
-            ret = pok_lockobj_eventbroadcast (&pok_partitions_lockobjs[id]);
-            break;
-         }
+         return pok_lockobj_eventbroadcast (&pok_partitions_lockobjs[id]);
 
       default:
          return POK_ERRNO_EINVAL;
    }
-   return POK_ERRNO_EINVAL;
 }
 
 pok_ret_t pok_lockobj_partition_status(pok_lockobj_id_t id, pok_lockobj_status_t *status)
