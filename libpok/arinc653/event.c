@@ -25,18 +25,15 @@
 
 #include <errno.h>            /* For POK_ERRNO_... maccros */
 
-#define CHECK_EVENTS_INIT if (pok_arinc653_events_initialized == 0) \
-                       { \
-                          uint16_t bla; \
-                          for (bla = 0 ; bla < POK_CONFIG_ARINC653_NB_EVENTS ; bla++) \
-                          {\
-                             pok_arinc653_events_layers[bla].ready = 0;\
-                          }\
-                       }\
-                       pok_arinc653_events_initialized = 1;
+#include <core/partition.h>
+#include <core/thread.h>
 
+// must be at least MAX_NAME_LENGTH of ARINC653
+#define POK_EVENT_MAX_NAME_LENGTH 30
+#define POK_EVENT_NAME_EQ(x, y) (strncmp((x), (y), POK_EVENT_MAX_NAME_LENGTH) == 0)
 
-
+#define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
+#define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
 
 bool_t pok_arinc653_events_initialized = 0;
 
@@ -44,10 +41,22 @@ typedef struct
 {
    pok_event_id_t    core_id;
    pok_bool_t        ready;
+   pok_bool_t        is_up;
+   char              name[POK_EVENT_MAX_NAME_LENGTH];
 }pok_arinc653_event_layer_t;
 
-extern char*                  pok_arinc653_events_names[POK_CONFIG_ARINC653_NB_EVENTS];
 pok_arinc653_event_layer_t    pok_arinc653_events_layers[POK_CONFIG_NB_EVENTS];
+
+static void init_events() 
+{
+   size_t i;
+   for (i = 0; i < POK_CONFIG_ARINC653_NB_EVENTS; i++) {
+      pok_arinc653_events_layers[i].ready = 0;
+   }
+   pok_arinc653_events_initialized = 1;
+}
+
+#define CHECK_EVENTS_INIT if (!pok_arinc653_events_initialized) init_events();
 
 void CREATE_EVENT (EVENT_NAME_TYPE EVENT_NAME,
                    EVENT_ID_TYPE *EVENT_ID,
@@ -61,41 +70,52 @@ void CREATE_EVENT (EVENT_NAME_TYPE EVENT_NAME,
 
    CHECK_EVENTS_INIT
 
-   GET_EVENT_ID (EVENT_NAME, EVENT_ID, &return_code_name);
-
-   if (return_code_name == INVALID_CONFIG)
-   {
-      *RETURN_CODE = INVALID_CONFIG;
+#ifdef POK_NEEDS_PARTITIONS
+   pok_partition_mode_t operating_mode;
+   pok_current_partition_get_operating_mode(&operating_mode);
+   if (operating_mode == POK_PARTITION_MODE_NORMAL) {
+      *RETURN_CODE = INVALID_MODE;
       return;
    }
+#endif 
 
-   if (*EVENT_ID >= POK_CONFIG_ARINC653_NB_EVENTS)
-   {
-      *RETURN_CODE = INVALID_CONFIG;
-      return;
+   // try to find existing one
+   size_t i;
+   for (i = 0; i < POK_CONFIG_ARINC653_NB_EVENTS; i++) {
+      if (pok_arinc653_events_layers[i].ready && 
+          POK_EVENT_NAME_EQ(EVENT_NAME, pok_arinc653_events_layers[i].name)) 
+      {
+         *RETURN_CODE = NO_ACTION;
+         return;
+      }
    }
 
-   if (pok_arinc653_events_layers[*EVENT_ID].ready)
-   {
-      *RETURN_CODE = NO_ACTION;
-      return;
+   // otherwise, create a new one
+   for (i = 0; i < POK_CONFIG_ARINC653_NB_EVENTS; i++) {
+      if (!pok_arinc653_events_layers[i].ready) {
+         // found a free one
+         core_ret = pok_event_create(&core_id);
+         if (core_ret != POK_ERRNO_OK) {
+            // XXX figure out exact cause of the error
+            return;
+         }
+
+         pok_arinc653_event_layer_t *evt = &pok_arinc653_events_layers[i];
+
+         evt->ready = TRUE;
+         evt->core_id = core_id;
+         evt->is_up = FALSE;
+         strncpy(evt->name, EVENT_NAME, POK_EVENT_MAX_NAME_LENGTH);
+
+         *EVENT_ID = i + 1;
+         *RETURN_CODE = NO_ERROR;
+         return;
+      }
    }
-
-   core_ret = pok_event_create (&core_id);
-
-   /* DEBUG INFO
-   printf("ID=%d\n", core_id);
-   */
-
-   if (core_ret != POK_ERRNO_OK)
-   {
-      *RETURN_CODE = INVALID_PARAM;
-      return;
-   }
-
-   pok_arinc653_events_layers[*EVENT_ID].ready    = 1;
-   pok_arinc653_events_layers[*EVENT_ID].core_id  = core_id;
-   *RETURN_CODE = NO_ERROR;
+   
+   // out of events
+   *RETURN_CODE = INVALID_CONFIG;
+   return;
 }
 
 void SET_EVENT (EVENT_ID_TYPE EVENT_ID,
@@ -107,27 +127,30 @@ void SET_EVENT (EVENT_ID_TYPE EVENT_ID,
 
    CHECK_EVENTS_INIT
 
-
-   if (EVENT_ID >= POK_CONFIG_ARINC653_NB_EVENTS)
-   {
-      *RETURN_CODE = INVALID_CONFIG;
+   if (EVENT_ID <= 0 || EVENT_ID >= POK_CONFIG_ARINC653_NB_EVENTS) {
+      *RETURN_CODE = INVALID_PARAM;
       return;
    }
 
-   if (pok_arinc653_events_layers[EVENT_ID].ready == 0)
-   {
-      *RETURN_CODE = NOT_AVAILABLE;
+   size_t events_layer_idx = EVENT_ID - 1;
+   pok_arinc653_event_layer_t *evt = &pok_arinc653_events_layers[events_layer_idx];
+
+   if (!evt->ready) {
+      *RETURN_CODE = INVALID_PARAM;
       return;
    }
 
-   core_ret = pok_event_signal (pok_arinc653_events_layers[EVENT_ID].core_id);
-   if (core_ret == POK_ERRNO_OK)
-   {
+   evt->is_up = TRUE;
+
+   core_ret = pok_event_broadcast(evt->core_id);
+   if (core_ret == POK_ERRNO_OK) {
+      // TODO yield only if someone's waiting
+      pok_thread_yield(); 
+
       *RETURN_CODE = NO_ERROR;
       return;
-   }
-   else
-   {
+   } else {
+      printf("pok_event_signal returned %d\n", (int) core_ret);
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
@@ -136,10 +159,25 @@ void SET_EVENT (EVENT_ID_TYPE EVENT_ID,
 void RESET_EVENT (EVENT_ID_TYPE EVENT_ID,
                   RETURN_CODE_TYPE *RETURN_CODE)
 {
-   (void) EVENT_ID;
-   (void) RETURN_CODE;
+   if (EVENT_ID <= 0 || EVENT_ID >= POK_CONFIG_ARINC653_NB_EVENTS)
+   {
+      *RETURN_CODE = INVALID_PARAM;
+      return;
+   }
+   
+   size_t events_layer_idx = EVENT_ID - 1;
+   pok_arinc653_event_layer_t *evt = &pok_arinc653_events_layers[events_layer_idx];
 
-   /* Not yet implemented */
+   if (!evt->ready)
+   {
+      *RETURN_CODE = INVALID_PARAM;
+      return;
+   }
+
+   evt->is_up = FALSE;
+
+   *RETURN_CODE = NO_ERROR;
+   return;
 }
 
 void WAIT_EVENT (EVENT_ID_TYPE EVENT_ID,
@@ -152,19 +190,51 @@ void WAIT_EVENT (EVENT_ID_TYPE EVENT_ID,
 
    CHECK_EVENTS_INIT
 
-   if (EVENT_ID >= POK_CONFIG_ARINC653_NB_EVENTS)
+   if (EVENT_ID <= 0 || EVENT_ID >= POK_CONFIG_ARINC653_NB_EVENTS)
    {
-      *RETURN_CODE = INVALID_CONFIG;
+      *RETURN_CODE = INVALID_PARAM;
+      return;
+   }
+   
+   size_t events_layer_idx = EVENT_ID - 1;
+   pok_arinc653_event_layer_t *evt = &pok_arinc653_events_layers[events_layer_idx];
+
+   if (!evt->ready)
+   {
+      *RETURN_CODE = INVALID_PARAM;
       return;
    }
 
-   if (pok_arinc653_events_layers[EVENT_ID].ready == 0)
-   {
+   if (evt->is_up) {
+      *RETURN_CODE = NO_ERROR;
+      return;
+   }
+
+   // TODO convert timeout
+   if (TIME_OUT == 0) {
+      // don't wait
       *RETURN_CODE = NOT_AVAILABLE;
       return;
+   } 
+
+   int lock_level;
+   pok_current_partition_get_lock_level(&lock_level);
+
+   if (lock_level > 0) {
+      *RETURN_CODE = INVALID_MODE;
+      return;
    }
 
-   core_ret = pok_event_wait (pok_arinc653_events_layers[EVENT_ID].core_id, TIME_OUT);
+   uint64_t delay_ms; 
+   if (TIME_OUT < 0) {
+      delay_ms = 0;
+   } else {
+      // XXX 64-bit division
+      delay_ms = (uint32_t) TIME_OUT / 1000000;
+      if ((uint32_t) TIME_OUT % 1000000) delay_ms++;
+   }
+
+   core_ret = pok_event_wait (pok_arinc653_events_layers[events_layer_idx].core_id, delay_ms);
 
    switch (core_ret)
    {
@@ -186,20 +256,17 @@ void GET_EVENT_ID (EVENT_NAME_TYPE EVENT_NAME,
                    EVENT_ID_TYPE *EVENT_ID,
                    RETURN_CODE_TYPE *RETURN_CODE)
 {
-   uint16_t i;
-   uint16_t len;
+   size_t i;
 
    *RETURN_CODE = INVALID_CONFIG;
-
-   len = strlen (EVENT_NAME);
 
    CHECK_EVENTS_INIT
 
    for (i = 0 ; i < POK_CONFIG_ARINC653_NB_EVENTS ; i++)
    {
-      if (strncmp (EVENT_NAME, pok_arinc653_events_names[i], len) == 0)
+      if (POK_EVENT_NAME_EQ(pok_arinc653_events_layers[i].name, EVENT_NAME))
       {
-         *EVENT_ID = i;
+         *EVENT_ID = i + 1;
          *RETURN_CODE = NO_ERROR;
          return;
       }
@@ -210,9 +277,26 @@ void GET_EVENT_STATUS (EVENT_ID_TYPE EVENT_ID,
                        EVENT_STATUS_TYPE *EVENT_STATUS,
                        RETURN_CODE_TYPE *RETURN_CODE)
 {
-   (void) EVENT_ID;
-   (void) EVENT_STATUS;
-   (void) RETURN_CODE;
+   if (EVENT_ID <= 0 || EVENT_ID >= POK_CONFIG_ARINC653_NB_EVENTS)
+   {
+      *RETURN_CODE = INVALID_PARAM;
+      return;
+   }
+   
+   size_t events_layer_idx = EVENT_ID - 1;
+   pok_arinc653_event_layer_t *evt = &pok_arinc653_events_layers[events_layer_idx];
+
+   if (!pok_arinc653_events_layers[events_layer_idx].ready)
+   {
+      *RETURN_CODE = INVALID_PARAM;
+      return;
+   }
+   
+   // TODO
+   EVENT_STATUS->EVENT_STATE = evt->is_up ? UP : DOWN;
+   EVENT_STATUS->WAITING_PROCESSES = 0;
+
+   *RETURN_CODE = NO_ERROR;
 }
 
 #endif
