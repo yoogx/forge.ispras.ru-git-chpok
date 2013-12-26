@@ -239,7 +239,7 @@ uint32_t	pok_elect_thread(uint8_t new_partition_id)
             break;
          }
 #endif
-         if (new_partition->lock_level > 0) {
+         if (new_partition->lock_level > 0 && pok_threads[new_partition->current_thread].state == POK_STATE_RUNNABLE) {
             elected = new_partition->current_thread;
             break;
          }
@@ -410,23 +410,25 @@ uint32_t pok_sched_part_rms (const uint32_t index_low, const uint32_t index_high
       res = IDLE_THREAD;
    }
 
+
 #ifdef POK_NEEDS_DEBUG
     if ( res!= IDLE_THREAD)
     {
-        printf("--- scheduling thread: %d {%d} --- ", res,
+        printf("--- scheduling thread: %d {period=%d} --- ", res,
 	       pok_threads[res].period);
         from=index_low;
         while ( from <= index_high )
         {
             if ( pok_threads[from].state==POK_STATE_RUNNABLE )
             {
-                printf(" %d {%d} ,",from,pok_threads[from].period);
+                printf(" %d {period=%d} ,",from,pok_threads[from].period);
             }
             from++;
         }
         printf(" are runnable\n");
     }
 #endif
+
 
    return res;
 }
