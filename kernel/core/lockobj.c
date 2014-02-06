@@ -350,6 +350,14 @@ pok_ret_t pok_lockobj_lock (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* at
          SPIN_LOCK (obj->spin);
       }
       
+      // sometimes it's still too late, so check timeout again
+      if (POK_GETTICK() >= timeout)
+      {
+        obj->thread_state[POK_SCHED_CURRENT_THREAD] = LOCKOBJ_STATE_UNLOCK;
+        SPIN_UNLOCK (obj->spin);
+        return POK_ERRNO_TIMEOUT;
+      }
+      
       switch (obj->kind)
       {
          case POK_LOCKOBJ_KIND_SEMAPHORE:
