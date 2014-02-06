@@ -51,7 +51,7 @@ void GET_TIME (SYSTEM_TIME_TYPE *system_time, RETURN_CODE_TYPE *return_code)
 {
    uint64_t time;
    pok_time_get(&time);
-   *system_time = time * 1000;
+   *system_time = ((uint64_t) time) * 1000000;
    *return_code = NO_ERROR;
 }
 
