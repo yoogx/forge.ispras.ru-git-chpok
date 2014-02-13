@@ -220,7 +220,7 @@ pok_ret_t pok_lockobj_eventwait (pok_lockobj_t* obj, const uint64_t timeout)
    pok_sched ();
    obj->thread_state[POK_SCHED_CURRENT_THREAD] = LOCKOBJ_STATE_UNLOCK;
 
-   ret = pok_lockobj_lock (obj, NULL, FALSE);
+   ret = pok_lockobj_lock3 (obj, NULL, FALSE);
 
    if (ret != POK_ERRNO_OK)
    {
@@ -287,8 +287,11 @@ pok_ret_t pok_lockobj_eventbroadcast (pok_lockobj_t* obj)
    return POK_ERRNO_OK;
 }
 
+pok_ret_t pok_lockobj_lock(pok_lockobj_t* obj, const pok_lockobj_lockattr_t* attr) {
+    return pok_lockobj_lock3(obj, attr, FALSE);
+}
 
-pok_ret_t pok_lockobj_lock (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* attr, bool_t noblock)
+pok_ret_t pok_lockobj_lock3 (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* attr, bool_t noblock)
 {
    uint64_t timeout = 0;
 
@@ -482,10 +485,10 @@ pok_ret_t pok_lockobj_partition_wrapper (const pok_lockobj_id_t id, const pok_lo
    switch (attr->operation)
    {
       case LOCKOBJ_OPERATION_LOCK:
-         return pok_lockobj_lock (&pok_partitions_lockobjs[id], attr, FALSE);
+         return pok_lockobj_lock3 (&pok_partitions_lockobjs[id], attr, FALSE);
 
       case LOCKOBJ_OPERATION_TRYLOCK:
-         return pok_lockobj_lock(&pok_partitions_lockobjs[id], attr, TRUE);
+         return pok_lockobj_lock3(&pok_partitions_lockobjs[id], attr, TRUE);
 
       case LOCKOBJ_OPERATION_UNLOCK:
          return pok_lockobj_unlock (&pok_partitions_lockobjs[id], attr);
