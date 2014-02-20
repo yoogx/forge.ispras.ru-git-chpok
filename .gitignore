@@ -1,0 +1,6 @@
+/misc/mk/config.mk
+*.o
+*.lo
+.depend.mk
+.depend
+/libpok/libpok.a
