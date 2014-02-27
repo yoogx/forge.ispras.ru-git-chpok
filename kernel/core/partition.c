@@ -209,7 +209,7 @@ pok_ret_t pok_partition_init ()
       threads_index                       = threads_index + pok_partitions[i].nthreads;
       /* Initialize the threading stuff */
 
-      pok_partitions[i].mode              = POK_PARTITION_MODE_INIT_WARM;
+      pok_partitions[i].mode              = POK_PARTITION_MODE_INIT_COLD;
 
 #ifdef POK_NEEDS_LOCKOBJECTS
       pok_partitions[i].lockobj_index_low    = lockobj_index;
