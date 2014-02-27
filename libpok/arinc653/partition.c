@@ -56,8 +56,7 @@ void SET_PARTITION_MODE (OPERATING_MODE_TYPE operating_mode,
 
       case COLD_START:
          core_mode = POK_PARTITION_MODE_INIT_COLD;
-         *return_code = NOT_AVAILABLE;
-	 return;
+         break;
 
       case WARM_START:
          core_mode = POK_PARTITION_MODE_INIT_WARM;
