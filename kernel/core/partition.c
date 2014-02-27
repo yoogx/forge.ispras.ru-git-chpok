@@ -337,15 +337,6 @@ pok_ret_t pok_partition_set_mode (const uint8_t pid, const pok_partition_mode_t 
           }
 
          /*
-          * Check that only the error thread can restart the partition
-          */
-         if ((POK_CURRENT_PARTITION.thread_error == 0 ) ||
-             (POK_SCHED_CURRENT_THREAD != POK_CURRENT_PARTITION.thread_error))
-         {
-            return POK_ERRNO_PARTITION_MODE;
-         }
-
-         /*
           * The partition fallback in the INIT_WARM mode when it
           * was in the NORMAL mode. So, we check the previous mode
           */
