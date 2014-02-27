@@ -24,6 +24,9 @@
 #include <arinc653/partition.h>
 #include <core/thread.h>
 
+#define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
+#define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
+
 void CREATE_SAMPLING_PORT (
 			 /*in */ SAMPLING_PORT_NAME_TYPE    SAMPLING_PORT_NAME,
 			 /*in */ MESSAGE_SIZE_TYPE          MAX_MESSAGE_SIZE,
@@ -62,7 +65,7 @@ void CREATE_SAMPLING_PORT (
 				 break;
 
 			default:
-				 *RETURN_CODE = INVALID_PARAM;
+				 *RETURN_CODE = INVALID_CONFIG;
 				 return;
 	 }
 
@@ -70,7 +73,11 @@ void CREATE_SAMPLING_PORT (
 
 	 *SAMPLING_PORT_ID = core_id;
 
-	 *RETURN_CODE = core_ret;
+   switch (core_ret) {
+      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      MAP_ERROR(POK_ERRNO_EXISTS, NO_ACTION);
+      MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
+   }
 }
 
 void WRITE_SAMPLING_MESSAGE (
@@ -126,7 +133,7 @@ void GET_SAMPLING_PORT_STATUS (
 	core_ret = pok_port_sampling_status(SAMPLING_PORT_ID, &status);
 	SAMPLING_PORT_STATUS->REFRESH_PERIOD = status.refresh;
 	SAMPLING_PORT_STATUS->MAX_MESSAGE_SIZE = status.size;
-	SAMPLING_PORT_STATUS->PORT_DIRECTION = status.direction;
+	SAMPLING_PORT_STATUS->PORT_DIRECTION = (status.direction == POK_PORT_DIRECTION_OUT) ? SOURCE : DESTINATION;
 	SAMPLING_PORT_STATUS->LAST_MSG_VALIDITY = status.validity;
 	*RETURN_CODE = core_ret;
 }
