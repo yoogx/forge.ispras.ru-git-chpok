@@ -76,6 +76,7 @@ void CREATE_SAMPLING_PORT (
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
       MAP_ERROR(POK_ERRNO_EXISTS, NO_ACTION);
+      MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
       MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
    }
 }
@@ -106,7 +107,11 @@ void READ_SAMPLING_MESSAGE (
 {
 	 pok_ret_t core_ret;
 	 core_ret = pok_port_sampling_read (SAMPLING_PORT_ID, MESSAGE_ADDR, (pok_port_size_t*) LENGTH, (pok_bool_t*) VALIDITY);
-	 *RETURN_CODE = core_ret;
+   switch (core_ret) {
+      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      MAP_ERROR(POK_ERRNO_EMPTY, NO_ACTION);
+      MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
+   }
 }
 
 void GET_SAMPLING_PORT_ID (

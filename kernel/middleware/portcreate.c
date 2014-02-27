@@ -40,6 +40,12 @@ pok_ret_t pok_port_create (char* name,
 
 	 ret = POK_ERRNO_OK;
 
+#ifdef POK_NEEDS_PARTITIONS
+         if (POK_CURRENT_PARTITION.mode == POK_PARTITION_MODE_NORMAL) 
+         {
+			return POK_ERRNO_MODE; 
+         }
+#endif
 
 	 if (size > POK_PORT_MAX_SIZE)
 	 {
