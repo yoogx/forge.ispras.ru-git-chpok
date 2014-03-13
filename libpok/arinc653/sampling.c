@@ -87,7 +87,11 @@ void CREATE_SAMPLING_PORT (
 				 return;
 	 }
 
-	 core_ret = pok_port_sampling_create (SAMPLING_PORT_NAME, MAX_MESSAGE_SIZE, core_direction, REFRESH_PERIOD, &core_id);
+         // TODO 64-bit division
+         uint64_t refresh_ms = (uint32_t) REFRESH_PERIOD / 1000000;
+         if ((uint32_t) REFRESH_PERIOD % 1000000) refresh_ms++;
+
+	 core_ret = pok_port_sampling_create (SAMPLING_PORT_NAME, MAX_MESSAGE_SIZE, core_direction, refresh_ms, &core_id);
 
 	 *SAMPLING_PORT_ID = core_id;
 
