@@ -31,8 +31,8 @@ extern pok_port_t    pok_ports[POK_CONFIG_NB_PORTS];
 extern pok_queue_t   pok_queue;
 
 pok_ret_t pok_port_create (char* name,
-													 const pok_port_size_t size,
-													 const pok_port_direction_t direction,
+													 pok_port_size_t size,
+													 pok_port_direction_t direction,
 													 uint8_t kind, pok_port_id_t* id)
 {
 	 uint8_t   gid;
@@ -46,6 +46,12 @@ pok_ret_t pok_port_create (char* name,
 			return POK_ERRNO_MODE; 
          }
 #endif
+
+         if (kind == POK_PORT_KIND_SAMPLING) {
+                        size += sizeof(size); // reserve space for message size
+         } else if (kind == POK_PORT_KIND_QUEUEING) {
+                        // XXX
+         }  
 
 	 if (size > POK_PORT_MAX_SIZE)
 	 {

@@ -150,17 +150,16 @@ pok_ret_t pok_port_create (char*                                  name,
 													 uint8_t                                kind,
 													 pok_port_id_t*                         id);
 
-pok_ret_t pok_port_transfer (const uint8_t gid_dst,
-														 const uint8_t gid_src);
+pok_ret_t pok_port_transfer (uint32_t gid_dst, uint32_t gid_src);
 
 void              pok_port_init(void);
 void              pok_port_queueing_flushall (void);
-uint8_t           pok_port_lid_to_gid (uint8_t lid);
-pok_port_size_t   pok_port_available_size (uint8_t gid);
-pok_port_size_t   pok_port_consumed_size (uint8_t gid);
-pok_ret_t         pok_port_get (const uint32_t gid, void *data, const pok_port_size_t size);
-pok_ret_t         pok_port_write (const uint8_t gid, const void *data, const pok_port_size_t size);
-bool_t            pok_own_port (const uint8_t partition, const uint8_t port);
+uint32_t           pok_port_lid_to_gid (uint32_t lid);
+pok_port_size_t   pok_port_available_size (uint32_t gid);
+pok_port_size_t   pok_port_consumed_size (uint32_t gid);
+pok_ret_t         pok_port_get (uint32_t gid, void *data, pok_port_size_t *size);
+pok_ret_t         pok_port_write (uint32_t gid, const void *data, pok_port_size_t size);
+bool_t            pok_own_port (const uint8_t partition, const uint32_t port);
 #endif
 
 

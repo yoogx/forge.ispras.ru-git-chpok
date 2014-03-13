@@ -66,7 +66,7 @@ pok_ret_t pok_port_sampling_read (const pok_port_id_t id,
 
    pok_lockobj_lock (&pok_ports[id].lock, NULL);
 
-   ret = pok_port_get ((uint8_t)id, data, pok_ports[id].size);
+   ret = pok_port_get (id, data, len);
 
    if (ret == POK_ERRNO_EMPTY)
    {
@@ -84,8 +84,6 @@ pok_ret_t pok_port_sampling_read (const pok_port_id_t id,
    {
       *valid = TRUE;
    }
-
-   *len =  pok_ports[id].size;
 
    pok_lockobj_unlock (&pok_ports[id].lock, NULL);
 

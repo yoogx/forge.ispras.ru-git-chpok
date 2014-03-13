@@ -76,12 +76,13 @@ void pok_port_flush_partition (uint8_t pid)
          continue;
       }
 
-      len = pok_port_consumed_size (local);
 
-      if (pok_port_get (local, pok_buffer_flush, len) != POK_ERRNO_OK)
+      if (pok_port_get (local, pok_buffer_flush, &len) != POK_ERRNO_OK)
       {
          continue;
       }
+        
+      // XXX queuing ports?
 
       ndest = pok_ports_nb_destinations[local];
 

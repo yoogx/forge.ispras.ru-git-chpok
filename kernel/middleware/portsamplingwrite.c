@@ -52,7 +52,7 @@ pok_ret_t pok_port_sampling_write (const pok_port_id_t   id,
 
    if (id > POK_CONFIG_NB_PORTS)
    {
-      return POK_ERRNO_EINVAL;
+      return POK_ERRNO_PORT;
    }
 
    if (! pok_own_port (POK_SCHED_CURRENT_PARTITION, id))
@@ -62,7 +62,7 @@ pok_ret_t pok_port_sampling_write (const pok_port_id_t   id,
 
    if (pok_ports[id].ready != TRUE)
    {
-      return POK_ERRNO_EINVAL;
+      return POK_ERRNO_PORT;
    }
    
    if (len > pok_ports[id].size)

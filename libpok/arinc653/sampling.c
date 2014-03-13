@@ -113,7 +113,13 @@ void WRITE_SAMPLING_MESSAGE (
 			 return;
 		 }
 	 core_ret = pok_port_sampling_write (SAMPLING_PORT_ID, MESSAGE_ADDR, LENGTH);
-	 *RETURN_CODE = core_ret;
+   switch (core_ret) {
+      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      MAP_ERROR(POK_ERRNO_PORT, INVALID_PARAM); // port doesn't exists
+      MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG); // incorrect length
+      MAP_ERROR(POK_ERRNO_DIRECTION, INVALID_MODE); 
+      MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
+   }
 }
 
 void READ_SAMPLING_MESSAGE (
