@@ -165,15 +165,22 @@ void GET_SAMPLING_PORT_STATUS (
 			 /*out*/ SAMPLING_PORT_STATUS_TYPE  *SAMPLING_PORT_STATUS,
 			 /*out*/ RETURN_CODE_TYPE           *RETURN_CODE )
 {
-	pok_ret_t core_ret;
-	pok_port_sampling_status_t status;
+    pok_ret_t core_ret;
+    pok_port_sampling_status_t status;
 
-	core_ret = pok_port_sampling_status(SAMPLING_PORT_ID, &status);
-	SAMPLING_PORT_STATUS->REFRESH_PERIOD = status.refresh;
-	SAMPLING_PORT_STATUS->MAX_MESSAGE_SIZE = status.size;
-	SAMPLING_PORT_STATUS->PORT_DIRECTION = (status.direction == POK_PORT_DIRECTION_OUT) ? SOURCE : DESTINATION;
-	SAMPLING_PORT_STATUS->LAST_MSG_VALIDITY = status.validity;
-	*RETURN_CODE = core_ret;
+    core_ret = pok_port_sampling_status(SAMPLING_PORT_ID, &status);
+    
+    if (core_ret == POK_ERRNO_OK) {
+        SAMPLING_PORT_STATUS->REFRESH_PERIOD = status.refresh;
+        SAMPLING_PORT_STATUS->MAX_MESSAGE_SIZE = status.size;
+        SAMPLING_PORT_STATUS->PORT_DIRECTION = (status.direction == POK_PORT_DIRECTION_OUT) ? SOURCE : DESTINATION;
+        SAMPLING_PORT_STATUS->LAST_MSG_VALIDITY = status.validity;
+    }
+
+    switch (core_ret) {
+        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR_DEFAULT(INVALID_PARAM);
+    }
 }
 
 #endif
