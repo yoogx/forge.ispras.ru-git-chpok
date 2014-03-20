@@ -115,7 +115,7 @@ static pok_ret_t pok_port_get_queueing(uint32_t id, void *data, pok_port_size_t 
 static pok_ret_t pok_port_get_sampling(uint32_t id, void *destination, pok_port_size_t *size_ptr)
 {
     if (pok_ports[id].empty == TRUE) {
-        return POK_ERRNO_EINVAL;
+        return POK_ERRNO_EMPTY;
     }
 
     // XXX off_b is always zero?

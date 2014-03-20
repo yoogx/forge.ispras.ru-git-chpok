@@ -63,7 +63,7 @@ pok_ret_t pok_port_sampling_status (const pok_port_id_t         id,
    status->direction = pok_ports[id].direction;
    status->refresh   = pok_ports[id].refresh; 
 
-   if ( (pok_ports[id].last_receive + pok_ports[id].refresh) < POK_GETTICK())
+   if (pok_ports[id].empty == TRUE || (pok_ports[id].last_receive + pok_ports[id].refresh) < POK_GETTICK())
    {
       status->validity = FALSE;
    }

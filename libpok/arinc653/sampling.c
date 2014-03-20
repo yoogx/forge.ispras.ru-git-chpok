@@ -133,13 +133,15 @@ void READ_SAMPLING_MESSAGE (
 			 /*out*/ VALIDITY_TYPE              *VALIDITY,
 			 /*out*/ RETURN_CODE_TYPE           *RETURN_CODE )
 {
-	 pok_ret_t core_ret;
-	 core_ret = pok_port_sampling_read (SAMPLING_PORT_ID, MESSAGE_ADDR, (pok_port_size_t*) LENGTH, (pok_bool_t*) VALIDITY);
-   switch (core_ret) {
-      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-      MAP_ERROR(POK_ERRNO_EMPTY, NO_ACTION);
-      MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
-   }
+    pok_ret_t core_ret;
+    core_ret = pok_port_sampling_read (SAMPLING_PORT_ID, MESSAGE_ADDR, (pok_port_size_t*) LENGTH, (pok_bool_t*) VALIDITY);
+    switch (core_ret) {
+        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR(POK_ERRNO_EMPTY, NO_ACTION);
+        MAP_ERROR(POK_ERRNO_EINVAL, INVALID_PARAM);
+        MAP_ERROR(POK_ERRNO_DIRECTION, INVALID_MODE); 
+        MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
+    }
 }
 
 void GET_SAMPLING_PORT_ID (
@@ -147,12 +149,15 @@ void GET_SAMPLING_PORT_ID (
 			 /*out*/ SAMPLING_PORT_ID_TYPE      *SAMPLING_PORT_ID,
 			 /*out*/ RETURN_CODE_TYPE           *RETURN_CODE )
 {
-	pok_ret_t core_ret;
-	pok_port_id_t id;
+    pok_ret_t core_ret;
+    pok_port_id_t id;
 
-	core_ret = pok_port_sampling_id(SAMPLING_PORT_NAME, &id);
-	*SAMPLING_PORT_ID = id;
-	*RETURN_CODE = core_ret;
+    core_ret = pok_port_sampling_id(SAMPLING_PORT_NAME, &id);
+    *SAMPLING_PORT_ID = id;
+    switch (core_ret) {
+        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR_DEFAULT(INVALID_CONFIG);
+    }
 }
 
 void GET_SAMPLING_PORT_STATUS (

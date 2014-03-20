@@ -61,7 +61,7 @@ pok_ret_t pok_port_sampling_read (const pok_port_id_t id,
 
    if (pok_ports[id].direction != POK_PORT_DIRECTION_IN)
    {
-      return POK_ERRNO_MODE;
+      return POK_ERRNO_DIRECTION;
    }
 
    pok_lockobj_lock (&pok_ports[id].lock, NULL);
