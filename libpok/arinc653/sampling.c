@@ -93,7 +93,7 @@ void CREATE_SAMPLING_PORT (
 
 	 core_ret = pok_port_sampling_create (SAMPLING_PORT_NAME, MAX_MESSAGE_SIZE, core_direction, refresh_ms, &core_id);
 
-	 *SAMPLING_PORT_ID = core_id;
+	 *SAMPLING_PORT_ID = core_id + 1;
 
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
@@ -109,21 +109,24 @@ void WRITE_SAMPLING_MESSAGE (
 			 /*in */ MESSAGE_SIZE_TYPE          LENGTH,
 			 /*out*/ RETURN_CODE_TYPE           *RETURN_CODE )
 {
-	 pok_ret_t core_ret;
+    pok_ret_t core_ret;
 
-	 if (LENGTH <= 0)
-		 {
-			 *RETURN_CODE = INVALID_PARAM;
-			 return;
-		 }
-	 core_ret = pok_port_sampling_write (SAMPLING_PORT_ID, MESSAGE_ADDR, LENGTH);
-   switch (core_ret) {
+    if (LENGTH <= 0) {
+        *RETURN_CODE = INVALID_PARAM;
+	return;
+    }
+    if (SAMPLING_PORT_ID == 0) {
+        *RETURN_CODE = INVALID_PARAM;
+        return;
+    }
+    core_ret = pok_port_sampling_write (SAMPLING_PORT_ID - 1, MESSAGE_ADDR, LENGTH);
+    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
       MAP_ERROR(POK_ERRNO_PORT, INVALID_PARAM); // port doesn't exists
       MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG); // incorrect length
       MAP_ERROR(POK_ERRNO_DIRECTION, INVALID_MODE); 
       MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
-   }
+    }
 }
 
 void READ_SAMPLING_MESSAGE (
@@ -134,7 +137,13 @@ void READ_SAMPLING_MESSAGE (
 			 /*out*/ RETURN_CODE_TYPE           *RETURN_CODE )
 {
     pok_ret_t core_ret;
-    core_ret = pok_port_sampling_read (SAMPLING_PORT_ID, MESSAGE_ADDR, (pok_port_size_t*) LENGTH, (pok_bool_t*) VALIDITY);
+    
+    if (SAMPLING_PORT_ID == 0) {
+        *RETURN_CODE = INVALID_PARAM;
+        return;
+    }
+
+    core_ret = pok_port_sampling_read (SAMPLING_PORT_ID - 1, MESSAGE_ADDR, (pok_port_size_t*) LENGTH, (pok_bool_t*) VALIDITY);
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
         MAP_ERROR(POK_ERRNO_EMPTY, NO_ACTION);
@@ -153,7 +162,7 @@ void GET_SAMPLING_PORT_ID (
     pok_port_id_t id;
 
     core_ret = pok_port_sampling_id(SAMPLING_PORT_NAME, &id);
-    *SAMPLING_PORT_ID = id;
+    *SAMPLING_PORT_ID = id + 1;
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
         MAP_ERROR_DEFAULT(INVALID_CONFIG);
@@ -168,7 +177,12 @@ void GET_SAMPLING_PORT_STATUS (
     pok_ret_t core_ret;
     pok_port_sampling_status_t status;
 
-    core_ret = pok_port_sampling_status(SAMPLING_PORT_ID, &status);
+    if (SAMPLING_PORT_ID == 0) {
+        *RETURN_CODE = INVALID_PARAM;
+        return;
+    }
+
+    core_ret = pok_port_sampling_status(SAMPLING_PORT_ID - 1, &status);
     
     if (core_ret == POK_ERRNO_OK) {
         SAMPLING_PORT_STATUS->REFRESH_PERIOD = status.refresh;

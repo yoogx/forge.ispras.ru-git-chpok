@@ -27,12 +27,10 @@ extern pok_port_t pok_ports[POK_CONFIG_NB_PORTS];
 pok_ret_t pok_port_queueing_status (const pok_port_id_t         id,
                                     pok_port_queueing_status_t* status)
 {
-   if (id == 0 || id > POK_CONFIG_NB_PORTS)
+   if (id >= POK_CONFIG_NB_PORTS)
    {
       return POK_ERRNO_EINVAL;
    }
-
-   id--;
 
    if (! pok_own_port (POK_SCHED_CURRENT_PARTITION, id))
    {

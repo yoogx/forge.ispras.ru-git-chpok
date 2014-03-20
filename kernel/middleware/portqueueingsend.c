@@ -40,12 +40,10 @@ pok_ret_t pok_port_queueing_send (const pok_port_id_t   id,
 
    pok_ret_t ret;
 
-   if (id == 0 || id > POK_CONFIG_NB_PORTS)
+   if (id >= POK_CONFIG_NB_PORTS)
    {
       return POK_ERRNO_EINVAL;
    }
-
-   id--;
 
    if (len <= 0)
    {

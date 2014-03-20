@@ -37,7 +37,7 @@ pok_ret_t pok_port_queueing_id (char* name, pok_port_id_t* id)
             return POK_ERRNO_PORT;
          }
 
-         *id = i + 1;
+         *id = i;
 
          return POK_ERRNO_OK;
       }

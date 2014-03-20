@@ -50,12 +50,10 @@ pok_ret_t pok_port_sampling_write (pok_port_id_t   id,
       return POK_ERRNO_EINVAL;
    }
 
-   if (id == 0 || id > POK_CONFIG_NB_PORTS)
+   if (id >= POK_CONFIG_NB_PORTS)
    {
       return POK_ERRNO_PORT;
    }
-
-   id--;
 
    if (! pok_own_port (POK_SCHED_CURRENT_PARTITION, id))
    {
