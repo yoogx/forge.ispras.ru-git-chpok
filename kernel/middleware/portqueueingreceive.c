@@ -37,9 +37,7 @@ pok_ret_t pok_port_queueing_receive (pok_port_id_t    id,
                                      pok_port_size_t*       len)
 {
 
-   pok_port_size_t   clen;
-   pok_port_size_t   rlen;
-   pok_port_size_t   toclean;
+
    pok_ret_t ret;
 
    pok_lockobj_lockattr_t lockattr;
@@ -77,15 +75,6 @@ pok_ret_t pok_port_queueing_receive (pok_port_id_t    id,
       return POK_ERRNO_DIRECTION;
    }
 
-   toclean = maxlen;
-   if (toclean > pok_ports[id].size)
-   {
-      toclean =  pok_ports[id].size;
-   }
-
-   /* Make sure we clean the data buffer before */
-   memset (data, '\0', toclean);
-
    /*
     * TODO : check that the partition has the right
     * to receive anything
@@ -120,30 +109,11 @@ pok_ret_t pok_port_queueing_receive (pok_port_id_t    id,
       }
    }
 
-   clen = pok_port_consumed_size (id);
-
-   if (maxlen > clen )
-   {
-      rlen = clen;
-   }
-   else
-   {
-      rlen = maxlen;
-   }
-
-
-   if (pok_port_get (id, data, rlen) == POK_ERRNO_OK)
-   {
-      *len =  rlen;
-   }
-   else
-   {
-      *len = 0;
-   }
+   ret = pok_port_get(id, data, len);
 
    pok_lockobj_unlock (&pok_ports[id].lock, NULL);
 
-   return POK_ERRNO_OK;
+   return ret;
 }
 
 #endif

@@ -23,7 +23,7 @@
 extern char*   pok_ports_names[POK_CONFIG_NB_PORTS];
 extern uint8_t pok_ports_kind[POK_CONFIG_NB_PORTS];
 
-pok_ret_t pok_port_queueing_id (char* name, pok_port_id_t* id)
+pok_ret_t pok_port_queueing_id(const char* name, pok_port_id_t* id)
 {
    uint8_t i;
 

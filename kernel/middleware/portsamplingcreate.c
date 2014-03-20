@@ -25,7 +25,7 @@
 
 extern pok_port_t    pok_ports[POK_CONFIG_NB_PORTS];
 
-pok_ret_t pok_port_sampling_create (char*                                  name, 
+pok_ret_t pok_port_sampling_create (const char*                            name, 
                                     const pok_port_size_t                  size, 
                                     const pok_port_direction_t             direction,
                                     const uint64_t                         refresh,
@@ -34,7 +34,7 @@ pok_ret_t pok_port_sampling_create (char*                                  name,
    pok_ret_t ret;
    pok_lockobj_attr_t   lockattr;
 
-   ret = pok_port_create (name, size, direction, POK_PORT_KIND_SAMPLING, id);
+   ret = pok_port_create (name, size + sizeof(pok_port_size_t), direction, POK_PORT_KIND_SAMPLING, id);
 
    if (ret != POK_ERRNO_OK)
    {

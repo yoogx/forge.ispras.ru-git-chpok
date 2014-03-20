@@ -30,7 +30,7 @@ extern pok_port_t    pok_ports[POK_CONFIG_NB_PORTS];
 extern pok_queue_t   pok_queue;
 
 
-pok_ret_t pok_port_queueing_send (const pok_port_id_t   id, 
+pok_ret_t pok_port_queueing_send (pok_port_id_t   id, 
                                   const void*           data, 
                                   const pok_port_size_t len, 
                                   uint64_t              timeout)

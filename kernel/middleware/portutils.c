@@ -36,6 +36,7 @@ extern uint8_t       pok_current_partition;
 // how many bytes are free
 pok_port_size_t pok_port_available_size (uint32_t pid)
 {
+    // XXX there's something wrong with this function
    if (pok_ports[pid].full == TRUE)
    {
       return 0;
@@ -44,9 +45,7 @@ pok_port_size_t pok_port_available_size (uint32_t pid)
    if (pok_ports[pid].off_b < pok_ports[pid].off_e)
    {
       return (pok_ports[pid].off_b - pok_ports[pid].off_e);
-   }
-   else
-   {
+   } else {
       return (pok_ports[pid].size - pok_ports[pid].off_e + pok_ports[pid].off_b);
    }
 }
@@ -54,6 +53,7 @@ pok_port_size_t pok_port_available_size (uint32_t pid)
 // how many bytes are used
 pok_port_size_t pok_port_consumed_size (uint32_t pid)
 {
+    // XXX there's something wrong with this function
    if (pok_ports[pid].empty == TRUE)
    {
       return 0;
@@ -70,44 +70,32 @@ pok_port_size_t pok_port_consumed_size (uint32_t pid)
 }
 
 #ifdef POK_NEEDS_PORTS_QUEUEING
-static pok_ret_t pok_port_get_queueing(uint32_t id, void *data, pok_port_size_t *size)
+static pok_ret_t pok_port_get_queueing(uint32_t id, void *dst, pok_port_size_t *size)
 {
-#error queuing ports are broken for now
-    pok_port_size_t tmp_size;
-    pok_port_size_t tmp_size2;
-
     if (pok_ports[id].empty == TRUE)
     {
         return POK_ERRNO_EINVAL;
     }
 
-    if (pok_ports[id].size < size)
-    {
-        return POK_ERRNO_SIZE;
-    }
+    // read message from the buffer
+    // starting with off_b
 
-    if ((pok_ports[id].off_b + size) > pok_ports[id].size)
-    {
-        tmp_size = pok_ports[id].size - pok_ports[id].off_b;
-        memcpy (data, &pok_queue.data[pok_ports[id].index + pok_ports[id].off_b], tmp_size);
-        tmp_size2 = size - tmp_size;
-        memcpy (data + tmp_size, &pok_queue.data[pok_ports[id].index], tmp_size2);
-    }
-    else
-    {
-        memcpy (data, &pok_queue.data[pok_ports[id].index + pok_ports[id].off_b], size);
-    }
+    const char *buffer = &pok_queue.data[pok_ports[id].index + pok_ports[id].off_b];
+    *size = *(pok_port_size_t*)buffer;
+    buffer += sizeof(pok_port_size_t);
 
-    pok_ports[id].off_b = (pok_ports[id].off_b + size) % pok_ports[pid].size;
+    memcpy(dst, buffer, *size);
 
-    if (pok_ports[pid].off_b == pok_ports[pid].off_e)
+    pok_ports[id].off_b = (pok_ports[id].off_b + pok_ports[id].message_size) % pok_ports[id].size;
+
+    // XXX recheck this logic
+    if (pok_ports[id].off_b == pok_ports[id].off_e)
     {
-        pok_ports[pid].empty = TRUE;
-        pok_ports[pid].full  = FALSE;
+        pok_ports[id].empty = TRUE;
+        pok_ports[id].full  = FALSE;
     }
 
     return POK_ERRNO_OK;
-    break;
 }
 #endif
 
@@ -152,46 +140,34 @@ pok_ret_t pok_port_get (uint32_t id, void *data, pok_port_size_t *size)
 }
 
 #ifdef POK_NEEDS_PORTS_QUEUEING
-static pok_ret_t pok_port_write_queueing(uint32_t pid, const void *data, pok_port_size_t size)
+static pok_ret_t pok_port_write_queueing(uint32_t pid, const void *src, pok_port_size_t size)
 {
-    #erro
-    pok_port_size_t tmp_size;
-    pok_port_size_t tmp_size2;
-         if (pok_ports[pid].full == TRUE)
-         {
-            return POK_ERRNO_SIZE;
-         }
+    if (pok_ports[pid].full == TRUE) {
+        return POK_ERRNO_SIZE;
+    }
 
-         if (size > pok_ports[pid].size)
-         {
-            return POK_ERRNO_SIZE;
-         }
+    pok_port_size_t required_size = size + sizeof(size);
+    if (required_size > pok_port_available_size(pid)) {
+        return POK_ERRNO_SIZE;
+    }
 
-         if ((pok_ports[pid].off_e + size) > pok_ports[pid].size)
-         {
-            tmp_size = pok_ports[pid].size - pok_ports[pid].off_e;
-            memcpy (&pok_queue.data[pok_ports[pid].index + pok_ports[pid].off_e], data, tmp_size);
+    // put message into buffer, starting with off_e
+    // since messages are of fixed size, 
+    // (excess data is padded)
+    // we don't have to bother with wrapping
+    
+    char *buffer = &pok_queue.data[pok_ports[pid].index + pok_ports[pid].off_e];
+    *(pok_port_size_t*)buffer = size;
+    buffer += sizeof(pok_port_size_t);
+    memcpy(buffer, src, size);
 
-            tmp_size2 = size - tmp_size;
-            memcpy (&pok_queue.data[pok_ports[pid].index], data + tmp_size, tmp_size2);
-         }
-         else
-         {
-            memcpy (&pok_queue.data[pok_ports[pid].index + pok_ports[pid].off_e], data, size);
-         }
+    // XXX
+    // empty-full status?
+    // last receive stamp?
 
-         pok_ports[pid].off_e = (pok_ports[pid].off_e + size) % pok_ports[pid].size;
+    pok_ports[pid].off_e = (pok_ports[pid].off_e + pok_ports[pid].message_size) % pok_ports[pid].size;
 
-         if (pok_ports[pid].off_e == pok_ports[pid].off_b)
-         {
-            pok_ports[pid].full = TRUE;
-         }
-
-         pok_ports[pid].empty = FALSE;
-
-         return POK_ERRNO_OK;
-
-         break;
+    return POK_ERRNO_OK;
 }
 #endif
 
@@ -204,10 +180,10 @@ static pok_ret_t pok_port_write_sampling(uint32_t id, const void *src, pok_port_
 
     // write past the end
     // XXX for sampling ports off_e is always zero?
-    char *data = &pok_queue.data[pok_ports[id].index + pok_ports[id].off_e];
-    *(pok_port_size_t*)data = size;
-    data += sizeof(pok_port_size_t);
-    memcpy(data, src, size);
+    char *buffer = &pok_queue.data[pok_ports[id].index + pok_ports[id].off_e];
+    *(pok_port_size_t*)buffer = size;
+    buffer += sizeof(pok_port_size_t);
+    memcpy(buffer, src, size);
 
     pok_ports[id].empty = FALSE;
     pok_ports[id].last_receive = POK_GETTICK();
@@ -244,7 +220,12 @@ pok_ret_t  pok_port_write (uint32_t id, const void *data, pok_port_size_t size)
 #ifdef POK_NEEDS_PORTS_QUEUEING
 static pok_ret_t pok_port_transfer_queueing(uint32_t dst, uint32_t src)
 {
-#error
+    (void) dst;
+    (void) src;
+    return 0;
+
+    // TODO implement
+#if 0
     pok_port_size_t len = pok_port_available_size (dst);
         
     src_len_consumed = pok_port_consumed_size (pid_src);
@@ -275,6 +256,7 @@ static pok_ret_t pok_port_transfer_queueing(uint32_t dst, uint32_t src)
       
       pok_ports[src].full = FALSE;
     pok_ports[dst].empty = FALSE;
+#endif
 }
 #endif
 

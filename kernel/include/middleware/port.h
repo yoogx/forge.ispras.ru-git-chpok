@@ -63,6 +63,7 @@ typedef struct
 	 pok_port_size_t                  size;
 	 pok_port_size_t                  off_b; /* Offset of the beginning of the buffer */
 	 pok_port_size_t                  off_e; /* Offset of the end of the buffer */
+         pok_port_size_t                  message_size;
 	 pok_port_direction_t             direction;
 	 pok_port_queueing_discipline_t   discipline;
 	 pok_bool_t                       ready;
@@ -81,31 +82,46 @@ typedef struct
 	 pok_port_size_t      size;
 	 pok_port_direction_t direction;
 	 uint8_t              waiting_processes;
-}pok_port_queueing_status_t;
+} pok_port_queueing_status_t;
 
+typedef struct
+{
+    const char                      *name;
+    pok_port_size_t                 message_size;
+    pok_port_size_t                 max_nb_message;
+    pok_port_direction_t            direction;
+    pok_port_queueing_discipline_t  discipline;
+} pok_port_queueing_create_arg_t;
 
-pok_ret_t pok_port_queueing_create (char*                                     name,
-																		const pok_port_size_t                     size,
-																		const pok_port_direction_t                direction,
-																		const pok_port_queueing_discipline_t      discipline,
-																		pok_port_id_t*                            id);
+pok_ret_t pok_port_queueing_create(
+    const pok_port_queueing_create_arg_t    *arg,
+    pok_port_id_t                           *id
+);
 
-pok_ret_t pok_port_queueing_receive (const pok_port_id_t                      id,
-																		 uint64_t                                 timeout,
-																		 const pok_port_size_t                    maxlen,
-																		 void*                                    data,
-																		 pok_port_size_t*                         len);
+pok_ret_t pok_port_queueing_receive(
+    pok_port_id_t           id, 
+    uint64_t                timeout, 
+    const pok_port_size_t   maxlen, 
+    void                    *data, 
+    pok_port_size_t         *len
+);
 
-pok_ret_t pok_port_queueing_send (const pok_port_id_t                         id,
-																	const void*                                 data,
-																	const pok_port_size_t                       len,
-																	uint64_t                              timeout);
+pok_ret_t pok_port_queueing_send(
+    pok_port_id_t       id, 
+    const void          *data,
+    pok_port_size_t     len,
+    uint64_t            timeout
+);
 
-pok_ret_t pok_port_queueing_status (const pok_port_id_t                    id,
-																		pok_port_queueing_status_t*      status);
+pok_ret_t pok_port_queueing_status(
+    pok_port_id_t               id,
+    pok_port_queueing_status_t  *status
+);
 
-pok_ret_t pok_port_queueing_id     (char*                                     name,
-																		pok_port_id_t*                            id);
+pok_ret_t pok_port_queueing_id(
+    const char      *name,
+    pok_port_id_t   *id
+);
 #endif
 
 #ifdef POK_NEEDS_PORTS_SAMPLING
@@ -113,42 +129,55 @@ pok_ret_t pok_port_queueing_id     (char*                                     na
 
 typedef struct
 {
-	 pok_port_size_t      size;
-	 pok_port_direction_t direction;
-	 uint64_t             refresh;
-	 bool_t               validity;
-}pok_port_sampling_status_t;
+    pok_port_size_t         size;
+    pok_port_direction_t    direction;
+    uint64_t                refresh;
+    bool_t                  validity;
+} pok_port_sampling_status_t;
 
 
-pok_ret_t pok_port_sampling_create (char*                                     name,
-																		const pok_port_size_t                     size,
-																		const pok_port_direction_t                direction,
-																		const uint64_t                            refresh,
-																		pok_port_id_t*                            id);
+pok_ret_t pok_port_sampling_create(
+    const char*             name,
+    pok_port_size_t         size,
+    pok_port_direction_t    direction,
+    uint64_t                refresh,
+    pok_port_id_t           *id
+);
 
-pok_ret_t pok_port_sampling_write (const pok_port_id_t                        id,
-																	 const void*                                data,
-																	 const pok_port_size_t                      len);
+pok_ret_t pok_port_sampling_write(
+    pok_port_id_t           id,
+    const void              *data,
+    pok_port_size_t         len
+);
 
-pok_ret_t pok_port_sampling_read (const pok_port_id_t                      id,
-																	void*                                    message,
-																	pok_port_size_t*                         len,
-																	bool_t*                                  valid);
+pok_ret_t pok_port_sampling_read(
+    pok_port_id_t           id,
+    void                    *message,
+    pok_port_size_t         *len,
+    bool_t                  *valid
+);
 
-pok_ret_t pok_port_sampling_id     (char*                                     name,
-																		pok_port_id_t*                            id);
+pok_ret_t pok_port_sampling_id(
+    const char              *name,
+    pok_port_id_t           *id
+);
 
-pok_ret_t pok_port_sampling_status (const pok_port_id_t                       id,
-																		pok_port_sampling_status_t*               status);
+pok_ret_t pok_port_sampling_status (
+    const pok_port_id_t         id,
+    pok_port_sampling_status_t  *status
+);
 #endif
 
 #if defined (POK_NEEDS_PORTS_SAMPLING) || defined (POK_NEEDS_PORTS_QUEUEING)
 /* Generic functions */
-pok_ret_t pok_port_create (char*                                  name,
-													 const pok_port_size_t                  size,
-													 const pok_port_direction_t             direction,
-													 uint8_t                                kind,
-													 pok_port_id_t*                         id);
+pok_ret_t pok_port_create (
+        const char* name, // port name
+	pok_port_size_t size, // total size, in bytes (including message header and other stuff)
+	pok_port_direction_t direction, // in or out
+        uint8_t kind, // sampling, queueing, etc.
+	pok_port_id_t *id // returned ID
+);
+
 
 pok_ret_t pok_port_transfer (uint32_t gid_dst, uint32_t gid_src);
 
@@ -164,8 +193,10 @@ bool_t            pok_own_port (const uint8_t partition, const uint32_t port);
 
 
 #ifdef POK_NEEDS_PORTS_VIRTUAL
-pok_ret_t pok_port_virtual_id (char*            name,
-															 pok_port_id_t*   id);
+pok_ret_t pok_port_virtual_id(
+    const char *name,
+    pok_port_id_t *id
+);
 
 pok_ret_t pok_port_virtual_nb_destinations (const pok_port_id_t id, uint32_t* result);
 pok_ret_t pok_port_virtual_destination (const pok_port_id_t id, const uint32_t n, uint32_t* result);

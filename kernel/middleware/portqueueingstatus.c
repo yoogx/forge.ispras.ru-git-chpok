@@ -24,7 +24,7 @@
 
 extern pok_port_t pok_ports[POK_CONFIG_NB_PORTS];
 
-pok_ret_t pok_port_queueing_status (const pok_port_id_t         id,
+pok_ret_t pok_port_queueing_status (pok_port_id_t         id,
                                     pok_port_queueing_status_t* status)
 {
    if (id >= POK_CONFIG_NB_PORTS)
