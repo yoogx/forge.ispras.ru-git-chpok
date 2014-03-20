@@ -30,7 +30,7 @@
 
 extern pok_port_t    pok_ports[POK_CONFIG_NB_PORTS];
 
-pok_ret_t pok_port_queueing_receive (const pok_port_id_t    id, 
+pok_ret_t pok_port_queueing_receive (pok_port_id_t    id, 
                                      uint64_t               timeout, 
                                      const pok_port_size_t  maxlen, 
                                      void*                  data, 
@@ -51,10 +51,12 @@ pok_ret_t pok_port_queueing_receive (const pok_port_id_t    id,
       return POK_ERRNO_EINVAL;
    }
 
-   if (id > POK_CONFIG_NB_PORTS)
+   if (id == 0 || id > POK_CONFIG_NB_PORTS)
    {
       return POK_ERRNO_EINVAL;
    }
+
+   id--;
 
    if (! pok_own_port (POK_SCHED_CURRENT_PARTITION, id))
    {

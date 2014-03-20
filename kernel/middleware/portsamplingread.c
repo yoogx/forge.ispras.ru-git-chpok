@@ -27,7 +27,7 @@
 
 extern pok_port_t    pok_ports[POK_CONFIG_NB_PORTS];
 
-pok_ret_t pok_port_sampling_read (const pok_port_id_t id, 
+pok_ret_t pok_port_sampling_read (pok_port_id_t id, 
                                   void*               data, 
                                   pok_port_size_t*    len,
                                   bool_t*             valid)
@@ -39,10 +39,12 @@ pok_ret_t pok_port_sampling_read (const pok_port_id_t id,
       return POK_ERRNO_EINVAL;
    }
 
-   if (id > POK_CONFIG_NB_PORTS)
+   if (id == 0 || id > POK_CONFIG_NB_PORTS)
    {
       return POK_ERRNO_EINVAL;
    }
+
+   id--;
 
    if (! pok_own_port (POK_SCHED_CURRENT_PARTITION, id))
    {

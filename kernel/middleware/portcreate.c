@@ -122,7 +122,7 @@ pok_ret_t pok_port_create (char* name,
 		*/
 	 if (pok_ports[gid].ready == TRUE)
 	 {
-			*id = gid;
+			*id = gid + 1;
 			return POK_ERRNO_EXISTS;
 	 }
 
@@ -138,7 +138,7 @@ pok_ret_t pok_port_create (char* name,
 
 	 pok_queue.available_size  = pok_queue.available_size - size;
 
-	 *id = gid;
+	 *id = gid + 1;
 
 	 return POK_ERRNO_OK;
 }
