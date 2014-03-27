@@ -48,33 +48,50 @@ typedef enum
 {
 	 POK_PORT_KIND_QUEUEING  = 1,
 	 POK_PORT_KIND_SAMPLING  = 2,
-#ifdef POK_NEEDS_PORTS_VIRTUAL
-	 POK_PORT_KIND_VIRTUAL   = 2,
-#endif
 	 POK_PORT_KIND_INVALID   = 10
 } pok_port_kinds_t;
 
 typedef struct
 {
-	 pok_port_id_t                    identifier;
-	 pok_partition_id_t               partition;
-	 pok_port_size_t                  index;
-	 bool_t                           full;
-	 pok_port_size_t                  size;
-	 pok_port_size_t                  off_b; /* Offset of the beginning of the buffer */
-	 pok_port_size_t                  off_e; /* Offset of the end of the buffer */
-         pok_port_size_t                  message_size;
-         pok_port_size_t                  max_nb_message;
-	 pok_port_direction_t             direction;
-	 pok_port_queueing_discipline_t   discipline;
-	 pok_bool_t                       ready;
-	 bool_t                           empty;
-	 uint8_t                          kind;
-	 uint64_t                         refresh;
-	 uint64_t                         last_receive;
-	 pok_lockobj_t                    lock;
-	 bool_t                           must_be_flushed;
-}pok_port_t;
+    pok_port_kinds_t            kind;
+    const char                  *name;
+    pok_partition_id_t          partition;
+    pok_port_direction_t        direction;
+    pok_lockobj_t               lock;
+
+} pok_port_header_t;
+
+typedef struct
+{
+    pok_port_size_t             message_size;
+    unsigned char               data[];
+} pok_port_data_t;
+
+#ifdef POK_NEEDS_PORTS_SAMPLING
+typedef struct
+{
+    pok_port_header_t           header;
+
+    pok_port_size_t             max_message_size;
+    uint64_t                    refresh;
+    pok_port_data_t             *data;
+
+} pok_sampling_port_t;
+#endif
+
+#ifdef POK_NEEDS_PORTS_QUEUEING
+typedef struct
+{
+    pok_port_header_t           header;
+
+    pok_port_size_t             max_message_size;
+    pok_port_size_t             max_nb_messages;
+
+    size_t                      data_stride;
+    pok_port_data_t             *data;
+
+} pok_queueing_port_t;
+#endif
 
 #ifdef POK_NEEDS_PORTS_QUEUEING
 /* Queueing port functions */
@@ -173,41 +190,6 @@ pok_ret_t pok_port_sampling_status (
     const pok_port_id_t         id,
     pok_port_sampling_status_t  *status
 );
-#endif
-
-#if defined (POK_NEEDS_PORTS_SAMPLING) || defined (POK_NEEDS_PORTS_QUEUEING)
-/* Generic functions */
-pok_ret_t pok_port_create (
-        const char* name, // port name
-	pok_port_size_t size, // total size, in bytes (including message header and other stuff)
-	pok_port_direction_t direction, // in or out
-        uint8_t kind, // sampling, queueing, etc.
-	pok_port_id_t *id // returned ID
-);
-
-
-pok_ret_t pok_port_transfer (uint32_t gid_dst, uint32_t gid_src);
-
-void              pok_port_init(void);
-void              pok_port_queueing_flushall (void);
-uint32_t           pok_port_lid_to_gid (uint32_t lid);
-pok_port_size_t   pok_port_available_size (uint32_t gid);
-pok_port_size_t   pok_port_consumed_size (uint32_t gid);
-pok_ret_t         pok_port_get (uint32_t gid, void *data, pok_port_size_t *size);
-pok_ret_t         pok_port_write (uint32_t gid, const void *data, pok_port_size_t size);
-bool_t            pok_own_port (const uint8_t partition, const uint32_t port);
-#endif
-
-
-#ifdef POK_NEEDS_PORTS_VIRTUAL
-pok_ret_t pok_port_virtual_id(
-    const char *name,
-    pok_port_id_t *id
-);
-
-pok_ret_t pok_port_virtual_nb_destinations (const pok_port_id_t id, uint32_t* result);
-pok_ret_t pok_port_virtual_destination (const pok_port_id_t id, const uint32_t n, uint32_t* result);
-pok_ret_t pok_port_virtual_get_global (const pok_port_id_t local, pok_port_id_t* global);
 #endif
 
 #endif
