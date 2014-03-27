@@ -64,6 +64,7 @@ typedef struct
 	 pok_port_size_t                  off_b; /* Offset of the beginning of the buffer */
 	 pok_port_size_t                  off_e; /* Offset of the end of the buffer */
          pok_port_size_t                  message_size;
+         pok_port_size_t                  max_nb_message;
 	 pok_port_direction_t             direction;
 	 pok_port_queueing_discipline_t   discipline;
 	 pok_bool_t                       ready;
@@ -79,9 +80,11 @@ typedef struct
 /* Queueing port functions */
 typedef struct
 {
-	 pok_port_size_t      size;
-	 pok_port_direction_t direction;
-	 uint8_t              waiting_processes;
+   pok_port_size_t      nb_message;
+   pok_port_size_t      max_nb_message;
+   pok_port_size_t      max_message_size;
+   pok_port_direction_t direction;
+   uint8_t              waiting_processes;
 } pok_port_queueing_status_t;
 
 typedef struct
@@ -94,8 +97,12 @@ typedef struct
 } pok_port_queueing_create_arg_t;
 
 pok_ret_t pok_port_queueing_create(
-    const pok_port_queueing_create_arg_t    *arg,
-    pok_port_id_t                           *id
+    const char                      *name,
+    pok_port_size_t                 message_size,
+    pok_port_size_t                 max_nb_message,
+    pok_port_direction_t            direction,
+    pok_port_queueing_discipline_t  discipline,
+    pok_port_id_t                   *id
 );
 
 pok_ret_t pok_port_queueing_receive(

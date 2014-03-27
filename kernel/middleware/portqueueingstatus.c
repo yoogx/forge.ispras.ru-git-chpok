@@ -52,9 +52,11 @@ pok_ret_t pok_port_queueing_status (pok_port_id_t         id,
       return POK_ERRNO_EINVAL;
    }
 
-   status->size               = pok_ports[id].size;
+   status->nb_message = 0; // TODO
+   status->max_nb_message = pok_ports[id].max_nb_message;
+   status->max_message_size = pok_ports[id].message_size; 
    status->direction          = pok_ports[id].direction;
-   status->waiting_processes  = 0;
+   status->waiting_processes  = 0; // TODO
 
    return POK_ERRNO_OK;
 }

@@ -23,6 +23,9 @@
 #include <arinc653/types.h>
 #include <arinc653/queueing.h>
 
+#define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
+#define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
+
 void CREATE_QUEUING_PORT (
       /*in */ QUEUING_PORT_NAME_TYPE    QUEUING_PORT_NAME,
       /*in */ MESSAGE_SIZE_TYPE         MAX_MESSAGE_SIZE,
@@ -73,7 +76,12 @@ void CREATE_QUEUING_PORT (
    core_ret = pok_port_queueing_create(&arg, &core_id);
 
    *QUEUING_PORT_ID = core_id + 1;
-   *RETURN_CODE = core_ret;
+
+   switch (core_ret) {
+      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      MAP_ERROR(POK_ERRNO_EXISTS, NO_ACTION);
+      MAP_ERROR_DEFAULT(INVALID_CONFIG);
+   }
 }
 
 void SEND_QUEUING_MESSAGE (
@@ -140,14 +148,26 @@ void GET_QUEUING_PORT_STATUS (
        return;
     }
 
-   core_ret = pok_port_queueing_id(QUEUING_PORT_ID - 1, &status);
-   QUEUING_PORT_STATUS->NB_MESSAGE = status.nb_messages;
-#warning TBSL : commented to have it compile
-   //QUEUING_PORT_STATUS->MAX_NB_MESSAGE = status.g;
-   QUEUING_PORT_STATUS->MAX_MESSAGE_SIZE = status.size;
-   QUEUING_PORT_STATUS->PORT_DIRECTION = status.direction;
-   QUEUING_PORT_STATUS->WAITING_PROCESSES = status.waiting_processes;
-  *RETURN_CODE = core_ret;
+   core_ret = pok_port_queueing_status(QUEUING_PORT_ID - 1, &status);
+   if (core_ret == POK_ERRNO_OK) {
+       QUEUING_PORT_STATUS->NB_MESSAGE = status.nb_message;
+       QUEUING_PORT_STATUS->MAX_NB_MESSAGE = status.max_nb_message;
+       QUEUING_PORT_STATUS->MAX_MESSAGE_SIZE = status.max_message_size;
+       switch (status.direction) {
+         case POK_PORT_DIRECTION_OUT:
+          QUEUING_PORT_STATUS->PORT_DIRECTION = SOURCE;
+          break;
+         case POK_PORT_DIRECTION_IN:
+          QUEUING_PORT_STATUS->PORT_DIRECTION = DESTINATION;
+          break;
+         default:
+          break; // XXX assert(0)
+       }
+       QUEUING_PORT_STATUS->WAITING_PROCESSES = status.waiting_processes;
+       *RETURN_CODE = NO_ERROR;
+   } else {
+       *RETURN_CODE = INVALID_PARAM;
+   }
 }
 
 void CLEAR_QUEUING_PORT (

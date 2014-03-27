@@ -59,11 +59,12 @@ pok_ret_t pok_port_virtual_get_global (const pok_port_id_t local, pok_port_id_t*
 /* Queueing port functions */
 typedef struct
 {
-   pok_port_size_t      size;
+   pok_port_size_t      nb_message;
+   pok_port_size_t      max_nb_message;
+   pok_port_size_t      max_message_size;
    pok_port_direction_t direction;
-   uint8_t              nb_messages;
    uint8_t              waiting_processes;
-}pok_port_queueing_status_t;
+} pok_port_queueing_status_t;
 
 typedef struct
 {

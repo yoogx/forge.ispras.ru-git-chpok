@@ -280,8 +280,15 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
       case POK_SYSCALL_MIDDLEWARE_QUEUEING_CREATE: 
          POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg1 + infos->base_addr)
          POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg2 + infos->base_addr)
+        
+         const pok_port_queueing_create_arg_t *arg1 = (const pok_port_queueing_create_arg_t*) (args->arg1 + infos->base_addr);
+
          return pok_port_queueing_create(
-            (const pok_port_queueing_create_arg_t*) (args->arg1 + infos->base_addr), 
+            (const char *) ((uintptr_t)arg1->name + infos->base_addr),
+            arg1->message_size,
+            arg1->max_nb_message,
+            arg1->direction,
+            arg1->discipline,
             (pok_port_id_t*)                        (args->arg2 + infos->base_addr)
          );
          break;

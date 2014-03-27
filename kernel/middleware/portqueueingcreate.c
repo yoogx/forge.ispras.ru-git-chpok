@@ -21,23 +21,30 @@
 #include <core/lockobj.h>
 #include <middleware/port.h>
 #include <middleware/queue.h>
+#include <libc.h>
 
 extern pok_port_t    pok_ports[POK_CONFIG_NB_PORTS];
 
-pok_ret_t pok_port_queueing_create (const pok_port_queueing_create_arg_t *arg,
-                                    pok_port_id_t*                         id)
+pok_ret_t pok_port_queueing_create (
+    const char                      *name,
+    pok_port_size_t                 message_size,
+    pok_port_size_t                 max_nb_message,
+    pok_port_direction_t            direction,
+    pok_port_queueing_discipline_t  discipline,
+    pok_port_id_t                   *id
+)
 {
    pok_ret_t            ret;
    pok_lockobj_attr_t   lockattr;
 
-   if (arg->discipline != POK_PORT_QUEUEING_DISCIPLINE_FIFO)
+   if (discipline != POK_PORT_QUEUEING_DISCIPLINE_FIFO)
    {
       return POK_ERRNO_DISCIPLINE;
    }
 
-   pok_port_size_t size = (sizeof(pok_port_size_t) + arg->message_size) * arg->max_nb_message;
+   pok_port_size_t size = (sizeof(pok_port_size_t) + message_size) * max_nb_message;
 
-   ret = pok_port_create (arg->name, size, arg->direction, POK_PORT_KIND_QUEUEING, id);
+   ret = pok_port_create (name, size, direction, POK_PORT_KIND_QUEUEING, id);
 
    /*
     * FIXME: should be done using another way by reinitializing
@@ -50,18 +57,15 @@ pok_ret_t pok_port_queueing_create (const pok_port_queueing_create_arg_t *arg,
     * does not report an OK return code (see below) when trying to re
     * create a port that was already created.
     */
-   if (ret == POK_ERRNO_EXISTS)
-   {
-      return POK_ERRNO_OK;
-   }
 
    if (ret != POK_ERRNO_OK)
    {
       return ret;
    }
 
-   pok_ports[*id].discipline = arg->discipline;
-   pok_ports[*id].message_size = arg->message_size;
+   pok_ports[*id].discipline = discipline;
+   pok_ports[*id].message_size = message_size;
+   pok_ports[*id].max_nb_message = max_nb_message;
    
    lockattr.kind              = POK_LOCKOBJ_KIND_EVENT;
    lockattr.locking_policy    = POK_LOCKOBJ_POLICY_STANDARD;
