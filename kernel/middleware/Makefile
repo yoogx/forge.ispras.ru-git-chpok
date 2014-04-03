@@ -5,26 +5,9 @@ include $(TOPDIR)/misc/mk/config.mk
 
 LO_TARGET=middleware.lo
 
-LO_OBJS=	portqueueingcreate.o \
-			portqueueingsend.o \
-			portqueueingreceive.o \
-			portqueueingid.o \
-			portqueueingstatus.o \
-			portsamplingcreate.o \
-			portsamplingid.o \
-			portsamplingread.o \
-			portsamplingwrite.o \
-			portsamplingstatus.o \
-			portvirtualid.o \
-			portvirtualnbdestinations.o \
-			portvirtualdestination.o \
-			portvirtualgetglobal.o \
-			portflushall.o \
-			portinit.o \
-			portcreate.o \
-			portutils.o \
-			queueinit.o \
-			ressources.o 
+LO_OBJS=portsampling_ops.o \
+	portflushall.o \
+	portinit.o \
 
 LO_DEPS=
 

@@ -31,92 +31,30 @@
 #include <core/lockobj.h>
 
 #include <middleware/port.h>
-#include <middleware/queue.h>
 
-extern uint8_t          pok_ports_nb_destinations[POK_CONFIG_NB_PORTS];              /**  from deployment.c when using code generation */
-extern uint8_t          pok_ports_nb_ports_by_partition[POK_CONFIG_NB_PARTITIONS];   /**  from deployment.c when using code generation */
-extern uint8_t*         pok_ports_destinations[POK_CONFIG_NB_PORTS];                 /**  from deployment.c when using code generation */
-extern uint8_t*         pok_ports_by_partition[POK_CONFIG_NB_PARTITIONS];            /**  from deployment.c when using code generation */
-extern pok_port_t       pok_ports[POK_CONFIG_NB_PORTS];                              /**  from deployment.c when using code generation */
-extern uint8_t		      pok_ports_nodes[POK_CONFIG_NB_GLOBAL_PORTS];                 /**  from deployment.c when using code generation */
-extern uint8_t          pok_global_ports_to_local_ports[POK_CONFIG_NB_GLOBAL_PORTS]; /**  from deployment.c when using code generation */
-extern pok_queue_t      pok_queue;
+static void flush_sampling_port(pok_port_sampling_t *src) {
+    size_t i;
+    for (i = 0; i < src->header.num_channels; i++) {
+        pok_port_id_t dst_id = src->header.channels[i];
+        pok_port_sampling_t *dst = &pok_sampling_ports[dst_id];
 
-uint8_t                 pok_buffer_flush[POK_PORT_MAX_SIZE];
+        memcpy(&dst->data->data[0], &src->data->data[0], src->data->message_size);
+        dst->data->message_size = src->data->message_size;
+        dst->not_empty = TRUE;
+    }
 
-void pok_port_flush_partition (uint8_t pid)
+    src->header.must_be_flushed = FALSE;
+}
+
+static void pok_port_flush_partition (int pid)
 {
-   uint8_t nb;
-   uint8_t local;
-   uint8_t i;
-   uint8_t j;
-   uint8_t ndest;
-   uint8_t local_dest; /* recipient port, global id */
-   uint8_t global_dest; /* recipient port, local id  */
-   pok_port_size_t len;
-
-   nb = pok_ports_nb_ports_by_partition[pid];
-
-   for (i = 0 ; i < nb ; i++)
-   {
-      local = pok_ports_by_partition[pid][i];
-
-      if (pok_ports[local].direction != POK_PORT_DIRECTION_OUT)
-      {
-         continue;
-      }
-
-      if (pok_ports[local].empty == TRUE)  
-      {
-         continue;
-      }
-
-      if (pok_ports[local].must_be_flushed == FALSE)
-      {
-         continue;
-      }
-
-
-      if (pok_port_get (local, pok_buffer_flush, &len) != POK_ERRNO_OK)
-      {
-         continue;
-      }
-        
-      // XXX queuing ports?
-
-      ndest = pok_ports_nb_destinations[local];
-
-      for (j=0 ; j < ndest ; j++)
-      {
-         global_dest = pok_ports_destinations[local][j];
-
-         local_dest = pok_global_ports_to_local_ports[global_dest];
-         if (pok_ports[local_dest].ready != TRUE)
-         {
-            continue;
-         }
-
-         if (pok_ports[local_dest].direction != POK_PORT_DIRECTION_IN)
-         {
-            continue;
-         }
-
-         pok_port_write (local_dest, pok_buffer_flush, len);
-
-         pok_lockobj_eventbroadcast (&pok_ports[local_dest].lock);
-         /*
-          * We notify every waiting thread in this port that data are
-          * now avaiable
-          */
-      }
-      pok_lockobj_eventbroadcast (&pok_ports[local].lock);
-      /*
-       * We notify every thread blocked on this port that free space
-       * is now available
-       */
-
-      pok_ports[local].must_be_flushed = FALSE;
-   }
+    int i;
+    for (i = 0; i < POK_CONFIG_NB_SAMPLING_PORTS; i++) {
+        pok_port_sampling_t *port = &pok_sampling_ports[i];
+        if (port->header.partition == pid) {
+            flush_sampling_port(port);
+        }   
+    }
 }
 
 /**

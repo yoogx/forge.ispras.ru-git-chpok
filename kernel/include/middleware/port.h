@@ -59,6 +59,12 @@ typedef struct
     pok_port_direction_t        direction;
     pok_lockobj_t               lock;
 
+    size_t                      num_channels;
+    pok_port_id_t               *channels;
+
+    pok_bool_t                  created;
+    pok_bool_t                  must_be_flushed;
+
 } pok_port_header_t;
 
 typedef struct
@@ -67,6 +73,8 @@ typedef struct
     unsigned char               data[];
 } pok_port_data_t;
 
+void pok_port_init(void);
+
 #ifdef POK_NEEDS_PORTS_SAMPLING
 typedef struct
 {
@@ -74,9 +82,13 @@ typedef struct
 
     pok_port_size_t             max_message_size;
     uint64_t                    refresh;
+    uint64_t                    last_receive;
+    pok_bool_t                  last_validity;
+    pok_bool_t                  not_empty;
     pok_port_data_t             *data;
+} pok_port_sampling_t;
 
-} pok_sampling_port_t;
+extern pok_port_sampling_t pok_sampling_ports[POK_CONFIG_NB_SAMPLING_PORTS];
 #endif
 
 #ifdef POK_NEEDS_PORTS_QUEUEING

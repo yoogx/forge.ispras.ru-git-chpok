@@ -185,7 +185,7 @@ void GET_SAMPLING_PORT_STATUS (
     core_ret = pok_port_sampling_status(SAMPLING_PORT_ID - 1, &status);
     
     if (core_ret == POK_ERRNO_OK) {
-        SAMPLING_PORT_STATUS->REFRESH_PERIOD = status.refresh;
+        SAMPLING_PORT_STATUS->REFRESH_PERIOD = status.refresh * 1000000;
         SAMPLING_PORT_STATUS->MAX_MESSAGE_SIZE = status.size;
         SAMPLING_PORT_STATUS->PORT_DIRECTION = (status.direction == POK_PORT_DIRECTION_OUT) ? SOURCE : DESTINATION;
         SAMPLING_PORT_STATUS->LAST_MSG_VALIDITY = status.validity;

@@ -60,7 +60,6 @@ void pok_boot ()
 #endif
 #if defined (POK_NEEDS_PORTS_QUEUEING) || defined (POK_NEEDS_PORTS_SAMPLING)
    pok_port_init ();
-   pok_queue_init ();
 #endif
 
 #if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_CONSOLE)

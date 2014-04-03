@@ -14,11 +14,20 @@ SAMPLING_PORT_TEMPLATE = """\
             .name = %(name)s,
             .partition = %(partition)s,
             .direction = %(direction)s,
+
+            .channels=%(channels)s,
+            .num_channels=%(num_channels)s,
         },
         .max_message_size = %(max_message_size)s,
-        .refresh = %(refresh)s,
-        .data = %(data)s,
+        .data = (void *) %(data)s,
     },
+"""
+
+SAMPLING_PORT_DATA_TEMPLATE = """\
+static struct {
+    pok_port_size_t message_size;
+    char data[%(max_message_size)d];
+} %(varname)s;
 """
 
 QUEUEING_PORT_TEMPLATE = """\
@@ -28,12 +37,21 @@ QUEUEING_PORT_TEMPLATE = """\
             .name = %(name)s,
             .partition = %(partition)s,
             .direction = %(direction)s,
+            
+            .num_channels=%(num_channels)s,
         },
         .max_message_size = %(max_message_size)s,
         
-        .data = %(data)s,
+        .data = (void *) %(data)s,
         .data_stride = %(data_stride)s,
     },
+"""
+
+QUEUEING_PORT_DATA_TEMPALTE = """\
+static struct {
+    pok_port_size_t message_size;
+    char data[%(max_message_size)d];
+} %(varname)s[%(max_nb_message)d];
 """
 
 def get_port_mode(port):
@@ -57,12 +75,25 @@ def generate_sampling_ports(ports, header, source):
         return
 
     print("#define POK_NEEDS_PORTS_SAMPLING 1", file=header)
+    print("#define POK_CONFIG_NB_SAMPLING_PORTS %d" % len(ports), file=header)
     print("#include <middleware/port.h>", file=source)
+    
+    port_names = [port["name"] for port in ports]
 
     for i, port in enumerate(ports):
-        print("static char p%(i)d_data[sizeof(pok_port_data_t) + %(size)d];" % dict(i=i, size=port["max_message_size"]), file=source)
+        print(SAMPLING_PORT_DATA_TEMPLATE % dict(
+            varname="p{}".format(i),
+            max_message_size=port["max_message_size"],
+        ), file=source)
+        
+        channels = port.get("channels", [])
+        
+        if channels:
+            channel_dest_indices = [port_names.index(name) for name in channels]
+            print("static pok_port_id_t p%dchannels[] = {%s};\n" % (i, ",".join(str(i) for i in channel_dest_indices)), file=source)
 
-    print("pok_sampling_port_t sampling_ports[] = {", file=source)
+    print("pok_port_sampling_t pok_sampling_ports[] = {", file=source)
+
 
     for i, port in enumerate(ports):
         print(SAMPLING_PORT_TEMPLATE % dict(
@@ -70,8 +101,9 @@ def generate_sampling_ports(ports, header, source):
             partition=port["partition"],
             direction=get_port_direction(port),
             max_message_size=port["max_message_size"],
-            refresh=port["refresh"].replace(" ", ""),
-            data="&p%d_data" % i
+            channels="p{}channels".format(i) if port.get("channels") else "NULL",
+            num_channels=len(port.get("channels", [])),
+            data="&p{}".format(i)
         ), file=source)
     
     print("};", file=source)
