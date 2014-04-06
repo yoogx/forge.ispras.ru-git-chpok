@@ -97,12 +97,17 @@ typedef struct
     pok_port_header_t           header;
 
     pok_port_size_t             max_message_size;
-    pok_port_size_t             max_nb_messages;
+    pok_port_size_t             max_nb_message;
+
+    pok_port_size_t             nb_message;
+    pok_port_size_t             queue_head;
 
     size_t                      data_stride;
-    pok_port_data_t             *data;
+    char                        *data;
 
-} pok_queueing_port_t;
+} pok_port_queueing_t;
+
+extern pok_port_queueing_t pok_queueing_ports[POK_CONFIG_NB_QUEUEING_PORTS];
 #endif
 
 #ifdef POK_NEEDS_PORTS_QUEUEING
@@ -136,7 +141,7 @@ pok_ret_t pok_port_queueing_create(
 
 pok_ret_t pok_port_queueing_receive(
     pok_port_id_t           id, 
-    uint64_t                timeout, 
+    int64_t                timeout, 
     const pok_port_size_t   maxlen, 
     void                    *data, 
     pok_port_size_t         *len
@@ -146,7 +151,7 @@ pok_ret_t pok_port_queueing_send(
     pok_port_id_t       id, 
     const void          *data,
     pok_port_size_t     len,
-    uint64_t            timeout
+    int64_t             timeout
 );
 
 pok_ret_t pok_port_queueing_status(

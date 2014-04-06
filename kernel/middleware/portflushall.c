@@ -31,8 +31,13 @@
 #include <core/lockobj.h>
 
 #include <middleware/port.h>
+#include <middleware/port_utils.h>
 
 static void flush_sampling_port(pok_port_sampling_t *src) {
+    if (!src->header.must_be_flushed) {
+        return;
+    }
+
     size_t i;
     for (i = 0; i < src->header.num_channels; i++) {
         pok_port_id_t dst_id = src->header.channels[i];
@@ -46,6 +51,24 @@ static void flush_sampling_port(pok_port_sampling_t *src) {
     src->header.must_be_flushed = FALSE;
 }
 
+static void flush_queueing_port(pok_port_queueing_t *src) {
+    // XXX multicasting for queuing ports is not supported
+    size_t i;
+    for (i = 0; i < src->header.num_channels && i < 1; i++) {
+        pok_port_id_t dst_id = src->header.channels[i];
+        pok_port_queueing_t *dst = &pok_queueing_ports[dst_id];
+
+        while (!pok_port_utils_queueing_full(dst) && !pok_port_utils_queueing_empty(src)) {
+            pok_port_utils_queueing_transfer(src, dst);
+        }
+
+        // wake up processes that possibly wait for messages
+        pok_lockobj_eventbroadcast(&dst->header.lock);
+    }
+    // wake up processes that possible wait for port becoming non-full
+    pok_lockobj_eventbroadcast(&src->header.lock);
+}
+
 static void pok_port_flush_partition (int pid)
 {
     int i;
@@ -54,6 +77,12 @@ static void pok_port_flush_partition (int pid)
         if (port->header.partition == pid) {
             flush_sampling_port(port);
         }   
+    }
+    for (i = 0; i < POK_CONFIG_NB_QUEUEING_PORTS; i++) {
+        pok_port_queueing_t *port = &pok_queueing_ports[i];
+        if (port->header.partition == pid) {
+            flush_queueing_port(port);
+        }      
     }
 }
 

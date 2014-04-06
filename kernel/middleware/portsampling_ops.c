@@ -19,6 +19,8 @@
  * (and most of the logic)
  */
 
+// TODO revise return codes
+
 static int find_sampling_port(const char *name) {
     int i;
     for (i = 0; i < POK_CONFIG_NB_SAMPLING_PORTS; i++) {

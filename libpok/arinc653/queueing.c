@@ -92,16 +92,34 @@ void SEND_QUEUING_MESSAGE (
       /*in */ SYSTEM_TIME_TYPE          TIME_OUT,
       /*out*/ RETURN_CODE_TYPE          *RETURN_CODE)
 {
-   pok_ret_t core_ret;
+    pok_ret_t core_ret;
 
-   if (QUEUING_PORT_ID == 0) {
-       *RETURN_CODE = INVALID_PARAM;
-       return;
-   }
+    if (QUEUING_PORT_ID == 0) {
+        *RETURN_CODE = INVALID_PARAM;
+        return;
+    }
 
-   core_ret = pok_port_queueing_send (QUEUING_PORT_ID - 1, MESSAGE_ADDR, LENGTH, TIME_OUT);
+    int64_t delay_ms;
+    if (TIME_OUT > 0) {
+        // XXX 64-bit division
+        delay_ms = (int32_t) TIME_OUT / 1000000;
+        if ((int32_t) TIME_OUT % 1000000) delay_ms++;
+    } else if (TIME_OUT == 0) {
+        delay_ms = 0;
+    } else {
+        delay_ms = -1;
+    }
 
-   *RETURN_CODE = core_ret;
+    core_ret = pok_port_queueing_send (QUEUING_PORT_ID - 1, MESSAGE_ADDR, LENGTH, delay_ms);
+
+    switch (core_ret) {
+        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR(POK_ERRNO_DIRECTION, INVALID_MODE);
+        MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
+        MAP_ERROR(POK_ERRNO_FULL, NOT_AVAILABLE);
+        MAP_ERROR(POK_ERRNO_TIMEOUT, TIMED_OUT); 
+        MAP_ERROR_DEFAULT(INVALID_CONFIG);
+    }
 }
 
 void RECEIVE_QUEUING_MESSAGE (
@@ -117,11 +135,28 @@ void RECEIVE_QUEUING_MESSAGE (
        *RETURN_CODE = INVALID_PARAM;
        return;
    }
+   
+    int64_t delay_ms;
+    if (TIME_OUT > 0) {
+        // XXX 64-bit division
+        delay_ms = (int32_t) TIME_OUT / 1000000;
+        if ((int32_t) TIME_OUT % 1000000) delay_ms++;
+    } else if (TIME_OUT == 0) {
+        delay_ms = 0;
+    } else {
+        delay_ms = -1;
+    }
 
-   core_ret = pok_port_queueing_receive (QUEUING_PORT_ID - 1, TIME_OUT, *LENGTH, MESSAGE_ADDR, (pok_port_size_t*)LENGTH);
+   core_ret = pok_port_queueing_receive (QUEUING_PORT_ID - 1, delay_ms, *LENGTH, MESSAGE_ADDR, (pok_port_size_t*)LENGTH);
 
-   if(core_ret == POK_ERRNO_EMPTY) core_ret = NOT_AVAILABLE;
-   *RETURN_CODE = core_ret;
+   switch (core_ret) {
+        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR(POK_ERRNO_DIRECTION, INVALID_MODE);
+        MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
+        MAP_ERROR(POK_ERRNO_EMPTY, NOT_AVAILABLE);
+        MAP_ERROR(POK_ERRNO_TIMEOUT, TIMED_OUT); 
+        MAP_ERROR_DEFAULT(INVALID_CONFIG);
+    }
 }
 
 void GET_QUEUING_PORT_ID (
@@ -129,11 +164,19 @@ void GET_QUEUING_PORT_ID (
       /*out*/ QUEUING_PORT_ID_TYPE      *QUEUING_PORT_ID,
       /*out*/ RETURN_CODE_TYPE          *RETURN_CODE)
 {
-   pok_ret_t core_ret;
-   // TODO this function isn't supposed to work
+    pok_ret_t core_ret;
+    pok_port_id_t id;
 
-   core_ret = pok_port_queueing_id(QUEUING_PORT_NAME, *QUEUING_PORT_ID);
-   *RETURN_CODE = core_ret;
+    core_ret = pok_port_queueing_id(QUEUING_PORT_NAME, &id);
+
+    if (core_ret == POK_ERRNO_OK) {
+        *QUEUING_PORT_ID = id + 1;
+    }
+   
+    switch (core_ret) {
+        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR_DEFAULT(INVALID_CONFIG);
+    }
 }
 
 void GET_QUEUING_PORT_STATUS (

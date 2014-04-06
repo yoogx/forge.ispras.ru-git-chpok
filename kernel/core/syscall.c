@@ -266,13 +266,11 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
                                        (pok_port_id_t*)(args->arg2 + infos->base_addr));
          break;
           
-#ifndef POK_GENERATED_CODE
       case POK_SYSCALL_MIDDLEWARE_SAMPLING_STATUS:
          POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg2+infos->base_addr)
          return pok_port_sampling_status ((const pok_port_id_t)args->arg1,
                                           (pok_port_sampling_status_t*) (args->arg2 + infos->base_addr));
          break;
-#endif /* POK_GENERATED_CODE */
 #endif /* POK_NEEDS_PORTS_SAMPLING */
 
 
@@ -297,15 +295,15 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
          POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg2 + infos->base_addr)
          return pok_port_queueing_send ((const pok_port_id_t)              args->arg1,
                                        (const void*)                       ((void*)args->arg2 + infos->base_addr), 
-                                       (const uint8_t)                     (args->arg3),
-                                       (const uint64_t)                    args->arg4);
+                                       (uint8_t)                           args->arg3,
+                                       (int64_t)                           args->arg4);
          break;
 
       case POK_SYSCALL_MIDDLEWARE_QUEUEING_RECEIVE:
          POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg4 + infos->base_addr)
          POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg5 + infos->base_addr)
-         return pok_port_queueing_receive ((const pok_port_id_t)   args->arg1, 
-                                          (uint64_t)              args->arg2,
+         return pok_port_queueing_receive ((const pok_port_id_t)  args->arg1, 
+                                          (int64_t)               args->arg2,
                                           (pok_port_size_t)       args->arg3,
                                           (void*)                 ((void*)args->arg4 + infos->base_addr), 
                                           (pok_port_size_t*)      (args->arg5 + infos->base_addr));
@@ -315,16 +313,14 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
          POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg1 + infos->base_addr)
          POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg2 + infos->base_addr)
          return pok_port_queueing_id ((char*)          (args->arg1 + infos->base_addr),
-                                    (pok_port_id_t*)  (args->arg2 + infos->base_addr));
+                                    (pok_port_id_t*)   (args->arg2 + infos->base_addr));
          break;
 
-#ifndef POK_GENERATED_CODE
       case POK_SYSCALL_MIDDLEWARE_QUEUEING_STATUS:
          POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg2 + infos->base_addr)
-         return pok_port_queueing_status     ((const pok_port_id_t)           args->arg1,
+         return pok_port_queueing_status     ((pok_port_id_t)                 args->arg1,
                                              (pok_port_queueing_status_t*)    (args->arg2 + infos->base_addr));
          break;
-#endif
 #endif /* POK_NEEDS_PORTS_QUEUEING */
 
 #ifdef POK_NEEDS_LOCKOBJECTS

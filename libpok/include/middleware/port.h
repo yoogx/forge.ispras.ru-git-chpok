@@ -45,16 +45,6 @@ typedef enum
    POK_PORT_KIND_INVALID   = 10
 } pok_port_kinds_t;
 
-#ifdef POK_NEEDS_PORTS_VIRTUAL
-pok_ret_t pok_port_virtual_create (char* name, pok_port_id_t* id);
-
-pok_ret_t pok_port_virtual_destination (const pok_port_id_t id, const uint32_t n, uint32_t* result);
-
-pok_ret_t pok_port_virtual_nb_destinations (const pok_port_id_t id, uint32_t* result);
-
-pok_ret_t pok_port_virtual_get_global (const pok_port_id_t local, pok_port_id_t* global);
-#endif
-
 #ifdef POK_NEEDS_PORTS_QUEUEING
 /* Queueing port functions */
 typedef struct
@@ -80,7 +70,7 @@ pok_ret_t pok_port_queueing_create (const pok_port_queueing_create_arg_t *    ar
                                     pok_port_id_t*                            id);
 
 pok_ret_t pok_port_queueing_receive (const pok_port_id_t                      id, 
-                                     const uint64_t                           timeout, 
+                                     const int64_t                            timeout, 
                                      const pok_port_size_t                    maxlen, 
                                      void*                                    data, 
                                      pok_port_size_t*                         len);
@@ -88,7 +78,7 @@ pok_ret_t pok_port_queueing_receive (const pok_port_id_t                      id
 pok_ret_t pok_port_queueing_send (const pok_port_id_t                         id, 
                                   const void*                                 data, 
                                   const pok_port_size_t                       len, 
-                                  const uint64_t                              timeout);
+                                  const int64_t                               timeout);
 
 #define pok_port_queueing_status(id,status) \
         pok_syscall2(POK_SYSCALL_MIDDLEWARE_QUEUEING_STATUS,(uint32_t)id,(uint32_t)status)

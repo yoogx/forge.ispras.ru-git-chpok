@@ -23,14 +23,14 @@
 #include <types.h>
 
 pok_ret_t pok_port_queueing_receive (const pok_port_id_t id, 
-                                     const uint64_t timeout, 
+                                     const int64_t timeout, 
                                      const pok_port_size_t maxlen, 
                                      void* data, 
                                      pok_port_size_t* len)
 {
    return (pok_syscall5 (POK_SYSCALL_MIDDLEWARE_QUEUEING_RECEIVE,
                          (uint32_t) id,
-                         (uint32_t) timeout,
+                         (int32_t)  timeout,
                          (uint32_t) maxlen,
                          (uint32_t) data,
                          (uint32_t) len));

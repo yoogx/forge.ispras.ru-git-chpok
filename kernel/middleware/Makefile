@@ -6,6 +6,8 @@ include $(TOPDIR)/misc/mk/config.mk
 LO_TARGET=middleware.lo
 
 LO_OBJS=portsampling_ops.o \
+	portqueueing_utils.o \
+	portqueueing_ops.o \
 	portflushall.o \
 	portinit.o \
 
