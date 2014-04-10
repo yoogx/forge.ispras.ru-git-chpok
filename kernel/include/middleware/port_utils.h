@@ -19,6 +19,8 @@
 
 #include <middleware/port.h>
 
+#ifdef POK_NEEDS_PORTS_QUEUEING
+
 static inline pok_bool_t pok_port_utils_queueing_empty(pok_port_queueing_t *port)
 {
     return port->nb_message == 0;
@@ -45,4 +47,7 @@ void pok_port_utils_queueing_transfer(
     pok_port_queueing_t *src,
     pok_port_queueing_t *dst
 );
+
+#endif
+
 #endif

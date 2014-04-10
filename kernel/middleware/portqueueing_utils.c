@@ -14,6 +14,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#ifdef POK_NEEDS_PORTS_QUEUEING
+
 #include <middleware/port.h>
 #include <middleware/port_utils.h>
 
@@ -75,3 +77,5 @@ void pok_port_utils_queueing_transfer(
     src->nb_message--;
     src->queue_head = (src->queue_head + 1) % src->max_nb_message;
 }
+
+#endif
