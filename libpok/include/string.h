@@ -14,3 +14,5 @@
  * Created by julien on Tue Mar 10 14:26:18 2009 
  */
 
+
+#include <libc/string.h>

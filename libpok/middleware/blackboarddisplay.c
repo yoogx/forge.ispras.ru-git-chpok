@@ -72,7 +72,7 @@ pok_ret_t pok_blackboard_display (const pok_blackboard_id_t   id,
       return POK_ERRNO_EINVAL;
    }
 
-   if (pok_blackboards[id].size < len || len < 0)
+   if (pok_blackboards[id].size < len)
    {
       return POK_ERRNO_EINVAL;
    }

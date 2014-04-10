@@ -55,7 +55,7 @@ pok_ret_t pok_buffer_send (const pok_buffer_id_t              id,
 {
    pok_ret_t      ret;
 
-   if (id >= POK_CONFIG_NB_BUFFERS || id < 0)
+   if (id >= POK_CONFIG_NB_BUFFERS)
    {
       return POK_ERRNO_EINVAL;
    }

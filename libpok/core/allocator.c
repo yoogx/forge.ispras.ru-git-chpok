@@ -17,6 +17,9 @@
 #include <core/dependencies.h>
 #include <core/allocator.h>
 
+// for printf
+#include <libc/stdio.h>
+
 /*
  * This is the allocator of POK. It remains in partition. You can configure it
  * with POK_CONFIG_ALLOCATOR_MEMORY_SIZE (total amount of memory that can be allocated

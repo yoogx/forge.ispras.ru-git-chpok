@@ -40,6 +40,7 @@
 #include <types.h>
 #include <libc/string.h>
 #include <middleware/blackboard.h>
+#include <core/event.h>
 
 extern pok_blackboard_t    pok_blackboards[POK_CONFIG_NB_BLACKBOARDS];
 

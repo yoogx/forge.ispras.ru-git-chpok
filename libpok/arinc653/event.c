@@ -168,7 +168,6 @@ void SET_EVENT (EVENT_ID_TYPE EVENT_ID,
       *RETURN_CODE = NO_ERROR;
       return;
    } else {
-      printf("pok_event_signal returned %d\n", (int) core_ret);
       *RETURN_CODE = INVALID_PARAM;
       return;
    }

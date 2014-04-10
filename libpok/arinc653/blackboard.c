@@ -93,11 +93,16 @@ void READ_BLACKBOARD (
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
    pok_ret_t core_ret;
+   pok_port_size_t len = 0;
+
    if (BLACKBOARD_ID == 0) {
       core_ret = POK_ERRNO_EINVAL;
    } else {
-       core_ret = pok_blackboard_read (BLACKBOARD_ID - 1, TIME_OUT, MESSAGE_ADDR, LENGTH);
+       core_ret = pok_blackboard_read (BLACKBOARD_ID - 1, TIME_OUT, MESSAGE_ADDR, &len);
    }
+    
+   *LENGTH = len;
+
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
       MAP_ERROR(POK_ERRNO_EINVAL, INVALID_PARAM);
@@ -122,7 +127,7 @@ void CLEAR_BLACKBOARD (
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
       MAP_ERROR(POK_ERRNO_EINVAL, INVALID_PARAM);
-      MAP_ERRNO_DEFAULT(INVALID_PARAM);
+      MAP_ERROR_DEFAULT(INVALID_PARAM);
    }
 }
  
@@ -137,7 +142,7 @@ void GET_BLACKBOARD_ID (
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
       MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG);
-      MAP_ERRNO_DEFAULT(INVALID_PARAM);
+      MAP_ERROR_DEFAULT(INVALID_PARAM);
    }
    if (core_ret == POK_ERRNO_OK) {
       *BLACKBOARD_ID = id + 1;

@@ -46,7 +46,7 @@ extern pok_buffer_t    pok_buffers[POK_CONFIG_NB_BUFFERS];
 pok_ret_t pok_buffer_status (const pok_buffer_id_t  id,
                              pok_buffer_status_t*   status)
 {
-   if (id >= POK_CONFIG_NB_BUFFERS || id < 0)
+   if (id >= POK_CONFIG_NB_BUFFERS)
    {
       return POK_ERRNO_EINVAL;
    }
