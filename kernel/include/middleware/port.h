@@ -46,8 +46,6 @@
 #include <errno.h>
 #include <core/lockobj.h>
 
-#define POK_PORT_MAX_SIZE 512
-
 typedef enum
 {
 	 POK_PORT_QUEUEING_DISCIPLINE_FIFO      = 1,
