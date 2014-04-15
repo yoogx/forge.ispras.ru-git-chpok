@@ -40,6 +40,7 @@
 #include <middleware/port.h>
 #include <arinc653/types.h>
 #include <arinc653/queueing.h>
+#include <utils.h>
 
 #define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
 #define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
@@ -117,15 +118,10 @@ void SEND_QUEUING_MESSAGE (
         return;
     }
 
-    int64_t delay_ms;
-    if (TIME_OUT > 0) {
-        // XXX 64-bit division
-        delay_ms = (int32_t) TIME_OUT / 1000000;
-        if ((int32_t) TIME_OUT % 1000000) delay_ms++;
-    } else if (TIME_OUT == 0) {
-        delay_ms = 0;
-    } else {
-        delay_ms = -1;
+    int64_t delay_ms = arinc_time_to_ms(TIME_OUT);
+    if (delay_ms > INT32_MAX) {
+        *RETURN_CODE = INVALID_PARAM;
+        return;
     }
 
     core_ret = pok_port_queueing_send (QUEUING_PORT_ID - 1, MESSAGE_ADDR, LENGTH, delay_ms);
@@ -154,16 +150,11 @@ void RECEIVE_QUEUING_MESSAGE (
        return;
    }
    
-    int64_t delay_ms;
-    if (TIME_OUT > 0) {
-        // XXX 64-bit division
-        delay_ms = (int32_t) TIME_OUT / 1000000;
-        if ((int32_t) TIME_OUT % 1000000) delay_ms++;
-    } else if (TIME_OUT == 0) {
-        delay_ms = 0;
-    } else {
-        delay_ms = -1;
-    }
+   int64_t delay_ms = arinc_time_to_ms(TIME_OUT);
+   if (delay_ms > INT32_MAX) {
+       *RETURN_CODE = INVALID_PARAM;
+       return;
+   }
 
    core_ret = pok_port_queueing_receive (QUEUING_PORT_ID - 1, delay_ms, *LENGTH, MESSAGE_ADDR, (pok_port_size_t*)LENGTH);
 

@@ -41,20 +41,18 @@
 #include <core/thread.h>
 #include <core/time.h>
 #include <types.h>
+#include <utils.h>
 
 
 void TIMED_WAIT (SYSTEM_TIME_TYPE delay_time, RETURN_CODE_TYPE *return_code)
 {
-   // delay_time is in ns
-   // since we need to sleep AT LEAST specified time,
-   // round ms value up
-   // FIXME leaving out (uint32_t) cast makes compiler generate 64-bit division
-   //       which requires a library function
-   //       which isn't implemented
-   uint32_t delay_ms = (uint32_t) delay_time / 1000000;
-   if ((uint32_t) delay_time % 1000000) delay_ms += 1;
+   int64_t delay_ms = arinc_time_to_ms(delay_time);
+   if (delay_ms > INT32_MAX) {
+       *return_code = INVALID_PARAM;
+       return;
+   }
 
-   pok_syscall2(POK_SYSCALL_THREAD_SLEEP, delay_ms, 0);
+   pok_syscall2(POK_SYSCALL_THREAD_SLEEP, (int32_t) delay_ms, 0);
    *return_code = NO_ERROR;
 }
 
@@ -69,7 +67,7 @@ void GET_TIME (SYSTEM_TIME_TYPE *system_time, RETURN_CODE_TYPE *return_code)
 {
    uint64_t time;
    pok_time_get(&time);
-   *system_time = ((uint64_t) time) * 1000000;
+   *system_time = ms_to_arinc_time(time);
    *return_code = NO_ERROR;
 }
 

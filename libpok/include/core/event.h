@@ -24,7 +24,7 @@
 #include <errno.h>
 
 pok_ret_t pok_event_create    (pok_event_id_t* id);
-pok_ret_t pok_event_wait      (pok_event_id_t  id, const uint64_t timeout);
+pok_ret_t pok_event_wait      (pok_event_id_t  id, const int64_t timeout);
 pok_ret_t pok_event_broadcast (pok_event_id_t  id);
 pok_ret_t pok_event_signal    (pok_event_id_t  id);
 pok_ret_t pok_event_lock      (pok_event_id_t  id);

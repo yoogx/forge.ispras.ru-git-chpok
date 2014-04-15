@@ -44,6 +44,7 @@
 #include <core/time.h>
 #include <libc/string.h>
 #include <middleware/buffer.h>
+#include <utils.h>
 
 extern pok_buffer_t    pok_buffers[POK_CONFIG_NB_BUFFERS];
 extern char            pok_buffers_data[1024];
@@ -80,22 +81,21 @@ pok_ret_t pok_buffer_send (const pok_buffer_id_t              id,
       return POK_ERRNO_EINVAL;
    }
 
+   int64_t delay_ms = arinc_time_to_ms(timeout);
    pok_event_lock (pok_buffers[id].lock);
 
+   // TODO spurious wakeup case
    while (pok_buffers[id].full)
    {
-      if (timeout == 0)
+      if (delay_ms == 0)
       {
          pok_event_unlock (pok_buffers[id].lock);
          return POK_ERRNO_FULL;
       }
       else
       {
-         // XXX 64-bit division
-         uint64_t delay_ms = (uint32_t) timeout / 1000000;
-         if ((uint32_t) timeout % 1000000) delay_ms++;
          pok_buffers[id].waiting_processes++;
-         ret = pok_event_wait (pok_buffers[id].lock, timeout > 0 ? delay_ms : 0);
+         ret = pok_event_wait (pok_buffers[id].lock, delay_ms < 0 ? 0 : delay_ms);
          pok_buffers[id].waiting_processes--;
          if (ret != POK_ERRNO_OK)
          {

@@ -90,9 +90,8 @@ void CREATE_BUFFER (
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
-   if (MAX_NB_MESSAGE > 0xFFFFFF / MAX_MESSAGE_SIZE) {
+   if (MAX_NB_MESSAGE > UINT32_MAX / MAX_MESSAGE_SIZE) {
        // overflow
-       // XXX unfortunately, limits.h isn't available yet
        *RETURN_CODE = INVALID_PARAM;
        return;
    }

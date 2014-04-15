@@ -41,6 +41,7 @@
 #include <arinc653/sampling.h>
 #include <arinc653/partition.h>
 #include <core/thread.h>
+#include <utils.h>
 
 #define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
 #define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
@@ -87,11 +88,18 @@ void CREATE_SAMPLING_PORT (
 				 return;
 	 }
 
-         // TODO 64-bit division
-         uint64_t refresh_ms = (uint32_t) REFRESH_PERIOD / 1000000;
-         if ((uint32_t) REFRESH_PERIOD % 1000000) refresh_ms++;
+         if (REFRESH_PERIOD < 0) {
+             *RETURN_CODE = INVALID_CONFIG;
+             return;
+         }
 
-	 core_ret = pok_port_sampling_create (SAMPLING_PORT_NAME, MAX_MESSAGE_SIZE, core_direction, refresh_ms, &core_id);
+         int64_t refresh_ms = arinc_time_to_ms(REFRESH_PERIOD);
+    
+         if (refresh_ms < 0 || refresh_ms > UINT32_MAX) {
+            *RETURN_CODE = INVALID_CONFIG;
+         }
+
+	 core_ret = pok_port_sampling_create (SAMPLING_PORT_NAME, MAX_MESSAGE_SIZE, core_direction, (uint32_t) refresh_ms, &core_id);
 
 	 *SAMPLING_PORT_ID = core_id + 1;
 
@@ -185,7 +193,7 @@ void GET_SAMPLING_PORT_STATUS (
     core_ret = pok_port_sampling_status(SAMPLING_PORT_ID - 1, &status);
     
     if (core_ret == POK_ERRNO_OK) {
-        SAMPLING_PORT_STATUS->REFRESH_PERIOD = status.refresh * 1000000;
+        SAMPLING_PORT_STATUS->REFRESH_PERIOD = ms_to_arinc_time(status.refresh);
         SAMPLING_PORT_STATUS->MAX_MESSAGE_SIZE = status.size;
         SAMPLING_PORT_STATUS->PORT_DIRECTION = (status.direction == POK_PORT_DIRECTION_OUT) ? SOURCE : DESTINATION;
         SAMPLING_PORT_STATUS->LAST_MSG_VALIDITY = status.validity;

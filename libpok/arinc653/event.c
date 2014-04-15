@@ -45,6 +45,7 @@
 
 #include <core/partition.h>
 #include <core/thread.h>
+#include <utils.h>
 
 // must be at least MAX_NAME_LENGTH of ARINC653
 #define POK_EVENT_MAX_NAME_LENGTH 30
@@ -227,7 +228,6 @@ void WAIT_EVENT (EVENT_ID_TYPE EVENT_ID,
       return;
    }
 
-   // TODO convert timeout
    if (TIME_OUT == 0) {
       // don't wait
       *RETURN_CODE = NOT_AVAILABLE;
@@ -242,15 +242,7 @@ void WAIT_EVENT (EVENT_ID_TYPE EVENT_ID,
       return;
    }
 
-   uint64_t delay_ms; 
-   if (TIME_OUT < 0) {
-      delay_ms = 0;
-   } else {
-      // XXX 64-bit division
-      delay_ms = (uint32_t) TIME_OUT / 1000000;
-      if ((uint32_t) TIME_OUT % 1000000) delay_ms++;
-   }
-
+   int64_t delay_ms = arinc_time_to_ms(TIME_OUT);
    core_ret = pok_event_wait (pok_arinc653_events_layers[events_layer_idx].core_id, delay_ms);
 
    switch (core_ret)

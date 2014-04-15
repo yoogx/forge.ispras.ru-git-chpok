@@ -46,6 +46,7 @@
 #include <core/semaphore.h>
 #include <core/partition.h>
 #include <core/thread.h>
+#include <utils.h>
 
 // must be at least MAX_NAME_LENGTH of ARINC653
 #define POK_SEM_MAX_NAME_LENGTH 30
@@ -198,14 +199,8 @@ void WAIT_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
         MAP_ERROR_DEFAULT(INVALID_PARAM);
      }
    } else {
-      uint64_t delay_ms;
-      if (TIME_OUT < 0) {
-         delay_ms = 0;
-      } else {
-         delay_ms = (uint32_t) TIME_OUT / 1000000;
-         if ((uint32_t) TIME_OUT % 1000000) delay_ms++;
-      }
-      core_ret = pok_sem_wait (pok_arinc653_semaphores_layers[sem_layer_idx].core_id, delay_ms);
+      int64_t delay_ms = arinc_time_to_ms(TIME_OUT);
+      core_ret = pok_sem_wait (pok_arinc653_semaphores_layers[sem_layer_idx].core_id, delay_ms < 0 ? 0 : delay_ms);
 
       switch (core_ret) {
          MAP_ERROR(POK_ERRNO_OK, NO_ERROR);

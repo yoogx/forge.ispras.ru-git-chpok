@@ -44,6 +44,7 @@
 #include <core/thread.h>
 #include <libc/string.h>
 #include <middleware/buffer.h>
+#include <utils.h>
 
 extern pok_buffer_t    pok_buffers[POK_CONFIG_NB_BUFFERS];
 extern char            pok_buffers_data[1024];
@@ -69,12 +70,15 @@ pok_ret_t pok_buffer_receive (const pok_buffer_id_t                id,
    {
       return POK_ERRNO_EINVAL;
    }
+   
+   int64_t delay_ms = arinc_time_to_ms(timeout);
 
-   pok_event_lock (pok_buffers[id].lock);
+   pok_event_lock (pok_buffers[id].lock); 
 
+   // TODO handle case of spontaneous wakeup
    while (pok_buffers[id].empty == TRUE)
    {
-      if (timeout == 0)
+      if (delay_ms == 0)
       {
          pok_event_unlock (pok_buffers[id].lock);
          return POK_ERRNO_EMPTY;
@@ -82,11 +86,8 @@ pok_ret_t pok_buffer_receive (const pok_buffer_id_t                id,
       else
       {
          // ARINC's INFINITE_TIME_VALUE (-1) translates to 0 timeout of pok
-         // XXX 64-bit division
-         uint64_t delay_ms = (uint32_t) timeout / 1000000;
-         if ((uint32_t) timeout % 1000000) delay_ms++;
          pok_buffers[id].waiting_processes++;
-         ret = pok_event_wait (pok_buffers[id].lock, delay_ms > 0 ? delay_ms : 0);
+         ret = pok_event_wait (pok_buffers[id].lock, delay_ms < 0 ? 0 : delay_ms);
          pok_buffers[id].waiting_processes--;
          if (ret != POK_ERRNO_OK)
          {

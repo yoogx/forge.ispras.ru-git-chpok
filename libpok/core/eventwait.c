@@ -23,7 +23,7 @@
 #include <core/syscall.h>
 #include <core/lockobj.h>
 
-pok_ret_t pok_event_wait (pok_event_id_t id, const uint64_t timeout)
+pok_ret_t pok_event_wait (pok_event_id_t id, const int64_t timeout)
 {
    pok_lockobj_lockattr_t lockattr;
    lockattr.operation   = LOCKOBJ_OPERATION_WAIT;

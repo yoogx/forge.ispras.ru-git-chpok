@@ -30,6 +30,19 @@ typedef signed long long      int64_t;
 
 typedef unsigned int          size_t;
 typedef int		      ssize_t;
-typedef unsigned long int     intptr_t;
+typedef unsigned long int     uintptr_t;
+typedef long int              intptr_t;
+
+#define INT8_MAX (0x7f)
+#define INT8_MIN (-INT8_MAX - 1L)
+#define UINT8_MAX (0xffu)
+
+#define INT16_MAX (0x7fff)
+#define INT16_MIN (-INT16_MAX - 1L)
+#define UINT16_MAX (0xffffu)
+
+#define INT32_MAX (0x7fffffff)
+#define INT32_MIN (-INT32_MAX - 1L)
+#define UINT32_MAX (0xffffffffu)
 
 #endif

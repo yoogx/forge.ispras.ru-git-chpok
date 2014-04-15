@@ -41,6 +41,7 @@
 #include <core/event.h>
 #include <libc/string.h>
 #include <middleware/blackboard.h>
+#include <utils.h>
 
 extern pok_blackboard_t    pok_blackboards[POK_CONFIG_NB_BLACKBOARDS];
 extern char                pok_blackboards_data[];
@@ -66,20 +67,19 @@ pok_ret_t pok_blackboard_read (const pok_blackboard_id_t   id,
       return POK_ERRNO_EINVAL;
    }
 
+   int64_t delay_ms = arinc_time_to_ms(timeout);
    pok_ret_t ret;
    pok_event_lock (pok_blackboards[id].lock);
 
+   // TODO spurious wakeup case
    while (pok_blackboards[id].empty) {
-      if (timeout == 0) {
+      if (delay_ms == 0) {
          pok_event_unlock(pok_blackboards[id].lock);
          return POK_ERRNO_EMPTY;
       } else {
          // ARINC's INFINITE_TIME_VALUE (-1) translates to 0 timeout of pok
-         // XXX 64-bit division
-         uint64_t delay_ms = (uint32_t) timeout / 1000000;
-         if ((uint32_t) timeout % 1000000) delay_ms++;
          pok_blackboards[id].waiting_processes++;
-         ret = pok_event_wait (pok_blackboards[id].lock, delay_ms > 0 ? delay_ms : 0);
+         ret = pok_event_wait (pok_blackboards[id].lock, delay_ms < 0 ? 0 : delay_ms);
          pok_blackboards[id].waiting_processes--;
          if (ret != POK_ERRNO_OK)
          {

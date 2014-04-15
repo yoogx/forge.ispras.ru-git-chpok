@@ -43,6 +43,7 @@
 #include <core/event.h>
 #include <libc/string.h>
 #include <middleware/buffer.h>
+#include <utils.h>
 
 extern pok_buffer_t    pok_buffers[POK_CONFIG_NB_BUFFERS];
 pok_size_t             pok_buffers_data_index = 0;
@@ -60,7 +61,7 @@ pok_ret_t pok_buffer_create (char*                                 name,
    // leave some space to save message length
    const pok_port_size_t size = num_messages * (msg_size + sizeof(pok_port_size_t));
 
-   if (  size > 0x7FFFFFFF - pok_buffers_data_index ||
+   if (  size > INT32_MAX - pok_buffers_data_index ||
          pok_buffers_data_index + size >= 1024) {
       return POK_ERRNO_EINVAL;
    }
