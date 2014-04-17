@@ -191,6 +191,28 @@ uint8_t	pok_elect_partition()
 }
 #endif /* POK_NEEDS_PARTITIONS */
 
+#ifdef POK_TEST_SUPPORT_PRINT_WHEN_ALL_THREADS_STOPPED
+static void check_all_threads_stopped(void) {
+    size_t part_id;
+    static pok_bool_t check_passed = FALSE;
+
+    if (check_passed) return;
+
+    for (part_id = 0; part_id < POK_CONFIG_NB_PARTITIONS; part_id++) {
+        size_t low = pok_partitions[part_id].thread_index_low,
+               high= pok_partitions[part_id].thread_index;
+        size_t thread;
+        for (thread = low; thread < high; thread++) {
+            if (pok_threads[thread].state != POK_STATE_STOPPED) {
+                return;
+            }
+        }
+    }
+    check_passed = TRUE;
+    printf("POK: all threads have stopped\n");
+}
+#endif
+
 #ifdef POK_NEEDS_PARTITIONS
 uint32_t	pok_elect_thread(uint8_t new_partition_id)
 {
@@ -292,6 +314,9 @@ uint32_t	pok_elect_thread(uint8_t new_partition_id)
 
       default:
          elected = IDLE_THREAD;
+#ifdef POK_TEST_SUPPORT_PRINT_WHEN_ALL_THREADS_STOPPED
+         check_all_threads_stopped();
+#endif
          break;
    }
 
@@ -425,6 +450,9 @@ uint32_t pok_sched_part_rms (const uint32_t index_low, const uint32_t index_high
 
    if ((res == index_low) && (pok_threads[res].state != POK_STATE_RUNNABLE))
    {
+#ifdef POK_TEST_SUPPORT_PRINT_WHEN_ALL_THREADS_STOPPED
+      check_all_threads_stopped();
+#endif
       res = IDLE_THREAD;
    }
 
