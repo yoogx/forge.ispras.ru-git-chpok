@@ -214,23 +214,13 @@ static void check_all_threads_stopped(void) {
 #endif
 
 #ifdef POK_NEEDS_PARTITIONS
-uint32_t	pok_elect_thread(uint8_t new_partition_id)
+
+static void pok_unlock_sleeping_threads(pok_partition_t *new_partition)
 {
-   uint64_t now = POK_GETTICK();
-   pok_partition_t* new_partition = &(pok_partitions[new_partition_id]);
-
-
-   /*
-    * We unlock all WAITING threads if the waiting time is passed
-    */
-   uint8_t i;           /* i is used to browse the partition. We support
-                         * only 255 partitions are max, so, we use an uin8_t
-                         * type
-                         */
-   pok_thread_t* thread;
+   pok_thread_id_t i;
    for (i = 0; i < new_partition->nthreads; i++)
    {
-     thread = &(pok_threads[new_partition->thread_index_low + i]);
+     pok_thread_id_t *thread = &(pok_threads[new_partition->thread_index_low + i]);
 
 #if defined (POK_NEEDS_LOCKOBJECTS) || defined (POK_NEEDS_PORTS_QUEUEING) || defined (POK_NEEDS_PORTS_SAMPLING)
      if ((thread->state == POK_STATE_WAITING) && (thread->wakeup_time <= now))
@@ -246,6 +236,15 @@ uint32_t	pok_elect_thread(uint8_t new_partition_id)
        thread->next_activation = thread->next_activation + thread->period; 
      }
    }
+
+}
+
+static pok_thread_id_t pok_elect_thread(pok_partition_id_t new_partition_id)
+{
+   uint64_t now = POK_GETTICK();
+   pok_partition_t* new_partition = &(pok_partitions[new_partition_id]);
+    
+   pok_unlock_sleeping_threads(new_partition);
 
    /*
     * We elect the thread to be executed.
