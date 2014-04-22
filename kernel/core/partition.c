@@ -192,10 +192,6 @@ pok_ret_t pok_partition_init ()
       }
 #endif
 
-#ifdef POK_CONFIG_PARTITIONS_SCHEDULER
-      pok_partitions[i].sched             = ((pok_sched_t[]) POK_CONFIG_PARTITIONS_SCHEDULER) [i];
-#endif
-
       pok_partitions[i].thread_index_high = pok_partitions[i].thread_index_low + ((uint32_t[]) POK_CONFIG_PARTITIONS_NTHREADS) [i];
       pok_partitions[i].activation        = 0;
       pok_partitions[i].period            = 0;
@@ -203,10 +199,6 @@ pok_ret_t pok_partition_init ()
       pok_partitions[i].thread_main       = 0;
       pok_partitions[i].current_thread    = IDLE_THREAD;
       pok_partitions[i].prev_thread       = IDLE_THREAD; // breaks the rule of prev_thread not being idle, but it's just for init
-
-#ifdef POK_NEEDS_SCHED_HFPPS
-      pok_partitions[i].payback = 0;
-#endif /* POK_NEEDS_SCHED_HFPPS */
 
       threads_index                       = threads_index + pok_partitions[i].nthreads;
       /* Initialize the threading stuff */
