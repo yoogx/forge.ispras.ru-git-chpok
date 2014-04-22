@@ -43,12 +43,12 @@ void pok_boot ()
    pok_time_init();
 #endif
 
-#ifdef POK_NEEDS_PARTITIONS
-   pok_partition_init ();
-#endif
-
 #ifdef POK_NEEDS_THREADS
    pok_thread_init ();
+#endif
+
+#ifdef POK_NEEDS_PARTITIONS
+   pok_partition_init ();
 #endif
 
 #if defined (POK_NEEDS_SCHED) || defined (POK_NEEDS_THREADS)

@@ -70,31 +70,7 @@ extern pok_partition_t     pok_partitions[POK_CONFIG_NB_PARTITIONS];
  */
 void pok_thread_init(void)
 {
-   uint32_t i;
-
-#ifdef POK_NEEDS_PARTITIONS
-   uint32_t total_threads;
-   uint8_t  j;
-
-   total_threads = 0;
-
-   for (j = 0 ; j < POK_CONFIG_NB_PARTITIONS ; j++)
-   {
-      total_threads = total_threads + pok_partitions[j].nthreads;
-   }
-
-#if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_ERROR_HANDLING)
-   if (total_threads != (POK_CONFIG_NB_THREADS - 2))
-   {
-#ifdef POK_NEEDS_DEBUG
-      printf ("Error in configuration, bad number of threads\n");
-#endif
-#ifdef POK_NEEDS_ERROR_HANDLING
-      pok_kernel_error (POK_ERROR_KIND_KERNEL_CONFIG);
-#endif
-   }
-#endif
-#endif
+   pok_thread_id_t i;
 
    pok_threads[KERNEL_THREAD].priority	   = 0;
    pok_threads[KERNEL_THREAD].base_priority	   = 0;

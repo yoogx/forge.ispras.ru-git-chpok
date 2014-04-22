@@ -253,6 +253,12 @@ static pok_thread_id_t pok_elect_thread(pok_partition_id_t new_partition_id)
 #endif
 
          elected = new_partition->thread_main;
+
+         if (pok_threads[elected].state != POK_STATE_RUNNABLE) {
+            // if main thread is stopped, don't schedule it
+            elected = IDLE_THREAD;
+         }
+
          break;
 
       case POK_PARTITION_MODE_NORMAL:

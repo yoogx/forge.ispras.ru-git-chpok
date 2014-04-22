@@ -134,6 +134,9 @@ void pok_partition_setup_main_thread (const uint8_t pid)
 
    pok_partition_thread_create (&main_thread, &attr, pid);
    pok_partitions[pid].thread_main = main_thread;
+
+   // hack
+   pok_threads[main_thread].state = POK_STATE_RUNNABLE;
 }
 
 /**
@@ -146,6 +149,7 @@ pok_ret_t pok_partition_init ()
 {
    pok_partition_id_t i;
    pok_thread_id_t    threads_index = 0;
+   pok_thread_id_t    total_threads = 0;
 
    const uint32_t	partition_size[POK_CONFIG_NB_PARTITIONS] = POK_CONFIG_PARTITIONS_SIZE;
 #ifdef POK_CONFIG_PARTITIONS_LOADADDR
@@ -184,6 +188,8 @@ pok_ret_t pok_partition_init ()
       
       pok_partitions[i].thread_index_low  = threads_index;
       pok_partitions[i].nthreads          = ((uint32_t[]) POK_CONFIG_PARTITIONS_NTHREADS) [i];
+
+      total_threads += pok_partitions[i].nthreads;
 
 #ifdef POK_NEEDS_ERROR_HANDLING
       if (pok_partitions[i].nthreads <= 1)
@@ -237,6 +243,20 @@ pok_ret_t pok_partition_init ()
       pok_partition_setup_main_thread (i);
       pok_partitions[i].current_thread    = pok_partitions[i].thread_main;
    }
+
+
+#if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_ERROR_HANDLING)
+   // verify number of threads
+   if (total_threads != (POK_CONFIG_NB_THREADS - 2))
+   {
+#ifdef POK_NEEDS_DEBUG
+      printf ("Error in configuration, bad number of threads\n");
+#endif
+#ifdef POK_NEEDS_ERROR_HANDLING
+      pok_kernel_error (POK_ERROR_KIND_KERNEL_CONFIG);
+#endif
+   }
+#endif
 
    return POK_ERRNO_OK;
 }
