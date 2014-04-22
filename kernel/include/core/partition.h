@@ -84,57 +84,51 @@ typedef enum
  */
 typedef struct
 {
-   uint32_t              base_addr;    /**< The base address inside the whole memory (where the segment is in the whole memory ?) */
-   uint32_t              base_vaddr;   /**< The virtual address of the partition. The address the threads sees when they are
+   uint32_t                 base_addr;    /**< The base address inside the whole memory (where the segment is in the whole memory ?) */
+   uint32_t                 base_vaddr;   /**< The virtual address of the partition. The address the threads sees when they are
                                         *    executed
                                        */
 
-   uint32_t              size;         /**< Size of the allocated memory segment */
+   uint32_t                 size;           /**< Size of the allocated memory segment */
 
-   const char            *name;        /**< Name of the partition */
+   const char               *name;          /**< Name of the partition */
 
-   uint32_t              nthreads;     /**< Number of threads inside the partition */
+   uint32_t                 nthreads;       /**< Number of threads inside the partition */
 
-   uint8_t               priority;     /**< Priority of the partition (unused at this time */
-   uint32_t              period;       /**< Period of the partition, unused at this time */
+   uint8_t                  priority;       /**< Priority of the partition (unused at this time */
+   uint32_t                 period;         /**< Period of the partition, unused at this time */
 
-   pok_sched_t           sched;       /**< The associated for the partition to schedule its threads */
+   const pok_scheduler_ops  *scheduler;     /**< The scheduler of this partition */
 
-   uint32_t (*sched_func)(uint32_t low, uint32_t high,uint32_t prev_thread, uint32_t cur_thread); /**< Scheduling function to scheduler threads */
+   uint64_t                 activation;     /**< Last activation time of the partition */
+   uint32_t                 prev_thread;    /**< member for the scheduler (previous scheduled real thread inside the partition,i.e not the idle thread */
+   uint32_t                 current_thread; /**< member for the scheduler (current executed thread inside the partition */
 
-   uint64_t              activation;                    /**< Last activation time of the partition */
-   uint32_t              prev_thread;           /**< member for the scheduler (previous scheduled real thread inside the partition,i.e not the idle thread */
-   uint32_t              current_thread;                /**< member for the scheduler (current executed thread inside the partition */
-
-   uint32_t               thread_index_low;    /**< The low index in the threads table */
-   uint32_t               thread_index_high;   /**< The high index in the threads table */
-   uint32_t               thread_index;        /**< The thread index */
+   uint32_t                 thread_index_low;    /**< The low index in the threads table */
+   uint32_t                 thread_index_high;   /**< The high index in the threads table */
+   uint32_t                 thread_index;        /**< The thread index */
 
 #if defined(POK_NEEDS_LOCKOBJECTS) || defined(POK_NEEDS_ERROR_HANDLING)
-   uint8_t               lockobj_index_low;   /**< The low bound in the lockobject array. */
-   uint8_t               lockobj_index_high;  /**< The high bound in the lockobject array */
-   uint8_t               nlockobjs;           /**< The amount of lockobjects reserved for the partition */
+   uint8_t                  lockobj_index_low;   /**< The low bound in the lockobject array. */
+   uint8_t                  lockobj_index_high;  /**< The high bound in the lockobject array */
+   uint8_t                  nlockobjs;           /**< The amount of lockobjects reserved for the partition */
 #endif
-
-#ifdef POK_NEEDS_SCHED_HFPPS
-   uint64_t		payback; /**< Payback for HFPPS scheduling algorithm */
-#endif /* POK_NEEDS_SCHED_HFPPS */
 
 #ifdef POK_NEEDS_ERROR_HANDLING
-   uint32_t             thread_error;         /**< The thread identifier used for error handling */
-   pok_error_status_t   error_status;        /**< A pointer used to store information about errors */
+   pok_thread_id_t          thread_error;       /**< The thread identifier used for error handling */
+   pok_error_status_t       error_status;       /**< A pointer used to store information about errors */
 #endif
-   uint32_t             thread_main;          /**< The thread identifier of the main thread (initialization thread) */
-   uint32_t             thread_main_entry;    /**< The entry-point of the main thread (useful for re-init) */
-   pok_partition_mode_t mode;                 /**< Current mode of the partition */
+   pok_thread_id_t          thread_main;        /**< The thread identifier of the main thread (initialization thread) */
+   uintptr_t                thread_main_entry;  /**< The entry-point of the main thread (useful for re-init) */
+   pok_partition_mode_t     mode;               /**< Current mode of the partition */
 
 #ifdef POK_NEEDS_IO
-  uint16_t		io_min;                        /**< If the partition is allowed to perform I/O, the lower bound of the I/O */
-  uint16_t		io_max;                        /**< If the partition is allowed to perform I/O, the uppder bound of the I/O */
+  uint16_t		    io_min;             /**< If the partition is allowed to perform I/O, the lower bound of the I/O */
+  uint16_t		    io_max;             /**< If the partition is allowed to perform I/O, the uppder bound of the I/O */
 #endif
 
-  uint32_t		lock_level;
-  pok_start_condition_t	start_condition;
+  uint32_t		    lock_level;
+  pok_start_condition_t	    start_condition;
 } pok_partition_t;
 
 extern pok_partition_t pok_partitions[POK_CONFIG_NB_PARTITIONS];
@@ -151,8 +145,13 @@ extern pok_partition_t pok_partitions[POK_CONFIG_NB_PARTITIONS];
  * \a pid
  */
 #define POK_CHECK_PTR_IN_PARTITION(pid,ptr) (\
-                                             ((((uint32_t)ptr)>=pok_partitions[pid].base_addr)&& \
-                                             (((uint32_t)ptr)<=(pok_partitions[pid].base_addr+pok_partitions[pid].size)))?1:0\
+                                             ((uintptr_t)(ptr)) >= pok_partitions[pid].base_addr && \
+                                             ((uintptr_t)(ptr)) <  pok_partitions[pid].base_addr + pok_partitions[pid].size\
+                                             )
+
+#define POK_CHECK_VPTR_IN_PARTITION(pid,ptr) (\
+                                             ((uintptr_t)(ptr)) >= pok_partitions[pid].base_vaddr && \
+                                             ((uintptr_t)(ptr)) <  pok_partitions[pid].base_vaddr + pok_partitions[pid].size\
                                              )
 
 /**
@@ -160,21 +159,19 @@ extern pok_partition_t pok_partitions[POK_CONFIG_NB_PARTITIONS];
  */
 pok_ret_t pok_partition_init();
 
-pok_ret_t pok_partition_set_mode (const uint8_t pid, const pok_partition_mode_t mode);
+pok_ret_t pok_partition_set_mode (pok_partition_id_t pid, const pok_partition_mode_t mode);
 pok_ret_t pok_partition_set_mode_current (const pok_partition_mode_t mode);
 
 
-pok_ret_t pok_partition_stop_thread (const uint32_t tid);
+void pok_partition_reinit (pok_partition_id_t);
 
-void pok_partition_reinit (const uint8_t);
+void pok_partition_setup_main_thread (pok_partition_id_t);
 
-void pok_partition_setup_main_thread (const uint8_t);
+void pok_partition_setup_scheduler (pok_partition_id_t pid);
 
-void pok_partition_setup_scheduler (const uint8_t pid);
+pok_ret_t pok_partition_restart_thread (pok_thread_id_t tid);
 
-pok_ret_t pok_partition_restart_thread (const uint32_t tid);
-
-pok_ret_t pok_current_partition_get_id (uint8_t *id);
+pok_ret_t pok_current_partition_get_id (pok_partition_id_t *id);
 
 pok_ret_t pok_current_partition_get_period (uint64_t *period);
 

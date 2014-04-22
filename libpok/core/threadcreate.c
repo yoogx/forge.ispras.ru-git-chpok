@@ -22,7 +22,7 @@
 #include <core/syscall.h>
 #include <core/thread.h>
 
-pok_ret_t pok_thread_create (uint32_t* thread_id, const pok_thread_attr_t* attr)
+pok_ret_t pok_thread_create (pok_thread_id_t* thread_id, const pok_thread_attr_t* attr)
 {
    return pok_syscall2  (POK_SYSCALL_THREAD_CREATE,
                          (uint32_t)thread_id,

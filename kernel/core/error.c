@@ -26,15 +26,15 @@
 
 pok_ret_t pok_error_thread_create (uint32_t stack_size, void* entry)
 {
-   uint32_t tid;
-   pok_thread_attr_t attr;
-   pok_ret_t         ret;
+   pok_thread_id_t      tid;
+   pok_thread_attr_t    attr;
+   pok_ret_t            ret;
 
    (void) stack_size;
 
    attr.priority  = POK_THREAD_MAX_PRIORITY;
    attr.entry     = entry;
-   attr.time_capacity = 10000;
+   attr.time_capacity = -1;
 
    ret = pok_partition_thread_create (&tid, &attr, POK_SCHED_CURRENT_PARTITION);
 

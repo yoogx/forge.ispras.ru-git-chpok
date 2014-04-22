@@ -21,7 +21,7 @@
 #include <types.h>
 #include <core/syscall.h>
 
-pok_ret_t pok_thread_period ()
+pok_ret_t pok_thread_period(void)
 {
    return pok_syscall2 (POK_SYSCALL_THREAD_PERIOD, (uint32_t)NULL, (uint32_t)NULL);
 }

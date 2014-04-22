@@ -43,286 +43,287 @@
 #include <arinc653/process.h>
 #include <libc/string.h>
 
+#include <utils.h>
 #include <core/partition.h>
 
-#define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
+#define MAP_ERROR(from, to) case (from): *return_code = (to); break
+#define MAP_ERROR_DEFAULT(to) default: *return_code = (to); break
 
-void GET_PROCESS_ID (PROCESS_NAME_TYPE process_name[MAX_NAME_LENGTH],
-										 PROCESS_ID_TYPE   *process_id,
-										 RETURN_CODE_TYPE  *return_code )
+#define CHECK_PROCESS_ID() \
+    if (process_id == 0) { \
+        *return_code = INVALID_PARAM; \
+        return; \
+    }
+
+void GET_PROCESS_ID(
+    PROCESS_NAME_TYPE process_name,
+    PROCESS_ID_TYPE   *process_id,
+    RETURN_CODE_TYPE  *return_code)
 {
-	int id;
-
-	if ((id = process_name_exist(process_name)) == 0)
-		{
-			*process_id = id;
-			*return_code = INVALID_CONFIG;
-		}
-	else
-		{
-			*process_id = id;
-			*return_code = NO_ERROR;
-		}
+    pok_thread_id_t id;
+    if (get_process_id(process_name, &id)) {
+        *process_id = id + 1;
+        *return_code = NO_ERROR;
+    } else {
+        *return_code = INVALID_CONFIG;  
+    }
 }
 
 void GET_MY_ID (PROCESS_ID_TYPE   *process_id,
 		RETURN_CODE_TYPE  *return_code )
 {
-	pok_ret_t         core_ret;
-	uint32_t			thread_id;
+    pok_ret_t core_ret;
+    pok_thread_id_t thread_id;
 
-	core_ret = pok_thread_id (&thread_id);
-	if (core_ret != 0)
-		*return_code = INVALID_MODE;
-	*process_id = thread_id;
+    core_ret = pok_thread_id(&thread_id);
+    if (core_ret != POK_ERRNO_OK) {
+        *return_code = INVALID_MODE;
+    } else {
+        *process_id = thread_id + 1;
 	*return_code = NO_ERROR;
+    }
 }
 
-void GET_PROCESS_STATUS (PROCESS_ID_TYPE     process_id,
-												 PROCESS_STATUS_TYPE *process_status,
-												 RETURN_CODE_TYPE    *return_code )
+void GET_PROCESS_STATUS (
+    PROCESS_ID_TYPE     process_id,
+    PROCESS_STATUS_TYPE *process_status,
+    RETURN_CODE_TYPE    *return_code)
 {
-	pok_thread_attr_t	attr;
-	pok_ret_t		core_ret;
+    pok_thread_status_t status;
+    pok_ret_t           core_ret;
 
-	core_ret = pok_thread_status (process_id, &attr);
-	if (core_ret ==  POK_ERRNO_PARAM)
-		{
-			*return_code =  INVALID_PARAM;
-			return ;
-		}
-	process_status->DEADLINE_TIME = attr.deadline;
+    CHECK_PROCESS_ID();
+	
+    core_ret = pok_thread_status(process_id - 1, &status);
+
+    switch (core_ret) {
+        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR_DEFAULT(INVALID_PARAM);
+
+    }
+
+    if (core_ret != POK_ERRNO_OK) {
+        return;
+    }
+
+    process_status->DEADLINE_TIME = status.deadline_time;
 #define MAP_STATUS(from, to) case (from): process_status->PROCESS_STATE = (to); break
-        switch (attr.state) {
-            MAP_STATUS(POK_STATE_STOPPED, DORMANT);
-            MAP_STATUS(POK_STATE_RUNNABLE, READY);
-            MAP_STATUS(POK_STATE_WAITING, WAITING);
-            MAP_STATUS(POK_STATE_LOCK, WAITING);
-            MAP_STATUS(POK_STATE_WAIT_NEXT_ACTIVATION, WAITING);
-            MAP_STATUS(POK_STATE_DELAYED_START, WAITING);
-        }
+    switch (status.state) {
+        MAP_STATUS(POK_STATE_STOPPED, DORMANT);
+        MAP_STATUS(POK_STATE_RUNNABLE, READY);
+        MAP_STATUS(POK_STATE_WAITING, WAITING);
+        MAP_STATUS(POK_STATE_LOCK, WAITING);
+        MAP_STATUS(POK_STATE_WAIT_NEXT_ACTIVATION, WAITING);
+        MAP_STATUS(POK_STATE_DELAYED_START, WAITING);
+    }
 #undef MAP_STATUS
-	strcpy(process_status->ATTRIBUTES.NAME, arinc_process_attribute[process_id].NAME);
-	process_status->ATTRIBUTES.BASE_PRIORITY = arinc_process_attribute[process_id].BASE_PRIORITY;
-	process_status->ATTRIBUTES.DEADLINE = HARD;
-	process_status->CURRENT_PRIORITY = attr.priority;
-	process_status->ATTRIBUTES.PERIOD = attr.period;
-	process_status->ATTRIBUTES.TIME_CAPACITY = attr.time_capacity;
-	process_status->ATTRIBUTES.ENTRY_POINT = attr.entry;
-	process_status->ATTRIBUTES.STACK_SIZE = attr.stack_size;
-	*return_code = NO_ERROR;
+    strcpy(process_status->ATTRIBUTES.NAME, arinc_process_attribute[process_id - 1].NAME);
+    process_status->ATTRIBUTES.BASE_PRIORITY = status.attributes.priority;
+    if (status.attributes.deadline == DEADLINE_SOFT) {
+        process_status->ATTRIBUTES.DEADLINE = SOFT;
+    } else {
+        process_status->ATTRIBUTES.DEADLINE = HARD;
+    }
+    process_status->CURRENT_PRIORITY = status.current_priority;
+    process_status->ATTRIBUTES.PERIOD = ms_to_arinc_time(status.attributes.period);
+    process_status->ATTRIBUTES.TIME_CAPACITY = ms_to_arinc_time(status.attributes.time_capacity);
+    process_status->ATTRIBUTES.ENTRY_POINT = status.attributes.entry;
+    process_status->ATTRIBUTES.STACK_SIZE = status.attributes.stack_size;
 }
 
-void CREATE_PROCESS (PROCESS_ATTRIBUTE_TYPE  *attributes,
-										 PROCESS_ID_TYPE         *process_id,
-										 RETURN_CODE_TYPE        *return_code )
+void CREATE_PROCESS (
+    PROCESS_ATTRIBUTE_TYPE  *attributes,
+    PROCESS_ID_TYPE         *process_id,
+    RETURN_CODE_TYPE        *return_code)
 {
-	 pok_thread_attr_t core_attr;
-	 pok_ret_t         core_ret;
-	 uint32_t          core_process_id;
+    pok_thread_attr_t core_attr;
+    pok_ret_t         core_ret;
+    pok_thread_id_t   core_process_id;
 
-	 if (process_name_exist(&attributes->NAME))
-		 {
-			 *return_code = NO_ACTION;
-			 return;
-		 }
-	 if (attributes->BASE_PRIORITY > MAX_PRIORITY_VALUE || attributes->BASE_PRIORITY < MIN_PRIORITY_VALUE)
-		 {
-			 *return_code = INVALID_PARAM;
-			 return;
-		 }
-	 core_attr.priority        = (uint8_t) attributes->BASE_PRIORITY;
-	 core_attr.entry           = attributes->ENTRY_POINT;
-	 core_attr.period          = attributes->PERIOD;
-	 core_attr.deadline        = attributes->DEADLINE;
-	 core_attr.time_capacity   = attributes->TIME_CAPACITY;
-	 core_attr.stack_size      = attributes->STACK_SIZE;
+    if (attributes->NAME[0] == '\0') {
+        // empty names are not allowed
+        *return_code = INVALID_PARAM;
+        return;
+    }
 
-	 core_ret = pok_thread_create (&core_process_id, &core_attr);
-	 arinc_process_attribute[core_process_id].BASE_PRIORITY = attributes->BASE_PRIORITY;
-	 strcpy(arinc_process_attribute[core_process_id].NAME, attributes->NAME);
-	 *process_id = core_process_id;
-	 *return_code = core_ret;
-   if(core_ret != POK_ERRNO_OK) {
-	   return;
-   }
-   // ARINC specifies that threads shall be created in the DORMANT state
-   core_ret = pok_thread_suspend_target(core_process_id);
-   *return_code = core_ret;
+    if (get_process_id(attributes->NAME, NULL)) {
+        // already created
+        *return_code = NO_ACTION;
+        return;
+    }
+    if (attributes->BASE_PRIORITY > MAX_PRIORITY_VALUE || 
+        attributes->BASE_PRIORITY < MIN_PRIORITY_VALUE)
+    {
+        *return_code = INVALID_PARAM;
+        return;
+    }
+    core_attr.priority        = (uint8_t) attributes->BASE_PRIORITY;
+    core_attr.entry           = attributes->ENTRY_POINT;
+    core_attr.period          = arinc_time_to_ms(attributes->PERIOD);
+    if (attributes->DEADLINE == SOFT) {
+        core_attr.deadline = DEADLINE_SOFT;
+    } else if (attributes->DEADLINE == HARD) {
+        core_attr.deadline = DEADLINE_HARD;
+    } else {
+        *return_code = INVALID_PARAM;
+        return;
+    }
+    core_attr.time_capacity   = arinc_time_to_ms(attributes->TIME_CAPACITY);
+    core_attr.stack_size      = attributes->STACK_SIZE;
+
+    core_ret = pok_thread_create (&core_process_id, &core_attr);
+    arinc_process_attribute[core_process_id].BASE_PRIORITY = attributes->BASE_PRIORITY;
+    strcpy(arinc_process_attribute[core_process_id].NAME, attributes->NAME);
+    *process_id = core_process_id + 1;
+    *return_code = core_ret;
+    if (core_ret != POK_ERRNO_OK) {
+        switch (core_ret) {
+            MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+            MAP_ERROR(POK_ERRNO_PARAM, INVALID_CONFIG);
+            MAP_ERROR(POK_ERRNO_TOOMANY, INVALID_CONFIG);
+            MAP_ERROR(POK_ERRNO_PARTITION_MODE, INVALID_MODE);
+            MAP_ERROR_DEFAULT(INVALID_PARAM);
+        }
+    }
+    // ARINC specifies that threads shall be created in the DORMANT state
+    pok_thread_stop(core_process_id);
 }
 
 void STOP_SELF ()
 {
-	 pok_thread_stop_self ();
+    pok_thread_stop_self ();
 }
 
 
-void SET_PRIORITY (PROCESS_ID_TYPE  process_id,
-									 PRIORITY_TYPE    priority,
-									 RETURN_CODE_TYPE *return_code )
+void SET_PRIORITY (
+    PROCESS_ID_TYPE  process_id,
+    PRIORITY_TYPE    priority,
+    RETURN_CODE_TYPE *return_code)
 {
-	pok_thread_attr_t core_attr;
-	pok_ret_t         core_ret;
+    CHECK_PROCESS_ID();
 
-	core_ret = pok_thread_status (process_id, &core_attr);
-	if (core_ret != POK_ERRNO_OK)
-		{
-			*return_code =  INVALID_PARAM;
-			return;
-		}
-	if (priority > MAX_PRIORITY_VALUE || priority < MIN_PRIORITY_VALUE)
-		{
-			*return_code = INVALID_PARAM;
-			return;
-		}
-	if (core_attr.state == DORMANT)
-		{
-			*return_code = INVALID_MODE;
-			return;
-		}
-	core_ret = pok_thread_set_priority(process_id, priority);
-	*return_code = core_ret;
-}
-
-#ifndef POK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE
-void SUSPEND_SELF (SYSTEM_TIME_TYPE time_out,
-									 RETURN_CODE_TYPE *return_code )
-{
-	 (void) time_out;
-	 *return_code = NOT_AVAILABLE;
-}
-
-#endif
-
-void SUSPEND (PROCESS_ID_TYPE    process_id,
-							RETURN_CODE_TYPE   *return_code )
-{
-	pok_thread_attr_t  attr;
-	pok_ret_t    core_ret;
-
-	core_ret = pok_thread_status (process_id, &attr);
-	if (attr.state == DORMANT)
-		{
-			*return_code = INVALID_MODE;
-			return ;
-		}
-	if (attr.period == INFINITE_TIME_VALUE)
-		{
-			*return_code = INVALID_MODE;
-			return ;
-		}
-	if (attr.state == WAITING)
-		{
-			*return_code = NO_ACTION;
-			return ;
-		}
-	core_ret = pok_thread_suspend_target (process_id);
-	*return_code = core_ret;
-}
-
-void RESUME (PROCESS_ID_TYPE     process_id,
-						 RETURN_CODE_TYPE    *return_code )
-{
-	pok_thread_attr_t  attr;
-	pok_ret_t    core_ret;
-
-	core_ret = pok_thread_status (process_id, &attr);
-	if (core_ret != 0)
-		{
-			*return_code = INVALID_PARAM;
-			return ;
-		}
-	if (attr.state == DORMANT)
-		{
-			*return_code = INVALID_MODE;
-			return ;
-		}
-	if (attr.period == INFINITE_TIME_VALUE)
-		{
-			*return_code = INVALID_MODE;
-			return ;
-		}
-	if (attr.state != WAITING)
-		{
-			*return_code = INVALID_MODE;
-			return ;
-		}
-	core_ret = pok_thread_resume (process_id);
-	*return_code = core_ret;
-}
-
-void START (PROCESS_ID_TYPE   process_id,
-					 RETURN_CODE_TYPE   *return_code )
-{
-	DELAYED_START(process_id,0,return_code);
-}
-
-void STOP (PROCESS_ID_TYPE    process_id,
-						RETURN_CODE_TYPE *RETURN_CODE )
-{
-	pok_ret_t core_ret = pok_thread_stop(process_id);
-	switch (core_ret) {
-	    MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-	    // XXX NO_ACTION case
-	    default: *RETURN_CODE = INVALID_PARAM;
-	}
-}
-
-void DELAYED_START (PROCESS_ID_TYPE   process_id,
-				SYSTEM_TIME_TYPE  delay_time,
-				RETURN_CODE_TYPE *return_code )
-{
-  pok_thread_attr_t     attr;
-  pok_ret_t		core_ret;
-
-  core_ret = pok_thread_status (process_id, &attr);
-  if (core_ret != POK_ERRNO_OK)
-    {
-      *return_code = INVALID_PARAM;
-      return;
+    if (priority < MIN_PRIORITY_VALUE || priority > MAX_PRIORITY_VALUE) {
+        *return_code = INVALID_PARAM;
+        return;
     }
-    if (attr.state != DORMANT)
-   {
-     *return_code = NO_ACTION;
-    return;
-   }
-  if (delay_time == INFINITE_TIME_VALUE)
-    {
-      *return_code = INVALID_PARAM;
-      return;
+
+    pok_ret_t core_ret = pok_thread_set_priority(process_id - 1, priority);
+    switch (core_ret) {
+        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR(POK_ERRNO_UNAVAILABLE, INVALID_MODE);
+        MAP_ERROR_DEFAULT(INVALID_PARAM);
     }
-  /*if ((int)attr.period != INFINITE_TIME_VALUE && delay_time >= attr.period)
-  {
-    *return_code = INVALID_PARAM;
-    return;
-  }*/
-  core_ret = pok_thread_delayed_start(process_id, delay_time);
-  if (core_ret == POK_ERRNO_OK) {
-    *return_code = NO_ERROR;
-  }else {
-    *return_code = INVALID_PARAM;
-  }
 }
 
-void LOCK_PREEMPTION (LOCK_LEVEL_TYPE *LOCK_LEVEL, RETURN_CODE_TYPE *RETURN_CODE)
+void SUSPEND_SELF (
+    SYSTEM_TIME_TYPE time_out,
+    RETURN_CODE_TYPE *return_code)
+{
+    int64_t delay_ms = arinc_time_to_ms(time_out);
+    pok_ret_t core_ret;
+
+    if (delay_ms < 0) {
+        // infinite
+        core_ret = pok_thread_suspend();
+    } else {
+        // finite
+        core_ret = pok_thread_sleep(delay_ms);
+    }
+
+    switch (core_ret) {
+        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR(POK_ERRNO_TIMEOUT, TIMED_OUT);
+        MAP_ERROR(POK_ERRNO_UNAVAILABLE, INVALID_MODE);
+        MAP_ERROR_DEFAULT(INVALID_PARAM);
+    }
+
+}
+
+void SUSPEND (
+    PROCESS_ID_TYPE     process_id,
+    RETURN_CODE_TYPE    *return_code)
+{
+    CHECK_PROCESS_ID();
+
+    pok_ret_t core_ret = pok_thread_suspend_target(process_id - 1);
+    switch (core_ret) {
+        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR(POK_ERRNO_MODE, NO_ACTION);
+        MAP_ERROR(POK_ERRNO_UNAVAILABLE, INVALID_MODE);
+        MAP_ERROR_DEFAULT(INVALID_PARAM);
+    }
+}
+
+void RESUME (
+    PROCESS_ID_TYPE     process_id,
+    RETURN_CODE_TYPE    *return_code)
+{
+    CHECK_PROCESS_ID();
+
+    pok_ret_t core_ret = pok_thread_resume(process_id - 1);
+    switch (core_ret) {
+        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR(POK_ERRNO_UNAVAILABLE, NO_ACTION);
+        MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
+        MAP_ERROR_DEFAULT(INVALID_PARAM);
+    }
+}
+
+void START (
+    PROCESS_ID_TYPE     process_id,
+    RETURN_CODE_TYPE    *return_code)
+{
+    DELAYED_START(process_id, 0, return_code);
+}
+
+void STOP(
+    PROCESS_ID_TYPE     process_id,
+    RETURN_CODE_TYPE    *return_code)
+{
+    CHECK_PROCESS_ID();
+
+    pok_ret_t core_ret = pok_thread_stop(process_id - 1);
+    switch (core_ret) {
+        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR(POK_ERRNO_UNAVAILABLE, NO_ACTION);
+        MAP_ERROR_DEFAULT(INVALID_PARAM);
+    }
+}
+
+void DELAYED_START(
+    PROCESS_ID_TYPE   process_id,
+    SYSTEM_TIME_TYPE  delay_time,
+    RETURN_CODE_TYPE *return_code)
+{
+    CHECK_PROCESS_ID();
+
+    pok_ret_t core_ret = pok_thread_delayed_start(process_id - 1, arinc_time_to_ms(delay_time));
+    switch (core_ret) {
+        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR(POK_ERRNO_UNAVAILABLE, NO_ACTION);
+        MAP_ERROR_DEFAULT(INVALID_PARAM);
+    }
+}
+
+void LOCK_PREEMPTION (LOCK_LEVEL_TYPE *LOCK_LEVEL, RETURN_CODE_TYPE *return_code)
 {
     pok_ret_t ret = pok_partition_inc_lock_level(LOCK_LEVEL);
     switch (ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
         MAP_ERROR(POK_ERRNO_MODE, NO_ACTION);
         MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG); // yes, it's an error here...
-        default: *RETURN_CODE = INVALID_CONFIG; // shouldn't happen
+        MAP_ERROR_DEFAULT(INVALID_PARAM); // shouldn't happen
     }
 }
 
-void UNLOCK_PREEMPTION (LOCK_LEVEL_TYPE *LOCK_LEVEL, RETURN_CODE_TYPE *RETURN_CODE)
+void UNLOCK_PREEMPTION (LOCK_LEVEL_TYPE *LOCK_LEVEL, RETURN_CODE_TYPE *return_code)
 {
     pok_ret_t ret = pok_partition_dec_lock_level(LOCK_LEVEL);
     switch (ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
         MAP_ERROR(POK_ERRNO_MODE, NO_ACTION);
         MAP_ERROR(POK_ERRNO_EINVAL, NO_ACTION); // ...but here it's just NO_ACTION
-        default: *RETURN_CODE = INVALID_CONFIG; // shouldn't happen
+        MAP_ERROR_DEFAULT(INVALID_PARAM); // shouldn't happen
     }
 }
 

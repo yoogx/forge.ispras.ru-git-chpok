@@ -29,8 +29,8 @@ typedef struct {
   STACK_SIZE_TYPE         STACK_SIZE;
 } ARINC_ATTRIBUTE;
 
-ARINC_ATTRIBUTE              arinc_process_attribute[POK_CONFIG_NB_THREADS];
+extern ARINC_ATTRIBUTE arinc_process_attribute[POK_CONFIG_NB_THREADS];
 
-uint32_t process_name_exist (PROCESS_NAME_TYPE *process_name);
+pok_bool_t get_process_id(PROCESS_NAME_TYPE process_name, pok_thread_id_t *id);
 
 #endif

@@ -57,16 +57,7 @@ void CREATE_SAMPLING_PORT (
 	 pok_port_direction_t core_direction;
 	 pok_port_id_t        core_id;
 	 pok_ret_t            core_ret;
-	 pok_thread_attr_t     attr;
-	 uint32_t							process_id;
 
-	 pok_thread_id(&process_id);
-	 core_ret = pok_thread_status (process_id, &attr);
-	 if (attr.state == NORMAL)
-		 {
-			 *RETURN_CODE = INVALID_MODE;
-			 return ;
-		 }
 	 if (MAX_MESSAGE_SIZE <= 0 || REFRESH_PERIOD < 0)
 		 {
 			 *RETURN_CODE = INVALID_CONFIG;

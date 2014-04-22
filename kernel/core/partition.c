@@ -49,6 +49,7 @@
 #include <errno.h>
 #include <dependencies.h>
 #include <core/sched.h>
+#include <core/sched_fps.h>
 #include <core/error.h>
 #include <core/debug.h>
 #include <core/thread.h>
@@ -73,28 +74,11 @@ extern uint64_t		pok_sched_slots[];
 /**
  **\brief Setup the scheduler used in partition pid
  */
-void pok_partition_setup_scheduler (const uint8_t pid)
+void pok_partition_setup_scheduler (pok_partition_id_t pid)
 {
-#ifdef POK_CONFIG_PARTITIONS_SCHEDULER
-      switch (((pok_sched_t[])POK_CONFIG_PARTITIONS_SCHEDULER)[pid])
-      {
-#ifdef POK_NEEDS_SCHED_RMS
-         case POK_SCHED_RMS:
-            pok_partitions[pid].sched_func  = &pok_sched_part_rms;
-            break;
-#endif
-
-            /*
-             * Default scheduling algorithm is Round Robin.
-             * Yes, it sucks
-             */
-         default:
-            pok_partitions[pid].sched_func  = &pok_sched_part_rr;
-            break;
-      }
-#else
-      pok_partitions[pid].sched_func  = &pok_sched_part_rr;
-#endif
+    // TODO other schedulers?
+    pok_partitions[pid].scheduler = &pok_fps_scheduler_ops;
+    pok_partitions[pid].scheduler->initialize();
 }
 
 /**
@@ -105,7 +89,7 @@ void pok_partition_setup_scheduler (const uint8_t pid)
  */
 
 #ifdef POK_NEEDS_ERROR_HANDLING
-void pok_partition_reinit (const uint8_t pid)
+void pok_partition_reinit (pok_partition_id_t pid)
 {
    uint32_t tmp;
    /*
@@ -138,14 +122,15 @@ void pok_partition_reinit (const uint8_t pid)
  */
 void pok_partition_setup_main_thread (const uint8_t pid)
 {
-   uint32_t main_thread;
+   pok_thread_id_t main_thread;
    pok_thread_attr_t attr;
 
-   attr.entry = (uint32_t*)pok_partitions[pid].thread_main_entry;
+   attr.entry = (void *) pok_partitions[pid].thread_main_entry;
    attr.priority = 1;
-   attr.deadline = 0;
-   attr.period   = 0;
-   attr.time_capacity = 0;
+   attr.deadline = DEADLINE_SOFT;
+   attr.period   = -1;
+   attr.time_capacity = -1;
+   attr.stack_size = POK_USER_STACK_SIZE;
 
    pok_partition_thread_create (&main_thread, &attr, pid);
    pok_partitions[pid].thread_main = main_thread;
@@ -159,8 +144,8 @@ void pok_partition_setup_main_thread (const uint8_t pid)
  */
 pok_ret_t pok_partition_init ()
 {
-   uint8_t     i;
-   uint32_t    threads_index = 0;
+   pok_partition_id_t i;
+   pok_thread_id_t    threads_index = 0;
 
    const uint32_t	partition_size[POK_CONFIG_NB_PARTITIONS] = POK_CONFIG_PARTITIONS_SIZE;
 #ifdef POK_CONFIG_PARTITIONS_LOADADDR
@@ -184,7 +169,6 @@ pok_ret_t pok_partition_init ()
 
       pok_partitions[i].base_addr   = base_addr;
       pok_partitions[i].size        = size;
-      pok_partitions[i].sched       = POK_SCHED_RR;
      
 #ifdef POK_NEEDS_COVERAGE_INFOS
 #include <libc.h>
@@ -271,65 +255,68 @@ pok_ret_t pok_partition_init ()
  * POK_ERRNO_PARTITION_MODE when requested mode is invalid.
  * Else, returns POK_ERRNO_OK
  */
-pok_ret_t pok_partition_set_mode (const uint8_t pid, const pok_partition_mode_t mode)
+
+static pok_ret_t pok_partition_set_normal_mode(pok_partition_id_t pid)
+{
+    pok_partition_t *part = &pok_partitions[pid];
+    if (part->mode == POK_PARTITION_MODE_IDLE) {
+        return POK_ERRNO_PARTITION_MODE;
+    }
+    if (POK_SCHED_CURRENT_THREAD != part->thread_main) {
+        return POK_ERRNO_PARTITION_MODE;
+    }
+    
+    part->mode = POK_PARTITION_MODE_NORMAL;
+
+    pok_thread_id_t thread_id;
+    for (thread_id = part->thread_index_low; thread_id < part->thread_index; thread_id++) {
+        pok_thread_t *thread = &pok_threads[thread_id];
+
+        if (thread->period < 0) {
+            // aperiodic process
+            if (thread->state == POK_STATE_DELAYED_START) {
+                if (thread->wakeup_time <= 0) {
+                    thread->state = POK_STATE_RUNNABLE;
+                    thread->wakeup_time = POK_GETTICK(); // XXX this smells, though
+                } else {
+                    thread->state = POK_STATE_WAITING;
+                    thread->wakeup_time += POK_GETTICK(); // XXX what does arinc say about this?
+                }
+
+                if (thread->time_capacity < 0) {
+                    // infinite time capacity
+                    thread->end_time = (uint64_t) -1; // XXX find a better way
+                } else {
+                    thread->end_time = thread->wakeup_time + thread->time_capacity;
+                }
+            }
+        } else {
+            // periodic process
+            if (thread->state == POK_STATE_DELAYED_START) {
+                // XXX errr, what?
+                thread->next_activation = thread->wakeup_time + POK_CONFIG_SCHEDULING_MAJOR_FRAME + POK_CURRENT_PARTITION.activation;
+                thread->end_time =  thread->next_activation + thread->time_capacity;
+                thread->state = POK_STATE_WAIT_NEXT_ACTIVATION;
+            }
+        }
+    }
+         
+    // stop master thread (ARINC permits it)
+    pok_thread_stop();
+
+    // note: it doesn't return
+    pok_sched();
+
+    return POK_ERRNO_OK;
+}
+
+pok_ret_t pok_partition_set_mode(pok_partition_id_t pid, pok_partition_mode_t mode)
 {
    switch (mode)
    {
       case POK_PARTITION_MODE_NORMAL:
-         /*
-          * We first check that a partition that wants to go
-          * to the NORMAL mode is currently in the INIT mode
-          */
-
-         if (pok_partitions[pid].mode == POK_PARTITION_MODE_IDLE)
-         {
-            return POK_ERRNO_PARTITION_MODE;
-         }
-
-         if (POK_SCHED_CURRENT_THREAD != POK_CURRENT_PARTITION.thread_main)
-         {
-            return POK_ERRNO_PARTITION_MODE;
-         }
-
-         pok_partitions[pid].mode = mode;  /* Here, we change the mode */
-
-	 pok_thread_t* thread;
-	 unsigned int i;
-	 for (i = 0; i < pok_partitions[pid].nthreads; i++)
-	 {
-		 thread = &(pok_threads[POK_CURRENT_PARTITION.thread_index_low + i]);
-		 if ((long long)thread->period == -1) {//-1 <==> ARINC INFINITE_TIME_VALUE
-			 if(thread->state == POK_STATE_DELAYED_START) { // delayed start, the delay is in the wakeup time
-				 if(!thread->wakeup_time) {
-					 thread->state = POK_STATE_RUNNABLE;
-				 } else {
-					 thread->state = POK_STATE_WAITING;
-				 }
-				 thread->wakeup_time += POK_GETTICK();
-				 thread->end_time =  thread->wakeup_time + thread->time_capacity;
-			 }
-		 } else {
-			 if(thread->state == POK_STATE_DELAYED_START) { // delayed start, the delay is in the wakeup time
-				 thread->next_activation = thread->wakeup_time + POK_CONFIG_SCHEDULING_MAJOR_FRAME + POK_CURRENT_PARTITION.activation;
-				 thread->end_time =  thread->next_activation + thread->time_capacity;
-				 thread->state = POK_STATE_WAIT_NEXT_ACTIVATION;
-			 }
-		 }
-	 }
-         pok_sched_stop_thread (pok_partitions[pid].thread_main);
-         /* We stop the thread that call this change. All the time,
-          * the thread that init this request is the init thread.
-          * When it calls this function, the partition is ready and
-          * this thread does not need no longer to be executed
-          */
-
-         pok_sched ();
-         /*
-          * Reschedule, baby, reschedule !
-          * In fact, the init thread is stopped, we need to execute
-          * the other threads.
-          */
-         break;
+        return pok_partition_set_normal_mode(pid);
+        break;
 
 #ifdef POK_NEEDS_ERROR_HANDLING
       case POK_PARTITION_MODE_STOPPED:
@@ -378,7 +365,7 @@ pok_ret_t pok_partition_set_mode (const uint8_t pid, const pok_partition_mode_t 
 /**
  * Change the mode of the current partition (the partition being executed)
  */
-pok_ret_t pok_partition_set_mode_current (const pok_partition_mode_t mode)
+pok_ret_t pok_partition_set_mode_current(pok_partition_mode_t mode)
 {
 #ifdef POK_NEEDS_ERROR_HANDLING
    if ((POK_SCHED_CURRENT_THREAD != POK_CURRENT_PARTITION.thread_main) &&
@@ -396,13 +383,13 @@ pok_ret_t pok_partition_set_mode_current (const pok_partition_mode_t mode)
     * and the error thread. If ANY other thread try to change the partition
     * mode, this is an error !
     */
-   return (pok_partition_set_mode (POK_SCHED_CURRENT_PARTITION, mode));
+   return (pok_partition_set_mode(POK_SCHED_CURRENT_PARTITION, mode));
 }
 
 /**
  * Get partition information. Used for ARINC GET_PARTITION_STATUS function.
  */
-pok_ret_t pok_current_partition_get_id (uint8_t *id)
+pok_ret_t pok_current_partition_get_id(pok_partition_id_t *id)
 {
   *id = POK_SCHED_CURRENT_PARTITION;
   return POK_ERRNO_OK;
@@ -443,7 +430,7 @@ pok_ret_t pok_current_partition_inc_lock_level(uint32_t *lock_level)
   if (POK_CURRENT_PARTITION.mode != POK_PARTITION_MODE_NORMAL) {
     return POK_ERRNO_MODE;
   }
-  if (POK_CURRENT_PARTITION.lock_level >= 1000) { // XXX
+  if (POK_CURRENT_PARTITION.lock_level >= 16) { // XXX
     return POK_ERRNO_EINVAL;
   }
   *lock_level = ++POK_CURRENT_PARTITION.lock_level;
@@ -468,31 +455,9 @@ pok_ret_t pok_current_partition_dec_lock_level(uint32_t *lock_level)
 #ifdef POK_NEEDS_ERROR_HANDLING
 
 /**
- * Stop a thread inside a partition.
- * The \a tid argument is relative to the partition, meaning
- * that it corresponds to a number which bounds are
- * 0 .. number of tasks inside the partition.
- */
-pok_ret_t pok_partition_stop_thread (const uint32_t tid)
-{
-   if (POK_SCHED_CURRENT_THREAD != POK_CURRENT_PARTITION.thread_error)
-   {
-      return POK_ERRNO_THREAD;
-   }
-   /*
-    * We check which thread try to call this function. Only the error handling
-    * thread can stop other threads.
-    */
-
-   pok_sched_stop_thread (tid + POK_CURRENT_PARTITION.thread_index_low);
-   pok_sched ();
-   return (POK_ERRNO_OK);
-}
-
-/**
  * The \a tid argument is relative to partition thread index
  */
-pok_ret_t pok_partition_restart_thread (const uint32_t tid)
+pok_ret_t pok_partition_restart_thread(pok_thread_id_t tid)
 {
    if (POK_SCHED_CURRENT_THREAD != POK_CURRENT_PARTITION.thread_error)
    {
@@ -503,7 +468,7 @@ pok_ret_t pok_partition_restart_thread (const uint32_t tid)
     * thread can stop other threads.
     */
 
-   pok_thread_restart (tid + POK_CURRENT_PARTITION.thread_index_low);
+   pok_thread_restart (tid);
    pok_sched ();
    return (POK_ERRNO_OK);
 }

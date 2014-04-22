@@ -58,38 +58,45 @@ typedef enum
   POK_STATE_DELAYED_START = 5
 } pok_state_t;
 
+typedef enum {
+    DEADLINE_SOFT,
+    DEADLINE_HARD
+} pok_deadline_t;
+
 typedef struct
 {
 	 uint8_t      priority;
 	 void*        entry;
-	 uint64_t     period;
-	 uint64_t     deadline;
-	 uint64_t     time_capacity;
+	 int64_t      period;
+	 pok_deadline_t      deadline;
+	 int64_t      time_capacity;
 	 uint32_t     stack_size;
-	 uint32_t  state;
 } pok_thread_attr_t;
 
+typedef struct 
+{
+        pok_thread_attr_t   attributes;
+        uint64_t            deadline_time;
+	pok_state_t         state;
+        uint8_t             current_priority;
+} pok_thread_status_t;
 
-void           pok_thread_init (void);
-pok_ret_t      pok_thread_create (uint32_t* thread_id, const pok_thread_attr_t* attr);
-pok_ret_t      pok_thread_sleep (const pok_time_t ms);
-pok_ret_t      pok_thread_sleep_until (const pok_time_t ms);
-pok_ret_t      pok_thread_lock ();
-pok_ret_t      pok_thread_unlock (const uint32_t thread_id);
-pok_ret_t      pok_thread_yield ();
-unsigned int   pok_thread_current (void);
-void           pok_thread_start (void (*entry)(), uint32_t id);
-void				 pok_thread_switch (uint32_t elected_id);
-pok_ret_t      pok_thread_wait_infinite ();
-void           pok_thread_wrapper ();
-pok_ret_t      pok_thread_attr_init (pok_thread_attr_t* attr);
-pok_ret_t      pok_thread_period ();
-pok_ret_t      pok_thread_id (uint32_t* thread_id);
-void				 pok_thread_init (void);
-pok_ret_t      pok_thread_status(const uint32_t thread_id, pok_thread_attr_t* attr);
-pok_ret_t      pok_thread_delayed_start(const uint32_t thread_id, const pok_time_t ms);
-pok_ret_t      pok_thread_set_priority(const uint32_t thread_id, const uint32_t priority);
-pok_ret_t      pok_thread_resume(const uint32_t thread_id);
+
+pok_ret_t       pok_thread_create (pok_thread_id_t *thread_id, const pok_thread_attr_t* attr);
+pok_ret_t       pok_thread_sleep(int64_t ms);
+pok_ret_t       pok_thread_sleep_until(pok_time_t ms);
+pok_ret_t       pok_thread_lock(void);
+pok_ret_t       pok_thread_unlock(pok_thread_id_t thread_id);
+pok_ret_t       pok_thread_yield();
+pok_thread_id_t pok_thread_current (void);
+pok_ret_t       pok_thread_wait_infinite ();
+pok_ret_t       pok_thread_attr_init (pok_thread_attr_t* attr);
+pok_ret_t       pok_thread_period(void);
+pok_ret_t       pok_thread_id (pok_thread_id_t* thread_id);
+pok_ret_t       pok_thread_status(pok_thread_id_t thread_id, pok_thread_status_t* attr);
+pok_ret_t       pok_thread_delayed_start(pok_thread_id_t thread_id, int64_t ms);
+pok_ret_t       pok_thread_set_priority(pok_thread_id_t thread_id,  uint32_t priority);
+pok_ret_t       pok_thread_resume(pok_thread_id_t thread_id);
 
 #define pok_thread_sleep_until(time) pok_syscall2(POK_SYSCALL_THREAD_SLEEP_UNTIL,(uint32_t)time,0)
 

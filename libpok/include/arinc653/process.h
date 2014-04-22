@@ -23,7 +23,7 @@
 
 #define MAX_NUMBER_OF_PROCESSES  SYSTEM_LIMIT_NUMBER_OF_PROCESSES
 #define MIN_PRIORITY_VALUE       1
-#define MAX_PRIORITY_VALUE       63
+#define MAX_PRIORITY_VALUE       239
 #define MAX_LOCK_LEVEL           16
 
 typedef NAME_TYPE            PROCESS_NAME_TYPE;
@@ -119,7 +119,7 @@ extern void GET_MY_ID (
       /*out*/ RETURN_CODE_TYPE    *RETURN_CODE );
 
 extern void GET_PROCESS_ID (
-      /*in */ PROCESS_NAME_TYPE   PROCESS_NAME[MAX_NAME_LENGTH],
+      /*in */ PROCESS_NAME_TYPE   PROCESS_NAME,
       /*out*/ PROCESS_ID_TYPE     *PROCESS_ID,
       /*out*/ RETURN_CODE_TYPE    *RETURN_CODE );
 

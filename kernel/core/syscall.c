@@ -107,14 +107,14 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
 #endif
 
       case POK_SYSCALL_THREAD_CREATE:
-         return pok_partition_thread_create  ((uint32_t*)         (args->arg1 + infos->base_addr),
+         return pok_partition_thread_create  ((pok_thread_id_t*)  (args->arg1 + infos->base_addr),
                                              (pok_thread_attr_t*) (args->arg2 + infos->base_addr),
-                                             (uint8_t)            infos->partition);
+                                             (pok_partition_id_t) infos->partition);
          break;
 
 #ifdef POK_NEEDS_THREAD_SLEEP
       case POK_SYSCALL_THREAD_SLEEP:
-         return pok_thread_sleep (args->arg1);
+         return pok_thread_sleep((int32_t)args->arg1);
          break;
 #endif
 
@@ -136,15 +136,15 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
 
 #ifdef POK_NEEDS_THREAD_ID
       case POK_SYSCALL_THREAD_ID:
-         return pok_sched_get_current ((uint32_t*) (args->arg1 + infos->base_addr));
+         return pok_sched_get_current((pok_thread_id_t*) (args->arg1 + infos->base_addr));
          break;
 #endif
    case POK_SYSCALL_THREAD_STATUS:
-	      return pok_thread_get_status (args->arg1, (pok_thread_attr_t*) (args->arg2 + infos->base_addr));
+	      return pok_thread_get_status (args->arg1, (pok_thread_status_t*) (args->arg2 + infos->base_addr));
          break;
 
    case POK_SYSCALL_THREAD_DELAYED_START:
-     return pok_thread_delayed_start (args->arg1, args->arg2);
+     return pok_thread_delayed_start ((pok_thread_id_t) args->arg1, (int32_t) args->arg2);
      break;
    case POK_SYSCALL_THREAD_SET_PRIORITY:
 	   return pok_thread_set_priority (args->arg1, args->arg2);
@@ -171,15 +171,14 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
          break;
 
       case POK_SYSCALL_THREAD_STOP:
-         return pok_partition_stop_thread (args->arg1);
+         return pok_thread_stop_target((pok_thread_id_t) args->arg1);
          break;
 
       /**
        * STOPSELF used by the error thread
        */
       case POK_SYSCALL_THREAD_STOPSELF:
-         pok_sched_stop_self ();
-         return POK_ERRNO_OK;
+         return pok_thread_stop();
          break;
 
 #endif

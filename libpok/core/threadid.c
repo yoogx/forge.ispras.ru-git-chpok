@@ -24,7 +24,7 @@
 #include <core/thread.h>
 
 
-pok_ret_t pok_thread_id (uint32_t* thread_id)
+pok_ret_t pok_thread_id (pok_thread_id_t* thread_id)
 {
 	 return pok_syscall2 (POK_SYSCALL_THREAD_ID, (uint32_t)thread_id, 0);
 }

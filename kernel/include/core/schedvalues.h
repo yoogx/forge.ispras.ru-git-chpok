@@ -18,16 +18,5 @@
 #ifndef __POK_SCHEDVALUES_H__
 #define __POK_SCHEDVALUES_H__
 
-typedef enum
-{
-   POK_SCHED_FIFO             = 0,
-   POK_SCHED_RR               = 1,
-   POK_SCHED_GLOBAL_TIMESLICE = 2,
-   POK_SCHED_RMS              = 3,
-   POK_SCHED_EDF              = 4,
-   POK_SCHED_LLF              = 5,
-   POK_SCHED_STATIC           = 6
-} pok_sched_t;
-
 #endif
 

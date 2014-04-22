@@ -24,12 +24,12 @@
 #include <core/schedvalues.h>
 
 #ifdef POK_NEEDS_PARTITIONS
-extern uint8_t pok_current_partition;
+extern pok_partition_id_t pok_current_partition;
 #define POK_SCHED_CURRENT_PARTITION pok_current_partition
 #endif
 
 
-extern uint32_t  current_thread;
+extern pok_thread_id_t current_thread;
 #define POK_SCHED_CURRENT_THREAD current_thread
 
 // must match to libpok/include/core/thread.h
@@ -43,41 +43,37 @@ typedef enum
   POK_STATE_DELAYED_START = 5
 } pok_state_t;
 
-void pok_sched_init (void); /* Initialize scheduling stuff */
+typedef struct {
+    void (*initialize)(void);
+    pok_thread_id_t (*elect_thread)(void);
+    void (*enqueue_thread)(pok_thread_id_t thread_id);
+} pok_scheduler_ops;
 
-void pok_sched (void);      /* Main scheduling function, this function
+void pok_sched_init(void); /* Initialize scheduling stuff */
+
+void pok_sched(void);      /* Main scheduling function, this function
                              * schedules everything
                              */
 
-/* Get priority function, return are made according to a scheduler */
-uint8_t pok_sched_get_priority_min (const pok_sched_t sched_type);
-uint8_t pok_sched_get_priority_max (const pok_sched_t sched_type);
-
-/* Scheduler election method */
-uint8_t pok_sched_election (void);
-uint32_t pok_sched_part_rr (const uint32_t ,const uint32_t,const uint32_t prev_thread,const uint32_t current_thread);
-uint32_t pok_sched_part_rms (const uint32_t ,const uint32_t,const uint32_t prev_thread,const uint32_t current_thread);
-
 /* Context switch functions */
-void pok_sched_context_switch (const uint32_t);
+void pok_sched_context_switch(pok_thread_id_t);
 void pok_partition_switch (void);
 
 /*
  * Functions to lock threads
  */
-void pok_sched_lock_thread (const uint32_t);
-void pok_sched_unlock_thread (const uint32_t);
-void pok_sched_lock_current_thread (void);
-void pok_sched_lock_current_thread_timed (const uint64_t time);
-void pok_sched_stop_thread (const uint32_t tid);
-void pok_sched_stop_self (void);
+void pok_sched_lock_thread(pok_thread_id_t);
+void pok_sched_unlock_thread(pok_thread_id_t);
+void pok_sched_lock_current_thread(void);
+void pok_sched_lock_current_thread_timed(uint64_t time);
+
 pok_ret_t pok_sched_end_period ();
 
 #ifdef POK_NEEDS_PARTITIONS
-void pok_sched_activate_error_thread (void);
+void pok_sched_activate_error_thread(void);
 #endif
 
-uint32_t pok_sched_get_current(uint32_t *thread_id);
+uint32_t pok_sched_get_current(pok_thread_id_t *thread_id);
 
 #endif /* POK_NEEDS.... */
 

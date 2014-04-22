@@ -18,17 +18,34 @@
 #ifndef __POK_x86_TYPES_H__
 #define __POK_X86_TYPES_H__
 
-typedef unsigned short        uint8_t;
+typedef unsigned char         uint8_t;
 typedef unsigned short        uint16_t;
 typedef unsigned int          uint32_t;
 typedef unsigned long long    uint64_t;
 
-typedef short                 int8_t;
+typedef signed char           int8_t;
 typedef short                 int16_t;
-typedef signed long long      int64_t;
+typedef int                   int32_t;
+typedef long long             int64_t;
 
-typedef unsigned int          size_t;
+typedef unsigned long         size_t;
 typedef signed   long int     intptr_t;
 typedef unsigned long int     uintptr_t;
+
+#define INT8_MAX (0x7f)
+#define INT8_MIN (-INT8_MAX - 1L)
+#define UINT8_MAX (0xffu)
+
+#define INT16_MAX (0x7fff)
+#define INT16_MIN (-INT16_MAX - 1L)
+#define UINT16_MAX (0xffffu)
+
+#define INT32_MAX (0x7fffffffL)
+#define INT32_MIN (-INT32_MAX - 1L)
+#define UINT32_MAX (0xffffffffu)
+
+#define INT64_MAX (0x7fffffffffffffffLL)
+#define INT64_MIN (-INT64_MAX - 1LL)
+#define UINT64_MAX (0xffffffffffffffffLLU)
 
 #endif

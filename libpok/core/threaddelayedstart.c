@@ -22,11 +22,21 @@
 #include <core/syscall.h>
 #include <core/thread.h>
 
-pok_ret_t pok_thread_delayed_start (const uint32_t thread_id, const pok_time_t ms)
-{
-   return pok_syscall2  (POK_SYSCALL_THREAD_DELAYED_START,
+pok_ret_t pok_thread_delayed_start (pok_thread_id_t thread_id, int64_t ms)
+{   
+    int32_t val;
+
+    if (ms < 0) {
+        val = -1;
+    } else if (ms > INT32_MAX) {
+        return POK_ERRNO_ERANGE;
+    } else {
+        val = (int32_t) ms;
+    }
+
+    return pok_syscall2  (POK_SYSCALL_THREAD_DELAYED_START,
                          (uint32_t)thread_id,
-                         (uint32_t)ms);
+                         (uint32_t)val);
 }
 
 #endif
