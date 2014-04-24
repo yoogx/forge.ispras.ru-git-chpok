@@ -62,21 +62,121 @@ typedef enum {
 
 typedef struct
 {
-    uint8_t             base_priority; // priority given on process creation
-    uint8_t             priority; // current priority (can be adjusted with SET_PRIORITY)
-    int64_t             period;   // period (less than zero for aperiodic processes)
-    pok_deadline_t      deadline; // deadline type (soft or hard)
+    /*
+     * The priority given at process creation.
+     */
+    uint8_t             base_priority; 
+    
+    /*
+     * Current priority (can be adjusted with SET_PRIORITY).
+     *
+     * Initialized to base_priority when process is created, reset, etc.
+     */
+    uint8_t             priority;
+
+    /*
+     * Process period.
+     *
+     * Positive when process is periodic, negative - if aperiodic.
+     * Is never zero.
+     */
+    int64_t             period;
+
+    /*
+     * The time when process became ready.
+     *
+     * Is used by the scheduler to elect the process
+     * that has been in the ready state for the longest time.
+     *
+     * Undefined when process is not ready 
+     * (may contain stale value, or simply be unitialized at all).
+     */
+    uint64_t            ready_state_since; // the time process became ready (undefined if process is not ready)
+
+    /*
+     * Deadline type (soft or hard). As per ARINC-653, it's only used only by
+     * error handling process, and the interpretation is up to programmer.
+     */
+    pok_deadline_t      deadline; 
+    
+    /*
+     * Time capacity, as given at the process creation.
+     *
+     * If it's less than zero, time capacity is infinite.
+     *
+     * For periodic process, this's time capacity per each activation.
+     */
     int64_t             time_capacity; // capacity aka deadline (less than zero if infinite)
-    uint64_t            remaining_time_capacity; // capacity left for current activaction? XXX
-    uint64_t            next_activation; // XXX what
+
+    /*
+     * Deadline time (called DEADLINE_TIME in ARINC-653).
+     *
+     * When this time hits, HM event is generated (error handling),
+     * and process becomes... TODO what it becomes?
+     */
+    int64_t             end_time; //  absolute deadline time (if process is periodic, for current activation)
+    
+    /*
+     * Next activation for periodic process (called "release point" in ARINC-653).
+     *
+     * Is not defined for aperiodic processes.
+     */
+    uint64_t            next_activation; 
+
+    /*
+     * Process state (see core/sched.h).
+     */
     pok_state_t         state;
-    int64_t             end_time; // XXX absolute deadline time (for current activation)?
-    uint64_t            wakeup_time; // XXX what
+
+    /*
+     * The flag is set if process is suspended.
+     *
+     * It cannot be implemented as a separate state because 
+     * process can be suspended in any state, and it must return
+     * to that state when it's resumed.
+     *
+     * If implemented with states, it would require something like
+     * "state stack", which would be overkill.
+     */
+    pok_bool_t          suspended;
+
+    /*
+     * Suspension timeout.
+     *
+     * Set to (uint64_t)-1 when it's supposed to be infinite.
+     * This obviously assumes that uint64_t ms clock won't overflow
+     * in foreseeable feature.
+     *
+     * Undefined if process is not suspended.
+     */
+    uint64_t             suspend_timeout;
+
+    /*
+     * Wakeup time, in case process is in POK_STATE_WAITING.
+     *
+     * If process is not in that state, the value is undefined.
+     */
+    uint64_t            wakeup_time; 
+
+    /*
+     * Process entry point.
+     */
     void	        *entry;
+
+    /*
+     * Corresponding parition id.
+     */
     pok_partition_id_t  partition;
-    uint32_t	        sp; // XXX what
-    uint32_t            init_stack_addr; // XXX what
-    /* FIXME: this is platform-dependent code, we have to handle that ! */
+
+    /*
+     * XXX I don't know what it is.
+     */
+    uint32_t	        sp; 
+
+    /*
+     * XXX I don't know what it is.
+     */
+    uint32_t            init_stack_addr; 
 } pok_thread_t;
 
 /*
@@ -97,6 +197,7 @@ typedef struct
         pok_thread_attr_t   attributes;
         uint64_t            deadline_time;
 	pok_state_t         state;
+        pok_bool_t          suspended;
         uint8_t             current_priority;
 } pok_thread_status_t;
 
@@ -106,7 +207,7 @@ pok_ret_t       pok_thread_create (pok_thread_id_t* thread_id, const pok_thread_
 pok_ret_t       pok_thread_sleep(int64_t ms);
 pok_ret_t       pok_thread_sleep_until(uint64_t ms);
 void            pok_thread_start(void (*entry)(), unsigned int id);
-pok_ret_t       pok_thread_suspend(void);
+pok_ret_t       pok_thread_suspend(int64_t ms);
 pok_ret_t       pok_thread_suspend_target(pok_thread_id_t id);
 pok_ret_t       pok_thread_stop(void);
 pok_ret_t       pok_thread_stop_target(pok_thread_id_t);
@@ -127,6 +228,26 @@ pok_ret_t       pok_partition_thread_create(
 extern pok_thread_t              pok_threads[POK_CONFIG_NB_THREADS];
 
 #define POK_CURRENT_THREAD pok_threads[POK_SCHED_CURRENT_THREAD]
+
+// macro-like utitility functions
+
+static inline pok_thread_id_t
+pok_thread_get_id(const pok_thread_t *thread)
+{
+    return (pok_thread_id_t) (thread - &pok_threads[0]);
+}   
+
+static inline pok_bool_t
+pok_thread_is_periodic(const pok_thread_t *thread)
+{
+    return thread->period > 0;
+}
+
+static inline pok_bool_t
+pok_thread_is_runnable(const pok_thread_t *thread)
+{
+    return thread->state == POK_STATE_RUNNABLE && !thread->suspended;
+}
 
 #endif /* __POK_NEEDS_THREADS */
 

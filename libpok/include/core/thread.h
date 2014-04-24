@@ -47,15 +47,16 @@
 
 #define POK_DEFAULT_STACK_SIZE 2048
 
-// must match to kernel/include/core/sched.h
+// must match kernel/include/core/sched.h
 typedef enum
 {
-  POK_STATE_STOPPED = 0,
-  POK_STATE_RUNNABLE = 1,
-  POK_STATE_WAITING = 2,
-  POK_STATE_LOCK = 3,
-  POK_STATE_WAIT_NEXT_ACTIVATION = 4,
-  POK_STATE_DELAYED_START = 5
+  // comments describe to what states of ARINC653 these correspond to
+  POK_STATE_STOPPED = 0, // DORMANT (must be started first)
+  POK_STATE_RUNNABLE = 1, // READY 
+  POK_STATE_WAITING = 2, // WAITING (sleeping for specified time OR waiting for a lock with timeout)
+  POK_STATE_LOCK = 3, // WAITING (waiting for a lock without timeout)
+  POK_STATE_WAIT_NEXT_ACTIVATION = 4, // WAITING (for next activation aka "release point")
+  POK_STATE_DELAYED_START = 5 // WAITING (waitng for partition mode NORMAL)
 } pok_state_t;
 
 typedef enum {
@@ -78,6 +79,7 @@ typedef struct
         pok_thread_attr_t   attributes;
         uint64_t            deadline_time;
 	pok_state_t         state;
+        pok_bool_t          suspended;
         uint8_t             current_priority;
 } pok_thread_status_t;
 
@@ -102,13 +104,23 @@ pok_ret_t       pok_thread_resume(pok_thread_id_t thread_id);
 
 #define pok_thread_wait_infinite() pok_thread_suspend()
 
-#define pok_thread_suspend() pok_syscall2(POK_SYSCALL_THREAD_SUSPEND,NULL,NULL)
+static inline
+pok_ret_t pok_thread_suspend(int64_t timeout)
+{
+    if (timeout > INT32_MAX) {
+        return POK_ERRNO_ERANGE;
+    }
+    if (timeout < 0) {
+        timeout = -1;
+    }
+    return pok_syscall2(POK_SYSCALL_THREAD_SUSPEND, (int32_t) timeout, 0);
+}
 
-#define pok_thread_suspend_target(thread_id) pok_syscall2(POK_SYSCALL_THREAD_SUSPEND_TARGET,thread_id,0)
-
-/*
- * Similar to: pok_ret_t      pok_thread_suspend (void);
- */
+static inline 
+pok_ret_t pok_thread_suspend_target(pok_thread_id_t thread_id)
+{
+    return pok_syscall2(POK_SYSCALL_THREAD_SUSPEND_TARGET, (uint32_t) thread_id, 0);
+}
 
 #define pok_thread_restart(thread_id) pok_syscall2(POK_SYSCALL_THREAD_RESTART,thread_id,0)
 /*

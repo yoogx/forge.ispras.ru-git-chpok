@@ -48,7 +48,7 @@ pok_thread_id_t fps_elect_thread(void) {
     pok_bool_t found_any = FALSE;
     for (i = POK_CURRENT_PARTITION.thread_index_low; i < POK_CURRENT_PARTITION.thread_index; i++) {
         pok_thread_t *thread = &pok_threads[i]; 
-        if (thread->state == POK_STATE_RUNNABLE) {
+        if (pok_thread_is_runnable(thread)) {
             if (found_any) {
                 if (compare_threads(thread, &pok_threads[best_thread_idx])) {
                     best_thread_idx = i;

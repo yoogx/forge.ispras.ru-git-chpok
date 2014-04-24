@@ -77,11 +77,10 @@ void pok_thread_init(void)
    pok_threads[KERNEL_THREAD].state		   = POK_STATE_RUNNABLE;
    pok_threads[KERNEL_THREAD].next_activation = 0;
 
-   pok_threads[IDLE_THREAD].period                     = 0;
-   pok_threads[IDLE_THREAD].deadline                   = 0;
-   pok_threads[IDLE_THREAD].time_capacity              = 0;
+   pok_threads[IDLE_THREAD].period                     = -1;
+   pok_threads[IDLE_THREAD].deadline                   = -1;
+   pok_threads[IDLE_THREAD].time_capacity              = -1;
    pok_threads[IDLE_THREAD].next_activation            = 0;
-   pok_threads[IDLE_THREAD].remaining_time_capacity    = 0;
    pok_threads[IDLE_THREAD].wakeup_time		       = 0;
    pok_threads[IDLE_THREAD].entry		       = pok_arch_idle;
    pok_threads[IDLE_THREAD].base_priority		       = 0;
@@ -96,7 +95,6 @@ void pok_thread_init(void)
       pok_threads[i].period                     = 0;
       pok_threads[i].deadline                   = 0;
       pok_threads[i].time_capacity              = 0;
-      pok_threads[i].remaining_time_capacity    = 0;
       pok_threads[i].next_activation            = 0;
       pok_threads[i].wakeup_time                = 0;
       pok_threads[i].state                      = POK_STATE_STOPPED;
@@ -170,14 +168,7 @@ pok_ret_t pok_partition_thread_create (pok_thread_id_t*         thread_id,
 
    pok_threads[id].deadline = attr->deadline;
 
-#ifdef POK_NEEDS_SCHED_HFPPS
-
-   pok_threads[id].payback = 0;
-#endif /* POK_NEEDS_SCHED_HFPPS */
-
    pok_threads[id].time_capacity = attr->time_capacity;
-   // XXX does it make sense?
-   //pok_threads[id].remaining_time_capacity = attr->time_capacity;
 
    stack_vaddr = pok_thread_stack_addr (partition_id, pok_partitions[partition_id].thread_index);
 
@@ -222,9 +213,15 @@ void pok_thread_start(void (*entry)(), unsigned int id)
 #ifdef POK_NEEDS_THREAD_SLEEP
 pok_ret_t pok_thread_sleep(int64_t time)
 {
-    // TODO forbid sleeping of periodic processes
+    pok_thread_t *thread = &pok_threads[POK_SCHED_CURRENT_THREAD];
     
-    // TODO forbid sleeping when preemption is disabled
+    if (pok_thread_is_periodic(thread)) {
+        return POK_ERRNO_MODE;
+    }
+    
+    if (POK_CURRENT_PARTITION.lock_level > 0) {
+        return POK_ERRNO_MODE;
+    }
     
     if (time == 0) {
         return POK_ERRNO_OK;
@@ -242,12 +239,7 @@ pok_ret_t pok_thread_sleep(int64_t time)
 
     pok_sched();
 
-    if (POK_GETTICK() >= wakeup_time) {
-        return POK_ERRNO_TIMEOUT;
-    } else {
-        // somebody else woke up this process
-        return POK_ERRNO_OK;
-    }
+    return POK_ERRNO_OK;
 }
 #endif
 
@@ -273,7 +265,7 @@ pok_ret_t pok_thread_restart(pok_thread_id_t tid)
     * Reinit timing values
     */
 
-   pok_threads[tid].remaining_time_capacity  = pok_threads[tid].time_capacity;
+   // TODO they actually depend on process attributes, so this code is incorrect
    pok_threads[tid].state                    = POK_STATE_WAIT_NEXT_ACTIVATION;
    pok_threads[tid].wakeup_time              = 0;
 
@@ -350,6 +342,7 @@ pok_ret_t pok_thread_delayed_start (pok_thread_id_t id, int64_t ms)
     } else {
         // periodic process
         if (pok_partitions[thread->partition].mode == POK_PARTITION_MODE_NORMAL) { // set the first release point
+            thread->state = POK_STATE_WAIT_NEXT_ACTIVATION;
 	    thread->next_activation = ms + POK_GETTICK();
 	    thread->end_time = thread->next_activation + thread->deadline;
         } else {
@@ -379,6 +372,7 @@ pok_ret_t pok_thread_get_status (pok_thread_id_t id, pok_thread_status_t *status
   status->state = t->state;
   status->deadline_time = t->end_time; 
   status->current_priority = t->priority;
+  status->suspended = t->suspended;
 
   return POK_ERRNO_OK;
 }
@@ -391,7 +385,6 @@ pok_ret_t pok_thread_set_priority(pok_thread_id_t id, uint32_t priority)
     }
     pok_thread_t *thread = &pok_threads[id];
     
-    // TODO if thread is stopped?
     if (thread->state == POK_STATE_STOPPED) {
         return POK_ERRNO_UNAVAILABLE;
     }
@@ -410,29 +403,28 @@ pok_ret_t pok_thread_resume(pok_thread_id_t id)
         return POK_ERRNO_THREADATTR;
     }
 
-    // can't resume, self, lol
+    // can't resume self, lol
     if (id == POK_SCHED_CURRENT_THREAD) {
         return POK_ERRNO_THREADATTR;
     }
     
     pok_thread_t *thread = &pok_threads[id];
 
-    // TODO check that thread was indeed suspended
+    if (pok_thread_is_periodic(thread)) {
+        // although periodic process can never be suspended anyway,
+        // ARINC-653 requires different error code
+        return POK_ERRNO_MODE;
+    }
 
-    // it wasn't suspended at all
-    if (thread->state == POK_STATE_RUNNABLE) {
+    if (thread->state == POK_STATE_STOPPED) {
+        return POK_ERRNO_MODE;
+    }
+    
+    if (!thread->suspended) {
         return POK_ERRNO_UNAVAILABLE;
     }
 
-    // the thread is not waiting 
-    // TODO distinguish between waiting for resource
-    // and sleeping for specified timeout
-    if (thread->state != POK_STATE_WAITING) {
-        return POK_ERRNO_MODE;
-    }
-	
-    thread->wakeup_time = POK_GETTICK();
-    thread->state = POK_STATE_RUNNABLE;
+    thread->suspended = FALSE;
 
     /* preemption is always enabled */
     // XXX no, it isn't
@@ -463,33 +455,50 @@ pok_ret_t pok_thread_suspend_target(pok_thread_id_t id)
     
     // can't suspend stopped (dormant) process
     if (thread->state == POK_STATE_STOPPED) {
-        return POK_ERRNO_UNAVAILABLE;
+        return POK_ERRNO_MODE;
     } 
 
-    // TODO distinguish suspended vs. waiting on lock process
-    if (thread->state == POK_STATE_WAITING) {
+    if (pok_thread_is_periodic(thread)) {
         return POK_ERRNO_MODE;
     }
 
-    thread->state = POK_STATE_WAITING;
-    thread->wakeup_time = (uint64_t)-1; // TODO find a better way
+    if (thread->suspended) {
+        return POK_ERRNO_UNAVAILABLE;
+    }
 
-    // XXX call scheduler?
-    pok_sched();
+    thread->suspended = TRUE;
+    thread->suspend_timeout = (uint64_t)-1; // TODO find a better way
 
     return POK_ERRNO_OK;
 }
 
-pok_ret_t pok_thread_suspend(void)
+pok_ret_t pok_thread_suspend(int64_t ms)
 {
-    // TODO forbid suspend for error handling process
+    pok_thread_t *thread = &pok_threads[POK_SCHED_CURRENT_THREAD];
 
-    // TODO forbid suspend if preemption is locked
+    if (pok_thread_is_error_handling(thread)) {
+        return POK_ERRNO_MODE;
+    }
+
+    if (POK_CURRENT_PARTITION.lock_level > 0) {
+        return POK_ERRNO_MODE;
+    }
     
-    POK_CURRENT_THREAD.state = POK_STATE_WAITING;
-    POK_CURRENT_THREAD.wakeup_time = (uint64_t)-1; // TODO find a better way
-    
+    if (pok_thread_is_periodic(thread)) {
+        return POK_ERRNO_MODE;
+    }
+
+    // TODO find a better way
+    uint64_t wakeup = ms >= 0 ? POK_GETTICK() + (uint64_t) ms : (uint64_t) -1;
+
+    thread->suspended = TRUE;
+    thread->suspend_timeout = wakeup;
+
     pok_sched();
+
+    if (POK_GETTICK() < wakeup) {
+        return POK_ERRNO_TIMEOUT;
+    }
 
     return POK_ERRNO_OK;
 }

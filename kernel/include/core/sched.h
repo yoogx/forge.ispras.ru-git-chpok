@@ -32,15 +32,16 @@ extern pok_partition_id_t pok_current_partition;
 extern pok_thread_id_t current_thread;
 #define POK_SCHED_CURRENT_THREAD current_thread
 
-// must match to libpok/include/core/thread.h
+// must match libpok/include/core/thread.h
 typedef enum
 {
-  POK_STATE_STOPPED = 0,
-  POK_STATE_RUNNABLE = 1,
-  POK_STATE_WAITING = 2,
-  POK_STATE_LOCK = 3,
-  POK_STATE_WAIT_NEXT_ACTIVATION = 4,
-  POK_STATE_DELAYED_START = 5
+  // comments describe to what states of ARINC653 these correspond to
+  POK_STATE_STOPPED = 0, // DORMANT (must be started first)
+  POK_STATE_RUNNABLE = 1, // READY 
+  POK_STATE_WAITING = 2, // WAITING (sleeping for specified time OR waiting for a lock with timeout)
+  POK_STATE_LOCK = 3, // WAITING (waiting for a lock without timeout)
+  POK_STATE_WAIT_NEXT_ACTIVATION = 4, // WAITING (for next activation aka "release point")
+  POK_STATE_DELAYED_START = 5 // WAITING (waitng for partition mode NORMAL)
 } pok_state_t;
 
 typedef struct {

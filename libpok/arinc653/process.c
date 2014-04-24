@@ -116,6 +116,9 @@ void GET_PROCESS_STATUS (
         MAP_STATUS(POK_STATE_WAIT_NEXT_ACTIVATION, WAITING);
         MAP_STATUS(POK_STATE_DELAYED_START, WAITING);
     }
+    if (status.suspended) {
+        process_status->PROCESS_STATE = WAITING;
+    }
 #undef MAP_STATUS
     strcpy(process_status->ATTRIBUTES.NAME, arinc_process_attribute[process_id - 1].NAME);
     process_status->ATTRIBUTES.BASE_PRIORITY = status.attributes.priority;
@@ -219,21 +222,12 @@ void SUSPEND_SELF (
     SYSTEM_TIME_TYPE time_out,
     RETURN_CODE_TYPE *return_code)
 {
-    int64_t delay_ms = arinc_time_to_ms(time_out);
-    pok_ret_t core_ret;
-
-    if (delay_ms < 0) {
-        // infinite
-        core_ret = pok_thread_suspend();
-    } else {
-        // finite
-        core_ret = pok_thread_sleep(delay_ms);
-    }
+    pok_ret_t core_ret = pok_thread_suspend(arinc_time_to_ms(time_out));
 
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
         MAP_ERROR(POK_ERRNO_TIMEOUT, TIMED_OUT);
-        MAP_ERROR(POK_ERRNO_UNAVAILABLE, INVALID_MODE);
+        MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
         MAP_ERROR_DEFAULT(INVALID_PARAM);
     }
 
@@ -248,8 +242,8 @@ void SUSPEND (
     pok_ret_t core_ret = pok_thread_suspend_target(process_id - 1);
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-        MAP_ERROR(POK_ERRNO_MODE, NO_ACTION);
-        MAP_ERROR(POK_ERRNO_UNAVAILABLE, INVALID_MODE);
+        MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
+        MAP_ERROR(POK_ERRNO_UNAVAILABLE, NO_ACTION);
         MAP_ERROR_DEFAULT(INVALID_PARAM);
     }
 }

@@ -187,6 +187,16 @@ pok_ret_t pok_current_partition_inc_lock_level(uint32_t *lock_level);
 
 pok_ret_t pok_current_partition_dec_lock_level(uint32_t *lock_level);
 
+// utility macro-like functions
+
+#ifdef POK_NEEDS_ERROR_HANDLING
+static inline pok_bool_t
+pok_thread_is_error_handling(const pok_thread_t *thread)
+{
+    return pok_partitions[thread->partition].thread_error == pok_thread_get_id(thread);
+}
+#endif
+
 #endif /* __POK_NEEDS_PARTITIONS */
 
 #endif /* __POK_PARTITION_H__ */

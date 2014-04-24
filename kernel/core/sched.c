@@ -218,8 +218,11 @@ static void pok_unlock_sleeping_threads(pok_partition_t *new_partition)
      if ((thread->state == POK_STATE_WAIT_NEXT_ACTIVATION) && (thread->next_activation <= now))
      {
        thread->state = POK_STATE_RUNNABLE;
-       thread->remaining_time_capacity =  thread->time_capacity;
        thread->next_activation = thread->next_activation + thread->period; 
+     }
+
+     if (thread->suspended && thread->suspend_timeout <= now) {
+       thread->suspended = FALSE;
      }
    }
 
@@ -244,15 +247,14 @@ static pok_thread_id_t pok_elect_thread(pok_partition_id_t new_partition_id)
              (pok_threads[new_partition->thread_error].state != POK_STATE_STOPPED))
          {
             elected = new_partition->thread_error;
-            // XXX break?
          }
          else
          {
             elected = new_partition->thread_main;
          }
-#endif
-
+#else
          elected = new_partition->thread_main;
+#endif
 
          if (pok_threads[elected].state != POK_STATE_RUNNABLE) {
             // if main thread is stopped, don't schedule it
@@ -274,26 +276,7 @@ static pok_thread_id_t pok_elect_thread(pok_partition_id_t new_partition_id)
             elected = new_partition->current_thread;
             break;
          }
-         if ( (POK_SCHED_CURRENT_THREAD != IDLE_THREAD) && 
-              (POK_SCHED_CURRENT_THREAD != POK_CURRENT_PARTITION.thread_main) 
-#ifdef POK_NEEDS_ERROR_HANDLING
-              && (POK_SCHED_CURRENT_THREAD != POK_CURRENT_PARTITION.thread_error)
-#endif
-            )
-         {
-            // if time capacity is not infinite, decrement it
-            if (POK_CURRENT_THREAD.time_capacity >= 0) {
-                // XXX remaining_time_capacity is decremented by 1? one of what?
-                if (POK_CURRENT_THREAD.remaining_time_capacity > 0)
-                {
-                   POK_CURRENT_THREAD.remaining_time_capacity = POK_CURRENT_THREAD.remaining_time_capacity - 1;
-                }
-                else
-                {
-                   POK_CURRENT_THREAD.state = POK_STATE_WAIT_NEXT_ACTIVATION;
-                }
-            }
-         }
+      
           elected = new_partition->scheduler->elect_thread();
 #ifdef POK_NEEDS_INSTRUMENTATION
           if ( (elected != IDLE_THREAD) && (elected != new_partition->thread_main))
@@ -321,38 +304,23 @@ static pok_thread_id_t pok_elect_thread(pok_partition_id_t new_partition_id)
 #ifdef POK_NEEDS_PARTITIONS
 void pok_sched()
 {
-  uint32_t elected_thread = 0;
-  uint8_t elected_partition = POK_SCHED_CURRENT_PARTITION;
-
-#ifdef POK_NEEDS_SCHED_HFPPS
-  uint64_t now = POK_GETTICK();
-  elected_thread = current_thread;
-
-  /* if thread hasn't finished its job and its deadline is passed */
-  if (pok_threads[elected_thread].end_time <= now && pok_threads[elected_thread].remaining_time_capacity > 0)
-  {
-    /* updates thread and partition payback */
-    pok_threads[elected_thread].payback = pok_threads[elected_thread].remaining_time_capacity;
-    pok_partitions[pok_current_partition].payback = pok_threads[elected_thread].remaining_time_capacity;
-    /* computes next partition deadline */
-    pok_sched_next_deadline += pok_threads[elected_thread].remaining_time_capacity;
-  }
-  else /* overmegadirty */
-#endif /* POK_NEEDS_SCHED_HFPPS */
-  {
-  
+    pok_thread_id_t elected_thread = 0;
+    pok_partition_id_t elected_partition = POK_SCHED_CURRENT_PARTITION;
+    
     elected_partition = pok_elect_partition();
     elected_thread = pok_elect_thread(elected_partition);
-  }
 
-   pok_current_partition = elected_partition;
-   if(pok_partitions[pok_current_partition].current_thread != elected_thread) {
-	   if(pok_partitions[pok_current_partition].current_thread != IDLE_THREAD) {
-		   pok_partitions[pok_current_partition].prev_thread = pok_partitions[pok_current_partition].current_thread;
-	   }
-	   pok_partitions[pok_current_partition].current_thread = elected_thread;
-   }
-  pok_sched_context_switch(elected_thread);
+    // set global
+    pok_current_partition = elected_partition;
+   
+    if (pok_partitions[pok_current_partition].current_thread != elected_thread) {
+        if (pok_partitions[pok_current_partition].current_thread != IDLE_THREAD) {
+            // prev_thread is never IDLE_THREAD (because it's not relevant)
+	    pok_partitions[pok_current_partition].prev_thread = pok_partitions[pok_current_partition].current_thread;
+	}
+	pok_partitions[pok_current_partition].current_thread = elected_thread;
+    }
+    pok_sched_context_switch(elected_thread);
 }
 #else
 void pok_sched_thread_switch ()
@@ -441,10 +409,19 @@ void pok_sched_lock_thread(pok_thread_id_t thread_id)
 
 pok_ret_t pok_sched_end_period(void)
 {
-   POK_CURRENT_THREAD.state = POK_STATE_WAIT_NEXT_ACTIVATION;
-   POK_CURRENT_THREAD.remaining_time_capacity = 0;
-   pok_sched();
-   return POK_ERRNO_OK;
+    // called by periodic process when it's done its work
+    // ARINC-653 PERIODIC_WAIT
+
+    // TODO check that process is indeed periodic
+    
+    // TODO check other ARINC-653 conditions
+
+    POK_CURRENT_THREAD.state = POK_STATE_WAIT_NEXT_ACTIVATION;
+        
+    POK_CURRENT_THREAD.next_activation += POK_CURRENT_THREAD.period;
+
+    pok_sched();
+    return POK_ERRNO_OK;
 }
 
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
@@ -453,11 +430,6 @@ void pok_sched_activate_error_thread (void)
    uint32_t error_thread = pok_partitions[pok_current_partition].thread_error;
    if (error_thread != 0)
    {
-      // XXX these values should be removed/changed
-      pok_threads[error_thread].remaining_time_capacity = 1000; 
-      pok_threads[error_thread].period = 100;
-      pok_threads[error_thread].next_activation= 0;
-
       pok_threads[error_thread].state  = POK_STATE_RUNNABLE;
       pok_sched_context_switch (error_thread);
    }

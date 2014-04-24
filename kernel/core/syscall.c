@@ -130,7 +130,7 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
 
 #if defined (POK_NEEDS_THREAD_SUSPEND) || defined (POK_NEEDS_ERROR_HANDLING)
       case POK_SYSCALL_THREAD_SUSPEND:
-         return pok_thread_suspend ();
+         return pok_thread_suspend((int32_t) args->arg1);
          break;
 #endif
 
@@ -154,7 +154,7 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
 	   return pok_thread_resume (args->arg1);
 	   break;
    case POK_SYSCALL_THREAD_SUSPEND_TARGET:
-	   return pok_thread_suspend_target (args->arg1);
+	   return pok_thread_suspend_target ((pok_thread_id_t) args->arg1);
 	   break;
    case POK_SYSCALL_THREAD_YIELD:
            return pok_thread_yield();
