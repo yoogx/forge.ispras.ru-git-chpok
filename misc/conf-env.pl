@@ -73,8 +73,8 @@ my %tools_arch;
 $tools_arch{"x86"} =
 {
  "AR" 	      =>  ["i386-unknown-linux-gnu-ar.exe", "i386-elf-ar" , "ar"],
- "CC"          =>  ["i386-unknown-linux-gnu-gcc.exe", "i386-elf-gcc", "gcc"],
- "CXX"	      =>  ["i386-unknown-linux-gnu-g++.exe", "i386-elf-g++", "g++"],
+ "CC"          =>  ["i386-unknown-linux-gnu-gcc.exe", "i386-elf-gcc", "gcc", "clang"],
+ "CXX"	      =>  ["i386-unknown-linux-gnu-g++.exe", "i386-elf-g++", "g++", "clang++"],
  "LD"	         =>  ["i386-unknown-linux-gnu-ld.exe", "i386-elf-ld" , "ld"],
  "OBJDUMP"     =>  ["i386-unknown-linux-gnu-objdump.exe", "i386-elf-objdump" , "objdump"],
  "OBJCOPY"     =>  ["i386-unknown-linux-gnu-objcopy.exe", "i386-elf-objcopy" , "objcopy"],

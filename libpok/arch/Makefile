@@ -17,13 +17,13 @@ $(ARCH)/$(ARCH).lo::
 .PHONY: clean distclean depend all
 
 clean: common-clean
-	for dir in $(shell find -mindepth 1 -maxdepth 1 -type d ! -name ".svn");	\
+	for dir in $(shell find . -mindepth 1 -maxdepth 1 -type d ! -name ".svn");	\
 	do										\
 		$(MAKE) -C $$dir $@ || exit 1;						\
 	done
 
 distclean: clean
-	for dir in $(shell find -mindepth 1 -maxdepth 1 -type d ! -name ".svn");	\
+	for dir in $(shell find . -mindepth 1 -maxdepth 1 -type d ! -name ".svn");	\
 	do										\
 		$(MAKE) -C $$dir $@ || exit 1;						\
 	done

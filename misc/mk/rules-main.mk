@@ -6,7 +6,7 @@ assemble-partitions:
 	$(ECHO) $(ECHO_FLAGS) $(ECHO_FLAGS_ONELINE) "[BIN] partitions.bin"
 # padding to get aligned file size (needed for SPARC)
 	for v in $(PARTITIONS); do \
-		dd if=/dev/zero of=$$v oflag=append conv=notrunc bs=1 count=`echo "4 - (\`ls -l $$v | awk '{print $$5}'\` % 4)" | bc` > /dev/null 2> /dev/null;\
+		dd if=/dev/zero conv=notrunc bs=1 count=`echo "4 - (\`ls -l $$v | awk '{print $$5}'\` % 4)" | bc` >> $$v 2>/dev/null ;\
 	done
 	cat $(PARTITIONS) > partitions.bin
 	if test $$? -eq 0; then $(ECHO) $(ECHO_FLAGS) $(ECHO_GREEN) " OK "; else $(ECHO) $(ECHO_FLAGS) $(ECHO_RED) " KO"; fi

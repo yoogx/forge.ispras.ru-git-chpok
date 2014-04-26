@@ -175,7 +175,7 @@ static int	print_str (union u_arg* value, struct s_file* file, int flags)
    count = 0;
    s     = value->ptr;
 
-   flags = flags;
+   (void) flags;
 
    for (; *s; ++count, ++s)
    {
@@ -189,7 +189,8 @@ static int	print_char(union u_arg* value, struct s_file* file, int flags)
 {
    char	c;
 
-   flags = flags;
+   (void) flags;
+
    c     = value->sint;
 
    my_putc (c, file);
