@@ -154,39 +154,43 @@ pok_ret_t pok_partition_thread_create (pok_thread_id_t*         thread_id,
       return POK_ERRNO_EINVAL;
    }
 
-   id = pok_partitions[partition_id].thread_index_low +  pok_partitions[partition_id].thread_index;
-   pok_partitions[partition_id].thread_index =  pok_partitions[partition_id].thread_index + 1;
+   id = pok_partitions[partition_id].thread_index++;
+
+   pok_thread_t *thread = &pok_threads[id];
 
    // on creation, both priorities are equal
-   pok_threads[id].priority      = attr->priority;
-   pok_threads[id].base_priority      = attr->priority;
+   thread->priority      = attr->priority;
+   thread->base_priority      = attr->priority;
 
-   pok_threads[id].period = attr->period;
+   thread->period = attr->period;
 
    // XXX does it make sense?
-   pok_threads[id].next_activation = attr->period;
+   thread->next_activation = attr->period;
 
-   pok_threads[id].deadline = attr->deadline;
+   thread->deadline = attr->deadline;
 
-   pok_threads[id].time_capacity = attr->time_capacity;
+   thread->time_capacity = attr->time_capacity;
 
-   stack_vaddr = pok_thread_stack_addr (partition_id, pok_partitions[partition_id].thread_index);
+   stack_vaddr = pok_thread_stack_addr(partition_id, id);
 
-   pok_threads[id].state		   = POK_STATE_RUNNABLE;
-   pok_threads[id].wakeup_time   = 0;
-   pok_threads[id].sp		      = pok_space_context_create (partition_id,
-                                                             (uint32_t)attr->entry,
-                                                             stack_vaddr,
-                                                             0xdead,
-                                                             0xbeaf);
+   // XXX perhaps, create in stopped state?
+   thread->state         = POK_STATE_RUNNABLE;
+   thread->wakeup_time   = 0;
+   thread->sp		 = pok_space_context_create(
+        partition_id,
+        (uintptr_t)attr->entry,
+        stack_vaddr,
+        0xdead,
+        0xbeaf
+    );
    /*
     *  FIXME : current debug session about exceptions-handled
-   printf ("thread sp=0x%x\n", pok_threads[id].sp);
+   printf ("thread sp=0x%x\n", thread->sp);
    printf ("thread stack vaddr=0x%x\n", stack_vaddr);
    */
-   pok_threads[id].partition        = partition_id; 
-   pok_threads[id].entry            = attr->entry;
-   pok_threads[id].init_stack_addr  = stack_vaddr;
+   thread->partition        = partition_id; 
+   thread->entry            = attr->entry;
+   thread->init_stack_addr  = stack_vaddr;
    *thread_id = id;
 
    POK_CURRENT_PARTITION.scheduler->enqueue_thread(id);
@@ -292,7 +296,7 @@ pok_ret_t pok_thread_restart(pok_thread_id_t tid)
 
 pok_ret_t pok_thread_delayed_start (pok_thread_id_t id, int64_t ms)
 {
-    if (POK_CURRENT_PARTITION.thread_index_low > id || POK_CURRENT_PARTITION.thread_index_high < id) {
+    if (!pok_thread_is_valid_and_created(&pok_threads[id], &POK_CURRENT_PARTITION)) {
         return POK_ERRNO_THREADATTR;
     }
 
@@ -355,7 +359,7 @@ pok_ret_t pok_thread_delayed_start (pok_thread_id_t id, int64_t ms)
 
 pok_ret_t pok_thread_get_status (pok_thread_id_t id, pok_thread_status_t *status)
 {
-  if (POK_CURRENT_PARTITION.thread_index_low > id || POK_CURRENT_PARTITION.thread_index_high < id)
+  if (!pok_thread_is_valid_and_created(&pok_threads[id], &POK_CURRENT_PARTITION))
     return POK_ERRNO_PARAM;
 
   // TODO  ensure that thread is created
@@ -380,7 +384,7 @@ pok_ret_t pok_thread_get_status (pok_thread_id_t id, pok_thread_status_t *status
 pok_ret_t pok_thread_set_priority(pok_thread_id_t id, uint32_t priority)
 {
     // ensure that thread belongs to the partition, and is created
-    if (id < POK_CURRENT_PARTITION.thread_index_low || id >= POK_CURRENT_PARTITION.thread_index) {
+    if (!pok_thread_is_valid_and_created(&pok_threads[id], &POK_CURRENT_PARTITION)) {
         return POK_ERRNO_THREADATTR;
     }
     pok_thread_t *thread = &pok_threads[id];
@@ -399,7 +403,7 @@ pok_ret_t pok_thread_set_priority(pok_thread_id_t id, uint32_t priority)
 pok_ret_t pok_thread_resume(pok_thread_id_t id)
 {
     // ensure that thread belongs to the partition, and is created
-    if (id < POK_CURRENT_PARTITION.thread_index_low || id >= POK_CURRENT_PARTITION.thread_index) {
+    if (!pok_thread_is_valid_and_created(&pok_threads[id], &POK_CURRENT_PARTITION)) {
         return POK_ERRNO_THREADATTR;
     }
 
@@ -435,7 +439,7 @@ pok_ret_t pok_thread_resume(pok_thread_id_t id)
 pok_ret_t pok_thread_suspend_target(pok_thread_id_t id)
 {
     // ensure that thread belongs to the partition, and is created
-    if (id < POK_CURRENT_PARTITION.thread_index_low || id >= POK_CURRENT_PARTITION.thread_index) {
+    if (!pok_thread_is_valid_and_created(&pok_threads[id], &POK_CURRENT_PARTITION)) {
         return POK_ERRNO_THREADATTR;
     }
     pok_thread_t *thread = &pok_threads[id];
@@ -505,7 +509,7 @@ pok_ret_t pok_thread_suspend(int64_t ms)
 
 pok_ret_t pok_thread_stop_target(pok_thread_id_t id)
 {
-    if (id < POK_CURRENT_PARTITION.thread_index_low || id >= POK_CURRENT_PARTITION.thread_index) {
+    if (!pok_thread_is_valid_and_created(&pok_threads[id], &POK_CURRENT_PARTITION)) {
         return POK_ERRNO_THREADATTR;
     } 
     

@@ -197,6 +197,13 @@ pok_thread_is_error_handling(const pok_thread_t *thread)
 }
 #endif
 
+static inline pok_bool_t
+pok_thread_is_valid_and_created(const pok_thread_t *thread, const pok_partition_t *part)
+{
+    pok_thread_id_t id = pok_thread_get_id(thread);
+    return id >= part->thread_index_low && id < part->thread_index;
+}
+
 #endif /* __POK_NEEDS_PARTITIONS */
 
 #endif /* __POK_PARTITION_H__ */

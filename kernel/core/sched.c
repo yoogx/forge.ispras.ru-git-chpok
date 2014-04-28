@@ -159,16 +159,6 @@ pok_partition_id_t pok_elect_partition(void)
       printf ("new prev current thread = %d\n", pok_partitions[pok_sched_current_slot].prev_thread);
       */
     next_partition = pok_sched_slots_allocation[pok_sched_current_slot];
-
-#ifdef POK_NEEDS_SCHED_HFPPS
-   if (pok_partitions[next_partition].payback > 0) // pay back!
-   {
-     // new deadline
-     pok_sched_next_deadline -= pok_partitions[next_partition].payback;
-     pok_partitions[next_partition].payback = 0;
-   }
-#endif /* POK_NEEDS_SCHED_HFPPS */
-
   }
 # endif /* POK_CONFIG_NB_PARTITIONS > 1 */
 
@@ -178,19 +168,44 @@ pok_partition_id_t pok_elect_partition(void)
 
 #ifdef POK_TEST_SUPPORT_PRINT_WHEN_ALL_THREADS_STOPPED
 static void check_all_threads_stopped(void) {
-    size_t part_id;
-    static pok_bool_t check_passed = FALSE;
+    // flag used to print message only once, not in loop
+    static pok_bool_t check_passed = FALSE; 
 
     if (check_passed) return;
 
+    size_t part_id;
     for (part_id = 0; part_id < POK_CONFIG_NB_PARTITIONS; part_id++) {
-        size_t low = pok_partitions[part_id].thread_index_low,
-               high= pok_partitions[part_id].thread_index;
-        size_t thread;
-        for (thread = low; thread < high; thread++) {
-            if (pok_threads[thread].state != POK_STATE_STOPPED) {
-                return;
-            }
+        const pok_partition_t *part = &pok_partitions[part_id];
+        
+        switch (part->mode) {
+            case POK_PARTITION_MODE_INIT_COLD:
+            case POK_PARTITION_MODE_INIT_WARM:
+                // check that main thread is not stopped
+                if (pok_threads[part->thread_main].state != POK_STATE_STOPPED) {
+                    return;
+                }
+#ifdef POK_NEEDS_ERROR_HANDLING
+                // TODO check error thread
+#endif
+                break;
+            case POK_PARTITION_MODE_NORMAL:
+                // check all threads
+                {
+                    size_t low = part->thread_index_low,
+                           high= low + part->thread_index;
+                    size_t thread;
+                    for (thread = low; thread < high; thread++) {
+                        if (pok_threads[thread].state != POK_STATE_STOPPED) {
+                            return;
+                        }
+                    }
+                }
+                break;
+            case POK_PARTITION_MODE_IDLE:
+            case POK_PARTITION_MODE_STOPPED:
+                break;
+            case POK_PARTITION_MODE_RESTART:
+                return; // TODO is it right?
         }
     }
     check_passed = TRUE;
@@ -228,9 +243,9 @@ static void pok_unlock_sleeping_threads(pok_partition_t *new_partition)
 
 }
 
-static pok_thread_id_t pok_elect_thread(pok_partition_id_t new_partition_id)
+static pok_thread_id_t pok_elect_thread()
 {
-   pok_partition_t* new_partition = &(pok_partitions[new_partition_id]);
+   pok_partition_t* new_partition = &POK_CURRENT_PARTITION;
     
    pok_unlock_sleeping_threads(new_partition);
 
@@ -308,10 +323,11 @@ void pok_sched()
     pok_partition_id_t elected_partition = POK_SCHED_CURRENT_PARTITION;
     
     elected_partition = pok_elect_partition();
-    elected_thread = pok_elect_thread(elected_partition);
 
     // set global
     pok_current_partition = elected_partition;
+    
+    elected_thread = pok_elect_thread();
    
     if (pok_partitions[pok_current_partition].current_thread != elected_thread) {
         if (pok_partitions[pok_current_partition].current_thread != IDLE_THREAD) {

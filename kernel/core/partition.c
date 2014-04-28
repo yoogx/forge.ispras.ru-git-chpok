@@ -200,8 +200,8 @@ pok_ret_t pok_partition_init ()
 
       pok_partitions[i].thread_index_high = pok_partitions[i].thread_index_low + ((uint32_t[]) POK_CONFIG_PARTITIONS_NTHREADS) [i];
       pok_partitions[i].activation        = 0;
-      pok_partitions[i].period            = 0;
-      pok_partitions[i].thread_index      = 0;
+      pok_partitions[i].period            = POK_CONFIG_SCHEDULING_MAJOR_FRAME;
+      pok_partitions[i].thread_index      = pok_partitions[i].thread_index_low;
       pok_partitions[i].thread_main       = 0;
       pok_partitions[i].current_thread    = IDLE_THREAD;
       pok_partitions[i].prev_thread       = IDLE_THREAD; // breaks the rule of prev_thread not being idle, but it's just for init
@@ -272,10 +272,10 @@ static pok_ret_t pok_partition_set_normal_mode(pok_partition_id_t pid)
 {
     pok_partition_t *part = &pok_partitions[pid];
     if (part->mode == POK_PARTITION_MODE_IDLE) {
-        return POK_ERRNO_PARTITION_MODE;
+        return POK_ERRNO_PARTITION_MODE; // XXX shouldn't happen anyway
     }
-    if (POK_SCHED_CURRENT_THREAD != part->thread_main) {
-        return POK_ERRNO_PARTITION_MODE;
+    if (part->mode == POK_PARTITION_MODE_NORMAL) {
+        return POK_ERRNO_UNAVAILABLE; // TODO revise error codes
     }
     
     part->mode = POK_PARTITION_MODE_NORMAL;
@@ -324,25 +324,17 @@ static pok_ret_t pok_partition_set_normal_mode(pok_partition_id_t pid)
 
 pok_ret_t pok_partition_set_mode(pok_partition_id_t pid, pok_partition_mode_t mode)
 {
+   // TODO check all the conditions specified in ARINC
+
    switch (mode)
    {
       case POK_PARTITION_MODE_NORMAL:
         return pok_partition_set_normal_mode(pid);
         break;
 
-#ifdef POK_NEEDS_ERROR_HANDLING
+      case POK_PARTITION_MODE_IDLE:
       case POK_PARTITION_MODE_STOPPED:
- 
-         /*
-          * Only the error thread can stop the partition
-          */
-         if ((POK_CURRENT_PARTITION.thread_error == 0 ) ||
-             (POK_SCHED_CURRENT_THREAD != POK_CURRENT_PARTITION.thread_error))
-         {
-            return POK_ERRNO_PARTITION_MODE;
-         }
-
-         pok_partitions[pid].mode = mode;  /* Here, we change the mode */
+         pok_partitions[pid].mode = POK_PARTITION_MODE_STOPPED;  /* Here, we change the mode */
          pok_sched ();
          break;
 
@@ -365,10 +357,9 @@ pok_ret_t pok_partition_set_mode(pok_partition_id_t pid, pok_partition_mode_t mo
          pok_sched ();
 
          break;
-#endif
 
       default:
-         return POK_ERRNO_PARTITION_MODE;
+         return POK_ERRNO_EINVAL;
          break;
    }
    return POK_ERRNO_OK;
@@ -379,22 +370,6 @@ pok_ret_t pok_partition_set_mode(pok_partition_id_t pid, pok_partition_mode_t mo
  */
 pok_ret_t pok_partition_set_mode_current(pok_partition_mode_t mode)
 {
-#ifdef POK_NEEDS_ERROR_HANDLING
-   if ((POK_SCHED_CURRENT_THREAD != POK_CURRENT_PARTITION.thread_main) &&
-       (POK_SCHED_CURRENT_THREAD != POK_CURRENT_PARTITION.thread_error))
-#else
-   if (POK_SCHED_CURRENT_THREAD != POK_CURRENT_PARTITION.thread_main)
-#endif
-   {
-      return POK_ERRNO_THREAD;
-   }
-
-   /*
-    * Here, we check which thread call this function.
-    * In fact, only two threads can change the partition mode : the init thread
-    * and the error thread. If ANY other thread try to change the partition
-    * mode, this is an error !
-    */
    return (pok_partition_set_mode(POK_SCHED_CURRENT_PARTITION, mode));
 }
 

@@ -23,16 +23,44 @@
 #include <core/partition.h>
 
 #include <errno.h>
+#include <utils.h>
+
+#define MAP_ERROR(from, to) case (from): *return_code = (to); break
+#define MAP_ERROR_DEFAULT(to) default: *return_code = (to); break
 
 void GET_PARTITION_STATUS (PARTITION_STATUS_TYPE *partition_status,
                            RETURN_CODE_TYPE      *return_code)
 {
-  pok_current_partition_get_id(&partition_status->IDENTIFIER);
-  pok_current_partition_get_period(&partition_status->PERIOD);
-  pok_current_partition_get_duration(&partition_status->DURATION);
+  uint64_t period, duration;
+  pok_partition_id_t identifier;
+  pok_partition_mode_t mode;
+
+  pok_current_partition_get_id(&identifier);
+  partition_status->IDENTIFIER = identifier;
+
+  pok_current_partition_get_period(&period);
+  partition_status->PERIOD = ms_to_arinc_time(period);
+
+  pok_current_partition_get_duration(&duration);
+  partition_status->DURATION = ms_to_arinc_time(duration);
+
   pok_current_partition_get_lock_level(&partition_status->LOCK_LEVEL);
-  pok_current_partition_get_operating_mode(&partition_status->OPERATING_MODE);
+
+  pok_current_partition_get_operating_mode(&mode);
+
+#define MAP(from, to) case (from): partition_status->OPERATING_MODE = (to); break
+  switch (mode) {
+    MAP(POK_PARTITION_MODE_IDLE, IDLE);
+    MAP(POK_PARTITION_MODE_NORMAL, NORMAL);
+    MAP(POK_PARTITION_MODE_INIT_COLD, COLD_START);
+    MAP(POK_PARTITION_MODE_INIT_WARM, WARM_START);
+    MAP(POK_PARTITION_MODE_RESTART, IDLE);
+    MAP(POK_PARTITION_MODE_STOPPED, IDLE);
+  }
+#undef MAP
+
   pok_current_partition_get_start_condition(&partition_status->START_CONDITION);
+
   *return_code = NO_ERROR;
 }
 
@@ -41,9 +69,7 @@ void SET_PARTITION_MODE (OPERATING_MODE_TYPE operating_mode,
 {
   pok_partition_mode_t core_mode;
   pok_ret_t            core_ret;
-  pok_partition_mode_t current_mode;
 
-  pok_current_partition_get_operating_mode(&current_mode);
    switch (operating_mode)
    {
       case IDLE:
@@ -67,19 +93,14 @@ void SET_PARTITION_MODE (OPERATING_MODE_TYPE operating_mode,
          return;
    }
 
-   if (current_mode == core_mode)
-     {
-       *return_code = NO_ACTION;
-       return ;
-     }
-   if (current_mode == POK_PARTITION_MODE_INIT_COLD &&
-       core_mode == POK_PARTITION_MODE_INIT_WARM)
-     {
-       *return_code = INVALID_MODE;
-       return ;
-     }
    core_ret = pok_partition_set_mode (core_mode);
-   *return_code = core_ret;
+
+   switch (core_ret) {
+      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      MAP_ERROR(POK_ERRNO_UNAVAILABLE, NO_ACTION);
+      MAP_ERROR(POK_ERRNO_PARTITION_MODE, INVALID_MODE);
+      MAP_ERROR_DEFAULT(INVALID_PARAM);
+   }
 }
 
 #endif

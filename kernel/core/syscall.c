@@ -188,7 +188,7 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
          return pok_partition_set_mode_current ((pok_partition_mode_t)args->arg1);
          break;
       case POK_SYSCALL_PARTITION_GET_ID:
-	return pok_current_partition_get_id ((uint8_t*)(args->arg1 + infos->base_addr));
+	return pok_current_partition_get_id ((pok_partition_id_t *)(args->arg1 + infos->base_addr));
          break;
       case POK_SYSCALL_PARTITION_GET_PERIOD:
 	return pok_current_partition_get_period ((uint64_t*)(args->arg1 + infos->base_addr));

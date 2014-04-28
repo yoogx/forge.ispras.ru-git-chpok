@@ -48,6 +48,7 @@
 
 #include <core/partition.h>
 #include <core/lockobj.h>
+#include <core/time.h>
 
 #include <middleware/port.h>
 #include <middleware/port_utils.h>
@@ -65,6 +66,7 @@ static void flush_sampling_port(pok_port_sampling_t *src) {
         memcpy(&dst->data->data[0], &src->data->data[0], src->data->message_size);
         dst->data->message_size = src->data->message_size;
         dst->not_empty = TRUE;
+        dst->last_receive = POK_GETTICK(); // TODO or copy it from src port?
     }
 
     src->header.must_be_flushed = FALSE;

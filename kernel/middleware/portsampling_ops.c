@@ -126,7 +126,7 @@ pok_ret_t pok_port_sampling_write(
     
     // check that it belongs to the current partition
     if (port->header.partition != POK_SCHED_CURRENT_PARTITION) {
-        DEBUG_PRINT("port %d doesn't belong to this partition\n", (int) id);
+        DEBUG_PRINT("port %d doesn't belong to this partition %d\n", (int) id, (int) POK_SCHED_CURRENT_PARTITION);
         return POK_ERRNO_EINVAL;
     }
 
@@ -183,6 +183,7 @@ pok_ret_t pok_port_sampling_read(
     
     // check that it belongs to the current partition
     if (port->header.partition != POK_SCHED_CURRENT_PARTITION) {
+        DEBUG_PRINT("port %d doesn't belong to this partition %d\n", (int) id, (int) POK_SCHED_CURRENT_PARTITION);
         return POK_ERRNO_EINVAL;
     }
     
