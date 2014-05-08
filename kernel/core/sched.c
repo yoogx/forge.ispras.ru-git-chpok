@@ -428,13 +428,20 @@ pok_ret_t pok_sched_end_period(void)
     // called by periodic process when it's done its work
     // ARINC-653 PERIODIC_WAIT
 
-    // TODO check that process is indeed periodic
-    
-    // TODO check other ARINC-653 conditions
+    if (!pok_thread_is_periodic(&POK_CURRENT_THREAD)) {
+        return POK_ERRNO_MODE;
+    }
+
+    if (POK_CURRENT_PARTITION.lock_level > 0) {
+        return POK_ERRNO_MODE;
+    }
 
     POK_CURRENT_THREAD.state = POK_STATE_WAIT_NEXT_ACTIVATION;
-        
     POK_CURRENT_THREAD.next_activation += POK_CURRENT_THREAD.period;
+    if (POK_CURRENT_THREAD.time_capacity >= 0) {
+        // set deadline
+        POK_CURRENT_THREAD.end_time = POK_CURRENT_THREAD.next_activation + POK_CURRENT_THREAD.time_capacity;
+    }
 
     pok_sched();
     return POK_ERRNO_OK;

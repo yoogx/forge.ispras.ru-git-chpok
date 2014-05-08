@@ -113,6 +113,8 @@ typedef struct
      *
      * When this time hits, HM event is generated (error handling),
      * and process becomes... TODO what it becomes?
+     *
+     * Undefined if process time capacity is infinite.
      */
     int64_t             end_time; //  absolute deadline time (if process is periodic, for current activation)
     

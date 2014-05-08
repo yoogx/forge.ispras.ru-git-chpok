@@ -43,6 +43,8 @@
 #include <types.h>
 #include <utils.h>
 
+#define MAP_ERROR(from, to) case (from): *return_code = (to); break
+#define MAP_ERROR_DEFAULT(to) default: *return_code = (to); break
 
 void TIMED_WAIT (SYSTEM_TIME_TYPE delay_time, RETURN_CODE_TYPE *return_code)
 {
@@ -51,16 +53,31 @@ void TIMED_WAIT (SYSTEM_TIME_TYPE delay_time, RETURN_CODE_TYPE *return_code)
        *return_code = INVALID_PARAM;
        return;
    }
+   if (delay_ms < 0) {
+       // arinc doesn't allow infinite sleep
+       *return_code = INVALID_PARAM;
+       return;
+   }
 
-   pok_syscall2(POK_SYSCALL_THREAD_SLEEP, (int32_t) delay_ms, 0);
-   *return_code = NO_ERROR;
+   pok_ret_t core_ret;
+   core_ret = pok_syscall2(POK_SYSCALL_THREAD_SLEEP, (int32_t) delay_ms, 0);
+    
+   switch (core_ret) {
+      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
+      MAP_ERROR_DEFAULT(INVALID_PARAM);
+   }
 }
 
 void PERIODIC_WAIT (RETURN_CODE_TYPE *return_code)
 {
    pok_ret_t core_ret;
    core_ret = pok_thread_period ();
-   *return_code = core_ret;
+   switch (core_ret) {
+      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
+      MAP_ERROR_DEFAULT(INVALID_PARAM);
+   }
 }
 
 void GET_TIME (SYSTEM_TIME_TYPE *system_time, RETURN_CODE_TYPE *return_code)
@@ -71,13 +88,11 @@ void GET_TIME (SYSTEM_TIME_TYPE *system_time, RETURN_CODE_TYPE *return_code)
    *return_code = NO_ERROR;
 }
 
-#ifndef POK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE
 void REPLENISH (SYSTEM_TIME_TYPE budget_time, RETURN_CODE_TYPE *return_code)
 {
    (void) budget_time;
    *return_code = NOT_AVAILABLE;
 }
-#endif
 
 #endif
 
