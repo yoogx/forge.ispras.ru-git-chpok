@@ -233,7 +233,7 @@ pok_ret_t pok_partition_init ()
        */
       pok_partitions[i].thread_main_entry = program_entry;
       
-      pok_partitions[i].lock_level = 0;
+      pok_partitions[i].lock_level = 1; // in init mode, lock level is always >0
       pok_partitions[i].start_condition = NORMAL_START;
 
 #ifdef POK_NEEDS_INSTRUMENTATION
@@ -279,6 +279,7 @@ static pok_ret_t pok_partition_set_normal_mode(pok_partition_id_t pid)
     }
     
     part->mode = POK_PARTITION_MODE_NORMAL;
+    part->lock_level = 0;
 
     pok_thread_id_t thread_id;
     for (thread_id = part->thread_index_low; thread_id < part->thread_index; thread_id++) {
@@ -350,7 +351,10 @@ pok_ret_t pok_partition_set_mode(pok_partition_id_t pid, pok_partition_mode_t mo
           * was in the NORMAL mode. So, we check the previous mode
           */
 
+         // TODO support for partition restart is likely broken
+
          pok_partitions[pid].mode = mode;  /* Here, we change the mode */
+         pok_partitions[pid].lock_level = 1; 
 
          pok_partition_reinit (pid);
 
