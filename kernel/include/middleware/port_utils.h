@@ -28,7 +28,7 @@ static inline pok_bool_t pok_port_utils_queueing_empty(pok_port_queueing_t *port
 
 static inline pok_bool_t pok_port_utils_queueing_full(pok_port_queueing_t *port) 
 {
-    return port->nb_message == port->max_nb_message;
+    return port->nb_message == port->max_nb_messages;
 }
 
 void pok_port_utils_queueing_write(

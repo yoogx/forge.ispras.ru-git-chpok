@@ -53,7 +53,7 @@ static int find_queueing_port(const char *name) {
 pok_ret_t pok_port_queueing_create(
     const char                      *name,
     pok_port_size_t                 message_size,
-    pok_port_size_t                 max_nb_message,
+    pok_port_size_t                 max_nb_messages,
     pok_port_direction_t            direction,
     pok_port_queueing_discipline_t  discipline,
     pok_port_id_t                   *id)
@@ -81,8 +81,8 @@ pok_ret_t pok_port_queueing_create(
         DEBUG_PRINT("size doesn't match (%u supplied, %u expected)\n", (unsigned) message_size, (unsigned) port->max_message_size);
         return POK_ERRNO_EINVAL;
     }
-    if (max_nb_message <= 0 || max_nb_message != port->max_nb_message) {
-        DEBUG_PRINT("max_nb_message doesn't match (%u supplied, %u expected)\n", (unsigned) max_nb_message, (unsigned) port->max_nb_message);
+    if (max_nb_messages <= 0 || max_nb_messages != port->max_nb_messages) {
+        DEBUG_PRINT("max_nb_messages doesn't match (%u supplied, %u expected)\n", (unsigned) max_nb_messages, (unsigned) port->max_nb_messages);
         return POK_ERRNO_EINVAL;
     }
     if (direction != POK_PORT_DIRECTION_IN && direction != POK_PORT_DIRECTION_OUT) {
@@ -285,7 +285,7 @@ pok_ret_t pok_port_queueing_status(
     }
 
     status->nb_message = port->nb_message;
-    status->max_nb_message = port->max_nb_message;
+    status->max_nb_message = port->max_nb_messages;
     status->max_message_size = port->max_message_size;
     status->direction = port->header.direction;
     status->waiting_processes = 0; // TODO

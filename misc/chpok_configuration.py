@@ -77,6 +77,12 @@ class Partition:
             self.num_threads
         )
 
+    def get_port_by_name(self, name):
+        res = next((port for port in self.get_all_ports() if port.name == name), None)
+        if not res:
+            raise ValueError("no such named port %r in %r" % (name, self))
+        return res
+
 def _get_port_direction(port):
     direction = port.direction.lower()
     if direction in ("source", "out"):
@@ -105,7 +111,6 @@ class QueueingPort:
         "direction",
         "max_nb_messages",
         "max_message_size",
-        "discipline",
     ]
 
     def validate(self):
@@ -143,6 +148,9 @@ class Configuration:
 
     def get_all_queueing_ports(self):
         return sum((part.get_all_queueing_ports() for part in self.partitions), [])
+
+    def get_port_by_name_and_partition(self, partition_idx, port_name):
+        return self.partitions[partition_idx].get_port_by_name(port_name)
 
     def __init__(self):
         self.partitions = []
@@ -237,7 +245,7 @@ QUEUEING_PORT_TEMPLATE = """\
             .num_channels=%(num_channels)s,
         },
         .max_message_size = %(max_message_size)d,
-        .max_nb_message = %(max_nb_message)d,
+        .max_nb_messages = %(max_nb_messages)d,
         
         .data = (void *) %(data)s,
         .data_stride = %(data_stride)s,
@@ -351,7 +359,7 @@ def write_kernel_deployment_c_ports(conf, f):
     p("#include <middleware/port.h>")
 
     def get_partition(port):
-        for i, part in enumerate(conf, partitions):
+        for i, part in enumerate(conf.partitions):
             if port in part.ports:
                 return i
         raise ValueError
@@ -367,6 +375,17 @@ def write_kernel_deployment_c_ports(conf, f):
 
         assert False
 
+    def get_port_index(port):
+        # returns port index in port array
+        # queueing and sampling port have distinct "indexspaces"
+
+        if isinstance(port, SamplingPort):
+            return all_sampling_ports.index(port)
+        if isinstance(port, QueueingPort):
+            return all_queueing_ports.index(port)
+
+        assert False
+    
 
     all_ports = [
         port
@@ -410,8 +429,8 @@ def write_kernel_deployment_c_ports(conf, f):
     for port, channels in channels_per_port.items():
         varname = get_internal_port_name(port, "channels")
 
-        channels = [chan.dst for chan in channels]
-        channel_string = ", ".join(str(i) for i in channels)
+        channel_dests = [chan.dst for chan in channels]
+        channel_string = ", ".join(str(get_port_index(dst)) for dst in channel_dests)
         
         p("static pok_port_id_t %s[] = {%s};" % (varname, channel_string))
 

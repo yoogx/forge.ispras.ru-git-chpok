@@ -113,7 +113,7 @@ typedef struct
     pok_port_header_t           header;
 
     pok_port_size_t             max_message_size;
-    pok_port_size_t             max_nb_message;
+    pok_port_size_t             max_nb_messages;
 
     pok_port_size_t             nb_message;
     pok_port_size_t             queue_head;
