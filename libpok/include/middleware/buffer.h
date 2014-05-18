@@ -98,6 +98,10 @@ pok_ret_t pok_buffer_status (const pok_buffer_id_t            id,
 pok_ret_t pok_buffer_id (char*                                     name,
                          pok_buffer_id_t*                          id);
 
+// all of these are defined in libpok/midleware/ressources.c
+extern pok_buffer_t    pok_buffers[POK_CONFIG_NB_BUFFERS];
+extern char            pok_buffers_data[POK_CONFIG_BUFFER_DATA_SIZE];
+
 #endif
 #endif
 

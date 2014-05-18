@@ -40,8 +40,6 @@
 #include <errno.h>
 #include <types.h>
 
-extern pok_buffer_t    pok_buffers[POK_CONFIG_NB_BUFFERS];
-
 pok_ret_t pok_buffer_init (void)
 {
    uint8_t n;

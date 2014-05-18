@@ -41,8 +41,6 @@
 #include <types.h>
 #include <libc/string.h>
 
-extern pok_blackboard_t    pok_blackboards[POK_CONFIG_NB_BLACKBOARDS];
-
 pok_ret_t pok_blackboard_status (const pok_blackboard_id_t id,
                                  pok_blackboard_status_t*  status)
 {

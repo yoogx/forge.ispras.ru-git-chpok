@@ -42,8 +42,6 @@
 #include <middleware/blackboard.h>
 #include <core/event.h>
 
-extern pok_blackboard_t    pok_blackboards[POK_CONFIG_NB_BLACKBOARDS];
-
 pok_ret_t pok_blackboard_clear (const pok_blackboard_id_t id)
 {
    if (id >= POK_CONFIG_NB_BLACKBOARDS)

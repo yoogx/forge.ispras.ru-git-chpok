@@ -41,8 +41,6 @@
 #include <types.h>
 #include <libc/string.h>
 
-extern pok_buffer_t    pok_buffers[POK_CONFIG_NB_BUFFERS];
-
 pok_ret_t pok_buffer_status (const pok_buffer_id_t  id,
                              pok_buffer_status_t*   status)
 {

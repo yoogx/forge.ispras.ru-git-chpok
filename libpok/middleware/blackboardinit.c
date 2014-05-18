@@ -22,8 +22,6 @@
 #include <types.h>
 #include <errno.h>
 
-extern pok_blackboard_t pok_blackboards[POK_CONFIG_NB_BLACKBOARDS];
-
 pok_ret_t pok_blackboard_init (void)
 {
    uint8_t n;

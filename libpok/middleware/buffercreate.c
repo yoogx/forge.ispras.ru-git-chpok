@@ -45,9 +45,7 @@
 #include <middleware/buffer.h>
 #include <utils.h>
 
-extern pok_buffer_t    pok_buffers[POK_CONFIG_NB_BUFFERS];
-pok_size_t             pok_buffers_data_index = 0;
-
+static pok_size_t pok_buffers_data_index = 0;
 
 pok_ret_t pok_buffer_create (char*                                 name, 
                              const pok_port_size_t                 num_messages, 
@@ -62,7 +60,7 @@ pok_ret_t pok_buffer_create (char*                                 name,
    const pok_port_size_t size = num_messages * (msg_size + sizeof(pok_port_size_t));
 
    if (  size > INT32_MAX - pok_buffers_data_index ||
-         pok_buffers_data_index + size >= 1024) {
+         pok_buffers_data_index + size >= POK_CONFIG_BUFFER_DATA_SIZE) {
       return POK_ERRNO_EINVAL;
    }
 

@@ -21,12 +21,12 @@
 
 #ifdef POK_NEEDS_BUFFERS
 pok_buffer_t pok_buffers[POK_CONFIG_NB_BUFFERS];
-const char pok_buffers_data[1024]; /* FIXME : correct size of buffers ! */
+char pok_buffers_data[POK_CONFIG_BUFFER_DATA_SIZE]; 
 #endif
 
 #ifdef POK_NEEDS_BLACKBOARDS
 pok_blackboard_t pok_blackboards[POK_CONFIG_NB_BLACKBOARDS];
-const char pok_blackboards_data[1024]; /* FIXME : correct size of blackboard buffers ! */
+char pok_blackboards_data[POK_CONFIG_BLACKBOARD_DATA_SIZE]; 
 #endif
 
 #endif

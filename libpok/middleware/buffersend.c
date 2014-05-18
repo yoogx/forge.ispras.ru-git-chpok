@@ -46,9 +46,6 @@
 #include <middleware/buffer.h>
 #include <utils.h>
 
-extern pok_buffer_t    pok_buffers[POK_CONFIG_NB_BUFFERS];
-extern char            pok_buffers_data[1024];
-
 pok_ret_t pok_buffer_send (const pok_buffer_id_t              id, 
                            const void*                        data, 
                            const pok_port_size_t              len, 

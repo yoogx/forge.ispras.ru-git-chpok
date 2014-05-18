@@ -43,10 +43,6 @@
 #include <middleware/blackboard.h>
 #include <utils.h>
 
-extern pok_blackboard_t    pok_blackboards[POK_CONFIG_NB_BLACKBOARDS];
-extern char                pok_blackboards_data[];
-
-
 pok_ret_t pok_blackboard_read (const pok_blackboard_id_t   id, 
                                const int64_t               timeout,
                                void*                       data,

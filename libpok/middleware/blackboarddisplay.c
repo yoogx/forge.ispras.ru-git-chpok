@@ -43,10 +43,6 @@
 #include <core/thread.h>
 #include <middleware/blackboard.h>
 
-extern pok_blackboard_t    pok_blackboards[POK_CONFIG_NB_BLACKBOARDS];
-extern char                pok_blackboards_data[1024];
-
-
 pok_ret_t pok_blackboard_display (const pok_blackboard_id_t   id, 
                                   const void*                 message, 
                                   const pok_port_size_t       len)

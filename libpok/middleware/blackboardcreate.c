@@ -43,8 +43,7 @@
 #include <core/event.h>
 #include <middleware/blackboard.h>
 
-extern pok_blackboard_t    pok_blackboards[POK_CONFIG_NB_BLACKBOARDS];
-pok_size_t                 pok_blackboards_data_index = 0;
+static pok_size_t pok_blackboards_data_index = 0;
 
 pok_ret_t pok_blackboard_create (char*                             name, 
                                  const pok_port_size_t             msg_size, 
@@ -61,6 +60,8 @@ pok_ret_t pok_blackboard_create (char*                             name,
          return POK_ERRNO_READY;
       }
    }
+   
+   // TODO ensure that we still have free space
 
    // create a new one
    for (n=0 ; n < POK_CONFIG_NB_BLACKBOARDS ; n++)

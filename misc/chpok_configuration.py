@@ -39,6 +39,9 @@ class Partition:
         "num_arinc653_blackboards",
         "num_arinc653_semaphores",
         "num_arinc653_events",
+
+        "buffer_data_size", # bytes allocated for buffer data
+        "blackboard_data_size", # same, for blackboards
     ]
 
     def get_all_ports(self):
@@ -485,11 +488,14 @@ def write_partition_deployment_h(conf, partition_idx, f):
         p("#define POK_NEEDS_BUFFERS 1")
         p("#define POK_NEEDS_ARINC653_BUFFER 1")
         p("#define POK_CONFIG_NB_BUFFERS %d" % part.num_arinc653_buffers)
+
+        p("#define POK_CONFIG_BUFFER_DATA_SIZE %d" % part.buffer_data_size)
         
     if part.num_arinc653_blackboards > 0:
         p("#define POK_NEEDS_BLACKBOARDS 1")
         p("#define POK_NEEDS_ARINC653_BLACKBOARD 1")
         p("#define POK_CONFIG_NB_BLACKBOARDS %d" % part.num_arinc653_buffers)
+        p("#define POK_CONFIG_BLACKBOARD_DATA_SIZE %d" % part.blackboard_data_size)
 
     if part.num_arinc653_semaphores > 0:
         p("#define POK_NEEDS_ARINC653_SEMAPHORE 1")
