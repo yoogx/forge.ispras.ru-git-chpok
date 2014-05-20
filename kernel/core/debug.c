@@ -81,6 +81,8 @@ void pok_fatal (const char* message)
 
   POK_DEBUG_PRINT_CURRENT_STATE
   pok_arch_idle ();
+
+  __builtin_unreachable();
 }
 
 #endif /* POK_CONFIG_NEEDS_DEBUG */

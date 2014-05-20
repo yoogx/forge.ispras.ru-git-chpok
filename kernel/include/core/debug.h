@@ -24,6 +24,7 @@
 #include <types.h>
 #include <libc.h>
 
+__attribute__((__noreturn__))
 void		pok_fatal(const char* message);
 
 int      debug_strlen (const char* str);
