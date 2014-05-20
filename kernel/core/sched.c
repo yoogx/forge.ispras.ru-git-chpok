@@ -243,7 +243,7 @@ static void pok_unlock_sleeping_threads(pok_partition_t *new_partition)
 
 }
 
-static pok_thread_id_t pok_elect_thread()
+static pok_thread_id_t pok_elect_thread(void)
 {
    pok_partition_t* new_partition = &POK_CURRENT_PARTITION;
     

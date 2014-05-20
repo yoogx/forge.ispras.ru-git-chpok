@@ -45,18 +45,10 @@ typedef enum
    POK_LOCKOBJ_KIND_EVENT = 3
 }pok_lockobj_kind_t;
 
-typedef enum
-{
-   POK_LOCKOBJ_POLICY_STANDARD = 0,
-   POK_LOCKOBJ_POLICY_PIP      = 1,
-   POK_LOCKOBJ_POLICY_PCP      = 2
-}pok_locking_policy_t;
-
 
 typedef struct
 {
    pok_lockobj_kind_t            kind;
-   pok_locking_policy_t          locking_policy;
    pok_queueing_discipline_t     queueing_policy;  
    pok_sem_value_t               initial_value;
    pok_sem_value_t               max_value;
@@ -64,7 +56,7 @@ typedef struct
 
 typedef enum
 {
-   LOCKOBK_LOCK_REGULAR = 1,
+   LOCKOBJ_LOCK_REGULAR = 1,
    LOCKOBJ_LOCK_TIMED   = 2
 }pok_lockobj_lock_kind_t;
 

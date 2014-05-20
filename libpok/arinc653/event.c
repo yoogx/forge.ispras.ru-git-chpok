@@ -113,7 +113,10 @@ void CREATE_EVENT (EVENT_NAME_TYPE EVENT_NAME,
    for (i = 0; i < POK_CONFIG_ARINC653_NB_EVENTS; i++) {
       if (!pok_arinc653_events_layers[i].ready) {
          // found a free one
-         core_ret = pok_event_create(&core_id);
+
+         // note: ARINC events never use "notify", only "broadcast"
+         // it means that queueing discipline is irrelevant here
+         core_ret = pok_event_create(&core_id, POK_QUEUEING_DISCIPLINE_PRIORITY);
          if (core_ret != POK_ERRNO_OK) {
             // XXX figure out exact cause of the error
             return;

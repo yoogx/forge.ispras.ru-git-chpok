@@ -22,13 +22,12 @@
 #include <core/lockobj.h>
 #include <core/syscall.h>
 
-pok_ret_t pok_event_create (pok_event_id_t* id)
+pok_ret_t pok_event_create (pok_event_id_t* id, pok_queueing_discipline_t discipline)
 {
    pok_lockobj_attr_t lockattr;
    
    lockattr.kind = POK_LOCKOBJ_KIND_EVENT;
-
-   lockattr.locking_policy = POK_LOCKOBJ_POLICY_STANDARD;
+   lockattr.queueing_policy = discipline; 
 
    return pok_syscall2 (POK_SYSCALL_LOCKOBJ_CREATE, (uint32_t)id, (uint32_t)&lockattr);
 }

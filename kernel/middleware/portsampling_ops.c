@@ -99,7 +99,9 @@ pok_ret_t pok_port_sampling_create(
     // everything is OK, initialize it
     pok_lockobj_attr_t lockattr;
     lockattr.kind = POK_LOCKOBJ_KIND_EVENT;
-    lockattr.locking_policy = POK_LOCKOBJ_POLICY_STANDARD;
+    
+    // actually, it doesn't matter at all, since sampling ports use mutexes only
+    lockattr.queueing_policy = POK_QUEUEING_DISCIPLINE_FIFO;  
 
     pok_ret_t ret = pok_lockobj_create(&port->header.lock, &lockattr);
     if (ret != POK_ERRNO_OK) return ret;

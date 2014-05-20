@@ -76,7 +76,7 @@ pok_ret_t pok_buffer_create (char*                                 name,
    for (n=0 ; n < POK_CONFIG_NB_BUFFERS ; n++)
    {
       if (pok_buffers[n].ready == FALSE) {
-         ret = pok_event_create (&pok_buffers[n].lock);
+         ret = pok_event_create (&pok_buffers[n].lock, discipline);
 
          if (ret != POK_ERRNO_OK)
          {

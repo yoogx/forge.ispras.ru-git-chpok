@@ -67,7 +67,7 @@ pok_ret_t pok_blackboard_create (char*                             name,
    for (n=0 ; n < POK_CONFIG_NB_BLACKBOARDS ; n++)
    {
       if (!pok_blackboards[n].ready) {
-         ret = pok_event_create (&pok_blackboards[n].lock);
+         ret = pok_event_create (&pok_blackboards[n].lock, POK_QUEUEING_DISCIPLINE_PRIORITY);
 
          if (ret != POK_ERRNO_OK)
          {

@@ -33,7 +33,6 @@
 typedef uint32_t pok_port_size_t;
 typedef uint8_t pok_port_direction_t;
 typedef uint8_t pok_port_kind_t;
-typedef uint8_t pok_queueing_discipline_t;
 typedef uint8_t pok_port_id_t;
 typedef uint8_t pok_size_t;
 typedef uint8_t pok_range_t;
@@ -45,5 +44,10 @@ typedef uint8_t pok_event_id_t;
 typedef uint8_t pok_partition_id_t;
 typedef uint8_t pok_thread_id_t;
 typedef uint16_t pok_sem_value_t;
+
+typedef enum {
+    POK_QUEUEING_DISCIPLINE_FIFO,
+    POK_QUEUEING_DISCIPLINE_PRIORITY,
+} pok_queueing_discipline_t;
 
 #endif

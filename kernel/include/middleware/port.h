@@ -50,15 +50,13 @@ typedef enum
 {
 	 POK_PORT_QUEUEING_DISCIPLINE_FIFO      = 1,
 	 POK_PORT_QUEUEING_DISCIPLINE_PRIORITY  = 2
-} pok_port_queueing_disciplines_t;
+} pok_port_queueing_discipline_t;
 
 typedef enum
 {
 	 POK_PORT_DIRECTION_IN   = 1,
 	 POK_PORT_DIRECTION_OUT  = 2
 } pok_port_directions_t;
-
-typedef pok_queueing_discipline_t pok_port_queueing_discipline_t;
 
 typedef enum
 {

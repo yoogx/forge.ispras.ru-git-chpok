@@ -11,6 +11,24 @@
  *
  *                                      Copyright (c) 2007-2009 POK team 
  *
+ * This file also incorporates work covered by the following 
+ * copyright and license notice:
+ *
+ *  Copyright (C) 2014 Maxim Malkov, ISPRAS <malkov@ispras.ru> 
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
  * Created by julien on Thu Jan 15 23:34:13 2009 
  */
 
@@ -34,74 +52,84 @@
  * certify and verify the behavior of all.
  */
 
+/*
+ * Half-mutex, half-semaphore, half-condition variable.
+ *
+ * It operates in one of the following modes
+ * (as specified by pok_lockobj_kind_t):
+ *  - Mutex 
+ *  - Semaphore (also fairly traditional)
+ *  - Event (a mix of mutex and condition variable, also known as "monitor")
+ */
 
-typedef enum
-{
+
+typedef enum {
    POK_LOCKOBJ_KIND_MUTEX = 1,
    POK_LOCKOBJ_KIND_SEMAPHORE = 2,
    POK_LOCKOBJ_KIND_EVENT = 3
-}pok_lockobj_kind_t;
+} pok_lockobj_kind_t;
 
 /* All kind of lock objects we have in the kernel */
 
-typedef enum
-{
-   POK_LOCKOBJ_POLICY_STANDARD = 0,
-   POK_LOCKOBJ_POLICY_PIP      = 1,
-   POK_LOCKOBJ_POLICY_PCP      = 2
-}pok_locking_policy_t;
+typedef struct {
+    pok_lockobj_kind_t         kind;
+    pok_queueing_discipline_t  queueing_policy;  
+    pok_sem_value_t            initial_value;
+    pok_sem_value_t            max_value;
+} pok_lockobj_attr_t;
 
-
-typedef enum
-{
-   LOCKOBJ_STATE_LOCK = 0,
-   LOCKOBJ_STATE_UNLOCK = 1,
-   LOCKOBJ_STATE_WAITEVENT = 2
-}pok_mutex_state_t;
-
+typedef struct pok_lockobj_queue_t {
+    pok_thread_id_t             thread;
+    uint8_t                     priority;
+    struct pok_lockobj_queue_t  *next;
+} pok_lockobj_queue_t;
 
 typedef struct
 {
-   pok_lockobj_kind_t         kind;
-   pok_locking_policy_t       locking_policy;
-   pok_queueing_discipline_t  queueing_policy;  
-   pok_sem_value_t            initial_value;
-   pok_sem_value_t            max_value;
-}pok_lockobj_attr_t;
+   /* 
+    * If false, lock has never been created.
+    * The rest of its members are undefined
+    */
+   bool_t                     initialized;
 
-typedef struct
-{
    pok_spinlock_t             spin;
    pok_spinlock_t             eventspin;
-   /* spinlock to enfoce mutual exclusion */
 
-   bool_t                     is_locked;
    /* Is the mutex locked ? */
+   bool_t                     is_locked;
    
-   pok_mutex_state_t          thread_state[POK_CONFIG_NB_THREADS + 2];
-   /* Describe which thread is blocked in the mutex */
-   
-   pok_locking_policy_t       locking_policy;
-   /* Locking policy */
+   /*
+    * Threads waiting to acquire lock.
+    */
+   pok_lockobj_queue_t        *waiting_thread_list; 
 
+   /*
+    * Threads waiting on condition variable 
+    * (if lock is operating as POK_LOCKOBJ_KIND_EVENT).
+    */
+   pok_lockobj_queue_t        *event_waiting_thread_list;
+
+   /*
+    * Queueing discipline associated with both
+    * mutex and event queues.
+    *
+    * XXX Perhaps it's a little inflexible.
+    */
    pok_queueing_discipline_t  queueing_policy;
-   /* Locking policy */
 
    pok_lockobj_kind_t         kind;
    
-   bool_t                     initialized;
-   /* Is the mutex initialized ? */
    
-   uint16_t                   current_value;
-   uint16_t                   max_value;
+   /* Used by semaphore part of this lock object */
+   pok_sem_value_t            current_value;
+   pok_sem_value_t            max_value;
 } pok_lockobj_t;
 
 
-typedef enum
-{
-   LOCKOBK_LOCK_REGULAR = 1,
+typedef enum {
+   LOCKOBJ_LOCK_REGULAR = 1,
    LOCKOBJ_LOCK_TIMED   = 2
-}pok_lockobj_lock_kind_t;
+} pok_lockobj_lock_kind_t;
 
 typedef enum
 {

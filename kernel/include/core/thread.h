@@ -11,6 +11,24 @@
  *
  *                                      Copyright (c) 2007-2009 POK team
  *
+ * This file also incorporates work covered by the following 
+ * copyright and license notice:
+ *
+ *  Copyright (C) 2014 Maxim Malkov, ISPRAS <malkov@ispras.ru> 
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
  * Created by julien on Thu Jan 15 23:34:13 2009
  */
 
@@ -91,7 +109,7 @@ typedef struct
      * Undefined when process is not ready 
      * (may contain stale value, or simply be unitialized at all).
      */
-    uint64_t            ready_state_since; // the time process became ready (undefined if process is not ready)
+    uint64_t            ready_state_since;
 
     /*
      * Deadline type (soft or hard). As per ARINC-653, it's only used only by
@@ -106,7 +124,7 @@ typedef struct
      *
      * For periodic process, this's time capacity per each activation.
      */
-    int64_t             time_capacity; // capacity aka deadline (less than zero if infinite)
+    int64_t             time_capacity; 
 
     /*
      * Deadline time (called DEADLINE_TIME in ARINC-653).
@@ -116,7 +134,7 @@ typedef struct
      *
      * Undefined if process time capacity is infinite.
      */
-    int64_t             end_time; //  absolute deadline time (if process is periodic, for current activation)
+    int64_t             end_time;
     
     /*
      * Next activation for periodic process (called "release point" in ARINC-653).
@@ -137,13 +155,13 @@ typedef struct
      * process can be suspended in any state, and it must return
      * to that state when it's resumed.
      *
-     * If implemented with states, it would require something like
-     * "state stack", which would be overkill.
+     * If suspension was implemented with states, it would require 
+     * something like "state stack", which would be overkill.
      */
     pok_bool_t          suspended;
 
     /*
-     * Suspension timeout.
+     * Suspension timeout (absolute time).
      *
      * Set to (uint64_t)-1 when it's supposed to be infinite.
      * This obviously assumes that uint64_t ms clock won't overflow

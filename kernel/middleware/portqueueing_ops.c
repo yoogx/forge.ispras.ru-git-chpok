@@ -93,6 +93,10 @@ pok_ret_t pok_port_queueing_create(
         DEBUG_PRINT("direction doesn't match\n");
         return POK_ERRNO_EINVAL;
     }
+    if (discipline != POK_PORT_QUEUEING_DISCIPLINE_FIFO && discipline != POK_PORT_QUEUEING_DISCIPLINE_PRIORITY) {
+        DEBUG_PRINT("queueing discipline is not recognized\n");
+        return POK_ERRNO_EINVAL;
+    }
     if (POK_CURRENT_PARTITION.mode == POK_PARTITION_MODE_NORMAL) {
         DEBUG_PRINT("partition mode is normal\n");
         return POK_ERRNO_MODE;
@@ -101,8 +105,14 @@ pok_ret_t pok_port_queueing_create(
     // everything is OK, initialize it
     pok_lockobj_attr_t lockattr;
     lockattr.kind = POK_LOCKOBJ_KIND_EVENT;
-    lockattr.locking_policy = POK_LOCKOBJ_POLICY_STANDARD;
-    (void) discipline; // TODO
+    switch (discipline) {
+        case POK_PORT_QUEUEING_DISCIPLINE_FIFO:
+            lockattr.queueing_policy = POK_QUEUEING_DISCIPLINE_FIFO;
+            break;
+        case POK_PORT_QUEUEING_DISCIPLINE_PRIORITY:
+            lockattr.queueing_policy = POK_QUEUEING_DISCIPLINE_PRIORITY;
+            break;
+    }
 
     pok_ret_t ret = pok_lockobj_create(&port->header.lock, &lockattr);
     if (ret != POK_ERRNO_OK) return ret;

@@ -127,9 +127,8 @@ void CREATE_SEMAPHORE (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
    }
    pok_queueing_discipline_t discipline;
    switch (QUEUING_DISCIPLINE) {
-      // XXX lockobj doesn't seem to care about locking policy anyway...
-      case FIFO: discipline = 0; break;
-      case PRIORITY: discipline = 1; break;
+      case FIFO: discipline = POK_QUEUEING_DISCIPLINE_FIFO; break;
+      case PRIORITY: discipline = POK_QUEUEING_DISCIPLINE_PRIORITY; break;
       default: 
          *RETURN_CODE = INVALID_PARAM;
          return; 
@@ -137,7 +136,7 @@ void CREATE_SEMAPHORE (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
    for (i = 0; i < POK_CONFIG_ARINC653_NB_SEMAPHORES; i++) {
       if (!pok_arinc653_semaphores_layers[i].ready) {
 
-         core_ret = pok_sem_create(&sem_id, CURRENT_VALUE, MAXIMUM_VALUE, QUEUING_DISCIPLINE);
+         core_ret = pok_sem_create(&sem_id, CURRENT_VALUE, MAXIMUM_VALUE, discipline);
          if (core_ret != POK_ERRNO_OK) {
             // XXX figure out exact cause of the error
             if (core_ret == POK_ERRNO_LOCKOBJ_UNAVAILABLE) {
@@ -247,8 +246,6 @@ void SIGNAL_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
          // semaphore's value is already at max
          *RETURN_CODE = NO_ACTION;
       }
-      // XXX should yield only if there're waiting processes
-      pok_thread_yield();
    }
    else
    {
