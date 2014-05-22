@@ -346,108 +346,89 @@ pok_ret_t pok_lockobj_lock(pok_lockobj_t* obj, const pok_lockobj_lockattr_t* att
 
 pok_ret_t pok_lockobj_lock3 (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* attr, bool_t noblock)
 {
-   uint64_t timeout = 0;
 
-   if (obj->initialized == FALSE) {
-      return POK_ERRNO_LOCKOBJ_NOTREADY;
-   }
+    if (obj->initialized == FALSE) {
+        return POK_ERRNO_LOCKOBJ_NOTREADY;
+    }
    
-   SPIN_LOCK (obj->spin);
+    SPIN_LOCK (obj->spin);
+    pok_ret_t ret;
 
-   if ( (obj->is_locked == FALSE ) /*&& (obj->thread_state[POK_SCHED_CURRENT_THREAD] == LOCKOBJ_STATE_UNLOCK )*/)
-   {
-      obj->is_locked = TRUE;
-      SPIN_UNLOCK (obj->spin);
-   }
-   else
-   {
-      if (noblock){
-         SPIN_UNLOCK (obj->spin);
-         return POK_ERRNO_TIMEOUT;
-      }
+    if (obj->is_locked) {
+        // need to wait or something
 
-      if (POK_CURRENT_PARTITION.lock_level > 0) {
-         // thread would block on itself
-         SPIN_UNLOCK (obj->spin);
-         return POK_ERRNO_MODE;
-      }
+        if (noblock) {
+            ret = POK_ERRNO_TIMEOUT;
+            goto spin_unlock_and_return;
+        }
 
-      /*
-       * attr->time corresponds to the timeout for the waiting object
-       */
-      if ((attr != NULL) && (attr->time > 0)) {
-         timeout = attr->time;
-      }
-      
-      pok_lockobj_queue_t entry;
-      entry.thread = POK_SCHED_CURRENT_THREAD;
-      entry.priority = get_thread_priority(entry.thread, obj->queueing_policy);
+        if (POK_CURRENT_PARTITION.lock_level > 0) {
+            // can't sleep here
+            ret = POK_ERRNO_MODE;
+            goto spin_unlock_and_return;
+        }
 
-      while ( (obj->is_locked == TRUE ) /*|| (obj->thread_state[POK_SCHED_CURRENT_THREAD] == LOCKOBJ_STATE_LOCK)*/) 
-      {
-         // XXX does it mean we push it multiple times (in while loop)?
-         push_thread(&obj->waiting_thread_list, &entry);
+        uint64_t timeout = 0;
+        if (attr && attr->time > 0) {
+            timeout = attr->time;
+        }
 
-         if (timeout > 0)
-         {
-            pok_sched_lock_current_thread_timed (timeout);
-            if (POK_GETTICK() >= timeout)
-            {
-               remove_thread(&obj->waiting_thread_list, &entry);
-               SPIN_UNLOCK (obj->spin);
-               return POK_ERRNO_TIMEOUT;
+        {
+            pok_lockobj_queue_t entry;
+            entry.thread = POK_SCHED_CURRENT_THREAD;
+            entry.priority = get_thread_priority(entry.thread, obj->queueing_policy);
+
+            push_thread(&obj->waiting_thread_list, &entry);
+
+            while (obj->is_locked) {
+                if (timeout > 0) {
+                    if (POK_GETTICK() >= timeout) {
+                        remove_thread(&obj->waiting_thread_list, &entry);
+                        ret = POK_ERRNO_TIMEOUT;
+                        goto spin_unlock_and_return;
+                    }
+
+                    pok_sched_lock_current_thread_timed(timeout);
+                } else {
+                    pok_sched_lock_current_thread ();
+                }
+                
+                SPIN_UNLOCK (obj->spin);
+                pok_sched(); // <-- sleep here 
+                SPIN_LOCK (obj->spin);
             }
-         }
-         else
-         {
-            pok_sched_lock_current_thread ();
-         }
          
-         SPIN_UNLOCK (obj->spin);
-         pok_sched(); // <-- sleep here 
-         SPIN_LOCK (obj->spin);
-    
-         // XXX?
-         remove_thread(&obj->waiting_thread_list, &entry);
-      }
-      
-      // sometimes it's already too late, so check timeout again
-      if (timeout > 0 && POK_GETTICK() >= timeout) {
-        // XXX is it still in the list?
-        remove_thread(&obj->waiting_thread_list, &entry);
-        SPIN_UNLOCK (obj->spin);
-        return POK_ERRNO_TIMEOUT;
-      }
-      
-      switch (obj->kind)
-      {
-         case POK_LOCKOBJ_KIND_SEMAPHORE:
-         {
-            obj->current_value--;
-            if (obj->current_value == 0)
-            {
-               obj->is_locked = TRUE;
-            }
-            break;
-         }
-         
-         case POK_LOCKOBJ_KIND_MUTEX:
-         case POK_LOCKOBJ_KIND_EVENT:
-         {
+            remove_thread(&obj->waiting_thread_list, &entry);
+        }
+
+        // sometimes it's already too late
+        if (timeout > 0 && POK_GETTICK() >= timeout) {
+            ret = POK_ERRNO_TIMEOUT;
+            goto spin_unlock_and_return;
+        }
+    }
+
+    assert(!obj->is_locked);
+
+    switch (obj->kind) {
+    case POK_LOCKOBJ_KIND_SEMAPHORE:
+        assert(obj->current_value > 0); // semaphore "invariant": is_locked eq. current_value == 0
+        obj->current_value--;
+        if (obj->current_value == 0) {
             obj->is_locked = TRUE;
-            break;
-         }
-         
-      }
-      if (!noblock) 
-      {
-        pok_sched_unlock_thread (POK_SCHED_CURRENT_THREAD);
-      }
-   }
+        }
+        break;
+    case POK_LOCKOBJ_KIND_MUTEX:
+    case POK_LOCKOBJ_KIND_EVENT:
+        obj->is_locked = TRUE;
+        break;
+    }
 
-   SPIN_UNLOCK (obj->spin);
+    ret = POK_ERRNO_OK;
 
-   return POK_ERRNO_OK;
+spin_unlock_and_return:
+    SPIN_UNLOCK(obj->spin);
+    return ret;
 }
 
 pok_ret_t pok_lockobj_unlock (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* attr)
@@ -470,10 +451,10 @@ pok_ret_t pok_lockobj_unlock (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* 
       {
          if (obj->current_value < obj->max_value) {
             obj->current_value++;
+            obj->is_locked = FALSE;
          } else {
             ret = POK_ERRNO_FULL;
          }
-         obj->is_locked = FALSE;
          break;
       }
       
@@ -491,7 +472,7 @@ pok_ret_t pok_lockobj_unlock (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* 
    if (next_waiting != IDLE_THREAD) {
       pok_sched_unlock_thread (next_waiting);
       SPIN_UNLOCK (obj->spin);
-      pok_sched();
+      pok_sched(); // XXX unconditional rescheduling? looks wrong
    } else {
       SPIN_UNLOCK (obj->spin);
    }
