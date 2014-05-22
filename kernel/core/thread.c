@@ -500,7 +500,7 @@ pok_ret_t pok_thread_suspend(int64_t ms)
 
     pok_sched();
 
-    if (POK_GETTICK() < wakeup) {
+    if (POK_GETTICK() >= wakeup) {
         return POK_ERRNO_TIMEOUT;
     }
 
