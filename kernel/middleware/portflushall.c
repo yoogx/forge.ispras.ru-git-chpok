@@ -73,7 +73,7 @@ static void flush_sampling_port(pok_port_sampling_t *src) {
 }
 
 static void flush_queueing_port(pok_port_queueing_t *src) {
-    // XXX multicasting for queuing ports is not supported
+    // XXX multicasting for queuing ports is not supported (and perhaps shouldn't be)
     size_t i;
     for (i = 0; i < src->header.num_channels && i < 1; i++) {
         pok_port_id_t dst_id = src->header.channels[i];
@@ -84,9 +84,11 @@ static void flush_queueing_port(pok_port_queueing_t *src) {
         }
 
         // wake up processes that possibly wait for messages
+        // TODO wake them up in order
         pok_lockobj_eventbroadcast(&dst->header.lock);
     }
     // wake up processes that possible wait for port becoming non-full
+    // TODO wake them up in order
     pok_lockobj_eventbroadcast(&src->header.lock);
 }
 

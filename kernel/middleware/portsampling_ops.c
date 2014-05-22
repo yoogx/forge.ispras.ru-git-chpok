@@ -122,23 +122,22 @@ pok_ret_t pok_port_sampling_write(
     pok_port_size_t         len)
 {
     if (id >= POK_CONFIG_NB_SAMPLING_PORTS) {
-        return POK_ERRNO_EINVAL;
+        return POK_ERRNO_PORT;
     }
     pok_port_sampling_t *port = &pok_sampling_ports[id];
     
     // check that it belongs to the current partition
     if (port->header.partition != POK_SCHED_CURRENT_PARTITION) {
         DEBUG_PRINT("port %d doesn't belong to this partition %d\n", (int) id, (int) POK_SCHED_CURRENT_PARTITION);
-        return POK_ERRNO_EINVAL;
+        return POK_ERRNO_PORT;
     }
 
     // check that it's created
     if (!port->header.created) {
         DEBUG_PRINT("port is not created\n");
-        return POK_ERRNO_EINVAL;
+        return POK_ERRNO_PORT;
     }
 
-    // TODO the following checks should return distinct error codes
     if (len <= 0) {
         DEBUG_PRINT("message length is less than zero\n");
         return POK_ERRNO_EINVAL;
@@ -179,19 +178,19 @@ pok_ret_t pok_port_sampling_read(
     bool_t                  *valid)
 {
     if (id >= POK_CONFIG_NB_SAMPLING_PORTS) {
-        return POK_ERRNO_EINVAL;
+        return POK_ERRNO_PORT;
     }
     pok_port_sampling_t *port = &pok_sampling_ports[id];
     
     // check that it belongs to the current partition
     if (port->header.partition != POK_SCHED_CURRENT_PARTITION) {
         DEBUG_PRINT("port %d doesn't belong to this partition %d\n", (int) id, (int) POK_SCHED_CURRENT_PARTITION);
-        return POK_ERRNO_EINVAL;
+        return POK_ERRNO_PORT;
     }
     
     // check that it's created
     if (!port->header.created) {
-        return POK_ERRNO_EINVAL;
+        return POK_ERRNO_PORT;
     }
 
     if (port->header.direction != POK_PORT_DIRECTION_IN) {
