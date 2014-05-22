@@ -175,10 +175,11 @@ void CREATE_PROCESS (
     core_attr.stack_size      = attributes->STACK_SIZE;
 
     core_ret = pok_thread_create (&core_process_id, &core_attr);
-    arinc_process_attribute[core_process_id].BASE_PRIORITY = attributes->BASE_PRIORITY;
-    strcpy(arinc_process_attribute[core_process_id].NAME, attributes->NAME);
+    if (core_ret == POK_ERRNO_OK) {
+        arinc_process_attribute[core_process_id].BASE_PRIORITY = attributes->BASE_PRIORITY;
+        strcpy(arinc_process_attribute[core_process_id].NAME, attributes->NAME);
+    }
     *process_id = core_process_id + 1;
-    *return_code = core_ret;
     if (core_ret != POK_ERRNO_OK) {
         switch (core_ret) {
             MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
