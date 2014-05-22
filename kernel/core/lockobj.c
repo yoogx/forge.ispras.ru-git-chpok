@@ -412,7 +412,7 @@ pok_ret_t pok_lockobj_lock3 (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* a
       }
       
       // sometimes it's already too late, so check timeout again
-      if (POK_GETTICK() >= timeout) {
+      if (timeout > 0 && POK_GETTICK() >= timeout) {
         // XXX is it still in the list?
         remove_thread(&obj->waiting_thread_list, &entry);
         SPIN_UNLOCK (obj->spin);
