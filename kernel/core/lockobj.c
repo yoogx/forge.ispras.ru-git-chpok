@@ -465,17 +465,19 @@ pok_ret_t pok_lockobj_unlock (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* 
          break;
       }
    }  
-   
-   // now, unlock next thread from the waiting list (if any)
-   pok_thread_id_t next_waiting = pop_thread(&obj->waiting_thread_list);
 
-   if (next_waiting != IDLE_THREAD) {
-      pok_sched_unlock_thread (next_waiting);
-      SPIN_UNLOCK (obj->spin);
-      pok_sched(); // XXX unconditional rescheduling? looks wrong
-   } else {
-      SPIN_UNLOCK (obj->spin);
+   if (!obj->is_locked) {
+       // now, unlock next thread from the waiting list (if any)
+       pok_thread_id_t next_waiting = pop_thread(&obj->waiting_thread_list);
+
+       if (next_waiting != IDLE_THREAD) {
+          pok_sched_unlock_thread (next_waiting);
+          SPIN_UNLOCK (obj->spin);
+          pok_sched(); // XXX unconditional rescheduling? looks wrong
+          return ret;
+       }
    }
+   SPIN_UNLOCK (obj->spin);
 
    return ret;
 }
