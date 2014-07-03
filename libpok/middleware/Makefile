@@ -12,12 +12,7 @@ LO_OBJS=	blackboardcreate.o \
 			blackboardstatus.o \
 			blackboardinit.o \
 			blackboardread.o \
-			bufferinit.o \
-			bufferid.o \
-			bufferstatus.o \
-			buffersend.o \
-			bufferreceive.o \
-			buffercreate.o \
+			buffer.o \
 			portsamplingcreate.o \
 			portsamplingread.o \
 			portsamplingwrite.o \

@@ -323,6 +323,38 @@ pok_ret_t pok_lockobj_eventsignal (pok_lockobj_t* obj)
    }
 }
 
+static
+pok_ret_t pok_lockobj_eventsignal_thread(pok_lockobj_t *obj, pok_thread_id_t thread)
+{
+   pok_ret_t ret;
+
+   SPIN_LOCK(obj->eventspin);
+
+   // find thread in the list, pop it, and unlock
+
+   pok_lockobj_queue_t **list = &obj->event_waiting_thread_list;
+
+   while (*list != NULL && (*list)->thread != thread) {
+      list = &((**list).next);
+   }
+   if (*list == NULL) {
+      ret = POK_ERRNO_NOTFOUND;
+      goto done;
+   }
+
+   // if we got here,
+   // the thread is actually in the list
+   *list = (**list).next;
+
+   pok_sched_unlock_thread(thread);
+
+   ret = POK_ERRNO_OK;
+
+done:
+   SPIN_UNLOCK(obj->eventspin);
+   return ret;
+}
+
 pok_ret_t pok_lockobj_eventbroadcast (pok_lockobj_t* obj)
 {
    SPIN_LOCK(obj->eventspin);
@@ -519,6 +551,9 @@ pok_ret_t pok_lockobj_partition_wrapper (const pok_lockobj_id_t id, const pok_lo
 
       case LOCKOBJ_OPERATION_SIGNAL:
          return pok_lockobj_eventsignal (&pok_partitions_lockobjs[id]);
+
+      case LOCKOBJ_OPERATION_SIGNAL_THREAD:
+         return pok_lockobj_eventsignal_thread(&pok_partitions_lockobjs[id], attr->thread);
 
       case LOCKOBJ_OPERATION_BROADCAST:
          return pok_lockobj_eventbroadcast (&pok_partitions_lockobjs[id]);

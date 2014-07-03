@@ -42,65 +42,47 @@
 #define POK_BUFFER_DISCIPLINE_FIFO 1
 #define POK_BUFFER_DISCIPLINE_PRIORITY 2
 
-// must be at least MAX_NAME_LENGTH of ARINC653
-#define POK_BUFFER_MAX_NAME_LENGTH 30
-#define POK_BUFFER_NAME_EQ(x, y) (strncmp((x), (y), POK_BUFFER_MAX_NAME_LENGTH) == 0)
+
 
 #include <types.h>
-#include <errno.h>
 
-#include <core/lockobj.h>
-
-typedef struct
-{
-   pok_bool_t                 ready;
-   pok_bool_t                 empty;
-   pok_bool_t                 full;
-   pok_size_t                 size;
-   pok_size_t                 index;
-   pok_port_size_t            off_b;
-   pok_port_size_t            off_e;
-   pok_port_size_t            msgsize;
-   pok_range_t                waiting_processes;
-   pok_queueing_discipline_t  discipline;
-   pok_event_id_t             lock;
-   char                       name[POK_BUFFER_MAX_NAME_LENGTH];
-}pok_buffer_t;
-
-typedef struct
-{
+/* 
+ * This essentially mirrors ARINC-653 BUFFER_STATUS type.
+ */
+typedef struct {
    pok_range_t          nb_messages;
    pok_range_t          max_messages;
    pok_size_t           message_size;
    pok_range_t          waiting_processes;
-}pok_buffer_status_t;
+} pok_buffer_status_t;
 
 
-pok_ret_t pok_buffer_create (char*                                 name, 
-                             const pok_port_size_t                 num_messages, 
-                             const pok_port_size_t                 msg_size, 
-                             const pok_queueing_discipline_t       discipline,
-                             pok_buffer_id_t*                      id);
+pok_ret_t pok_buffer_create(
+        const char                      *name, 
+        pok_port_size_t                 num_messages, 
+        pok_port_size_t                 msg_size, 
+        pok_queueing_discipline_t       discipline,
+        pok_buffer_id_t                 *id);
 
-pok_ret_t pok_buffer_receive (const pok_buffer_id_t                id, 
-                              const int64_t                       timeout, 
-                              void*                                data, 
-                              pok_port_size_t*                     len);
+pok_ret_t pok_buffer_receive(
+        pok_buffer_id_t                 id, 
+        const int64_t                   timeout, 
+        void                            *data, 
+        pok_port_size_t                 *len);
 
-pok_ret_t pok_buffer_send (const pok_buffer_id_t              id, 
-                           const void*                        data, 
-                           const pok_port_size_t              len, 
-                           const int64_t                     timeout);
+pok_ret_t pok_buffer_send(
+        pok_buffer_id_t                 id, 
+        const void*                     data, 
+        pok_port_size_t                 len, 
+        int64_t                         timeout);
 
-pok_ret_t pok_buffer_status (const pok_buffer_id_t            id,
-                                   pok_buffer_status_t*       status);
+pok_ret_t pok_buffer_status(
+        pok_buffer_id_t                 id,
+        pok_buffer_status_t             *status);
 
-pok_ret_t pok_buffer_id (char*                                     name,
-                         pok_buffer_id_t*                          id);
-
-// all of these are defined in libpok/midleware/ressources.c
-extern pok_buffer_t    pok_buffers[POK_CONFIG_NB_BUFFERS];
-extern char            pok_buffers_data[POK_CONFIG_BUFFER_DATA_SIZE];
+pok_ret_t pok_buffer_id(
+        const char                      *name,
+        pok_buffer_id_t                 *id);
 
 #endif
 #endif

@@ -19,11 +19,6 @@
 #include <middleware/blackboard.h>
 #include <middleware/buffer.h>
 
-#ifdef POK_NEEDS_BUFFERS
-pok_buffer_t pok_buffers[POK_CONFIG_NB_BUFFERS];
-char pok_buffers_data[POK_CONFIG_BUFFER_DATA_SIZE]; 
-#endif
-
 #ifdef POK_NEEDS_BLACKBOARDS
 pok_blackboard_t pok_blackboards[POK_CONFIG_NB_BLACKBOARDS];
 char pok_blackboards_data[POK_CONFIG_BLACKBOARD_DATA_SIZE]; 

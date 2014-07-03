@@ -27,6 +27,7 @@ pok_ret_t pok_event_create    (pok_event_id_t* id, pok_queueing_discipline_t dis
 pok_ret_t pok_event_wait      (pok_event_id_t  id, const int64_t timeout);
 pok_ret_t pok_event_broadcast (pok_event_id_t  id);
 pok_ret_t pok_event_signal    (pok_event_id_t  id);
+pok_ret_t pok_event_signal_thread (pok_event_id_t  id, pok_thread_id_t thread);
 pok_ret_t pok_event_lock      (pok_event_id_t  id);
 pok_ret_t pok_event_unlock    (pok_event_id_t  id);
 

@@ -139,6 +139,7 @@ typedef enum
    LOCKOBJ_OPERATION_SIGNAL = 4,
    LOCKOBJ_OPERATION_BROADCAST = 5,
    LOCKOBJ_OPERATION_TRYLOCK = 6,
+   LOCKOBJ_OPERATION_SIGNAL_THREAD = 7,
 }pok_lockobj_operation_t;
 
 typedef struct
@@ -146,7 +147,10 @@ typedef struct
    pok_lockobj_operation_t    operation;
    pok_lockobj_kind_t         obj_kind;
    pok_lockobj_lock_kind_t    lock_kind;
-   uint64_t                   time;
+   union {
+      uint64_t                time;
+      pok_thread_id_t         thread; // used by SIGNAL_THREAD only
+   };
 }pok_lockobj_lockattr_t;
 
 // in user space it's called pok_sem_status_t
