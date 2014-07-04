@@ -39,11 +39,6 @@
 #ifdef POK_NEEDS_MIDDLEWARE
 #ifdef POK_NEEDS_BUFFERS
 
-#define POK_BUFFER_DISCIPLINE_FIFO 1
-#define POK_BUFFER_DISCIPLINE_PRIORITY 2
-
-
-
 #include <types.h>
 
 /* 

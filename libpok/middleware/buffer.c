@@ -249,7 +249,7 @@ static void buffer_wait_list_append(
         pok_buffer_wait_list_t *entry)
 {
     entry->priority = 0; 
-    if (buffer->discipline == POK_BUFFER_DISCIPLINE_PRIORITY) {
+    if (buffer->discipline == POK_QUEUEING_DISCIPLINE_PRIORITY) {
         pok_thread_status_t status;
         pok_thread_status(entry->thread, &status);
 
@@ -351,7 +351,6 @@ pok_ret_t pok_buffer_create(
             if (ret != POK_ERRNO_OK) {
                 return ret;
             }
-
 
             buffer->buffer = pok_buffers_data + pok_buffers_data_index;
             pok_buffers_data_index += size;
