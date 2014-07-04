@@ -55,4 +55,9 @@ pok_ret_t pok_time_compute_deadline (const pok_time_t relative, pok_time_t* abso
  * Similar to : pok_ret_t   pok_time_gettick (uint64_t* value);
  */
 
+static inline pok_ret_t pok_thread_replenish(int32_t budget)
+{
+    return pok_syscall2(POK_SYSCALL_THREAD_REPLENISH, (uint32_t)budget, 0);
+}
+
 #endif  /* __POK_TIME_H__ */

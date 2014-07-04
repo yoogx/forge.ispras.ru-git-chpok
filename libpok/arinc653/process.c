@@ -106,7 +106,7 @@ void GET_PROCESS_STATUS (
         return;
     }
 
-    process_status->DEADLINE_TIME = status.deadline_time;
+    process_status->DEADLINE_TIME = ms_to_arinc_time(status.deadline_time);
 #define MAP_STATUS(from, to) case (from): process_status->PROCESS_STATE = (to); break
     switch (status.state) {
         MAP_STATUS(POK_STATE_STOPPED, DORMANT);

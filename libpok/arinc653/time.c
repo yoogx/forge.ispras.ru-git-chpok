@@ -90,8 +90,14 @@ void GET_TIME (SYSTEM_TIME_TYPE *system_time, RETURN_CODE_TYPE *return_code)
 
 void REPLENISH (SYSTEM_TIME_TYPE budget_time, RETURN_CODE_TYPE *return_code)
 {
-   (void) budget_time;
-   *return_code = NOT_AVAILABLE;
+    pok_ret_t core_ret = pok_thread_replenish(arinc_time_to_ms(budget_time));
+
+    switch (core_ret) {
+        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR(POK_ERRNO_UNAVAILABLE, NO_ACTION);
+        MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
+        MAP_ERROR_DEFAULT(INVALID_PARAM);
+    }
 }
 
 #endif

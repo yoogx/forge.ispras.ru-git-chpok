@@ -159,6 +159,8 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
    case POK_SYSCALL_THREAD_YIELD:
            return pok_thread_yield();
            break;
+   case POK_SYSCALL_THREAD_REPLENISH:
+           return pok_sched_replenish((int32_t) args->arg1);
 
 #ifdef POK_NEEDS_ERROR_HANDLING
 

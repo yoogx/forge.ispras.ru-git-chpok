@@ -42,6 +42,7 @@ typedef enum
    POK_SYSCALL_THREAD_STATE                        =  64,
    POK_SYSCALL_THREAD_DELAYED_START		   =  65,
          POK_SYSCALL_THREAD_YIELD                        =  66,
+         POK_SYSCALL_THREAD_REPLENISH                    =  67,
 #ifdef POK_NEEDS_PORTS_SAMPLING
 	 POK_SYSCALL_MIDDLEWARE_SAMPLING_ID              = 101,
 	 POK_SYSCALL_MIDDLEWARE_SAMPLING_READ            = 102,

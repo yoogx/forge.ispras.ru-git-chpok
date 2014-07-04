@@ -68,7 +68,8 @@ void pok_sched_unlock_thread(pok_thread_id_t);
 void pok_sched_lock_current_thread(void);
 void pok_sched_lock_current_thread_timed(uint64_t time);
 
-pok_ret_t pok_sched_end_period ();
+pok_ret_t pok_sched_end_period(void);
+pok_ret_t pok_sched_replenish(int64_t budget);
 
 #ifdef POK_NEEDS_PARTITIONS
 void pok_sched_activate_error_thread(void);

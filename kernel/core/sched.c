@@ -447,6 +447,46 @@ pok_ret_t pok_sched_end_period(void)
     return POK_ERRNO_OK;
 }
 
+pok_ret_t pok_sched_replenish(int64_t budget)
+{
+    if (pok_thread_is_error_handling(&POK_CURRENT_THREAD)) {
+        return POK_ERRNO_UNAVAILABLE;
+    }
+    if (POK_CURRENT_PARTITION.mode != POK_PARTITION_MODE_NORMAL) {
+        return POK_ERRNO_UNAVAILABLE;
+    }
+    
+    int64_t calculated_deadline;
+    if (budget < 0) {
+        calculated_deadline = -1; // infinite
+    } else {
+        calculated_deadline = POK_GETTICK() + budget;
+    }
+
+    if (pok_thread_is_periodic(&POK_CURRENT_THREAD)) {
+        // for periodic processes, deadline must never
+        // exceed next release point
+
+        if (calculated_deadline < 0) {
+            return POK_ERRNO_MODE;
+        }
+
+        // since process replenishes budget of itself,
+        // we can be sure that process is running
+        // so POK_CURRENT_THREAD.next_activation
+        // is the time of _current_ activation
+        int64_t next_activation = POK_CURRENT_THREAD.next_activation + POK_CURRENT_THREAD.period;
+
+        if (calculated_deadline > next_activation) {
+            return POK_ERRNO_MODE;
+        }
+    }
+
+    POK_CURRENT_THREAD.end_time = calculated_deadline;
+
+    return POK_ERRNO_OK;
+}
+
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
 void pok_sched_activate_error_thread (void)
 {
