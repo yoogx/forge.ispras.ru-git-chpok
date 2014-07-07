@@ -443,26 +443,4 @@ pok_ret_t pok_current_partition_dec_lock_level(uint32_t *lock_level)
   return POK_ERRNO_OK;
 }
 
-#ifdef POK_NEEDS_ERROR_HANDLING
-
-/**
- * The \a tid argument is relative to partition thread index
- */
-pok_ret_t pok_partition_restart_thread(pok_thread_id_t tid)
-{
-   if (POK_SCHED_CURRENT_THREAD != POK_CURRENT_PARTITION.thread_error)
-   {
-      return POK_ERRNO_THREAD;
-   }
-   /*
-    * We check which thread try to call this function. Only the error handling
-    * thread can stop other threads.
-    */
-
-   pok_thread_restart (tid);
-   pok_sched ();
-   return (POK_ERRNO_OK);
-}
-#endif
-
 #endif

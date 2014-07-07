@@ -189,12 +189,29 @@ typedef struct
     pok_partition_id_t  partition;
 
     /*
-     * XXX I don't know what it is.
+     * Kernel stack addres.
+     *
+     * It's used to implement context switch.
+     *
+     * It's initially set in pok_partition_thread_create,
+     * and updated by pok_context_switch. 
+     *
      */
     uint32_t	        sp; 
 
     /*
-     * XXX I don't know what it is.
+     * Initial value of kernel stack (when it was allocated).
+     *
+     * Used for restarting thread.
+     */
+    uintptr_t           initial_sp;
+
+    /*
+     * ???
+     *
+     * Apparently, it's initial virtual address of user stack. 
+     *
+     * It's supposed to be used when thread is restarted (I think).
      */
     uint32_t            init_stack_addr; 
 } pok_thread_t;
@@ -231,7 +248,6 @@ pok_ret_t       pok_thread_suspend(int64_t ms);
 pok_ret_t       pok_thread_suspend_target(pok_thread_id_t id);
 pok_ret_t       pok_thread_stop(void);
 pok_ret_t       pok_thread_stop_target(pok_thread_id_t);
-pok_ret_t       pok_thread_restart(pok_thread_id_t tid);
 pok_ret_t       pok_thread_delayed_start (pok_thread_id_t id, int64_t ms);
 pok_ret_t       pok_thread_get_status(pok_thread_id_t id, pok_thread_status_t *attr);
 pok_ret_t       pok_thread_set_priority(pok_thread_id_t id, const uint32_t priority);

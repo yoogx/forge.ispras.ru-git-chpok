@@ -66,24 +66,30 @@ pok_ret_t   pok_create_space (uint8_t partition_id, uint32_t addr, uint32_t size
 
 uint32_t	   pok_space_base_vaddr (uint32_t addr);
 
-void        pok_dispatch_space (uint8_t partition_id,
-				                    uint32_t user_pc,
-                                uint32_t user_sp,
-                                uint32_t kernel_sp,
-                                uint32_t arg1,
-                                uint32_t arg2);
-
 /**
  * Create a new context in the given space
  */
-uint32_t	   pok_space_context_create (uint8_t partition_id,
-                                      uint32_t entry_rel,
-                                      uint32_t stack_rel,
-                                      uint32_t arg1,
-                                      uint32_t arg2);
+uint32_t pok_space_context_create(
+        uint8_t partition_id,
+        uint32_t entry_rel,
+        uint32_t stack_rel,
+        uint32_t arg1,
+        uint32_t arg2);
 
-
-void pok_space_context_restart (uint32_t sp, uint32_t entry, uint32_t user_stack);
+/*
+ * Basically the same as above, but don't allocate new stack,
+ * and reuse existing one.
+ *
+ * sp should be the value returned by 
+ * pok_space_context_create earlier.
+ */
+void pok_space_context_restart(
+        uint32_t sp,
+        uint8_t partition_id,
+        uint32_t entry_rel,
+        uint32_t stack_rel,
+        uint32_t arg1,
+        uint32_t arg2);
 
 /**
  * Switch from one space to another

@@ -164,14 +164,6 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
 
 #ifdef POK_NEEDS_ERROR_HANDLING
 
-/**
- * We consider that we don't need the THREAD_RESTART
- * syscall if we don't handle errors
- */
-      case POK_SYSCALL_THREAD_RESTART:
-         return pok_partition_restart_thread (args->arg1);
-         break;
-
       case POK_SYSCALL_THREAD_STOP:
          return pok_thread_stop_target((pok_thread_id_t) args->arg1);
          break;

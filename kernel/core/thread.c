@@ -183,6 +183,7 @@ pok_ret_t pok_partition_thread_create (pok_thread_id_t*         thread_id,
         0xdead,
         0xbeaf
     );
+   thread->initial_sp = thread->sp;
    /*
     *  FIXME : current debug session about exceptions-handled
    printf ("thread sp=0x%x\n", thread->sp);
@@ -262,38 +263,6 @@ pok_ret_t pok_thread_yield (void)
    return POK_ERRNO_OK;
 }
 
-#ifdef POK_NEEDS_ERROR_HANDLING
-pok_ret_t pok_thread_restart(pok_thread_id_t tid)
-{
-   /**
-    * Reinit timing values
-    */
-
-   // TODO they actually depend on process attributes, so this code is incorrect
-   pok_threads[tid].state                    = POK_STATE_WAIT_NEXT_ACTIVATION;
-   pok_threads[tid].wakeup_time              = 0;
-
-   /**
-    * Newer solution for later improvements.
-    *
-    pok_space_context_restart (pok_threads[tid].sp, (uint32_t) pok_threads[tid].entry, pok_threads[tid].init_stack_addr);
-    *
-    */
-
-   /**
-    * At this time, we build a new context for the thread.
-    * It is not the best solution but it works at this time
-    */
-   pok_threads[tid].sp		      = pok_space_context_create (pok_threads[tid].partition,
-                                                             (uint32_t)pok_threads[tid].entry,
-                                                             pok_threads[tid].init_stack_addr,
-                                                             0xdead,
-                                                             0xbeaf);
-
-   return POK_ERRNO_OK;
-}
-#endif
-
 pok_ret_t pok_thread_delayed_start (pok_thread_id_t id, int64_t ms)
 {
     if (!pok_thread_is_valid_and_created(&pok_threads[id], &POK_CURRENT_PARTITION)) {
@@ -306,8 +275,6 @@ pok_ret_t pok_thread_delayed_start (pok_thread_id_t id, int64_t ms)
     
     pok_thread_t *thread = &pok_threads[id];
 
-    thread->priority = thread->base_priority;
-
     if (thread->state != POK_STATE_STOPPED) {
         return POK_ERRNO_UNAVAILABLE;
     }
@@ -315,9 +282,22 @@ pok_ret_t pok_thread_delayed_start (pok_thread_id_t id, int64_t ms)
     if (thread->period >= 0 && ms >= thread->period) {
         return POK_ERRNO_EINVAL;
     }
-  
-    //reset stack
-    pok_context_reset(POK_USER_STACK_SIZE, thread->init_stack_addr);
+    
+    thread->priority = thread->base_priority;
+
+    // thread->sp is not the same when it was created
+    // restore initial value
+    thread->sp = thread->initial_sp;
+
+    pok_space_context_restart(
+        thread->sp,
+        thread->partition,
+        (uintptr_t) thread->entry,
+        thread->init_stack_addr,
+        0xdead,
+        0xbeaf
+    );
+
   
     if (thread->period < 0) { //-1 <==> ARINC INFINITE_TIME_VALUE
         // aperiodic process

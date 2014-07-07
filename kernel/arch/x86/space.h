@@ -29,7 +29,17 @@
 typedef struct
 {
   context_t ctx;
+
+  /* Return address for pok_dispatch_space.
+   * Not actually used, as function never returns,
+   * but it's here to comply with calling convention.
+   * XXX not sure if it's absolutely necessary.
+   */
   uint32_t fake_ret;
+
+  /*
+   * arguments for pok_dispatch_space
+   */
   unsigned int partition_id;
   uint32_t user_pc;
   uint32_t user_sp;
