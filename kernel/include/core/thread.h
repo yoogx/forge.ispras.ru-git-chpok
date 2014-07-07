@@ -139,7 +139,17 @@ typedef struct
     /*
      * Next activation for periodic process (called "release point" in ARINC-653).
      *
-     * Is not defined for aperiodic processes.
+     * It's calculated when:
+     *  - START/DELAYED_START is called in NORMAL mode
+     *  - SET_PARTITION_MODE is called, and START/DELAYED start was 
+     *    already called before
+     *  - TIMED_WAIT (pok_sched_end_period) is called
+     * 
+     * This also implies that for currently active periodic process,
+     * next_activation actually refers to time of _current_ activation.
+     *
+     * Is not defined for aperiodic processes,
+     * and when process is not yet started (or not in normal mode).
      */
     uint64_t            next_activation; 
 

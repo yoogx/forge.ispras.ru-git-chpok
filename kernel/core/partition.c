@@ -306,9 +306,16 @@ static pok_ret_t pok_partition_set_normal_mode(pok_partition_id_t pid)
         } else {
             // periodic process
             if (thread->state == POK_STATE_DELAYED_START) {
-                // XXX errr, what?
-                thread->next_activation = thread->wakeup_time + POK_CONFIG_SCHEDULING_MAJOR_FRAME + POK_CURRENT_PARTITION.activation;
-                thread->end_time =  thread->next_activation + thread->time_capacity;
+                uint64_t next_periodic_processing = POK_CONFIG_SCHEDULING_MAJOR_FRAME + POK_CURRENT_PARTITION.activation;
+
+                thread->next_activation = next_periodic_processing + thread->wakeup_time;
+                
+                if (thread->time_capacity < 0) {
+                    thread->end_time = (uint64_t) -1; // XXX
+                } else {
+                    thread->end_time = thread->next_activation + thread->time_capacity;
+                }
+
                 thread->state = POK_STATE_WAIT_NEXT_ACTIVATION;
             }
         }

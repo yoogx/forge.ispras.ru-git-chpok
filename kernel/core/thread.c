@@ -324,14 +324,29 @@ pok_ret_t pok_thread_delayed_start (pok_thread_id_t id, int64_t ms)
 	    thread->wakeup_time = ms; // temporarly storing the delay, see set_partition_mode
   	}
     } else {
+        // this assumes that this periodic process' processing window will be
+        // the same as the one in which START was called
+        //
+        // well, this assumption is not quite wrong, but ARINC-653 is 
+        // supposed to be more flexible than that
+        //
+        // when scheduling code will be updated to be more flexible,
+        // this should be changed, too
+        uint64_t next_periodic_processing = POK_CONFIG_SCHEDULING_MAJOR_FRAME + POK_CURRENT_PARTITION.activation;
+
         // periodic process
         if (pok_partitions[thread->partition].mode == POK_PARTITION_MODE_NORMAL) { // set the first release point
             thread->state = POK_STATE_WAIT_NEXT_ACTIVATION;
-	    thread->next_activation = ms + POK_GETTICK();
-	    thread->end_time = thread->next_activation + thread->deadline;
+            thread->next_activation = ms + next_periodic_processing;
+
+            if (thread->time_capacity < 0) {
+                thread->end_time = (uint64_t) -1; // XXX
+            } else {
+                thread->end_time = thread->next_activation + thread->time_capacity;
+            }
         } else {
-	    thread->state = POK_STATE_DELAYED_START;
-	    thread->wakeup_time = ms; // temporarly storing the delay, see set_partition_mode
+            thread->state = POK_STATE_DELAYED_START;
+            thread->wakeup_time = ms; // temporarly storing the delay, see set_partition_mode
         }
     }
     return POK_ERRNO_OK;
