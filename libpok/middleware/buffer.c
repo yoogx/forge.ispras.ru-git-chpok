@@ -39,6 +39,7 @@
 #include <core/time.h>
 #include <core/lockobj.h>
 #include <core/partition.h>
+#include <core/error.h>
 #include <libc/string.h>
 #include <middleware/buffer.h>
 #include <utils.h>
@@ -295,15 +296,6 @@ static void buffer_wait_list_remove(
     *list = (**list).next;
 }
 
-/*
- * TODO move it somewhere else
- */
-static pok_bool_t pok_current_partition_preemption_enabled(void) {
-    uint32_t lock_level;
-    pok_current_partition_get_lock_level(&lock_level);
-    return lock_level == 0;
-}
-
 // "public" functions (used by ARINC layer)
 
 pok_ret_t pok_buffer_init(void)
@@ -426,7 +418,7 @@ pok_ret_t pok_buffer_receive (
             return POK_ERRNO_EMPTY;
         } else {
             // bail out if preemption is disabled
-            if (!pok_current_partition_preemption_enabled()) {
+            if (pok_current_partition_preemption_disabled() || pok_error_is_handler() == POK_ERRNO_OK) {
                 pok_event_unlock(buffer->lock);
                 return POK_ERRNO_MODE;
             }
@@ -541,7 +533,7 @@ pok_ret_t pok_buffer_send (
         }
         
         // bail out if preemption is disabled
-        if (!pok_current_partition_preemption_enabled()) {
+        if (pok_current_partition_preemption_disabled() || pok_error_is_handler() == POK_ERRNO_OK) {
             pok_event_unlock(buffer->lock);
             return POK_ERRNO_MODE;
         }

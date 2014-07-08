@@ -45,6 +45,7 @@
 
 #include <core/partition.h>
 #include <core/thread.h>
+#include <core/error.h>
 #include <utils.h>
 
 // must be at least MAX_NAME_LENGTH of ARINC653
@@ -216,6 +217,8 @@ void WAIT_EVENT (EVENT_ID_TYPE EVENT_ID,
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
+
+   // XXX this code smells of race conditions
    
    size_t events_layer_idx = EVENT_ID - 1;
    pok_arinc653_event_layer_t *evt = &pok_arinc653_events_layers[events_layer_idx];
@@ -237,10 +240,7 @@ void WAIT_EVENT (EVENT_ID_TYPE EVENT_ID,
       return;
    } 
 
-   int lock_level;
-   pok_current_partition_get_lock_level(&lock_level);
-
-   if (lock_level > 0) {
+   if (pok_current_partition_preemption_disabled() || pok_error_is_handler() == POK_ERRNO_OK) {
       *RETURN_CODE = INVALID_MODE;
       return;
    }

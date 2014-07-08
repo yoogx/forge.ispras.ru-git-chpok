@@ -59,6 +59,13 @@
 #define IDLE_THREAD        POK_CONFIG_NB_THREADS + 1
 */
 
+/*
+ * Maximum priority value available to "ordinary" threads.
+ *
+ * Must be less than maximum value of priority type,
+ * otherwise, priority for error handler will overflow
+ * (which is defined to be larger than maximum).
+ */
 #define POK_THREAD_MAX_PRIORITY  200
 
 
@@ -277,20 +284,20 @@ extern pok_thread_t              pok_threads[POK_CONFIG_NB_THREADS];
 
 // macro-like utitility functions
 
-static inline pok_thread_id_t
-pok_thread_get_id(const pok_thread_t *thread)
+static inline 
+pok_thread_id_t pok_thread_get_id(const pok_thread_t *thread)
 {
     return (pok_thread_id_t) (thread - &pok_threads[0]);
 }   
 
-static inline pok_bool_t
-pok_thread_is_periodic(const pok_thread_t *thread)
+static inline 
+pok_bool_t pok_thread_is_periodic(const pok_thread_t *thread)
 {
     return thread->period > 0;
 }
 
-static inline pok_bool_t
-pok_thread_is_runnable(const pok_thread_t *thread)
+static inline 
+pok_bool_t pok_thread_is_runnable(const pok_thread_t *thread)
 {
     return thread->state == POK_STATE_RUNNABLE && !thread->suspended;
 }

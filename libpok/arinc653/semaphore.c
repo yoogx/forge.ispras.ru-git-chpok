@@ -46,6 +46,7 @@
 #include <core/semaphore.h>
 #include <core/partition.h>
 #include <core/thread.h>
+#include <core/error.h>
 #include <utils.h>
 
 // must be at least MAX_NAME_LENGTH of ARINC653
@@ -189,7 +190,12 @@ void WAIT_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
       return;
    }
 
-   if (TIME_OUT == 0) {
+   pok_bool_t dont_block = 
+       TIME_OUT == 0 ||
+       pok_current_partition_preemption_disabled() || 
+       pok_error_is_handler() == POK_ERRNO_OK;
+
+   if (dont_block) {
      // check semaphore without blocking
      core_ret = pok_sem_trywait(pok_arinc653_semaphores_layers[sem_layer_idx].core_id);
      switch (core_ret) {
@@ -197,8 +203,16 @@ void WAIT_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
         MAP_ERROR(POK_ERRNO_TIMEOUT, NOT_AVAILABLE);
         MAP_ERROR_DEFAULT(INVALID_PARAM);
      }
+
+     if (dont_block && TIME_OUT != 0) {
+        // attempted to perform blocking operation in either
+        // error handler or when preemption is locked
+        *RETURN_CODE = INVALID_MODE;
+     }
    } else {
       int64_t delay_ms = arinc_time_to_ms(TIME_OUT);
+
+
       core_ret = pok_sem_wait (pok_arinc653_semaphores_layers[sem_layer_idx].core_id, delay_ms < 0 ? 0 : delay_ms);
 
       switch (core_ret) {

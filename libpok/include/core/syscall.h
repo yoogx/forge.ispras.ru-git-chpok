@@ -73,6 +73,7 @@ typedef enum
 	 POK_SYSCALL_ERROR_HANDLER_SET_READY             = 302,
 	 POK_SYSCALL_ERROR_RAISE_APPLICATION_ERROR       = 303,
 	 POK_SYSCALL_ERROR_GET                           = 304,
+         POK_SYSCALL_ERROR_IS_HANDLER                    = 305,
 #endif
 #ifdef POK_NEEDS_PARTITIONS
 	 POK_SYSCALL_PARTITION_SET_MODE                  = 404,

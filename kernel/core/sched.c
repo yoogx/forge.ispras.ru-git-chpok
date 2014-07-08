@@ -258,18 +258,9 @@ static pok_thread_id_t pok_elect_thread(void)
       case POK_PARTITION_MODE_INIT_COLD:
       case POK_PARTITION_MODE_INIT_WARM:
 #ifdef POK_NEEDS_ERROR_HANDLING
-         if ((new_partition->thread_error != 0) &&
-             (pok_threads[new_partition->thread_error].state != POK_STATE_STOPPED))
-         {
-            elected = new_partition->thread_error;
-         }
-         else
-         {
-            elected = new_partition->thread_main;
-         }
-#else
-         elected = new_partition->thread_main;
+         // error handler is active in NORMAL mode only
 #endif
+         elected = new_partition->thread_main;
 
          if (pok_threads[elected].state != POK_STATE_RUNNABLE) {
             // if main thread is stopped, don't schedule it
@@ -280,9 +271,10 @@ static pok_thread_id_t pok_elect_thread(void)
 
       case POK_PARTITION_MODE_NORMAL:
 #ifdef POK_NEEDS_ERROR_HANDLING
-         if ((new_partition->current_thread == new_partition->thread_error) && 
-             (pok_threads[new_partition->current_thread].state == POK_STATE_RUNNABLE))
+         if (new_partition->thread_error_created &&
+             pok_threads[new_partition->thread_error].state == POK_STATE_RUNNABLE)
          {
+
             elected = new_partition->thread_error;
             break;
          }
@@ -490,12 +482,24 @@ pok_ret_t pok_sched_replenish(int64_t budget)
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
 void pok_sched_activate_error_thread (void)
 {
-   uint32_t error_thread = pok_partitions[pok_current_partition].thread_error;
-   if (error_thread != 0)
-   {
-      pok_threads[error_thread].state  = POK_STATE_RUNNABLE;
-      pok_sched_context_switch (error_thread);
-   }
+    if (POK_CURRENT_PARTITION.thread_error_created) {
+        pok_thread_t *thread = &pok_threads[POK_CURRENT_PARTITION.thread_error];
+
+        // TODO this code repeats in pok_thread_delayed_start
+        // I guess I should refactor it somewhere
+        thread->sp = thread->initial_sp;
+        pok_space_context_restart(
+            thread->sp,
+            thread->partition,
+            (uintptr_t) thread->entry,
+            thread->init_stack_addr,
+            0xdead,
+            0xbeaf
+        );
+
+        thread->state  = POK_STATE_RUNNABLE;
+        pok_sched_context_switch(pok_thread_get_id(thread));
+    }
 }
 #endif
 
@@ -514,7 +518,7 @@ uint32_t pok_sched_get_current(pok_thread_id_t *thread_id)
     }
 
 #ifdef POK_NEEDS_ERROR_HANDLING
-    if (POK_CURRENT_PARTITION.thread_error == POK_SCHED_CURRENT_THREAD) {
+    if (pok_thread_is_error_handling(&POK_CURRENT_THREAD)) {
         return POK_ERRNO_THREAD;
     }
 #endif

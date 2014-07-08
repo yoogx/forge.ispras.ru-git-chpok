@@ -167,9 +167,14 @@ pok_ret_t pok_port_queueing_receive(
     } else {
         deadline = 0;
     }
+    
+    pok_bool_t dont_block =
+        timeout == 0 ||
+        POK_CURRENT_PARTITION.lock_level > 0 ||
+        pok_thread_is_error_handling(&POK_CURRENT_THREAD);
 
     while (pok_port_utils_queueing_empty(port)) {
-        if (timeout == 0 || POK_CURRENT_PARTITION.lock_level > 0) {
+        if (dont_block) {
             break; // never wait
         }
         if (deadline && POK_GETTICK() >= deadline) {
@@ -183,6 +188,9 @@ pok_ret_t pok_port_queueing_receive(
     if (pok_port_utils_queueing_empty(port)) {
         if (POK_CURRENT_PARTITION.lock_level > 0 && timeout != 0) {
             DEBUG_PRINT("can't wait with preemption locked\n");
+            ret = POK_ERRNO_MODE;
+        } else if (pok_thread_is_error_handling(&POK_CURRENT_THREAD) && timeout != 0) {
+            DEBUG_PRINT("can't wait in error handler\n");
             ret = POK_ERRNO_MODE;
         } else if (timeout) {
             DEBUG_PRINT("port is empty (blocking read, timeout=%d)\n", (int) timeout);
@@ -244,8 +252,13 @@ pok_ret_t pok_port_queueing_send(
         deadline = 0;
     }
 
+    pok_bool_t dont_block =
+        timeout == 0 ||
+        POK_CURRENT_PARTITION.lock_level > 0 ||
+        pok_thread_is_error_handling(&POK_CURRENT_THREAD);
+
     while (pok_port_utils_queueing_full(port)) {
-        if (timeout == 0 || POK_CURRENT_PARTITION.lock_level > 0) {
+        if (dont_block) {
             break; // never wait
         }
         if (deadline && POK_GETTICK() >= deadline) {
@@ -259,6 +272,9 @@ pok_ret_t pok_port_queueing_send(
     if (pok_port_utils_queueing_full(port)) {
         if (POK_CURRENT_PARTITION.lock_level > 0 && timeout != 0) {
             DEBUG_PRINT("can't wait with preemption locked\n");
+            ret = POK_ERRNO_MODE;
+        } else if (pok_thread_is_error_handling(&POK_CURRENT_THREAD) && timeout != 0) {
+            DEBUG_PRINT("can't wait in error handler\n");
             ret = POK_ERRNO_MODE;
         } else if (timeout) {
             DEBUG_PRINT("port is full (blocking write, timeout=%d)\n", (int) timeout);

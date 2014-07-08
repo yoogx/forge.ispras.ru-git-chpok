@@ -71,6 +71,14 @@ pok_ret_t pok_current_partition_get_lock_level(uint32_t *lock_level)
 }
 
 static inline
+pok_bool_t pok_current_partition_preemption_disabled(void)
+{
+    uint32_t lock_level;
+    pok_current_partition_get_lock_level(&lock_level);
+    return lock_level > 0;
+}
+
+static inline
 pok_ret_t pok_current_partition_get_operating_mode(pok_partition_mode_t *op_mode)
 {
     return pok_syscall2(POK_SYSCALL_PARTITION_GET_OPERATING_MODE, (uint32_t)op_mode, 0);

@@ -75,5 +75,7 @@ void pok_error_raise_application_error (char* msg, uint32_t msg_size);
  */
 pok_ret_t pok_error_get (pok_error_status_t* status);
 
+pok_ret_t pok_error_is_handler(void);
+
 #endif
 

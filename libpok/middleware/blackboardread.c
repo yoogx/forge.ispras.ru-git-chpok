@@ -38,8 +38,10 @@
 #ifdef POK_NEEDS_BLACKBOARDS
 #include <errno.h>
 #include <types.h>
+#include <core/partition.h>
 #include <core/event.h>
 #include <libc/string.h>
+#include <core/error.h>
 #include <middleware/blackboard.h>
 #include <utils.h>
 
@@ -67,12 +69,16 @@ pok_ret_t pok_blackboard_read (const pok_blackboard_id_t   id,
    pok_ret_t ret;
    pok_event_lock (pok_blackboards[id].lock);
 
-   // TODO spurious wakeup case
-   while (pok_blackboards[id].empty) {
+   if (pok_blackboards[id].empty) {
       if (delay_ms == 0) {
          pok_event_unlock(pok_blackboards[id].lock);
          return POK_ERRNO_EMPTY;
       } else {
+         if (pok_current_partition_preemption_disabled() || pok_error_is_handler() == POK_ERRNO_OK) {
+            pok_event_unlock(pok_blackboards[id].lock);
+            return POK_ERRNO_MODE;
+         }
+
          // ARINC's INFINITE_TIME_VALUE (-1) translates to 0 timeout of pok
          pok_blackboards[id].waiting_processes++;
          ret = pok_event_wait (pok_blackboards[id].lock, delay_ms < 0 ? 0 : delay_ms);

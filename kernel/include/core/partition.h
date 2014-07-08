@@ -115,6 +115,7 @@ typedef struct
 #endif
 
 #ifdef POK_NEEDS_ERROR_HANDLING
+   pok_bool_t               thread_error_created; /**< If true, this partition has error handler created */
    pok_thread_id_t          thread_error;       /**< The thread identifier used for error handling */
    pok_error_status_t       error_status;       /**< A pointer used to store information about errors */
 #endif
@@ -190,10 +191,17 @@ pok_ret_t pok_current_partition_dec_lock_level(uint32_t *lock_level);
 // utility macro-like functions
 
 #ifdef POK_NEEDS_ERROR_HANDLING
-static inline pok_bool_t
-pok_thread_is_error_handling(const pok_thread_t *thread)
+static inline 
+pok_bool_t pok_thread_is_error_handling(const pok_thread_t *thread)
 {
-    return pok_partitions[thread->partition].thread_error == pok_thread_get_id(thread);
+    return pok_partitions[thread->partition].thread_error_created && 
+           pok_partitions[thread->partition].thread_error == pok_thread_get_id(thread);
+}
+#else
+static inline
+pok_bool_t pok_thread_is_error_handling(const pok_thread_t *thread)
+{
+    return FALSE;
 }
 #endif
 

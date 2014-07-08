@@ -24,76 +24,42 @@
 #include <core/syscall.h>
 #include <libc/string.h>
 
-   /*
-#define HIGHEST_ERROR_CODE_VALUE POWER_FAIL
-#define LOWEST_ERROR_CODE_VALUE DEADLINE_MISSED
-#define CONVERT_ARINC_TO_POK_ERROR(arinc_error,pok_error) \
-               switch (arinc_error ){ \
-                  case DEADLINE_MISSED: \
-                     *pok_error = POK_ERROR_KIND_DEADLINE_MISSED; \
-                     return 1; \
-                     break; \
-                  case APPLICATION_ERROR: \
-                     *pok_error = POK_ERROR_KIND_APPLICATION_ERROR; \
-                     return 1; \
-                     break; \
-                  case NUMERIC_ERROR: \
-                     *pok_error = POK_ERROR_KIND_NUMERIC_ERROR; \
-                     return 1; \
-                     break; \
-                  case ILLEGAL_REQUEST: \
-                     *pok_error = POK_ERROR_KIND_ILLEGAL_REQUEST; \
-                     return 1; \
-                     break; \
-                  case STACK_OVERFLOW: \
-                     *pok_error = POK_ERROR_KIND_STACK_OVERFLOW; \
-                     return 1; \
-                     break; \
-                  case MEMORY_VIOLATION: \
-                     *pok_error = POK_ERROR_KIND_MEMORY_VIOLATION; \
-                     return 1; \
-                     break; \
-                  case HARDWARE_FAULT: \
-                     *pok_error = POK_ERROR_KIND_HARDWARE_FAULT; \
-                     return 1; \
-                     break; \
-                  case POWER_FAIL: \
-                     *pok_error = POK_ERROR_KIND_POWER_FAIL; \
-                     return 1; \
-                     break; \
-                  default: \
-                     return 0; \
-               }
-   */
+#define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
+#define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
 
- #define CONVERT_ERROR_POK_TO_ARINC(pok_error,arinc_error) \
-               switch (pok_error){ \
-                  case POK_ERROR_KIND_DEADLINE_MISSED: \
-                     arinc_error = DEADLINE_MISSED; \
-                     break; \
-                  case POK_ERROR_KIND_APPLICATION_ERROR: \
-                     arinc_error = APPLICATION_ERROR; \
-                     break; \
-                  case POK_ERROR_KIND_NUMERIC_ERROR: \
-                     arinc_error = NUMERIC_ERROR; \
-                     break; \
-                  case POK_ERROR_KIND_ILLEGAL_REQUEST: \
-                     arinc_error = ILLEGAL_REQUEST; \
-                     break; \
-                  case POK_ERROR_KIND_STACK_OVERFLOW: \
-                     arinc_error = STACK_OVERFLOW; \
-                     break; \
-                  case POK_ERROR_KIND_MEMORY_VIOLATION: \
-                     arinc_error = MEMORY_VIOLATION; \
-                     break; \
-                  case POK_ERROR_KIND_HARDWARE_FAULT: \
-                     arinc_error = HARDWARE_FAULT; \
-                     break; \
-                  case POK_ERROR_KIND_POWER_FAIL: \
-                     arinc_error = POWER_FAIL; \
-                     break; \
-               }
+static int error_arinc_to_pok(ERROR_CODE_TYPE error)
+{
+    #define MAP(to, from) case (from): return (to);
+    switch (error) {
+        MAP(POK_ERROR_KIND_DEADLINE_MISSED, DEADLINE_MISSED);
+        MAP(POK_ERROR_KIND_APPLICATION_ERROR, APPLICATION_ERROR);
+        MAP(POK_ERROR_KIND_NUMERIC_ERROR, NUMERIC_ERROR);
+        MAP(POK_ERROR_KIND_ILLEGAL_REQUEST, ILLEGAL_REQUEST);
+        MAP(POK_ERROR_KIND_STACK_OVERFLOW, STACK_OVERFLOW);
+        MAP(POK_ERROR_KIND_MEMORY_VIOLATION, MEMORY_VIOLATION);
+        MAP(POK_ERROR_KIND_HARDWARE_FAULT, HARDWARE_FAULT);
+        MAP(POK_ERROR_KIND_POWER_FAIL, POWER_FAIL);
+        default: return 0;
+    }
+    #undef MAP
+}
 
+static ERROR_CODE_TYPE error_pok_to_arinc(int pok_error)
+{
+    #define MAP(from, to) case (from): return (to);
+    switch (pok_error) {
+        MAP(POK_ERROR_KIND_DEADLINE_MISSED, DEADLINE_MISSED);
+        MAP(POK_ERROR_KIND_APPLICATION_ERROR, APPLICATION_ERROR);
+        MAP(POK_ERROR_KIND_NUMERIC_ERROR, NUMERIC_ERROR);
+        MAP(POK_ERROR_KIND_ILLEGAL_REQUEST, ILLEGAL_REQUEST);
+        MAP(POK_ERROR_KIND_STACK_OVERFLOW, STACK_OVERFLOW);
+        MAP(POK_ERROR_KIND_MEMORY_VIOLATION, MEMORY_VIOLATION);
+        MAP(POK_ERROR_KIND_HARDWARE_FAULT, HARDWARE_FAULT);
+        MAP(POK_ERROR_KIND_POWER_FAIL, POWER_FAIL);
+        default: return 0;
+    }
+    #undef MAP
+}
 
 /**
  * At this time, it is implemented to have the same behavior as 
@@ -134,27 +100,24 @@ void CREATE_ERROR_HANDLER (SYSTEM_ADDRESS_TYPE  ENTRY_POINT,
 void GET_ERROR_STATUS (ERROR_STATUS_TYPE  *ERROR_STATUS,
                        RETURN_CODE_TYPE   *RETURN_CODE )
 {
-   /**
-    * Must be completed later : returns NO_ACTION if nothing
-    * was detected or INVALID_CONFIG if the process that
-    * calls this function is not the error handler process
-    */
-   pok_error_status_t   core_status;
-   pok_ret_t            core_ret;
+    pok_error_status_t   core_status;
+    pok_ret_t            core_ret;
 
-   core_ret = pok_error_get (&core_status);
+    core_ret = pok_error_get (&core_status);
 
-   if (core_ret != POK_ERRNO_OK)
-   {
-      *RETURN_CODE = NO_ACTION; /* Must be improved later ! */
-      return;
-   }
+    if (core_ret != POK_ERRNO_OK)
+    {
+        ERROR_STATUS->ERROR_CODE = error_pok_to_arinc(core_status.error_kind);
+        memcpy (ERROR_STATUS->MESSAGE, core_status.msg, MAX_ERROR_MESSAGE_SIZE);
+        ERROR_STATUS->LENGTH = core_status.msg_size;
+        ERROR_STATUS->FAILED_PROCESS_ID = core_status.failed_thread;
+        ERROR_STATUS->FAILED_ADDRESS = (SYSTEM_ADDRESS_TYPE)core_status.failed_addr;
+    }
 
-   CONVERT_ERROR_POK_TO_ARINC (core_status.error_kind, ERROR_STATUS->ERROR_CODE);
-   ERROR_STATUS->LENGTH             = core_status.msg_size;
-   memcpy (ERROR_STATUS->MESSAGE, core_status.msg, MAX_ERROR_MESSAGE_SIZE);
-   ERROR_STATUS->FAILED_PROCESS_ID  = core_status.failed_thread;
-   ERROR_STATUS->FAILED_ADDRESS     = (SYSTEM_ADDRESS_TYPE)core_status.failed_addr;
+    switch (core_ret) {
+        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR_DEFAULT(NOT_AVAILABLE);
+    }
 
 }
 

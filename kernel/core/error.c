@@ -30,17 +30,21 @@ pok_ret_t pok_error_thread_create (uint32_t stack_size, void* entry)
    pok_thread_attr_t    attr;
    pok_ret_t            ret;
 
-   (void) stack_size;
-
-   attr.priority  = POK_THREAD_MAX_PRIORITY;
-   attr.entry     = entry;
+   attr.priority = POK_THREAD_MAX_PRIORITY + 1; 
+   attr.entry = entry;
+   attr.period = -1;
+   attr.deadline = DEADLINE_SOFT; // not that it matters, but we still have to specify something
    attr.time_capacity = -1;
-
+   attr.stack_size = stack_size;
+   
    ret = pok_partition_thread_create (&tid, &attr, POK_SCHED_CURRENT_PARTITION);
+   
+   if (ret == POK_ERRNO_OK) {
+      POK_CURRENT_PARTITION.thread_error_created = TRUE;
+      POK_CURRENT_PARTITION.thread_error = tid;
 
-   POK_CURRENT_PARTITION.thread_error = tid;
-
-   pok_sched_activate_error_thread ();
+      pok_threads[tid].state = POK_STATE_STOPPED;
+   } 
 
    return (ret);
 }
@@ -173,6 +177,17 @@ pok_ret_t pok_error_get (pok_error_status_t* status)
    {
       return POK_ERRNO_UNAVAILABLE;
    }
+}
+
+pok_ret_t pok_error_is_handler(void)
+{
+    if (POK_CURRENT_PARTITION.thread_error_created && 
+        POK_SCHED_CURRENT_THREAD == POK_CURRENT_PARTITION.thread_error)
+    {
+        return POK_ERRNO_OK;
+    } else {
+        return POK_ERRNO_UNAVAILABLE;
+    }
 }
 
 #endif /* POK_NEEDS_PARTITIONS */

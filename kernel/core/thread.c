@@ -224,7 +224,9 @@ pok_ret_t pok_thread_sleep(int64_t time)
         return POK_ERRNO_MODE;
     }
     
-    if (POK_CURRENT_PARTITION.lock_level > 0) {
+    if (POK_CURRENT_PARTITION.lock_level > 0 || 
+        pok_thread_is_error_handling(thread)) 
+    {
         return POK_ERRNO_MODE;
     }
     

@@ -162,20 +162,11 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
    case POK_SYSCALL_THREAD_REPLENISH:
            return pok_sched_replenish((int32_t) args->arg1);
 
-#ifdef POK_NEEDS_ERROR_HANDLING
+   case POK_SYSCALL_THREAD_STOP:
+           return pok_thread_stop_target((pok_thread_id_t) args->arg1);
 
-      case POK_SYSCALL_THREAD_STOP:
-         return pok_thread_stop_target((pok_thread_id_t) args->arg1);
-         break;
-
-      /**
-       * STOPSELF used by the error thread
-       */
-      case POK_SYSCALL_THREAD_STOPSELF:
-         return pok_thread_stop();
-         break;
-
-#endif
+   case POK_SYSCALL_THREAD_STOPSELF:
+           return pok_thread_stop();
 
 #ifdef POK_NEEDS_PARTITIONS
       case POK_SYSCALL_PARTITION_SET_MODE:
@@ -221,6 +212,9 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
       case POK_SYSCALL_ERROR_GET:
          return pok_error_get ((pok_error_status_t*) (args->arg1 + infos->base_addr));
          break;
+
+      case POK_SYSCALL_ERROR_IS_HANDLER:
+         return pok_error_is_handler();
 #endif
 
          /* Middleware syscalls */

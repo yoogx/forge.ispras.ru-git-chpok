@@ -220,11 +220,7 @@ pok_ret_t pok_partition_init ()
 #endif
 
 #ifdef POK_NEEDS_ERROR_HANDLING
-      pok_partitions[i].thread_error      = 0;
-      pok_partitions[i].error_status.failed_thread = 0;
-      pok_partitions[i].error_status.failed_addr   = 0;
-      pok_partitions[i].error_status.error_kind    = POK_ERROR_KIND_INVALID;
-      pok_partitions[i].error_status.msg_size      = 0;
+      pok_partitions[i].thread_error_created      = FALSE;
 #endif
 
       pok_loader_load_partition (i, base_addr - base_vaddr, &program_entry);
@@ -425,7 +421,9 @@ pok_ret_t pok_current_partition_get_start_condition (pok_start_condition_t *star
 
 pok_ret_t pok_current_partition_inc_lock_level(uint32_t *lock_level)
 {
-  if (POK_CURRENT_PARTITION.mode != POK_PARTITION_MODE_NORMAL) {
+  if (POK_CURRENT_PARTITION.mode != POK_PARTITION_MODE_NORMAL ||
+      pok_thread_is_error_handling(&POK_CURRENT_THREAD)) 
+  {
     return POK_ERRNO_MODE;
   }
   if (POK_CURRENT_PARTITION.lock_level >= 16) { // XXX
@@ -437,7 +435,9 @@ pok_ret_t pok_current_partition_inc_lock_level(uint32_t *lock_level)
 
 pok_ret_t pok_current_partition_dec_lock_level(uint32_t *lock_level)
 {
-  if (POK_CURRENT_PARTITION.mode != POK_PARTITION_MODE_NORMAL) {
+  if (POK_CURRENT_PARTITION.mode != POK_PARTITION_MODE_NORMAL ||
+      pok_thread_is_error_handling(&POK_CURRENT_THREAD)) 
+  {
     return POK_ERRNO_MODE;
   }
   if (POK_CURRENT_PARTITION.lock_level == 0) {

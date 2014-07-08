@@ -63,6 +63,8 @@ void        pok_error_kernel_callback ();
 
 pok_ret_t   pok_error_handler_create (void* entry, uint32_t stack_size);
 
+pok_ret_t   pok_error_is_handler(void); 
+
 
 void        pok_error_raise_application_error (char* msg, uint32_t msg_size);
 pok_ret_t   pok_error_get (pok_error_status_t* status);

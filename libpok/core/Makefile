@@ -22,6 +22,7 @@ LO_OBJS=	allocator.o \
 			errorhandlersetready.o \
 			errorignore.o \
 			errorconfirm.o \
+			errorishandler.o \
 			main.o \
 			mutexcreate.o \
 			mutextrylock.o \
