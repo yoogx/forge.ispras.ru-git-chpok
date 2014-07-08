@@ -234,7 +234,7 @@ pok_ret_t pok_partition_init ()
       pok_partitions[i].thread_main_entry = program_entry;
       
       pok_partitions[i].lock_level = 1; // in init mode, lock level is always >0
-      pok_partitions[i].start_condition = NORMAL_START;
+      pok_partitions[i].start_condition = POK_START_CONDITION_NORMAL_START;
 
 #ifdef POK_NEEDS_INSTRUMENTATION
       pok_instrumentation_partition_archi (i);
