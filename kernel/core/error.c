@@ -30,6 +30,16 @@ pok_ret_t pok_error_thread_create (uint32_t stack_size, void* entry)
    pok_thread_attr_t    attr;
    pok_ret_t            ret;
 
+   if (POK_CURRENT_PARTITION.mode == POK_PARTITION_MODE_NORMAL) {
+      // it's too late
+      return POK_ERRNO_MODE;
+   }
+
+   if (POK_CURRENT_PARTITION.thread_error_created) {
+      // already created
+      return POK_ERRNO_EXISTS;
+   }
+
    attr.priority = POK_THREAD_MAX_PRIORITY + 1; 
    attr.entry = entry;
    attr.period = -1;
@@ -62,10 +72,10 @@ void pok_error_declare (const uint8_t error)
     * so we declare the error in a appropriate structure.
     */
 
-   if (POK_CURRENT_PARTITION.thread_error != 0)
+   if (POK_CURRENT_PARTITION.thread_error_created)
    {
       POK_CURRENT_PARTITION.error_status.error_kind    = error;
-      POK_CURRENT_PARTITION.error_status.failed_thread = POK_SCHED_CURRENT_THREAD - POK_CURRENT_PARTITION.thread_index_low;
+      POK_CURRENT_PARTITION.error_status.failed_thread = POK_SCHED_CURRENT_THREAD;
       POK_CURRENT_PARTITION.error_status.msg_size      = 0;
       /*
        * FIXME: Add failed address and so on.
@@ -162,6 +172,10 @@ void pok_error_raise_application_error (char* msg, uint32_t msg_size)
 
 pok_ret_t pok_error_get (pok_error_status_t* status)
 {
+   if (!pok_thread_is_error_handling(&POK_CURRENT_THREAD)) {
+      return POK_ERRNO_THREAD;
+   }
+
    if (POK_CURRENT_PARTITION.error_status.error_kind != POK_ERROR_KIND_INVALID)
    {
 
@@ -170,6 +184,10 @@ pok_ret_t pok_error_get (pok_error_status_t* status)
       status->failed_addr      = POK_CURRENT_PARTITION.error_status.failed_addr;
       status->msg_size         = POK_CURRENT_PARTITION.error_status.msg_size;
       memcpy (status->msg, POK_CURRENT_PARTITION.error_status.msg, POK_CURRENT_PARTITION.error_status.msg_size);
+
+      // ARINC errors are supposed to be in FIFO queue
+      // so we kinda emulate an 1-element error queue
+      POK_CURRENT_PARTITION.error_status.error_kind = POK_ERROR_KIND_INVALID;
 
       return POK_ERRNO_OK;
    }
