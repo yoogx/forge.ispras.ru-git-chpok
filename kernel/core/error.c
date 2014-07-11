@@ -17,11 +17,13 @@
 #ifdef POK_NEEDS_ERROR_HANDLING
 
 #include <types.h>
+#include <arch.h>
 #include <core/thread.h>
 #include <core/error.h>
 #include <core/debug.h>
 #include <core/partition.h>
 
+#include <assert.h>
 #include <libc.h>
 
 pok_ret_t pok_error_thread_create (uint32_t stack_size, void* entry)
@@ -52,6 +54,7 @@ pok_ret_t pok_error_thread_create (uint32_t stack_size, void* entry)
    if (ret == POK_ERRNO_OK) {
       POK_CURRENT_PARTITION.thread_error_created = TRUE;
       POK_CURRENT_PARTITION.thread_error = tid;
+      POK_CURRENT_PARTITION.error_status.error_kind = POK_ERROR_KIND_INVALID;
 
       pok_threads[tid].state = POK_STATE_STOPPED;
    } 
@@ -59,36 +62,73 @@ pok_ret_t pok_error_thread_create (uint32_t stack_size, void* entry)
    return (ret);
 }
 
-
-/**
- * Declare the error to the recover process.
- * If the recover process is not created, the partition handler
- * is called.
+/*
+ * Resets the context of the error handler
+ * and marks it as runnable.
+ *
+ * Assumes it's already created and is not
+ * handling some other error right now.
+ *
  */
+static void pok_error_enable(void)
+{
+    assert(POK_CURRENT_PARTITION.thread_error_created);
+
+    pok_thread_t *thread = &pok_threads[POK_CURRENT_PARTITION.thread_error];
+
+    assert(thread->state == POK_STATE_STOPPED);
+
+    // TODO this code repeats in pok_thread_delayed_start
+    // I guess I should refactor it somewhere
+
+    thread->sp = thread->initial_sp;
+    pok_space_context_restart(
+        thread->sp,
+        thread->partition,
+        (uintptr_t) thread->entry,
+        thread->init_stack_addr,
+        0xdead,
+        0xbeaf
+    );
+
+    // XXX hack hack hack - force context switch instead of returning from interrupt
+    thread->force_restart = TRUE;
+
+    thread->state  = POK_STATE_RUNNABLE;
+}
+
 void pok_error_declare (const uint8_t error)
 {
-   /**
-    * Ok, the error handler process is created inside the partition
-    * so we declare the error in a appropriate structure.
-    */
+    pok_error_declare2(error, POK_SCHED_CURRENT_THREAD);
+}
 
-   if (POK_CURRENT_PARTITION.thread_error_created)
-   {
-      POK_CURRENT_PARTITION.error_status.error_kind    = error;
-      POK_CURRENT_PARTITION.error_status.failed_thread = POK_SCHED_CURRENT_THREAD;
-      POK_CURRENT_PARTITION.error_status.msg_size      = 0;
-      /*
-       * FIXME: Add failed address and so on.
-       */
-   }
-   else
-   {
-      /**
-       * If the current partition does not have an error handler process,
-       * we raise the error inside the partition.
-       */
-      pok_partition_error (POK_SCHED_CURRENT_PARTITION, error);
-   }
+void pok_error_declare2(uint8_t error, pok_thread_id_t thread_id)
+{
+    /**
+     * Ok, the error handler process is created inside the partition
+     * so we declare the error in a appropriate structure.
+     */
+
+    // TODO special case: error is raised by error handler
+
+    if (POK_CURRENT_PARTITION.thread_error_created) {
+        /*
+         * We can't handle more than one error at a time.
+         */
+        assert(POK_CURRENT_PARTITION.error_status.error_kind == POK_ERROR_KIND_INVALID);
+
+        POK_CURRENT_PARTITION.error_status.error_kind    = error;
+        POK_CURRENT_PARTITION.error_status.failed_thread = thread_id;
+        POK_CURRENT_PARTITION.error_status.msg_size      = 0;
+        /*
+         * FIXME: Add failed address and so on.
+         */
+
+        pok_error_enable();   
+    } else {
+        // XXX probably not quite correct
+        pok_partition_error (POK_SCHED_CURRENT_PARTITION, error);
+    }
 }
 
 void pok_error_ignore ()
@@ -154,20 +194,34 @@ void pok_error_partition_callback (uint32_t partition)
 
 void pok_error_raise_application_error (char* msg, uint32_t msg_size)
 {
-   if (msg_size > POK_ERROR_MAX_MSG_SIZE)
-   {
+    if (msg_size > POK_ERROR_MAX_MSG_SIZE) {
       msg_size = POK_ERROR_MAX_MSG_SIZE;
-   }
+    }
+   
+    // TODO special case: error is raised by error handler
 
-   pok_error_status_t* status;
-   status                  = &pok_partitions[pok_current_partition].error_status;
-   status->error_kind      = POK_ERROR_KIND_APPLICATION_ERROR;
-   status->failed_thread   = POK_SCHED_CURRENT_THREAD - POK_CURRENT_PARTITION.thread_index_low;
-   status->msg_size        = msg_size;
+    if (POK_CURRENT_PARTITION.thread_error_created) {
+        /*
+         * We can't handle more than one error at a time.
+         */
+        assert(POK_CURRENT_PARTITION.error_status.error_kind == POK_ERROR_KIND_INVALID);
+        pok_error_status_t* status;
+        status                  = &pok_partitions[pok_current_partition].error_status;
+        status->error_kind      = POK_ERROR_KIND_APPLICATION_ERROR;
+        status->failed_thread   = POK_SCHED_CURRENT_THREAD;
+        status->msg_size        = msg_size;
 
-   memcpy (status->msg, msg, msg_size);
+        memcpy(status->msg, msg, msg_size); 
 
-   pok_sched_activate_error_thread ();
+        pok_error_enable();
+
+        // since this function is called from user space
+        // directly, switch to error handler here:
+        pok_sched();
+    } else {
+        // XXX probably not quite correct
+        pok_partition_error(POK_SCHED_CURRENT_PARTITION, POK_ERROR_KIND_APPLICATION_ERROR);
+    }
 }
 
 pok_ret_t pok_error_get (pok_error_status_t* status)

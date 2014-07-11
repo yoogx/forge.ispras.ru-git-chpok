@@ -240,8 +240,41 @@ static void pok_unlock_sleeping_threads(pok_partition_t *new_partition)
        thread->suspended = FALSE;
      }
    }
-
 }
+
+#ifdef POK_NEEDS_ERROR_HANDLING
+static void
+pok_error_check_deadlines(void)
+{
+    pok_thread_id_t i;
+    uint64_t now = POK_GETTICK();
+
+    pok_thread_id_t low = POK_CURRENT_PARTITION.thread_index_low,
+                    high = POK_CURRENT_PARTITION.thread_index;
+
+    for (i = low; i < high; i++) {
+        pok_thread_t *thread = &pok_threads[i];
+
+        if (POK_CURRENT_PARTITION.thread_error_created &&
+            pok_threads[POK_CURRENT_PARTITION.thread_error].state != POK_STATE_STOPPED)
+        {
+            // we're already handling an HM event
+            // (be it another deadline or something else)
+            // postpone reporting more deadline misses
+            break;
+        }
+
+        if (thread->state == POK_STATE_STOPPED) {
+            continue;
+        }
+        
+        if (thread->end_time >= 0 && (uint64_t) thread->end_time < now) {
+            // deadline miss HM event
+            pok_error_declare2(POK_ERROR_KIND_DEADLINE_MISSED, i);
+        }
+    }
+}
+#endif
 
 static pok_thread_id_t pok_elect_thread(void)
 {
@@ -318,6 +351,10 @@ void pok_sched()
 
     // set global
     pok_current_partition = elected_partition;
+
+#ifdef POK_NEEDS_ERROR_HANDLING
+    pok_error_check_deadlines();
+#endif
     
     elected_thread = pok_elect_thread();
    
@@ -364,8 +401,9 @@ void pok_sched_context_switch(pok_thread_id_t elected_id)
 {
    uint32_t *current_sp;
    uint32_t new_sp;
+   
 
-   if (POK_SCHED_CURRENT_THREAD == elected_id)
+   if (POK_SCHED_CURRENT_THREAD == elected_id && !POK_CURRENT_THREAD.force_restart)
    {
       return;
    }
@@ -381,6 +419,8 @@ void pok_sched_context_switch(pok_thread_id_t elected_id)
 		    pok_threads[elected_id].partition);
 
    current_thread = elected_id;
+   
+   POK_CURRENT_THREAD.force_restart = FALSE;
 
    pok_context_switch(current_sp, new_sp);
 }
@@ -478,30 +518,6 @@ pok_ret_t pok_sched_replenish(int64_t budget)
 
     return POK_ERRNO_OK;
 }
-
-#if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
-void pok_sched_activate_error_thread (void)
-{
-    if (POK_CURRENT_PARTITION.thread_error_created) {
-        pok_thread_t *thread = &pok_threads[POK_CURRENT_PARTITION.thread_error];
-
-        // TODO this code repeats in pok_thread_delayed_start
-        // I guess I should refactor it somewhere
-        thread->sp = thread->initial_sp;
-        pok_space_context_restart(
-            thread->sp,
-            thread->partition,
-            (uintptr_t) thread->entry,
-            thread->init_stack_addr,
-            0xdead,
-            0xbeaf
-        );
-
-        thread->state  = POK_STATE_RUNNABLE;
-        pok_sched_context_switch(pok_thread_get_id(thread));
-    }
-}
-#endif
 
 #ifdef POK_NEEDS_PARTITIONS
 

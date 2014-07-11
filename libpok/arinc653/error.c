@@ -72,13 +72,10 @@ void REPORT_APPLICATION_MESSAGE (MESSAGE_ADDR_TYPE    MESSAGE,
                                  MESSAGE_SIZE_TYPE    LENGTH,
                                  RETURN_CODE_TYPE     *RETURN_CODE )
 {
-   if (LENGTH > 64)
-   {
-      *RETURN_CODE = INVALID_PARAM;
-      return;
-   }
+   (void) LENGTH;
 
-   pok_error_raise_application_error ((char*) MESSAGE, LENGTH);
+   // TODO LENGTH is ignored (shouldn't be)
+   printf("%s\n", MESSAGE);
 
    *RETURN_CODE = NO_ERROR;
 }

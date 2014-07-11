@@ -171,6 +171,8 @@ pok_ret_t pok_partition_thread_create (pok_thread_id_t*         thread_id,
 
    thread->time_capacity = attr->time_capacity;
 
+   thread->end_time = (uint64_t)-1;
+
    stack_vaddr = pok_thread_stack_addr(partition_id, id);
 
    // XXX perhaps, create in stopped state?

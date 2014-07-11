@@ -231,6 +231,17 @@ typedef struct
      * It's supposed to be used when thread is restarted (I think).
      */
     uint32_t            init_stack_addr; 
+
+    /*
+     * XXX
+     *
+     * Hack used by error handler, when it's essentially restarted by itself.
+     *
+     * This forces pok_context_switch to switch to "saved" sp
+     * instead of returning via interrupt handler (beceause saved interrupt
+     * state is the state before thread restart, and no longer valid).
+     */
+    pok_bool_t          force_restart;
 } pok_thread_t;
 
 /*

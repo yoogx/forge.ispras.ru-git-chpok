@@ -22,7 +22,7 @@
 #include <types.h>
 #include <core/sched.h>
 
-#define POK_ERROR_KIND_INVALID                   9
+#define POK_ERROR_KIND_INVALID                   9 // this is "NULL" error - that is, no error
 #define POK_ERROR_KIND_DEADLINE_MISSED          10
 #define POK_ERROR_KIND_APPLICATION_ERROR        11
 #define POK_ERROR_KIND_NUMERIC_ERROR            12
@@ -51,20 +51,42 @@ typedef struct
    uint32_t       msg_size;
 } pok_error_status_t;
 
-
-pok_ret_t   pok_partition_error_set_ready (pok_error_status_t*);
-void        pok_error_ignore ();
-void        pok_error_declare (const uint8_t error);
+/*
+ * Creates an error-handler thread for the current partition.
+ *
+ * It's created in stopped state.
+ */
 pok_ret_t   pok_error_thread_create (uint32_t stack_size, void* entry);
+
+/*
+ * Raises a flag that specified thread is in error.
+ *
+ * This automatically resets the context of error handler
+ * and marks it as runnable.
+ *
+ * Caller is expected to call pok_sched() afterwards, which will
+ * then switch to the error handler.
+ *
+ * Note: cannot be called when there's another error being
+ * handled.
+ */
+void        pok_error_declare2 (uint8_t error, pok_thread_id_t thread_id);
+
+/*
+ * Same as pok_error_declare2(error, POK_SCHED_CURRENT_THREAD).
+ */
+void        pok_error_declare (const uint8_t error);
+
+/*
+ * Returns: POK_ERRNO_OK, if current thread is the error handler for the current partition.
+ *          POK_ERRNO_UNAVAILABLE, otherwise.
+ */
+pok_ret_t pok_error_is_handler(void);
+
 void        pok_partition_error (uint8_t partition, uint32_t error);
 void        pok_kernel_error (uint32_t error);
 void        pok_error_partition_callback (uint32_t partition);
 void        pok_error_kernel_callback ();
-
-pok_ret_t   pok_error_handler_create (void* entry, uint32_t stack_size);
-
-pok_ret_t   pok_error_is_handler(void); 
-
 
 void        pok_error_raise_application_error (char* msg, uint32_t msg_size);
 pok_ret_t   pok_error_get (pok_error_status_t* status);
