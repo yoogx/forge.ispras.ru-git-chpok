@@ -194,7 +194,7 @@ pok_ret_t pok_partition_init ()
 #ifdef POK_NEEDS_ERROR_HANDLING
       if (pok_partitions[i].nthreads <= 1)
       {
-         pok_partition_error (i, POK_ERROR_KIND_PARTITION_CONFIGURATION);
+         pok_error_raise_partition(i, POK_ERROR_KIND_PARTITION_CONFIGURATION);
       }
 #endif
 
@@ -249,7 +249,7 @@ pok_ret_t pok_partition_init ()
       printf ("Error in configuration, bad number of threads\n");
 #endif
 #ifdef POK_NEEDS_ERROR_HANDLING
-      pok_kernel_error (POK_ERROR_KIND_KERNEL_CONFIG);
+      pok_error_raise_kernel(POK_ERROR_KIND_KERNEL_CONFIG);
 #endif
    }
 #endif

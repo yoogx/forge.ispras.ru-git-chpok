@@ -118,7 +118,7 @@ void pok_sched_init (void)
       printf ("Major frame is not compliant with all time slots\n");
 #endif
 #ifdef POK_NEEDS_ERROR_HANDLING
-      pok_kernel_error (POK_ERROR_KIND_KERNEL_CONFIG);
+      pok_error_raise_kernel (POK_ERROR_KIND_KERNEL_CONFIG);
 #endif
    }
 #endif
@@ -270,7 +270,7 @@ pok_error_check_deadlines(void)
         
         if (thread->end_time >= 0 && (uint64_t) thread->end_time < now) {
             // deadline miss HM event
-            pok_error_declare2(POK_ERROR_KIND_DEADLINE_MISSED, i);
+            pok_error_raise_thread(POK_ERROR_KIND_DEADLINE_MISSED, i, NULL, 0);
         }
     }
 }

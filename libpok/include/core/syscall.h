@@ -70,7 +70,6 @@ typedef enum
 #endif
 #ifdef POK_NEEDS_ERROR_HANDLING
 	 POK_SYSCALL_ERROR_HANDLER_CREATE                = 301,
-	 POK_SYSCALL_ERROR_HANDLER_SET_READY             = 302,
 	 POK_SYSCALL_ERROR_RAISE_APPLICATION_ERROR       = 303,
 	 POK_SYSCALL_ERROR_GET                           = 304,
          POK_SYSCALL_ERROR_IS_HANDLER                    = 305,

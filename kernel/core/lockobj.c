@@ -123,7 +123,7 @@ pok_ret_t pok_lockobj_init ()
    
    if (total_lockobjects != POK_CONFIG_NB_LOCKOBJECTS)
    {
-      pok_kernel_error (POK_ERROR_KIND_KERNEL_CONFIG);
+      pok_error_raise_kernel(POK_ERROR_KIND_KERNEL_CONFIG);
    }
 #endif
 #endif

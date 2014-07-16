@@ -205,8 +205,7 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
 
       case POK_SYSCALL_ERROR_RAISE_APPLICATION_ERROR:
          POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg1 + infos->base_addr)
-         pok_error_raise_application_error ((char*) (args->arg1 + infos->base_addr), args->arg2);
-         return POK_ERRNO_OK;
+         return pok_error_raise_application_error ((char*) (args->arg1 + infos->base_addr), args->arg2);
          break;
 
       case POK_SYSCALL_ERROR_GET:
@@ -372,15 +371,12 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
 #endif /* POK_NEEDS_PCI */
 
 
-      /**
-       * Here is the default syscall handler. In this case, the syscall
-       * ID was not properly identified and thus, we should return an 
-       * error. If error management is activated, we raise an error
-       * in kernel of partitions, calling the error handler.
-       */
       default:
+       /*
+        * Unrecognized system call ID.
+        */
 #ifdef POK_NEEDS_ERROR_HANDLING
-         pok_error_declare (POK_ERROR_KIND_ILLEGAL_REQUEST);
+         POK_ERROR_CURRENT_THREAD(POK_ERROR_KIND_ILLEGAL_REQUEST);
          pok_sched();
 #else
          #ifdef POK_NEEDS_DEBUG

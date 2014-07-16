@@ -22,7 +22,10 @@
 #include <types.h>
 #include <core/sched.h>
 
-#define POK_ERROR_KIND_INVALID                   9 // this is "NULL" error - that is, no error
+#define POK_ERROR_MAX_MSG_SIZE                  250
+
+typedef uint8_t pok_error_kind_t;
+#define POK_ERROR_KIND_INVALID                   0 // this is "NULL" error - that is, no error
 #define POK_ERROR_KIND_DEADLINE_MISSED          10
 #define POK_ERROR_KIND_APPLICATION_ERROR        11
 #define POK_ERROR_KIND_NUMERIC_ERROR            12
@@ -40,16 +43,28 @@
 #define POK_ERROR_KIND_KERNEL_SCHEDULING        51
 #define POK_ERROR_KIND_KERNEL_CONFIG            52
 
-#define POK_ERROR_MAX_MSG_SIZE                  250
+
+typedef uint8_t pok_error_action_t;
+#define POK_ERROR_ACTION_IGNORE 1
+#define POK_ERROR_ACTION_IDLE 2
+#define POK_ERROR_ACTION_COLD_START 3
+#define POK_ERROR_ACTION_WARM_START 4
 
 typedef struct
 {
-   uint8_t        error_kind;
-   uint32_t       failed_thread;
-   uint32_t       failed_addr;
-   char           msg[POK_ERROR_MAX_MSG_SIZE];
-   uint32_t       msg_size;
+   pok_error_kind_t     error_kind;
+   pok_thread_id_t      failed_thread;
+   uintptr_t            failed_addr;
+   size_t               msg_size;
+   char                 msg[POK_ERROR_MAX_MSG_SIZE];
 } pok_error_status_t;
+
+typedef struct 
+{
+    pok_error_kind_t kind;
+    pok_error_action_t action;
+
+} pok_error_hm_partition_t;
 
 /*
  * Creates an error-handler thread for the current partition.
@@ -59,23 +74,28 @@ typedef struct
 pok_ret_t   pok_error_thread_create (uint32_t stack_size, void* entry);
 
 /*
- * Raises a flag that specified thread is in error.
+ * Raises a thread-level error
+ * (which might be promoted to partition error in some circumstances).
  *
- * This automatically resets the context of error handler
+ * If everything is OK, this automatically resets the context of error handler
  * and marks it as runnable.
  *
  * Caller is expected to call pok_sched() afterwards, which will
  * then switch to the error handler.
  *
  * Note: cannot be called when there's another error being
- * handled.
+ * handled (TODO remove this limitation?)
  */
-void        pok_error_declare2 (uint8_t error, pok_thread_id_t thread_id);
+pok_ret_t  pok_error_raise_thread(
+        pok_error_kind_t error, 
+        pok_thread_id_t thread_id, 
+        const char *message,
+        size_t message_length);
 
 /*
- * Same as pok_error_declare2(error, POK_SCHED_CURRENT_THREAD).
+ * Used for simple synchronous errors without error messages and that stuff.
  */
-void        pok_error_declare (const uint8_t error);
+#define POK_ERROR_CURRENT_THREAD(error) pok_error_raise_thread(error, POK_SCHED_CURRENT_THREAD, NULL, 0)
 
 /*
  * Returns: POK_ERRNO_OK, if current thread is the error handler for the current partition.
@@ -83,14 +103,28 @@ void        pok_error_declare (const uint8_t error);
  */
 pok_ret_t pok_error_is_handler(void);
 
-void        pok_partition_error (uint8_t partition, uint32_t error);
-void        pok_kernel_error (uint32_t error);
-void        pok_error_partition_callback (uint32_t partition);
-void        pok_error_kernel_callback ();
+/*
+ * Raises partition-level error.
+ */
+void        pok_error_raise_partition(pok_partition_id_t partition, pok_error_kind_t error);
 
-void        pok_error_raise_application_error (char* msg, uint32_t msg_size);
+/*
+ * Raises kernel (system) error.
+ */
+void        pok_error_raise_kernel(pok_error_kind_t error);
+
+/*
+ * Raise thread-level application error.
+ *
+ * This's a system call, it validates a couple of parameters
+ * and passes them to pok_thread_error almost verbatim.
+ */
+pok_ret_t   pok_error_raise_application_error (const char* msg, size_t msg_size);
+
+/*
+ * Pops an error from partition error queue.
+ */
 pok_ret_t   pok_error_get (pok_error_status_t* status);
-#define POK_ERROR_CURRENT_PARTITION(error) pok_partition_error(pok_current_partition, error);
 
 #endif
 

@@ -42,7 +42,12 @@ class Partition:
 
         "buffer_data_size", # bytes allocated for buffer data
         "blackboard_data_size", # same, for blackboards
+
+        "hm_table", # partition hm table
     ]
+
+    def __init__(self):
+        self.hm_table = []
 
     def get_all_ports(self):
         return list(self.ports)
@@ -141,6 +146,10 @@ class Configuration:
     ]
 
     def __init__(self):
+        self.partitions = []
+        self.slots = []
+        self.channels = []
+
         self.test_support_print_when_all_threads_stopped = False
 
     def get_all_ports(self):
@@ -154,11 +163,6 @@ class Configuration:
 
     def get_port_by_name_and_partition(self, partition_idx, port_name):
         return self.partitions[partition_idx].get_port_by_name(port_name)
-
-    def __init__(self):
-        self.partitions = []
-        self.slots = []
-        self.channels = []
 
     def validate(self):
         for part in self.partitions:
@@ -356,6 +360,8 @@ def write_kernel_deployment_c(conf, f):
     if len(conf.get_all_ports()) > 0:
         write_kernel_deployment_c_ports(conf, f)
 
+    write_kernel_deployment_c_hm_tables(conf, f)
+
 def write_kernel_deployment_c_ports(conf, f):
     p = functools.partial(print, file=f)
 
@@ -473,6 +479,28 @@ def write_kernel_deployment_c_ports(conf, f):
             data_stride="sizeof(%s[0])" % get_internal_port_name(port, "data")
         ))
     p("};")
+
+def write_kernel_deployment_c_hm_tables(conf, f):
+    p = functools.partial(print, file=f)
+
+    p('#include <core/error.h>')
+
+    for i, part in enumerate(conf.partitions):
+        p("static const pok_error_hm_partition_t partition_hm_table%d[] = {" % i)
+
+        for error, action in part.hm_table:
+            p("  {%s, %s}," % (error, action))
+
+        p("  {POK_ERROR_KIND_INVALID, POK_ERROR_ACTION_IGNORE} /* sentinel value */")
+
+        p("};")
+        p("")
+
+    p("const pok_error_hm_partition_t * const pok_partition_hm_tables[POK_CONFIG_NB_PARTITIONS] = {")
+    for i in range(len(conf.partitions)):
+        p("  partition_hm_table%d," % i)
+    p("};")
+
 
 def write_partition_deployment_h(conf, partition_idx, f):
     p = functools.partial(print, file=f)

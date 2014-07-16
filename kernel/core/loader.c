@@ -103,7 +103,7 @@ void pok_loader_load_partition (const uint8_t part_id,
    if (pok_partitions[part_id].size < part_sizes[part_id])
    {
 #ifdef POK_NEEDS_ERROR_HANDLING
-      pok_partition_error (part_id, POK_ERROR_KIND_PARTITION_CONFIGURATION);
+      pok_error_raise_partition(part_id, POK_ERROR_KIND_PARTITION_CONFIGURATION);
 #else
 #ifdef POK_NEEDS_DEBUG
       /* We consider that even if errors are not raised, we must print an error

@@ -14,14 +14,8 @@ LO_OBJS=	allocator.o \
 			eventwait.o \
 			eventsignal.o \
 			eventbroadcast.o \
-			errorlog.o \
 			errorget.o \
 			errorraise.o \
-			errorhandlercreate.o \
-			errorhandlerworker.o \
-			errorhandlersetready.o \
-			errorignore.o \
-			errorconfirm.o \
 			errorishandler.o \
 			main.o \
 			mutexcreate.o \

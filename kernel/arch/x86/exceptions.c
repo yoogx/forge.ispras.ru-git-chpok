@@ -106,16 +106,14 @@ static void dump_registers (interrupt_frame *frame)
   printf ("EIP: %x, ErrorCode: %x\n", frame->eip, frame->error);
   printf ("EFLAGS: %x\n\n", frame->eflags);
 }
-#endif
 
 #if defined(POK_NEEDS_ERROR_HANDLING)
 static
-void pok_error_from_exception(int error)
+void pok_error_from_exception(pok_error_kind_t error)
 {
-    // set error flag
-    pok_error_declare(error); 
+    POK_ERROR_CURRENT_THREAD(error);
     
-    // call scheduler (which will then switch to error handler anyway)
+    // call scheduler (which will then switch to error handler anyway (probably))
     // TODO: make a shortcut: switch to handler immediately (if it's created, ofc)
     pok_sched(); 
 }
@@ -275,7 +273,8 @@ INTERRUPT_HANDLER_errorcode (exception_doublefault)
    printf ("[KERNEL] Raise exception double fault\n");
    #endif
 
-  pok_partition_error (POK_SCHED_CURRENT_PARTITION, POK_ERROR_KIND_PARTITION_HANDLER);
+  // FIXME: does it make sense?
+  pok_error_from_exception(POK_ERROR_KIND_PARTITION_HANDLER);
 #else
    #ifdef POK_NEEDS_DEBUG
       dump_registers(frame);

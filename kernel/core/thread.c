@@ -125,9 +125,6 @@ pok_ret_t pok_partition_thread_create (pok_thread_id_t*         thread_id,
 
    if (pok_partitions[partition_id].thread_index >= pok_partitions[partition_id].thread_index_high)
    {
-#ifdef POK_NEEDS_ERROR_HANDLING
-      POK_ERROR_CURRENT_PARTITION (POK_ERROR_KIND_PARTITION_CONFIGURATION);
-#endif
       return POK_ERRNO_TOOMANY;
    }
 

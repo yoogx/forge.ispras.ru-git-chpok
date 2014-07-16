@@ -26,6 +26,11 @@
 #include <assert.h>
 #include <libc.h>
 
+/*
+ * This should be defined in kernel's deployment.c
+ */
+extern const pok_error_hm_partition_t * const pok_partition_hm_tables[POK_CONFIG_NB_PARTITIONS];
+
 pok_ret_t pok_error_thread_create (uint32_t stack_size, void* entry)
 {
    pok_thread_id_t      tid;
@@ -97,131 +102,126 @@ static void pok_error_enable(void)
     thread->state  = POK_STATE_RUNNABLE;
 }
 
-void pok_error_declare (const uint8_t error)
+pok_ret_t pok_error_raise_thread(
+        pok_error_kind_t error, 
+        pok_thread_id_t thread_id, 
+        const char *message,
+        size_t msg_size)
 {
-    pok_error_declare2(error, POK_SCHED_CURRENT_THREAD);
-}
-
-void pok_error_declare2(uint8_t error, pok_thread_id_t thread_id)
-{
-    /**
-     * Ok, the error handler process is created inside the partition
-     * so we declare the error in a appropriate structure.
+    /*
+     * This is process (thread) level error
+     * for sure.
+     *
+     * However, if it's raised by error handler,
+     * it should be promoted to partition error
+     * automatically.
+     *
+     * The same thing if error handler was not created at all.
      */
 
-    // TODO special case: error is raised by error handler
-
-    if (POK_CURRENT_PARTITION.thread_error_created) {
-        /*
-         * We can't handle more than one error at a time.
-         */
-        assert(POK_CURRENT_PARTITION.error_status.error_kind == POK_ERROR_KIND_INVALID);
-
-        POK_CURRENT_PARTITION.error_status.error_kind    = error;
-        POK_CURRENT_PARTITION.error_status.failed_thread = thread_id;
-        POK_CURRENT_PARTITION.error_status.msg_size      = 0;
-        /*
-         * FIXME: Add failed address and so on.
-         */
-
-        pok_error_enable();   
-    } else {
-        // XXX probably not quite correct
-        pok_partition_error (POK_SCHED_CURRENT_PARTITION, error);
+    if (!POK_CURRENT_PARTITION.thread_error_created ||
+        POK_CURRENT_PARTITION.thread_error == thread_id)
+    {
+        // depending on HM table action, this might never return
+        pok_error_raise_partition(POK_SCHED_CURRENT_PARTITION, error);
+        return POK_ERRNO_OK;
     }
+
+    // TODO add real error queue
+    pok_error_status_t* status = &POK_CURRENT_PARTITION.error_status;
+    assert(status->error_kind == POK_ERROR_KIND_INVALID);
+
+    status->error_kind = error;
+    status->failed_thread = thread_id;
+    if (msg_size > 0) {
+        memcpy(status->msg, message, msg_size);
+    }
+    status->msg_size = msg_size;
+    status->failed_addr = (uintptr_t) 0; // TODO somehow find interrupt frame and extract EIP from there
+    
+    // reset it's stack and other stuff
+    pok_error_enable();
+
+    return POK_ERRNO_OK;
 }
 
-void pok_error_ignore ()
+
+void pok_error_raise_partition (pok_partition_id_t partition, pok_error_kind_t error)
 {
-   /* Do nothing at this time */
+    (void) partition;
+    (void) error;
+
+    // consult partition error table
+    size_t i = 0;
+    const pok_error_hm_partition_t *table = pok_partition_hm_tables[POK_SCHED_CURRENT_PARTITION];
+    pok_error_action_t action;
+
+    for (i = 0; table[i].kind != POK_ERROR_KIND_INVALID; i++) {
+        if (table[i].kind == error) {
+            action = table[i].action;
+            break;
+        }
+    }
+    if (table[i].kind == POK_ERROR_KIND_INVALID) {
+        // couldn't find error in the table, oops
+        assert(FALSE && "missing error code in partition HM table");
+    }
+
+    // TODO in case of restart, fill in restart reason
+
+    switch (action) {
+        case POK_ERROR_ACTION_IGNORE:
+            // TODO not all kinds of errors can be ignored just like that
+            return;
+        case POK_ERROR_ACTION_IDLE:
+            pok_partition_set_mode_current(POK_PARTITION_MODE_IDLE);
+            assert(FALSE && "this's supposed to be unreachable");
+            break;
+        case POK_ERROR_ACTION_COLD_START:
+            pok_partition_set_mode_current(POK_PARTITION_MODE_INIT_COLD);
+            assert(FALSE && "this's supposed to be unreachable");
+            break;
+        case POK_ERROR_ACTION_WARM_START:
+            pok_partition_set_mode_current(POK_PARTITION_MODE_INIT_WARM);
+            assert(FALSE && "this's supposed to be unreachable");
+            break;
+        default:
+            assert(FALSE && "invalid HM action");
+    }
+
 }
 
-
-#ifndef POK_USE_GENERATED_KERNEL_ERROR_HANDLER
-void pok_kernel_error (uint32_t error)
+void pok_error_raise_kernel(pok_error_kind_t error)
 {
-#ifdef POK_NEEDS_DEBUG
-   printf ("[KERNEL] [WARNING] Error %d was raised by the kernel but no error recovery was set\n", error);
-#else
-   (void) error;
-#endif /* POK_NEEDS_DEBUG */
-   return;
+    (void) error;
+
+    // TODO hmmm
+
+    pok_fatal("KERNEL ERROR!!1");
+    
+    return;
 }
-#endif
 
-#ifdef POK_NEEDS_PARTITIONS
-#ifndef POK_USE_GENERATED_PARTITION_ERROR_HANDLER
-void pok_partition_error (uint8_t partition, uint32_t error)
-{
-#ifdef POK_NEEDS_DEBUG
-   printf ("[KERNEL] [WARNING] Error %d was raised by partition %d but no error recovery was set\n", error, partition);
-#else
-   (void) partition;
-   (void) error;
-#endif /* POK_NEEDS_DEBUG */
-   return;
-}
-#endif /* POK_USE_GENERATED_PARTITION_ERROR_HANDLER */
-#endif /* POK_NEEDS_PARTITIONS */
-
-
-#ifndef POK_USE_GENERATED_KERNEL_ERROR_CALLBACK
-void pok_error_kernel_callback ()
-{
-#ifdef POK_NEEDS_DEBUG
-   printf ("[KERNEL] [WARNING] Kernel calls callback function but nothing was defined by the user\n");
-   printf ("[KERNEL] [WARNING] You MUST define the pok_error_partition_callback function\n");
-#endif /* POK_NEEDS_DEBUG */
-   return;
-}
-#endif /* POK_USE_GENERATED_KERNEL_ERROR_CALLBACK */
-
-
-#ifdef POK_NEEDS_PARTITIONS
-#ifndef POK_USE_GENERATED_PARTITION_ERROR_CALLBACK
-void pok_error_partition_callback (uint32_t partition)
-{
-#ifdef POK_NEEDS_DEBUG
-   printf ("[KERNEL] [WARNING] Partition %d calls callback function but nothing was defined by the user\n", partition);
-   printf ("[KERNEL] [WARNING] You MUST define the pok_error_partition_callback function\n");
-#else
-   (void) partition;
-#endif
-   return;
-}
-#endif /* POK_USE_GENERATED_PARTITION_ERROR_CALLBACK */
-
-
-void pok_error_raise_application_error (char* msg, uint32_t msg_size)
+pok_ret_t pok_error_raise_application_error (const char* msg, size_t msg_size)
 {
     if (msg_size > POK_ERROR_MAX_MSG_SIZE) {
-      msg_size = POK_ERROR_MAX_MSG_SIZE;
+        return POK_ERRNO_EINVAL;
     }
-   
-    // TODO special case: error is raised by error handler
 
-    if (POK_CURRENT_PARTITION.thread_error_created) {
-        /*
-         * We can't handle more than one error at a time.
-         */
-        assert(POK_CURRENT_PARTITION.error_status.error_kind == POK_ERROR_KIND_INVALID);
-        pok_error_status_t* status;
-        status                  = &pok_partitions[pok_current_partition].error_status;
-        status->error_kind      = POK_ERROR_KIND_APPLICATION_ERROR;
-        status->failed_thread   = POK_SCHED_CURRENT_THREAD;
-        status->msg_size        = msg_size;
+    pok_ret_t ret = pok_error_raise_thread(
+            POK_ERROR_KIND_APPLICATION_ERROR, 
+            POK_SCHED_CURRENT_THREAD,
+            msg,
+            msg_size
+    );
 
-        memcpy(status->msg, msg, msg_size); 
-
-        pok_error_enable();
-
-        // since this function is called from user space
-        // directly, switch to error handler here:
+    if (ret == POK_ERRNO_OK) {
+        // call scheduler, which will switch to error handler
+        // FIXME if error is ignored by partition HM table, we shouldn't actually do that
         pok_sched();
-    } else {
-        // XXX probably not quite correct
-        pok_partition_error(POK_SCHED_CURRENT_PARTITION, POK_ERROR_KIND_APPLICATION_ERROR);
     }
+
+    return ret;
 }
 
 pok_ret_t pok_error_get (pok_error_status_t* status)
@@ -232,7 +232,6 @@ pok_ret_t pok_error_get (pok_error_status_t* status)
 
    if (POK_CURRENT_PARTITION.error_status.error_kind != POK_ERROR_KIND_INVALID)
    {
-
       status->error_kind       = POK_CURRENT_PARTITION.error_status.error_kind;
       status->failed_thread    = POK_CURRENT_PARTITION.error_status.failed_thread;
       status->failed_addr      = POK_CURRENT_PARTITION.error_status.failed_addr;
@@ -261,8 +260,6 @@ pok_ret_t pok_error_is_handler(void)
         return POK_ERRNO_UNAVAILABLE;
     }
 }
-
-#endif /* POK_NEEDS_PARTITIONS */
 
 #endif
 
