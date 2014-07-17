@@ -57,8 +57,10 @@
 #include <core/partition.h>
 #include <core/instrumentation.h>
 #include <core/time.h>
+#include <middleware/port.h>
 
 #include <libc.h>
+#include <assert.h>
 
 /**
  * \brief The array that contains ALL partitions in the system.
@@ -82,45 +84,56 @@ void pok_partition_setup_scheduler (pok_partition_id_t pid)
 }
 
 /**
- * \brief Reinitialize a partition from scratch
+ * Reinitialize partition.
  *
- * This service is only used when we have to retrieve
- * and handle errors.
+ * Is used when partition is restarted.
+ * Also indirectly called by pok_partition_init,
+ * when it's initialized for the first time.
+ *
+ * Note that caller is responsible for setting appropriate mode
+ * beforehand (either warm or cold init).
+ *
  */
 
-#ifdef POK_NEEDS_ERROR_HANDLING
 void pok_partition_reinit (pok_partition_id_t pid)
 {
-   uint32_t tmp;
    /*
-    * FIXME: reset queueing/sampling ports too
+    * FIXME: reset lockobjects (and their queues, too)
+    * FIXME: free/reuse allocated memory (notably, kernel stacks)
     */
+   pok_partition_t *part = &pok_partitions[pid];
+
+   assert(part->mode == POK_PARTITION_MODE_INIT_COLD || part->mode == POK_PARTITION_MODE_INIT_WARM);
+
    pok_partition_setup_scheduler (pid);
 
-   pok_partitions[pid].thread_index = 0;
-   pok_partitions[pid].current_thread = pok_partitions[pid].thread_index_low;
-   pok_partitions[pid].prev_thread =  IDLE_THREAD; // breaks the rule of prev_thread not being idle, but it's just for init
+   part->thread_index = part->thread_index_low;
+   part->current_thread = IDLE_THREAD;
+   part->prev_thread = IDLE_THREAD; 
 
 #ifdef POK_NEEDS_ERROR_HANDLING
-   pok_partitions[pid].thread_error = 0;
-   pok_partitions[pid].error_status.failed_thread = 0;
-   pok_partitions[pid].error_status.failed_addr   = 0;
-   pok_partitions[pid].error_status.error_kind    = POK_ERROR_KIND_INVALID;
-   pok_partitions[pid].error_status.msg_size      = 0;
+   part->thread_error_created = FALSE;
 #endif
 
-   pok_loader_load_partition (pid, pok_partitions[pid].base_addr - pok_partitions[pid].base_vaddr, &tmp);
+#if defined(POK_NEEDS_PORTS_QUEUEING) || defined(POK_NEEDS_PORTS_SAMPLING)
+   pok_port_reset(pid); 
+#endif
+      
+   part->lock_level = 1; // in init mode, lock level is always >0
 
-   pok_partitions[pid].thread_main_entry = tmp;
+   // reload code
+   uint32_t tmp;
+   pok_loader_load_partition (pid, part->base_addr - part->base_vaddr, &tmp);
+   part->thread_main_entry = tmp;
 
    pok_partition_setup_main_thread (pid);
+   part->current_thread = part->thread_main;
 }
-#endif
 
 /**
  * Setup the main thread of partition with number \a pid
  */
-void pok_partition_setup_main_thread (const uint8_t pid)
+void pok_partition_setup_main_thread (pok_partition_id_t pid)
 {
    pok_thread_id_t main_thread;
    pok_thread_attr_t attr;
@@ -170,74 +183,68 @@ pok_ret_t pok_partition_init ()
 #endif
       uint32_t program_entry;
       uint32_t base_vaddr = pok_space_base_vaddr(base_addr);
+   
+      pok_partition_t *part = &pok_partitions[i];
 
-      pok_partitions[i].base_addr   = base_addr;
-      pok_partitions[i].size        = size;
+      /* 
+       * Memory.
+       */
+      part->base_addr   = base_addr;
+      part->base_vaddr  = base_vaddr;
+      part->size        = size;
+      
+      pok_create_space (i, base_addr, size);
+      
+      pok_loader_load_partition (i, base_addr - base_vaddr, &program_entry);
      
 #ifdef POK_NEEDS_COVERAGE_INFOS
 #include <libc.h>
       printf ("[XCOV] Partition %d loaded at addr virt=|%x|, phys=|%x|\n", i, base_vaddr, base_addr);
 #endif
-
-      pok_partition_setup_scheduler (i);
-
-      pok_create_space (i, base_addr, size);
-
-      pok_partitions[i].base_vaddr = base_vaddr;
-      /* Set the memory space and so on */
       
-      pok_partitions[i].thread_index_low  = threads_index;
-      pok_partitions[i].nthreads          = ((uint32_t[]) POK_CONFIG_PARTITIONS_NTHREADS) [i];
+      /*
+       * Allocate threads
+       */
+      part->thread_index_low  = threads_index;
+      part->nthreads          = ((uint32_t[]) POK_CONFIG_PARTITIONS_NTHREADS) [i];
 
-      total_threads += pok_partitions[i].nthreads;
+      total_threads += part->nthreads;
 
 #ifdef POK_NEEDS_ERROR_HANDLING
-      if (pok_partitions[i].nthreads <= 1)
+      if (part->nthreads <= 1)
       {
          pok_error_raise_partition(i, POK_ERROR_KIND_PARTITION_CONFIGURATION);
       }
 #endif
 
-      pok_partitions[i].thread_index_high = pok_partitions[i].thread_index_low + ((uint32_t[]) POK_CONFIG_PARTITIONS_NTHREADS) [i];
-      pok_partitions[i].activation        = 0;
-      pok_partitions[i].period            = POK_CONFIG_SCHEDULING_MAJOR_FRAME;
-      pok_partitions[i].thread_index      = pok_partitions[i].thread_index_low;
-      pok_partitions[i].thread_main       = 0;
-      pok_partitions[i].current_thread    = IDLE_THREAD;
-      pok_partitions[i].prev_thread       = IDLE_THREAD; // breaks the rule of prev_thread not being idle, but it's just for init
+      part->thread_index_high = part->thread_index_low + ((uint32_t[]) POK_CONFIG_PARTITIONS_NTHREADS) [i];
+      part->activation        = 0; // FIXME that can't be right
+      part->period            = POK_CONFIG_SCHEDULING_MAJOR_FRAME;
+      part->current_thread    = IDLE_THREAD;
+      part->prev_thread       = IDLE_THREAD; // breaks the rule of prev_thread not being idle, but it's just for init
 
-      threads_index                       = threads_index + pok_partitions[i].nthreads;
-      /* Initialize the threading stuff */
+      threads_index                       = threads_index + part->nthreads;
 
-      pok_partitions[i].mode              = POK_PARTITION_MODE_INIT_COLD;
-
-#ifdef POK_NEEDS_LOCKOBJECTS
-      pok_partitions[i].lockobj_index_low    = lockobj_index;
-      pok_partitions[i].lockobj_index_high   = lockobj_index + ((uint8_t[]) POK_CONFIG_PARTITIONS_NLOCKOBJECTS[i]);
-      pok_partitions[i].nlockobjs            = ((uint8_t[]) POK_CONFIG_PARTITIONS_NLOCKOBJECTS[i]);
-      lockobj_index                          = lockobj_index + pok_partitions[i].nlockobjs;
-      /* Initialize mutexes stuff */
-#endif
-
-#ifdef POK_NEEDS_ERROR_HANDLING
-      pok_partitions[i].thread_error_created      = FALSE;
-#endif
-
-      pok_loader_load_partition (i, base_addr - base_vaddr, &program_entry);
       /*
-       * Load the partition in its address space
+       * Allocate lock objects
        */
-      pok_partitions[i].thread_main_entry = program_entry;
+#ifdef POK_NEEDS_LOCKOBJECTS
+      part->lockobj_index_low    = lockobj_index;
+      part->lockobj_index_high   = lockobj_index + ((uint8_t[]) POK_CONFIG_PARTITIONS_NLOCKOBJECTS[i]);
+      part->nlockobjs            = ((uint8_t[]) POK_CONFIG_PARTITIONS_NLOCKOBJECTS[i]);
+      lockobj_index                          = lockobj_index + part->nlockobjs;
+#endif
       
-      pok_partitions[i].lock_level = 1; // in init mode, lock level is always >0
-      pok_partitions[i].start_condition = POK_START_CONDITION_NORMAL_START;
+      /* Misc. variables */
+      part->thread_main_entry = program_entry;
+      part->start_condition = POK_START_CONDITION_NORMAL_START;
+      part->mode = POK_PARTITION_MODE_INIT_COLD;
 
 #ifdef POK_NEEDS_INSTRUMENTATION
       pok_instrumentation_partition_archi (i);
 #endif
 
-      pok_partition_setup_main_thread (i);
-      pok_partitions[i].current_thread    = pok_partitions[i].thread_main;
+      pok_partition_reinit(i);
    }
 
 
@@ -337,13 +344,14 @@ pok_ret_t pok_partition_set_mode(pok_partition_id_t pid, pok_partition_mode_t mo
         break;
 
       case POK_PARTITION_MODE_IDLE:
-      case POK_PARTITION_MODE_STOPPED:
-         pok_partitions[pid].mode = POK_PARTITION_MODE_STOPPED;  /* Here, we change the mode */
+         pok_partitions[pid].mode = POK_PARTITION_MODE_IDLE;  /* Here, we change the mode */
          pok_sched ();
          break;
 
       case POK_PARTITION_MODE_INIT_WARM:
       case POK_PARTITION_MODE_INIT_COLD:
+        // XXX the following might be incorrect for SET_PARTITION_MODE
+        //     but HM might take this action freely
 	if (pok_partitions[pid].mode == POK_PARTITION_MODE_INIT_COLD && mode == POK_PARTITION_MODE_INIT_WARM)
           { 
              return POK_ERRNO_PARTITION_MODE;

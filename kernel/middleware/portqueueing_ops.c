@@ -38,10 +38,11 @@
 
 // TODO revise return codes
 
-static int find_queueing_port(const char *name) {
+static int find_queueing_port(const char *name, pok_partition_id_t partid) {
     int i;
     for (i = 0; i < POK_CONFIG_NB_QUEUEING_PORTS; i++) {
-        //DEBUG_PRINT("comparing %s %s\n", pok_queueing_ports[i].header.name, name);
+        if (pok_queueing_ports[i].header.partition != partid) continue;
+
         if (strcmp(pok_queueing_ports[i].header.name, name) == 0) {
             return i;
         }
@@ -58,7 +59,7 @@ pok_ret_t pok_port_queueing_create(
     pok_port_queueing_discipline_t  discipline,
     pok_port_id_t                   *id)
 {
-    int index = find_queueing_port(name);
+    int index = find_queueing_port(name, POK_SCHED_CURRENT_PARTITION);
     
     if (index < 0) {
         DEBUG_PRINT("there's no port named %s\n", name);
@@ -67,11 +68,6 @@ pok_ret_t pok_port_queueing_create(
     
     pok_port_queueing_t *port = &pok_queueing_ports[index];
 
-    // check that it belongs to the current partition
-    if (port->header.partition != POK_SCHED_CURRENT_PARTITION) {
-        DEBUG_PRINT("port doesn't belong to this partition\n");
-        return POK_ERRNO_PORT;
-    }
     if (port->header.created) {
         DEBUG_PRINT("port already created\n");
         return POK_ERRNO_EXISTS;
@@ -323,16 +319,12 @@ pok_ret_t pok_port_queueing_id(
     const char      *name,
     pok_port_id_t   *id)
 {
-    int index = find_queueing_port(name);
+    int index = find_queueing_port(name, POK_SCHED_CURRENT_PARTITION);
     if (index < 0) {
         return POK_ERRNO_PORT;
     }
     pok_port_queueing_t *port = &pok_queueing_ports[index];
    
-    if (port->header.partition != POK_SCHED_CURRENT_PARTITION) {
-        return POK_ERRNO_EINVAL;
-    }
-
     if (!port->header.created) {
         return POK_ERRNO_EINVAL;
     }

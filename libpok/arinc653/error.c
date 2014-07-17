@@ -74,6 +74,11 @@ void REPORT_APPLICATION_MESSAGE (MESSAGE_ADDR_TYPE    MESSAGE,
 {
    (void) LENGTH;
 
+   if (LENGTH < 0) {
+       *RETURN_CODE = INVALID_PARAM;
+       return;
+   }
+
    // TODO LENGTH is ignored (shouldn't be)
    printf("%s\n", MESSAGE);
 

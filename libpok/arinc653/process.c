@@ -178,19 +178,18 @@ void CREATE_PROCESS (
     if (core_ret == POK_ERRNO_OK) {
         arinc_process_attribute[core_process_id].BASE_PRIORITY = attributes->BASE_PRIORITY;
         strcpy(arinc_process_attribute[core_process_id].NAME, attributes->NAME);
+        
+        *process_id = core_process_id + 1;
+        // ARINC specifies that threads shall be created in the DORMANT state
+        pok_thread_stop(core_process_id);
     }
-    *process_id = core_process_id + 1;
-    if (core_ret != POK_ERRNO_OK) {
-        switch (core_ret) {
-            MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-            MAP_ERROR(POK_ERRNO_PARAM, INVALID_CONFIG);
-            MAP_ERROR(POK_ERRNO_TOOMANY, INVALID_CONFIG);
-            MAP_ERROR(POK_ERRNO_PARTITION_MODE, INVALID_MODE);
-            MAP_ERROR_DEFAULT(INVALID_PARAM);
-        }
+    switch (core_ret) {
+        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR(POK_ERRNO_PARAM, INVALID_CONFIG);
+        MAP_ERROR(POK_ERRNO_TOOMANY, INVALID_CONFIG);
+        MAP_ERROR(POK_ERRNO_PARTITION_MODE, INVALID_MODE);
+        MAP_ERROR_DEFAULT(INVALID_PARAM);
     }
-    // ARINC specifies that threads shall be created in the DORMANT state
-    pok_thread_stop(core_process_id);
 }
 
 void STOP_SELF ()

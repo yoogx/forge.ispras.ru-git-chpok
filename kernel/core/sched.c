@@ -184,9 +184,6 @@ static void check_all_threads_stopped(void) {
                 if (pok_threads[part->thread_main].state != POK_STATE_STOPPED) {
                     return;
                 }
-#ifdef POK_NEEDS_ERROR_HANDLING
-                // TODO check error thread
-#endif
                 break;
             case POK_PARTITION_MODE_NORMAL:
                 // check all threads
@@ -202,10 +199,7 @@ static void check_all_threads_stopped(void) {
                 }
                 break;
             case POK_PARTITION_MODE_IDLE:
-            case POK_PARTITION_MODE_STOPPED:
                 break;
-            case POK_PARTITION_MODE_RESTART:
-                return; // TODO is it right?
         }
     }
     check_passed = TRUE;

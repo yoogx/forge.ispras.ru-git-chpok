@@ -10,6 +10,7 @@ LO_OBJS=portsampling_ops.o \
 	portqueueing_ops.o \
 	portflushall.o \
 	portinit.o \
+	portreset.o
 
 LO_DEPS=
 

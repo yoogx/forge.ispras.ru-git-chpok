@@ -42,6 +42,8 @@
 #ifndef __POK_KERNEL_PORTS_H__
 #define __POK_KERNEL_PORTS_H__
 
+#if defined(POK_NEEDS_PORTS_QUEUEING) || defined(POK_NEEDS_PORTS_SAMPLING)
+
 #include <types.h>
 #include <errno.h>
 #include <core/lockobj.h>
@@ -87,7 +89,15 @@ typedef struct
     unsigned char               data[];
 } pok_port_data_t;
 
+/*
+ * Called when the system is started.
+ */
 void pok_port_init(void);
+
+/*
+ * Called when partition is being restarted
+ */
+void pok_port_reset(pok_partition_id_t);
 
 #ifdef POK_NEEDS_PORTS_SAMPLING
 typedef struct
@@ -221,6 +231,8 @@ pok_ret_t pok_port_sampling_status (
     const pok_port_id_t         id,
     pok_port_sampling_status_t  *status
 );
+#endif
+
 #endif
 
 #endif

@@ -28,8 +28,6 @@ typedef enum
    POK_PARTITION_MODE_INIT_WARM = 2,
    POK_PARTITION_MODE_NORMAL    = 3,
    POK_PARTITION_MODE_IDLE      = 4,
-   POK_PARTITION_MODE_RESTART   = 5,
-   POK_PARTITION_MODE_STOPPED   = 6,
 }pok_partition_mode_t;
 
 typedef enum

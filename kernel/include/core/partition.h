@@ -55,18 +55,35 @@
  * \brief The different modes of a partition
  */
 typedef enum
-{
-   POK_PARTITION_MODE_INIT_COLD = 1, /**< Partition is in cold mode (init mode),
-                                       only the main thread is active */
-   POK_PARTITION_MODE_INIT_WARM = 2, /**< Partition is in warm init mode,
-                                       only the main thread is active */
-   POK_PARTITION_MODE_NORMAL    = 3, /**< Partition is currently being executed,
-                                       main thread is disabled, other threads
-                                       are running
-                                     */
-   POK_PARTITION_MODE_IDLE      = 4, /**< Idle mode, the partition is not executed */
-   POK_PARTITION_MODE_RESTART   = 5, /**< Currently being restarted */
-   POK_PARTITION_MODE_STOPPED   = 6, /**< Partition is stopped, it will no longer be executed */
+{ 
+   /*
+    * In init mode, only main thread (process) is run.
+    * This's the only mode where one can create various resources.
+    *
+    * There's really no difference between cold and warm init.
+    *   
+    * When partition is initially started, it's in cold init.
+    *
+    * HM table and set_partition_mode function may restart 
+    * partition into either cold or warm init mode.
+    *
+    * The exact type of init can be introspected by an application,
+    * but otherwise, it makes no difference.
+    */
+   POK_PARTITION_MODE_INIT_COLD = 1, 
+   POK_PARTITION_MODE_INIT_WARM = 2,
+
+   /*
+    * In normal mode, all threads except main can be run.
+    *
+    * No resources can be allocated.
+    */
+   POK_PARTITION_MODE_NORMAL    = 3, 
+
+   /*
+    * Partition is stopped.
+    */
+   POK_PARTITION_MODE_IDLE      = 4,
 }pok_partition_mode_t;
 
 typedef enum

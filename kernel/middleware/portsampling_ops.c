@@ -37,9 +37,11 @@
 
 // TODO revise return codes
 
-static int find_sampling_port(const char *name) {
+static int find_sampling_port(const char *name, pok_partition_id_t partid) {
     int i;
     for (i = 0; i < POK_CONFIG_NB_SAMPLING_PORTS; i++) {
+        if (pok_sampling_ports[i].header.partition != partid) continue;
+            
         if (strcmp(pok_sampling_ports[i].header.name, name) == 0) {
             return i;
         }
@@ -58,17 +60,11 @@ pok_ret_t pok_port_sampling_create(
     pok_port_id_t*                         id)
 {
     // first, find the port in the array
-    int index = find_sampling_port(name);
+    int index = find_sampling_port(name, POK_SCHED_CURRENT_PARTITION);
     if (index < 0) {
         return POK_ERRNO_PORT;
     }
     pok_port_sampling_t *port = &pok_sampling_ports[index];
-
-    // check that it belongs to the current partition
-    if (port->header.partition != POK_SCHED_CURRENT_PARTITION) {
-        DEBUG_PRINT("port doesn't belong to this partition\n");
-        return POK_ERRNO_PORT;
-    }
 
     // check that attributes passed match attributes in the configuration
     if (size <= 0 || size != port->max_message_size) {
@@ -230,15 +226,11 @@ pok_ret_t pok_port_sampling_read(
 pok_ret_t pok_port_sampling_id(const char *name,
                                pok_port_id_t *id)
 {
-    int index = find_sampling_port(name);
+    int index = find_sampling_port(name, POK_SCHED_CURRENT_PARTITION);
     if (index < 0) {
         return POK_ERRNO_PORT;
     }
     pok_port_sampling_t *port = &pok_sampling_ports[index];
-   
-    if (port->header.partition != POK_SCHED_CURRENT_PARTITION) {
-        return POK_ERRNO_EINVAL;
-    }
 
     if (!port->header.created) {
         return POK_ERRNO_EINVAL;
