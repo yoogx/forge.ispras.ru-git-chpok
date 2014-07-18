@@ -14,7 +14,8 @@ LO_OBJS=	arch.o		\
 			syscalls.o	\
 			interrupt.o	\
 			pci.o		\
-			exceptions.o
+			exceptions.o \
+			virtio_network.o \
 
 LO_DEPS=	$(BSP)/$(BSP).lo
 

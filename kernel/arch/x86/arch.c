@@ -27,10 +27,16 @@
 #include "event.h"
 #include "gdt.h"
 
+#include "virtio_network.h"
+
 pok_ret_t pok_arch_init ()
 {
   pok_gdt_init ();
   pok_event_init ();
+
+#ifdef POK_NEEDS_NETWORKING
+  pok_network_init();
+#endif
 
   return (POK_ERRNO_OK);
 }

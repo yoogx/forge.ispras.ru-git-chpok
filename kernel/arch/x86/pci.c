@@ -22,7 +22,7 @@
 # include "gdt.h"
 # include "event.h"
 
-static inline
+
 unsigned int pci_read(unsigned int bus,
 		      unsigned int dev,
 		      unsigned int fun,
@@ -37,7 +37,7 @@ unsigned int pci_read(unsigned int bus,
   return (val >> ((reg & 3) << 3));
 }
 
-static inline
+
 unsigned int pci_read_reg(s_pci_device* d,
 			  unsigned int reg)
 {
@@ -94,24 +94,18 @@ void dummy_pci_handler(void)
     );
 }
 
-void* ne2000_dev = NULL;
-
-pok_ret_t pci_register(s_pci_device*	dev,
-		       uint8_t		part_id)
+pok_ret_t pci_register(s_pci_device*	dev)
 {
   if (pci_open(dev) != 0)
     return (-1);
 
-  pok_partitions[part_id].io_min = (dev->bar[0] & (~0x1F));
-  pok_partitions[part_id].io_max = (dev->bar[0] & (~0x1F)) + dev->io_range;
-
+  /*
   pok_idt_set_gate(32 + dev->irq_line,
 		   GDT_CORE_CODE_SEGMENT,
 		   (uint32_t) pci_handler,
 		   IDTE_INTERRUPT,
 		   0);
-
-  ne2000_dev = dev;
+  */
 
   return (0);
 }

@@ -37,6 +37,7 @@
 #  define PCI_REG_DEVICEID	0x02
 #  define PCI_REG_HEADERTYPE	0x0E
 #  define PCI_REG_BAR0		0x10
+#  define PCI_REG_SUBSYSTEM     0x2C
 #  define PCI_REG_IRQLINE	0x3C
 
 /*
@@ -63,7 +64,15 @@ typedef struct
   void*		irq_handler;
 } s_pci_device;
 
-pok_ret_t pci_register(s_pci_device* dev, uint8_t part_id);
+unsigned int pci_read(unsigned int bus,
+		      unsigned int dev,
+		      unsigned int fun,
+		      unsigned int reg);
+
+unsigned int pci_read_reg(s_pci_device* d,
+			  unsigned int reg);
+
+pok_ret_t pci_register(s_pci_device* dev);
 
 # endif /* __POK_X86_PCI_H__ */
 #endif /* POK_NEEDS_PCI */
