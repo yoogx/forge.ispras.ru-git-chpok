@@ -134,7 +134,6 @@ void pok_sched_init (void)
 pok_partition_id_t pok_elect_partition(void)
 {
   pok_partition_id_t next_partition = POK_SCHED_CURRENT_PARTITION;
-# if POK_CONFIG_NB_PARTITIONS > 1
   uint64_t now = POK_GETTICK();
 
   if (pok_sched_next_deadline <= now)
@@ -160,7 +159,6 @@ pok_partition_id_t pok_elect_partition(void)
       */
     next_partition = pok_sched_slots_allocation[pok_sched_current_slot];
   }
-# endif /* POK_CONFIG_NB_PARTITIONS > 1 */
 
   return next_partition;
 }

@@ -20,6 +20,7 @@ simplify generation of POK kernel configuration.
 """
 
 import os
+import abc
 import json
 import functools
 import collections
@@ -31,8 +32,10 @@ class TimeSlot:
 
 class Partition:
     __slots__ = [
+        "name", 
+
         "size", # allocated RAM size in bytes (code + static storage)
-        "num_threads", # number of user threads, _not_ counting init thread
+        "num_threads", # number of user threads, _not_ counting init thread and error handler
         "ports", # list of ports
 
         "num_arinc653_buffers",
@@ -45,9 +48,6 @@ class Partition:
 
         "hm_table", # partition hm table
     ]
-
-    def __init__(self):
-        self.hm_table = []
 
     def get_all_ports(self):
         return list(self.ports)
@@ -82,6 +82,7 @@ class Partition:
     def get_needed_threads(self):
         return (
             1 + # init thread
+            1 + # error handler
             self.num_threads
         )
 
@@ -126,10 +127,52 @@ class QueueingPort:
             if not hasattr(self, attr):
                 raise ValueError("%r is not set for %r" % (attr, self))
 
-class PortChannel:
-    def __init__(self, src, dst):
+class Channel:
+    __slots__ = ["src", "dst"]
+
+    def __init__(self, src=None, dst=None):
         self.src = src
         self.dst = dst
+
+    def validate(self):
+        if not isinstance(self.src, Connection):
+            raise TypeError
+        if not isinstance(self.dst, Connection):
+            raise TypeError
+
+        if self.get_local_connection() == None:
+            raise ValueError("at least one connection per channel must be local")
+
+        self.src.validate()
+        self.dst.validate()
+
+    def get_local_connection(self):
+        if isinstance(self.src, LocalConnection):
+            return self.src
+        if isinstance(self.dst, LocalConnection):
+            return self.dst
+        return None
+
+    def is_queueing(self):
+        return isinstance(self.get_local_connection().port, QueueingPort)
+    
+    def is_sampling(self):
+        return isinstance(self.get_local_connection().port, SamplingPort)
+
+class Connection:
+    @abc.abstractmethod
+    def validate(self):
+        pass
+
+class LocalConnection(Connection):
+    __slots__ = ["port"]
+
+    def validate(self):
+        if not hasattr(self, "port") or self.port == None:
+            raise ValueError
+
+        if not isinstance(self.port, (QueueingPort, SamplingPort)):
+            raise TypeError
 
 class Configuration:
 
@@ -161,8 +204,15 @@ class Configuration:
     def get_all_queueing_ports(self):
         return sum((part.get_all_queueing_ports() for part in self.partitions), [])
 
-    def get_port_by_name_and_partition(self, partition_idx, port_name):
-        return self.partitions[partition_idx].get_port_by_name(port_name)
+    def get_partition_by_name(self, name):
+        return [
+            part
+            for part in self.partitions
+            if part.name == name
+        ][0]
+
+    def get_port_by_partition_and_name(self, partition_name, port_name):
+        return self.get_partition_by_name(partition_name).get_port_by_name(port_name)
 
     def validate(self):
         for part in self.partitions:
@@ -224,9 +274,6 @@ SAMPLING_PORT_TEMPLATE = """\
             .name = %(name)s,
             .partition = %(partition)s,
             .direction = %(direction)s,
-
-            .channels=%(channels)s,
-            .num_channels=%(num_channels)s,
         },
         .max_message_size = %(max_message_size)s,
         .data = (void *) %(data)s,
@@ -247,9 +294,6 @@ QUEUEING_PORT_TEMPLATE = """\
             .name = %(name)s,
             .partition = %(partition)s,
             .direction = %(direction)s,
-            
-            .channels=%(channels)s,
-            .num_channels=%(num_channels)s,
         },
         .max_message_size = %(max_message_size)d,
         .max_nb_messages = %(max_nb_messages)d,
@@ -264,6 +308,19 @@ static struct {
     pok_port_size_t message_size;
     char data[%(max_message_size)d];
 } %(varname)s[%(max_nb_messages)d];
+"""
+
+PORT_CONNECTION_NULL = """\
+    { .kind = POK_PORT_CONNECTION_NULL
+    }
+"""
+
+PORT_CONNECTION_LOCAL_TEMPLATE = """\
+    { .kind = POK_PORT_CONNECTION_LOCAL, 
+      .local =  {
+        .port_id = %(port_id)d, 
+      }
+    }
 """
 
 def _c_string(b):
@@ -367,6 +424,8 @@ def write_kernel_deployment_c_ports(conf, f):
 
     p("#include <middleware/port.h>")
 
+    # various misc. functions
+
     def get_partition(port):
         for i, part in enumerate(conf.partitions):
             if port in part.ports:
@@ -394,6 +453,14 @@ def write_kernel_deployment_c_ports(conf, f):
             return all_queueing_ports.index(port)
 
         assert False
+        
+    def get_connection_string(conn):
+        if isinstance(conn, LocalConnection):
+            return PORT_CONNECTION_LOCAL_TEMPLATE % dict(
+                port_id=get_port_index(conn.port)
+            )
+        else:
+            raise TypeError(type(conn))
     
 
     all_ports = [
@@ -428,36 +495,15 @@ def write_kernel_deployment_c_ports(conf, f):
             max_nb_messages=port.max_nb_messages,
         ))
 
-    # print static channel definitions
-    channels_per_port = collections.defaultdict(list)
-    for chan in conf.channels:
-        channels_per_port[chan.src].append(chan)
-
-    # the value are tuples (varname, nchannels)
-    channel_descriptors_by_port = {}
-    for port, channels in channels_per_port.items():
-        varname = get_internal_port_name(port, "channels")
-
-        channel_dests = [chan.dst for chan in channels]
-        channel_string = ", ".join(str(get_port_index(dst)) for dst in channel_dests)
-        
-        p("static pok_port_id_t %s[] = {%s};" % (varname, channel_string))
-
-        channel_descriptors_by_port[port] = (varname, len(channels))
-
     # print non-static definitions
-
     p("pok_port_sampling_t pok_sampling_ports[] = {")
     for i, port in enumerate(all_sampling_ports):
-        var_channels, num_channels = channel_descriptors_by_port.get(port, ("NULL", 0))
 
         p(SAMPLING_PORT_TEMPLATE % dict(
             name=_c_string(port.name),
             partition=get_partition(port),
             direction=_get_port_direction(port),
             max_message_size=port.max_message_size,
-            channels=var_channels,
-            num_channels=num_channels,
             data="&" + get_internal_port_name(port, "data")
         ))
     p("};")
@@ -465,7 +511,6 @@ def write_kernel_deployment_c_ports(conf, f):
     
     p("pok_port_queueing_t pok_queueing_ports[] = {")
     for i, port in enumerate(all_queueing_ports):
-        var_channels, num_channels = channel_descriptors_by_port.get(port, ("NULL", 0))
 
         p(QUEUEING_PORT_TEMPLATE % dict(
             name=_c_string(port.name),
@@ -473,12 +518,31 @@ def write_kernel_deployment_c_ports(conf, f):
             direction=_get_port_direction(port),
             max_message_size=port.max_message_size,
             max_nb_messages=port.max_nb_messages,
-            channels=var_channels,
-            num_channels=num_channels,
             data="&" + get_internal_port_name(port, "data"),
             data_stride="sizeof(%s[0])" % get_internal_port_name(port, "data")
         ))
     p("};")
+
+    def print_channels(predicate, variable_name):
+        p("pok_port_channel_t %s[] = {" % variable_name)
+        for channel in conf.channels:
+            if not predicate(channel): continue
+
+            p("{")
+            p(".src = %s," % get_connection_string(channel.src))
+            p(".dst = %s," % get_connection_string(channel.dst))
+            p("},")
+
+        p("{")
+        p(".src = %s," % PORT_CONNECTION_NULL)
+        p(".dst = %s," % PORT_CONNECTION_NULL)
+        p("},")
+
+        p("};")
+
+    print_channels(lambda c: c.is_queueing(), "pok_queueing_port_channels")
+    print_channels(lambda c: c.is_sampling(), "pok_sampling_port_channels")
+
 
 def write_kernel_deployment_c_hm_tables(conf, f):
     p = functools.partial(print, file=f)

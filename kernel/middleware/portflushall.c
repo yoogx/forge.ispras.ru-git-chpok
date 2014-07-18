@@ -53,30 +53,14 @@
 #include <middleware/port.h>
 #include <middleware/port_utils.h>
 
-static void flush_sampling_port(pok_port_sampling_t *src) {
-    if (!src->header.must_be_flushed) {
-        return;
-    }
+#include <assert.h>
 
-    size_t i;
-    for (i = 0; i < src->header.num_channels; i++) {
-        pok_port_id_t dst_id = src->header.channels[i];
-        pok_port_sampling_t *dst = &pok_sampling_ports[dst_id];
+static void pok_queueing_channel_flush(pok_port_channel_t *chan)
+{
+    pok_port_queueing_t *src = &pok_queueing_ports[chan->src.local.port_id];
 
-        memcpy(&dst->data->data[0], &src->data->data[0], src->data->message_size);
-        dst->data->message_size = src->data->message_size;
-        dst->not_empty = TRUE;
-        dst->last_receive = POK_GETTICK(); // TODO or copy it from src port?
-    }
-
-    src->header.must_be_flushed = FALSE;
-}
-
-static void flush_queueing_port(pok_port_queueing_t *src) {
-    // XXX multicasting for queuing ports is not supported (and perhaps shouldn't be)
-    size_t i;
-    for (i = 0; i < src->header.num_channels && i < 1; i++) {
-        pok_port_id_t dst_id = src->header.channels[i];
+    if (chan->dst.kind == POK_PORT_CONNECTION_LOCAL) {
+        pok_port_id_t dst_id = chan->dst.local.port_id;
         pok_port_queueing_t *dst = &pok_queueing_ports[dst_id];
 
         while (!pok_port_utils_queueing_full(dst) && !pok_port_utils_queueing_empty(src)) {
@@ -86,26 +70,71 @@ static void flush_queueing_port(pok_port_queueing_t *src) {
         // wake up processes that possibly wait for messages
         // TODO wake them up in order
         pok_lockobj_eventbroadcast(&dst->header.lock);
+    } else {
+        assert(0 && "Unknown connection type");
     }
-    // wake up processes that possible wait for port becoming non-full
+    // wake up processes that possibly wait for port becoming non-full
     // TODO wake them up in order
     pok_lockobj_eventbroadcast(&src->header.lock);
+
 }
 
-static void pok_port_flush_partition (int pid)
+static void pok_sampling_channel_flush(pok_port_channel_t *chan)
 {
-    int i;
-    for (i = 0; i < POK_CONFIG_NB_SAMPLING_PORTS; i++) {
-        pok_port_sampling_t *port = &pok_sampling_ports[i];
-        if (port->header.partition == pid) {
-            flush_sampling_port(port);
-        }   
+    pok_port_sampling_t *src = &pok_sampling_ports[chan->src.local.port_id];
+
+    if (!src->header.must_be_flushed) {
+        return;
     }
-    for (i = 0; i < POK_CONFIG_NB_QUEUEING_PORTS; i++) {
-        pok_port_queueing_t *port = &pok_queueing_ports[i];
-        if (port->header.partition == pid) {
-            flush_queueing_port(port);
-        }      
+
+    if (chan->dst.kind == POK_PORT_CONNECTION_LOCAL) {
+        pok_port_id_t dst_id = chan->dst.local.port_id;
+        pok_port_sampling_t *dst = &pok_sampling_ports[dst_id];
+
+        memcpy(&dst->data->data[0], &src->data->data[0], src->data->message_size);
+        dst->data->message_size = src->data->message_size;
+        dst->not_empty = TRUE;
+        dst->last_receive = POK_GETTICK(); // TODO or copy it from src port?
+
+    } else {
+        assert(0 && "Unknown connection type");
+    }
+    
+    // TODO if we are going to implement multicast
+    //      this should go elsewhere
+    src->header.must_be_flushed = FALSE;
+
+}
+
+static void pok_port_flush_partition (pok_partition_id_t pid)
+{
+    // send all _outgoing_ packets
+
+    int i;
+    // queueing ports
+    for (i = 0; pok_queueing_port_channels[i].src.kind != POK_PORT_CONNECTION_NULL; i++) {
+        pok_port_channel_t *chan = &pok_queueing_port_channels[i];
+        
+        if (chan->src.kind != POK_PORT_CONNECTION_LOCAL) continue; 
+        
+        pok_port_queueing_t *port = &pok_queueing_ports[chan->src.local.port_id];
+
+        if (port->header.partition != pid) continue;
+
+        pok_queueing_channel_flush(chan);
+    }
+
+    // sampling ports
+    for (i = 0; pok_sampling_port_channels[i].src.kind != POK_PORT_CONNECTION_NULL; i++) {
+        pok_port_channel_t *chan = &pok_sampling_port_channels[i];
+        
+        if (chan->src.kind != POK_PORT_CONNECTION_LOCAL) continue; 
+        
+        pok_port_sampling_t *port = &pok_sampling_ports[chan->src.local.port_id];
+
+        if (port->header.partition != pid) continue;
+
+        pok_sampling_channel_flush(chan);
     }
 }
 

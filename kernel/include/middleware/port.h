@@ -75,12 +75,8 @@ typedef struct
     pok_port_direction_t        direction;
     pok_lockobj_t               lock;
 
-    size_t                      num_channels;
-    pok_port_id_t               *channels;
-
     pok_bool_t                  created;
     pok_bool_t                  must_be_flushed;
-
 } pok_port_header_t;
 
 typedef struct
@@ -88,6 +84,28 @@ typedef struct
     pok_port_size_t             message_size;
     unsigned char               data[];
 } pok_port_data_t;
+
+typedef enum
+{
+    POK_PORT_CONNECTION_NULL = 0, // used as a sentinel
+    POK_PORT_CONNECTION_LOCAL = 1,
+} pok_port_connection_kind_t;
+
+typedef struct
+{
+    pok_port_connection_kind_t kind;
+
+    union {
+        struct {
+            pok_port_id_t port_id;
+        } local;
+    };
+} pok_port_connection_t;
+
+typedef struct
+{
+    pok_port_connection_t src, dst;
+} pok_port_channel_t;
 
 /*
  * Called when the system is started.
@@ -113,6 +131,7 @@ typedef struct
 } pok_port_sampling_t;
 
 extern pok_port_sampling_t pok_sampling_ports[POK_CONFIG_NB_SAMPLING_PORTS];
+extern pok_port_channel_t pok_sampling_port_channels[];
 #endif
 
 #ifdef POK_NEEDS_PORTS_QUEUEING
@@ -132,6 +151,7 @@ typedef struct
 } pok_port_queueing_t;
 
 extern pok_port_queueing_t pok_queueing_ports[POK_CONFIG_NB_QUEUEING_PORTS];
+extern pok_port_channel_t pok_queueing_port_channels[];
 #endif
 
 #ifdef POK_NEEDS_PORTS_QUEUEING
