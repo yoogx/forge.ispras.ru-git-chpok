@@ -11,6 +11,8 @@ OBJS = main.o deployment.o
 all: libpok $(TARGET)
 
 clean: common-clean
+	$(RM) -f deployment.c
+	$(RM) -f deployment.h
 
 include $(POK_PATH)/misc/mk/common-$(ARCH).mk
 include $(POK_PATH)/misc/mk/rules-common.mk

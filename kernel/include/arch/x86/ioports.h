@@ -34,6 +34,20 @@
   res;                                                          \
 })
 
+#define outw(port, data)                                        \
+  asm volatile ("outw %0,%w1"					\
+                :						\
+		:"a" (data),"d" (port))
+
+#define inw(port)                                               \
+({                                                              \
+  unsigned short res;						\
+  asm volatile ("inw %w1,%0"					\
+                :"=a" (res)                                     \
+                :"d" (port));					\
+  res;                                                          \
+})
+
 #define outl(port, data)                                        \
   asm volatile ("outl %0,%w1"					\
                 :						\

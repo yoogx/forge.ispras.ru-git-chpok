@@ -94,7 +94,7 @@ pok_ret_t pok_exception_init()
   return (POK_ERRNO_OK);
 }
 
-#if defined (POK_NEEDS_DEBUG) && ! defined (POK_NEEDS_ERROR_HANDLING)
+__attribute__((unused))
 static void dump_registers (interrupt_frame *frame)
 {
   printf ("ES: %x, DS: %x\n", frame->es, frame->ds);

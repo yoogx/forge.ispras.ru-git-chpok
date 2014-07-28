@@ -23,6 +23,7 @@
 
 #include <arch.h>
 #include <bsp.h>
+#include <net/network.h>
 
 #include <core/time.h>
 #include <core/thread.h>
@@ -38,6 +39,10 @@ void pok_boot ()
 {
    pok_arch_init();
    pok_bsp_init();
+
+#ifdef POK_NEEDS_NETWORKING
+   pok_network_init();
+#endif
 
 #if defined (POK_NEEDS_TIME) || defined (POK_NEEDS_SCHED) || defined (POK_NEEDS_THREADS)
    pok_time_init();

@@ -47,18 +47,18 @@ QEMU_MISC += -serial file:/dev/stdout
 
 # uncomment if you don't want to see QEMU window
 # useful with the previous option
-#QEMU_MISC += -display none
+QEMU_MISC += -display none
 
-QEMU_MISC += 
+#QEMU_MISC += -S
 
 # uncomment if you want to use KVM
-QEMU_MISC += -enable-kvm
+#QEMU_MISC += -enable-kvm
 
 # uncomment this if you want to use gdb
 #QEMU_MISC += -S -s
 
-QEMU_MISC += -net nic,model=virtio 
-#QEMU_MISC += -net tap,helper=/usr/libexec/qemu-bridge-helper
+QEMU_MISC += -net nic,vlan=0,name=virt0,model=virtio,macaddr=52:54:00:00:00:00
+QEMU_MISC += -net tap,ifname=tap0,script=no,downscript=no
 
 # override it so QEMU doesn't run in background
 launch-run:

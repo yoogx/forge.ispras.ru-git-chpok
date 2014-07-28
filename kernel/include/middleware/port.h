@@ -48,6 +48,10 @@
 #include <errno.h>
 #include <core/lockobj.h>
 
+#ifdef POK_NEEDS_NETWORKING
+#include <net/network.h>
+#endif
+
 typedef enum
 {
 	 POK_PORT_QUEUEING_DISCIPLINE_FIFO      = 1,
@@ -89,7 +93,52 @@ typedef enum
 {
     POK_PORT_CONNECTION_NULL = 0, // used as a sentinel
     POK_PORT_CONNECTION_LOCAL = 1,
+#ifdef POK_NEEDS_NETWORKING
+    POK_PORT_CONNECTION_UDP = 2,
+#endif
 } pok_port_connection_kind_t;
+
+#ifdef POK_NEEDS_NETWORKING
+typedef struct
+{
+    uint32_t ip;
+    uint16_t port;
+
+    pok_bool_t buffer_being_used;
+
+    char buffer[]; 
+} pok_port_connection_sampling_udp_send_t;
+
+typedef struct
+{
+    uint32_t ip;
+    uint16_t port;
+} pok_port_connection_sampling_udp_recv_t;
+
+// we use scatter/gather thing here, 
+// so network overhead can be separated from
+// actual messages
+typedef struct
+{
+    int status;
+    void *chan; // pointer to corresponding channel (wastes space, but I can't think of more efficient way right now)
+    char overhead[POK_NETWORK_OVERHEAD];
+} pok_port_connection_queueing_udp_send_aux_t;
+
+typedef struct
+{
+    uint32_t ip;
+    uint16_t port;
+
+    pok_port_connection_queueing_udp_send_aux_t aux_array[];
+} pok_port_connection_queueing_udp_send_t;
+
+typedef struct
+{
+    uint32_t ip;
+    uint16_t port;
+} pok_port_connection_queueing_udp_recv_t;
+#endif
 
 typedef struct
 {
@@ -99,6 +148,20 @@ typedef struct
         struct {
             pok_port_id_t port_id;
         } local;
+#ifdef POK_NEEDS_NETWORKING
+        struct {
+            union {
+                // actual type depends on whether it's src or dst,
+                // and on type of the port
+                pok_port_connection_sampling_udp_recv_t *sp_recv_ptr;
+                pok_port_connection_sampling_udp_send_t *sp_send_ptr;
+                pok_port_connection_queueing_udp_recv_t *qp_recv_ptr;
+                pok_port_connection_queueing_udp_send_t *qp_send_ptr;
+
+                void *ptr; // this one for simplicity of code generation
+            };
+        } udp;
+#endif
     };
 } pok_port_connection_t;
 
@@ -111,6 +174,10 @@ typedef struct
  * Called when the system is started.
  */
 void pok_port_init(void);
+
+#ifdef POK_NEEDS_NETWORKING
+void pok_port_network_init(void);
+#endif
 
 /*
  * Called when partition is being restarted

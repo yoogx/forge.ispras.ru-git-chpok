@@ -37,6 +37,8 @@ pok_ret_t pok_bsp_irq_register (uint8_t irq,
 
 void  *pok_bsp_mem_alloc (size_t size);
 
+void  *pok_bsp_mem_alloc_aligned(size_t size, size_t alignment);
+
 pok_ret_t pok_bsp_time_init ();
 
 bool_t pok_cons_write (const char* s,

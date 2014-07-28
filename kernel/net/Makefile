@@ -3,9 +3,12 @@ TOPDIR=		../../
 include $(TOPDIR)/misc/mk/config.mk
 -include $(TOPDIR)/misc/mk/common-$(ARCH).mk
 
-LO_TARGET=	libc.lo
+LO_TARGET= net.lo	
 
-LO_OBJS=	memcpy.o memset.o memcmp.o __udivdi3.o printf.o strlen.o strcmp.o
+LO_OBJS= \
+	 network.o \
+	 ip.o \
+
 
 LO_DEPS=
 

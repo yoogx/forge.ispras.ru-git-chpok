@@ -29,9 +29,8 @@
                      XXX Refresh - might as well remove it
                 -->
                 <Queueing_Port Name="QP1" MaxMessageSize="64" Direction="SOURCE" MaxNbMessage="10" />
-                <Queueing_Port Name="QP2" MaxMessageSize="64" Direction="DESTINATION" MaxNbMessage="10" />
 
-                <Sampling_Port Name="SP1" MaxMessageSize="64" Direction="SOURCE" Refresh="1s" />
+                <Sampling_Port Name="SP1" MaxMessageSize="64" Direction="DESTINATION" Refresh="1s" />
             </ARINC653_Ports>
 
             <HM_Table>
@@ -49,7 +48,7 @@
 
             FIXME Offset and PeriodicProcessingStart are currently ignored 
         -->
-        <Slot PartitionNameRef="P1" Duration="200ms" Offset="0" PeriodicProcessingStart="False" />
+        <Slot PartitionNameRef="P1" Duration="50ms" Offset="0" PeriodicProcessingStart="False" />
     </Schedule>
 
     <!--
@@ -66,19 +65,19 @@
                 <Standard_Partition PartitionName="P1" PortName="QP1"/>
             </Source>
             <Destination>
-                <Standard_Partition PartitionName="P1" PortName="QP2" />
+                <UDP IP="10.0.0.1" Port="10042" />
             </Destination>
         </Channel>
 
-        <!--
         <Channel>
             <Source>
-                <Standard_Partition PartitionName="P1" PortName="SP1" />
+                <UDP IP="0.0.0.0" Port="10000" />
             </Source>
             <Destination>
-                <UDP IP="255.255.255.255" Port="10000" />
+                <Standard_Partition PartitionName="P1" PortName="SP1" />
             </Destination>
         </Channel>
-        -->
     </Connection_Table>
+
+    <Network IP="10.0.0.2" />
 </chpok-configuration>

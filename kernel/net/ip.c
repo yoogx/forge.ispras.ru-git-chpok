@@ -1,4 +1,5 @@
-/*  Copyright (C) 2014 Maxim Malkov, ISPRAS <malkov@ispras.ru> 
+/*  
+ *  Copyright (C) 2014 Maxim Malkov, ISPRAS <malkov@ispras.ru> 
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -14,13 +15,19 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __POK_VIRTIO_NETWORK_H__
-#define __POK_VIRTIO_NETWORK_H__
+#include <net/ip.h>
 
-#ifdef POK_NEEDS_NETWORKING
-    
-void pok_network_init(void);
+uint16_t ip_hdr_checksum(const struct ip_hdr *ip_hdr)
+{
+    uint32_t acc = 0;
 
-#endif
+    // TODO does it break aliasing?
+    const uint16_t *words = (const uint16_t*) ip_hdr;
 
-#endif
+    int i;
+    for (i = 0; i < ip_hdr->header_length * 2; i++) {
+        acc += words[i];
+    }
+
+    return ~((acc & 0xFFFF) + (acc >> 16));
+}

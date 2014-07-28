@@ -1,21 +1,21 @@
 export ARCH=x86
 export BSP=x86-qemu
-
 export DEPLOYMENT_HEADER=$(shell pwd)/deployment.h
 
 include $(POK_PATH)/misc/mk/config.mk
-
-LO_TARGET = kernel.lo
-LO_DEPS = pok.lo
-
-LO_OBJS += deployment.o
-
-all: kernel copy-kernel $(LO_TARGET)
+TARGET	=  pr1.elf
+OBJS = main.o deployment.o
 
 .PHONY: clean distclean install all
 
+all: libpok $(TARGET)
+
 clean: common-clean
+	$(RM) -f deployment.c
+	$(RM) -f deployment.h
 
 include $(POK_PATH)/misc/mk/common-$(ARCH).mk
 include $(POK_PATH)/misc/mk/rules-common.mk
-include $(POK_PATH)/misc/mk/rules-kernel.mk
+include $(POK_PATH)/misc/mk/rules-partition.mk
+
+CFLAGS+= -I $(shell pwd)/../test_environ
