@@ -35,7 +35,6 @@ static pok_port_data_t * pok_port_utils_queueing_head(
     return (pok_port_data_t *) port->data + port->data_stride * index;
 }
 
-
 void pok_port_utils_queueing_write(
         pok_port_queueing_t *port, 
         const void *message,

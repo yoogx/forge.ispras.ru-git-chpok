@@ -19,11 +19,13 @@ simplify generation of POK kernel configuration.
 
 """
 
+import sys
 import os
 import abc
 import json
 import functools
 import collections
+import ipaddress
 
 class TimeSlot:
     def __init__(self, duration, partition):
@@ -174,12 +176,57 @@ class LocalConnection(Connection):
         if not isinstance(self.port, (QueueingPort, SamplingPort)):
             raise TypeError
 
+class UDPConnection(Connection):
+    __slots__ = ["host", "port"]
+
+    def validate(self):
+        if not hasattr(self, "host"):
+            raise AttributeError("host")
+
+        if not isinstance(self.host, ipaddress.IPv4Adress):
+            raise TypeError(type(self.host))
+
+        if not hasattr(self, "port"):
+            raise AttributeError("port")
+
+        if not isinstance(self.port, int):
+            raise TypeError(type(self.port))
+
+        if port < 0 or port > 0xFFFF:
+            raise ValueError(self.port)
+
+class NetworkConfiguration:
+    __slots__ = [
+        #"mac", # mac address
+        "ip", # IP used as source
+    ]
+
+    def validate(self):
+        #if not hasattr(self, "mac"):
+        #    raise AttributeError
+        #if self.mac is not None:
+        #    if not isinstance(self.mac, bytes):
+        #        raise TypeError
+        #    if len(self.mac) != 6:
+        #        raise ValueError
+        #    if not (self.mac[0] & 0x2):
+        #        print("Warning! MAC address is not locally administered one", file=sys.stderr)
+        
+        if not hasattr(self, "ip"):
+            raise AttributeError
+        if not isinstance(self.ip, ipaddress.IPv4Address):
+            raise TypeError
+
+    #def mac_to_string(self):
+    #    return "{%s}" % ", ".join(hex(i) for i in self.mac)
+
 class Configuration:
 
     __slots__ = [
         "partitions", 
         "slots", # time windows
         "channels", # queueing and sampling port channels (connections)
+        "network", # NetworkConfiguration object
 
         # if this is set, POK writes a special string once 
         # there are no more schedulable threads
@@ -192,6 +239,7 @@ class Configuration:
         self.partitions = []
         self.slots = []
         self.channels = []
+        self.network = None
 
         self.test_support_print_when_all_threads_stopped = False
 
@@ -218,6 +266,12 @@ class Configuration:
         for part in self.partitions:
             part.validate()
 
+        if self.network:
+            self.network.validate()
+
+    def get_all_channels(self):
+        return self.channels
+
 COMMON_KERNEL_DEFINES = """\
 #define POK_NEEDS_LOCKOBJECTS  1
 #define POK_NEEDS_THREADS      1
@@ -232,7 +286,6 @@ COMMON_KERNEL_DEFINES = """\
 #define POK_NEEDS_THREAD_SUSPEND 1
 #define POK_NEEDS_THREAD_SLEEP 1
 #define POK_NEEDS_THREAD_ID 1
-
 """ 
 
 COMMON_PARTITION_DEFINES = """\
@@ -323,6 +376,79 @@ PORT_CONNECTION_LOCAL_TEMPLATE = """\
     }
 """
 
+PORT_CONNECTION_UDP_TEMPLATE = """
+    { .kind = POK_PORT_CONNECTION_UDP,
+      .udp = {.ptr = %s }
+    }
+"""
+
+# this one is terrible
+#
+# we're allocating structure for both
+# misc. info (like ip, port, and status flag),
+# and for send buffer
+#
+# the latter is "variable" (it's static, but depends on the port),
+# so we use this union trick to allocate extra memory
+# after the end of structure
+SAMPLING_PORT_UDP_SEND_BUFFER_TEMPLATE = """
+static union {
+    char foo[
+        sizeof(pok_port_connection_sampling_udp_send_t) +
+        // message buffer starts here
+        POK_NETWORK_OVERHEAD +
+        %(max_message_size)d // max message size
+    ];
+    pok_port_connection_sampling_udp_send_t info;
+} %(varname)s = {
+    .info = {
+        .ip = %(ip)s,
+        .port = %(port)d,
+        .buffer_being_used = FALSE,
+    },
+};
+"""
+
+SAMPLING_PORT_UDP_RECV_BUFFER_TEMPLATE = """
+static struct {
+    pok_port_connection_sampling_udp_recv_t info;
+} %(varname)s = {
+    .info = {
+        .ip = %(ip)s,
+        .port = %(port)d,
+    },
+};
+"""
+
+QUEUEING_PORT_UDP_SEND_BUFFER_TEMPLATE = """
+static union {
+    char foo[
+        sizeof(pok_port_connection_queueing_udp_send_t) +
+        sizeof(
+            pok_port_connection_queueing_udp_send_aux_t 
+        ) * %(max_nb_messages)d
+    ];
+
+    pok_port_connection_queueing_udp_send_t info;
+} %(varname)s = {
+    .info = {
+        .ip = %(ip)s,
+        .port = %(port)d,
+    },
+};
+"""
+
+QUEUEING_PORT_UDP_RECV_BUFFER_TEMPLATE = """
+static struct {
+    pok_port_connection_queueing_udp_recv_t info;
+} %(varname)s = {
+    .info = {
+        .ip = %(ip)s,
+        .port = %(port)d,
+    },
+};
+"""
+
 def _c_string(b):
     # accidentally, JSON string is very close to C string literal
     return json.dumps(b)
@@ -352,6 +478,11 @@ def write_kernel_deployment_h(conf, f):
     p("#define __POK_KERNEL_GENERATED_DEPLOYMENT_H_")
     
     p(COMMON_KERNEL_DEFINES)
+
+    if conf.network:
+        p("#define POK_NEEDS_PCI 1")
+        p("#define POK_NEEDS_NETWORKING 1")
+        p("#define POK_NEEDS_NETWORKING_VIRTIO 1")
 
     total_threads = (
         1 + # kernel thread
@@ -419,6 +550,17 @@ def write_kernel_deployment_c(conf, f):
 
     write_kernel_deployment_c_hm_tables(conf, f)
 
+    if conf.network:
+        #if conf.network.mac != None:
+        #    p("static const unsigned char mac[] = %s;" % conf.network.mac_to_string());
+        #    p("const unsigned char *pok_network_mac_address = mac;")
+        #else:
+        #    p("const unsigned char *pok_network_mac_address = NULL;")
+
+        p("const uint32_t pok_network_ip_address = %s;" % hex(int(conf.network.ip)))
+
+        
+
 def write_kernel_deployment_c_ports(conf, f):
     p = functools.partial(print, file=f)
 
@@ -443,6 +585,22 @@ def write_kernel_deployment_c_ports(conf, f):
 
         assert False
 
+    def get_internal_chan_name(chan, suffix=""):
+        for i, c in enumerate(conf.channels):
+            if c == chan:
+                return "chan_%d_%s" % (i, suffix)
+
+        assert False
+
+    def get_internal_conn_name(conn, suffix=""):
+        for i, chan in enumerate(conf.channels):
+            if chan.src == conn:
+                return "chan_%d_src_%s" % (i, suffix)
+            if chan.dst == conn:
+                return "chan_%d_dst_%s" % (i, suffix)
+
+        assert False
+
     def get_port_index(port):
         # returns port index in port array
         # queueing and sampling port have distinct "indexspaces"
@@ -458,6 +616,14 @@ def write_kernel_deployment_c_ports(conf, f):
         if isinstance(conn, LocalConnection):
             return PORT_CONNECTION_LOCAL_TEMPLATE % dict(
                 port_id=get_port_index(conn.port)
+            )
+        elif isinstance(conn, UDPConnection):
+            addr = hex(int(conn.host))
+            port = conn.port
+
+            return PORT_CONNECTION_UDP_TEMPLATE % (
+                "&" + 
+                get_internal_conn_name(conn, "udp_misc")
             )
         else:
             raise TypeError(type(conn))
@@ -494,6 +660,62 @@ def write_kernel_deployment_c_ports(conf, f):
             max_message_size=port.max_message_size,
             max_nb_messages=port.max_nb_messages,
         ))
+
+    # static storage for sampling/queueing send buffers
+    for i, conn in enumerate(conf.channels):
+        if not isinstance(conn.dst, UDPConnection):
+            continue
+        
+        # it's for sure
+        assert isinstance(conn.src, LocalConnection)
+
+        varname = get_internal_conn_name(conn.dst, "udp_misc")
+        max_message_size = conn.src.port.max_message_size
+
+        if isinstance(conn.src.port, SamplingPort):
+            p(SAMPLING_PORT_UDP_SEND_BUFFER_TEMPLATE % dict(
+                varname=varname,
+                max_message_size=max_message_size,
+                ip=hex(int(conn.dst.host)),
+                port=conn.dst.port,
+            ))
+        elif isinstance(conn.src.port, QueueingPort):
+            max_nb_messages = conn.src.port.max_nb_messages
+
+            p(QUEUEING_PORT_UDP_SEND_BUFFER_TEMPLATE % dict(
+                varname=varname,
+                max_message_size=max_message_size,
+                max_nb_messages=max_nb_messages,
+                ip=hex(int(conn.dst.host)),
+                port=conn.dst.port,
+            ))
+        else:
+            assert False
+
+    # static storage for sampling/queueing recv info (no buffer, though)
+    for i, conn in enumerate(conf.channels):
+        if not isinstance(conn.src, UDPConnection):
+            continue
+
+        # it's for sure
+        assert isinstance(conn.dst, LocalConnection)
+
+        varname = get_internal_conn_name(conn.src, "udp_misc")
+
+        if isinstance(conn.dst.port, SamplingPort):
+            p(SAMPLING_PORT_UDP_RECV_BUFFER_TEMPLATE % dict(
+                varname = varname,
+                ip=hex(int(conn.src.host)),
+                port=conn.src.port,
+            ))
+        elif isinstance(conn.dst.port, QueueingPort):
+            p(QUEUEING_PORT_UDP_RECV_BUFFER_TEMPLATE % dict(
+                varname = varname,
+                ip=hex(int(conn.src.host)),
+                port=conn.src.port,
+            ))
+        else:
+            assert False
 
     # print non-static definitions
     p("pok_port_sampling_t pok_sampling_ports[] = {")

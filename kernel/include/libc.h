@@ -21,6 +21,7 @@
 #include <types.h>
 
 void  *memcpy(void * to, const void * from, size_t n);
+int memcmp(const void *, const void *, size_t n);
 
 /* avoid errors for windows */
 /*__attribute__ ((weak))*/

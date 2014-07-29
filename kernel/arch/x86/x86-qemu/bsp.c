@@ -23,6 +23,13 @@
 #include "pit.h"
 #include "pic.h"
 
+#include <assert.h>
+
+#include <bsp.h>
+
+#define ALIGN_UP(boundary, val) \
+	(val + (boundary - 1)) & (~(boundary - 1))
+
 pok_ret_t pok_bsp_init (void)
 {
    pok_cons_init ();
@@ -58,6 +65,18 @@ pok_ret_t pok_bsp_irq_register (uint8_t   irq,
 void *pok_bsp_mem_alloc (size_t size)
 {
    return ((void *)pok_pm_sbrk(size));
+}
+
+void  *pok_bsp_mem_alloc_aligned(size_t size, size_t alignment)
+{
+   uintptr_t original_brk = (uintptr_t) pok_pm_sbrk(0);
+   uintptr_t aligned_brk = ALIGN_UP(alignment, original_brk); 
+   uintptr_t new_brk = pok_pm_sbrk(size + (aligned_brk - original_brk));
+
+   assert(original_brk == new_brk);
+   assert(aligned_brk - new_brk < alignment);
+
+   return (void *) aligned_brk;
 }
 
 /**

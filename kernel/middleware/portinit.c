@@ -22,6 +22,9 @@
 
 void pok_port_init (void)
 {
+#ifdef POK_NEEDS_NETWORKING
+    pok_port_network_init();
+#endif
 }
 
 #endif

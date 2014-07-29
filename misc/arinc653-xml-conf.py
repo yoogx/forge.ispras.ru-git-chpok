@@ -2,6 +2,8 @@
 
 import os
 
+import ipaddress
+
 import chpok_configuration
 
 import xml.etree.ElementTree as ET
@@ -51,6 +53,8 @@ class ArincConfigParser:
         conf.slots = self.parse_schedule(root.find("Schedule"), partname_to_index)
 
         conf.channels = self.parse_channels(root.find("Connection_Table"), conf)
+
+        conf.network = self.parse_network(root.find("Network"))
         
         conf.validate()
 
@@ -137,8 +141,28 @@ class ArincConfigParser:
                 root.attrib["PartitionName"],
                 root.attrib["PortName"]
             )
+        elif root.tag == "UDP":
+            res = chpok_configuration.UDPConnection()
+
+            res.host = ipaddress.ip_address(root.attrib["IP"])
+            res.port = int(root.attrib["Port"])
         else:
             raise RuntimeError("unknown connection tag name %r" % root.tag)
+
+        return res
+
+    def parse_network(self, root):
+        if root is None:
+            return None
+
+        res = chpok_configuration.NetworkConfiguration()
+
+        res.ip = ipaddress.ip_address(root.attrib["IP"])
+        
+        #if "MAC" in root.attrib:
+        #    res.mac = bytes(int(x, 16) for x in root.attrib["MAC"].split(":"))
+        #else:
+        #    res.mac = None
 
         return res
 

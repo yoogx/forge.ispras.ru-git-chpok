@@ -363,14 +363,6 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
        break;
 #endif /* POK_NEEDS_IO */
 
-#ifdef POK_NEEDS_PCI
-     case POK_SYSCALL_PCI_REGISTER:
-       POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg1 + infos->base_addr)
-       return pci_register((void*)args->arg1 + infos->base_addr, infos->partition);
-       break;
-#endif /* POK_NEEDS_PCI */
-
-
       default:
        /*
         * Unrecognized system call ID.

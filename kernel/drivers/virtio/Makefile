@@ -1,13 +1,15 @@
-TOPDIR=		../../
+TOPDIR=		../../../
 
 include $(TOPDIR)/misc/mk/config.mk
 -include $(TOPDIR)/misc/mk/common-$(ARCH).mk
 
-LO_TARGET=	libc.lo
+LO_TARGET=	virtio.lo
 
-LO_OBJS=	memcpy.o memset.o memcmp.o __udivdi3.o printf.o strlen.o strcmp.o
+LO_OBJS= \
+	 virtio_virtqueue.o \
+	 virtio_network.o \
 
-LO_DEPS=
+LO_DEPS= 
 
 all: $(LO_TARGET)
 
