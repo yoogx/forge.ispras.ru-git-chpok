@@ -42,16 +42,21 @@ static void first_process(void)
 
         if (msg.x < last_x) {
             printf("warning: received SP message out of order\n");
+        } else if (msg.x > last_x + 1) {
+            printf("warning: possible SP packet loss\n");
+        } else if (msg.x == last_x && last_x != 0) {
+            printf("warning: possible SP duplicate message\n");
         }
         last_x = msg.x;
 
-        TIMED_WAIT(1LL * 1000 * 1000 * 1000 / 4, &ret);
+        TIMED_WAIT(1LL * 1000 * 1000 * 1000 / 20, &ret);
     }
 }
 
 static void second_process(void)
 {
     // send messages in bursts of 10 (maximum queued amount)
+    // every half second
 
     struct {
         unsigned x;
@@ -73,7 +78,7 @@ static void second_process(void)
             msg.x++;
             msg.y--;
         }
-        TIMED_WAIT(1LL * 1000 * 1000 * 1000, &ret);
+        TIMED_WAIT(1LL * 1000 * 1000 * 1000 / 2, &ret);
     }
 }
 

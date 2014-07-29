@@ -48,7 +48,7 @@
 
             FIXME Offset and PeriodicProcessingStart are currently ignored 
         -->
-        <Slot PartitionNameRef="P1" Duration="50ms" Offset="0" PeriodicProcessingStart="False" />
+        <Slot PartitionNameRef="P1" Duration="25ms" Offset="0" PeriodicProcessingStart="False" />
     </Schedule>
 
     <!--

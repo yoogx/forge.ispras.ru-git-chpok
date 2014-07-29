@@ -37,7 +37,7 @@ static void first_process(void)
         msg.x++;
         msg.y--;
         
-        TIMED_WAIT(1LL * 1000 * 1000 * 1000 / 4, &ret);
+        TIMED_WAIT(1LL * 1000 * 1000 * 1000 / 20, &ret);
     }
 }
 
@@ -65,7 +65,11 @@ static void second_process(void)
 
         if (msg.x < last_x) {
             printf("warning! received QP message out of order\n");
-        }
+        } else if (msg.x > last_x + 1) {
+            printf("warning: possible QP packet loss\n");
+        } else if (msg.x == last_x && last_x != 0) {
+            printf("warning: possible QP duplicate message\n");
+        }   
         last_x = msg.x;
     }
 }
