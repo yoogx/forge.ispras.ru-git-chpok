@@ -63,6 +63,8 @@ typedef struct {
 
     void (*reclaim_send_buffers)(void);
     void (*reclaim_receive_buffers)(void);
+
+    void (*flush_send)(void);
 } pok_network_driver_ops_t;
 
 typedef struct {
@@ -124,6 +126,15 @@ void pok_network_reclaim_send_buffers(void);
  * processing them as necessary.
  */
 void pok_network_reclaim_receive_buffers(void);
+
+/*
+ * Must be called after a bunch of packets
+ * have been queued for sending.
+ *
+ * If you forget to do that, their transmission
+ * might be postponed indefinitely.
+ */
+void pok_network_flush_send(void);
 
 /*
  * Defined in deployment.c

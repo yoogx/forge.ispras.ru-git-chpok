@@ -378,6 +378,10 @@ void pok_port_flushall (void)
          pok_port_flush_partition (p);
       }
    }
+
+#ifdef POK_NEEDS_NETWORKING 
+   pok_network_flush_send();
+#endif
 }
 
 #endif

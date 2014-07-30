@@ -169,10 +169,11 @@ static void use_receive_buffer(struct virtio_network_device *dev, struct receive
     __sync_synchronize();
     
     vq->vring.avail->idx++;
-    
-    __sync_synchronize();
-    
-    // XXX we don't really have to notify device after every update
+}
+
+// must be called after one or more receive buffers has been added to rx avail. ring
+static void notify_receive_buffers(struct virtio_network_device *dev)
+{
     outw(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_NOTIFY, (uint16_t) VIRTIO_NETWORK_RX_VIRTQUEUE);
 }
 
@@ -183,6 +184,7 @@ static void setup_receive_buffers(struct virtio_network_device *dev)
         // this pushes buffer to avail ring
         use_receive_buffer(dev, &receive_buffers[i]);
     }
+    notify_receive_buffers(dev);
 }
 
 static void process_received_buffer(
@@ -301,10 +303,6 @@ static pok_bool_t send_frame_gather(const pok_network_sg_list_t *sg_list,
     __sync_synchronize();
     
     vq->vring.avail->idx++;
-    
-    __sync_synchronize();
-    
-    outw(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_NOTIFY, (uint16_t) VIRTIO_NETWORK_TX_VIRTQUEUE);
 
     return TRUE;
 }
@@ -359,6 +357,8 @@ static void reclaim_receive_buffers(void)
     struct virtio_network_device *dev = &virtio_network_device;
     struct virtio_virtqueue *vq = &dev->rx_vq;
 
+    uint16_t old_last_seen_used = vq->last_seen_used;
+
     while (vq->last_seen_used != vq->vring.used->idx) {
         uint16_t index = vq->last_seen_used & (vq->vring.num-1);
         struct vring_used_elem *e = &vq->vring.used->ring[index];   
@@ -380,6 +380,19 @@ static void reclaim_receive_buffers(void)
         // i.e. push it back to avail. ring
         use_receive_buffer(dev, buf);
     }
+
+    if (old_last_seen_used != vq->last_seen_used) {
+        // this means we moved at least one buffer from
+        // used to avail ring
+        notify_receive_buffers(dev);
+    }
+}
+
+static void flush_send(void)
+{
+    struct virtio_network_device *dev = &virtio_network_device;
+
+    outw(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_NOTIFY, (uint16_t) VIRTIO_NETWORK_TX_VIRTQUEUE);
 }
 
 static const pok_network_driver_ops_t driver_ops = {
@@ -389,6 +402,7 @@ static const pok_network_driver_ops_t driver_ops = {
     .set_packet_received_callback = set_packet_received_callback,
     .reclaim_send_buffers = reclaim_send_buffers,
     .reclaim_receive_buffers = reclaim_receive_buffers,
+    .flush_send = flush_send,
 };
 
 pok_network_driver_device_t pok_network_virtio_device = {

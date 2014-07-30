@@ -245,4 +245,9 @@ void pok_network_reclaim_receive_buffers(void)
     NETWORK_DRIVER_OPS->reclaim_receive_buffers();
 }
 
+void pok_network_flush_send(void)
+{
+    NETWORK_DRIVER_OPS->flush_send();
+}
+
 #endif
