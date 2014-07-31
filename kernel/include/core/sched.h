@@ -25,7 +25,36 @@
 
 #ifdef POK_NEEDS_PARTITIONS
 extern pok_partition_id_t pok_current_partition;
+extern uint64_t pok_sched_next_deadline;
+extern uint8_t pok_sched_current_slot;
 #define POK_SCHED_CURRENT_PARTITION pok_current_partition
+
+typedef enum
+{
+    POK_SLOT_SPARE = 0, // idle thread is always scheduled here
+    POK_SLOT_PARTITION = 1,
+#if defined(POK_NEEDS_NETWORKING)
+    POK_SLOT_NETWORKING = 2,
+#endif
+} pok_sched_slot_type_t;
+
+typedef struct
+{
+    pok_sched_slot_type_t type;
+
+    uint64_t duration;
+    uint64_t offset;
+
+    union {
+        struct {
+            pok_partition_id_t id;
+            pok_bool_t periodic_processing_start;
+        } partition;
+    };
+} pok_sched_slot_t;
+
+// as usual, defined in deployment.c
+extern const pok_sched_slot_t pok_module_sched[POK_CONFIG_SCHEDULING_NBSLOTS];
 #endif
 
 

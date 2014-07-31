@@ -61,6 +61,8 @@
 #include <core/instrumentation.h>
 #include <core/error.h>
 
+#include <assert.h>
+
 extern pok_thread_t       pok_threads[];
 
 #ifdef POK_NEEDS_PARTITIONS
@@ -78,11 +80,6 @@ void                      pok_sched_partition_switch();
 void pok_port_flushall (void);
 #endif
 
-uint64_t           pok_sched_slots[POK_CONFIG_SCHEDULING_NBSLOTS]
-                              = (uint64_t[]) POK_CONFIG_SCHEDULING_SLOTS;
-uint8_t             pok_sched_slots_allocation[POK_CONFIG_SCHEDULING_NBSLOTS]
-                              = (uint8_t[]) POK_CONFIG_SCHEDULING_SLOTS_ALLOCATION;
-
 uint64_t            pok_sched_next_deadline;
 uint64_t            pok_sched_next_major_frame;
 uint8_t             pok_sched_current_slot = 0; /* Which slot are we executing at this time ?*/
@@ -96,73 +93,38 @@ void pok_sched_thread_switch (void);
 
 void pok_sched_init (void)
 {
-#ifdef POK_NEEDS_PARTITIONS 
-#if defined (POK_NEEDS_ERROR_HANDLING) || defined (POK_NEEDS_DEBUG)
-   /*
-    * We check that the total time of time frame
-    * corresponds to the sum of each slot
-    */
-   uint64_t                      total_time;
-   uint8_t                       slot;
-
-   total_time = 0;
-
-   for (slot = 0 ; slot < POK_CONFIG_SCHEDULING_NBSLOTS ; slot++)
-   {
-      total_time = total_time + pok_sched_slots[slot];
-   }
-
-   if (total_time != POK_CONFIG_SCHEDULING_MAJOR_FRAME)
-   {
-#ifdef POK_NEEDS_DEBUG
-      printf ("Major frame is not compliant with all time slots\n");
-#endif
-#ifdef POK_NEEDS_ERROR_HANDLING
-      pok_error_raise_kernel (POK_ERROR_KIND_KERNEL_CONFIG);
-#endif
-   }
-#endif
-#endif
-
    pok_sched_current_slot        = 0;
    pok_sched_next_major_frame    = POK_CONFIG_SCHEDULING_MAJOR_FRAME;
-   pok_sched_next_deadline       = pok_sched_slots[0];
-   pok_current_partition         = pok_sched_slots_allocation[0];
+   pok_sched_next_deadline       = pok_module_sched[0].duration;
+   if (pok_module_sched[0].type == POK_SLOT_PARTITION) {
+      pok_current_partition      = pok_module_sched[0].partition.id;
+   } else {
+      // otherwise, we simply don't care
+   }
 }
 
 #ifdef POK_NEEDS_PARTITIONS
-pok_partition_id_t pok_elect_partition(void)
+/*
+ * Changes current scheduling slot,
+ * if it's time to.
+ *
+ * Returns true if change has occured,
+ *         false - if we're still in the same slot.
+ */
+static pok_bool_t pok_elect_partition(void)
 {
-  pok_partition_id_t next_partition = POK_SCHED_CURRENT_PARTITION;
-  uint64_t now = POK_GETTICK();
+    uint64_t now = POK_GETTICK();
 
-  if (pok_sched_next_deadline <= now)
-  {
-      /* Here, we change the partition */
-#  if defined (POK_NEEDS_PORTS_SAMPLING) || defined (POK_NEEDS_PORTS_QUEUEING)
-    if (pok_sched_next_major_frame <= now)
-    {
-      pok_sched_next_major_frame = pok_sched_next_major_frame +	POK_CONFIG_SCHEDULING_MAJOR_FRAME;
-      pok_port_flushall();
+    if (pok_sched_next_deadline > now) {
+        return FALSE;
     }
-#  endif /* defined (POK_NEEDS_PORTS....) */
 
     pok_sched_current_slot = (pok_sched_current_slot + 1) % POK_CONFIG_SCHEDULING_NBSLOTS;
-    pok_sched_next_deadline = pok_sched_next_deadline + pok_sched_slots[pok_sched_current_slot];
-/*
-    *  FIXME : current debug session about exceptions-handled
-      printf ("Switch from partition %d to partition %d\n", pok_current_partition, pok_sched_current_slot);
-      printf ("old current thread = %d\n", POK_SCHED_CURRENT_THREAD);
+    pok_sched_next_deadline += pok_module_sched[pok_sched_current_slot].duration; 
 
-      printf ("new current thread = %d\n", pok_partitions[pok_sched_current_slot].current_thread);
-      printf ("new prev current thread = %d\n", pok_partitions[pok_sched_current_slot].prev_thread);
-      */
-    next_partition = pok_sched_slots_allocation[pok_sched_current_slot];
-  }
-
-  return next_partition;
+    return TRUE;
 }
-#endif /* POK_NEEDS_PARTITIONS */
+#endif
 
 #ifdef POK_TEST_SUPPORT_PRINT_WHEN_ALL_THREADS_STOPPED
 static void check_all_threads_stopped(void) {
@@ -336,29 +298,67 @@ static pok_thread_id_t pok_elect_thread(void)
 #ifdef POK_NEEDS_PARTITIONS
 void pok_sched()
 {
+    const pok_sched_slot_t *slot;
     pok_thread_id_t elected_thread = 0;
-    pok_partition_id_t elected_partition = POK_SCHED_CURRENT_PARTITION;
-    
-    elected_partition = pok_elect_partition();
 
-    // set global
-    pok_current_partition = elected_partition;
+    if (pok_elect_partition()) {
+        // basically, this block of code runs
+        // when time slot is being changed
 
-#ifdef POK_NEEDS_ERROR_HANDLING
-    pok_error_check_deadlines();
+        slot = &pok_module_sched[pok_sched_current_slot];
+
+        switch (slot->type) {
+            case POK_SLOT_SPARE:
+                break;
+            case POK_SLOT_PARTITION:
+                pok_current_partition = slot->partition.id;
+                break;
+#if defined(POK_NEEDS_NETWORKING)
+            case POK_SLOT_NETWORKING:
+                // TODO it basically can't be interrupted, which is wrong
+                // TODO it calls pok_port_flushall right now, should be fixed to call something else
+                pok_port_flushall();
+                break;
 #endif
-    
-    elected_thread = pok_elect_thread();
-   
-    if (pok_partitions[pok_current_partition].current_thread != elected_thread) {
-        if (pok_partitions[pok_current_partition].current_thread != IDLE_THREAD) {
-            // prev_thread is never IDLE_THREAD (because it's not relevant)
-	    pok_partitions[pok_current_partition].prev_thread = pok_partitions[pok_current_partition].current_thread;
-	}
-	pok_partitions[pok_current_partition].current_thread = elected_thread;
+            default:
+                assert(FALSE);
+        }
+    } else {
+        slot = &pok_module_sched[pok_sched_current_slot];
     }
+
+    if (slot->type == POK_SLOT_SPARE) {
+        // always idle here
+        elected_thread = IDLE_THREAD;
+    }
+    else if (slot->type == POK_SLOT_PARTITION) {
+#ifdef POK_NEEDS_ERROR_HANDLING
+        pok_error_check_deadlines();
+#endif 
+        elected_thread = pok_elect_thread();
+
+        if (pok_partitions[pok_current_partition].current_thread != elected_thread) {
+            if (pok_partitions[pok_current_partition].current_thread != IDLE_THREAD) {
+                // prev_thread is never IDLE_THREAD (because it's not relevant)
+                pok_partitions[pok_current_partition].prev_thread = pok_partitions[pok_current_partition].current_thread;
+            }
+            pok_partitions[pok_current_partition].current_thread = elected_thread;
+        }
+    }
+#if defined(POK_NEEDS_NETWORKING)
+    else if (slot->type == POK_SLOT_NETWORKING) {
+        // if we're here, we're done with port processing stuff
+        // just idle
+        elected_thread = IDLE_THREAD;
+    }
+#endif
+    else {
+        assert(FALSE);
+    }
+   
     pok_sched_context_switch(elected_thread);
 }
+
 #else
 void pok_sched_thread_switch ()
 {

@@ -40,15 +40,15 @@
 
     <Schedule>
         <!--
-            Slot is essentially A653_PartitionTimeWindowType (as defined
-            in the standard).
+            Slot element is close to A653_PartitionTimeWindowType defined
+            in the standard, but not quite it.
 
             As extension, we allow to specify time in other units,
             such as milliseconds (for convenience).
-
-            FIXME Offset and PeriodicProcessingStart are currently ignored 
         -->
-        <Slot PartitionNameRef="P1" Duration="25ms" Offset="0" PeriodicProcessingStart="False" />
+        <Slot Type="Partition" PartitionNameRef="P1" Duration="15ms" PeriodicProcessingStart="true" />
+        <Slot Type="Network" Duration="10ms" />
+        <Slot Type="Spare" Duration="5ms" />
     </Schedule>
 
     <!--

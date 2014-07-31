@@ -8,6 +8,15 @@ import chpok_configuration
 
 import xml.etree.ElementTree as ET
 
+def parse_bool(s):
+    # this follows xsd:boolean
+    if s in ("true", "1"):
+        return True
+    if s in ("false", "0"):
+        return False
+
+    raise ValueError(s)
+
 def parse_bytes(s):
     multiplier = 1
     if s.endswith("K"):
@@ -23,16 +32,19 @@ def parse_time(s):
     # note: CHPOK uses ms internally
 
     if s.endswith("ns"):
-        return int(s[:-2]) // (10 ** 6)
-
-    if s.endswith("ms"):
+        ns = int(s[:-2])
+        # see the end of the function
+    elif s.endswith("ms"):
         return int(s[:-2])
-
-    if s.endswith("s"):
+    elif s.endswith("s"):
         return int(s[:-1]) * (10 ** 3)
-
-    # assume nanoseconds
-    return int(s) // (10 ** 6)
+    else:
+        # assume nanoseconds
+        ns = int(s) 
+    
+    if ns < (10 ** 6):
+            raise ValueError("specified time less than 1ms (which won't work due to 1ms timer precision)")
+    return ns // (10 ** 6)
 
 class ArincConfigParser:
 
@@ -66,6 +78,9 @@ class ArincConfigParser:
         # FIXME identifier is currently ignored
         res.name = root.find("Definition").attrib["Name"]
 
+        # FIXME support partition period, which is simply a fixed attribute
+        #       with no real meaning (except it can be introspected)
+
         res.size = parse_bytes(root.find("Memory").attrib["Bytes"])
         res.num_threads = int(root.find("Threads").attrib["Count"])
 
@@ -89,11 +104,22 @@ class ArincConfigParser:
         slots = []
 
         for x in root.findall("Slot"):
-            # FIXME support offset and periodic processing start thing
-            duration = parse_time(x.attrib["Duration"])
-            partition = partname_to_index[x.attrib["PartitionNameRef"]]
+            slot_type = x.attrib["Type"]
 
-            slots.append(chpok_configuration.TimeSlot(duration, partition))
+            if slot_type == "Spare":
+                s = chpok_configuration.TimeSlotSpare()
+            elif slot_type == "Partition":
+                s = chpok_configuration.TimeSlotPartition()
+                s.partition = partname_to_index[x.attrib["PartitionNameRef"]]
+                s.periodic_processing_start = parse_bool(x.attrib["PeriodicProcessingStart"])
+            elif slot_type == "Network":
+                s = chpok_configuration.TimeSlotNetwork()
+            else:
+                raise ValueError("unknown slot type %r" % slot_type)
+
+            s.duration = parse_time(x.attrib["Duration"])
+
+            slots.append(s)
 
         return slots
 

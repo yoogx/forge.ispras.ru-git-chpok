@@ -70,8 +70,6 @@ pok_partition_t pok_partitions[POK_CONFIG_NB_PARTITIONS];
 
 uint8_t			 pok_partitions_index = 0;
 
-extern uint64_t		pok_sched_slots[];
-
 
 /**
  **\brief Setup the scheduler used in partition pid
@@ -264,6 +262,35 @@ pok_ret_t pok_partition_init ()
    return POK_ERRNO_OK;
 }
 
+static uint64_t get_next_periodic_processing_start(void)
+{
+    int i;
+
+    uint64_t offset = pok_sched_next_deadline;
+    for (i = 0; i < POK_CONFIG_SCHEDULING_NBSLOTS; i++) {
+        // check all time slots
+        // note that we ignore current activation of _this_ slot
+        // e.g. if we're currently in periodic processing window,
+        // and it's the only one in schedule, we say that next one
+        // will be major frame time units later
+
+        int time_slot_index = (i + 1 + pok_sched_current_slot) % POK_CONFIG_SCHEDULING_NBSLOTS;
+        const pok_sched_slot_t *slot = &pok_module_sched[time_slot_index];
+
+        if (slot->type == POK_SLOT_PARTITION) {
+            if (slot->partition.id == POK_SCHED_CURRENT_PARTITION && 
+                slot->partition.periodic_processing_start) 
+            {
+                return offset;
+            }
+        }
+
+        offset += slot->duration;
+    }
+
+    assert(FALSE && "Couldn't find next periodic processing window (configurator shouldn't have allowed that)");
+}
+
 /**
  * Change the current mode of the partition. Possible mode
  * are describe in core/partition.h. Returns
@@ -309,9 +336,7 @@ static pok_ret_t pok_partition_set_normal_mode(pok_partition_id_t pid)
         } else {
             // periodic process
             if (thread->state == POK_STATE_DELAYED_START) {
-                uint64_t next_periodic_processing = POK_CONFIG_SCHEDULING_MAJOR_FRAME + POK_CURRENT_PARTITION.activation;
-
-                thread->next_activation = next_periodic_processing + thread->wakeup_time;
+                thread->next_activation = get_next_periodic_processing_start() + thread->wakeup_time;
                 
                 if (thread->time_capacity < 0) {
                     thread->end_time = (uint64_t) -1; // XXX
@@ -405,7 +430,8 @@ pok_ret_t pok_current_partition_get_period (uint64_t *period)
 
 pok_ret_t pok_current_partition_get_duration (uint64_t *duration)
 {
-  *duration = pok_sched_slots[POK_SCHED_CURRENT_PARTITION];
+  // FIXME
+  (void) duration;
   return POK_ERRNO_OK;
 }
 

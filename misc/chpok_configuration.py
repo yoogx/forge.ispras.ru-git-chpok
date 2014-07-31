@@ -27,10 +27,46 @@ import functools
 import collections
 import ipaddress
 
-class TimeSlot:
-    def __init__(self, duration, partition):
-        self.duration = duration
-        self.partition = partition
+class TimeSlot(metaclass=abc.ABCMeta):
+    __slots__ = ["duration"]
+
+    @abc.abstractmethod
+    def get_kind_constant(self):
+        pass
+
+    def validate(self):
+        if not isinstance(self.duration, int):
+            raise TypeError
+        
+class TimeSlotSpare(TimeSlot):
+    __slots__ = []
+
+    def get_kind_constant(self):
+        return "POK_SLOT_SPARE"
+
+class TimeSlotPartition(TimeSlot):
+    __slots__ = [
+        "partition",
+        "periodic_processing_start",
+    ]
+
+    def get_kind_constant(self):
+        return "POK_SLOT_PARTITION"
+
+    def validate(self):
+        super().validate()
+
+        if not isinstance(self.periodic_processing_start, bool):
+            raise TypeError
+
+        if not isinstance(self.partition, int):
+            raise TypeError
+
+class TimeSlotNetwork(TimeSlot):
+    __slots__ = []
+
+    def get_kind_constant(self):
+        return "POK_SLOT_NETWORKING"
 
 class Partition:
     __slots__ = [
@@ -161,7 +197,10 @@ class Channel:
     def is_sampling(self):
         return isinstance(self.get_local_connection().port, SamplingPort)
 
-class Connection:
+    def requires_network(self):
+        return any(isinstance(x, UDPConnection) for x in [self.src, self.dst])
+
+class Connection(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def validate(self):
         pass
@@ -266,8 +305,39 @@ class Configuration:
         for part in self.partitions:
             part.validate()
 
+        # network stuff
+        networking_time_slot_exists = any(isinstance(slot, TimeSlotNetwork) for slot in self.slots)
+
         if self.network:
             self.network.validate()
+
+            if not networking_time_slot_exists: 
+                raise ValueError("Networking is enabled, but no dedicated network processing time slot is present") 
+        else:
+            if networking_time_slot_exists:
+                raise ValueError("Networking is disabled, but there's (unnecessary) network processing time slot in the schedule")
+
+            if any(chan.requires_network() for chan in self.channels):
+                raise ValueError("Network channel is present, but networking is not configured")
+            
+        # validate schedule
+        partitions_set = set(range(len(self.partitions)))
+        partitions_without_periodic_processing = set(partitions_set) # copy
+
+        for slot in self.slots:
+            slot.validate()
+
+            if isinstance(slot, TimeSlotPartition):
+                if slot.partition >= len(self.partitions):
+                    raise ValueError("slot doesn't correspond to existing partition")
+                
+                if slot.periodic_processing_start:
+                    partitions_without_periodic_processing.discard(slot.partition)
+
+
+        if partitions_without_periodic_processing:
+            raise ValueError("partitions %r don't have periodic processing points set" % partitions_without_periodic_processing)
+        
 
     def get_all_channels(self):
         return self.channels
@@ -318,6 +388,28 @@ COMMON_PARTITION_DEFINES = """\
 #define POK_NEEDS_ARINC653_SAMPLING 1
 #define POK_NEEDS_ARINC653_QUEUEING 1
 #define POK_NEEDS_ARINC653_TIME 1
+"""
+
+TIMESLOT_SPARE_TEMPLATE = """\
+    { .type = POK_SLOT_SPARE,
+      .duration = %(duration)d,
+    },
+"""
+
+TIMESLOT_PARTITION_TEMPLATE = """\
+    { .type = POK_SLOT_PARTITION,
+      .duration = %(duration)d,
+      .partition = 
+      { .id = %(partition)d,
+        .periodic_processing_start = %(periodic_processing_start)s,
+      }
+    },
+"""
+
+TIMESLOT_NETWORKING_TEMPLATE = """\
+    { .type = POK_SLOT_NETWORKING,
+      .duration = %(duration)d,
+    },
 """
 
 SAMPLING_PORT_TEMPLATE = """\
@@ -518,14 +610,6 @@ def write_kernel_deployment_h(conf, f):
         sum(slot.duration for slot in conf.slots)
     )
 
-    p("#define POK_CONFIG_SCHEDULING_SLOTS {%s}" % ", ".join(
-        str(slot.duration) for slot in conf.slots
-    ))
-
-    p("#define POK_CONFIG_SCHEDULING_SLOTS_ALLOCATION {%s}" % ", ".join(
-        str(slot.partition) for slot in conf.slots
-    ))
-
     n_sampling_ports = len(conf.get_all_sampling_ports())
     n_queueing_ports = len(conf.get_all_queueing_ports())
 
@@ -559,6 +643,26 @@ def write_kernel_deployment_c(conf, f):
 
         p("const uint32_t pok_network_ip_address = %s;" % hex(int(conf.network.ip)))
 
+    p("const pok_sched_slot_t pok_module_sched[POK_CONFIG_SCHEDULING_NBSLOTS] = {")
+    for slot in conf.slots:
+        if isinstance(slot, TimeSlotSpare):
+            p(TIMESLOT_SPARE_TEMPLATE % dict(
+                duration=slot.duration,
+            ))
+        elif isinstance(slot, TimeSlotPartition):
+            p(TIMESLOT_PARTITION_TEMPLATE % dict(
+                duration=slot.duration,
+                partition=slot.partition,
+                periodic_processing_start="TRUE" if slot.periodic_processing_start else "FALSE"
+            ))
+        elif isinstance(slot, TimeSlotNetwork):
+            p(TIMESLOT_NETWORKING_TEMPLATE % dict(
+                duration=slot.duration
+            ))
+        else:
+            raise TypeError("unrecognized slot type") 
+
+    p("};")
         
 
 def write_kernel_deployment_c_ports(conf, f):
