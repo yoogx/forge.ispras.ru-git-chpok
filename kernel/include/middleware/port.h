@@ -184,22 +184,7 @@ void pok_port_network_init(void);
  */
 void pok_port_reset(pok_partition_id_t);
 
-#ifdef POK_NEEDS_PORTS_SAMPLING
-typedef struct
-{
-    pok_port_header_t           header;
-
-    pok_port_size_t             max_message_size;
-    uint64_t                    refresh;
-    uint64_t                    last_receive;
-    pok_bool_t                  last_validity;
-    pok_bool_t                  not_empty;
-    pok_port_data_t             *data;
-} pok_port_sampling_t;
-
-extern pok_port_sampling_t pok_sampling_ports[POK_CONFIG_NB_SAMPLING_PORTS];
-extern pok_port_channel_t pok_sampling_port_channels[];
-#endif
+void pok_port_flush_partition(pok_partition_id_t);
 
 #ifdef POK_NEEDS_PORTS_QUEUEING
 typedef struct
@@ -219,9 +204,7 @@ typedef struct
 
 extern pok_port_queueing_t pok_queueing_ports[POK_CONFIG_NB_QUEUEING_PORTS];
 extern pok_port_channel_t pok_queueing_port_channels[];
-#endif
 
-#ifdef POK_NEEDS_PORTS_QUEUEING
 /* Queueing port functions */
 typedef struct
 {
@@ -274,9 +257,24 @@ pok_ret_t pok_port_queueing_id(
     const char      *name,
     pok_port_id_t   *id
 );
-#endif
+#endif // POK_NEEDS_PORTS_QUEUEING
 
 #ifdef POK_NEEDS_PORTS_SAMPLING
+typedef struct
+{
+    pok_port_header_t           header;
+
+    pok_port_size_t             max_message_size;
+    uint64_t                    refresh;
+    uint64_t                    last_receive;
+    pok_bool_t                  last_validity;
+    pok_bool_t                  not_empty;
+    pok_port_data_t             *data;
+} pok_port_sampling_t;
+
+extern pok_port_sampling_t pok_sampling_ports[POK_CONFIG_NB_SAMPLING_PORTS];
+extern pok_port_channel_t pok_sampling_port_channels[];
+
 /* Sampling port functions */
 
 typedef struct
@@ -318,8 +316,8 @@ pok_ret_t pok_port_sampling_status (
     const pok_port_id_t         id,
     pok_port_sampling_status_t  *status
 );
-#endif
+#endif // POK_NEEDS_PORTS_SAMPLING
 
-#endif
+#endif // defined(POK_NEEDS_PORTS_QUEUEING) || defined(POK_NEEDS_PORTS_SAMPLING)
 
-#endif
+#endif // __POK_KERNEL_PORTS_H__

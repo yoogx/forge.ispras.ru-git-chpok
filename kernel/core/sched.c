@@ -51,8 +51,12 @@
 #include <core/partition.h>
 #endif
 
-#ifdef POK_NEEDS_MIDDLEWARE
+#if defined(POK_NEEDS_PORTS_QUEUEING) || defined(POK_NEEDS_PORTS_SAMPLING)
 #include <middleware/port.h>
+#endif
+
+#ifdef POK_NEEDS_NETWORKING
+#include <net/network.h>
 #endif
 
 #include <dependencies.h>
@@ -74,10 +78,6 @@ extern pok_partition_t    pok_partitions[];
 uint8_t                   pok_current_partition;
 
 void                      pok_sched_partition_switch();
-#endif
-
-#if defined (POK_NEEDS_PORTS_SAMPLING) || defined (POK_NEEDS_PORTS_QUEUEING)
-void pok_port_flushall (void);
 #endif
 
 uint64_t            pok_sched_next_deadline;
@@ -312,12 +312,18 @@ void pok_sched()
                 break;
             case POK_SLOT_PARTITION:
                 pok_current_partition = slot->partition.id;
+#if defined(POK_NEEDS_PORTS_SAMPLING) || defined(POK_NEEDS_PORTS_QUEUEING)
+                // beginning of partition window would be reasonable time to do this kind of stuff
+                pok_port_flush_partition(POK_SCHED_CURRENT_PARTITION);
+#endif
                 break;
 #if defined(POK_NEEDS_NETWORKING)
             case POK_SLOT_NETWORKING:
                 // TODO it basically can't be interrupted, which is wrong
-                // TODO it calls pok_port_flushall right now, should be fixed to call something else
-                pok_port_flushall();
+                //      not only it can overrun its allocated slot,
+                //      even if it takes longer than 1ms, it will cause "lost ticks"
+                pok_network_reclaim_send_buffers(); // <- this operation is mostly free
+                pok_network_reclaim_receive_buffers(); // <- but this is not
                 break;
 #endif
             default:
@@ -344,11 +350,19 @@ void pok_sched()
             }
             pok_partitions[pok_current_partition].current_thread = elected_thread;
         }
+
+        if (elected_thread == IDLE_THREAD) {
+            // if we have nothing to do anyway, why can't we flush some ports?
+            // the operation is mostly free, anyway
+#if defined(POK_NEEDS_PORTS_SAMPLING) || defined(POK_NEEDS_PORTS_QUEUEING)
+            pok_port_flush_partition(POK_SCHED_CURRENT_PARTITION);
+#endif
+        }
     }
 #if defined(POK_NEEDS_NETWORKING)
     else if (slot->type == POK_SLOT_NETWORKING) {
         // if we're here, we're done with port processing stuff
-        // just idle
+        // just idle (and wait for timer interrupt)
         elected_thread = IDLE_THREAD;
     }
 #endif

@@ -118,12 +118,17 @@ void pok_network_register_udp_receive_callback(
 /*
  * Reclaim buffers used for pok_network_send,
  * running callbacks associated with them.
+ *
+ * This operation is very cheap, at least in virtio driver.
  */
 void pok_network_reclaim_send_buffers(void);
 
 /*
  * Reclaim used (internal) receive buffers,
  * processing them as necessary.
+ *
+ * This operation may take some time, depending on
+ * amount of incoming packets.
  */
 void pok_network_reclaim_receive_buffers(void);
 

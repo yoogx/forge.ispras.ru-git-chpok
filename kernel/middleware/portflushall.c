@@ -56,6 +56,14 @@
 
 #include <assert.h>
 
+
+#ifdef POK_NEEDS_PORTS_QUEUEING
+
+#define foreach_queuing_channels(varname) \
+    for (pok_port_channel_t *varname = &pok_queueing_port_channels[0]; \
+         varname->src.kind != POK_PORT_CONNECTION_NULL; \
+         varname++)
+
 static void pok_queueing_channel_flush_local(
         pok_port_channel_t *chan)
 {
@@ -153,7 +161,7 @@ static void pok_queueing_channel_flush_udp(
         aux[ring_index].chan = chan;
     }
 }
-#endif
+#endif // POK_NEEDS_NETWORKING
 
 static void pok_queueing_channel_flush(pok_port_channel_t *chan)
 {
@@ -174,6 +182,17 @@ static void pok_queueing_channel_flush(pok_port_channel_t *chan)
     // TODO wake them up in order
     pok_lockobj_eventbroadcast(&src->header.lock);
 }
+
+#endif
+
+#endif // POK_NEEDS_PORTS_QUEUEING
+
+#ifdef POK_NEEDS_PORTS_SAMPLING
+
+#define foreach_sampling_channels(varname) \
+    for (pok_port_channel_t *varname = &pok_sampling_port_channels[0]; \
+         varname->src.kind != POK_PORT_CONNECTION_NULL; \
+         varname++)
 
 #ifdef POK_NEEDS_NETWORKING
 static void pok_sampling_channel_udp_buffer_callback(void *arg) {
@@ -258,16 +277,18 @@ static void pok_sampling_channel_flush(pok_port_channel_t *chan)
     // TODO if we are going to implement multicast
     //      this should go elsewhere
     src->header.must_be_flushed = FALSE;
-
 }
 
-static void pok_port_flush_partition (pok_partition_id_t pid)
+#endif // POK_NEEDS_PORTS_SAMPLING
+
+void pok_port_flush_partition (pok_partition_id_t pid)
 {
-    int i;
-    // queueing ports
-    for (i = 0; pok_queueing_port_channels[i].src.kind != POK_PORT_CONNECTION_NULL; i++) {
-        pok_port_channel_t *chan = &pok_queueing_port_channels[i];
-        
+#ifdef POK_NEEDS_NETWORKING
+    pok_network_reclaim_send_buffers(); 
+#endif
+
+#ifdef POK_NEEDS_PORTS_QUEUEING
+    foreach_queuing_channels(chan) { 
         if (chan->src.kind != POK_PORT_CONNECTION_LOCAL) continue; 
         
         pok_port_queueing_t *port = &pok_queueing_ports[chan->src.local.port_id];
@@ -276,11 +297,10 @@ static void pok_port_flush_partition (pok_partition_id_t pid)
 
         pok_queueing_channel_flush(chan);
     }
+#endif
 
-    // sampling ports
-    for (i = 0; pok_sampling_port_channels[i].src.kind != POK_PORT_CONNECTION_NULL; i++) {
-        pok_port_channel_t *chan = &pok_sampling_port_channels[i];
-        
+#ifdef POK_NEEDS_PORTS_SAMPLING
+    foreach_sampling_channels(chan) {
         if (chan->src.kind != POK_PORT_CONNECTION_LOCAL) continue; 
         
         pok_port_sampling_t *port = &pok_sampling_ports[chan->src.local.port_id];
@@ -289,17 +309,18 @@ static void pok_port_flush_partition (pok_partition_id_t pid)
 
         pok_sampling_channel_flush(chan);
     }
+#endif
+
+#ifdef POK_NEEDS_NETWORKING
+    pok_network_flush_send();
+#endif
 }
 
 #ifdef POK_NEEDS_NETWORKING
 static pok_bool_t udp_callback_f(uint32_t ip, uint16_t port, const char *payload, size_t length)
 {
-    int i;
-
-    i = 0;
-    for (i = 0; pok_sampling_port_channels[i].src.kind != POK_PORT_CONNECTION_NULL; i++) {
-        pok_port_channel_t *chan = &pok_sampling_port_channels[i];
-    
+#ifdef POK_NEEDS_PORTS_SAMPLING
+    foreach_sampling_channels(chan) {
         if (chan->src.kind == POK_PORT_CONNECTION_UDP &&
             chan->src.udp.sp_recv_ptr->port == port && (
                 (chan->src.udp.sp_recv_ptr->ip == 0UL ||
@@ -319,12 +340,10 @@ static pok_bool_t udp_callback_f(uint32_t ip, uint16_t port, const char *payload
             return TRUE;
         }
     }
+#endif
 
-    i = 0;
-    for (i = 0; pok_queueing_port_channels[i].src.kind != POK_PORT_CONNECTION_NULL; i++) {
-        // FIXME support networking for queueing ports as well
-        pok_port_channel_t *chan = &pok_queueing_port_channels[i];
-
+#ifdef POK_NEEDS_PORTS_QUEUEING
+    foreach_queuing_channels(chan) {
         if (chan->src.kind == POK_PORT_CONNECTION_UDP &&
             chan->src.udp.qp_recv_ptr->port == port && (
                 (chan->src.udp.qp_recv_ptr->ip == 0UL ||
@@ -348,6 +367,7 @@ static pok_bool_t udp_callback_f(uint32_t ip, uint16_t port, const char *payload
             return TRUE;
         }
     }
+#endif
 
     return FALSE;
 }
@@ -357,31 +377,5 @@ void pok_port_network_init(void)
 {
     pok_network_register_udp_receive_callback(&udp_callback);
 }
-#endif
 
-/**
- * Flush all the ports, write all OUT ports to their destinations.
- * This function is called at each major frame
- */
-void pok_port_flushall (void)
-{
-#ifdef POK_NEEDS_NETWORKING
-   pok_network_reclaim_send_buffers();
-   pok_network_reclaim_receive_buffers();
-#endif
-
-   uint8_t p;
-   for (p = 0 ; p < POK_CONFIG_NB_PARTITIONS ; p++)
-   {
-      if ((pok_partitions[p].mode == POK_PARTITION_MODE_NORMAL) || (pok_partitions[p].mode == POK_PARTITION_MODE_IDLE))
-      {
-         pok_port_flush_partition (p);
-      }
-   }
-
-#ifdef POK_NEEDS_NETWORKING 
-   pok_network_flush_send();
-#endif
-}
-
-#endif
+#endif // defined (POK_NEEDS_PORTS_QUEUEING) || defined (POK_NEEDS_PORTS_SAMPLING)
