@@ -151,7 +151,7 @@ class ArincConfigParser:
     def parse_channels(self, root, conf):
         res = []
 
-        for ch in root.findall("Channel"):
+        for ch in root.findall("Channel") if root else []:
             x = chpok_configuration.Channel()
             x.src = self.parse_connection(ch.find("Source")[0], conf)
             x.dst = self.parse_connection(ch.find("Destination")[0], conf)

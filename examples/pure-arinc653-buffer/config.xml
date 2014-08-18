@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<chpok-configuration>
+    <Partitions>
+        <Partition>
+            <Definition Identifier="1" Name="P1" />
+            <!-- Amount of ram allocated (code + stack + static variables) -->
+            <Memory Bytes="300K" />
+
+            <!-- Number of threads that can be created in this partition.
+                 Note that this number doesn't include main and error handler threads,
+                 (the former always exists, and the latter can always be created).
+
+                 Values less than 1 probably don't make sense, because otherwise
+                 you won't be able to create any threads that can be run in
+                 NORMAL partition state.
+                -->
+            <Threads Count="10" />
+
+            <ARINC653_Buffers Data_Size="4096" Count="16" />
+            <ARINC653_Blackboards Data_Size="4096" Count="16" />
+            <ARINC653_Events Count="16" />
+            <ARINC653_Semaphores Count="16" />
+
+            <ARINC653_Ports>
+                <!-- Those correspond to 
+                     A653_SamplingPortType and A653_QueueingPortType
+                     defined in the standard
+                -->
+                <Queueing_Port Name="QP1" MaxMessageSize="64" Direction="DESTINATION" MaxNbMessage="10" />
+
+                <Sampling_Port Name="SP1" MaxMessageSize="64" Direction="SOURCE" Refresh="1s" />
+            </ARINC653_Ports>
+
+            <HM_Table>
+            </HM_Table>
+        </Partition>
+    </Partitions>
+
+    <Schedule>
+        <!--
+            Slot element is close to A653_PartitionTimeWindowType defined
+            in the standard, but not quite it.
+
+            As extension, we allow to specify time in other units,
+            such as milliseconds (for convenience).
+        -->
+        <Slot Type="Partition" PartitionNameRef="P1" Duration="15ms" PeriodicProcessingStart="true" />
+    </Schedule>
+
+    <!--
+        This looks like Connection_Table 
+        found in schema in older ARINC-653 standard,
+        but it's somewhat different (because that old thing
+        is very inconsistent).
+
+        Recent standard doesn't define this at all.
+    -->
+</chpok-configuration>

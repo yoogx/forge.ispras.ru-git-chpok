@@ -1,7 +1,6 @@
 export ARCH=x86
 export BSP=x86-qemu
 
-#export DEPLOYMENT_HEADER=$(shell pwd)/deployment_inter.h
 export DEPLOYMENT_HEADER=$(shell pwd)/deployment.h
 
 include $(POK_PATH)/misc/mk/config.mk
@@ -9,11 +8,15 @@ include $(POK_PATH)/misc/mk/config.mk
 LO_TARGET = kernel.lo
 LO_DEPS = pok.lo
 
+LO_OBJS += deployment.o
+
 all: kernel copy-kernel $(LO_TARGET)
 
 .PHONY: clean distclean install all
 
 clean: common-clean
+	$(RM) -f deployment.c
+	$(RM) -f deployment.h
 
 include $(POK_PATH)/misc/mk/common-$(ARCH).mk
 include $(POK_PATH)/misc/mk/rules-common.mk

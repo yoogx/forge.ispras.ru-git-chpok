@@ -13,9 +13,12 @@ KERNEL=kernel/kernel.lo
 
 all: build-regular
 
-build-regular: build-kernel partitions $(TARGET)
+build-regular: generate-deployment build-kernel partitions $(TARGET)
 
 compiletest: all
+
+generate-deployment:
+	$(POK_PATH)/misc/arinc653-xml-conf.py --xml config.xml .
 
 build-kernel:
 	$(CD) kernel && $(MAKE)

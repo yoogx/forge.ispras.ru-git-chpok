@@ -222,7 +222,7 @@ class UDPConnection(Connection):
         if not hasattr(self, "host"):
             raise AttributeError("host")
 
-        if not isinstance(self.host, ipaddress.IPv4Adress):
+        if not isinstance(self.host, ipaddress.IPv4Address):
             raise TypeError(type(self.host))
 
         if not hasattr(self, "port"):
@@ -265,7 +265,7 @@ class Configuration:
         "partitions", 
         "slots", # time windows
         "channels", # queueing and sampling port channels (connections)
-        "network", # NetworkConfiguration object
+        "network", # NetworkConfiguration object (or None)
 
         # if this is set, POK writes a special string once 
         # there are no more schedulable threads
