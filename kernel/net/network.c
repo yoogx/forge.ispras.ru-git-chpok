@@ -250,4 +250,26 @@ void pok_network_flush_send(void)
     NETWORK_DRIVER_OPS->flush_send();
 }
 
+void pok_network_thread(void)
+{
+    for (;;) {
+        pok_network_reclaim_send_buffers();
+        pok_network_reclaim_receive_buffers();
+
+        /*
+         * Conserve electricity (and CPU time).
+         * It's actually very important in QEMU, 
+         * where virtual machine competes for resources with host 
+         * and even other guests.
+         *
+         * TODO Enable network card interrupt here, so we'd wake up
+         *      as soon as there's work to be done.
+         *      (Currently, we wake up on timer interrupt)
+         */
+        #ifdef i386
+        asm("hlt");
+        #endif
+    }
+}
+
 #endif

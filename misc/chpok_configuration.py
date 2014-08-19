@@ -585,6 +585,9 @@ def write_kernel_deployment_h(conf, f):
         )
     )
 
+    if conf.network:
+        total_threads += 1
+
     p("#define POK_CONFIG_NB_THREADS %d" % total_threads)
 
     p("#define POK_CONFIG_PARTITIONS_NTHREADS {%s}" % ", ".join(

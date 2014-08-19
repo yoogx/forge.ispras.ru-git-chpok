@@ -319,11 +319,6 @@ void pok_sched()
                 break;
 #if defined(POK_NEEDS_NETWORKING)
             case POK_SLOT_NETWORKING:
-                // TODO it basically can't be interrupted, which is wrong
-                //      not only it can overrun its allocated slot,
-                //      even if it takes longer than 1ms, it will cause "lost ticks"
-                pok_network_reclaim_send_buffers(); // <- this operation is mostly free
-                pok_network_reclaim_receive_buffers(); // <- but this is not
                 break;
 #endif
             default:
@@ -361,9 +356,7 @@ void pok_sched()
     }
 #if defined(POK_NEEDS_NETWORKING)
     else if (slot->type == POK_SLOT_NETWORKING) {
-        // if we're here, we're done with port processing stuff
-        // just idle (and wait for timer interrupt)
-        elected_thread = IDLE_THREAD;
+        elected_thread = NETWORK_THREAD;
     }
 #endif
     else {

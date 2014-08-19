@@ -47,17 +47,22 @@
  * In POK, we add a kernel thread and an idle thread. The kernel
  * thread is used to execute kernel code while the idle thread
  * is used to save processor resources.
+ *
+ * Additionally, if networking is enabled, 
+ * there's another thread that polls the network card.
  */
+
+#ifdef POK_NEEDS_NETWORKING
+#define NETWORK_THREAD POK_CONFIG_NB_THREADS-3
+#define POK_KERNEL_THREADS 3
+#else
+#define POK_KERNEL_THREADS 2
+#endif
 
 #define KERNEL_THREAD		POK_CONFIG_NB_THREADS -2
 #define IDLE_THREAD        POK_CONFIG_NB_THREADS -1
 
 #define POK_THREAD_DEFAULT_TIME_CAPACITY 10
-
-/*
-#define KERNEL_THREAD		POK_CONFIG_NB_THREADS
-#define IDLE_THREAD        POK_CONFIG_NB_THREADS + 1
-*/
 
 /*
  * Maximum priority value available to "ordinary" threads.

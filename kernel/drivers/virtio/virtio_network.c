@@ -19,8 +19,11 @@
 
 #include <assert.h>
 
+#include <arch.h>
 #include <arch/x86/pci.h>
 #include <arch/x86/interrupt.h>
+
+#include <core/thread.h>
 
 #include <bsp.h>
 #include <libc.h>
@@ -70,6 +73,26 @@ static struct receive_buffer receive_buffers[POK_MAX_RECEIVE_BUFFERS];
 
 // the device (statically allocated)
 static struct virtio_network_device virtio_network_device;
+
+/* the reason is that preemption is disabled when we're running
+ * in system call context anyway
+ *
+ * We don't want to accidentally enable it there,
+ * which might break things.
+ */
+static void maybe_lock_preemption(void)
+{
+    if (POK_SCHED_CURRENT_THREAD == NETWORK_THREAD) {
+        pok_arch_preempt_disable();
+    }
+}
+
+static void maybe_unlock_preemption(void)
+{
+    if (POK_SCHED_CURRENT_THREAD == NETWORK_THREAD) {
+        pok_arch_preempt_enable();
+    }
+}
 
 static int virtio_pci_search(s_pci_device* d) {
     // slightly adapted code from pci.c
@@ -147,7 +170,7 @@ static void use_receive_buffer(struct virtio_network_device *dev, struct receive
 
     if (vq->num_free < 1) {
         PRINTF("no free RX descriptors\n");
-        assert(FALSE && "no free TX descriptors - what");
+        assert(FALSE && "no free RX descriptors - what");
         return; // FIXME return error code
     }
 
@@ -325,6 +348,12 @@ static void reclaim_send_buffers(void)
 {
     struct virtio_virtqueue *vq = &virtio_network_device.tx_vq;
     
+    // this function can be called by any thread
+    // callbacks don't do much work, so we can run them all
+    // in single critical section without worrying too much
+    
+    maybe_lock_preemption();
+    
     while (vq->last_seen_used != vq->vring.used->idx) {
         uint16_t index = vq->last_seen_used & (vq->vring.num-1);
         struct vring_used_elem *e = &vq->vring.used->ring[index];
@@ -350,12 +379,19 @@ static void reclaim_send_buffers(void)
 
         vq->last_seen_used++;
     }
+    
+    maybe_unlock_preemption();
 }
 
 static void reclaim_receive_buffers(void)
 {
     struct virtio_network_device *dev = &virtio_network_device;
     struct virtio_virtqueue *vq = &dev->rx_vq;
+
+    // network thread only
+    assert(POK_SCHED_CURRENT_THREAD == NETWORK_THREAD);
+        
+    maybe_lock_preemption();
 
     uint16_t old_last_seen_used = vq->last_seen_used;
 
@@ -379,6 +415,10 @@ static void reclaim_receive_buffers(void)
         // reclaim buffer
         // i.e. push it back to avail. ring
         use_receive_buffer(dev, buf);
+
+        // preemption point
+        maybe_unlock_preemption();
+        maybe_lock_preemption();
     }
 
     if (old_last_seen_used != vq->last_seen_used) {
@@ -386,6 +426,8 @@ static void reclaim_receive_buffers(void)
         // used to avail ring
         notify_receive_buffers(dev);
     }
+        
+    maybe_unlock_preemption();
 }
 
 static void flush_send(void)

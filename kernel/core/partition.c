@@ -248,7 +248,7 @@ pok_ret_t pok_partition_init ()
 
 #if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_ERROR_HANDLING)
    // verify number of threads
-   if (total_threads != (POK_CONFIG_NB_THREADS - 2))
+   if (total_threads != (POK_CONFIG_NB_THREADS - POK_KERNEL_THREADS))
    {
 #ifdef POK_NEEDS_DEBUG
       printf ("Error in configuration, bad number of threads\n");

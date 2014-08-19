@@ -49,6 +49,10 @@
 #include <core/partition.h>
 #include <core/time.h>
 
+#ifdef POK_NEEDS_NETWORKING
+#include <net/network.h>
+#endif
+
 #include <core/instrumentation.h>
 
 #ifdef POK_NEEDS_THREADS
@@ -62,6 +66,14 @@
 pok_thread_t		         pok_threads[POK_CONFIG_NB_THREADS];
 
 extern pok_partition_t     pok_partitions[POK_CONFIG_NB_PARTITIONS];
+
+#ifdef POK_NEEDS_NETWORKING
+static void pok_network_thread_init(void)
+{
+    pok_threads[NETWORK_THREAD].entry = pok_network_thread;
+    pok_threads[NETWORK_THREAD].sp = pok_context_create(NETWORK_THREAD, 4096, (uintptr_t) pok_network_thread);
+}
+#endif
 
 
 /**
@@ -86,9 +98,11 @@ void pok_thread_init(void)
    pok_threads[IDLE_THREAD].base_priority		       = 0;
    pok_threads[IDLE_THREAD].state		       = POK_STATE_RUNNABLE;
 
-   pok_threads[IDLE_THREAD].sp			       = pok_context_create
-                                                   (IDLE_THREAD,								             IDLE_STACK_SIZE,
-						   (uint32_t)pok_arch_idle);
+   pok_threads[IDLE_THREAD].sp			       = pok_context_create(IDLE_THREAD, IDLE_STACK_SIZE, (uint32_t)pok_arch_idle);
+
+#ifdef POK_NEEDS_NETWORKING
+   pok_network_thread_init();
+#endif
 
    for (i = 0; i < POK_CONFIG_NB_THREADS; ++i)
    {

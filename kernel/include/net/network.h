@@ -142,6 +142,11 @@ void pok_network_reclaim_receive_buffers(void);
 void pok_network_flush_send(void);
 
 /*
+ * Network thread entry.
+ */
+void pok_network_thread(void);
+
+/*
  * Defined in deployment.c
  */
 extern const uint32_t pok_network_ip_address;
