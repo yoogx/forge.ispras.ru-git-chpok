@@ -31,6 +31,50 @@
 #define DEBUG_PRINT(...)
 #endif
 
+static void port_wait_list_append(
+        pok_port_queueing_t *port, 
+        pok_port_queueing_wait_list_t *entry)
+{
+    entry->priority = 0; 
+    if (port->discipline == POK_PORT_QUEUEING_DISCIPLINE_PRIORITY) {
+        entry->priority = POK_CURRENT_THREAD.priority;
+    }
+    
+    pok_port_queueing_wait_list_t **list = &port->wait_list;
+
+    while (*list != NULL && (*list)->priority >= entry->priority) {
+        list = &((**list).next);
+    }
+    entry->next = *list;
+    *list = entry;
+}
+
+static size_t port_wait_list_length(pok_port_queueing_t *port)
+{
+    size_t res = 0;
+    pok_port_queueing_wait_list_t *list = port->wait_list;
+
+    while (list != NULL) {
+        res++;
+        list = list->next;
+    }
+    return res;
+}
+
+static void port_wait_list_remove(
+        pok_port_queueing_t *port, 
+        pok_port_queueing_wait_list_t *entry)
+{
+    pok_port_queueing_wait_list_t **list = &port->wait_list;
+
+    while (*list != NULL && *list != entry) {
+        list = &((**list).next);
+    }
+
+    if (*list == NULL) return;
+
+    *list = (**list).next;
+}
 
 /* This file contains entry points from system calls
  * (and most of the logic)
@@ -101,20 +145,15 @@ pok_ret_t pok_port_queueing_create(
     // everything is OK, initialize it
     pok_lockobj_attr_t lockattr;
     lockattr.kind = POK_LOCKOBJ_KIND_EVENT;
-    switch (discipline) {
-        case POK_PORT_QUEUEING_DISCIPLINE_FIFO:
-            lockattr.queueing_policy = POK_QUEUEING_DISCIPLINE_FIFO;
-            break;
-        case POK_PORT_QUEUEING_DISCIPLINE_PRIORITY:
-            lockattr.queueing_policy = POK_QUEUEING_DISCIPLINE_PRIORITY;
-            break;
-    }
+    lockattr.queueing_policy = POK_QUEUEING_DISCIPLINE_FIFO; // it doesn't matter
 
     pok_ret_t ret = pok_lockobj_create(&port->header.lock, &lockattr);
     if (ret != POK_ERRNO_OK) return ret;
     
     *id = index;
     port->header.created = TRUE;
+    port->wait_list = NULL;
+    port->discipline = discipline;
 
     DEBUG_PRINT("port %s (index=%d) created\n", name, index);
 
@@ -153,56 +192,65 @@ pok_ret_t pok_port_queueing_receive(
 
     pok_lockobj_lock(&port->header.lock, NULL);
 
-    uint64_t deadline;
-    // timeout
-    //  <0 - wait infinite
-    //  =0 - never wait
-    //  >0 - wait specified amount of time
-    if (timeout > 0) {
-        deadline = POK_GETTICK() + timeout;
-    } else {
-        deadline = 0;
-    }
-    
-    pok_bool_t dont_block =
-        timeout == 0 ||
-        POK_CURRENT_PARTITION.lock_level > 0 ||
-        pok_thread_is_error_handling(&POK_CURRENT_THREAD);
-
-    while (pok_port_utils_queueing_empty(port)) {
-        if (dont_block) {
-            break; // never wait
-        }
-        if (deadline && POK_GETTICK() >= deadline) {
-            break; // deadline expired
-        }
-        //DEBUG_PRINT("sleeping for %u ms...\n", (unsigned) timeout);
-        pok_lockobj_eventwait(&port->header.lock, deadline);
-        //DEBUG_PRINT("awoke\n");
-    }
-
-    if (pok_port_utils_queueing_empty(port)) {
-        if (POK_CURRENT_PARTITION.lock_level > 0 && timeout != 0) {
-            DEBUG_PRINT("can't wait with preemption locked\n");
-            ret = POK_ERRNO_MODE;
-        } else if (pok_thread_is_error_handling(&POK_CURRENT_THREAD) && timeout != 0) {
-            DEBUG_PRINT("can't wait in error handler\n");
-            ret = POK_ERRNO_MODE;
-        } else if (timeout) {
-            DEBUG_PRINT("port is empty (blocking read, timeout=%d)\n", (int) timeout);
-            ret = POK_ERRNO_TIMEOUT;
-        } else {
-            DEBUG_PRINT("port is empty (non-blocking read)\n");
-            ret = POK_ERRNO_EMPTY;
-        }
-        *len = 0;
-    } else {
+    if (!pok_port_utils_queueing_empty(port)) {
+        // everything is great, we can receive it right now
         pok_port_utils_queueing_read(port, data, len);
         ret = POK_ERRNO_OK;
+        goto end;
+    }
+    
+    *len = 0;
+
+    // queue is empty...
+
+    if (timeout == 0) {
+        DEBUG_PRINT("port is empty (non-blocking read)\n");
+        ret = POK_ERRNO_EMPTY;
+        goto end;
+    } 
+
+    if (POK_CURRENT_PARTITION.lock_level > 0) {
+        DEBUG_PRINT("can't wait with preemption locked\n");
+        ret = POK_ERRNO_MODE;
+        goto end;
     }
 
-    pok_lockobj_unlock(&port->header.lock, NULL);
+    if (pok_thread_is_error_handling(&POK_CURRENT_THREAD)) {
+        DEBUG_PRINT("can't wait in error handler\n");
+        ret = POK_ERRNO_MODE;
+        goto end;
+    }
 
+    {
+        pok_port_queueing_wait_list_t wait_list_entry;
+
+        if (timeout < 0) {
+            wait_list_entry.timeout = -1;
+        } else {
+            wait_list_entry.timeout = POK_GETTICK() + timeout;
+            wait_list_entry.result = POK_ERRNO_TIMEOUT;
+        }
+        wait_list_entry.thread = POK_SCHED_CURRENT_THREAD;
+
+        wait_list_entry.receiving.data_ptr = data;
+        wait_list_entry.receiving.data_size_ptr = len;
+
+        port_wait_list_append(port, &wait_list_entry);
+
+        pok_lockobj_eventwait(&port->header.lock, timeout>0 ? timeout : 0);
+
+        // by now, we're either 
+        // - timed out 
+        // - someone else delivered us a message
+            
+        port_wait_list_remove(port, &wait_list_entry);
+
+        ret = wait_list_entry.result;
+        goto end;
+    }
+
+end:
+    pok_lockobj_unlock(&port->header.lock, NULL);
     return ret;
 }
 
@@ -236,56 +284,64 @@ pok_ret_t pok_port_queueing_send(
     }
 
     pok_lockobj_lock(&port->header.lock, NULL);
-    
-    uint64_t deadline;
-    // timeout
-    //  <0 - wait infinite
-    //  =0 - never wait
-    //  >0 - wait specified amount of time
-    if (timeout > 0) {
-        deadline = POK_GETTICK() + timeout;
-    } else {
-        deadline = 0;
-    }
 
-    pok_bool_t dont_block =
-        timeout == 0 ||
-        POK_CURRENT_PARTITION.lock_level > 0 ||
-        pok_thread_is_error_handling(&POK_CURRENT_THREAD);
-
-    while (pok_port_utils_queueing_full(port)) {
-        if (dont_block) {
-            break; // never wait
-        }
-        if (deadline && POK_GETTICK() >= deadline) {
-            break; // deadline expired
-        }
-        //DEBUG_PRINT("sleeping for %u ms...\n", (unsigned) timeout);
-        pok_lockobj_eventwait(&port->header.lock, deadline);
-        //DEBUG_PRINT("awoke\n");
-    }
-
-    if (pok_port_utils_queueing_full(port)) {
-        if (POK_CURRENT_PARTITION.lock_level > 0 && timeout != 0) {
-            DEBUG_PRINT("can't wait with preemption locked\n");
-            ret = POK_ERRNO_MODE;
-        } else if (pok_thread_is_error_handling(&POK_CURRENT_THREAD) && timeout != 0) {
-            DEBUG_PRINT("can't wait in error handler\n");
-            ret = POK_ERRNO_MODE;
-        } else if (timeout) {
-            DEBUG_PRINT("port is full (blocking write, timeout=%d)\n", (int) timeout);
-            ret = POK_ERRNO_TIMEOUT;
-        } else {
-            DEBUG_PRINT("port is full (non-blocking write)\n");
-            ret = POK_ERRNO_FULL;
-        }
-    } else {
+    if (!pok_port_utils_queueing_full(port)) {
+        // everything is great, we can send right now
         pok_port_utils_queueing_write(port, data, len);
         ret = POK_ERRNO_OK;
+        goto end;
+    }
+    
+    // queue is full...
+
+    if (timeout == 0) {
+        DEBUG_PRINT("port is full (non-blocking write)\n");
+        ret = POK_ERRNO_FULL;
+        goto end;
+    }   
+
+    if (POK_CURRENT_PARTITION.lock_level > 0) {
+        DEBUG_PRINT("can't wait with preemption locked\n");
+        ret = POK_ERRNO_MODE;
+        goto end;
+    }
+    
+    if (pok_thread_is_error_handling(&POK_CURRENT_THREAD)) {
+        DEBUG_PRINT("can't wait in error handler\n");
+        ret = POK_ERRNO_MODE;
+        goto end;
     }
 
-    pok_lockobj_unlock(&port->header.lock, NULL);
+    {
+        pok_port_queueing_wait_list_t wait_list_entry;
 
+        if (timeout < 0) {
+            wait_list_entry.timeout = -1;
+        } else {
+            wait_list_entry.timeout = POK_GETTICK() + timeout;
+            wait_list_entry.result = POK_ERRNO_TIMEOUT;
+        }
+        wait_list_entry.thread = POK_SCHED_CURRENT_THREAD;
+
+        wait_list_entry.sending.data_ptr = data;
+        wait_list_entry.sending.data_size = len;
+
+        port_wait_list_append(port, &wait_list_entry);
+
+        pok_lockobj_eventwait(&port->header.lock, timeout>0 ? timeout : 0);
+
+        // by now, we're either 
+        // - timed out 
+        // - someone else delivered us a message
+            
+        port_wait_list_remove(port, &wait_list_entry);
+
+        ret = wait_list_entry.result;
+        goto end;
+    }
+
+end:
+    pok_lockobj_unlock(&port->header.lock, NULL);
     return ret;
 }
 
@@ -310,7 +366,7 @@ pok_ret_t pok_port_queueing_status(
     status->max_nb_message = port->max_nb_messages;
     status->max_message_size = port->max_message_size;
     status->direction = port->header.direction;
-    status->waiting_processes = 0; // TODO
+    status->waiting_processes = port_wait_list_length(port);
 
     return POK_ERRNO_OK;
 }

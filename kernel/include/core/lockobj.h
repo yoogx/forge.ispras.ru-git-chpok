@@ -169,6 +169,7 @@ pok_ret_t pok_lockobj_lock3 (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* a
 pok_ret_t pok_lockobj_unlock (pok_lockobj_t* obj, const pok_lockobj_lockattr_t* attr);
 pok_ret_t pok_lockobj_eventwait (pok_lockobj_t* obj, const uint64_t timeout);
 pok_ret_t pok_lockobj_eventsignal (pok_lockobj_t* obj);
+pok_ret_t pok_lockobj_eventsignal_thread(pok_lockobj_t *obj, pok_thread_id_t thread);
 pok_ret_t pok_lockobj_eventbroadcast (pok_lockobj_t* obj);
 pok_ret_t pok_lockobj_partition_wrapper (const pok_lockobj_id_t id, const pok_lockobj_lockattr_t* attr);
 pok_ret_t pok_lockobj_partition_status (const pok_lockobj_id_t id, pok_lockobj_status_t* attr);

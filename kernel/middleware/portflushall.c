@@ -64,6 +64,84 @@
          varname->src.kind != POK_PORT_CONNECTION_NULL; \
          varname++)
 
+static pok_bool_t queueing_src_try_pop_waiting(pok_port_queueing_t *src)
+{
+    uint64_t time = POK_GETTICK();
+
+    while (src->wait_list != NULL) {
+        if (time >= src->wait_list->timeout) {
+            src->wait_list = src->wait_list->next;
+        } else { 
+            src->wait_list->result = POK_ERRNO_OK;
+
+            pok_port_utils_queueing_write(src, src->wait_list->sending.data_ptr, src->wait_list->sending.data_size);
+            
+            pok_lockobj_eventsignal_thread(&src->header.lock, src->wait_list->thread);
+
+            src->wait_list = src->wait_list->next;
+
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+static pok_bool_t queueing_dst_try_pop_waiting(
+        pok_port_queueing_t *dst, 
+        const char *data,
+        pok_size_t len)
+{
+    uint64_t time = POK_GETTICK();
+
+    while (dst->wait_list != NULL) {
+        if (time >= dst->wait_list->timeout) {
+            dst->wait_list = dst->wait_list->next;
+        } else {
+            dst->wait_list->result = POK_ERRNO_OK;
+
+            memcpy(dst->wait_list->receiving.data_ptr, data, len);
+            *dst->wait_list->receiving.data_size_ptr = len;
+
+            pok_lockobj_eventsignal_thread(&dst->header.lock, dst->wait_list->thread);
+
+            dst->wait_list = dst->wait_list->next;
+
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+static void pok_queueing_transfer(
+    pok_port_queueing_t *src,
+    pok_port_queueing_t *dst)
+{
+    /*
+     * Two points here:
+     *
+     * 1) If someone is waiting in dest.  port, we need to give message to them directly.
+     * 2) If someone is waiting in source port, we need to push their message to queue afterwards.
+     */
+
+    pok_port_data_t *src_place = pok_port_utils_queueing_head(src);
+
+    if (!queueing_dst_try_pop_waiting(dst, &src_place->data[0], src_place->message_size)) {
+        // nobody's waiting - queue the message instead
+
+        pok_port_data_t *dst_place = pok_port_utils_queueing_tail(dst);
+
+        dst_place->message_size = src_place->message_size;
+        memcpy(&dst_place->data[0], &src_place->data[0], src_place->message_size);
+    
+        dst->nb_message++;
+    }
+
+    src->nb_message--;
+    src->queue_head = (src->queue_head + 1) % src->max_nb_messages;
+
+    queueing_src_try_pop_waiting(src);
+}
+
 static void pok_queueing_channel_flush_local(
         pok_port_channel_t *chan)
 {
@@ -72,12 +150,8 @@ static void pok_queueing_channel_flush_local(
     pok_port_queueing_t *dst = &pok_queueing_ports[dst_id];
 
     while (!pok_port_utils_queueing_full(dst) && !pok_port_utils_queueing_empty(src)) {
-        pok_port_utils_queueing_transfer(src, dst);
+        pok_queueing_transfer(src, dst);
     }
-
-    // wake up processes that possibly wait for messages
-    // TODO wake them up in order
-    pok_lockobj_eventbroadcast(&dst->header.lock);
 }
 
 #ifdef POK_NEEDS_NETWORKING
@@ -112,6 +186,9 @@ static void pok_queueing_channel_udp_buffer_callback(
             port->nb_message--;
 
             aux_array[ring_index].status = QUEUEING_UDP_STATUS_NONE;
+
+            // we have free spot, use it, if anyone's waiting
+            queueing_src_try_pop_waiting(port);
         } else {
             // ignore messages not at the head of the queue
             // even if they're already sent, and buffers are free to use
@@ -165,8 +242,6 @@ static void pok_queueing_channel_flush_udp(
 
 static void pok_queueing_channel_flush(pok_port_channel_t *chan)
 {
-    pok_port_queueing_t *src = &pok_queueing_ports[chan->src.local.port_id];
-
     if (chan->dst.kind == POK_PORT_CONNECTION_LOCAL) {
         pok_queueing_channel_flush_local(chan);
     }
@@ -178,9 +253,6 @@ static void pok_queueing_channel_flush(pok_port_channel_t *chan)
     else {
         assert(0 && "Unknown connection type");
     }
-    // wake up processes that possibly wait for port becoming non-full
-    // TODO wake them up in order
-    pok_lockobj_eventbroadcast(&src->header.lock);
 }
 
 #endif
@@ -355,13 +427,15 @@ static pok_bool_t udp_callback_f(uint32_t ip, uint16_t port, const char *payload
 
             pok_port_queueing_t *dst = &pok_queueing_ports[chan->dst.local.port_id];
 
-            if (pok_port_utils_queueing_full(dst)) {
-                // TODO set overflow flag, as mandated by the standard
-                printf("queueing overflow\n");
-            } else {
-                pok_port_utils_queueing_write(dst, payload, length);
-                // TODO wake processes up in specific order
-                pok_lockobj_eventbroadcast(&dst->header.lock);
+            if (!queueing_dst_try_pop_waiting(dst, payload, length)) {
+                // nobody's waiting - queue the message instead
+
+                if (pok_port_utils_queueing_full(dst)) {
+                    // TODO set overflow flag, as mandated by the standard
+                    printf("queueing overflow\n");
+                } else {
+                    pok_port_utils_queueing_write(dst, payload, length);
+                }
             }
 
             return TRUE;

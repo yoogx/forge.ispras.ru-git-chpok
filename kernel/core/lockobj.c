@@ -323,7 +323,6 @@ pok_ret_t pok_lockobj_eventsignal (pok_lockobj_t* obj)
    }
 }
 
-static
 pok_ret_t pok_lockobj_eventsignal_thread(pok_lockobj_t *obj, pok_thread_id_t thread)
 {
    pok_ret_t ret;

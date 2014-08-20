@@ -86,7 +86,7 @@ typedef struct
 typedef struct
 {
     pok_port_size_t             message_size;
-    unsigned char               data[];
+    char                        data[];
 } pok_port_data_t;
 
 typedef enum
@@ -187,15 +187,41 @@ void pok_port_reset(pok_partition_id_t);
 void pok_port_flush_partition(pok_partition_id_t);
 
 #ifdef POK_NEEDS_PORTS_QUEUEING
+typedef struct pok_port_queueing_wait_list_t
+{
+    struct pok_port_queueing_wait_list_t *next;
+
+    pok_thread_id_t thread;
+    int priority;
+    uint64_t timeout;
+    pok_ret_t result;
+    
+    union {
+        struct {
+            const char *data_ptr;
+            pok_port_size_t data_size;
+        } sending;
+
+        struct {
+            char *data_ptr;
+            pok_port_size_t *data_size_ptr;
+        } receiving;
+    };
+} pok_port_queueing_wait_list_t;
+
 typedef struct
 {
     pok_port_header_t           header;
+
+    pok_port_queueing_discipline_t discipline;
 
     pok_port_size_t             max_message_size;
     pok_port_size_t             max_nb_messages;
 
     pok_port_size_t             nb_message;
     pok_port_size_t             queue_head;
+
+    pok_port_queueing_wait_list_t *wait_list;
 
     size_t                      data_stride;
     char                        *data;

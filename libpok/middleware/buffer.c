@@ -269,7 +269,7 @@ static void buffer_wait_list_append(
 /*
  * Returns lengths of the buffer's waiting list.
  */
-size_t buffer_wait_list_length(pok_buffer_t *buffer)
+static size_t buffer_wait_list_length(pok_buffer_t *buffer)
 {
     size_t res = 0;
     pok_buffer_wait_list_t *list = buffer->wait_list;

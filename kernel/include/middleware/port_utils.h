@@ -21,6 +21,20 @@
 
 #ifdef POK_NEEDS_PORTS_QUEUEING
 
+static inline pok_port_data_t * pok_port_utils_queueing_tail(
+    pok_port_queueing_t *port)
+{
+    pok_port_size_t index = (port->queue_head + port->nb_message) % port->max_nb_messages;
+    return (pok_port_data_t *) port->data + port->data_stride * index;
+}
+
+static inline pok_port_data_t * pok_port_utils_queueing_head(
+    pok_port_queueing_t *port)
+{
+    pok_port_size_t index = port->queue_head;
+    return (pok_port_data_t *) port->data + port->data_stride * index;
+}
+
 static inline pok_bool_t pok_port_utils_queueing_empty(pok_port_queueing_t *port)
 {
     return port->nb_message == 0;
@@ -41,11 +55,6 @@ void pok_port_utils_queueing_read(
         pok_port_queueing_t *port,
         void *message,
         pok_port_size_t *message_length
-);
-
-void pok_port_utils_queueing_transfer(
-    pok_port_queueing_t *src,
-    pok_port_queueing_t *dst
 );
 
 #endif
