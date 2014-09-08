@@ -102,72 +102,9 @@ static void pok_error_enable(void)
     thread->state  = POK_STATE_RUNNABLE;
 }
 
-pok_ret_t pok_error_raise_thread(
-        pok_error_kind_t error, 
-        pok_thread_id_t thread_id, 
-        const char *message,
-        size_t msg_size)
+static void take_fixed_action(pok_error_action_t action)
 {
-    /*
-     * This is process (thread) level error
-     * for sure.
-     *
-     * However, if it's raised by error handler,
-     * it should be promoted to partition error
-     * automatically.
-     *
-     * The same thing if error handler was not created at all.
-     */
-
-    if (!POK_CURRENT_PARTITION.thread_error_created ||
-        POK_CURRENT_PARTITION.thread_error == thread_id)
-    {
-        // depending on HM table action, this might never return
-        pok_error_raise_partition(POK_SCHED_CURRENT_PARTITION, error);
-        return POK_ERRNO_OK;
-    }
-
-    // TODO add real error queue
-    pok_error_status_t* status = &POK_CURRENT_PARTITION.error_status;
-    assert(status->error_kind == POK_ERROR_KIND_INVALID);
-
-    status->error_kind = error;
-    status->failed_thread = thread_id;
-    if (msg_size > 0) {
-        memcpy(status->msg, message, msg_size);
-    }
-    status->msg_size = msg_size;
-    status->failed_addr = (uintptr_t) 0; // TODO somehow find interrupt frame and extract EIP from there
-    
-    // reset it's stack and other stuff
-    pok_error_enable();
-
-    return POK_ERRNO_OK;
-}
-
-
-void pok_error_raise_partition (pok_partition_id_t partition, pok_error_kind_t error)
-{
-    (void) partition;
-    (void) error;
-
-    // consult partition error table
-    size_t i = 0;
-    const pok_error_hm_partition_t *table = pok_partition_hm_tables[POK_SCHED_CURRENT_PARTITION];
-    pok_error_action_t action;
-
-    for (i = 0; table[i].kind != POK_ERROR_KIND_INVALID; i++) {
-        if (table[i].kind == error) {
-            action = table[i].action;
-            break;
-        }
-    }
-    if (table[i].kind == POK_ERROR_KIND_INVALID) {
-        // couldn't find error in the table, oops
-        assert(FALSE && "missing error code in partition HM table");
-    }
-
-    // TODO in case of restart, fill in restart reason
+    // TODO in case of restart, fill in restart reason (to be inspected later)
 
     switch (action) {
         case POK_ERROR_ACTION_IGNORE:
@@ -188,7 +125,83 @@ void pok_error_raise_partition (pok_partition_id_t partition, pok_error_kind_t e
         default:
             assert(FALSE && "invalid HM action");
     }
+}
 
+pok_ret_t pok_error_raise_thread(
+        pok_error_kind_t error, 
+        pok_thread_id_t thread_id, 
+        const char *message,
+        size_t msg_size)
+{
+    /*
+     * This might be either process or partition level error,
+     * which depends on HM table.
+     *
+     * So, we need to consult the table first.
+     */
+    const pok_error_hm_partition_t *entry;
+    for (entry = pok_partition_hm_tables[POK_SCHED_CURRENT_PARTITION]; entry->kind != POK_ERROR_KIND_INVALID; entry++) {
+        if (entry->kind == error) {
+            break;
+        }
+    }
+    if (entry->kind == POK_ERROR_KIND_INVALID) {
+        // couldn't find error in the table, oops.
+        // XXX what should we do? restart partition, or what?
+        assert(FALSE && "missing error code in partition HM table");
+    }
+
+    if (entry->level == POK_ERROR_LEVEL_PARTITION || 
+        !POK_CURRENT_PARTITION.thread_error_created || 
+        POK_CURRENT_PARTITION.thread_error == thread_id)
+    {
+        // take fixed action
+        take_fixed_action(entry->action);
+        // TODO if action is ignore, sometimes we need to do something else (to prevent raising it again)
+    } else {
+        // otherwise, pass it to the error handler process
+
+        // TODO add real error queue
+        pok_error_status_t* status = &POK_CURRENT_PARTITION.error_status;
+        assert(status->error_kind == POK_ERROR_KIND_INVALID);
+
+        status->error_kind = entry->target_error_code;
+        status->failed_thread = thread_id;
+        if (msg_size > 0) {
+            memcpy(status->msg, message, msg_size);
+        }
+        status->msg_size = msg_size;
+        status->failed_addr = (uintptr_t) 0; // TODO somehow find interrupt frame and extract EIP from there
+        
+        // reset it's stack and other stuff
+        pok_error_enable();
+    }
+
+    return POK_ERRNO_OK;
+}
+
+
+void pok_error_raise_partition (pok_partition_id_t partition, pok_error_kind_t error)
+{
+    (void) partition;
+    (void) error;
+
+    // consult partition error table
+    const pok_error_hm_partition_t *entry;
+    for (entry = pok_partition_hm_tables[POK_SCHED_CURRENT_PARTITION]; entry->kind != POK_ERROR_KIND_INVALID; entry++) {
+        if (entry->kind == error) {
+            break;
+        }
+    }
+    if (entry->kind == POK_ERROR_KIND_INVALID) {
+        // couldn't find error in the table, oops.
+        // XXX what should we do? restart partition, or what?
+        assert(FALSE && "missing error code in partition HM table");
+    }
+
+    assert(entry->level == POK_ERROR_LEVEL_PARTITION);
+
+    take_fixed_action(entry->action);
 }
 
 void pok_error_raise_kernel(pok_error_kind_t error)

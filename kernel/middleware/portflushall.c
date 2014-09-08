@@ -255,8 +255,6 @@ static void pok_queueing_channel_flush(pok_port_channel_t *chan)
     }
 }
 
-#endif
-
 #endif // POK_NEEDS_PORTS_QUEUEING
 
 #ifdef POK_NEEDS_PORTS_SAMPLING
@@ -324,7 +322,7 @@ static pok_bool_t pok_sampling_channel_flush_udp(
 
     return TRUE;
 }
-#endif
+#endif // POK_NEEDS_NETWORKING
 
 static void pok_sampling_channel_flush(pok_port_channel_t *chan)
 {
@@ -442,7 +440,6 @@ static pok_bool_t udp_callback_f(uint32_t ip, uint16_t port, const char *payload
         }
     }
 #endif
-
     return FALSE;
 }
 static pok_network_udp_receive_callback_t udp_callback = {udp_callback_f, NULL};
@@ -451,5 +448,6 @@ void pok_port_network_init(void)
 {
     pok_network_register_udp_receive_callback(&udp_callback);
 }
+#endif // POK_NEEDS_NETWORKING
 
 #endif // defined (POK_NEEDS_PORTS_QUEUEING) || defined (POK_NEEDS_PORTS_SAMPLING)

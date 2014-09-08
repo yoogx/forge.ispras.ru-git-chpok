@@ -50,6 +50,10 @@ typedef uint8_t pok_error_action_t;
 #define POK_ERROR_ACTION_COLD_START 3
 #define POK_ERROR_ACTION_WARM_START 4
 
+typedef uint8_t pok_error_level_t;
+#define POK_ERROR_LEVEL_PARTITION 1 // fixed recovery action is taken
+#define POK_ERROR_LEVEL_PROCESS 2 // error can be dealt with by error handler
+
 typedef struct
 {
    pok_error_kind_t     error_kind;
@@ -61,9 +65,10 @@ typedef struct
 
 typedef struct 
 {
-    pok_error_kind_t kind;
-    pok_error_action_t action;
-
+    pok_error_kind_t kind; // error code
+    pok_error_level_t level; // can it be passed to error handler OR action should be taken immediately?
+    pok_error_action_t action; // action to take if level is 'partition' OR if error handler is not created
+    pok_error_kind_t target_error_code; // error code to pass to error handler process (has to be defined only if level is 'process')
 } pok_error_hm_partition_t;
 
 /*

@@ -881,10 +881,20 @@ def write_kernel_deployment_c_hm_tables(conf, f):
     for i, part in enumerate(conf.partitions):
         p("static const pok_error_hm_partition_t partition_hm_table%d[] = {" % i)
 
-        for error, action in part.hm_table:
-            p("  {%s, %s}," % (error, action))
+        for tup in part.hm_table:
+            if len(tup) == 2:
+                kind, action = tup
+                level = "POK_ERROR_LEVEL_PROCESS"
+                target_error_code = kind
+                pass
+            elif len(tup) == 4:
+                kind, level, action, target_error_code = tup 
+            else:
+                raise ValueError("HM entry tuple has incorrect length")
 
-        p("  {POK_ERROR_KIND_INVALID, POK_ERROR_ACTION_IGNORE} /* sentinel value */")
+            p("  {%s, %s, %s, %s}," % (kind, level, action, target_error_code))
+
+        p("  {POK_ERROR_KIND_INVALID, POK_ERROR_LEVEL_PROCESS, POK_ERROR_ACTION_IGNORE, POK_ERROR_KIND_INVALID} /* sentinel value */")
 
         p("};")
         p("")

@@ -2,6 +2,8 @@
 
 import os
 
+import itertools
+
 import ipaddress
 
 import chpok_configuration
@@ -94,9 +96,7 @@ class ArincConfigParser:
 
         res.ports = self.parse_ports(root.find("ARINC653_Ports"))
 
-
-        # TODO
-        res.hm_table = []
+        res.hm_table = self.parse_hm(root.find("HM_Table"))
 
         return res
 
@@ -192,6 +192,22 @@ class ArincConfigParser:
 
         return res
 
+    def parse_hm(self, root):
+        if root is None:
+            return None
+
+        res = []
+
+        for x in root.findall("Error"):
+            res.append((
+                x.attrib["Code"], # kind
+                "POK_ERROR_LEVEL_" + x.attrib["Level"], # level
+                "POK_ERROR_ACTION_" + x.attrib["Action"], # action
+                "POK_ERROR_KIND_" + x.attrib["ErrorCode"], # target code
+            ))
+
+        return res
+
 def parse_args():
     import argparse
 
@@ -204,10 +220,11 @@ def parse_args():
 
 def main():
     args = parse_args()
-    
-    # XXX currently hardcoded
+
+    # XXX directory names are hardcoded for now
+    partition_dirs = (os.path.join(args.directory, "pr%d" % i) for i in itertools.count(1))
+    partition_dirs = list(itertools.islice(partition_dirs, 255)) # XXX limited to 255 partitions right now
     kernel_dir = os.path.join(args.directory, "kernel")
-    partition_dirs = [os.path.join(args.directory, x) for x in ["pr1", "pr2"]]
 
     root = ET.parse(args.xml)
 
