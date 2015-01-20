@@ -82,7 +82,6 @@ void CREATE_EVENT (EVENT_NAME_TYPE EVENT_NAME,
                    EVENT_ID_TYPE *EVENT_ID,
                    RETURN_CODE_TYPE *RETURN_CODE)
 {
-   RETURN_CODE_TYPE  return_code_name;
    pok_event_id_t    core_id;
    pok_ret_t         core_ret;
 

@@ -29,7 +29,7 @@ pok_ret_t pok_thread_sleep (int64_t ms)
     } else {
         val = (int32_t) ms;
     }
-   return pok_syscall2 (POK_SYSCALL_THREAD_SLEEP, (uint32_t)ms, 0);
+   return pok_syscall2 (POK_SYSCALL_THREAD_SLEEP, (uint32_t) val, 0);
 }
 
 #endif

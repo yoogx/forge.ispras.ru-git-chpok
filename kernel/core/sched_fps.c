@@ -44,7 +44,7 @@ void fps_initialize(void) {
 pok_thread_id_t fps_elect_thread(void) {
     // find the best thread
     // TODO it scans linearly right now (perhaps, heap queue will be better?)
-    pok_thread_id_t i, best_thread_idx;
+    pok_thread_id_t i, best_thread_idx = 0;
     pok_bool_t found_any = FALSE;
     for (i = POK_CURRENT_PARTITION.thread_index_low; i < POK_CURRENT_PARTITION.thread_index; i++) {
         pok_thread_t *thread = &pok_threads[i]; 

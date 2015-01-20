@@ -85,8 +85,6 @@ void CREATE_SEMAPHORE (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
                        SEMAPHORE_ID_TYPE *SEMAPHORE_ID,
                        RETURN_CODE_TYPE *RETURN_CODE )
 {
-
-   RETURN_CODE_TYPE  return_code_name;
    pok_sem_id_t      sem_id;
    pok_ret_t         core_ret;
 

@@ -44,7 +44,9 @@ void GET_PARTITION_STATUS (PARTITION_STATUS_TYPE *partition_status,
   pok_current_partition_get_duration(&duration);
   partition_status->DURATION = ms_to_arinc_time(duration);
 
-  pok_current_partition_get_lock_level(&partition_status->LOCK_LEVEL);
+  uint32_t lock_level;
+  pok_current_partition_get_lock_level(&lock_level);
+  partition_status->LOCK_LEVEL = lock_level;
 
   pok_current_partition_get_operating_mode(&mode);
 
@@ -57,7 +59,9 @@ void GET_PARTITION_STATUS (PARTITION_STATUS_TYPE *partition_status,
   }
 #undef MAP
 
-  pok_current_partition_get_start_condition(&partition_status->START_CONDITION);
+  pok_start_condition_t start_condition;
+  pok_current_partition_get_start_condition(&start_condition);
+  partition_status->START_CONDITION = start_condition; // TODO proper conversion
 
   *return_code = NO_ERROR;
 }

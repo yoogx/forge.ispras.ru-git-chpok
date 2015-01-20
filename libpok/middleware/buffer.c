@@ -213,7 +213,7 @@ static void buffer_pop(pok_buffer_t *buffer, void *data, pok_port_size_t *len)
  *
  * (assumes there's space for one)
  */
-static void buffer_push(pok_buffer_t *buffer, void *data, pok_port_size_t len)
+static void buffer_push(pok_buffer_t *buffer, const void *data, pok_port_size_t len)
 {
     pok_buffer_data_t *place = buffer_tail(buffer);
     
@@ -391,8 +391,6 @@ pok_ret_t pok_buffer_receive (
         void                        *data, 
         pok_port_size_t             *len)
 {
-    pok_ret_t ret;
-
     if (id >= POK_CONFIG_NB_BUFFERS) {
         return POK_ERRNO_EINVAL;
     }
@@ -471,7 +469,7 @@ pok_ret_t pok_buffer_receive (
         uint64_t time;
         pok_time_get(&time);
 
-        if (time >= buffer->wait_list->timeout) {
+        if (time >= (uint64_t) buffer->wait_list->timeout) {
             buffer->wait_list = buffer->wait_list->next;
         } else {
             buffer_push(buffer, buffer->wait_list->sending.data_ptr, buffer->wait_list->sending.data_size);
@@ -498,8 +496,6 @@ pok_ret_t pok_buffer_send (
         pok_port_size_t             len, 
         int64_t                     timeout)
 {
-    pok_ret_t      ret;
-
     if (id >= POK_CONFIG_NB_BUFFERS) {
         return POK_ERRNO_EINVAL;
     }
@@ -580,7 +576,7 @@ pok_ret_t pok_buffer_send (
         uint64_t time;
         pok_time_get(&time);
 
-        if (time >= buffer->wait_list->timeout) {
+        if (time >= (uint64_t) buffer->wait_list->timeout) {
             buffer->wait_list = buffer->wait_list->next;
         } else {
             memcpy(buffer->wait_list->receiving.data_ptr, data, len);
@@ -593,7 +589,7 @@ pok_ret_t pok_buffer_send (
             
             pok_thread_yield();
             
-            return;
+            return POK_ERRNO_OK;
         }   
     }
 

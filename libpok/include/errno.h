@@ -14,12 +14,12 @@
  * Created by julien on Thu Jan 15 23:34:13 2009
  */
 
+#ifndef __POK_ERRNO_H__
+#define __POK_ERRNO_H__
+
 #include <types.h>
 
 extern uint32_t errno;
-
-#ifndef __POK_ERRNO_H__
-#define __POK_ERRNO_H__
 
 typedef enum
 {

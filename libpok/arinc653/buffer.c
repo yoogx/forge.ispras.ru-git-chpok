@@ -90,7 +90,7 @@ void CREATE_BUFFER (
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
-   if (MAX_NB_MESSAGE > UINT32_MAX / MAX_MESSAGE_SIZE) {
+   if (MAX_NB_MESSAGE > INT32_MAX / MAX_MESSAGE_SIZE) {
        // overflow
        *RETURN_CODE = INVALID_PARAM;
        return;

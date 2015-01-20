@@ -40,6 +40,7 @@
 #ifdef POK_NEEDS_BUFFERS
 
 #include <types.h>
+#include <errno.h>
 
 /* 
  * This essentially mirrors ARINC-653 BUFFER_STATUS type.

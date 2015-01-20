@@ -23,26 +23,10 @@
 #include <core/error.h>
 #include <core/syscall.h>
 #include <libc/string.h>
+#include <libc/stdio.h>
 
 #define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
 #define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
-
-static int error_arinc_to_pok(ERROR_CODE_TYPE error)
-{
-    #define MAP(to, from) case (from): return (to);
-    switch (error) {
-        MAP(POK_ERROR_KIND_DEADLINE_MISSED, DEADLINE_MISSED);
-        MAP(POK_ERROR_KIND_APPLICATION_ERROR, APPLICATION_ERROR);
-        MAP(POK_ERROR_KIND_NUMERIC_ERROR, NUMERIC_ERROR);
-        MAP(POK_ERROR_KIND_ILLEGAL_REQUEST, ILLEGAL_REQUEST);
-        MAP(POK_ERROR_KIND_STACK_OVERFLOW, STACK_OVERFLOW);
-        MAP(POK_ERROR_KIND_MEMORY_VIOLATION, MEMORY_VIOLATION);
-        MAP(POK_ERROR_KIND_HARDWARE_FAULT, HARDWARE_FAULT);
-        MAP(POK_ERROR_KIND_POWER_FAIL, POWER_FAIL);
-        default: return 0;
-    }
-    #undef MAP
-}
 
 static ERROR_CODE_TYPE error_pok_to_arinc(int pok_error)
 {
