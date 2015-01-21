@@ -825,32 +825,34 @@ def write_kernel_deployment_c_ports(conf, f):
             assert False
 
     # print non-static definitions
-    p("pok_port_sampling_t pok_sampling_ports[] = {")
-    for i, port in enumerate(all_sampling_ports):
+    if all_sampling_ports:
+        p("pok_port_sampling_t pok_sampling_ports[] = {")
+        for i, port in enumerate(all_sampling_ports):
 
-        p(SAMPLING_PORT_TEMPLATE % dict(
-            name=_c_string(port.name),
-            partition=get_partition(port),
-            direction=_get_port_direction(port),
-            max_message_size=port.max_message_size,
-            data="&" + get_internal_port_name(port, "data")
-        ))
-    p("};")
+            p(SAMPLING_PORT_TEMPLATE % dict(
+                name=_c_string(port.name),
+                partition=get_partition(port),
+                direction=_get_port_direction(port),
+                max_message_size=port.max_message_size,
+                data="&" + get_internal_port_name(port, "data")
+            ))
+        p("};")
 
     
-    p("pok_port_queueing_t pok_queueing_ports[] = {")
-    for i, port in enumerate(all_queueing_ports):
+    if all_queueing_ports:
+        p("pok_port_queueing_t pok_queueing_ports[] = {")
+        for i, port in enumerate(all_queueing_ports):
 
-        p(QUEUEING_PORT_TEMPLATE % dict(
-            name=_c_string(port.name),
-            partition=get_partition(port),
-            direction=_get_port_direction(port),
-            max_message_size=port.max_message_size,
-            max_nb_messages=port.max_nb_messages,
-            data="&" + get_internal_port_name(port, "data"),
-            data_stride="sizeof(%s[0])" % get_internal_port_name(port, "data")
-        ))
-    p("};")
+            p(QUEUEING_PORT_TEMPLATE % dict(
+                name=_c_string(port.name),
+                partition=get_partition(port),
+                direction=_get_port_direction(port),
+                max_message_size=port.max_message_size,
+                max_nb_messages=port.max_nb_messages,
+                data="&" + get_internal_port_name(port, "data"),
+                data_stride="sizeof(%s[0])" % get_internal_port_name(port, "data")
+            ))
+        p("};")
 
     def print_channels(predicate, variable_name):
         p("pok_port_channel_t %s[] = {" % variable_name)
