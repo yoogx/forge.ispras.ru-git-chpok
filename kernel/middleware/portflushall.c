@@ -223,7 +223,7 @@ static void pok_queueing_channel_flush_udp(
         
         if (!pok_network_send_udp_gather(
             sg_list,
-            2,
+            data->message_size > 0 ? 2 : 1,
             conn_info->ip,
             conn_info->port,
             pok_queueing_channel_udp_buffer_callback,
