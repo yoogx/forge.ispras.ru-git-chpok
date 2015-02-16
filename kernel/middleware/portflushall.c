@@ -213,7 +213,7 @@ static void pok_queueing_channel_flush_udp(
         }
 
         pok_port_size_t ring_index = (i + port->queue_head) % port->max_nb_messages;
-        pok_port_data_t *data = (pok_port_data_t*) port->data + port->data_stride * ring_index;
+        pok_port_data_t *data = (pok_port_data_t*) (port->data + port->data_stride * ring_index);
 
         pok_network_sg_list_t sg_list[2];
         sg_list[0].buffer = aux[ring_index].overhead;

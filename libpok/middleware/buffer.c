@@ -173,7 +173,7 @@ static pok_buffer_data_t* buffer_head(pok_buffer_t *buffer)
     
     pok_port_size_t index = buffer->head_index;
 
-    return (pok_buffer_data_t*) ptr + stride * index;
+    return (pok_buffer_data_t*) (ptr + stride * index);
 }
 
 /*
@@ -189,7 +189,7 @@ static pok_buffer_data_t* buffer_tail(pok_buffer_t *buffer)
 
     pok_port_size_t index = (buffer->head_index + buffer->number_of_messages) % buffer->max_number_of_messages;
 
-    return (pok_buffer_data_t*) ptr + stride * index;
+    return (pok_buffer_data_t*) (ptr + stride * index);
 }
 
 /*
