@@ -26,6 +26,8 @@
 #include <net/ip.h>
 #include <net/udp.h>
 
+static pok_bool_t initialized = FALSE;
+
 #ifdef POK_NEEDS_NETWORKING_VIRTIO
     #include <drivers/virtio/virtio_network.h>
     #define NETWORK_DRIVER pok_network_virtio_device
@@ -122,8 +124,10 @@ static void packet_received_callback(const char *data, size_t len)
 
 void pok_network_init(void)
 {
-    NETWORK_DRIVER_OPS->init(); 
-    NETWORK_DRIVER_OPS->set_packet_received_callback(packet_received_callback);
+    if (NETWORK_DRIVER_OPS->init()) {
+        NETWORK_DRIVER_OPS->set_packet_received_callback(packet_received_callback);
+        initialized = TRUE;
+    }
 }
 
 static void fill_in_udp_header(
@@ -181,6 +185,8 @@ pok_bool_t pok_network_send_udp(
     pok_network_buffer_callback_t callback,
     void *callback_arg)
 {
+    if (!initialized) return FALSE;
+
     fill_in_udp_header(
         buffer + POK_NETWORK_OVERHEAD_DRIVER,
         size,
@@ -204,6 +210,8 @@ pok_bool_t pok_network_send_udp_gather(
     pok_network_buffer_callback_t callback,
     void *callback_arg)
 {
+    if (!initialized) return FALSE;
+
     assert(sg_list_len >= 1);
     assert(sg_list[0].size == POK_NETWORK_OVERHEAD);
 
@@ -237,24 +245,32 @@ void pok_network_register_udp_receive_callback(
 
 void pok_network_reclaim_send_buffers(void)
 {
-    NETWORK_DRIVER_OPS->reclaim_send_buffers();
+    if (initialized) {
+        NETWORK_DRIVER_OPS->reclaim_send_buffers();
+    }
 }
 
 void pok_network_reclaim_receive_buffers(void)
 {
-    NETWORK_DRIVER_OPS->reclaim_receive_buffers();
+    if (initialized) {
+        NETWORK_DRIVER_OPS->reclaim_receive_buffers();
+    }
 }
 
 void pok_network_flush_send(void)
 {
-    NETWORK_DRIVER_OPS->flush_send();
+    if (initialized) {
+        NETWORK_DRIVER_OPS->flush_send();
+    }
 }
 
 void pok_network_thread(void)
 {
     for (;;) {
-        pok_network_reclaim_send_buffers();
-        pok_network_reclaim_receive_buffers();
+        if (initialized) {
+            pok_network_reclaim_send_buffers();
+            pok_network_reclaim_receive_buffers();
+        }
 
         /*
          * Conserve electricity (and CPU time).
