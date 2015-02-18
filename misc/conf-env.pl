@@ -24,6 +24,7 @@ my $conf_file = "misc/mk/config.mk";
 my $use_floppy          = 0;
 my $use_xcov            = 0;
 my $use_spoq            = 0;
+my $use_ccache          = 0;
 my $use_instrumentation = 0;
 my $help 					= 0;
 
@@ -172,6 +173,24 @@ my %colors =
       return 0;
    }
 
+   sub check_ccache
+   {
+      print "checking for CCACHE ...";
+      if (!$use_ccache) {
+         print $colors{"GREEN"}." disabled\n".$colors{"STD"};
+         return;
+      }
+
+      my $bin_path = `which ccache 2>/dev/null`;
+      my $retval = $? >> 8;
+      if ($retval == 0) {
+         print $colors{"GREEN"}." yes\n".$colors{"STD"};
+      } else {
+         print $colors{"RED"}." no\n".$colors{"STD"};
+         $use_ccache = 0;
+      }
+   }
+
    sub concat_flags
    {
       my ($flag, @values)   = @_;
@@ -220,6 +239,9 @@ my %colors =
             if ( $retval == 0 )
             {
                $tmp_ret = 0;
+               if ($use_ccache and ($tool eq "CC" or $tool eq "CXX")) {
+                  $bin_path = "ccache $bin_path";
+               }
                $makevars{$key} = $bin_path;
 
                if ( exists($tools_flags{$tool}) )
@@ -367,13 +389,14 @@ my %colors =
 # }} Functions definitions
 
 # {{ Main
-   GetOptions ('with-floppy' => \$use_floppy, 'with-spoq' => \$use_spoq, 'with-xcov' => \$use_xcov, 'with-instrumentation' => \$use_instrumentation , 'help' => \$help);
+   GetOptions ('with-floppy' => \$use_floppy, 'with-ccache' => \$use_ccache, 'with-spoq' => \$use_spoq, 'with-xcov' => \$use_xcov, 'with-instrumentation' => \$use_instrumentation , 'help' => \$help);
 	if ($help)
 	{
 		print "conf-env.pl configures pok for its execution\n";
       print "\n";
 		print "Supported options:\n";
 		print "  --help                    Print this help\n";
+		print "  --with-ccache             Use ccache to compile files (makes recompilation much faster)\n";
 		print "  --with-xcov               Try to use xcov from project coverage\n";
 		print "  --with-instrumentation    Automatically instrument the code of POK\n";
 		print "  --with-floppy             Add rules to install POK automatically in floppy disk images\n";
@@ -407,6 +430,8 @@ my %colors =
 
 	check_libxml ();
    check_common_tools ();
+   
+   check_ccache();
 
    my $nb_arch = 0;
 
