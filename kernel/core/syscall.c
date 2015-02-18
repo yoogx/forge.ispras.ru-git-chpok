@@ -318,7 +318,7 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
          break;
 
       case POK_SYSCALL_LOCKOBJ_OPERATION:
-         if (args->arg2 == NULL)
+         if (args->arg2 == 0)
          {
             return pok_lockobj_partition_wrapper ((pok_lockobj_id_t) args->arg1, NULL);
          }

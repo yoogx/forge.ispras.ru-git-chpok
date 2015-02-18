@@ -18,11 +18,11 @@
 #ifndef __POK_TYPES_H__
 #define __POK_TYPES_H__
 
-#if POK_ARCH == x86
-#include <arch/x86/types.h>
-#endif
+#include <stdint.h>
+#include <stddef.h>
 
-#define NULL   0
+#include <errno.h>
+
 #define FALSE  0
 #define TRUE   1
 #define bool_t int
@@ -48,7 +48,5 @@ typedef enum {
     POK_QUEUEING_DISCIPLINE_FIFO,
     POK_QUEUEING_DISCIPLINE_PRIORITY,
 } pok_queueing_discipline_t;
-
-#define size_t    pok_size_t
 
 #endif

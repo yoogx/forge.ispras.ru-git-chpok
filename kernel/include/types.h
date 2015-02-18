@@ -18,13 +18,9 @@
 #ifndef __POK_TYPES_H__
 #define __POK_TYPES_H__
 
-#ifdef POK_ARCH_SPARC
-#include <arch/sparc/types.h>
-#elif POK_ARCH == x86
-#include <arch/x86/types.h>
-#endif
+#include <stdint.h>
+#include <stddef.h>
 
-#define NULL   0
 #define FALSE  0
 #define TRUE   1
 #define bool_t int

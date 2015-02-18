@@ -73,35 +73,34 @@ my %tools_common =
 my %tools_arch;
 $tools_arch{"x86"} =
 {
- "AR" 	      =>  ["i386-unknown-linux-gnu-ar.exe", "i386-elf-ar" , "ar"],
- "CC"          =>  ["i386-unknown-linux-gnu-gcc.exe", "i386-elf-gcc", "gcc", "clang"],
- "CXX"	      =>  ["i386-unknown-linux-gnu-g++.exe", "i386-elf-g++", "g++", "clang++"],
- "LD"	         =>  ["i386-unknown-linux-gnu-ld.exe", "i386-elf-ld" , "ld"],
- "OBJDUMP"     =>  ["i386-unknown-linux-gnu-objdump.exe", "i386-elf-objdump" , "objdump"],
- "OBJCOPY"     =>  ["i386-unknown-linux-gnu-objcopy.exe", "i386-elf-objcopy" , "objcopy"],
- "RANLIB"      =>  ["i386-unknown-linux-gnu-ranlib.exe", "i386-elf-ranlib"  , "ranlib"],
+ "AR" 	      =>  ["i386-unknown-linux-gnu-ar.exe", "i386-elf-ar"],
+ "CC"          =>  ["i386-unknown-linux-gnu-gcc.exe", "i386-elf-gcc"],
+ "LD"	         =>  ["i386-unknown-linux-gnu-ld.exe", "i386-elf-ld"],
+ "OBJDUMP"     =>  ["i386-unknown-linux-gnu-objdump.exe", "i386-elf-objdump"],
+ "OBJCOPY"     =>  ["i386-unknown-linux-gnu-objcopy.exe", "i386-elf-objcopy"],
+ "RANLIB"      =>  ["i386-unknown-linux-gnu-ranlib.exe", "i386-elf-ranlib"],
  "QEMU"        =>  ["qemu", "i386-softmmu", "qemu-system-i386"],
  };
 
 $tools_arch{"ppc"} =
 {
- "AR" 	      =>  ["powerpc-elf-ar","powerpc-linux-gnu-ar"],
- "CC"          =>  ["powerpc-elf-gcc","powerpc-linux-gnu-gcc"],
- "LD"	         =>  ["powerpc-elf-ld","powerpc-linux-gnu-ld"],
- "OBJDUMP"     =>  ["powerpc-elf-objdump","powerpc-linux-gnu-objdump"],
- "OBJCOPY"     =>  ["powerpc-elf-objcopy","powerpc-linux-gnu-objcopy"],
- "RANLIB"      =>  ["powerpc-elf-ranlib","powerpc-linux-gnu-ranlib"],
+ "AR" 	      =>  ["powerpc-elf-ar"],
+ "CC"          =>  ["powerpc-elf-gcc"],
+ "LD"	         =>  ["powerpc-elf-ld"],
+ "OBJDUMP"     =>  ["powerpc-elf-objdump"],
+ "OBJCOPY"     =>  ["powerpc-elf-objcopy"],
+ "RANLIB"      =>  ["powerpc-elf-ranlib"],
  "QEMU"        =>  ["qemu-system-ppc", "ppc-softmmu", "qemu-system-ppc"],
  };
 
 $tools_arch{"sparc"} =
 {
- "AR" 	      =>  ["sparc-elf-ar","sparc-linux-gnu-ar"],
- "CC"          =>  ["sparc-elf-gcc","sparc-linux-gnu-gcc"],
- "LD"	         =>  ["sparc-elf-ld","sparc-linux-gnu-ld"],
- "OBJDUMP"     =>  ["sparc-elf-objdump","sparc-linux-gnu-objdump"],
- "OBJCOPY"     =>  ["sparc-elf-objcopy","sparc-linux-gnu-objcopy"],
- "RANLIB"      =>  ["sparc-elf-ranlib","sparc-linux-gnu-ranlib"],
+ "AR" 	      =>  ["sparc-elf-ar"],
+ "CC"          =>  ["sparc-elf-gcc"],
+ "LD"	         =>  ["sparc-elf-ld"],
+ "OBJDUMP"     =>  ["sparc-elf-objdump"],
+ "OBJCOPY"     =>  ["sparc-elf-objcopy"],
+ "RANLIB"      =>  ["sparc-elf-ranlib"],
  "QEMU"        =>  ["qemu-system-sparc", "sparc-softmmu", "qemu-system-sparc"],
  "TSIM"        =>  ["tsim-leon3"],
  };

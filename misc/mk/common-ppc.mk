@@ -1,4 +1,2 @@
-
-CFLAGS	=	$(CONFIG_CFLAGS) -gnu99 -nostdinc -iwithprefix include -fno-builtin -DPOK_ARCH_PPC $(KIND_CFLAGS) $(GENERIC_FLAGS) -Wall -g -O -Wuninitialized
-
-#LDFLAGS	=	-m $(ELF_MODE)
+CFLAGS = $(CONFIG_CFLAGS) -std=gnu99 -iwithprefix include -DPOK_ARCH_PPC $(KIND_CFLAGS) $(GENERIC_FLAGS) -Wall -g -O -Wuninitialized -ffreestanding -nostdlib
+LDFLAGS	= 
