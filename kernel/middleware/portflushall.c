@@ -402,6 +402,11 @@ static pok_bool_t udp_callback_f(uint32_t ip, uint16_t port, const char *payload
 
             pok_port_sampling_t *dst = &pok_sampling_ports[chan->dst.local.port_id];
 
+            if (length > dst->max_message_size) {
+                printf("received sampling message is too big");
+                return TRUE; // albeit invalid, packet matched: consider it handled
+            }
+
             memcpy(&dst->data->data[0], payload, length);
             dst->data->message_size = length;
             dst->not_empty = TRUE;
@@ -424,6 +429,11 @@ static pok_bool_t udp_callback_f(uint32_t ip, uint16_t port, const char *payload
             assert(chan->dst.kind == POK_PORT_CONNECTION_LOCAL);
 
             pok_port_queueing_t *dst = &pok_queueing_ports[chan->dst.local.port_id];
+
+            if (length > dst->max_message_size) {
+                printf("received queueing message is too big");
+                return TRUE; // albeit invalid, packet matched: consider it handled
+            }
 
             if (!queueing_dst_try_pop_waiting(dst, payload, length)) {
                 // nobody's waiting - queue the message instead

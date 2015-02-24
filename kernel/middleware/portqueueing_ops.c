@@ -278,6 +278,16 @@ pok_ret_t pok_port_queueing_send(
         return POK_ERRNO_EINVAL;
     }
 
+    if (len <= 0) {
+        DEBUG_PRINT("len <= 0\n");
+        return POK_ERRNO_EINVAL;
+    }
+
+    if (len > port->max_message_size) {
+        DEBUG_PRINT("invalid message length\n");
+        return POK_ERRNO_PARAM;
+    }
+
     if (port->header.direction != POK_PORT_DIRECTION_OUT) {
         DEBUG_PRINT("port is for receiving, not for sending");
         return POK_ERRNO_DIRECTION;

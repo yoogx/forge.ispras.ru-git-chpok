@@ -135,7 +135,7 @@ pok_ret_t pok_port_sampling_write(
     }
 
     if (len <= 0) {
-        DEBUG_PRINT("message length is less than zero\n");
+        DEBUG_PRINT("len <= 0\n");
         return POK_ERRNO_EINVAL;
     }
 
