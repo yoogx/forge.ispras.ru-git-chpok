@@ -84,7 +84,7 @@ pok_ret_t pok_arch_event_register  (uint8_t vector,
    pok_idt_set_gate (vector,
                      GDT_CORE_CODE_SEGMENT << 3,
                      (uint32_t)handler,
-                     IDTE_TRAP,
+                     IDTE_INTERRUPT,
                      3);
 
    return (POK_ERRNO_OK);

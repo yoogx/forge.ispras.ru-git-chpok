@@ -57,7 +57,6 @@ void name##_handler(interrupt_frame* frame);				\
       ".global "#name "			\n"				\
       "\t.type "#name",@function	\n"				\
       #name":				\n"				\
-      "cli			\n"				\
       "subl $4, %esp			\n"				\
       "pusha				\n"				\
       "push %ds				\n"				\
@@ -73,7 +72,6 @@ void name##_handler(interrupt_frame* frame);				\
       "pop %ds				\n"				\
       "popa				\n"				\
       "addl $4, %esp			\n"				\
-      "sti			\n"				\
       "iret				\n"				\
       );								\
 void name##_handler(interrupt_frame* frame)
@@ -85,7 +83,6 @@ void name##_handler(interrupt_frame* frame);			\
       ".global "#name "			\n"				\
       "\t.type "#name",@function	\n"				\
       #name":				\n"				\
-      "cli			\n"				\
       "pusha				\n"				\
       "push %ds				\n"				\
       "push %es				\n"				\
@@ -100,7 +97,6 @@ void name##_handler(interrupt_frame* frame);			\
       "pop %ds				\n"				\
       "popa				\n"				\
       "addl $4, %esp			\n"				\
-      "sti			\n"				\
       "iret				\n"				\
       );								\
 void name##_handler(interrupt_frame* frame)
@@ -112,7 +108,6 @@ void name##_handler(interrupt_frame* frame);				\
       ".global "#name "			\n"				\
       "\t.type "#name",@function	\n"				\
       #name":				\n"				\
-      "cli			\n"				\
       "subl $4, %esp			\n"				\
       "pusha				\n"				\
       "push %ds				\n"				\
@@ -129,7 +124,6 @@ void name##_handler(interrupt_frame* frame);				\
       "pop %ds				\n"				\
       "popa				\n"				\
       "addl $4, %esp			\n"				\
-      "sti			\n"				\
       "iret				\n"				\
       );								\
 void name##_handler(interrupt_frame* frame)
