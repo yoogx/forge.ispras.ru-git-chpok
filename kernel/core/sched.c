@@ -409,11 +409,7 @@ void pok_sched_context_switch(pok_thread_id_t elected_id)
 
    current_sp = &POK_CURRENT_THREAD.sp;
    new_sp = pok_threads[elected_id].sp;
-/*
-    *  FIXME : current debug session about exceptions-handled
-   printf("switch from thread %d, sp=0x%x\n",POK_SCHED_CURRENT_THREAD, current_sp);
-   printf("switch to thread %d, sp=0x%x\n",elected_id, new_sp);
-   */
+
    pok_space_switch(POK_CURRENT_THREAD.partition,
 		    pok_threads[elected_id].partition);
 
