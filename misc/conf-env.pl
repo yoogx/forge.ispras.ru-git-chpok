@@ -42,7 +42,6 @@ my @cflags =
  "-W",
  "-Wall",
  "-g",
- "-m32"
  );
 
 my @ldflags =
