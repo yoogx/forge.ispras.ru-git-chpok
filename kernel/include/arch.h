@@ -44,6 +44,11 @@ pok_ret_t   pok_arch_preempt_disable ();
 pok_ret_t   pok_arch_preempt_enable ();
 
 /**
+ * Returns true if interrupts are enabled
+ */
+pok_bool_t pok_arch_preempt_enabled(void);
+
+/**
  * Function that do nothing. Useful for the idle task for example.
  */
 pok_ret_t   pok_arch_idle ();

@@ -47,6 +47,27 @@ pok_ret_t pok_arch_preempt_enable()
   return (POK_ERRNO_OK);
 }
 
+static unsigned long get_flags(void)
+{
+  unsigned long ret;
+
+  asm volatile(
+    "pushf\n"
+    "pop %0"
+    : "=rm" (ret)
+    :
+    : "memory"
+  );
+
+  return ret;
+}
+
+pok_bool_t pok_arch_preempt_enabled(void)
+{
+  unsigned long flags = get_flags();
+  return !!(flags & (1<<9));
+}
+
 pok_ret_t pok_arch_idle()
 {
    while (1)

@@ -354,7 +354,7 @@ static void pok_sampling_channel_flush(pok_port_channel_t *chan)
 void pok_port_flush_partition (pok_partition_id_t pid)
 {
 #ifdef POK_NEEDS_NETWORKING
-    //pok_network_reclaim_send_buffers(); 
+    pok_network_reclaim_send_buffers(); 
 #endif
 
 #ifdef POK_NEEDS_PORTS_QUEUEING

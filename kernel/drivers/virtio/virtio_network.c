@@ -74,22 +74,26 @@ static struct receive_buffer receive_buffers[POK_MAX_RECEIVE_BUFFERS];
 // the device (statically allocated)
 static struct virtio_network_device virtio_network_device;
 
-/* the reason is that preemption is disabled when we're running
- * in system call context anyway
+/*
+ * When we're in interrupt context (e.g. system call or timer),
+ * preemption is already disabled, and we certainly don't want to
+ * enable it there.
  *
- * We don't want to accidentally enable it there,
- * which might break things.
+ * On the other hand, in the network thread context, preemption is
+ * enabled, and we need some critical sections, you know.
  */
-static void maybe_lock_preemption(void)
+static void maybe_lock_preemption(pok_bool_t *saved)
 {
-    if (POK_SCHED_CURRENT_THREAD == NETWORK_THREAD) {
+    *saved = pok_arch_preempt_enabled();
+    if (*saved) {
         pok_arch_preempt_disable();
     }
 }
 
-static void maybe_unlock_preemption(void)
+
+static void maybe_unlock_preemption(const pok_bool_t *saved)
 {
-    if (POK_SCHED_CURRENT_THREAD == NETWORK_THREAD) {
+    if (*saved) {
         pok_arch_preempt_enable();
     }
 }
@@ -352,7 +356,8 @@ static void reclaim_send_buffers(void)
     // callbacks don't do much work, so we can run them all
     // in single critical section without worrying too much
     
-    maybe_lock_preemption();
+    pok_bool_t saved_preemption;
+    maybe_lock_preemption(&saved_preemption);
     
     while (vq->last_seen_used != vq->vring.used->idx) {
         uint16_t index = vq->last_seen_used & (vq->vring.num-1);
@@ -380,7 +385,7 @@ static void reclaim_send_buffers(void)
         vq->last_seen_used++;
     }
     
-    maybe_unlock_preemption();
+    maybe_unlock_preemption(&saved_preemption);
 }
 
 static void reclaim_receive_buffers(void)
@@ -391,7 +396,8 @@ static void reclaim_receive_buffers(void)
     // network thread only
     assert(POK_SCHED_CURRENT_THREAD == NETWORK_THREAD);
         
-    maybe_lock_preemption();
+    pok_bool_t saved_preemption;
+    maybe_lock_preemption(&saved_preemption);
 
     uint16_t old_last_seen_used = vq->last_seen_used;
 
@@ -417,8 +423,8 @@ static void reclaim_receive_buffers(void)
         use_receive_buffer(dev, buf);
 
         // preemption point
-        maybe_unlock_preemption();
-        maybe_lock_preemption();
+        maybe_unlock_preemption(&saved_preemption);
+        maybe_lock_preemption(&saved_preemption);
     }
 
     if (old_last_seen_used != vq->last_seen_used) {
@@ -427,7 +433,7 @@ static void reclaim_receive_buffers(void)
         notify_receive_buffers(dev);
     }
         
-    maybe_unlock_preemption();
+    maybe_unlock_preemption(&saved_preemption);
 }
 
 static void flush_send(void)
