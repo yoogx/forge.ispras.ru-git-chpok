@@ -157,33 +157,3 @@ spoq-pre-run:
 
 spoq-post-run:
 endif
-
-################
-# COMMON STUFF #
-################
-
-launch-run:
-	$(ECHO) $(ECHO_FLAGS) "[QEMU] Start"
-	$(QEMU) $(CONFIG_QEMU) $(QEMU_MISC) $(NETWORK_ARGS) -pidfile qemu.pid -hda fat:. -boot a $(QEMU_ENDCOMMAND) &
-	if test $$? -eq 0; then $(ECHO) $(ECHO_FLAGS) $(ECHO_GREEN) " OK "; else $(ECHO) $(ECHO_FLAGS) $(ECHO_RED) " KO"; fi
-
-run: xcov-pre-run spoq-pre-run instrumentation-pre-run launch-run xcov-post-run instrumentation-post-run spoq-post-run
-
-#old code, deprecated
-#	for v in $(PARTITIONS); do \
-#      cd `dirname $$v` ; \
-#	   $(XCOV) run -t prepare `basename $$v`; \
-#	   $(ECHO) $(ECHO_FLAGS) "[QEMU] Start for partition $$v" ; \
-#      ( $(QEMU) $(CONFIG_QEMU) -hda fat:.. -pidfile qemu.pid -boot a -trace `basename $$v`.trace & ) ; \
-#      $(SLEEP) 40 ; \
-#	   $(KILL) `$(CAT) qemu.pid` ; \
-#		$(RM) -f qemu.pdf ; \
-#	   $(MKDIR) ../coverage-report/`dirname $$v` ; \
-#	   $(ECHO) $(ECHO_FLAGS) $(ECHO_FLAGS_ONELINE) "[XCOV] Output $$v results" ; \
-##	   $(XCOV) --text-start=0x0010a34a --coverage=insn -a html+asm `basename $$v`.trace 2>/dev/null ; \
-#	   $(XCOV) coverage --level insn -a html+asm --trace `basename $$v`.trace 2>/dev/null ; \
-#	   if test $$? -eq 0; then $(ECHO) $(ECHO_FLAGS) $(ECHO_GREEN) " OK "; else $(ECHO) $(ECHO_FLAGS) $(ECHO_RED) " KO"; fi ; \
-#	   $(MV) *.html *.css ../coverage-report/`dirname $$v` ; \
-#      cd .. ; \
-#   done
-

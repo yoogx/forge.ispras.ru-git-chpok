@@ -462,11 +462,11 @@ my %colors =
       chomp ($tmp_path2);
       $tmp_path2 =~ s/\\/\\\\/g;
 
-      $makevars{'CONFIG_QEMU_x86'} = "-fda \'$tmp_path\' -L \'$tmp_path2\' ";
+      $makevars{'CONFIG_QEMU_x86'} = "-L \'$tmp_path2\' ";
    }
    else
    {
-      $makevars{'CONFIG_QEMU_x86'} = " -fda \$(POK_PATH)/misc/grub-boot-only.img ";
+      $makevars{'CONFIG_QEMU_x86'} = "  ";
    }
    
  

@@ -59,8 +59,3 @@ QEMU_MISC += -display none
 
 QEMU_MISC += -net nic,vlan=0,name=virt0,model=virtio,macaddr=52:54:00:00:00:00
 QEMU_MISC += -net tap,ifname=chpoktap0,script=no,downscript=no
-
-# override it so QEMU doesn't run in background
-launch-run:
-	$(ECHO) $(ECHO_FLAGS) "[QEMU] Start"
-	$(QEMU) $(CONFIG_QEMU) $(QEMU_MISC) $(NETWORK_ARGS) -hda fat:. -boot a $(QEMU_ENDCOMMAND) 

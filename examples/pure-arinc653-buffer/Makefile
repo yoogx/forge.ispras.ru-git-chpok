@@ -55,7 +55,3 @@ QEMU_MISC += -display none
 # uncomment this if you want to use gdb
 #QEMU_MISC += -S -s
 
-# override it so QEMU doesn't run in background
-launch-run:
-	$(ECHO) $(ECHO_FLAGS) "[QEMU] Start"
-	$(QEMU) $(CONFIG_QEMU) $(QEMU_MISC) $(NETWORK_ARGS) -hda fat:. -boot a $(QEMU_ENDCOMMAND) 

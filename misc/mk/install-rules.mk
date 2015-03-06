@@ -1,6 +1,6 @@
 #rules to install and run program
 ifeq ($(ARCH), x86)
-  include $(POK_PATH)/misc/mk/grub-floppy.mk
+  include $(POK_PATH)/misc/mk/qemu-multiboot.mk
 endif
 ifeq ($(ARCH), ppc)
   include $(POK_PATH)/misc/mk/ppc-mkrom.mk
