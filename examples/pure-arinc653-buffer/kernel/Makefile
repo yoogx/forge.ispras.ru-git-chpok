@@ -1,6 +1,3 @@
-export ARCH=x86
-export BSP=x86-qemu
-
 export DEPLOYMENT_HEADER=$(shell pwd)/deployment.h
 
 include $(POK_PATH)/misc/mk/config.mk
