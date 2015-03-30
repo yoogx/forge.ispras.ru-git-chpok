@@ -19,6 +19,9 @@
 #include <bsp.h>
 #include <core/time.h>
 #include <core/sched.h>
+#include <core/debug.h>
+#include "reg.h"
+#include "timer.h"
 
 /* From platform.  */
 #define BUS_FREQ (100 * 1000000U)
@@ -26,45 +29,44 @@
 #define FREQ_DIV 40
 
 /* Last time when decr was set.  */
-static unsigned long long time_last;
+static uint64_t time_last;
 
 /* Decrementer optimal value.  */
-static unsigned int time_inter;
+static uint32_t time_inter;
 
-/* Correctly get time base - handle carry.  */
-static inline unsigned long long get_ppc_tb (void)
+static uint64_t get_timebase(void)
 {
-  unsigned int u;
-  unsigned int l;
-  unsigned int u1;
+    while (1) {
+        uint32_t upper = mfspr(SPRN_TBRU);
+        uint32_t lower = mfspr(SPRN_TBRL);
 
-  asm ("1:\n\t"
-       "mftbu %0\n\t"
-       "mftb  %1\n\t"
-       "mftbu %2\n\t"
-       "cmpw  %2,%0\n\t"
-       "bne   1b\n"
-       : "=r"(u), "=r"(l), "=r"(u1));
-  return (((unsigned long long)u) << 32) | l;
+        // since it's two part register,
+        // there's a possible race condition
+        // we avoid it here with a loop
+        if (upper == mfspr(SPRN_TBRU)) {
+            return (((uint64_t) upper) << 32) | lower;
+        }
+    }
 }
 
 /* Compute new value for the decrementer.  If the value is in the future,
    sets the decrementer else returns an error.  */
-static int pok_arch_set_decr (void)
+static int set_decrementer(void)
 {
-  unsigned long long time_new = time_last + time_inter;
-  unsigned long long time_cur = get_ppc_tb();
-  int delta = time_new - time_cur;
+  uint64_t time_new = time_last + time_inter;
+  uint64_t time_cur = get_timebase();
+  int32_t delta = time_new - time_cur;
 
   time_last = time_new;
 
   if (delta < 0)
   {
+    // that delta already expired
     return POK_ERRNO_EINVAL;
   }
   else
   {
-    asm volatile ("mtdec %0" : : "r"(delta));
+    mtspr(SPRN_DEC, delta);
     return POK_ERRNO_OK;
   }
 }
@@ -74,12 +76,15 @@ void pok_arch_decr_int (void)
 {
   int err;
 
+  // clear pending intrerrupt
+  mtspr(SPRN_TSR, TSR_DIS);
+
   do
   {
-    err = pok_arch_set_decr();
-
+    err = set_decrementer();
     pok_tick_counter += FREQ_DIV;
   } while (err != POK_ERRNO_OK);
+
 
   pok_sched ();
 }
@@ -87,8 +92,10 @@ void pok_arch_decr_int (void)
 pok_ret_t pok_bsp_time_init ()
 {
   time_inter = (BUS_FREQ * FREQ_DIV) / POK_TIMER_FREQUENCY;
-  time_last = get_ppc_tb ();
-  pok_arch_set_decr();
+  time_last = get_timebase ();
+  set_decrementer();
+
+  mtspr(SPRN_TCR, TCR_DIE); // enable decrementer
 
   return (POK_ERRNO_OK);
 }

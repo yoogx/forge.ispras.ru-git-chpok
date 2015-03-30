@@ -1,6 +1,14 @@
 #ifndef __POK_PPC_REG_H__
 #define __POK_PPC_REG_H__
 
+#define SPRN_DEC        0x016   /* Decrement Register */
+#define SPRN_TBRL       0x10C   /* Time Base Read Lower Register (user, R/O) */
+#define SPRN_TBRU       0x10D   /* Time Base Read Upper Register (user, R/O) */
+#define SPRN_TBWL       0x11C   /* Time Base Lower Register (super, R/W) */
+#define SPRN_TBWU       0x11D   /* Time Base Upper Register (super, R/W) */
+#define SPRN_TSR        0x150   /* Timer Status Register */
+#define SPRN_TCR        0x154   /* Timer Control Register */
+
 #define SPRN_IVPR       0x03F   /* Interrupt Vector Prefix Register */
 
 #define SPRN_IVOR0      0x190   /* Interrupt Vector Offset Register 0 */

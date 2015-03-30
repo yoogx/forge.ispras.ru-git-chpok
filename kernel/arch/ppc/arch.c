@@ -62,6 +62,8 @@ pok_bool_t pok_arch_preempt_enabled(void)
 
 pok_ret_t pok_arch_idle()
 {
+   pok_arch_preempt_enable();
+
    while (1)
    {
    }

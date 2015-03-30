@@ -82,8 +82,10 @@ _pok_reset:
 1:      b  1b
 
 /* Interrupt vectors */
-/* TODO all interrupt vectors should handle their interrupts */
-/* TODO handle kernel / user stack transition correctly */
+/* TODO there're a lot of stubs */
+/* TODO handle kernel / user stack transition correctly
+        as of now, it only works because there're no overflows
+*/
 
     STUB_EXCEPTION(pok_int_critical_input)
     STUB_EXCEPTION(pok_int_machine_check)
@@ -134,19 +136,20 @@ _pok_reset:
         lwz     %r7,36(%r1)
         lwz     %r8,40(%r1)
 
-        /* Enable interrupt during syscalls. XXX or not? */
-        #if 0
-        mfmsr   %r0
-        ori     %r0,%r0,MSR_EE
-        mtmsr   %r0
-        #endif
-
         bl      pok_arch_sc_int
         stw     %r3,20(%r1)
         
         b       pok_arch_rfi       
 
-    STUB_EXCEPTION(pok_int_decrementer)
+    START_EXCEPTION(pok_int_decrementer)
+        mtsprg  3,%r3
+        mtsprg  2,%r4
+        stwu    %r1,-FRAME_SIZE(%r1)
+        SAVE_REGS
+
+        bl      pok_arch_decr_int
+        b       pok_arch_rfi
+
     STUB_EXCEPTION(pok_int_interval_timer)
     STUB_EXCEPTION(pok_int_watchdog)
 
@@ -157,112 +160,6 @@ _pok_reset:
         b pok_int_inst_storage
         
     STUB_EXCEPTION(pok_int_debug)
-
-#if 0
-int_critical_input:
-        b int_ext_interrupt
-
-int_machine_check:
-        b int_machine_check
-
-int_data_storage:
-        b int_data_storage
-
-int_inst_storage:
-        b int_inst_storage
-
-int_ext_interrupt:
-        /* PC saved in srr0,
-           MSR saved in srr1.  */
-        /* Can use sprg.  */
-        mtsprg  3,%r3
-        mtsprg  2,%r4
-        mfcr    %r3
-        mfsrr1  %r4
-        andi.   %r4,%r4,MSR_PR
-1:      bne     1b /* Need to switch to system stack */
-
-        stwu    %r1,-FRAME_SIZE(%r1)
-        
-        SAVE_REGS
-
-        bl      pok_arch_ext_interrupt
-        b       pok_arch_rfi
-
-int_alignment:
-        b int_alignment
-
-int_program:
-        b int_program
-
-int_fp_unavail:
-        b int_fp_unavail
-
-int_system_call:
-        mtsprg  3,%r3
-        mtsprg  2,%r4
-        mfcr    %r3
-        mfsrr1  %r4
-        andi.   %r4,%r4,MSR_PR
-1:      beq     1b /* SC musn't appear in supervisor mode.  */
-
-        /* Switch to kernel stack.  */
-        mr      %r4,%r1
-        mfsprg  %r1,1
-        stwu    %r4,-FRAME_SIZE(%r1)
-
-        SAVE_REGS
-        lwz     %r3,20(%r1)
-        lwz     %r4,24(%r1)
-        lwz     %r5,28(%r1)
-        lwz     %r6,32(%r1)
-        lwz     %r7,36(%r1)
-        lwz     %r8,40(%r1)
-
-        /* Enable interrupt during syscalls.  */
-        mfmsr   %r0
-        ori     %r0,%r0,MSR_EE
-        mtmsr   %r0
-
-        bl      pok_arch_sc_int
-        stw     %r3,20(%r1)
-        
-        b       pok_arch_rfi
-
-int_decrementer:
-        /* PC saved in srr0,
-           MSR saved in srr1.  */
-        /* Can use sprg.  */
-        mtsprg  3,%r3
-        mtsprg  2,%r4
-        mfcr    %r3
-        mfsrr1  %r4
-        andi.   %r4,%r4,MSR_PR
-1:      bne     1b /* Need to switch to system stack */
-
-        stwu    %r1,-FRAME_SIZE(%r1)
-        
-        SAVE_REGS
-
-        bl      pok_arch_decr_int
-        b       pok_arch_rfi
-
-int_interval_timer:
-        b int_interval_timer
-
-int_watchdog:
-        b int_watchdog
-
-int_data_tlb_miss:
-        b int_data_tlb_miss
-
-int_inst_tlb_miss:
-        b int_inst_tlb_miss
-
-int_debug:
-        b int_debug
-
-#endif
 
 pok_setup_interrupts:
         lis     %r3, pok_int_critical_input@h // higher 16 bits
