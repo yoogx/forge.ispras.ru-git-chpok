@@ -16,8 +16,10 @@
 
 #ifdef POK_NEEDS_PCI
 
+# include <errno.h>
 # include <libc.h>
-# include <arch/x86/pci.h>
+# include <pci.h>
+# include <arch/x86/ioports.h>
 
 # include "gdt.h"
 # include "event.h"

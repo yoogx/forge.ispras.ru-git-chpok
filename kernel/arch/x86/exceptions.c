@@ -361,7 +361,7 @@ INTERRUPT_HANDLER_errorcode (exception_general_protection)
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
 
    #ifdef POK_NEEDS_DEBUG
-   printf ("[KERNEL] Raise exception general protection fault current thread=%d\n", POK_SCHED_CURRENT_THREAD);
+   printf ("[KERNEL] Raise exception general protection fault current thread=%d, EIP=0x%x\n", POK_SCHED_CURRENT_THREAD, frame->eip);
    #endif
 
   pok_error_from_exception (POK_ERROR_KIND_ILLEGAL_REQUEST);

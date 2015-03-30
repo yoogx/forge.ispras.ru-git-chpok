@@ -186,5 +186,3 @@ void pok_space_context_restart(
         arg2
     );
 }
-
-

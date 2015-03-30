@@ -44,6 +44,12 @@
 #include <middleware/buffer.h>
 #include <utils.h>
 
+#if 1
+#define DEBUG_PRINT(...) printf(__VA_ARGS__)
+#else
+#define DEBUG_PRINT(...)
+#endif
+
 // data types
 
 // must be at least MAX_NAME_LENGTH of ARINC653 (which is 30)
@@ -319,10 +325,13 @@ pok_ret_t pok_buffer_create(
 
     pok_port_size_t size = num_messages * buffer_data_stride(msg_size);
 
-    // check free space and integer overflow
-    if (size > INT32_MAX - pok_buffers_data_index ||
-        pok_buffers_data_index + size >= POK_CONFIG_BUFFER_DATA_SIZE) 
-    {
+    if (size > INT32_MAX - pok_buffers_data_index) {
+      DEBUG_PRINT("size=%d + pok_buffers_data_index=%d will cause integer overflow\n", size, pok_buffers_data_index);
+      return POK_ERRNO_EINVAL;
+    }
+
+    if (pok_buffers_data_index + size >= POK_CONFIG_BUFFER_DATA_SIZE) {
+      DEBUG_PRINT("size=%d + pok_buffers_data_index=%d >= POK_CONFIG_BUFFER_DATA_SIZE=%d\n", size, pok_buffers_data_index, POK_CONFIG_BUFFER_DATA_SIZE);
       return POK_ERRNO_EINVAL;
     }
 
@@ -341,6 +350,7 @@ pok_ret_t pok_buffer_create(
             ret = pok_event_create (&buffer->lock, discipline);
 
             if (ret != POK_ERRNO_OK) {
+                DEBUG_PRINT("failed to create a lockobject for a buffer\n");
                 return ret;
             }
 
@@ -365,6 +375,8 @@ pok_ret_t pok_buffer_create(
         }   
 
    }
+
+   DEBUG_PRINT("no free buffers left\n");
 
    return POK_ERRNO_EINVAL;
 }

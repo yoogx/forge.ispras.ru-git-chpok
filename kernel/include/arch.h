@@ -67,9 +67,9 @@ void		   pok_context_switch (uint32_t* old_sp, uint32_t new_sp);
 void			pok_context_reset(uint32_t stack_size,
 					  uint32_t stack_addr);
 
-pok_ret_t   pok_create_space (uint8_t partition_id, uint32_t addr, uint32_t size);
+pok_ret_t   pok_create_space (pok_partition_id_t partition_id, uintptr_t addr, size_t size);
 
-uint32_t	   pok_space_base_vaddr (uint32_t addr);
+uintptr_t	   pok_space_base_vaddr (uintptr_t addr);
 
 /**
  * Create a new context in the given space
@@ -116,6 +116,13 @@ pok_ret_t   pok_space_switch (uint8_t old_partition_id,
  */
 uint32_t    pok_thread_stack_addr   (const uint8_t    partition_id,
                                      const uint32_t   local_thread_id);
+
+/*
+ *
+ * 
+ *
+ */
+void pok_arch_load_partition(pok_partition_id_t part_id, uintptr_t *entry);
 
 #ifdef POK_ARCH_PPC
 #include <arch/ppc/spinlock.h>

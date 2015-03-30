@@ -1,43 +1,14 @@
 #include "msr.h"
+#include "reg.h"
+#include "exceptions.h"
 
         .section ".start", "ax"
-#define FRAME_SIZE 80
-        /* r4 is available, r1 is set, r3 contains cr,
-           sprg3 contains r3 and sprg2 contains r2.  */
-#define SAVE_REGS                                \
-        /* Establish new frame.  */              \
-        mflr    %r4;                             \
-        stw     %r4,FRAME_SIZE+4(%r1);  /* lr */ \
-        mfctr   %r4;                             \
-        stw     %r4,64(%r1);  /* ctr */          \
-        mfxer   %r4;                             \
-        stw     %r4,68(%r1);  /* xer */          \
-        stw     %r3,8(%r1);   /* cr */           \
-        stw     %r0,12(%r1);  /* r0 */           \
-        stw     %r2,16(%r1);  /* r2 */           \
-        mfsprg  %r0,3;                           \
-        stw     %r0,20(%r1);  /* r3 */           \
-        mfsprg  %r0,2;                           \
-        stw     %r0,24(%r1);  /* r4 */           \
-        stw     %r5,28(%r1);  /* r5 */           \
-        stw     %r6,32(%r1);  /* r6 */           \
-        stw     %r7,36(%r1);  /* r7 */           \
-        stw     %r8,40(%r1);  /* r8 */           \
-        stw     %r9,44(%r1);  /* r9 */           \
-        stw     %r10,48(%r1); /* r10 */          \
-        stw     %r11,52(%r1); /* r11 */          \
-        stw     %r12,56(%r1); /* r12 */          \
-        stw     %r13,60(%r1); /* r13 */          \
-        mfsrr0  %r3;                             \
-        stw     %r3,72(%r1);  /* srr0 */         \
-        mfsrr1  %r4;                             \
-        stw     %r4,76(%r1)  /* srr1 */
 
 base = .
         
 reserved_0000:
         /* fails */
-        b failed
+1:      b 1b 
         
         /* Restore registers */
         .globl pok_arch_rfi
@@ -80,23 +51,17 @@ failed: b failed
         .globl _pok_reset
 system_reset_0100:
 _pok_reset:
-        /* Clear BAT */
-
         /* Setup stack */
         lis %r1,(pok_stack_end-4)@h
         ori %r1,%r1,(pok_stack_end-4)@l
+
+        bl pok_setup_interrupts
 
         /* Clear back chain */
         xor %r0,%r0,%r0
         stw %r0,4(%r1)
 
-         /* Workaround for QEMU */
-         mtmsr %r0
-         li  %r3, MSR_IP
-         mtmsr %r3
-         /* end of workaround */
-
-        /* FIXME: copy .sdata, clear .bss */
+        /* TODO: copy .sdata, clear .bss */
         /* Copy .data */
         lis %r3,(__data_start-4)@h
         ori %r3,%r3,(__data_start-4)@l
@@ -116,19 +81,44 @@ _pok_reset:
         bl pok_boot
 1:      b  1b
 
-        . = base + 0x200
-machine_check_0200:
-        /* fails */
-        b reserved_2F00
+/* Interrupt vectors */
+/* TODO all interrupt vectors should handle their interrupts */
+/* TODO handle kernel / user stack transition correctly */
 
-        . = base + 0x300
-dsi_0300:
+    STUB_EXCEPTION(pok_int_critical_input)
+    STUB_EXCEPTION(pok_int_machine_check)
+
+    START_EXCEPTION(pok_int_data_storage)
+        
+        // save r4 and r3
+        mtsprg  3,%r3
+        mtsprg  2,%r4
+        
+        // save all of them
+        stwu    %r1,-FRAME_SIZE(%r1)
+        SAVE_REGS
+        
+        mfspr %r3, SPRN_DEAR // DEAR - faulting address
+        mfspr %r4, SPRN_ESR // ESR - exception syndrome
+
+        bl pok_arch_handle_page_fault
+        b  pok_arch_rfi
+
+    START_EXCEPTION(pok_int_inst_storage)
+        b pok_int_data_storage
+
+    STUB_EXCEPTION(pok_int_ext_interrupt)
+    STUB_EXCEPTION(pok_int_alignment)
+    STUB_EXCEPTION(pok_int_program)
+    STUB_EXCEPTION(pok_int_fp_unavail)
+
+    START_EXCEPTION(pok_int_system_call)
         mtsprg  3,%r3
         mtsprg  2,%r4
         mfcr    %r3
         mfsrr1  %r4
         andi.   %r4,%r4,MSR_PR
-        beq     failed /* DSI musn't appear in supervisor mode.  */
+1:      beq     1b /* SC musn't appear in supervisor mode.  */
 
         /* Switch to kernel stack.  */
         mr      %r4,%r1
@@ -136,49 +126,52 @@ dsi_0300:
         stwu    %r4,-FRAME_SIZE(%r1)
 
         SAVE_REGS
-        mfdar   %r3
-        mfdsisr %r4
+        /* load system call arguments back from the stack */
+        lwz     %r3,20(%r1)
+        lwz     %r4,24(%r1)
+        lwz     %r5,28(%r1)
+        lwz     %r6,32(%r1)
+        lwz     %r7,36(%r1)
+        lwz     %r8,40(%r1)
 
-        bl      pok_arch_dsi_int
-        b       pok_arch_rfi
+        /* Enable interrupt during syscalls. XXX or not? */
+        #if 0
+        mfmsr   %r0
+        ori     %r0,%r0,MSR_EE
+        mtmsr   %r0
+        #endif
 
-        . = base + 0x400
-isi_0400:
-        mtsprg  3,%r3
-        mtsprg  2,%r4
-        mfcr    %r3
-        mfsrr1  %r4
-        andi.   %r4,%r4,MSR_PR
-        beq     failed /* ISI musn't appear in supervisor mode.  */
+        bl      pok_arch_sc_int
+        stw     %r3,20(%r1)
+        
+        b       pok_arch_rfi       
 
-        /* Switch to kernel stack.  */
-        mr      %r4,%r1
-        mfsprg  %r1,1
-        stwu    %r4,-FRAME_SIZE(%r1)
+    STUB_EXCEPTION(pok_int_decrementer)
+    STUB_EXCEPTION(pok_int_interval_timer)
+    STUB_EXCEPTION(pok_int_watchdog)
 
-        SAVE_REGS
+    START_EXCEPTION(pok_int_data_tlb_miss)
+        b pok_int_data_storage
 
-        bl      pok_arch_isi_int
-        b       pok_arch_rfi
+    START_EXCEPTION(pok_int_inst_tlb_miss)
+        b pok_int_inst_storage
+        
+    STUB_EXCEPTION(pok_int_debug)
 
-        . = base + 0x500
-ext_interrupt_0500:
-        b reserved_2F00
+#if 0
+int_critical_input:
+        b int_ext_interrupt
 
-        . = base + 0x600
-alignment_0600:
-        b reserved_2F00
+int_machine_check:
+        b int_machine_check
 
-        . = base + 0x700
-program_0700:
-        b reserved_2F00
+int_data_storage:
+        b int_data_storage
 
-        . = base + 0x800
-fp_unavailable_0800:
-        b reserved_2F00
+int_inst_storage:
+        b int_inst_storage
 
-        . = base + 0x900
-decrementer_0900:
+int_ext_interrupt:
         /* PC saved in srr0,
            MSR saved in srr1.  */
         /* Can use sprg.  */
@@ -187,31 +180,31 @@ decrementer_0900:
         mfcr    %r3
         mfsrr1  %r4
         andi.   %r4,%r4,MSR_PR
-        bne     failed /* Need to switch to system stack */
+1:      bne     1b /* Need to switch to system stack */
 
         stwu    %r1,-FRAME_SIZE(%r1)
         
         SAVE_REGS
 
-        bl      pok_arch_decr_int
+        bl      pok_arch_ext_interrupt
         b       pok_arch_rfi
 
-        . = base + 0xa00
-reserved_0A00:
-        b reserved_2F00
+int_alignment:
+        b int_alignment
 
-        . = base + 0xb00
-reserved_0B00:
-        b reserved_2F00
+int_program:
+        b int_program
 
-        . = base + 0xc00
-system_call_0C00:
+int_fp_unavail:
+        b int_fp_unavail
+
+int_system_call:
         mtsprg  3,%r3
         mtsprg  2,%r4
         mfcr    %r3
         mfsrr1  %r4
         andi.   %r4,%r4,MSR_PR
-        beq     failed /* SC musn't appear in supervisor mode.  */
+1:      beq     1b /* SC musn't appear in supervisor mode.  */
 
         /* Switch to kernel stack.  */
         mr      %r4,%r1
@@ -236,148 +229,62 @@ system_call_0C00:
         
         b       pok_arch_rfi
 
-        . = base + 0xd00
-trace_0D00:
-        b reserved_2F00
+int_decrementer:
+        /* PC saved in srr0,
+           MSR saved in srr1.  */
+        /* Can use sprg.  */
+        mtsprg  3,%r3
+        mtsprg  2,%r4
+        mfcr    %r3
+        mfsrr1  %r4
+        andi.   %r4,%r4,MSR_PR
+1:      bne     1b /* Need to switch to system stack */
 
-        . = base + 0xe00
-reserved_0E00:
-        b reserved_2F00
+        stwu    %r1,-FRAME_SIZE(%r1)
+        
+        SAVE_REGS
 
-        . = base + 0xf00
-reserved_0F00:
-        b reserved_2F00
+        bl      pok_arch_decr_int
+        b       pok_arch_rfi
 
-         .p2align 8
-reserved_1000:
-        b reserved_2F00
+int_interval_timer:
+        b int_interval_timer
 
-         .p2align 8
-reserved_1100:
-        b reserved_2F00
+int_watchdog:
+        b int_watchdog
 
-         .p2align 8
-reserved_1200:
-        b reserved_2F00
+int_data_tlb_miss:
+        b int_data_tlb_miss
 
-         .p2align 8
-reserved_1300:
-        b reserved_2F00
+int_inst_tlb_miss:
+        b int_inst_tlb_miss
 
-         .p2align 8
-reserved_1400:
-        b reserved_2F00
+int_debug:
+        b int_debug
 
-         .p2align 8
-reserved_1500:
-        b reserved_2F00
+#endif
 
-         .p2align 8
-reserved_1600:
-        b reserved_2F00
+pok_setup_interrupts:
+        lis     %r3, pok_int_critical_input@h // higher 16 bits
+        mtspr   SPRN_IVPR, %r3
 
-         .p2align 8
-reserved_1700:
-        b reserved_2F00
+        SET_IVOR(0,  pok_int_critical_input)
+        SET_IVOR(1,  pok_int_machine_check)
+        SET_IVOR(2,  pok_int_data_storage)
+        SET_IVOR(3,  pok_int_inst_storage)
+        SET_IVOR(4,  pok_int_ext_interrupt)
+        SET_IVOR(5,  pok_int_alignment)
+        SET_IVOR(6,  pok_int_program)
+        SET_IVOR(7,  pok_int_fp_unavail)
+        SET_IVOR(8,  pok_int_system_call)
+        SET_IVOR(10, pok_int_decrementer)
+        SET_IVOR(11, pok_int_interval_timer)
+        SET_IVOR(12, pok_int_watchdog)
+        SET_IVOR(13, pok_int_data_tlb_miss)
+        SET_IVOR(14, pok_int_inst_tlb_miss)
+        SET_IVOR(15, pok_int_debug)
 
-         .p2align 8
-reserved_1800:
-        b reserved_2F00
-
-         .p2align 8
-reserved_1900:
-        b reserved_2F00
-
-         .p2align 8
-reserved_1A00:
-        b reserved_2F00
-
-         .p2align 8
-reserved_1B00:
-        b reserved_2F00
-
-         .p2align 8
-reserved_1C00:
-        b reserved_2F00
-
-         .p2align 8
-reserved_1D00:
-        b reserved_2F00
-
-         .p2align 8
-reserved_1E00:
-        b reserved_2F00
-
-         .p2align 8
-reserved_1F00:
-        b reserved_2F00
-
-         .p2align 8
-reserved_2000:
-        b reserved_2F00
-
-         .p2align 8
-reserved_2100:
-        b reserved_2F00
-
-         .p2align 8
-reserved_2200:
-        b reserved_2F00
-
-         .p2align 8
-reserved_2300:
-        b reserved_2F00
-
-         .p2align 8
-reserved_2400:
-        b reserved_2F00
-
-         .p2align 8
-reserved_2500:
-        b reserved_2F00
-
-         .p2align 8
-reserved_2600:
-        b reserved_2F00
-
-         .p2align 8
-reserved_2700:
-        b reserved_2F00
-
-         .p2align 8
-reserved_2800:
-        b reserved_2F00
-
-         .p2align 8
-reserved_2900:
-        b reserved_2F00
-
-         .p2align 8
-reserved_2A00:
-        b reserved_2F00
-
-         .p2align 8
-reserved_2B00:
-        b reserved_2F00
-
-         .p2align 8
-reserved_2C00:
-        b reserved_2F00
-
-         .p2align 8
-reserved_2D00:
-        b reserved_2F00
-
-         .p2align 8
-reserved_2E00:
-        b reserved_2F00
-
-         .p2align 8
-reserved_2F00:
-        b reserved_2F00
-
-         .p2align 8
-reserved_end:
+        blr
 
         .section ".bss", "aw"
 pok_stack:
@@ -386,7 +293,3 @@ pok_stack_end:
 
 pok_save_area:
         .space 4 * 8
-
-        .section ".reset", "ax"
-reset_FFFC:
-        b system_reset_0100

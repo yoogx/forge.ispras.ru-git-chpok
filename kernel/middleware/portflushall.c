@@ -116,6 +116,8 @@ static void pok_queueing_transfer(
     pok_port_queueing_t *src,
     pok_port_queueing_t *dst)
 {
+    assert(src->max_message_size <= dst->max_message_size);
+
     /*
      * Two points here:
      *
@@ -277,6 +279,8 @@ static pok_bool_t pok_sampling_channel_flush_local(
     pok_port_sampling_t *src = &pok_sampling_ports[chan->src.local.port_id];
     pok_port_id_t dst_id = chan->dst.local.port_id;
     pok_port_sampling_t *dst = &pok_sampling_ports[dst_id];
+
+    assert(src->max_message_size <= dst->max_message_size);
 
     memcpy(&dst->data->data[0], &src->data->data[0], src->data->message_size);
     dst->data->message_size = src->data->message_size;

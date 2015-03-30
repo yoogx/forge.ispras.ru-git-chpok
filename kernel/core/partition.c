@@ -53,7 +53,6 @@
 #include <core/error.h>
 #include <core/debug.h>
 #include <core/thread.h>
-#include <core/loader.h>
 #include <core/partition.h>
 #include <core/instrumentation.h>
 #include <core/time.h>
@@ -120,8 +119,8 @@ void pok_partition_reinit (pok_partition_id_t pid)
    part->lock_level = 1; // in init mode, lock level is always >0
 
    // reload code
-   uint32_t tmp;
-   pok_loader_load_partition (pid, part->base_addr - part->base_vaddr, &tmp);
+   uintptr_t tmp;
+   pok_arch_load_partition(pid, &tmp);
    part->thread_main_entry = tmp;
 
    pok_partition_setup_main_thread (pid);
@@ -173,14 +172,10 @@ pok_ret_t pok_partition_init ()
 
    for (i = 0 ; i < POK_CONFIG_NB_PARTITIONS ; i++)
    {
-      uint32_t size = partition_size[i];
-#ifndef POK_CONFIG_PARTITIONS_LOADADDR
-      uint32_t base_addr = (uint32_t)pok_bsp_mem_alloc(partition_size[i]);
-#else
-      uint32_t base_addr = program_loadaddr[i];
-#endif
-      uint32_t program_entry;
-      uint32_t base_vaddr = pok_space_base_vaddr(base_addr);
+      size_t size = partition_size[i];
+      uintptr_t base_addr = (uintptr_t) pok_bsp_alloc_partition(partition_size[i]);
+      uintptr_t program_entry;
+      uintptr_t base_vaddr = pok_space_base_vaddr(base_addr);
    
       pok_partition_t *part = &pok_partitions[i];
 
@@ -193,12 +188,7 @@ pok_ret_t pok_partition_init ()
       
       pok_create_space (i, base_addr, size);
       
-      pok_loader_load_partition (i, base_addr - base_vaddr, &program_entry);
-     
-#ifdef POK_NEEDS_COVERAGE_INFOS
-#include <libc.h>
-      printf ("[XCOV] Partition %d loaded at addr virt=|%x|, phys=|%x|\n", i, base_vaddr, base_addr);
-#endif
+      pok_arch_load_partition(i,  &program_entry);
       
       /*
        * Allocate threads

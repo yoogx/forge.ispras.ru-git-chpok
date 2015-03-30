@@ -24,25 +24,16 @@
 #include <types.h>
 #include <errno.h>
 #include <core/partition.h>
+#include "reg.h"
 #include "msr.h"
+#include "space.h"
 
 extern void pok_arch_space_init (void);
 
-static inline unsigned int get_msr (void)
-{
-  unsigned int res;
-  asm ("mfmsr %0\n" : "=r" (res));
-  return res;
-}
-
-static inline void set_msr (unsigned int val)
-{
-  asm volatile ("mtmsr %0\n" : : "r" (val));
-}
 
 pok_ret_t pok_arch_init ()
 {
-  set_msr (MSR_IP);
+  mtmsr(MSR_IP);
 #if POK_NEEDS_PARTITIONS
   pok_arch_space_init();
 #endif
@@ -52,23 +43,21 @@ pok_ret_t pok_arch_init ()
 
 pok_ret_t pok_arch_preempt_disable()
 {
-  unsigned int msr;
+  mtmsr(mfmsr() & ~MSR_EE);
 
-  msr = get_msr();
-  msr &= ~MSR_EE;
-  set_msr(msr);
   return (POK_ERRNO_OK);
 }
 
 pok_ret_t pok_arch_preempt_enable()
 {
-  unsigned int msr;
-
-  msr = get_msr();
-  msr |= MSR_EE;
-  set_msr(msr);
+  mtmsr(mfmsr() | MSR_EE);
 
   return (POK_ERRNO_OK);
+}
+
+pok_bool_t pok_arch_preempt_enabled(void)
+{
+  return !!(mfmsr() & MSR_EE);
 }
 
 pok_ret_t pok_arch_idle()
@@ -92,7 +81,8 @@ pok_ret_t pok_arch_event_register (uint8_t vector, void (*handler)(void))
 uint32_t    pok_thread_stack_addr   (const uint8_t    partition_id,
                                      const uint32_t   local_thread_id)
 {
-   return pok_partitions[partition_id].size - 16 - (local_thread_id * POK_USER_STACK_SIZE);
+   (void) partition_id; 
+   return POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE - 16 - (local_thread_id * POK_USER_STACK_SIZE);
 }
 
 

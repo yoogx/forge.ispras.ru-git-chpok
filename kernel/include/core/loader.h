@@ -21,13 +21,10 @@
 #include <types.h>
 
 /**
- * \brief Load the program of the partition
  *
- * It loads the program of the partition \a part_id. In fact,
- * It will load the ELF file that corresponds to this partition.
  */
-void pok_loader_load_partition (const uint8_t part_id,
-                                     uint32_t offset,
-                                     uint32_t *entry);
+pok_ret_t pok_loader_elf_load   (char* file,
+                                 ptrdiff_t offset,
+                                 uintptr_t* entry);
 #endif /* !__POK_LOADER_H__ */
 

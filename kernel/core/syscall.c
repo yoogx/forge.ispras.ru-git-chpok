@@ -35,8 +35,6 @@
 #include <bsp.h>
 #include <types.h>
 #include <libc.h>
-#include <arch/x86/ioports.h>
-#include <arch/x86/pci.h>
 
 #include <errno.h>
 #include <core/debug.h>

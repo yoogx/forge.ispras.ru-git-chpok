@@ -4,7 +4,7 @@ ENTRY(__pok_partition_start)
 
 SECTIONS
 {
-	. = 0x0;
+	. = 0x80000000;
 
 	__partition_begin = . ;
        

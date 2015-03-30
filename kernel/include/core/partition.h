@@ -162,6 +162,10 @@ extern pok_partition_t pok_partitions[POK_CONFIG_NB_PARTITIONS];
  * Chech that pointer \a ptr is located in the address space of partition
  * \a pid
  */
+
+/* TODO dirty as hell */
+
+#ifdef __i386__
 #define POK_CHECK_PTR_IN_PARTITION(pid,ptr) (\
                                              ((uintptr_t)(ptr)) >= pok_partitions[pid].base_addr && \
                                              ((uintptr_t)(ptr)) <  pok_partitions[pid].base_addr + pok_partitions[pid].size\
@@ -171,6 +175,19 @@ extern pok_partition_t pok_partitions[POK_CONFIG_NB_PARTITIONS];
                                              ((uintptr_t)(ptr)) >= pok_partitions[pid].base_vaddr && \
                                              ((uintptr_t)(ptr)) <  pok_partitions[pid].base_vaddr + pok_partitions[pid].size\
                                              )
+#elif defined(__PPC__)
+#define POK_CHECK_PTR_IN_PARTITION(pid,ptr) (\
+                                             ((uintptr_t)(ptr)) >= 0x80000000 && \
+                                             ((uintptr_t)(ptr)) <  0x80000000 + 0x1000000ULL\
+                                             )
+
+#define POK_CHECK_VPTR_IN_PARTITION(pid,ptr) (\
+                                             ((uintptr_t)(ptr)) >= 0x80000000 && \
+                                             ((uintptr_t)(ptr)) <  0x80000000 + 0x1000000ULL\
+                                             )
+#else
+#error "POK_CHECK_PTR macros are not implemented for this arch, do it now!"
+#endif
 
 /**
  * Initialize all partitions

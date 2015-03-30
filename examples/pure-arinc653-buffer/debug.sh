@@ -6,4 +6,4 @@
 # 2. run 'make run'
 # 3. run './debug.sh'
 
-exec gdb pok.elf -ex "target remote :1234" -ex "layout split"
+exec powerpc-elf-gdb pok.elf -ex "target remote :1234" -ex "layout split"

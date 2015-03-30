@@ -20,8 +20,8 @@
 #include <assert.h>
 
 #include <arch.h>
-#include <arch/x86/pci.h>
-#include <arch/x86/interrupt.h>
+#include <pci.h>
+#include <ioports.h>
 
 #include <core/thread.h>
 
@@ -394,6 +394,7 @@ static void reclaim_receive_buffers(void)
     struct virtio_virtqueue *vq = &dev->rx_vq;
 
     // network thread only
+    // TODO also ensure we're not in timer interrupt
     assert(POK_SCHED_CURRENT_THREAD == NETWORK_THREAD);
         
     pok_bool_t saved_preemption;

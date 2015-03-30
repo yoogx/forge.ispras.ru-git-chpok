@@ -5,7 +5,7 @@ ENTRY(_pok_reset)
 SECTIONS
 {
   /* Read-only sections, merged into text segment: */
-  . = 0xfff00000;
+  . = 0x10000;
 
   .text           :
   {
@@ -32,7 +32,7 @@ SECTIONS
     __rodata_end = .;
   } =0
 
-  . = 0x10000;
+  . = 0x20000;
 
   __sdata2_load = __rodata_end;
   .sdata2 : AT (__sdata2_load)
@@ -93,11 +93,4 @@ SECTIONS
   . = ALIGN (4);
   .eh_frame_end = .;
   }
-
-  . = 0xfffffffc;
-  .reset : AT (0xfffffffc)
-  {
-   *(.reset)
-  }
-
 }

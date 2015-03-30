@@ -15,10 +15,8 @@
  */
 
 
-#ifndef __POK_IOPORTS_H__
-#define __POK_IOPORTS_H__
-
-# include <core/syscall.h>
+#ifndef __POK_X86_IOPORTS_H__
+#define __POK_X86_IOPORTS_H__
 
 #define outb(port, data)                                        \
   asm volatile ("outb %b0,%w1"                                  \
@@ -62,4 +60,4 @@
   res;                                                          \
 })
 
-#endif /* __POK_IOPORTS_H__ */
+#endif /* __POK_X86_IOPORTS_H__ */

@@ -83,9 +83,12 @@ void pok_boot ()
    }
 #endif
 
+
+#ifdef POK_NEEDS_PARTITIONS
+  pok_sched();
+#else
   pok_arch_preempt_enable();
 
-#ifndef POK_NEEDS_PARTITIONS
   /**
    * If we don't use partitioning service, we execute a main
    * function. In that case, POK is acting like an executive,

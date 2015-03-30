@@ -21,7 +21,7 @@ $(TARGET): assemble-partitions
 	$(RM) -f sizes.c
 	$(TOUCH) sizes.c
 	$(ECHO) "#include <types.h>" >> sizes.c
-	$(ECHO) "uint32_t part_sizes[] = {" >> sizes.c
+	$(ECHO) "uint32_t pok_elf_sizes[] = {" >> sizes.c
 	N=1 ; for v in $(PARTITIONS); do \
 		if test $$N -eq 0; then $(ECHO) "," >> sizes.c ; fi ; N=0 ;\
 		ls -l $$v|awk '{print $$5}' >> sizes.c ; \

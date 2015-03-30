@@ -23,8 +23,8 @@
 #include <types.h>
 #include <libc.h>
 
-void pok_arch_sc_int(uint32_t num, uint32_t arg1, uint32_t arg2,
-                     uint32_t arg3, uint32_t arg4, uint32_t arg5)
+pok_ret_t pok_arch_sc_int(uint32_t num, uint32_t arg1, uint32_t arg2,
+                          uint32_t arg3, uint32_t arg4, uint32_t arg5)
 {
    uint8_t              part_id;
 
@@ -36,7 +36,7 @@ void pok_arch_sc_int(uint32_t num, uint32_t arg1, uint32_t arg2,
 
    /* prepare syscall_info */
    syscall_info.partition = part_id;
-   syscall_info.base_addr = pok_partitions[part_id].base_addr;
+   syscall_info.base_addr = 0; //pok_partitions[part_id].base_addr; // TODO need a cleaner way
    syscall_info.thread    = POK_SCHED_CURRENT_THREAD;
 
    /* prepare syscall_args */
@@ -51,11 +51,5 @@ void pok_arch_sc_int(uint32_t num, uint32_t arg1, uint32_t arg2,
    /* prepare syscall_id */
    syscall_id = (pok_syscall_id_t) num;
 
-   if (POK_CHECK_PTR_IN_PARTITION(syscall_info.partition, &syscall_args) != 0)
-   {
-      /*
-       * Perform the syscall baby !
-       */
-     pok_core_syscall (syscall_id, &syscall_args, &syscall_info);
-   }
+   return pok_core_syscall (syscall_id, &syscall_args, &syscall_info);
 }

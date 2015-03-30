@@ -25,19 +25,31 @@
 
 #if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
 
-#define  COM1      0x3F8
+#define CCSRBAR_BASE 0xE0000000ULL
 
-static int is_transmit_empty(void)
+#define MPC8544_SERIAL0_REGS_OFFSET 0x4500ULL
+
+#define NS16550_REG_THR 0
+#define NS16550_REG_LSR 5
+
+#define UART_LSR_THRE   0x20
+
+static void ns16550_writeb(int offset, int value)
 {
-   return inb(COM1 + 5) & 0x20;
+    outb(CCSRBAR_BASE + MPC8544_SERIAL0_REGS_OFFSET + offset, value);
+}
+
+static int ns16550_readb(int offset)
+{
+    return inb(CCSRBAR_BASE + MPC8544_SERIAL0_REGS_OFFSET + offset);
 }
 
 static void write_serial(char a)
 {
-   while (is_transmit_empty() == 0)
+   while ((ns16550_readb(NS16550_REG_LSR) & UART_LSR_THRE) == 0)
      ;
 
-   outb(COM1,a);
+   ns16550_writeb(NS16550_REG_THR, a);
 }
 
 pok_bool_t pok_cons_write (const char *s, size_t length)
@@ -50,19 +62,8 @@ pok_bool_t pok_cons_write (const char *s, size_t length)
 
 int pok_cons_init (void)
 {
-   outb(COM1 + 1, 0x00);    // Disable all interrupts
-   outb(COM1 + 3, 0x80);    // Enable DLAB (set baud rate divisor)
-   outb(COM1 + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
-   outb(COM1 + 1, 0x00);    //                  (hi byte)
-   outb(COM1 + 3, 0x03);    // 8 bits, no parity, one stop bit
-   outb(COM1 + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
-   outb(COM1 + 4, 0x0B);    // IRQs enabled, RTS/DSR set
-
-   pok_print_init (write_serial, NULL);
-
-   return 0;
-
-
+    pok_print_init (write_serial, NULL);
+    return 0;
 }
 #else
 int pok_cons_init (void)

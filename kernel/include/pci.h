@@ -17,12 +17,10 @@
 
 #ifdef POK_NEEDS_PCI
 
-# ifndef __POK_x86_PCI_H__
-#  define __POK_X86_PCI_H__
+# ifndef __POK_PCI_H__
+# define __POK__PCI_H__
 
-#  include <arch/x86/ioports.h>
-#  include <core/syscall.h>
-#  include <core/partition.h>
+#include <types.h>
 
 /*
  * PCI configuration registers
@@ -74,5 +72,5 @@ unsigned int pci_read_reg(s_pci_device* d,
 
 pok_ret_t pci_register(s_pci_device* dev);
 
-# endif /* __POK_X86_PCI_H__ */
+# endif /* __POK_PCI_H__ */
 #endif /* POK_NEEDS_PCI */

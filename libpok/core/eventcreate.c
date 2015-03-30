@@ -29,7 +29,7 @@ pok_ret_t pok_event_create (pok_event_id_t* id, pok_queueing_discipline_t discip
    lockattr.kind = POK_LOCKOBJ_KIND_EVENT;
    lockattr.queueing_policy = discipline; 
 
-   return pok_syscall2 (POK_SYSCALL_LOCKOBJ_CREATE, (uint32_t)id, (uint32_t)&lockattr);
+   return pok_syscall2 (POK_SYSCALL_LOCKOBJ_CREATE, (uintptr_t)id, (uintptr_t)&lockattr);
 }
 
 #endif

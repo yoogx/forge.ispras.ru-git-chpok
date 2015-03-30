@@ -1,7 +1,7 @@
 include $(POK_PATH)/misc/mk/config.mk
 -include $(POK_PATH)/misc/mk/common-$(ARCH).mk
 
-LO_TARGET=	prep.lo
+LO_TARGET=	e500mc.lo
 
 LO_OBJS=	cons.o \
 		bsp.o

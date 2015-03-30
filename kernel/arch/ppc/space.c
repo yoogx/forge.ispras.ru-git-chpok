@@ -20,31 +20,29 @@
 #include <libc.h>
 #include <bsp.h>
 #include <core/sched.h>
+#include <core/debug.h>
 
 #include <arch.h>
 #include "thread.h"
 #include "msr.h"
-
-#define KERNEL_STACK_SIZE 8192
-
-#define PPC_SR_KP (1 << 29)
-#define PPC_SR_Ks (1 << 30)
-#define PPC_SR_T  (1 << 31)
+#include "reg.h"
+#include "mmu.h"
+#include "space.h"
 
 struct pok_space
 {
-  uint32_t phys_base;
-  uint32_t size;
+  uintptr_t     phys_base;
+  size_t        size;
 };
 
 struct pok_space spaces[POK_CONFIG_NB_PARTITIONS];
 
-pok_ret_t pok_create_space (uint8_t partition_id,
-                            uint32_t addr,
-                            uint32_t size)
+pok_ret_t pok_create_space (pok_partition_id_t partition_id,
+                            uintptr_t addr,
+                            size_t size)
 {
 #ifdef POK_NEEDS_DEBUG
-  printf ("pok_create_space: %d: %x %x\n", partition_id, addr, size);
+  printf ("pok_create_space partid=%d: phys=%x size=%x\n", partition_id, addr, size);
 #endif
   spaces[partition_id].phys_base = addr;
   spaces[partition_id].size = size;
@@ -52,51 +50,67 @@ pok_ret_t pok_create_space (uint8_t partition_id,
   return (POK_ERRNO_OK);
 }
 
-pok_ret_t pok_space_switch (uint8_t old_partition_id,
-                            uint8_t new_partition_id)
+pok_ret_t pok_space_switch (pok_partition_id_t old_partition_id,
+                            pok_partition_id_t new_partition_id)
 {
-  (void) old_partition_id;
-  /* printf ("space_switch %u -> %u\n", old_partition_id, new_partition_id); */
-  asm volatile ("mtsr %0,%1" : : "r"(0), "r"(PPC_SR_KP | new_partition_id));
-  return (POK_ERRNO_OK);
+    (void) old_partition_id;
+    mtspr(SPRN_PID, new_partition_id + 1);
+
+    return POK_ERRNO_OK;
 }
 
-uint32_t	pok_space_base_vaddr (uint32_t addr)
+uintptr_t pok_space_base_vaddr(uintptr_t addr)
 {
-   (void) addr;
-   return (0);
+    (void) addr;
+    return POK_PARTITION_MEMORY_BASE;
+}
+    
+static void
+pok_space_context_init(
+        volatile_context_t *vctx,
+        context_t *ctx,
+        uint8_t partition_id,
+        uintptr_t entry_rel,
+        uintptr_t stack_rel,
+        uint32_t arg1,
+        uint32_t arg2)
+{
+    (void) partition_id;
+
+    memset (ctx, 0, sizeof(*ctx));
+    memset (vctx, 0, sizeof(*vctx));
+
+    extern void pok_arch_rfi (void);
+
+    vctx->r3     = arg1;
+    vctx->r4     = arg2;
+    vctx->sp     = stack_rel - 12;
+    vctx->srr0   = entry_rel;
+    vctx->srr1   = MSR_EE | MSR_IP | MSR_PR;
+    ctx->lr      = (uintptr_t) pok_arch_rfi;
+
+    ctx->sp      = (uintptr_t) &vctx->sp;
 }
 
-extern void pok_arch_rfi (void);
-
-uint32_t	pok_space_context_create (uint8_t partition_id,
-                                   uint32_t entry_rel,
-                                   uint32_t stack_rel,
-                                   uint32_t arg1,
-                                   uint32_t arg2)
+uint32_t pok_space_context_create (
+        uint8_t partition_id,
+        uint32_t entry_rel,
+        uint32_t stack_rel,
+        uint32_t arg1,
+        uint32_t arg2)
 {
-  context_t* ctx;
   volatile_context_t* vctx;
+  context_t* ctx;
   char*      stack_addr;
-  (void) partition_id;
 
   stack_addr = pok_bsp_mem_alloc (KERNEL_STACK_SIZE);
-
+  
   vctx = (volatile_context_t *)
     (stack_addr + KERNEL_STACK_SIZE - sizeof (volatile_context_t));
-  ctx = (context_t *)((char *)vctx - sizeof (context_t) + 8);
-
-  memset (ctx, 0, sizeof (*ctx));
-  memset (vctx, 0, sizeof (*vctx));
-
-  vctx->r3     = arg1;
-  vctx->r4     = arg2;
-  vctx->sp     = stack_rel - 12;
-  vctx->srr0   = entry_rel;
-  vctx->srr1   = MSR_EE | MSR_IP | MSR_DR | MSR_IR | MSR_PR;
-  ctx->lr      = (uint32_t) pok_arch_rfi;
-
-  ctx->sp      = (uint32_t) &vctx->sp;
+  
+  ctx = (context_t *)(((char*)vctx) - sizeof(context_t) + 8);
+  
+  pok_space_context_init(vctx, ctx, partition_id, entry_rel, stack_rel, arg1, arg2);
 
 #ifdef POK_NEEDS_DEBUG
   printf ("space_context_create %d: entry=%x stack=%x arg1=%x arg2=%x ksp=%x\n",
@@ -106,123 +120,187 @@ uint32_t	pok_space_context_create (uint8_t partition_id,
   return (uint32_t)ctx;
 }
 
-typedef struct
+void pok_space_context_restart(
+        uint32_t sp, 
+        uint8_t  partition_id,
+        uint32_t entry_rel,
+        uint32_t stack_rel,
+        uint32_t arg1,
+        uint32_t arg2)
 {
-  uint32_t vsid_api;
-  uint32_t rpn_flags;
-} ppc_pte_t;
+    // it's the same sp that was 
+    // returned by pok_space_context_create earlier
+    // 
+    // we don't need to allocate anything here, we only have to 
+    // reset some values
 
-static uint32_t pt_base;
-static uint32_t pt_mask;
+    volatile_context_t *vctx = (volatile_context_t*)(sp + sizeof(context_t) - 8);
+    context_t *ctx = (context_t*) sp;
 
-#define PPC_PTE_V (1 << 31)
-#define POK_PAGE_SIZE (1 << 12)
-#define POK_PAGE_MASK (~(POK_PAGE_SIZE - 1))
-#define PPC_PTE_H (1 << 6)
-#define PPC_PTE_R (1 << 8)
-#define PPC_PTE_C (1 << 7)
-#define PPC_PTE_W (1 << 6)
-#define PPC_PTE_I (1 << 5)
-#define PPC_PTE_M (1 << 4)
-#define PPC_PTE_G (1 << 3)
-#define PPC_PTE_PP_NO 0
-#define PPC_PTE_PP_RO 1
-#define PPC_PTE_PP_RW 2
+    pok_space_context_init(
+        vctx,
+        ctx, 
+        partition_id,
+        entry_rel,
+        stack_rel,
+        arg1,
+        arg2
+    );
+}
+
+
+
+/*
+ * Returns next available TLB1 entry index.
+ *
+ * If is_resident is true, entry will never be overwritten.
+ *
+ * First N entries are "resident" (kernel, devices, all that stuff), and others are evicted
+ * by primitive round-robin algorithm.
+ *
+ * Note that the first request for resident TLB1 entry
+ * returns the entry occupidied by the kernel.
+ * This is intentional, as we have to overwrite it with 
+ * appropriate access rights.
+ */
+int pok_get_next_tlb1_index(int is_resident)
+{
+    static unsigned next_resident = 0;
+    static unsigned next_non_resident = 0;
+
+    unsigned res;
+    unsigned available_space = mfspr(SPRN_TLB1CFG) & TLBnCFG_N_ENTRY;
+
+    if (is_resident) {
+        if (next_resident >= available_space) {
+            pok_fatal("Out of TLB1 space");
+        }
+
+        res = next_resident++;
+        next_non_resident = next_resident;
+    } else {
+        if (next_non_resident >= available_space) {
+            // wrap around
+            next_non_resident = next_resident;
+        }
+        if (next_non_resident >= available_space) {
+            pok_fatal("Out of TLB1 space");
+        }
+        res = next_non_resident++;
+    }
+    
+    return res;
+}
+
+/*
+ *  Quotes from the manual:
+ *
+ *      64-entry, fully-associative unified (for instruction and data accesses) L2 TLB array (TLB1)
+ *      supports the 11 VSP page sizes shown in Section 6.2.3, “Variable-Sized Pages.”
+ *
+ *      The replacement algorithm for TLB1 must be implemented completely by the system software. Thus,
+ *      when an entry in TLB1 is to be replaced, the software selects which entry to replace and writes the entry
+ *      number to MAS0[ESEL] before executing a tlbwe instruction.
+ */
+void pok_insert_tlb1(
+        uint32_t virtual, 
+        uint64_t physical, 
+        unsigned pgsize_enum, 
+        unsigned permissions,
+        unsigned wimge,
+        unsigned pid,
+        pok_bool_t is_resident)
+{
+    /*
+     * TLB1 can be written by first writing the necessary information into MAS0–MAS3, MAS5, MAS7, and
+     * MAS8 using mtspr and then executing the tlbwe instruction. To write an entry into TLB1,
+     * MAS0[TLBSEL] must be equal to 1, and MAS0[ESEL] must point to the desired entry. When the tlbwe
+     * instruction is executed, the TLB entry information stored in MAS0–MAS3, MAS5, MAS7, and MAS8 is
+     * written into the selected TLB entry in the TLB1 array.
+     */
+    
+    uint32_t mas0, mas1, mas2, mas3, mas7;
+    unsigned entry;
+
+    entry = pok_get_next_tlb1_index(is_resident);
+    mas0 = MAS0_TLBSEL(1) | MAS0_ESEL(entry);
+    mas1 = MAS1_VALID | MAS1_TID(pid) | MAS1_TSIZE(pgsize_enum);
+    mas2 = (virtual & MAS2_EPN) | wimge;
+    mas3 = (physical & MAS3_RPN) | permissions; 
+    mas7 = physical >> 32;
+
+    mtspr(SPRN_MAS0, mas0); 
+    mtspr(SPRN_MAS1, mas1); 
+    mtspr(SPRN_MAS2, mas2);
+    mtspr(SPRN_MAS3, mas3);
+    mtspr(SPRN_MAS7, mas7);
+
+    asm volatile("isync; tlbwe; isync":::"memory");
+}
+
+/*
+ *  Quote from the manual:
+ *
+ *      A 512-entry, 4-way set-associative unified (for instruction and data accesses) L2 TLB array
+ *      (TLB0) supports only 4-Kbyte pages.
+ *
+ *      TLB0 entry replacement is also implemented by software. To assist the software with TLB0 replacement,
+ *      the core provides a hint that can be used for implementing a round-robin replacement algorithm. <...>
+ */
+// XXX not implemented
+void pok_instert_tlb0();
 
 void pok_arch_space_init (void)
 {
-  uint32_t sdr1;
-
-  pt_base = 0;
-  pt_mask = 0x3ff;
-
-  sdr1 = pt_base | (pt_mask >> 10);
-  asm volatile ("mtsdr1 %0" : : "r"(sdr1));
+    // overwrites first TLB1 entry
+    // we just need to change access bits for the kernel,
+    // so user won't be able to access it
+    pok_insert_tlb1(
+        0, 
+        0, 
+        E500MC_PGSIZE_16M, 
+        MAS3_SW | MAS3_SR | MAS3_SX,
+        0,
+        0, // any pid 
+        TRUE
+    );
 }
 
-static void pok_insert_pte (uint32_t vsid, uint32_t vaddr, uint32_t pte)
+void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
 {
-  uint32_t hash = (vsid & 0x7ffff) ^ ((vaddr >> 12) & 0xffff);
-  ppc_pte_t *pteg;
-  int i;
+    (void) syndrome;
 
-  pteg = (ppc_pte_t *)(pt_base + ((hash & pt_mask) << 6));
-  for (i = 0; i < 8; i++)
-    if (!(pteg[i].vsid_api & PPC_PTE_V))
-      {
-        pteg[i].rpn_flags = pte;
-        pteg[i].vsid_api = PPC_PTE_V | (vsid << 7) | ((vaddr >> 22) & 0x3f);
-        return;
-      }
+    unsigned pid = mfspr(SPRN_PID);
 
-  /* FIXME: Try secondary hash.  */
-
-#ifdef POK_NEEDS_DEBUG
-  printf ("pok_insert_pte: no free entry\n");
-#endif
-
-  while (1)
-    ;
-}
-
-void pok_arch_isi_int (uint32_t pc, uint32_t msr)
-{
-
-#ifdef POK_NEEDS_DEBUG
-  printf("isi_int: part=%d, pc=%x msr=%x\n",
-         pok_current_partition, pc, msr);
-
-  if (msr & ((1 << 28) | (1 << 27)))
-  {
-    printf (" Bad access\n");
-  }
-#endif
-
-  if (msr & (1 << 30))
+    if (faulting_address >= CCSRBAR_BASE && faulting_address < CCSRBAR_BASE + CCSRBAR_SIZE) {
+        pok_insert_tlb1(
+            CCSRBAR_BASE, 
+            CCSRBAR_BASE, 
+            E500MC_PGSIZE_16M, 
+            MAS3_SW | MAS3_SR,
+            MAS2_W | MAS2_I | MAS2_M | MAS2_G,
+            0, /* any pid */
+            TRUE 
+        );
+    } else if (
+            pid != 0 &&
+            faulting_address >= POK_PARTITION_MEMORY_BASE && 
+            faulting_address < POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE) 
     {
-      /* Page fault  */
-      if (pc < spaces[pok_current_partition].size)
-        {
-          uint32_t vaddr = pc & POK_PAGE_MASK;
-          uint32_t v;
-          v = (spaces[pok_current_partition].phys_base + vaddr) & POK_PAGE_MASK;
-          v |= PPC_PTE_R | PPC_PTE_C | PPC_PTE_PP_RW;
-          pok_insert_pte (pok_current_partition, vaddr, v);
-          return;
-        }
+        pok_partition_id_t partid = pid - 1;
+
+        pok_insert_tlb1( 
+            POK_PARTITION_MEMORY_BASE,
+            spaces[partid].phys_base,
+            E500MC_PGSIZE_16M,
+            MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
+            0,
+            pid,
+            FALSE
+        );
+    } else {
+        // TODO handle it correctly, distinguish kernel code / user code, etc.
+        pok_fatal("bad memory access");
     }
-
-#ifdef POK_NEEDS_DEBUG
-   printf("[DEBUG] Infinite loop in pok_arch_isi_int\n");
-#endif
-
-  while (1)
-    ;
 }
 
-void pok_arch_dsi_int (uint32_t dar, uint32_t dsisr)
-{
-#ifdef POK_NEEDS_DEBUG
-  printf("dsi_int: part=%d, dar=%x dsisr=%x\n",
-         pok_current_partition, dar, dsisr);
-#endif
-
-  if (dsisr & (1 << 30))
-    {
-      /* Page fault  */
-      if (dar < spaces[pok_current_partition].size)
-        {
-          uint32_t vaddr = dar & POK_PAGE_MASK;
-          uint32_t v;
-          v = (spaces[pok_current_partition].phys_base + vaddr) & POK_PAGE_MASK;
-          v |= PPC_PTE_R | PPC_PTE_C | PPC_PTE_PP_RW;
-          pok_insert_pte (pok_current_partition, vaddr, v);
-          return;
-        }
-    }
-#ifdef POK_NEEDS_DEBUG
-   printf("[DEBUG] Infinite loop in pok_arch_dsi_int\n");
-#endif
-  while (1)
-    ;
-}

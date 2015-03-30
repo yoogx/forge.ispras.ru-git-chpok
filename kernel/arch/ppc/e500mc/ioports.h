@@ -14,28 +14,24 @@
  * Created by julien on Thu Jan 15 23:34:13 2009 
  */
 
+#ifndef __POK_IOPORTS_H__
+#define __POK_IOPORTS_H__
 
-#include <errno.h>
-#include <arch.h>
-#include "cons.h"
+#include <inttypes.h>
 
-int pok_bsp_init (void)
+static inline void outb(uintptr_t port, unsigned char data)
 {
-   pok_cons_init ();
+    // TODO rewrite in assembly
+    volatile unsigned char *p = (volatile unsigned char *) port;
+    *p = data;
+}
 
-   return (POK_ERRNO_OK);
+static inline unsigned char inb(uintptr_t port)
+{
+    // TODO rewrite in assembly
+    volatile unsigned char *p = (volatile unsigned char *) port;
+    return *p;
 }
 
 
-extern char _end[];
-
-static char *heap_end = _end;
-
-void *pok_bsp_mem_alloc (size_t sz)
-{
-  char *res;
-
-  res = (char *)(((unsigned int)heap_end + 4095) & ~4095);
-  heap_end = res + sz;
-  return res;
-}
+#endif /* __POK_IOPORTS_H__ */

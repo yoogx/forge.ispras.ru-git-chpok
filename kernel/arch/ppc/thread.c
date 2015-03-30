@@ -45,7 +45,7 @@ uint32_t		pok_context_create (uint32_t id,
   sp->sp      = (uint32_t) &sp->back_chain;
 
 #ifdef POK_NEEDS_DEBUG
-  printf ("ctxt_create %d: sp=%x\n", id, sp);
+  printf ("ctxt_create %d: sp=%x entry=%x\n", id, sp, entry);
 #endif
 
   return (uint32_t)sp;

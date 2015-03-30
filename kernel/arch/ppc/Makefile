@@ -11,7 +11,9 @@ LO_OBJS=	entry.o \
 		thread.o \
 		space.o \
 		syscalls.o \
-		arch.o
+		arch.o \
+		interrupt.o \
+		loader.o
 
 LO_DEPS=	$(BSP)/$(BSP).lo
 
@@ -23,13 +25,13 @@ $(BSP)/$(BSP).lo::
 .PHONY: clean distclean depend all
 
 clean: common-clean
-	$(MAKE) -C prep $@
+	$(MAKE) -C $(BSP) $@
 ifdef BSP
 	$(CD) $(BSP) && $(MAKE) clean
 endif
 
 distclean: clean
-	$(MAKE) -C prep $@
+	$(MAKE) -C $(BSP) $@
 	$(RM) .depend.mk
 ifdef BSP
 	$(CD) $(BSP) && $(MAKE) distclean
