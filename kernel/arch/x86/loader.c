@@ -1,17 +1,14 @@
-#include <errno.h>
 #include <types.h>
 #include <core/loader.h>
 #include <core/partition.h>
 
-#include "mmu.h"
-#include "reg.h"
-
 extern size_t pok_elf_sizes[];
 
-void pok_arch_load_partition(pok_partition_id_t part_id,  uintptr_t *entry)
+void pok_arch_load_partition(pok_partition_id_t part_id, uintptr_t *entry)
 {
     extern char __archive2_begin;
     size_t elf_offset, elf_size;
+    pok_partition_t *part = &pok_partitions[part_id];
 
     elf_offset = 0;
     for (pok_partition_id_t i = 0; i < part_id; i++) {
@@ -37,19 +34,15 @@ void pok_arch_load_partition(pok_partition_id_t part_id,  uintptr_t *entry)
 #endif
 #endif
    }    
-    /*
-     * In order to load partition, we basically pretend that 
-     * we're running in its context, which "activates" corresponding
-     * TLB mappings.
-     *
-     * So partition is visible in kernel space, under the same addresses
-     * as it runs itself. We don't need to adjust addresses or anything.
-     * That's why second argument - offset - is zero;
-     *
-     * XXX maliciously linked ELF life may overwrite kernel data
-     */
 
-    mtspr(SPRN_PID, part_id + 1);
-    pok_loader_elf_load((&__archive2_begin) + elf_offset, 0, entry);
-    mtspr(SPRN_PID, 0); 
+    /*
+     * When we're running kernel code, 
+     * we're basically running in physical address space. 
+     *
+     * Partition is visible, but under different address than
+     * it will be running.
+     *
+     */
+   
+    pok_loader_elf_load((&__archive2_begin) + elf_offset, part->base_addr - part->base_vaddr, entry);
 }

@@ -19,6 +19,7 @@
 #define __POK_LOADER_H__
 
 #include <types.h>
+#include <errno.h>
 
 /**
  *

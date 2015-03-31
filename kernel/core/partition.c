@@ -188,7 +188,7 @@ pok_ret_t pok_partition_init ()
       
       pok_create_space (i, base_addr, size);
       
-      pok_arch_load_partition(i,  &program_entry);
+      pok_arch_load_partition(i, &program_entry);
       
       /*
        * Allocate threads

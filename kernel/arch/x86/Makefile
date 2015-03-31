@@ -15,6 +15,7 @@ LO_OBJS=	arch.o		\
 			interrupt.o	\
 			pci.o		\
 			exceptions.o \
+			loader.o
 
 LO_DEPS=	$(BSP)/$(BSP).lo
 
