@@ -23,10 +23,11 @@
 #include "reg.h"
 #include "timer.h"
 
-/* From platform.  */
-#define BUS_FREQ (100 * 1000000U)
-
-#define FREQ_DIV 40
+/*
+ * TODO This one comes from qemu's /hw/ppc/e500.c
+ *      Ideally, we should query device tree for this.
+ */
+#define TIMEBASE_FREQUENCY 400000000
 
 /* Last time when decr was set.  */
 static uint64_t time_last;
@@ -82,7 +83,7 @@ void pok_arch_decr_int (void)
   do
   {
     err = set_decrementer();
-    pok_tick_counter += FREQ_DIV;
+    pok_tick_counter += 1;
   } while (err != POK_ERRNO_OK);
 
 
@@ -91,7 +92,7 @@ void pok_arch_decr_int (void)
 
 pok_ret_t pok_bsp_time_init ()
 {
-  time_inter = (BUS_FREQ * FREQ_DIV) / POK_TIMER_FREQUENCY;
+  time_inter = TIMEBASE_FREQUENCY / POK_TIMER_FREQUENCY;
   time_last = get_timebase ();
   set_decrementer();
 
