@@ -2,6 +2,15 @@
 #include "reg.h"
 #include "exceptions.h"
 
+/*
+    SPRG (software use special-purpose register) designations:
+
+    SPRG0 - 
+    SPRG1 - kernel stack pointer
+    SPRG2 - scratch register
+    SPRG3 - scratch register
+*/
+
         .section ".start", "ax"
 
 base = .
@@ -9,6 +18,39 @@ base = .
 reserved_0000:
         /* fails */
 1:      b 1b 
+
+#define FRAME_SIZE 80
+        /* r4 is available, r1 is set, r3 contains cr,
+           sprg3 contains r3 and sprg2 contains r2.  */
+// TODO what about registers r14-r31?
+#define SAVE_REGS                                \
+        /* Establish new frame.  */              \
+        mflr    %r4;                             \
+        stw     %r4,FRAME_SIZE+4(%r1);  /* lr */ \
+        mfctr   %r4;                             \
+        stw     %r4,64(%r1);  /* ctr */          \
+        mfxer   %r4;                             \
+        stw     %r4,68(%r1);  /* xer */          \
+        stw     %r3,8(%r1);   /* cr */           \
+        stw     %r0,12(%r1);  /* r0 */           \
+        stw     %r2,16(%r1);  /* r2 */           \
+        mfsprg  %r0,3;                           \
+        stw     %r0,20(%r1);  /* r3 */           \
+        mfsprg  %r0,2;                           \
+        stw     %r0,24(%r1);  /* r4 */           \
+        stw     %r5,28(%r1);  /* r5 */           \
+        stw     %r6,32(%r1);  /* r6 */           \
+        stw     %r7,36(%r1);  /* r7 */           \
+        stw     %r8,40(%r1);  /* r8 */           \
+        stw     %r9,44(%r1);  /* r9 */           \
+        stw     %r10,48(%r1); /* r10 */          \
+        stw     %r11,52(%r1); /* r11 */          \
+        stw     %r12,56(%r1); /* r12 */          \
+        stw     %r13,60(%r1); /* r13 */          \
+        mfsrr0  %r3;                             \
+        stw     %r3,72(%r1);  /* srr0 */         \
+        mfsrr1  %r4;                             \
+        stw     %r4,76(%r1)  /* srr1 */
         
         /* Restore registers */
         .globl pok_arch_rfi
@@ -37,13 +79,31 @@ pok_arch_rfi:
         mtsrr1  %r0
         andi.   %r0,%r0,MSR_PR
         beq     1f
+        /* If user mode, restore kernel stack and save it to SPRG1 */
         addi    %r0,%r1,FRAME_SIZE
-        mtsprg  1,%r1
+        mtsprg  1,%r0
 1:      lwz     %r0,8(%r1)
         mtcr    %r0
         lwz     %r0,12(%r1)
         lwz     %r1,0(%r1)
         rfi
+
+#define EXCEPTION_PROLOGUE                      \
+        mtsprg  3,%r3;                          \
+        mtsprg  2,%r4;                          \
+        mfcr    %r3;                            \
+        mfsrr1  %r4;                            \
+        andi.   %r4,%r4,MSR_PR;                 \
+        bne     1f;                             \
+        /* Already on kernel stack */           \
+        stwu %r1, -FRAME_SIZE(%r1);             \
+        b       2f;                             \
+1:      /* User stack right now          */     \
+        mr %r4, %r1;                            \
+        mfsprg %r1, 1;                          \
+        stwu %r4, -FRAME_SIZE(%r1);/*save it*/  \
+2:      SAVE_REGS
+
 
 failed: b failed
 
@@ -83,22 +143,13 @@ _pok_reset:
 
 /* Interrupt vectors */
 /* TODO there're a lot of stubs */
-/* TODO handle kernel / user stack transition correctly
-        as of now, it only works because there're no overflows
-*/
+/* TODO handle kernel / user stack transition correctly */
 
     STUB_EXCEPTION(pok_int_critical_input)
     STUB_EXCEPTION(pok_int_machine_check)
 
     START_EXCEPTION(pok_int_data_storage)
-        
-        // save r4 and r3
-        mtsprg  3,%r3
-        mtsprg  2,%r4
-        
-        // save all of them
-        stwu    %r1,-FRAME_SIZE(%r1)
-        SAVE_REGS
+        EXCEPTION_PROLOGUE
         
         mfspr %r3, SPRN_DEAR // DEAR - faulting address
         mfspr %r4, SPRN_ESR // ESR - exception syndrome
@@ -115,19 +166,8 @@ _pok_reset:
     STUB_EXCEPTION(pok_int_fp_unavail)
 
     START_EXCEPTION(pok_int_system_call)
-        mtsprg  3,%r3
-        mtsprg  2,%r4
-        mfcr    %r3
-        mfsrr1  %r4
-        andi.   %r4,%r4,MSR_PR
-1:      beq     1b /* SC musn't appear in supervisor mode.  */
+        EXCEPTION_PROLOGUE
 
-        /* Switch to kernel stack.  */
-        mr      %r4,%r1
-        mfsprg  %r1,1
-        stwu    %r4,-FRAME_SIZE(%r1)
-
-        SAVE_REGS
         /* load system call arguments back from the stack */
         lwz     %r3,20(%r1)
         lwz     %r4,24(%r1)
@@ -142,10 +182,7 @@ _pok_reset:
         b       pok_arch_rfi       
 
     START_EXCEPTION(pok_int_decrementer)
-        mtsprg  3,%r3
-        mtsprg  2,%r4
-        stwu    %r1,-FRAME_SIZE(%r1)
-        SAVE_REGS
+        EXCEPTION_PROLOGUE
 
         bl      pok_arch_decr_int
         b       pok_arch_rfi
