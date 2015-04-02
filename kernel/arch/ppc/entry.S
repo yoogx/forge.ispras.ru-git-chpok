@@ -23,6 +23,7 @@ reserved_0000:
         /* r4 is available, r1 is set, r3 contains cr,
            sprg3 contains r3 and sprg2 contains r2.  */
 // TODO what about registers r14-r31?
+// TODO what about floating point registers?
 #define SAVE_REGS                                \
         /* Establish new frame.  */              \
         mflr    %r4;                             \
