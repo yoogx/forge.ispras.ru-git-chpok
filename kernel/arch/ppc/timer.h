@@ -1,6 +1,8 @@
 #ifndef __POK_PPC_TIMER_H__
 #define __POK_PPC_TIMER_H__
 
+void pok_arch_decr_int();
+
 /* Bit definitions related to the TCR. */
 #define TCR_WP(x)       (((x)&0x3)<<30) /* WDT Period */
 #define TCR_WP_MASK     TCR_WP(3)

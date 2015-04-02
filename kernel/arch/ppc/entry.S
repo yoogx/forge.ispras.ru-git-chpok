@@ -1,6 +1,5 @@
 #include "msr.h"
 #include "reg.h"
-#include "exceptions.h"
 
 /*
     SPRG (software use special-purpose register) designations:
@@ -103,7 +102,8 @@ pok_arch_rfi:
         mr %r4, %r1;                            \
         mfsprg %r1, 1;                          \
         stwu %r4, -FRAME_SIZE(%r1);/*save it*/  \
-2:      SAVE_REGS
+2:      SAVE_REGS;                              \
+        mfsrr0 %r3; /* EA of exception */
 
 
 failed: b failed
@@ -143,41 +143,84 @@ _pok_reset:
 1:      b  1b
 
 /* Interrupt vectors */
-/* TODO there're a lot of stubs */
 /* TODO handle kernel / user stack transition correctly */
+/* TODO some interrupts, like "critical interrupt", use different
+        set of save/restore registers, so they need
+        a different prologue and rfi functions
+*/
 
-    STUB_EXCEPTION(pok_int_critical_input)
-    STUB_EXCEPTION(pok_int_machine_check)
+
+// Useful defines:
+#define START_EXCEPTION(label)                                               \
+        .align 5;                                                            \
+label##_asm:
+
+// Handlers themselves:
+
+    START_EXCEPTION(pok_int_critical_input)
+        EXCEPTION_PROLOGUE 
+        bl pok_int_critical_input
+        b pok_arch_rfi
+
+    START_EXCEPTION(pok_int_machine_check)
+        EXCEPTION_PROLOGUE
+        bl pok_int_machine_check
+        b pok_arch_rfi
 
     START_EXCEPTION(pok_int_data_storage)
         EXCEPTION_PROLOGUE
         
-        mfspr %r3, SPRN_DEAR // DEAR - faulting address
-        mfspr %r4, SPRN_ESR // ESR - exception syndrome
+        mfspr %r4, SPRN_DEAR // DEAR - faulting address
+        mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
-        bl pok_arch_handle_page_fault
+        bl pok_int_data_storage
         b  pok_arch_rfi
 
     START_EXCEPTION(pok_int_inst_storage)
-        b pok_int_data_storage
+        EXCEPTION_PROLOGUE
+        
+        mfspr %r4, SPRN_DEAR // DEAR - faulting address
+        mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
-    STUB_EXCEPTION(pok_int_ext_interrupt)
-    STUB_EXCEPTION(pok_int_alignment)
-    STUB_EXCEPTION(pok_int_program)
-    STUB_EXCEPTION(pok_int_fp_unavail)
+        bl pok_int_inst_storage
+        b  pok_arch_rfi
+
+    START_EXCEPTION(pok_int_ext_interrupt)
+        EXCEPTION_PROLOGUE
+
+        bl pok_int_ext_interrupt
+        b pok_arch_rfi
+
+    START_EXCEPTION(pok_int_alignment)
+        EXCEPTION_PROLOGUE
+
+        bl pok_int_alignment
+        b pok_arch_rfi
+
+    START_EXCEPTION(pok_int_program)
+        EXCEPTION_PROLOGUE
+
+        bl pok_int_program
+        b pok_arch_rfi
+
+    START_EXCEPTION(pok_int_fp_unavail)
+        EXCEPTION_PROLOGUE
+
+        bl pok_int_fp_unavail
+        b pok_arch_rfi
 
     START_EXCEPTION(pok_int_system_call)
         EXCEPTION_PROLOGUE
 
         /* load system call arguments back from the stack */
-        lwz     %r3,20(%r1)
-        lwz     %r4,24(%r1)
-        lwz     %r5,28(%r1)
-        lwz     %r6,32(%r1)
-        lwz     %r7,36(%r1)
-        lwz     %r8,40(%r1)
+        lwz     %r4,20(%r1)
+        lwz     %r5,24(%r1)
+        lwz     %r6,28(%r1)
+        lwz     %r7,32(%r1)
+        lwz     %r8,36(%r1)
+        lwz     %r9,40(%r1)
 
-        bl      pok_arch_sc_int
+        bl      pok_int_system_call 
         stw     %r3,20(%r1)
         
         b       pok_arch_rfi       
@@ -185,19 +228,49 @@ _pok_reset:
     START_EXCEPTION(pok_int_decrementer)
         EXCEPTION_PROLOGUE
 
-        bl      pok_arch_decr_int
+        bl      pok_int_decrementer 
         b       pok_arch_rfi
 
-    STUB_EXCEPTION(pok_int_interval_timer)
-    STUB_EXCEPTION(pok_int_watchdog)
+    START_EXCEPTION(pok_int_interval_timer)
+        EXCEPTION_PROLOGUE
+
+        bl      pok_int_interval_timer
+        b       pok_arch_rfi
+
+    START_EXCEPTION(pok_int_watchdog)
+        EXCEPTION_PROLOGUE
+
+        bl      pok_int_watchdog
+        b       pok_arch_rfi
 
     START_EXCEPTION(pok_int_data_tlb_miss)
-        b pok_int_data_storage
+        EXCEPTION_PROLOGUE
+        
+        mfspr %r4, SPRN_DEAR // DEAR - faulting address
+        mfspr %r5, SPRN_ESR // ESR - exception syndrome
+
+        bl      pok_int_data_tlb_miss
+        b       pok_arch_rfi
 
     START_EXCEPTION(pok_int_inst_tlb_miss)
-        b pok_int_inst_storage
+        EXCEPTION_PROLOGUE
+
+        mfspr %r4, SPRN_DEAR // DEAR - faulting address
+        mfspr %r5, SPRN_ESR // ESR - exception syndrome
+
+        bl      pok_int_inst_tlb_miss
+        b       pok_arch_rfi
         
-    STUB_EXCEPTION(pok_int_debug)
+    START_EXCEPTION(pok_int_debug)
+        EXCEPTION_PROLOGUE
+
+        bl      pok_int_debug
+        b       pok_arch_rfi
+
+#define SET_IVOR(vector_number, vector_label)           \
+                li      r26,vector_label##_asm @ l;             \
+                mtspr   SPRN_IVOR##vector_number,r26;   \
+                sync
 
 pok_setup_interrupts:
         lis     %r3, pok_int_critical_input@h // higher 16 bits
