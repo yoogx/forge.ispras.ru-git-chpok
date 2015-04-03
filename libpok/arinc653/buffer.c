@@ -175,6 +175,12 @@ void GET_BUFFER_STATUS (
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
    pok_buffer_status_t status;
+    
+   if (BUFFER_ID == 0) {
+      *RETURN_CODE = INVALID_PARAM;
+      return;
+   }
+
    *RETURN_CODE = pok_buffer_status(BUFFER_ID - 1, &status);
     
    BUFFER_STATUS->NB_MESSAGE = status.nb_messages;

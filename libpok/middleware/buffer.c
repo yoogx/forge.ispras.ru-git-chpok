@@ -425,6 +425,7 @@ pok_ret_t pok_buffer_receive (
     if (buffer_is_empty(buffer)) {
         if (delay_ms == 0) {
             pok_event_unlock(buffer->lock);
+            *len = 0;
             return POK_ERRNO_EMPTY;
         } else {
             // bail out if preemption is disabled
