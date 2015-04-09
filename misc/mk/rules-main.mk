@@ -27,7 +27,7 @@ $(TARGET): assemble-partitions
 		ls -l $$v|awk '{print $$5}' >> sizes.c ; \
 	done
 	$(ECHO) "};" >> sizes.c
-	$(CC) $(CONFIG_CFLAGS) -I $(POK_PATH)/kernel/include -c sizes.c -o sizes.o
+	$(CC) $(CFLAGS) -I $(POK_PATH)/kernel/include -c sizes.c -o sizes.o
 	$(OBJCOPY) --add-section .archive2=partitions.bin sizes.o
 	$(ECHO) $(ECHO_FLAGS) $(ECHO_FLAGS_ONELINE) "[LD] $@"
 	$(LD) $(LDFLAGS) -T $(POK_PATH)/misc/ldscripts/$(ARCH)/$(BSP)/kernel.lds -o $@ $(KERNEL) $(OBJS) sizes.o `$(CC) $(CFLAGS) -print-libgcc-file-name` -Map $@.map
@@ -43,7 +43,7 @@ plop: assemble-partitions
 		ls -l $$v|awk '{print $$5}' >> sizes.c ; \
 	done
 	$(ECHO) "};" >> sizes.c
-	$(CC) $(CONFIG_CFLAGS) -I $(POK_PATH)/kernel/include -c sizes.c -o sizes.o
+	$(CC) $(CFLAGS) -I $(POK_PATH)/kernel/include -c sizes.c -o sizes.o
 	$(OBJCOPY) --add-section .archive2=partitions.bin sizes.o
 	$(ECHO) $(ECHO_FLAGS) $(ECHO_FLAGS_ONELINE) "[LD] $@"
 	$(LD) $(LDFLAGS) -T $(POK_PATH)/misc/ldscripts/$(ARCH)/$(BSP)/kernel.lds -o pok.elf $(KERNEL) $(OBJS) sizes.o `$(CC) $(CFLAGS) -print-libgcc-file-name` -Map $@.map

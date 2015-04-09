@@ -17,7 +17,7 @@
 #ifndef __POK_IOPORTS_H__
 #define __POK_IOPORTS_H__
 
-#include <inttypes.h>
+#include <stdint.h>
 
 static inline void outb(uintptr_t port, unsigned char data)
 {
