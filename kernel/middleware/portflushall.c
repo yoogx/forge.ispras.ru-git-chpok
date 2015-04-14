@@ -210,12 +210,12 @@ static void pok_queueing_channel_flush_udp(
     // send all messages that aren't sent already
     pok_port_size_t i;
     for (i = 0; i < port->nb_message; i++) {
-        if (aux[i].status != QUEUEING_UDP_STATUS_NONE) {
-            continue;
-        }
-
         pok_port_size_t ring_index = (i + port->queue_head) % port->max_nb_messages;
         pok_port_data_t *data = (pok_port_data_t*) (port->data + port->data_stride * ring_index);
+        
+        if (aux[ring_index].status != QUEUEING_UDP_STATUS_NONE) {
+            continue;
+        }
 
         pok_network_sg_list_t sg_list[2];
         sg_list[0].buffer = aux[ring_index].overhead;
