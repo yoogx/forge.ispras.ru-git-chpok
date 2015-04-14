@@ -1,44 +1,17 @@
 #ifndef __POK_PPC_MMU_H__
 #define __POK_PPC_MMU_H__
 
-#if 0
-
-// this's what pages sizes are supposed to be
-
-#define E500MC_PGSIZE_4K        0b0001 
-#define E500MC_PGSIZE_16K       0b0010 
-#define E500MC_PGSIZE_64K       0b0011 
-#define E500MC_PGSIZE_256K      0b0100 
-#define E500MC_PGSIZE_1M        0b0101 
-#define E500MC_PGSIZE_4M        0b0110 
-#define E500MC_PGSIZE_16M       0b0111 
-#define E500MC_PGSIZE_64M       0b1000 
-#define E500MC_PGSIZE_256M      0b1001 
-#define E500MC_PGSIZE_1G        0b1010 
-#define E500MC_PGSIZE_4G        0b1011 
-
-#else
-
-// and this is how QEMU thinks
-// https://bugs.launchpad.net/qemu/+bug/1438144
-// XXX it's a temporary workaround
-
-#define E500MC_PGSIZE_4K        0b0010
-//#define E500MC_PGSIZE_8K        0b0011
-#define E500MC_PGSIZE_16K       0b0100
-//#define E500MC_PGSIZE_32K       0b0101
-#define E500MC_PGSIZE_64K       0b0110
-//#define E500MC_PGSIZE_128K      0b0111
-#define E500MC_PGSIZE_256K      0b1000
-//#define E500MC_PGSIZE_512K      0b1001
-#define E500MC_PGSIZE_1M        0b1010
-//#define E500MC_PGSIZE_2M        0b1011
-#define E500MC_PGSIZE_4M        0b1100
-//#define E500MC_PGSIZE_8M        0b1101
-#define E500MC_PGSIZE_16M       0b1110
-//#define E500MC_PGSIZE_32M       0b1111
-
-#endif
+#define E500MC_PGSIZE_4K        0b00010 
+#define E500MC_PGSIZE_16K       0b00100 
+#define E500MC_PGSIZE_64K       0b00110 
+#define E500MC_PGSIZE_256K      0b01000 
+#define E500MC_PGSIZE_1M        0b01010 
+#define E500MC_PGSIZE_4M        0b01100 
+#define E500MC_PGSIZE_16M       0b01110 
+#define E500MC_PGSIZE_64M       0b10000 
+#define E500MC_PGSIZE_256M      0b10010 
+#define E500MC_PGSIZE_1G        0b10100 
+#define E500MC_PGSIZE_4G        0b10110 
 
 #if 0
 static inline int pok_arch_mmu_shift_by_size(unsigned size)
