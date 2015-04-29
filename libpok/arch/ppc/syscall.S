@@ -8,4 +8,4 @@ pok_syscall3:
 pok_syscall4:
 pok_syscall5:
         sc
-        brl
+        blr
