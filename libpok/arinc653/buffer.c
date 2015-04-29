@@ -165,7 +165,13 @@ void GET_BUFFER_ID (
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
    pok_buffer_id_t id;
-   *RETURN_CODE = pok_buffer_id(BUFFER_NAME, &id);
+   pok_ret_t core_ret = pok_buffer_id(BUFFER_NAME, &id);
+
+   switch (core_ret) {
+      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG);
+      MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
+   }
    *BUFFER_ID = id + 1;
 }
  
