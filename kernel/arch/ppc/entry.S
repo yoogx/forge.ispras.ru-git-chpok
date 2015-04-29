@@ -18,11 +18,13 @@ reserved_0000:
         /* fails */
 1:      b 1b 
 
-#define FRAME_SIZE 80
+#define SAVE_FP(num) stfd %f##num,(80+8*num)(%r1)
+#define LOAD_FP(num) lfd %f##num,(80+8*num)(%r1)
+
+//332 = 80 + 31*8 + 4 + padding_to_make_alined_to_16_byte_boundary
+#define FRAME_SIZE 336
         /* r4 is available, r1 is set, r3 contains cr,
            sprg3 contains r3 and sprg2 contains r2.  */
-// TODO what about registers r14-r31?
-// TODO what about floating point registers?
 #define SAVE_REGS                                \
         /* Establish new frame.  */              \
         mflr    %r4;                             \
@@ -47,6 +49,40 @@ reserved_0000:
         stw     %r11,52(%r1); /* r11 */          \
         stw     %r12,56(%r1); /* r12 */          \
         stw     %r13,60(%r1); /* r13 */          \
+            /* floating points */                \
+        SAVE_FP(0);                              \
+        SAVE_FP(0);                              \
+        SAVE_FP(1);                              \
+        SAVE_FP(2);                              \
+        SAVE_FP(3);                              \
+        SAVE_FP(4);                              \
+        SAVE_FP(5);                              \
+        SAVE_FP(6);                              \
+        SAVE_FP(7);                              \
+        SAVE_FP(8);                              \
+        SAVE_FP(9);                              \
+        SAVE_FP(10);                             \
+        SAVE_FP(11);                             \
+        SAVE_FP(12);                             \
+        SAVE_FP(13);                             \
+        SAVE_FP(14);                             \
+        SAVE_FP(15);                             \
+        SAVE_FP(16);                             \
+        SAVE_FP(17);                             \
+        SAVE_FP(18);                             \
+        SAVE_FP(19);                             \
+        SAVE_FP(20);                             \
+        SAVE_FP(21);                             \
+        SAVE_FP(22);                             \
+        SAVE_FP(23);                             \
+        SAVE_FP(24);                             \
+        SAVE_FP(25);                             \
+        SAVE_FP(26);                             \
+        SAVE_FP(27);                             \
+        SAVE_FP(28);                             \
+        SAVE_FP(29);                             \
+        SAVE_FP(30);                             \
+        SAVE_FP(31);                             \
         mfsrr0  %r3;                             \
         stw     %r3,72(%r1);  /* srr0 */         \
         mfsrr1  %r4;                             \
@@ -55,6 +91,39 @@ reserved_0000:
         /* Restore registers */
         .globl pok_arch_rfi
 pok_arch_rfi:
+        LOAD_FP(31)
+        LOAD_FP(31)
+        LOAD_FP(30)
+        LOAD_FP(29)
+        LOAD_FP(28)
+        LOAD_FP(27)
+        LOAD_FP(26)
+        LOAD_FP(25)
+        LOAD_FP(24)
+        LOAD_FP(23)
+        LOAD_FP(22)
+        LOAD_FP(21)
+        LOAD_FP(20)
+        LOAD_FP(19)
+        LOAD_FP(18)
+        LOAD_FP(17)
+        LOAD_FP(16)
+        LOAD_FP(15)
+        LOAD_FP(14)
+        LOAD_FP(13)
+        LOAD_FP(12)
+        LOAD_FP(11)
+        LOAD_FP(10)
+        LOAD_FP(9)
+        LOAD_FP(8)
+        LOAD_FP(7)
+        LOAD_FP(6)
+        LOAD_FP(5)
+        LOAD_FP(4)
+        LOAD_FP(3)
+        LOAD_FP(2)
+        LOAD_FP(1)
+        LOAD_FP(0)
         lwz     %r13,60(%r1)
         lwz     %r12,56(%r1)
         lwz     %r11,52(%r1)
@@ -67,7 +136,7 @@ pok_arch_rfi:
         lwz     %r4,24(%r1)
         lwz     %r3,20(%r1)
         lwz     %r2,16(%r1)
-        lwz     %r0,84(%r1)
+        lwz     %r0,FRAME_SIZE+4(%r1)
         mtlr    %r0
         lwz     %r0,64(%r1)
         mtctr   %r0
@@ -92,6 +161,10 @@ pok_arch_rfi:
         mtsprg  3,%r3;                          \
         mtsprg  2,%r4;                          \
         mfcr    %r3;                            \
+        /* Enable floating point bit in msr */  \
+        mfmsr %r4;                              \
+        ori %r4,%r4,MSR_FP;                     \
+        mtmsr %r4;                              \
         mfsrr1  %r4;                            \
         andi.   %r4,%r4,MSR_PR;                 \
         bne     1f;                             \
@@ -108,7 +181,7 @@ pok_arch_rfi:
 
 failed: b failed
 
-        . = base + 0x100
+        . = base + 0x200
         .globl _pok_reset
 system_reset_0100:
 _pok_reset:

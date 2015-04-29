@@ -5,4 +5,4 @@ pok.bin: $(TARGET)
 	$(OBJCOPY) -O binary $< $@
 
 pok.uboot: pok.bin
-	mkimage -A ppc -O linux -T kernel -C none -a 0x10000 -e 0x10100 -n "CHPOK" -d $< $@
+	mkimage -A ppc -O linux -T kernel -C none -a 0x10000 -e 0x10200 -n "CHPOK" -d $< $@

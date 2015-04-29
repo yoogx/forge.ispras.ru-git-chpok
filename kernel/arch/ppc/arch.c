@@ -33,7 +33,7 @@ extern void pok_arch_space_init (void);
 
 pok_ret_t pok_arch_init ()
 {
-  mtmsr(MSR_IP);
+  mtmsr(MSR_IP | MSR_FP);
 #if POK_NEEDS_PARTITIONS
   pok_arch_space_init();
 #endif
