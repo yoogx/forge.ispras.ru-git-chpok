@@ -431,6 +431,7 @@ pok_ret_t pok_buffer_receive (
             // bail out if preemption is disabled
             if (pok_current_partition_preemption_disabled() || pok_error_is_handler() == POK_ERRNO_OK) {
                 pok_event_unlock(buffer->lock);
+                *len = 0;
                 return POK_ERRNO_MODE;
             }
 
