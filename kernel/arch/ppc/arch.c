@@ -28,9 +28,6 @@
 #include "msr.h"
 #include "space.h"
 
-extern void pok_arch_space_init (void);
-
-
 pok_ret_t pok_arch_init ()
 {
   mtmsr(MSR_IP | MSR_FP);

@@ -4,6 +4,8 @@
 #include <types.h>
 
 void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome);
+void pok_arch_space_init (void);
+
 
 // various useful constants describing memory layout
 
