@@ -185,10 +185,15 @@ failed: b failed
         .globl _pok_reset
 system_reset_0100:
 _pok_reset:
+        /*write r3(devtree addr) to devtree_address global variable*/
+        lis %r1, (devtree_address)@h
+        ori %r1,%r1,(devtree_address)@l
+        stw %r3, 0(r1)
+
         /* Setup stack */
         lis %r1,(pok_stack_end-4)@h
         ori %r1,%r1,(pok_stack_end-4)@l
-
+        
         bl pok_setup_interrupts
 
         /* Clear back chain */

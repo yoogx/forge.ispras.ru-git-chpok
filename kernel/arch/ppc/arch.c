@@ -27,10 +27,14 @@
 #include "reg.h"
 #include "msr.h"
 #include "space.h"
+#include "devtree.h"
 
 pok_ret_t pok_arch_init ()
 {
   mtmsr(MSR_IP | MSR_FP);
+
+  //load can't be done after space init
+  devtree_load();
 #if POK_NEEDS_PARTITIONS
   pok_arch_space_init();
 #endif

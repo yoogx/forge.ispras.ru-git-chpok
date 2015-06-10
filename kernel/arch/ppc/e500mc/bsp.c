@@ -21,9 +21,19 @@
 #include "cons.h"
 #include "../space.h"
 
+#include <pci.h>
+#include "../devtree.h"
+
+
 int pok_bsp_init (void)
 {
    pok_cons_init ();
+
+   devtree_handle(); //here printf is working
+
+//#ifdef POK_NEEDS_PCI
+//   pok_pci_test();
+//#endif
 
    return (POK_ERRNO_OK);
 }
