@@ -5,7 +5,7 @@ include $(TOPDIR)/misc/mk/config.mk
 
 LO_TARGET=	libc.lo
 
-LO_OBJS=	memcpy.o memset.o memcmp.o printf.o strlen.o strcmp.o
+LO_OBJS=	memcpy.o memmove.o memset.o memcmp.o printf.o strlen.o strcmp.o strchr.o memchr.o strrchr.o
 
 LO_DEPS=
 

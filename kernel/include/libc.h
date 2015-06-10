@@ -21,15 +21,23 @@
 #include <types.h>
 
 void  *memcpy(void * to, const void * from, size_t n);
+void *memmove(void *dest, const void *src, size_t count);
 int memcmp(const void *, const void *, size_t n);
 
 /* avoid errors for windows */
 /*__attribute__ ((weak))*/
 void  *memset(void *dest, unsigned char val, size_t count);
+
 int   strlen (const char* str);
 
 int   strcmp (const char *s1, const char *s2);
 int   strncmp(const char *s1, const char *s2, size_t size);
+
+char *strchr(const char *s, int c);
+char *strrchr(const char *s, int c);
+
+void *memchr(const void *s, int c, size_t n);
+
 
 
 #if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
