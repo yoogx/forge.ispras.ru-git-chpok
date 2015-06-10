@@ -9,10 +9,6 @@
 
 uint32_t devtree_address; //global
 
-#define FDT_BUF_SIZE 0x10000
-//static char fdt_buffer[FDT_BUF_SIZE]; 
-//struct boot_param_header * devtree = (struct boot_param_header *) fdt_buffer;
-
 //TODO:move to 
 struct boot_param_header {
     uint32_t  magic;                  /* magic word OF_DT_HEADER */
@@ -43,9 +39,7 @@ static inline const char *kbasename(const char *path)
 
 
 void scan_node_for_property(const void *fdt, 
-               int offset,
-               int (*it) (const struct fdt_property *prop,
-                          const char *prop_name))
+               int offset)
 {
     for (offset = fdt_first_property_offset(fdt, offset);
             (offset >= 0);
@@ -57,30 +51,19 @@ void scan_node_for_property(const void *fdt,
             break;
         }
         const char *prop_name = fdt_string(fdt, fdt32_to_cpu(prop->nameoff));
-        it(prop, prop_name);
+        //it(prop, prop_name);
+        printf("\t\t%s=%s\n", prop_name, prop->data);
 
     }
 
 }
 
-/* I use dummy for simplify analyze by gdb. Now I can just set breakpoit on dummy*/
-int dummy_prop_it (
-        __attribute__((unused)) const struct fdt_property *prop,
-        __attribute__((unused)) const char *prop_name)
-{
-    return 0;
-}
-
-
-int of_scan_flat_dt(const void *fdt,
-                    int (*it) (unsigned long node,
-                               const char *uname, int depth,
-                               void *data),
-                    void *data)
+int of_scan_flat_dt(const void *fdt)
 {
     const char *pathp;
     int offset, rc = 0, depth = -1;
 
+    printf("device tree:\n");
     for (offset = fdt_next_node(fdt, -1, &depth);
             offset >= 0 && depth >= 0 && !rc;
             offset = fdt_next_node(fdt, offset, &depth)) {
@@ -89,101 +72,34 @@ int of_scan_flat_dt(const void *fdt,
         if (*pathp == '/')
             pathp = kbasename(pathp);
 
-        rc = it(offset, pathp, depth, data);
+        //rc = it(offset, pathp, depth, data);
+        printf("\toffset %d, name %s\n", offset, pathp);
         if (!strncmp(pathp, "pci", 3)) {
             scan_node_for_property(fdt, 
-                    offset, 
-                    dummy_prop_it);
+                    offset);
         }
 
     }
     return rc;
 }
 
-int dummy_it (
-        __attribute__((unused)) unsigned long node,
-        __attribute__((unused)) const char *uname, 
-        __attribute__((unused)) int depth,
-        __attribute__((unused)) void *data)
-{
-    return 0;
-}
-
-int of_fdt_is_compatible(const void *blob,
-                      unsigned long node, const char *compat)
-{
-        const char *cp;
-        int cplen;
-        unsigned long l, score = 0;
-
-        cp = fdt_getprop(blob, node, "compatible", &cplen);
-        if (cp == NULL)
-                return 0;
-
-        if (cp[1] == 'o')
-            return 5;
-        //----------
-        if (compat == NULL){
-                l = 0;
-                l++;
-                score = 0;
-                score++;
-                return 0;
-        }
-        //-----------
-        /*
-        while (cplen > 0) {
-                score++;
-                if (of_compat_cmp(cp, compat, strlen(compat)) == 0)
-                        return score;
-                l = strlen(cp) + 1;
-                cp += l;
-                cplen -= l;
-        }
-        */
-
-        return 0;
-}
-
-
-/*XXX: remember console has not initialized yet */
-void devtree_load()
-{
-    if (devtree_address == 0)
-        return;
-    struct boot_param_header *devtree = (struct boot_param_header *) devtree_address;
-    
-    of_fdt_is_compatible(devtree, 0, "test_input_str");
-
-    of_scan_flat_dt(devtree, dummy_it, NULL);
-
-
-
-
-/*
-    uint32_t tsize = ((struct boot_param_header *) devtree_address)->totalsize;
-
-    if (tsize <= FDT_BUF_SIZE)
-        memcpy((void *)fdt_buffer, (void *) devtree_address, tsize);
-    else
-        pok_fatal("FDT_BUF_SIZE is too small");
-        */
-
-//    devtree  = *( (struct boot_param_header *) devtree_address );
-}
-
-
 void devtree_handle()
 {
-    return;
-    /*
+
     printf("---------------------------------------\n");
     printf("devtree_address = 0x%x\n",      devtree_address);
-    printf("devtree magic %x\n",            devtree->magic);
-    printf("devtree version %x\n",          devtree->version);
-    printf("devtree totalsize %d (0x%x)\n", devtree->totalsize, 
-                                            devtree->totalsize);
+    struct boot_param_header *fdt = 
+        (struct boot_param_header *) devtree_address;
+    printf("devtree magic %x\n",            fdt->magic);
+    printf("devtree version %x\n",          fdt->version);
+    printf("devtree totalsize %d (0x%x)\n", fdt->totalsize, 
+                                            fdt->totalsize);
+
+    const char *cp = fdt_getprop(fdt, 0, "compatible", NULL);
+    printf("comatible propertry of root: %s\n", cp);
+    of_scan_flat_dt(fdt);
+
     printf("---------------------------------------\n");
-    */
+
 
 }
