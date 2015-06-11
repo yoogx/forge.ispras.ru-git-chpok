@@ -3,4 +3,9 @@
 *.lo
 .depend.mk
 .depend
-/libpok/libpok.a
+libpok.a
+libpart.a
+*.bin
+*.elf
+*.uboot
+*.elf.map

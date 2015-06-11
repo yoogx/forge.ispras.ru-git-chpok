@@ -52,7 +52,19 @@ void scan_node_for_property(const void *fdt,
         }
         const char *prop_name = fdt_string(fdt, fdt32_to_cpu(prop->nameoff));
         //it(prop, prop_name);
-        printf("\t\t%s=%s\n", prop_name, prop->data);
+        printf("\t\t%s=\"%s\", len %d\n", prop_name, prop->data, prop->len);
+        if (!strncmp(prop_name, "bus-range", strlen("bus-range"))) {
+            int *bus_range = (int *)prop->data;
+            if (bus_range == NULL || prop->len < 2 * sizeof(int)) {
+                printf("reading bus_range error\n");
+                continue;
+            }
+            printf("\t\t\t0x%x, 0x%x\n", bus_range[0], bus_range[1]);
+
+
+            printf("--->0x%x\n",*((int *)0xe0008000));
+        }
+
 
     }
 
@@ -90,8 +102,8 @@ void devtree_handle()
     printf("devtree_address = 0x%x\n",      devtree_address);
     struct boot_param_header *fdt = 
         (struct boot_param_header *) devtree_address;
-    printf("devtree magic %x\n",            fdt->magic);
-    printf("devtree version %x\n",          fdt->version);
+    printf("devtree magic 0x%x\n",            fdt->magic);
+    printf("devtree version %d\n",          fdt->version);
     printf("devtree totalsize %d (0x%x)\n", fdt->totalsize, 
                                             fdt->totalsize);
 
