@@ -1,4 +1,7 @@
-//for simplicity it isn't pointer
+#ifndef __POK_IOPORTS_H__
+#define __POK_IOPORTS_H__
+
 extern uint32_t devtree_address; 
 void devtree_handle();
-void devtree_load();
+
+#endif

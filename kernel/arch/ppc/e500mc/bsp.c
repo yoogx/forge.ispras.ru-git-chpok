@@ -29,7 +29,7 @@ int pok_bsp_init (void)
 {
    pok_cons_init ();
 
-   devtree_handle(); //here printf is working
+   devtree_handle();
 
 //#ifdef POK_NEEDS_PCI
 //   pok_pci_test();
