@@ -1,4 +1,5 @@
 /misc/mk/config.mk
+/misc/__pycache__
 *.o
 *.lo
 .depend.mk
