@@ -93,59 +93,30 @@ static int get_pci_node(const void *fdt)
 }
 
 
-//struct pci_props 
-//
-void devtree_get_pci_props()
+struct pci_bridge_props devtree_get_pci_props()
 {
+    struct pci_bridge_props bridge;
+    int prop_len;
+
     const void *fdt = (const void *) devtree_address;
+
     int pci_node = get_pci_node(fdt);
-    if (pci_node < 0) {
-        printf("no pci node in devtree");
-    }
-    int len;
-    const void * tmp = fdt_getprop(fdt, pci_node, "compatible", &len);
-    printf("------===========> %s", (const char *)tmp);
+    if (pci_node < 0)
+        pok_fatal("No pci node in devtree");
 
-//        if (!strcmp(prop_name, "bus-range")) {
-            /*
-            int *bus_range = (int *)prop->data;
-            if (bus_range == NULL || prop->len < 2 * sizeof(int)) {
-                printf("reading bus_range error\n");
-                continue;
-            }
-            printf("\t\t\t0x%x, 0x%x\n", bus_range[0], bus_range[1]);
-            */
+    const int * bus_range = fdt_getprop(fdt, pci_node, "bus-range", &prop_len);
+    if (bus_range == NULL || prop_len < (int)( 2*sizeof(int)))
+        pok_fatal("reading 'bus_range' error");
+    bridge.bus_startno = bus_range[0];
+    bridge.bus_endno   = bus_range[1];
 
-#if 0
+    int parent_address_len = *((int *) fdt_getprop(fdt, 0, "#address-cells", NULL));
 
-            static uint32_t bridge_cfg_addr, bridge_cfg_data;
-            if (!strcmp(prop_name, "reg")) {
+    const int * reg = fdt_getprop(fdt, pci_node, "reg", NULL);
+    if (parent_address_len != 2 || reg == NULL || reg[0] != 0) 
+        pok_fatal("reading 'reg' error");
+    bridge.cfg_addr = reg[1];
+    bridge.cfg_data = reg[1] + 4;
 
-            uint32_t *regs = (uint32_t *)prop->data;
-
-            //TODO:assume curently assume that parents' #address-cells = 2. Should be generalized
-            if (regs[0] != 0) {
-                printf("reg is not 32 bit's");
-                continue;
-            }
-            bridge_cfg_addr = regs[1];
-            bridge_cfg_data = regs[1] + 4;
-
-            printf("PCI host bridge at 0x%x ", bridge_cfg_addr);
-
-            outl(bridge_cfg_addr, 0x80000000);
-            uint32_t device_and_vendor_ids = inl(bridge_cfg_data);
-            uint8_t *dev_ven_ids = (uint8_t *) & device_and_vendor_ids;
-
-            printf("\t%x%x:%x%x\n", dev_ven_ids[1], dev_ven_ids[0], dev_ven_ids[3], dev_ven_ids[2]);
-
-            {
-                outl(bridge_cfg_addr, 0x80000000|1 << 11);
-                uint32_t device_and_vendor_ids = inl(bridge_cfg_data);
-                uint8_t *dev_ven_ids = (uint8_t *) & device_and_vendor_ids;
-
-                printf("\t%x%x:%x%x\n", dev_ven_ids[1], dev_ven_ids[0], dev_ven_ids[3], dev_ven_ids[2]);
-            }
-        }
-#endif
+    return bridge;
 }
