@@ -29,11 +29,11 @@ int pok_bsp_init (void)
 {
    pok_cons_init ();
 
-   devtree_handle();
+   devtree_dummy_dump();
 
-//#ifdef POK_NEEDS_PCI
-//   pok_pci_test();
-//#endif
+#ifdef POK_NEEDS_PCI
+   pok_pci_init();
+#endif
 
    return (POK_ERRNO_OK);
 }

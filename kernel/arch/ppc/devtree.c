@@ -10,67 +10,9 @@
 
 uint32_t devtree_address; //global
 
-void hexdump (const void *addr, int len)
-{
-    int i;
-    unsigned char buff[17];
-    const unsigned char *pc = (const unsigned char*)addr;
 
-    if (len == 0) {
-        printf("Len is zero\n");
-        return;
-    }
-
-    // Process every byte in the data.
-    for (i = 0; i < len; i++) {
-        // Multiple of 16 means new line (with line offset).
-
-        if ((i % 16) == 0) {
-            // Just don't print ASCII for the zeroth line.
-            if (i != 0)
-                printf("  %s\n", buff);
-
-            // Output the offset.
-            printf("  %x ", i);
-        }
-
-        // Now the hex code for the specific character.
-        printf(" %x", pc[i]);
-
-        // And store a printable ASCII character for later.
-        if ((pc[i] < 0x20) || (pc[i] > 0x7e))
-            buff[i % 16] = '.';
-        else
-            buff[i % 16] = pc[i];
-        buff[(i % 16) + 1] = '\0';
-    }
-
-    // Pad out last line if not exactly 16 characters.
-    while ((i % 16) != 0) {
-        printf("   ");
-        i++;
-    }
-
-    // And print the final ASCII bit.
-    printf("  %s\n", buff);
-}
-
-/**
- * kbasename - return the last part of a pathname.
- *
- * @path: path to extract the filename from.
- */
-static inline const char *kbasename(const char *path)
-{
-        const char *tail = strrchr(path, '/');
-        return tail ? tail + 1 : path;
-}
-
-void scan_node_for_property(const void *fdt, 
-               int offset)
+static void dummy_props_dump(const void *fdt, int offset)
 {       
-    uint32_t cfg_addr, cfg_data;
-
     for (offset = fdt_first_property_offset(fdt, offset);
             (offset >= 0);
             (offset = fdt_next_property_offset(fdt, offset))) {
@@ -81,17 +23,103 @@ void scan_node_for_property(const void *fdt,
         }
         const char *prop_name = fdt_string(fdt, fdt32_to_cpu(prop->nameoff));
 
-        //printf("\t\t%s: data len %d\n", prop_name, prop->len);
+        printf("\t name='%s'\tstr_data='%s'\tlen=%d\n", prop_name, (char *)prop->data, prop->len);
+    }
+}
 
-        if (!strcmp(prop_name, "bus-range")) {
+static void dummy_nodes_dump(const void *fdt)
+{
+    const char *pathp;
+    int offset, depth = -1;
+
+    for (offset = fdt_next_node(fdt, -1, &depth);
+            offset >= 0 && depth >= 0;
+            offset = fdt_next_node(fdt, offset, &depth)) {
+
+        pathp = fdt_get_name(fdt, offset, NULL);
+
+        printf("offset %d, name %s\n", offset, pathp);
+
+        if (!strncmp(pathp, "pci", 3)) {
+            dummy_props_dump(fdt, offset);
+        }
+    }
+}
+
+/* 
+ * Instead of this dummy dump you could use "smart" dump by qemu or u-boot.
+ * Qemu: add "-machine dumpdtb='dump.dtb'" to qemu launch command. 
+ * U-boot: TBD
+ * Then run "fdtdump dump.dtb". You can get fdtdump from dtc 
+ */
+void devtree_dummy_dump()
+{
+    struct boot_param_header {
+        uint32_t  magic;                  /* magic word OF_DT_HEADER */
+        uint32_t  totalsize;              /* total size of DT block */
+        uint32_t  off_dt_struct;          /* offset to structure */
+        uint32_t  off_dt_strings;         /* offset to strings */
+        uint32_t  off_mem_rsvmap;         /* offset to memory reserve map */
+        uint32_t  version;                /* format version */
+        uint32_t  last_comp_version;      /* last compatible version */
+        /* version 2 fields below */
+        uint32_t  boot_cpuid_phys;        /* Physical CPU id we're booting on */
+        /* version 3 fields below */
+        uint32_t  dt_strings_size;        /* size of the DT strings block */
+        /* version 17 fields below */
+        uint32_t  dt_struct_size;         /* size of the DT structure block */
+    };
+
+    printf("---------------------------------------\n");
+    printf("devtree_address = 0x%x\n",      devtree_address);
+
+    struct boot_param_header *fdt = 
+        (struct boot_param_header *) devtree_address;
+    printf("devtree magic 0x%x\n",            fdt->magic);
+    printf("devtree version %d\n",          fdt->version);
+    printf("devtree totalsize %d (0x%x)\n", fdt->totalsize, 
+                                            fdt->totalsize);
+    const char *cp = fdt_getprop(fdt, 0, "compatible", NULL);
+    printf("comatible propertry of root: %s \n", cp);
+    dummy_nodes_dump(fdt);
+    printf("---------------------------------------\n");
+}
+
+
+
+static int get_pci_node(const void *fdt)
+{
+    return fdt_subnode_offset_namelen(fdt, 0, "pci", 3);
+}
+
+
+//struct pci_props 
+//
+void devtree_get_pci_props()
+{
+    const void *fdt = (const void *) devtree_address;
+    int pci_node = get_pci_node(fdt);
+    if (pci_node < 0) {
+        printf("no pci node in devtree");
+    }
+    int len;
+    const void * tmp = fdt_getprop(fdt, pci_node, "compatible", &len);
+    printf("------===========> %s", (const char *)tmp);
+
+//        if (!strcmp(prop_name, "bus-range")) {
+            /*
             int *bus_range = (int *)prop->data;
             if (bus_range == NULL || prop->len < 2 * sizeof(int)) {
                 printf("reading bus_range error\n");
                 continue;
             }
             printf("\t\t\t0x%x, 0x%x\n", bus_range[0], bus_range[1]);
+            */
 
-        } else if (!strcmp(prop_name, "reg")) {
+#if 0
+
+            static uint32_t bridge_cfg_addr, bridge_cfg_data;
+            if (!strcmp(prop_name, "reg")) {
 
             uint32_t *regs = (uint32_t *)prop->data;
 
@@ -100,70 +128,24 @@ void scan_node_for_property(const void *fdt,
                 printf("reg is not 32 bit's");
                 continue;
             }
-            cfg_addr = regs[1];
-            cfg_data = regs[1] + 4;
+            bridge_cfg_addr = regs[1];
+            bridge_cfg_data = regs[1] + 4;
 
-            printf("PCI host bridge at 0x%x ", cfg_addr);
+            printf("PCI host bridge at 0x%x ", bridge_cfg_addr);
 
-            outl(cfg_addr, 0x80000000);
-            uint32_t device_and_vendor_ids = inl(cfg_data);
+            outl(bridge_cfg_addr, 0x80000000);
+            uint32_t device_and_vendor_ids = inl(bridge_cfg_data);
             uint8_t *dev_ven_ids = (uint8_t *) & device_and_vendor_ids;
 
             printf("\t%x%x:%x%x\n", dev_ven_ids[1], dev_ven_ids[0], dev_ven_ids[3], dev_ven_ids[2]);
 
             {
-                outl(cfg_addr, 0x80000000|1 << 11);
-                uint32_t device_and_vendor_ids = inl(cfg_data);
+                outl(bridge_cfg_addr, 0x80000000|1 << 11);
+                uint32_t device_and_vendor_ids = inl(bridge_cfg_data);
                 uint8_t *dev_ven_ids = (uint8_t *) & device_and_vendor_ids;
 
                 printf("\t%x%x:%x%x\n", dev_ven_ids[1], dev_ven_ids[0], dev_ven_ids[3], dev_ven_ids[2]);
             }
         }
-
-
-    }
-
-}
-
-int of_scan_flat_dt(const void *fdt)
-{
-    const char *pathp;
-    int offset, rc = 0, depth = -1;
-
-    printf("device tree:\n");
-    for (offset = fdt_next_node(fdt, -1, &depth);
-            offset >= 0 && depth >= 0 && !rc;
-            offset = fdt_next_node(fdt, offset, &depth)) {
-
-        pathp = fdt_get_name(fdt, offset, NULL);
-        if (*pathp == '/')
-            pathp = kbasename(pathp);
-
-        //rc = it(offset, pathp, depth, data);
-        //printf("\toffset %d, name %s\n", offset, pathp);
-        if (!strncmp(pathp, "pci", 3)) {
-            scan_node_for_property(fdt, 
-                    offset);
-        }
-
-    }
-    return rc;
-}
-
-void devtree_handle()
-{
-    printf("---------------------------------------\n");
-    printf("devtree_address = 0x%x\n",      devtree_address);
-    struct boot_param_header *fdt = 
-        (struct boot_param_header *) devtree_address;
-    printf("devtree magic 0x%x\n",            fdt->magic);
-    printf("devtree version %d\n",          fdt->version);
-    printf("devtree totalsize %d (0x%x)\n", fdt->totalsize, 
-                                            fdt->totalsize);
-
-    const char *cp = fdt_getprop(fdt, 0, "compatible", NULL);
-    printf("comatible propertry of root: %s\n", cp);
-    of_scan_flat_dt(fdt);
-
-    printf("---------------------------------------\n");
+#endif
 }
