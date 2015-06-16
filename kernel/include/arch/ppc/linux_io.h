@@ -74,6 +74,17 @@ static inline void name(volatile u##size  *addr, u##size val)	\
 DEF_MMIO_IN_D(in_8,     8, lbz);
 DEF_MMIO_OUT_D(out_8,   8, stb);
 
+#ifdef __BIG_ENDIAN__
+DEF_MMIO_IN_D(in_be16, 16, lhz);
+DEF_MMIO_IN_D(in_be32, 32, lwz);
+DEF_MMIO_IN_X(in_le16, 16, lhbrx);
+DEF_MMIO_IN_X(in_le32, 32, lwbrx);
+
+DEF_MMIO_OUT_D(out_be16, 16, sth);
+DEF_MMIO_OUT_D(out_be32, 32, stw);
+DEF_MMIO_OUT_X(out_le16, 16, sthbrx);
+DEF_MMIO_OUT_X(out_le32, 32, stwbrx);
+#else
 DEF_MMIO_IN_X(in_be16, 16, lhbrx);
 DEF_MMIO_IN_X(in_be32, 32, lwbrx);
 DEF_MMIO_IN_D(in_le16, 16, lhz);
@@ -84,32 +95,6 @@ DEF_MMIO_OUT_X(out_be32, 32, stwbrx);
 DEF_MMIO_OUT_D(out_le16, 16, sth);
 DEF_MMIO_OUT_D(out_le32, 32, stw);
 
-DEF_MMIO_OUT_D(out_le64, 64, std);
-DEF_MMIO_IN_D(in_le64, 64, ld);
-
-
-static inline u64 swab64(u64 x)
-{
-	return  (u64)((x & (u64)0x00000000000000ffULL) << 56) |
-		(u64)((x & (u64)0x000000000000ff00ULL) << 40) |
-		(u64)((x & (u64)0x0000000000ff0000ULL) << 24) |
-		(u64)((x & (u64)0x00000000ff000000ULL) <<  8) |
-		(u64)((x & (u64)0x000000ff00000000ULL) >>  8) |
-		(u64)((x & (u64)0x0000ff0000000000ULL) >> 24) |
-		(u64)((x & (u64)0x00ff000000000000ULL) >> 40) |
-		(u64)((x & (u64)0xff00000000000000ULL) >> 56);
-}
-
-/* There is no asm instructions for 64 bits reverse loads and stores */
-static inline uint64_t in_be64(const volatile uint64_t  *addr)
-{
-	return swab64(in_le64(addr));
-}
-
-static inline void out_be64(volatile uint64_t  *addr, uint64_t val)
-{
-	out_le64(addr, swab64(val));
-}
-
+#endif /* __BIG_ENDIAN */
 
 #endif

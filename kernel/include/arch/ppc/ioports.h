@@ -32,7 +32,7 @@ static inline uint8_t inb(unsigned int port)
 
 static inline void outw(unsigned int port, uint16_t value)
 {
-    out_le16((volatile uint16_t *) port, value);
+    out_be16((volatile uint16_t *) port, value);
 }
 
 static inline uint16_t inw(unsigned int port)
@@ -42,7 +42,7 @@ static inline uint16_t inw(unsigned int port)
 
 static inline void outl(unsigned int port, uint32_t value)
 {
-    out_le32((volatile uint32_t *) port, value);
+    out_be32((volatile uint32_t *) port, value);
 }
 
 static inline uint32_t inl(unsigned int port)
