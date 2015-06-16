@@ -27,29 +27,27 @@ static inline void outb(unsigned int port, uint8_t value)
 
 static inline uint8_t inb(unsigned int port)
 {
-    return in_8((volatile unsigned char *) port);
+    return in_8((volatile uint8_t *) port);
 }
 
 static inline void outw(unsigned int port, uint16_t value)
 {
-    (void) port; (void) value;
+    out_le16((volatile uint16_t *) port, value);
 }
 
 static inline uint16_t inw(unsigned int port)
 {
-    (void) port;
-    return 0;
+    return in_le16((volatile uint16_t *) port);
 }
 
 static inline void outl(unsigned int port, uint32_t value)
 {
-    (void) port; (void) value;
+    out_le32((volatile uint32_t *) port, value);
 }
 
 static inline uint32_t inl(unsigned int port)
 {
-    (void) port;
-    return 0;
+    return in_le32((volatile uint32_t *) port);
 }
 
 #endif // __POK_PPC_IOPORTS_H__

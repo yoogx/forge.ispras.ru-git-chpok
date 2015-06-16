@@ -1,3 +1,8 @@
+Add %04d support in printf
+
+
+
+
 KERNEL
 ========================================================================
  - Make a little memory allocator for the kernel space
