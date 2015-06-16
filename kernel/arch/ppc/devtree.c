@@ -6,25 +6,54 @@
 #include <core/debug.h>
 #include "devtree.h"
 #include "libfdt/libfdt.h"
+#include <ioports.h>
 
 uint32_t devtree_address; //global
 
-//TODO:move to 
-struct boot_param_header {
-    uint32_t  magic;                  /* magic word OF_DT_HEADER */
-    uint32_t  totalsize;              /* total size of DT block */
-    uint32_t  off_dt_struct;          /* offset to structure */
-    uint32_t  off_dt_strings;         /* offset to strings */
-    uint32_t  off_mem_rsvmap;         /* offset to memory reserve map */
-    uint32_t  version;                /* format version */
-    uint32_t  last_comp_version;      /* last compatible version */
-    /* version 2 fields below */
-    uint32_t  boot_cpuid_phys;        /* Physical CPU id we're booting on */
-    /* version 3 fields below */
-    uint32_t  dt_strings_size;        /* size of the DT strings block */
-    /* version 17 fields below */
-    uint32_t  dt_struct_size;         /* size of the DT structure block */
-};
+void hexdump (const void *addr, int len)
+{
+    int i;
+    unsigned char buff[17];
+    const unsigned char *pc = (const unsigned char*)addr;
+
+    if (len == 0) {
+        printf("Len is zero\n");
+        return;
+    }
+
+    // Process every byte in the data.
+    for (i = 0; i < len; i++) {
+        // Multiple of 16 means new line (with line offset).
+
+        if ((i % 16) == 0) {
+            // Just don't print ASCII for the zeroth line.
+            if (i != 0)
+                printf("  %s\n", buff);
+
+            // Output the offset.
+            printf("  %x ", i);
+        }
+
+        // Now the hex code for the specific character.
+        printf(" %x", pc[i]);
+
+        // And store a printable ASCII character for later.
+        if ((pc[i] < 0x20) || (pc[i] > 0x7e))
+            buff[i % 16] = '.';
+        else
+            buff[i % 16] = pc[i];
+        buff[(i % 16) + 1] = '\0';
+    }
+
+    // Pad out last line if not exactly 16 characters.
+    while ((i % 16) != 0) {
+        printf("   ");
+        i++;
+    }
+
+    // And print the final ASCII bit.
+    printf("  %s\n", buff);
+}
 
 /**
  * kbasename - return the last part of a pathname.
@@ -37,23 +66,24 @@ static inline const char *kbasename(const char *path)
         return tail ? tail + 1 : path;
 }
 
-
 void scan_node_for_property(const void *fdt, 
                int offset)
-{
+{       
+    uint32_t cfg_addr, cfg_data;
+
     for (offset = fdt_first_property_offset(fdt, offset);
             (offset >= 0);
             (offset = fdt_next_property_offset(fdt, offset))) {
         const struct fdt_property *prop;
 
         if (!(prop = fdt_get_property_by_offset(fdt, offset, NULL))) {
-            offset = -FDT_ERR_INTERNAL;
             break;
         }
         const char *prop_name = fdt_string(fdt, fdt32_to_cpu(prop->nameoff));
-        //it(prop, prop_name);
-        printf("\t\t%s=\"%s\", len %d\n", prop_name, prop->data, prop->len);
-        if (!strncmp(prop_name, "bus-range", strlen("bus-range"))) {
+
+        //printf("\t\t%s: data len %d\n", prop_name, prop->len);
+
+        if (!strcmp(prop_name, "bus-range")) {
             int *bus_range = (int *)prop->data;
             if (bus_range == NULL || prop->len < 2 * sizeof(int)) {
                 printf("reading bus_range error\n");
@@ -61,8 +91,33 @@ void scan_node_for_property(const void *fdt,
             }
             printf("\t\t\t0x%x, 0x%x\n", bus_range[0], bus_range[1]);
 
+        } else if (!strcmp(prop_name, "reg")) {
 
-            printf("--->0x%x\n",*((int *)0xe0008000));
+            uint32_t *regs = (uint32_t *)prop->data;
+
+            //TODO:assume curently assume that parents' #address-cells = 2. Should be generalized
+            if (regs[0] != 0) {
+                printf("reg is not 32 bit's");
+                continue;
+            }
+            cfg_addr = regs[1];
+            cfg_data = regs[1] + 4;
+
+            printf("PCI host bridge at 0x%x ", cfg_addr);
+
+            outl(cfg_addr, 0x80000000);
+            uint32_t device_and_vendor_ids = inl(cfg_data);
+            uint8_t *dev_ven_ids = (uint8_t *) & device_and_vendor_ids;
+
+            printf("\t%x%x:%x%x\n", dev_ven_ids[1], dev_ven_ids[0], dev_ven_ids[3], dev_ven_ids[2]);
+
+            {
+                outl(cfg_addr, 0x80000000|1 << 11);
+                uint32_t device_and_vendor_ids = inl(cfg_data);
+                uint8_t *dev_ven_ids = (uint8_t *) & device_and_vendor_ids;
+
+                printf("\t%x%x:%x%x\n", dev_ven_ids[1], dev_ven_ids[0], dev_ven_ids[3], dev_ven_ids[2]);
+            }
         }
 
 
@@ -85,7 +140,7 @@ int of_scan_flat_dt(const void *fdt)
             pathp = kbasename(pathp);
 
         //rc = it(offset, pathp, depth, data);
-        printf("\toffset %d, name %s\n", offset, pathp);
+        //printf("\toffset %d, name %s\n", offset, pathp);
         if (!strncmp(pathp, "pci", 3)) {
             scan_node_for_property(fdt, 
                     offset);
@@ -97,7 +152,6 @@ int of_scan_flat_dt(const void *fdt)
 
 void devtree_handle()
 {
-
     printf("---------------------------------------\n");
     printf("devtree_address = 0x%x\n",      devtree_address);
     struct boot_param_header *fdt = 
@@ -112,6 +166,4 @@ void devtree_handle()
     of_scan_flat_dt(fdt);
 
     printf("---------------------------------------\n");
-
-
 }
