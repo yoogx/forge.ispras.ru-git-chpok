@@ -351,7 +351,7 @@ label##_asm:
                 sync
 
 pok_setup_interrupts:
-        lis     %r3, pok_int_critical_input@h // higher 16 bits
+        lis     %r3, pok_int_critical_input_asm@h // higher 16 bits
         mtspr   SPRN_IVPR, %r3
 
         SET_IVOR(0,  pok_int_critical_input)
@@ -374,6 +374,7 @@ pok_setup_interrupts:
 
         .section ".bss", "aw"
 pok_stack:
+		.global pok_stack_end
         .space 8 * 1024
 pok_stack_end:
 
