@@ -29,7 +29,7 @@ int pok_bsp_init (void)
 {
    pok_cons_init ();
 
-   devtree_dummy_dump();
+   //devtree_dummy_dump();
 
 #ifdef POK_NEEDS_PCI
    pok_pci_init();
@@ -68,3 +68,13 @@ void * pok_bsp_alloc_partition(size_t size)
 
     return (void *) res;
 }
+
+//This is only used by virtio where alignment=4096
+void *pok_bsp_mem_alloc_aligned(size_t mem_size, size_t alignment) 
+{
+    if (alignment == 4096)
+        return pok_bsp_mem_alloc(mem_size);
+
+    pok_fatal("unimplemented!");
+}
+

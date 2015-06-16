@@ -19,137 +19,43 @@
 # include <errno.h>
 # include <libc.h>
 # include <pci.h>
-# include <arch/x86/ioports.h>
+# include <ioports.h>
+# include "devtree.h"
+# include <core/debug.h>
 
-//# include "gdt.h"
-//# include "event.h"
+struct pci_bridge_props bridge_props;
 
-
-int pok_pci_test()
+void pok_pci_init()
 {
-    printf("pok_pci_test called!\n");
-/*
-    unsigned int bus = 0;
-    unsigned int dev = 0;
-    unsigned int fun = 0;
-
-    for (bus = 0; bus < PCI_BUS_MAX; bus++)
-        for (dev = 0; dev < PCI_DEV_MAX; dev++)
-        {
-            uint16_t vendor = (uint16_t) pci_read(bus, dev, 0, PCI_REG_VENDORID);
-            if (vendor != VIRTIO_PCI_VENDORID) continue;
-
-            uint16_t deviceid = (uint16_t) pci_read(bus, dev, 0, PCI_REG_DEVICEID);
-            if (!(deviceid >= VIRTIO_PCI_DEVICEID_MIN && deviceid <= VIRTIO_PCI_DEVICEID_MAX)) continue;
-            
-            // we do not handle type 1 or 2 PCI configuration spaces
-	    if (pci_read(bus, dev, fun, PCI_REG_HEADERTYPE) != 0)
-	        continue;
-
-            uint16_t subsystem = pci_read(bus, dev, 0, PCI_REG_SUBSYSTEM) >> 16;
-
-            if (subsystem != VIRTIO_ID_NET) continue;
-            
-            d->bus = bus;
-            d->dev = dev;
-            d->fun = fun;
-            d->bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0) & ~0xFU; // mask lower bits, which mean something else
-            d->irq_line = (unsigned char) pci_read_reg(d, PCI_REG_IRQLINE);
-
-            return 0;
-        }
-*/
-    return 0;
+    bridge_props = devtree_get_pci_props();
 }
 
 unsigned int pci_read(unsigned int bus,
-		      unsigned int dev,
-		      unsigned int fun,
-		      unsigned int reg)
+        unsigned int dev,
+        unsigned int fun,
+        unsigned int reg)
 {
-    /*
-  unsigned int addr = (1 << 31) | (bus << 16) | (dev << 11) | (fun << 8) | (reg & 0xfc);
-  unsigned int val = -1;
+    unsigned int addr = (1 << 31) | (bus << 16) | (dev << 11) | (fun << 8) | (reg & 0xfc);
+    unsigned int val = -1;
 
-  outl(PCI_CONFIG_ADDRESS, addr);
-  val = inl(PCI_CONFIG_DATA);
+    outl(bridge_props.cfg_addr, addr);
+    val = inl(bridge_props.cfg_data);
 
-  return (val >> ((reg & 3) << 3));
-  */ return 0;
+    return (val >> ((reg & 3) << 3));
 }
 
-#if 0
 unsigned int pci_read_reg(s_pci_device* d,
-			  unsigned int reg)
+        unsigned int reg)
 {
-  return (pci_read(d->bus, d->dev, d->fun, reg));
+    return (pci_read(d->bus, d->dev, d->fun, reg));
 }
 
-static inline
-int pci_open(s_pci_device* d)
+
+//TODO: this func is unused in virtio. Should be deleted?
+pok_ret_t pci_register(__attribute__ ((unused)) s_pci_device* dev)
 {
-  unsigned int bus = 0;
-  unsigned int dev = 0;
-  unsigned int fun = 0;
-
-  for (bus = 0; bus < PCI_BUS_MAX; bus++)
-    for (dev = 0; dev < PCI_DEV_MAX; dev++)
-      for (fun = 0; fun < PCI_FUN_MAX; fun++)
-	if (((unsigned short) pci_read(bus, dev, fun, PCI_REG_VENDORID)) == d->vendorid &&
-	    ((unsigned short) pci_read(bus, dev, fun, PCI_REG_DEVICEID)) == d->deviceid)
-	{
-	  // we do not handle type 1 or 2 PCI configuration spaces
-	  if (pci_read(bus, dev, fun, PCI_REG_HEADERTYPE) != 0)
-	    continue;
-
-	  d->bus = bus;
-	  d->dev = dev;
-	  d->fun = fun;
-	  d->bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0);
-	  d->irq_line = (unsigned char) pci_read_reg(d, PCI_REG_IRQLINE);
-
-	  return (0);
-	}
-
-  return (-1);
+    pok_fatal("pci_register called");
+    return 0;
 }
-
-void pci_handler(void);
-
-void dummy_pci_handler(void)
-{
-  __asm__ volatile
-    (
-     ".globl pci_handler\n"
-     "pci_handler:\n"
-     "push %eax\n"		// save restricted context
-     "push %edx\n"
-     "mov $0x20, %al\n"
-     "mov $0xA0, %dx\n"		// ack slave pic
-     "outb %al, %dx\n"
-     "mov $0x20, %dx\n"		// ack master pic
-     "outb %al, %dx\n"
-     "pop %edx\n"		// restore retricted context
-     "pop %eax\n"
-     "iret\n"			// return
-    );
-}
-
-pok_ret_t pci_register(s_pci_device*	dev)
-{
-  if (pci_open(dev) != 0)
-    return (-1);
-
-  /*
-  pok_idt_set_gate(32 + dev->irq_line,
-		   GDT_CORE_CODE_SEGMENT,
-		   (uint32_t) pci_handler,
-		   IDTE_INTERRUPT,
-		   0);
-  */
-
-  return (0);
-}
-#endif
 
 #endif /* POK_NEEDS_PCI */

@@ -72,5 +72,9 @@ unsigned int pci_read_reg(s_pci_device* d,
 
 pok_ret_t pci_register(s_pci_device* dev);
 
+void pok_pci_init();
+
+
+
 # endif /* __POK_PCI_H__ */
 #endif /* POK_NEEDS_PCI */
