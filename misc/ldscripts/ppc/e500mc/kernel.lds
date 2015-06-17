@@ -35,7 +35,7 @@ SECTIONS
   /* . = 0x20000; */
   . = ALIGN(16);
 
-  __sdata2_load = __rodata_end;
+  __sdata2_load = . /* __rodata_end */;
   .sdata2 : AT (__sdata2_load)
   {
     __sdata2_start = .;
