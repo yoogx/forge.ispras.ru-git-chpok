@@ -202,6 +202,7 @@ _pok_reset:
 
         /* TODO: copy .sdata, clear .bss */
         /* Copy .data */
+/*
         lis %r3,(__data_start-4)@h
         ori %r3,%r3,(__data_start-4)@l
         lis %r4,(__data_load-4)@h
@@ -215,7 +216,7 @@ _pok_reset:
         cmplw %r3,%r5
         blt 1b
 2:
-
+*/
         /* Call C function */
         bl pok_boot
 1:      b  1b
