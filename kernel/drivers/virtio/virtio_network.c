@@ -105,10 +105,12 @@ static int virtio_pci_search(s_pci_device* d) {
     unsigned int dev = 0;
     unsigned int fun = 0;
 
+//TODO: change to bus_startno, bus_endno
     for (bus = 0; bus < PCI_BUS_MAX; bus++)
         for (dev = 0; dev < PCI_DEV_MAX; dev++)
         {
             uint16_t vendor = (uint16_t) pci_read(bus, dev, 0, PCI_REG_VENDORID);
+            //printf("vendor %x != %x \n", vendor, VIRTIO_PCI_VENDORID);
             if (vendor != VIRTIO_PCI_VENDORID) continue;
 
             uint16_t deviceid = (uint16_t) pci_read(bus, dev, 0, PCI_REG_DEVICEID);
@@ -125,8 +127,204 @@ static int virtio_pci_search(s_pci_device* d) {
             d->bus = bus;
             d->dev = dev;
             d->fun = fun;
-            d->bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0) & ~0xFU; // mask lower bits, which mean something else
+            d->bar[0] = 0xe1001000;//pci_read(bus, dev, fun, PCI_REG_BAR0) & ~0xFU; // mask lower bits, which mean something else
             d->irq_line = (unsigned char) pci_read_reg(d, PCI_REG_IRQLINE);
+
+#ifdef POK_ARCH_PPC
+            {
+                printf("------------\n");
+                printf("bus %d dev %d fun%d\n", bus, dev, fun);
+                printf("bar0 0x%x\n", d->bar[0]);
+
+                {
+                    uint32_t * cfg_addr = (uint32_t*) 0xe0008000;
+                    void * cfg_data = (void *) 0xe0008004;
+
+                    out_be32(cfg_addr, 0x80000004);
+                    out_le16(cfg_data, 0x107);
+
+                    out_be32(cfg_addr, 0x8000000c);
+                    out_8(cfg_data, 0x80);
+
+                    out_be32(cfg_addr, 0x80000010);
+                    out_le16(cfg_data, (uint16_t) 0xffffffff);
+
+                    out_be32(cfg_addr, 0x80000010);
+                    out_le16(cfg_data, (uint16_t) 0xfff00000);
+
+                    out_be32(cfg_addr, 0x80000004);
+                    out_le16(cfg_data, 0x104);
+
+                    out_be32(cfg_addr, 0x80000010);
+                    out_le16(cfg_data, (uint16_t) 0xffffffff);
+
+                    out_be32(cfg_addr, 0x80000010);
+                    out_le16(cfg_data, (uint16_t) 0xfff00000);
+
+                    out_be32(cfg_addr, 0x80000004);
+                    out_le16(cfg_data, 0x107);
+
+                    out_be32(cfg_addr, 0x80000004);
+                    out_le16(cfg_data, 0x104);
+
+                    out_be32(cfg_addr, 0x80000014);
+                    out_le16(cfg_data, (uint16_t) 0xffffffff);
+
+                    out_be32(cfg_addr, 0x80000014);
+                    out_le16(cfg_data, 0x0);
+
+                    out_be32(cfg_addr, 0x80000004);
+                    out_le16(cfg_data, 0x107);
+
+                    out_be32(cfg_addr, 0x80000004);
+                    out_le16(cfg_data, 0x104);
+
+                    out_be32(cfg_addr, 0x80000038);
+                    out_le16(cfg_data, (uint16_t) 0xfffff800);
+
+                    out_be32(cfg_addr, 0x80000038);
+                    out_le16(cfg_data, 0x0);
+
+                    out_be32(cfg_addr, 0x80000004);
+                    out_le16(cfg_data, 0x107);
+
+                    out_be32(cfg_addr, 0x80000810);
+                    out_le16(cfg_data, (uint16_t) 0xffffffff);
+
+                    out_be32(cfg_addr, 0x80000810);
+                    out_le16(cfg_data, 0x1);
+
+                    out_be32(cfg_addr, 0x80000814);
+                    out_le16(cfg_data, (uint16_t) 0xffffffff);
+
+                    out_be32(cfg_addr, 0x80000814);
+                    out_le16(cfg_data, 0x0);
+
+                    out_be32(cfg_addr, 0x80000818);
+                    out_le16(cfg_data, (uint16_t) 0xffffffff);
+
+                    out_be32(cfg_addr, 0x80000818);
+                    out_le16(cfg_data, 0x0);
+
+                    out_be32(cfg_addr, 0x8000081c);
+                    out_le16(cfg_data, (uint16_t) 0xffffffff);
+
+                    out_be32(cfg_addr, 0x8000081c);
+                    out_le16(cfg_data, 0x0);
+
+                    out_be32(cfg_addr, 0x80000820);
+                    out_le16(cfg_data, (uint16_t) 0xffffffff);
+
+                    out_be32(cfg_addr, 0x80000820);
+                    out_le16(cfg_data, 0x0);
+
+                    out_be32(cfg_addr, 0x80000824);
+                    out_le16(cfg_data, (uint16_t) 0xffffffff);
+
+                    out_be32(cfg_addr, 0x80000824);
+                    out_le16(cfg_data, 0x0);
+
+                    out_be32(cfg_addr, 0x80000830);
+                    out_le16(cfg_data, (uint16_t) 0xfffff800);
+
+                    out_be32(cfg_addr, 0x80000830);
+                    out_le16(cfg_data, 0x0);
+
+                    out_be32(cfg_addr, 0x8000003c);
+                    out_le16(cfg_data, 0x0);
+
+                    out_be32(cfg_addr, 0x80000018);
+                    out_le16(cfg_data, 0x0);
+
+                    out_be32(cfg_addr, 0x8000003c);
+                    out_le16(cfg_data, 0x0);
+
+                    out_be32(cfg_addr, 0x8000003c);
+                    out_le16(cfg_data, 0x0);
+
+                    out_be32(cfg_addr, 0x80000004);
+                    out_le16(cfg_data, 0xffff);
+
+                    out_be32(cfg_addr, 0x80000018);
+                    out_le16(cfg_data, (uint16_t) 0xff0100);
+
+                    out_be32(cfg_addr, 0x80000018);
+                    out_8(cfg_data, 0x1);
+
+                    out_be32(cfg_addr, 0x8000003c);
+                    out_le16(cfg_data, 0x0);
+
+                    out_be32(cfg_addr, 0x8000001c);
+                    out_le16(cfg_data, 0xe0f0);
+
+                    out_be32(cfg_addr, 0x8000001c);
+                    out_le16(cfg_data, 0x0);
+
+                    out_be32(cfg_addr, 0x80000024);
+                    out_le16(cfg_data, (uint16_t) 0xffe0fff0);
+
+                    out_be32(cfg_addr, 0x80000024);
+                    out_le16(cfg_data, 0x0);
+
+                    out_be32(cfg_addr, 0x80000010);
+                    out_le16(cfg_data, (uint16_t) 0xc0000000);
+
+                    out_be32(cfg_addr, 0x80000814);
+                    out_le16(cfg_data, (uint16_t) 0xc0240000);
+
+                    out_be32(cfg_addr, 0x80000810);
+                    out_le16(cfg_data, 0x1001);
+
+                    out_be32(cfg_addr, 0x80000030);
+                    out_le16(cfg_data, 0xffff);
+
+                    out_be32(cfg_addr, 0x8000001c);
+                    out_le16(cfg_data, 0xf0);
+
+                    out_be32(cfg_addr, 0x80000030);
+                    out_le16(cfg_data, 0x0);
+
+                    out_be32(cfg_addr, 0x80000020);
+                    out_le16(cfg_data, (uint16_t) 0xc010c010);
+
+                    out_be32(cfg_addr, 0x8000002c);
+                    out_le16(cfg_data, 0x0);
+
+                    out_be32(cfg_addr, 0x80000024);
+                    out_le16(cfg_data, 0xfff0);
+
+                    out_be32(cfg_addr, 0x80000028);
+                    out_le16(cfg_data, 0x0);
+
+                    out_be32(cfg_addr, 0x8000002c);
+                    out_le16(cfg_data, 0x0);
+
+                    out_be32(cfg_addr, 0x8000003c);
+                    out_le16(cfg_data, 0x0);
+
+                    out_be32(cfg_addr, 0x80000840);
+                    out_le16(cfg_data, 0x2);
+
+                    out_be32(cfg_addr, 0x80000804);
+                    out_le16(cfg_data, 0x3);
+
+                    out_be32(cfg_addr, 0x80000804);
+                    out_le16(cfg_data, 0x7);
+                }
+
+                uint8_t mac[ETH_ALEN];
+
+                int i;
+                printf(" mac: ");
+                for (i = 0; i < ETH_ALEN; i++) {
+                    //mac[i] = inb(d->bar[0] + VIRTIO_PCI_CONFIG_OFF(FALSE) + i);
+                    mac[i] = inb(0xe1001000 + VIRTIO_PCI_CONFIG_OFF(FALSE) + i);
+                    printf("%x:", mac[i]);
+                }
+                printf("\n");
+                printf("------------\n");
+            }
+#endif
 
             return 0;
         }
