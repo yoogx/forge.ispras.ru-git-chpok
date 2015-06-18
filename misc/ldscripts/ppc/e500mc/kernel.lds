@@ -14,6 +14,7 @@ SECTIONS
     /* .gnu.warning sections are handled specially by elf32.em.  */
     *(.gnu.warning)
     __text_end = .;
+    . = ALIGN(4);
   } = 0
 
   .rodata :
@@ -25,6 +26,7 @@ SECTIONS
     __archive_begin = .;
     *(.archive)
     __archive_end = .;
+    . = ALIGN(4);
     __archive2_begin = .;
     *(.archive2)
     __archive2_end = .;
@@ -35,8 +37,7 @@ SECTIONS
   /* . = 0x20000; */
   . = ALIGN(16);
 
-  __sdata2_load = . /* __rodata_end */;
-  .sdata2 : AT (__sdata2_load)
+  .sdata2 : 
   {
     __sdata2_start = .;
     PROVIDE (_SDA2_BASE_ = 32768);
@@ -44,15 +45,8 @@ SECTIONS
     . = ALIGN(4);
     __sdata2_end = .;
   }
-  .sbss2 :
-  {
-    __sbss2_start = .;
-    *(.sbss2 .sbss2.* .gnu.linkonce.sb2.*)
-    . = ALIGN(4);
-    __sbss2_end = .;
-  }
-  __data_load = __sdata2_load + SIZEOF (.sdata2);
-  .data : AT(__data_load)
+  
+  .data :
   {
     __data_start = .;
     *(.data .data.* .gnu.linkonce.d.*)
@@ -70,7 +64,22 @@ SECTIONS
     *(.dynsbss)
     *(.sbss .sbss.* .gnu.linkonce.sb.*)
     *(.scommon)
+    . = ALIGN(4);
     __sbss_end = .;
+  }
+  .sbss2 :
+  {
+    __sbss2_start = .;
+    *(.sbss2 .sbss2.* .gnu.linkonce.sb2.*)
+    . = ALIGN(4);
+    __sbss2_end = .;
+  }
+  .eh_frame :
+  {
+  .eh_frame_start = .;
+  *(.eh_frame*)
+  . = ALIGN (4);
+  .eh_frame_end = .;
   }
   .bss  :
   {
@@ -85,13 +94,5 @@ SECTIONS
       to accommodate any possible program expectation.  */
    _stack = ALIGN(16) + 0x1000;
    _end = _stack;
-  }
-
-  .eh_frame :
-  {
-  .eh_frame_start = .;
-  *(.eh_frame*)
-  . = ALIGN (4);
-  .eh_frame_end = .;
   }
 }
