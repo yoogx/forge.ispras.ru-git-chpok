@@ -33,6 +33,7 @@
  */
 #  define PCI_REG_VENDORID	0x00
 #  define PCI_REG_DEVICEID	0x02
+#  define PCI_REG_COMMAND       0x04
 #  define PCI_REG_HEADERTYPE	0x0E
 #  define PCI_REG_BAR0		0x10
 #  define PCI_REG_SUBSYSTEM     0x2C
@@ -44,6 +45,8 @@
 #  define PCI_BUS_MAX		8
 #  define PCI_DEV_MAX		32
 #  define PCI_FUN_MAX		8
+#  define PCI_COMMAND_IO	0x1	/* Enable response in I/O space */
+#  define PCI_COMMAND_MEMORY	0x2	/* Enable response in Memory space */
 
 /*
  * Structure to holds some device information
@@ -66,6 +69,15 @@ unsigned int pci_read(unsigned int bus,
 		      unsigned int dev,
 		      unsigned int fun,
 		      unsigned int reg);
+
+#ifdef POK_ARCH_PPC
+//stupid workaround. pci_write should be added in x86
+void pci_write(uint32_t bus,
+	       uint32_t dev,
+	       uint32_t fun,
+	       uint32_t reg,
+               uint32_t val);
+#endif
 
 unsigned int pci_read_reg(s_pci_device* d,
 			  unsigned int reg);

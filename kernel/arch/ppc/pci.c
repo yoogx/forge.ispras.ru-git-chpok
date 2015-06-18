@@ -28,6 +28,9 @@ struct pci_bridge_props bridge_props;
 void pok_pci_init()
 {
     bridge_props = devtree_get_pci_props();
+
+    printf("bridge\n\tcfg_addr: 0x%x\n\tcfg_data: 0x%x\n",
+            bridge_props.cfg_addr, bridge_props.cfg_data);
 }
 
 unsigned int pci_read(unsigned int bus,
@@ -50,6 +53,17 @@ unsigned int pci_read_reg(s_pci_device* d,
     return (pci_read(d->bus, d->dev, d->fun, reg));
 }
 
+void pci_write(uint32_t bus,
+               uint32_t dev,
+               uint32_t fun,
+               uint32_t reg,
+               uint32_t val)
+{
+    unsigned int addr = (1 << 31) | (bus << 16) | (dev << 11) | (fun << 8) | (reg & 0xfc);
+
+    outl(bridge_props.cfg_addr, addr);
+    out_le32((volatile uint32_t *)bridge_props.cfg_data, val);
+}
 
 //TODO: this func is unused in virtio. Should be deleted?
 pok_ret_t pci_register(__attribute__ ((unused)) s_pci_device* dev)
