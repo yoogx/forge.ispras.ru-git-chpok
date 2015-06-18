@@ -266,6 +266,10 @@ void pok_arch_space_init (void)
     );
 }
 
+//TODO get this values from devtree!
+#define MPC8544_PCI_IO_SIZE      0x10000ULL
+#define MPC8544_PCI_IO             0xE1000000ULL
+
 void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
 {
     (void) syndrome;
@@ -281,6 +285,16 @@ void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
             MAS2_W | MAS2_I | MAS2_M | MAS2_G,
             0, /* any pid */
             TRUE 
+        );
+    } else if (faulting_address >= MPC8544_PCI_IO && faulting_address < MPC8544_PCI_IO + MPC8544_PCI_IO_SIZE) {
+		pok_insert_tlb1(
+            MPC8544_PCI_IO,
+            MPC8544_PCI_IO,
+            E500MC_PGSIZE_64K,
+            MAS3_SW | MAS3_SR,
+            MAS2_W | MAS2_I | MAS2_M | MAS2_G,
+            0, /* any pid */
+            TRUE
         );
     } else if (
             pid != 0 &&
