@@ -70,13 +70,11 @@ unsigned int pci_read(unsigned int bus,
 		      unsigned int fun,
 		      unsigned int reg);
 
-#ifdef POK_ARCH_PPC
 //stupid workaround. pci_write should be added in x86
-void pci_write(uint32_t bus,
-	       uint32_t dev,
-	       uint32_t fun,
-	       uint32_t reg,
-               uint32_t val);
+#ifdef POK_ARCH_PPC
+
+void pci_write_word(s_pci_device *d, uint32_t reg, uint16_t val);
+
 #endif
 
 unsigned int pci_read_reg(s_pci_device* d,

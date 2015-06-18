@@ -41,8 +41,8 @@ unsigned int pci_read(unsigned int bus,
     unsigned int addr = (1 << 31) | (bus << 16) | (dev << 11) | (fun << 8) | (reg & 0xfc);
     unsigned int val = -1;
 
-    outl(bridge_props.cfg_addr, addr);
-    val = inl(bridge_props.cfg_data);
+    out_be32((uint32_t *) bridge_props.cfg_addr, addr);
+    val = in_le32((uint32_t *) bridge_props.cfg_data);
 
     return (val >> ((reg & 3) << 3));
 }
@@ -53,16 +53,12 @@ unsigned int pci_read_reg(s_pci_device* d,
     return (pci_read(d->bus, d->dev, d->fun, reg));
 }
 
-void pci_write(uint32_t bus,
-               uint32_t dev,
-               uint32_t fun,
-               uint32_t reg,
-               uint32_t val)
+void pci_write_word(s_pci_device *d, uint32_t reg, uint16_t val)
 {
-    unsigned int addr = (1 << 31) | (bus << 16) | (dev << 11) | (fun << 8) | (reg & 0xfc);
+    uint32_t addr = (1 << 31) | (d->bus << 16) | (d->dev << 11) | (d->fun << 8) | (reg & 0xfc);
 
-    outl(bridge_props.cfg_addr, addr);
-    out_le32((volatile uint32_t *)bridge_props.cfg_data, val);
+    out_be32((uint32_t *) bridge_props.cfg_addr, addr);
+    out_le16((uint16_t *) bridge_props.cfg_data, val);
 }
 
 //TODO: this func is unused in virtio. Should be deleted?
