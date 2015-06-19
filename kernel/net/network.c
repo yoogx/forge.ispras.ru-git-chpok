@@ -19,6 +19,7 @@
 
 #include <assert.h>
 #include <libc.h>
+#include <arch.h>
 
 #include <net/network.h>
 #include <net/byteorder.h>
@@ -265,6 +266,7 @@ void pok_network_flush_send(void)
 
 void pok_network_thread(void)
 {
+    pok_arch_preempt_enable();
     for (;;) {
         if (initialized) {
             pok_network_reclaim_send_buffers();
