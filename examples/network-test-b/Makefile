@@ -1,5 +1,8 @@
-export ARCH=x86
-export BSP=x86-qemu
+#export ARCH=x86
+#export BSP=x86-qemu
+export ARCH=ppc
+export BSP=e500mc
+
 export POK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE=1
 
 include $(POK_PATH)/misc/mk/config.mk
