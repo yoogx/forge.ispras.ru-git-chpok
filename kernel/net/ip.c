@@ -25,7 +25,7 @@ uint16_t ip_hdr_checksum(const struct ip_hdr *ip_hdr)
     const uint16_t *words = (const uint16_t*) ip_hdr;
 
     int i;
-    for (i = 0; i < ip_hdr->header_length * 2; i++) {
+    for (i = 0; i < (ip_hdr->version_len & 0xf) * 2; i++) {
         acc += words[i];
     }
 

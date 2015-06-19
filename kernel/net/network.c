@@ -63,7 +63,7 @@ static void packet_received_callback(const char *data, size_t len)
 
     const struct ip_hdr *ip_hdr = (const struct ip_hdr *) data;
 
-    if (len < sizeof(struct ip_hdr) || len < (size_t) ip_hdr->header_length * 4) {
+    if (len < sizeof(struct ip_hdr) || len < (size_t) (ip_hdr->version_len & 0xf) * 4) {
         printf("Received packet is too small (IP header doesn't fit).\n");
         return;
     }
@@ -73,8 +73,8 @@ static void packet_received_callback(const char *data, size_t len)
         return;
     }
 
-    data += ip_hdr->header_length * 4;
-    len -= ip_hdr->header_length * 4;
+    data += (ip_hdr->version_len & 0xf) * 4;
+    len -= (ip_hdr->version_len & 0xf) * 4;
 
     if (ip_hdr_checksum(ip_hdr) != 0) {
         printf("Discarded IP packet with incorrect header checksum.\n");
@@ -152,8 +152,7 @@ static void fill_in_udp_header(
     real_buffer->ether_hdr.ethertype = hton16(ETH_P_IP);
 
     // ...next, IP heaader
-    real_buffer->ip_hdr.header_length = 5;
-    real_buffer->ip_hdr.version = 4;
+    real_buffer->ip_hdr.version_len = (4 << 4) | 5;
     real_buffer->ip_hdr.dscp = 0;
     real_buffer->ip_hdr.length = hton16(
             sizeof(struct ip_hdr) +

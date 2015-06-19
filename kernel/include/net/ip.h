@@ -24,10 +24,7 @@
 #define IPPROTO_UDP 17
 
 struct ip_hdr {
-    // FIXME support big endian targets, too
-    unsigned int header_length:4;
-    unsigned int version:4;
-
+    uint8_t version_len;
     uint8_t dscp; 
     uint16_t length;
     uint16_t id; 
@@ -47,7 +44,7 @@ uint16_t ip_hdr_checksum(const struct ip_hdr *ip_hdr);
 static inline void* ip_hdr_payload(struct ip_hdr *ip_hdr)
 {
     char *p = (char *) ip_hdr;
-    return (void*) p + ip_hdr->header_length * 4;
+    return (void*) p + (ip_hdr->version_len & 0xf) * 4;
 }
 
 #endif
