@@ -1,4 +1,4 @@
-move saving floating point registers from entry.S to contextswitch
+fix POK_CHECK_PTR_IN_PARTITION
 Add %04d support in printf
 
 
