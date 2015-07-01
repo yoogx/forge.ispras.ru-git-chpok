@@ -119,7 +119,6 @@ static void print_float(t_putc putc,
 {
     long long floor = value;
     long double fractional = 0;
-    int decimal = 10;
 
     print_num(putc, out, floor, 10, pad-(precision+1), neg, pad_with_zero);
 
