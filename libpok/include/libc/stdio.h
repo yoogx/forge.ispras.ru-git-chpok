@@ -20,6 +20,6 @@
 
 #include <stdarg.h>
 
-int		printf(const char *format, ...);
+int printf(const char *format, ...)__attribute__ ((format(printf, 1, 2)));
 
 #endif /* __POK_LIBC_STDIO_H_ */
