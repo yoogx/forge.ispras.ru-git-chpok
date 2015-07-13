@@ -1,0 +1,21 @@
+# -*- Mode: Python -*-
+
+Import('env')
+
+env.Program(target = 'ppc.lo', source = [
+'entry.S',
+'timer.c',
+'cswitch.S',
+'thread.c',
+'space.c',
+'syscalls.c',
+'arch.c',
+'interrupt.c',
+'loader.c',
+'pci.c',
+'devtree.c'])
+
+SConscript('./e500mc/SConscript')
+SConscript('./libfdt/SConscript')
+
+# EOF

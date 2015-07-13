@@ -1,0 +1,9 @@
+# -*- Mode: Python -*-
+
+Import('env')
+
+env.Program(target = 'drivers.lo', source = 'virtio/virtio.lo')
+
+SConscript('./virtio/SConscript')
+
+# EOF

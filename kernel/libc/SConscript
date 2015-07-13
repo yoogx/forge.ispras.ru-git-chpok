@@ -1,0 +1,17 @@
+# -*- Mode: Python -*-
+
+Import('env')
+
+env.Program(target = 'libc.lo', source = [
+'memcpy.c',
+'memmove.c',
+'memset.c',
+'memcmp.c',
+'printf.c',
+'strlen.c',
+'strcmp.c',
+'strchr.c',
+'memchr.c',
+'strrchr.c'])
+
+# EOF

@@ -1,0 +1,11 @@
+# -*- Mode: Python -*-
+
+Import('env')
+
+env.Program(target = 'e500mc.lo', source = [
+'cons.c',
+'bsp.c'])
+
+env.Depends('ppc.lo', [env['BSP']+'/'+env['BSP']+'.lo', 'libfdt/libfdt.lo'])
+
+# EOF

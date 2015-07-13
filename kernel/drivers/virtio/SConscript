@@ -1,0 +1,9 @@
+# -*- Mode: Python -*-
+
+Import('env')
+
+env.Program(target = 'virtio.lo', source = [
+'virtio_virtqueue.c',
+'virtio_network.c'])
+
+# EOF

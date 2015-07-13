@@ -1,0 +1,10 @@
+# -*- Mode: Python -*-
+
+Import('env')
+
+env.Program(target = 'net.lo', source = [
+'network.c',
+'ip.c'])
+
+
+# EOF

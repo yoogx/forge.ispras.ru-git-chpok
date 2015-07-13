@@ -1,0 +1,9 @@
+# -*- Mode: Python -*-
+
+Import('env')
+
+env.Program(target = 'arch.lo', source = env['ARCH']+'/'+env['ARCH']+'.lo')
+
+SConscript('./'+env['ARCH']+'/SConscript')
+
+# EOF

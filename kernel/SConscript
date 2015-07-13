@@ -1,0 +1,20 @@
+# -*- Mode: Python -*-
+
+Import('env')
+
+env.Program(target = 'pok.lo', source = [
+'core/core.lo',
+'middleware/middleware.lo',
+'libc/libc.lo',
+'arch/arch.lo',
+'drivers/drivers.lo',
+'net/net.lo'])
+
+SConscript('./core/SConscript')
+SConscript('./middleware/SConscript')
+SConscript('./libc/SConscript')
+SConscript('./arch/SConscript')
+SConscript('./drivers/SConscript')
+SConscript('./net/SConscript')
+
+# EOF
