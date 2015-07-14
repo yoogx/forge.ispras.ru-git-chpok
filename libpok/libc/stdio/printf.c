@@ -263,7 +263,7 @@ const char * handle_fmt(t_putc putc, void * out, const char* format, va_list arg
     return format;
 }
 
-static void vprintf(t_putc putc, void *out, const char* format, va_list args)
+void vprintf(t_putc putc, void *out, const char* format, va_list args)
 {
     while(*format) {
         if (*format == '%') {
