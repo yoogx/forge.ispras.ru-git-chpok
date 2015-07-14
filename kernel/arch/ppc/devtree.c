@@ -23,7 +23,7 @@ static void dummy_props_dump(const void *fdt, int offset)
         }
         const char *prop_name = fdt_string(fdt, fdt32_to_cpu(prop->nameoff));
 
-        printf("\t name='%s'\tstr_data='%s'\tlen=%d\n", prop_name, (char *)prop->data, prop->len);
+        printf("\t name='%s'\tstr_data='%s'\tlen=%lu\n", prop_name, (char *)prop->data, (unsigned long) prop->len);
     }
 }
 
@@ -71,14 +71,14 @@ void devtree_dummy_dump()
     };
 
     printf("---------------------------------------\n");
-    printf("devtree_address = 0x%x\n",      devtree_address);
+    printf("devtree_address = 0x%lx\n", (unsigned long) devtree_address);
 
     struct boot_param_header *fdt = 
         (struct boot_param_header *) devtree_address;
-    printf("devtree magic 0x%x\n",            fdt->magic);
-    printf("devtree version %d\n",          fdt->version);
-    printf("devtree totalsize %d (0x%x)\n", fdt->totalsize, 
-                                            fdt->totalsize);
+    printf("devtree magic 0x%lx\n",          (unsigned long) fdt->magic);
+    printf("devtree version %lu\n",          (unsigned long) fdt->version);
+    printf("devtree totalsize %lu (0x%lx)\n",  (unsigned long) fdt->totalsize, 
+                                             (unsigned long) fdt->totalsize);
     const char *cp = fdt_getprop(fdt, 0, "compatible", NULL);
     printf("comatible propertry of root: %s \n", cp);
     dummy_nodes_dump(fdt);
