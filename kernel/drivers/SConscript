@@ -1,8 +1,8 @@
 # -*- Mode: Python -*-
 
-Import('env')
+Import('kernel_env')
 
-env.Program(target = 'drivers.lo', source = 'virtio/virtio.lo')
+kernel_env.Program(target = 'drivers.lo', source = 'virtio/virtio.lo')
 
 SConscript('./virtio/SConscript')
 

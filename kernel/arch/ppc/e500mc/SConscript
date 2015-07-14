@@ -1,11 +1,9 @@
 # -*- Mode: Python -*-
 
-Import('env')
+Import('kernel_env')
 
-env.Program(target = 'e500mc.lo', source = [
-'cons.c',
-'bsp.c'])
+kernel_env.Program(target = 'e500mc.lo', source = Glob('*.c'))
 
-env.Depends('ppc.lo', [env['BSP']+'/'+env['BSP']+'.lo', 'libfdt/libfdt.lo'])
+kernel_env.Depends('ppc.lo', [kernel_env['BSP']+'/'+kernel_env['BSP']+'.lo', 'libfdt/libfdt.lo'])
 
 # EOF

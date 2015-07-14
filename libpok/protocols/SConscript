@@ -1,0 +1,14 @@
+# -*- Mode: Python -*-
+
+Import('libpok_env')
+
+libpok_env.Program(target = 'protocols.lo', source = [
+'ceasar/ceasar.lo',
+'blowfish/blowfish.lo',
+'des/des.lo'])
+
+SConscript('./blowfish/SConscript')
+SConscript('./ceasar/SConscript')
+SConscript('./des/SConscript')
+
+# EOF

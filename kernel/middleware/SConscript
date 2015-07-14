@@ -1,13 +1,7 @@
 # -*- Mode: Python -*-
 
-Import('env')
+Import('kernel_env')
 
-env.Program(target = 'middleware.lo', source = [
-'portsampling_ops.c',
-'portqueueing_utils.c',
-'portqueueing_ops.c',
-'portflushall.c',
-'portinit.c',
-'portreset.c'])
+kernel_env.Program(target = 'middleware.lo', source = Glob('*.c'))
 
 # EOF

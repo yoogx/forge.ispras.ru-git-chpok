@@ -1,10 +1,8 @@
 # -*- Mode: Python -*-
 
-Import('env')
+Import('kernel_env')
 
-env.Program(target = 'net.lo', source = [
-'network.c',
-'ip.c'])
+kernel_env.Program(target = 'net.lo', source = Glob('*.c'))
 
 
 # EOF

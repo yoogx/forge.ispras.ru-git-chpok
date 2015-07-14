@@ -1,14 +1,7 @@
 # -*- Mode: Python -*-
 
-Import('env')
+Import('kernel_env')
 
-env.Program(target = 'libfdt.lo', source = [
-'fdt.c',
-'fdt_ro.c',
-'fdt_wip.c',
-'fdt_sw.c',
-'fdt_rw.c',
-'fdt_strerror.c',
-'fdt_empty_tree.c'])
+kernel_env.Program(target = 'libfdt.lo', source = Glob('*.c'))
 
 # EOF

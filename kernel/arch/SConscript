@@ -1,9 +1,9 @@
 # -*- Mode: Python -*-
 
-Import('env')
+Import('kernel_env')
 
-env.Program(target = 'arch.lo', source = env['ARCH']+'/'+env['ARCH']+'.lo')
+kernel_env.Program(target = 'arch.lo', source = kernel_env['ARCH']+'/'+kernel_env['ARCH']+'.lo')
 
-SConscript('./'+env['ARCH']+'/SConscript')
+SConscript('./'+kernel_env['ARCH']+'/SConscript')
 
 # EOF

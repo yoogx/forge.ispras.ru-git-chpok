@@ -2,13 +2,18 @@
 
 Import('env')
 
-env.Program(target = 'pok.lo', source = [
+kernel_env = env.Clone()
+kernel_env.Append(CFLAGS = ' -include /home/alex/workspace/chpok-utils/kernel/deployment.h -Werror')
+
+kernel_env.Program(target = 'pok.lo', source = [
 'core/core.lo',
 'middleware/middleware.lo',
 'libc/libc.lo',
 'arch/arch.lo',
 'drivers/drivers.lo',
 'net/net.lo'])
+
+Export('kernel_env')
 
 SConscript('./core/SConscript')
 SConscript('./middleware/SConscript')

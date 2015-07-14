@@ -1,9 +1,7 @@
 # -*- Mode: Python -*-
 
-Import('env')
+Import('kernel_env')
 
-env.Program(target = 'virtio.lo', source = [
-'virtio_virtqueue.c',
-'virtio_network.c'])
+kernel_env.Program(target = 'virtio.lo', source = Glob('*.c'))
 
 # EOF

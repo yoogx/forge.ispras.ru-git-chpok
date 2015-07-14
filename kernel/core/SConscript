@@ -1,21 +1,7 @@
 # -*- Mode: Python -*-
 
-Import('env')
+Import('kernel_env')
 
-env.Program(target = 'core.lo', source = [
-'partition.c',
-'debug.c',
-'kernel.c',
-'lockobj.c',
-'thread.c',
-'instrumentation.c',
-'sched.c',
-'sched_fps.c',
-'time.c',
-'syscall.c',
-'error.c',
-'loader.c',
-'boot.c',
-'cons.c'])
+kernel_env.Program(target = 'core.lo', source = Glob('*.c'))
 
 # EOF
