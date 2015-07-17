@@ -1,7 +1,7 @@
 # -*- Mode: Python -*-
 
-Import('libpok_env')
+Import('libpok_arch_env')
 
-libpok_env.Program(target = 'ppc.lo', source = Glob('*.c'))
+libpok_arch_env.Program(target = 'ppc.lo', source = Glob('*.[Sc]'))
 
 # EOF

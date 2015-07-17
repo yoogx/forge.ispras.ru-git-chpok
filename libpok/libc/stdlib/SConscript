@@ -2,6 +2,9 @@
 
 Import('libpok_env')
 
+libpok_stdlib_env = libpok_env.Clone()
+libpok_stdlib_env.Append(CPPPATH = libpok_stdlib_env['POK_PATH']+'/libpok/libc/stdlib')
+
 libpok_env.Program(target = 'stdlib.lo', source = Glob('*.c'))
 
 # EOF

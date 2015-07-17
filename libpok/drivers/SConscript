@@ -2,6 +2,9 @@
 
 Import('libpok_env')
 
-libpok_env.Program(target = 'drivers.lo', source = Glob('*.c'))
+libpok_drivers_env = libpok_env.Clone()
+libpok_drivers_env.Append(CPPPATH = libpok_drivers_env['POK_PATH']+'/libpok/drivers')
+
+libpok_drivers_env.Program(target = 'drivers.lo', source = Glob('*.c'))
 
 # EOF
