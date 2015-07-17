@@ -1,0 +1,19 @@
+\select@language {english}
+\contentsline {section}{\numberline {1}About this manual}{1}
+\contentsline {subsection}{\numberline {1.1}About POK}{2}
+\contentsline {section}{\numberline {2}Coding guidelines}{2}
+\contentsline {section}{\numberline {3}Source organization}{3}
+\contentsline {subsection}{\numberline {3.1}kernel}{3}
+\contentsline {subsection}{\numberline {3.2}libpok}{3}
+\contentsline {section}{\numberline {4}Optimization (about the \texttt {POK\_CONFIG\_OPTIMIZE\_FOR\_GENERATED\_CODE})}{4}
+\contentsline {section}{\numberline {5}Documentation}{4}
+\contentsline {subsection}{\numberline {5.1}User Guide}{4}
+\contentsline {subsection}{\numberline {5.2}Code documentation}{4}
+\contentsline {paragraph}{Beginning of a file\\}{4}
+\contentsline {paragraph}{Functions\\}{5}
+\contentsline {paragraph}{Global variables\\}{5}
+\contentsline {section}{\numberline {6}Submit a patch}{5}
+\contentsline {section}{\numberline {7}Algorithms guidelines}{6}
+\contentsline {section}{\numberline {8}GDB'ing POK with QEMU}{6}
+\contentsline {section}{\numberline {9}Commit on the SVN}{7}
+\contentsline {section}{\numberline {10}Join the POK developper network !}{7}
