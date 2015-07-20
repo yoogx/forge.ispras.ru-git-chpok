@@ -58,14 +58,14 @@ static void write_serial(char a)
 #define UART_LSR_RFE  0x80
 	
 int data_to_read() //return 0 if no data to read
-		   //FIXME Here must be static int
+		  
 {
 	if (!(ns16550_readb(NS16550_REG_LSR) & UART_LSR_DR))
 		return 0;
 	return 1;
 }
 
-int read_serial()//FIXME Here must be static int
+int read_serial()
 {
 	int data;
 	data=ns16550_readb(NS16550_REG_THR);

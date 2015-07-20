@@ -59,6 +59,8 @@
 #include <net/network.h>
 #endif
 
+
+
 #include <dependencies.h>
 
 #include <core/debug.h>
@@ -321,6 +323,14 @@ void pok_sched()
             case POK_SLOT_NETWORKING:
                 break;
 #endif
+
+
+#if defined(POK_NEEDS_MONITOR)
+            case POK_SLOT_MONITOR:
+                break;
+#endif
+
+
             default:
                 assert(FALSE);
         }
@@ -359,6 +369,17 @@ void pok_sched()
         elected_thread = NETWORK_THREAD;
     }
 #endif
+
+#if defined(POK_NEEDS_MONITOR)
+
+    else if (slot->type == POK_SLOT_MONITOR) {
+        elected_thread = MONITOR_THREAD;
+    }
+
+#endif
+
+
+
     else {
         assert(FALSE);
     }

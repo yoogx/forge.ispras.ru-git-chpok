@@ -67,6 +67,12 @@ class TimeSlotNetwork(TimeSlot):
 
     def get_kind_constant(self):
         return "POK_SLOT_NETWORKING"
+#code
+class TimeSlotMonitor(TimeSlot):
+    __slots__ = []
+
+    def get_kind_constant(self):
+        return "POK_SLOT_MONITOR"
 
 class Partition:
     __slots__ = [
@@ -412,6 +418,12 @@ TIMESLOT_NETWORKING_TEMPLATE = """\
     },
 """
 
+TIMESLOT_MONITOR_TEMPLATE = """\
+    { .type = POK_SLOT_MONITOR,
+      .duration = %(duration)d,
+    },
+"""
+
 SAMPLING_PORT_TEMPLATE = """\
     {
         .header = {
@@ -575,6 +587,9 @@ def write_kernel_deployment_h(conf, f):
         p("#define POK_NEEDS_PCI 1")
         p("#define POK_NEEDS_NETWORKING 1")
         p("#define POK_NEEDS_NETWORKING_VIRTIO 1")
+        
+
+    p("#define POK_NEEDS_MONITOR 1")
 
     total_threads = (
         1 + # kernel thread
@@ -587,7 +602,9 @@ def write_kernel_deployment_h(conf, f):
 
     if conf.network:
         total_threads += 1
-
+#Add 1 thread for monitor
+    total_threads +=1	
+	
     p("#define POK_CONFIG_NB_THREADS %d" % total_threads)
 
     p("#define POK_CONFIG_PARTITIONS_NTHREADS {%s}" % ", ".join(
@@ -660,6 +677,11 @@ def write_kernel_deployment_c(conf, f):
             ))
         elif isinstance(slot, TimeSlotNetwork):
             p(TIMESLOT_NETWORKING_TEMPLATE % dict(
+                duration=slot.duration
+            ))
+        elif isinstance(slot, TimeSlotMonitor):
+            pass
+            p(TIMESLOT_MONITOR_TEMPLATE % dict(
                 duration=slot.duration
             ))
         else:

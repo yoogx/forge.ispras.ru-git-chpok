@@ -52,13 +52,20 @@
  * there's another thread that polls the network card.
  */
 
-#ifdef POK_NEEDS_NETWORKING
-#define NETWORK_THREAD POK_CONFIG_NB_THREADS-3
-#define POK_KERNEL_THREADS 3
+
+#ifdef POK_NEEDS_NETWORK
+
+#define NETWORK_THREAD POK_CONFIG_NB_THREADS-4
+#define POK_KERNEL_THREADS 4
+
 #else
-#define POK_KERNEL_THREADS 2
+
+#define POK_KERNEL_THREADS 3
+
 #endif
 
+
+#define MONITOR_THREAD POK_CONFIG_NB_THREADS-3
 #define KERNEL_THREAD		POK_CONFIG_NB_THREADS -2
 #define IDLE_THREAD        POK_CONFIG_NB_THREADS -1
 

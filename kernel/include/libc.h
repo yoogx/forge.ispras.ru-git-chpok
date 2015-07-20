@@ -42,6 +42,10 @@ void *memchr(const void *s, int c, size_t n);
 
 #if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
 int printf(const char *format, ...);
+char * readline(const char *prompt);
+int getchar(void);
+void monitor();
+void pok_monitor_thread(void);
 #endif /* NEEDS_CONSOLE or NEEDS_DEBUG */
 
 #endif

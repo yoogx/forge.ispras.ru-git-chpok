@@ -114,6 +114,8 @@ class ArincConfigParser:
                 s.periodic_processing_start = parse_bool(x.attrib["PeriodicProcessingStart"])
             elif slot_type == "Network":
                 s = chpok_configuration.TimeSlotNetwork()
+            elif slot_type == "Monitor":
+                s = chpok_configuration.TimeSlotMonitor()
             else:
                 raise ValueError("unknown slot type %r" % slot_type)
 

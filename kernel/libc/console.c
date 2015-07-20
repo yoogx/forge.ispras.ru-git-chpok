@@ -1,13 +1,10 @@
-/* We need functions:
-*	-read_serial()
-*	-data_to_read()
-*/
 
-//FIXME add include
+#include <libc.h>
+#include <bsp.h>
 
 
 /*
-*	Function discribed in cons.c:
+*	Function described in cons.c:
 *	data_to_read() - return 1 if there is data to read, or 0 otherwise
 *	read_serial()  - read and return 1 word from receiver buffer
 */

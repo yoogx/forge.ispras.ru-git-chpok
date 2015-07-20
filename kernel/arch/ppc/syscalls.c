@@ -22,33 +22,12 @@
 
 #include <types.h>
 #include <libc.h>
-//My code start		[
-/*
-
-# define TOPDIR=		../../
-
-#include <$(TOPDIR)/kernel/arch/ppc/e500mc/cons.h>
-#include <$(TOPDIR)/kernel/libc/printf.c>
-
-
-*/
-//My code end 		]
 
 
 pok_ret_t pok_arch_sc_int(uint32_t num, uint32_t arg1, uint32_t arg2,
                           uint32_t arg3, uint32_t arg4, uint32_t arg5)
 {
    
-//My code start		[
-/*
-
-
-   if (data_to_read() == 1)
-	printf("Button pressed/n");
-
-
-*/
-//My code end		]
 
    uint8_t              part_id;
 

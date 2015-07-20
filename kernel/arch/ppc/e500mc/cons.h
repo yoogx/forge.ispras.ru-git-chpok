@@ -19,13 +19,6 @@
 #define __POK_CONS_H__
 
 int         pok_cons_init(void);
-//MY CODE START		[
-/*
 
-int data_to_read();
-int read_serial();
-
-*/
-//MY CODE END		]
 
 #endif
