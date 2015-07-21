@@ -106,9 +106,10 @@ print_partition(int argc, char **argv){
         else 
                 printf("There is %d partition:\n",POK_CONFIG_NB_PARTITIONS);
     for (int i = 0 ; i < POK_CONFIG_NB_PARTITIONS ; i++){
-        printf("%d) %s\n",i+1,pok_partitions[i].name);    
+        printf("%d) %d",i,pok_partitions[i].name[0]);
+        if (pok_partitions[i].base_addr == POK_CURRENT_PARTITION.base_addr) printf(" - current partition");
+        printf("\n");    
     }
-    //TODO your code here
 	(void) argc;
 	(void) argv;
     return 0;
@@ -130,37 +131,35 @@ int info_partition(int argc,char **argv){
         return 0;        
     }
     
+    //Dont work yet        
 
-    //TODO read int from string argv[1]        
-    //printf("Info about partition №%d\n",argv[1]);
-    //printf("base_addr = %d\n",pok_partitions[argv[1]].base_addr); //TODO    uint32     
-    //printf("base_vaddr = %d\n",pok_partitions[argv[1]].base_vaddr);   uint32 	
-    //printf("size = %d\n",pok_partitions[argv[1]].size);  uint32  	
-    //printf("name = %s\n",pok_partitions[argv[1]].name);    	
-    //printf("nthreads = %d\n",pok_partitions[argv[1]].nthreads); uint32    	
-    //printf("priority = %d\n",pok_partitions[argv[1]].priority); uint8  	
-    //printf("period = %d\n",pok_partitions[argv[1]].period); uint32   	
-    //printf("activation = %d\n",pok_partitions[argv[1]].activation); uint64    	
-    //printf("prev_thread = %d\n",pok_partitions[argv[1]].prev_thread); uint32  	
-    //printf("current_thread = %d\n",pok_partitions[argv[1]].current_thread); uint32   	
-    //printf("thread_index_low = %d\n",pok_partitions[argv[1]].thread_index_low); uint32   	
-    //printf("thread_index_high = %d\n",pok_partitions[argv[1]].thread_index_high); uint32    	
-    //printf("thread_index = %d\n",pok_partitions[argv[1]].thread_index); uint32   	
+/*    printf("Info about partition №%d\n",number);
+    printf("base_addr = %d\n",pok_partitions[number].base_addr); //TODO    uint32     
+    printf("base_vaddr = %d\n",pok_partitions[number].base_vaddr);   	
+    //printf("size = %d\n",pok_partitions[number].size);  uint32  	
+    //printf("name = %s\n",pok_partitions[number].name);    	
+    //printf("nthreads = %d\n",pok_partitions[number].nthreads); uint32    	
+    printf("priority = %o\n",pok_partitions[number].priority);  	
+    //printf("period = %d\n",pok_partitions[number].period); uint32   	
+    //printf("activation = %d\n",pok_partitions[number].activation); uint64    	
+    //printf("prev_thread = %d\n",pok_partitions[number].prev_thread); uint32  	
+    //printf("current_thread = %d\n",pok_partitions[number].current_thread); uint32   	
+    //printf("thread_index_low = %d\n",pok_partitions[number].thread_index_low); uint32   	
+    //printf("thread_index_high = %d\n",pok_partitions[number].thread_index_high); uint32    	
+    //printf("thread_index = %d\n",pok_partitions[number].thread_index); uint32   	
 #if defined(POK_NEEDS_LOCKOBJECTS) || defined(POK_NEEDS_ERROR_HANDLING)
-    //printf("lockobj_index_low = %d\n",pok_partitions[argv[1]].lockobj_index_low);  uint8  	
-    //printf("lockobj_index_high = %d\n",pok_partitions[argv[1]].lockobj_index_high);    	uint8
-    //printf("nlockobjs = %d\n",pok_partitions[argv[1]].nlockobjs);    	uint8
+    printf("lockobj_index_low = %o\n",pok_partitions[number].lockobj_index_low);   	
+    printf("lockobj_index_high = %o\n",pok_partitions[number].lockobj_index_high);    	
+    printf("nlockobjs = %o\n",pok_partitions[number].nlockobjs);    	
 #endif
-    //printf("thread_main = %d\n",pok_partitions[argv[1]].thread_main);    pok_thread_id_t	
+    //printf("thread_main = %d\n",pok_partitions[number].thread_main);    pok_thread_id_t	
 #ifdef POK_NEEDS_IO
-    //printf("io_min = %d\n",pok_partitions[argv[1]].io_min);    	
-    //printf("io_max = %d\n",pok_partitions[argv[1]].io_max);    	
+    //printf("io_min = %d\n",pok_partitions[number].io_min);    	
+    //printf("io_max = %d\n",pok_partitions[number].io_max);    	
 #endif
-    //printf("lock_level = %d\n",pok_partitions[argv[1]].lock_level);   uint32 	
-    //printf(" = %d\n",pok_partitions[argv[1]].);    	
-    //printf(" = %d\n",pok_partitions[argv[1]].);    	
+    //printf("lock_level = %d\n",pok_partitions[number].lock_level);   uint32 	
 
-    
+*/    
     return 0;
 }
 
@@ -176,11 +175,8 @@ pause_N(int argc, char **argv){
     }    
     int number=0;
     number=atoi(argv[1]);
-    //Change mode of this partition to stopped.
-    pok_partition_set_mode(number,POK_PARTITION_MODE_IDLE);
-
- 
-    //TODO your code here
+    //Change mode of this partition to paused
+    pok_partitions[number].is_paused=TRUE;
     return 0;
 
 }
@@ -198,12 +194,8 @@ resume_N(int argc, char **argv){
     }    
     int number=0;
     number=atoi(argv[1]);
- 
-    //Change mode of this partition to normal.
-    pok_partition_set_mode(number,POK_PARTITION_MODE_NORMAL);    
-
-
-    //TODO your code here
+    //Change mode of this partition to not paused
+    pok_partitions[number].is_paused=FALSE;
     return 0;
 
 }
@@ -221,8 +213,9 @@ restart_N(int argc, char **argv){
     }    
     int number=0;
     number=atoi(argv[1]);
- 
-    //TODO your code here
+    //Change mode of this partition and call reinit to restart it
+    pok_partition_set_mode(number,POK_PARTITION_MODE_INIT_COLD);
+    pok_partition_reinit(number);
     return 0;
 
 }

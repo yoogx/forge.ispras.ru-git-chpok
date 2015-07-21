@@ -121,10 +121,16 @@ static pok_bool_t pok_elect_partition(void)
         return FALSE;
     }
 
-    pok_sched_current_slot = (pok_sched_current_slot + 1) % POK_CONFIG_SCHEDULING_NBSLOTS;
-    pok_sched_next_deadline += pok_module_sched[pok_sched_current_slot].duration; 
+    for (int i=1; i<=POK_CONFIG_SCHEDULING_NBSLOTS; i++){
+        pok_sched_current_slot = (pok_sched_current_slot + 1) % POK_CONFIG_SCHEDULING_NBSLOTS;
+        int number_of_partition=pok_module_sched[pok_sched_current_slot].partition.id;
+        if (pok_partitions[number_of_partition].is_paused == FALSE) {
+            pok_sched_next_deadline += pok_module_sched[pok_sched_current_slot].duration; 
+            return TRUE;
+        }
+    }
+    return FALSE;
 
-    return TRUE;
 }
 #endif
 

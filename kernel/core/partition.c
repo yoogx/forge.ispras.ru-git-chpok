@@ -178,7 +178,13 @@ pok_ret_t pok_partition_init ()
       uintptr_t base_vaddr = pok_space_base_vaddr(base_addr);
    
       pok_partition_t *part = &pok_partitions[i];
-
+       
+      /*
+       * Partition is not paused
+       */
+      
+      part->is_paused=FALSE;
+    
       /* 
        * Memory.
        */
