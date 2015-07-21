@@ -77,10 +77,14 @@ bool_t                  pok_allocator_initialized = 0;
 void pok_allocator_print_spaces ()
 {
    uint32_t space;
-   printf ("[LIBPOK] [ALLOCATOR] Used spaces = %d\n", pok_allocator_used_spaces);
+   printf ("[LIBPOK] [ALLOCATOR] Used spaces = %lu\n", (unsigned long) pok_allocator_used_spaces);
    for (space = 0 ; space < pok_allocator_used_spaces ; space++)
    {
-      printf ("[LIBPOK] [ALLOCATOR] Space %d start=%d size=%d allocated=%d\n", space, pok_allocator_spaces[space].start, pok_allocator_spaces[space].size, pok_allocator_spaces[space].allocated);
+      printf ("[LIBPOK] [ALLOCATOR] Space %lu start=%d size=%d allocated=%d\n",
+              (unsigned long) space,
+              pok_allocator_spaces[space].start,
+              pok_allocator_spaces[space].size,
+              pok_allocator_spaces[space].allocated);
    }
 }
 #endif
@@ -106,7 +110,10 @@ void* pok_allocator_allocate (size_t needed_size)
    for (space = 0 ; space < pok_allocator_used_spaces ; space++)
    {
 #ifdef POK_NEEDS_DEBUG
-      printf ("[LIBPOK] [ALLOCATOR] Look space %d, size %d, allocated=%d\n", space, pok_allocator_spaces[space].size, pok_allocator_spaces[space].allocated);
+      printf ("[LIBPOK] [ALLOCATOR] Look space %lu, size %d, allocated=%d\n",
+              (unsigned long) space,
+              pok_allocator_spaces[space].size,
+              pok_allocator_spaces[space].allocated);
 #endif
       if ((pok_allocator_spaces[space].allocated == 0) && (pok_allocator_spaces[space].size >= needed_size))
       {
@@ -118,7 +125,7 @@ void* pok_allocator_allocate (size_t needed_size)
             pok_allocator_spaces[space].allocated = 1;
 
 #ifdef POK_NEEDS_DEBUG
-            printf ("[LIBPOK] [ALLOCATOR] Allocate directly space %d\n", space);
+            printf ("[LIBPOK] [ALLOCATOR] Allocate directly space %lu\n", (unsigned long) space);
             pok_allocator_print_spaces ();
 #endif
             return (&pok_allocator_memspace[pok_allocator_spaces[space].start]);
@@ -140,7 +147,10 @@ void* pok_allocator_allocate (size_t needed_size)
             pok_allocator_spaces[new_space].start        = pok_allocator_spaces[space].start + needed_size;
 
 #ifdef POK_NEEDS_DEBUG
-            printf("[LIBPOK] [ALLOCATOR] Allocate space %d, CREATE NEW SPACE %d (size=%d)\n", space, new_space, pok_allocator_spaces[new_space].size);
+            printf("[LIBPOK] [ALLOCATOR] Allocate space %lu, CREATE NEW SPACE %lu (size=%d)\n",
+                    (unsigned long) space,
+                    (unsigned long) new_space,
+                    pok_allocator_spaces[new_space].size);
             pok_allocator_print_spaces ();
 #endif
 
@@ -163,7 +173,7 @@ void pok_allocator_delete_space (uint32_t space)
    uint32_t tmp;
 
 #ifdef POK_NEEDS_DEBUG
-            printf("[LIBPOK] [ALLOCATOR] Delete space %d\n", space);
+            printf("[LIBPOK] [ALLOCATOR] Delete space %lu\n", (unsigned long) space);
 #endif
 
    for (tmp = space ; tmp < POK_CONFIG_ALLOCATOR_NB_SPACES ; tmp++)

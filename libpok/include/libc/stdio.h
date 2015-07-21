@@ -20,9 +20,6 @@
 
 #include <stdarg.h>
 
-int		vprintf(const char* format, va_list args);
-
-int		printf(const char *format, ...);
-
+int printf(const char *format, ...)__attribute__ ((format(printf, 1, 2)));
 
 #endif /* __POK_LIBC_STDIO_H_ */

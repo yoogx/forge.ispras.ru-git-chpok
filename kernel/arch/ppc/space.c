@@ -113,8 +113,13 @@ uint32_t pok_space_context_create (
   pok_space_context_init(vctx, ctx, partition_id, entry_rel, stack_rel, arg1, arg2);
 
 #ifdef POK_NEEDS_DEBUG
-  printf ("space_context_create %d: entry=%x stack=%x arg1=%x arg2=%x ksp=%x\n",
-          partition_id, entry_rel, stack_rel, arg1, arg2, &vctx->sp);
+  printf ("space_context_create %lu: entry=%lx stack=%lx arg1=%lx arg2=%lx ksp=%p\n",
+          (unsigned long) partition_id, 
+          (unsigned long) entry_rel, 
+          (unsigned long) stack_rel, 
+          (unsigned long) arg1, 
+          (unsigned long) arg2, 
+          &vctx->sp);
 #endif
 
   return (uint32_t)ctx;

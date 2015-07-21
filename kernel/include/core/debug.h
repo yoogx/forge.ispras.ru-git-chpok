@@ -29,6 +29,9 @@ void		pok_fatal(const char* message);
 
 int      debug_strlen (const char* str);
 
+void hexdump (const void *addr, int len);
+
+
 #define POK_FATAL(arg) pok_fatal(arg)
 
 #define POK_DEBUG_PRINT_CURRENT_STATE pok_debug_print_current_state();

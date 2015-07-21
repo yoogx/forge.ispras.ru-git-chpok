@@ -97,14 +97,14 @@ pok_ret_t pok_exception_init()
 __attribute__((unused))
 static void dump_registers (interrupt_frame *frame)
 {
-  printf ("ES: %x, DS: %x\n", frame->es, frame->ds);
-  printf ("CS: %x, SS: %x\n", frame->cs, frame->ss);
-  printf ("EDI: %x, ESI: %x\n", frame->edi, frame->esi);
-  printf ("EBP: %x, ESP: %x\n", frame->ebp, frame->esp);
-  printf ("EAX: %x, ECX: %x\n", frame->eax, frame->ecx);
-  printf ("EDX: %x, EBX: %x\n", frame->edx, frame->ebx);
-  printf ("EIP: %x, ErrorCode: %x\n", frame->eip, frame->error);
-  printf ("EFLAGS: %x\n\n", frame->eflags);
+  printf ("ES: %lx, DS: %lx\n",  frame->es, frame->ds);
+  printf ("CS: %lx, SS: %lx\n",  frame->cs, frame->ss);
+  printf ("EDI: %lx, ESI: %lx\n", frame->edi, frame->esi);
+  printf ("EBP: %lx, ESP: %lx\n", frame->ebp, frame->esp);
+  printf ("EAX: %lx, ECX: %lx\n", frame->eax, frame->ecx);
+  printf ("EDX: %lx, EBX: %lx\n", frame->edx, frame->ebx);
+  printf ("EIP: %lx, ErrorCode: %lx\n", frame->eip, frame->error);
+  printf ("EFLAGS: %lx\n\n", frame->eflags);
 }
 
 #if defined(POK_NEEDS_ERROR_HANDLING)
@@ -232,7 +232,9 @@ INTERRUPT_HANDLER (exception_invalidopcode)
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
 
    #ifdef POK_NEEDS_DEBUG
-   printf ("[KERNEL] Raise exception invalid opcode fault, current thread: %d, EIP: 0x%x\n", POK_SCHED_CURRENT_THREAD, frame->eip);
+   printf ("[KERNEL] Raise exception invalid opcode fault, current thread: %d, EIP: 0x%lx\n", 
+           POK_SCHED_CURRENT_THREAD, 
+           frame->eip);
    #endif
 
   pok_error_from_exception (POK_ERROR_KIND_ILLEGAL_REQUEST);
@@ -361,7 +363,9 @@ INTERRUPT_HANDLER_errorcode (exception_general_protection)
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
 
    #ifdef POK_NEEDS_DEBUG
-   printf ("[KERNEL] Raise exception general protection fault current thread=%d, EIP=0x%x\n", POK_SCHED_CURRENT_THREAD, frame->eip);
+   printf ("[KERNEL] Raise exception general protection fault current thread=%d, EIP=0x%lx\n",
+           POK_SCHED_CURRENT_THREAD,
+           frame->eip);
    #endif
 
   pok_error_from_exception (POK_ERROR_KIND_ILLEGAL_REQUEST);

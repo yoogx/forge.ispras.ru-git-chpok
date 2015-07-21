@@ -134,7 +134,7 @@ pok_ret_t pok_thread_suspend_target(pok_thread_id_t thread_id)
  * pok_ret_t      pok_thread_stop_self ();
  */
 
-#define pok_thread_stop(id) pok_syscall2(POK_SYSCALL_THREAD_STOP,id,NULL)
+#define pok_thread_stop(id) pok_syscall2(POK_SYSCALL_THREAD_STOP,id,0)
 /*
  * similar to: pok_ret_t      pok_thread_stop (const uint32_t tid);
  */

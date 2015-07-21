@@ -43,6 +43,8 @@
 #include <libc/string.h>
 #include <middleware/buffer.h>
 #include <utils.h>
+#include <types.h>
+#include <libc/stdio.h>
 
 #if 1
 #define DEBUG_PRINT(...) printf(__VA_ARGS__)
@@ -326,12 +328,17 @@ pok_ret_t pok_buffer_create(
     pok_port_size_t size = num_messages * buffer_data_stride(msg_size);
 
     if (size > INT32_MAX - pok_buffers_data_index) {
-      DEBUG_PRINT("size=%d + pok_buffers_data_index=%d will cause integer overflow\n", size, pok_buffers_data_index);
+      DEBUG_PRINT("size=%lu + pok_buffers_data_index=%lu will cause integer overflow\n",
+              (unsigned long) size,
+              (unsigned long) pok_buffers_data_index);
       return POK_ERRNO_EINVAL;
     }
 
     if (pok_buffers_data_index + size >= POK_CONFIG_BUFFER_DATA_SIZE) {
-      DEBUG_PRINT("size=%d + pok_buffers_data_index=%d >= POK_CONFIG_BUFFER_DATA_SIZE=%d\n", size, pok_buffers_data_index, POK_CONFIG_BUFFER_DATA_SIZE);
+      DEBUG_PRINT("size=%lu + pok_buffers_data_index=%lu >= POK_CONFIG_BUFFER_DATA_SIZE=%d\n",
+              (unsigned long) size,
+              (unsigned long) pok_buffers_data_index,
+              POK_CONFIG_BUFFER_DATA_SIZE);
       return POK_ERRNO_EINVAL;
     }
 
