@@ -25,7 +25,7 @@ int atoi(char * s)
 
 
 
-int NOT_EXIT=1;
+int NOT_EXIT=1; // 0 if we want to exit from console
 
 int mon_help(int argc, char **argv);
 
@@ -33,9 +33,7 @@ int help_about(int argc,char **argv);
 
 int print_partition(int argc, char **argv); // List of partition
 
-int pause_N(int argc, char **argv);// pause partition N. Когда выпадает её время в
-                                    // расписании,                         
-                                    //то процессор ставится на паузу до следующего прерывания
+int pause_N(int argc, char **argv);// pause partition N. 
 
 int resume_N(int argc, char **argv); // continue partition N
 
@@ -48,7 +46,6 @@ int info_partition(int argc,char ** argv);
 struct Command {
 	const char *name;
 	const char *desc;
-	// return -1 to force monitor to exit
 	int (*func)(int argc, char** argv);
 };
 
@@ -63,7 +60,9 @@ static struct Command commands[] = {
     {"exit","Exit from console",exit_from_monitor},
 };
 
-/***** Implementations of basic kernel monitor commands *****/
+/* 
+ * Implementations of monitor commands
+ */
 
 int
 mon_help(int argc, char **argv)
@@ -103,9 +102,9 @@ print_partition(int argc, char **argv){
    pok_partition_id_t number_of_current_partition;
    pok_current_partition_get_id(&number_of_current_partition);
    if (POK_CONFIG_NB_PARTITIONS > 1) 
-                printf("There are %d partitions:\n",POK_CONFIG_NB_PARTITIONS);
+            printf("There are %d partitions:\n",POK_CONFIG_NB_PARTITIONS);
         else 
-                printf("There is %d partition:\n",POK_CONFIG_NB_PARTITIONS);
+            printf("There is %d partition:\n",POK_CONFIG_NB_PARTITIONS);
    for (int i = 0 ; i < POK_CONFIG_NB_PARTITIONS ; i++){
         printf("%d) %s",i,pok_partitions[i].name);
         if (i == number_of_current_partition) printf(" - current partition");
@@ -178,6 +177,7 @@ pause_N(int argc, char **argv){
     number=atoi(argv[1]);
     //Change mode of this partition to paused
     pok_partitions[number].is_paused=TRUE;
+    printf("Partition %d paused\n",number);
     return 0;
 
 }
@@ -197,6 +197,7 @@ resume_N(int argc, char **argv){
     number=atoi(argv[1]);
     //Change mode of this partition to not paused
     pok_partitions[number].is_paused=FALSE;
+    printf("Partition %d resumed\n",number);
     return 0;
 
 }
@@ -217,6 +218,8 @@ restart_N(int argc, char **argv){
     //Change mode of this partition and call reinit to restart it
     pok_partition_set_mode(number,POK_PARTITION_MODE_INIT_COLD);
     pok_partition_reinit(number);
+//    pok_partitions[number].is_paused=FALSE;
+    printf("Partition %d restarted\n",number);
     return 0;
 
 }
@@ -234,7 +237,9 @@ exit_from_monitor(int argc, char **argv){
 
 
 
-/***** Kernel monitor command interpreter *****/
+/*
+ * Monitor command interpreter
+ */
 
 #define WHITESPACE "\t\r\n "
 #define MAXARGS 16

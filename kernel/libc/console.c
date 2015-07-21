@@ -18,10 +18,6 @@ serial_proc_data(void) //Read data from DUART (1 word)
 	return read_serial();
 }
 
-/***** General device-independent console code *****/
-// Here we manage the console input buffer,
-// where we stash characters received from the keyboard or serial port
-// whenever the corresponding interrupt occurs.
 
 #define CONSBUFSIZE 512
 
@@ -31,8 +27,6 @@ static struct {
 	uint32_t wpos;
 } cons;
 
-// called by device interrupt routines to feed input characters
-// into the circular console input buffer.
 static void
 cons_intr() //read all elements from DUART
 {
@@ -53,9 +47,6 @@ cons_getc(void) //Get 1 element from cons
 {
 	int c;
 
-	// poll for any pending input characters,
-	// so that this function works even when interrupts are disabled
-	// (e.g., when called from the kernel monitor).
 	cons_intr();
 
 	// grab the next character from the input buffer.
@@ -68,7 +59,6 @@ cons_getc(void) //Get 1 element from cons
 	return 0;
 }
 
-// `High'-level console I/O.  Used by readline and cprintf.
 
 int
 getchar(void)

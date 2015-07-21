@@ -14,7 +14,6 @@ readline(const char *prompt)
 	int c = 0;	
 	while (1) {
 		c = getchar();
-//		printf("%d\n",c);
 		if (c < 0) {
 			printf("read error\n");
 			return NULL;
@@ -32,7 +31,7 @@ readline(const char *prompt)
 		}  else if (c >= ' ' && i < BUFLEN-1) {//if c=simbol
 			printf("%c",c);
 			buf[i++] = c;
-		} else if (c == '\r' /*='\r'*/ || c == '\n' /*='\n'*/) {//if c=Enter or end of string
+		} else if (c == '\r'  || c == '\n' ) {//if c=Enter or end of string
 			printf("\n");
 			buf[i] = 0;
 			return buf;
