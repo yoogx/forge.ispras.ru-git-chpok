@@ -1,0 +1,52 @@
+# -*- Mode: Python -*-
+
+import os
+
+Import('main_env')
+env = main_env.Clone()
+
+# Flags common for all architectures
+#env['PRINT_CMD_LINE_FUNC'] = print_cmd_line
+env['POK_PATH'] = os.environ['POK_PATH']
+env['CPPPATH'] = [env['POK_PATH']+'/kernel/include']
+env['LINKFLAGS'] = '-r'
+
+# ppc-specific flags
+env['CFLAGS'] = '-std=gnu99 -iwithprefix include -DPOK_ARCH_PPC -Wall -g -O -Wuninitialized \
+ -ffreestanding -nostdlib -nostdinc -mregnames -mcpu=e500mc \
+ -D__POK_C__ -DPOK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE=1'
+env['ARCH'] = 'ppc'
+env['BSP'] = 'e500mc'
+env['AR'] = 'powerpc-elf-ar'
+env['CC'] = 'powerpc-elf-gcc'
+env['LINK'] = 'powerpc-elf-ld'
+env['OBJCOPY'] = 'powerpc-elf-objcopy'
+env['OBJDUMP'] = 'powerpc-elf-objdump'
+env['RANLIB'] = 'powerpc-elf-ranlib'
+env['ASFLAGS'] = env['CFLAGS']
+env['LIBGCC'] = '/home/alex/workspace/powerpc-elf-4.9.1-Linux-x86_64/lib/gcc/powerpc-elf/4.9.1/libgcc.a'
+
+Export('env')
+SConscript('../kernel/SConscript', variant_dir = 'ppc/kernel', duplicate = 0)
+SConscript('../libpok/SConscript', variant_dir = 'ppc/libpok', duplicate = 0)
+
+# x86-specific flags
+env['CFLAGS'] = '-std=gnu99 -iwithprefix include -DPOK_ARCH_X86 -Wall -g -O -Wuninitialized \
+ -ffreestanding -nostdlib -nostdinc \
+ -D__POK_C__ -DPOK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE=1'
+env['ARCH'] = 'x86'
+env['BSP'] = 'x86-qemu'
+env['AR'] = 'i386-elf-ar'
+env['CC'] = 'i386-elf-gcc'
+env['LINK'] = 'i386-elf-ld'
+env['OBJCOPY'] = 'i386-elf-objcopy'
+env['OBJDUMP'] = 'i386-elf-objdump'
+env['RANLIB'] = 'i386-elf-ranlib'
+env['ASFLAGS'] = env['CFLAGS']
+env['LIBGCC'] = '/home/alex/workspace/i386-elf-4.9.1-Linux-x86_64/lib/gcc/i386-elf/4.9.1/libgcc.a'
+
+Export('env')
+SConscript('../kernel/SConscript', variant_dir = 'x86/kernel', duplicate = 0)
+SConscript('../libpok/SConscript', variant_dir = 'x86/libpok', duplicate = 0)
+
+# EOF

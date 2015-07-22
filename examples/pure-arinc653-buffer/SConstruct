@@ -1,81 +1,87 @@
 # -*- Mode: Python -*-
 
-from __future__ import print_function
-
 import sys
 import os
+import itertools
 
 sys.path.insert(1, os.path.join(os.environ["POK_PATH"], "misc"))
 import arinc653_xml_conf
-import itertools
 
 import chpok_configuration
 import xml.etree.ElementTree as ET
 
-def print_cmd_line(s, target, src, env):
+def print_cmd_line(s, target, src, main_env):
 	# s is the original command line, target and src are lists of target
-	# and source nodes respectively, and env is the environment.
+	# and source nodes respectively, and main_env is the main_environment.
 	sys.stdout.write("Making %s...\n" %(' and '.join([str(x) for x in target])))
-
-def sconscript():
-	SConscript('kernel/SConscript')
-	SConscript(env['POK_PATH']+'/kernel/SConscript')
-	SConscript(env['POK_PATH']+'/libpok/SConscript')
-	SConscript('pr1/SConscript')
-	SConscript('SConscript')
 
 vars = Variables()
 vars.AddVariables(
-	('directory', 'directory', './'),
-	('xml', 'xml config to be passed to parser', 'config.xml')
+	('directory', 'directory', '.'),
+	('xml', 'xml config to be passed to parser', 'config.xml'),
+	('arch', 'architecture', 'ppc')
 )
 
-env = Environment(variables = vars, ENV = os.environ)
+main_env = Environment(variables = vars, ENV = os.environ)
 
-#env['PRINT_CMD_LINE_FUNC'] = print_cmd_line
+# Flags common for all architectures
+#main_main_env['PRINT_CMD_LINE_FUNC'] = print_cmd_line
+main_env['POK_PATH'] = os.environ['POK_PATH']
+main_env['CPPPATH'] = [main_env['POK_PATH']+'/kernel/include']
+main_env['LINKFLAGS'] = '-r'
+main_env['DEPLOYMENT_HEADER'] = main_env['POK_PATH']+'/examples/pure-arinc653-buffer/kernel/deployment.h'
+main_env['PARTITIONS'] = ['pr1/pr1.elf']
+main_env.Append(QEMU_MISC = '-serial file:/dev/stdout -s -S')
+main_env['ARCH'] = main_env['arch']
 
-env['POK_PATH'] = os.environ['POK_PATH']
-env['CPPPATH'] = [env['POK_PATH']+'/kernel/include']
+if main_env['arch'] == 'ppc':
+	# ppc-specific flags
+	main_env['CFLAGS'] = '-std=gnu99 -iwithprefix include -DPOK_ARCH_PPC -Wall -g -O -Wuninitialized \
+		-ffreestanding -nostdlib -nostdinc -mregnames -mcpu=e500mc \
+		-D__POK_C__ -DPOK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE=1'
+	main_env['BSP'] = 'e500mc'
+	main_env['AR'] = 'powerpc-elf-ar'
+	main_env['CC'] = 'powerpc-elf-gcc'
+	main_env['LINK'] = 'powerpc-elf-ld'
+	main_env['OBJCOPY'] = 'powerpc-elf-objcopy'
+	main_env['OBJDUMP'] = 'powerpc-elf-objdump'
+	main_env['RANLIB'] = 'powerpc-elf-ranlib'
+	main_env['ASFLAGS'] = main_env['CFLAGS']
+	main_env['LIBGCC'] = '/home/alex/workspace/powerpc-elf-4.9.1-Linux-x86_64/lib/gcc/powerpc-elf/4.9.1/libgcc.a'
+	main_env['QEMU'] = './qemu_wrapper.py qemu-system-ppc'
 
-env['PARTITIONS'] = ['pr1/pr1.elf']
+elif main_env['arch'] == 'x86':
+	# x86-specific flags
+	main_env['CFLAGS'] = '-std=gnu99 -iwithprefix include -DPOK_ARCH_X86 -Wall -g -O -Wuninitialized \
+		-ffreestanding -nostdlib -nostdinc \
+		-D__POK_C__ -DPOK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE=1'
+	main_env['BSP'] = 'x86-qemu'
+	main_env['AR'] = 'i386-elf-ar'
+	main_env['CC'] = 'i386-elf-gcc'
+	main_env['LINK'] = 'i386-elf-ld'
+	main_env['OBJCOPY'] = 'i386-elf-objcopy'
+	main_env['OBJDUMP'] = 'i386-elf-objdump'
+	main_env['RANLIB'] = 'i386-elf-ranlib'
+	main_env['ASFLAGS'] = main_env['CFLAGS']
+	main_env['LIBGCC'] = '/home/alex/workspace/i386-elf-4.9.1-Linux-x86_64/lib/gcc/i386-elf/4.9.1/libgcc.a'
+	main_env['QEMU'] = './qemu_wrapper.py qemu-system-i386'
 
-env['ARCH'] = 'ppc'
-env['BSP'] = 'e500mc'
+Export('main_env')
 
-env['AR'] = 'powerpc-elf-ar'
-env['CC'] = 'powerpc-elf-gcc'
-env['LINKFLAGS'] = '-r'
-env['ELF_MODE'] = 'elf_i386'
-env['INSTRUMENTATION'] = '0'
-env['LINK'] = 'powerpc-elf-ld'
-env['OBJCOPY'] = 'powerpc-elf-objcopy'
-env['OBJDUMP'] = 'powerpc-elf-objdump'
-env['RANLIB'] = 'powerpc-elf-ranlib'
-
-env['QEMU_ppc'] = 'qemu-system-ppc'
-env.Append(QEMU_MISC = '-serial file:/dev/stdout -s -S')
-env['QEMU'] = './qemu_wrapper.py' + env['QEMU_ppc']
-
-env['CFLAGS'] = '-std=gnu99 -iwithprefix include -DPOK_ARCH_PPC -Wall -g -O -Wuninitialized \
- -ffreestanding -nostdlib -nostdinc -mregnames -mcpu=e500mc \
- -D__POK_C__ -DPOK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE=1'
-env['ASFLAGS'] = env['CFLAGS']
-
-env['LIBGCC'] = '/home/alex/workspace/powerpc-elf-4.9.1-Linux-x86_64/lib/gcc/powerpc-elf/4.9.1/libgcc.a'
-
-Export('env')
-
-partition_dirs = (os.path.join(env['directory'], "pr%d" % i) for i in itertools.count(1))
+partition_dirs = (os.path.join(main_env['directory'], "pr%d" % i) for i in itertools.count(1))
 partition_dirs = list(itertools.islice(partition_dirs, 255)) # XXX limited to 255 partitions right now
-kernel_dir = os.path.join(env['directory'], "kernel")
+kernel_dir = os.path.join(main_env['directory'], "kernel")
 
-root = ET.parse(env['xml'])
+root = ET.parse(main_env['xml'])
 
 parser = arinc653_xml_conf.ArincConfigParser()
 conf = parser.parse(root)
 
 chpok_configuration.write_configuration(conf, kernel_dir, partition_dirs)
 	
-sconscript()
+SConscript('kernel/SConscript')
+SConscript(main_env['POK_PATH']+'build/SConscript')
+SConscript('pr1/SConscript')
+SConscript('SConscript')
 
 # EOF

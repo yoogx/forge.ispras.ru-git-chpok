@@ -4,6 +4,6 @@ Import('kernel_env')
 
 kernel_env.Program(target = 'drivers.lo', source = 'virtio/virtio.lo')
 
-SConscript('./virtio/SConscript')
+SConscript('virtio/SConscript')
 
 # EOF

@@ -9,6 +9,6 @@ libpok_arch_env.Program(target = 'arch.lo', source = libpok_arch_env['ARCH']+'/'
 
 Export('libpok_arch_env')
 
-SConscript('./'+libpok_arch_env['ARCH']+'/SConscript')
+SConscript(libpok_arch_env['ARCH']+'/SConscript')
 
 # EOF

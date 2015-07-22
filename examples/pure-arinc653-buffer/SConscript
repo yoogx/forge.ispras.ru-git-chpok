@@ -3,9 +3,9 @@
 import os
 import shutil
 
-Import('env')
+Import('main_env')
 
-pok_env = env.Clone()
+pok_env = main_env.Clone()
 pok_env.Append(CPPPATH = pok_env['POK_PATH']+'/kernel/include')
 
 pok_env['LINKFLAGS'] = str(' -T '+pok_env['POK_PATH']+'/misc/ldscripts/'+pok_env['ARCH']+'/'+pok_env['BSP']+'/kernel.lds'+

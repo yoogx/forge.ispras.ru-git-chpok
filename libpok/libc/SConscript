@@ -7,8 +7,8 @@ libpok_env.Program(target = 'libc.lo', source = [
 'string/string.lo',
 'stdlib/stdlib.lo'])
 
-SConscript('./stdio/SConscript')
-SConscript('./string/SConscript')
-SConscript('./stdlib/SConscript')
+SConscript('stdio/SConscript')
+SConscript('string/SConscript')
+SConscript('stdlib/SConscript')
 
 # EOF

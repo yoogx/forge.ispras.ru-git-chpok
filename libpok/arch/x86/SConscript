@@ -1,0 +1,7 @@
+# -*- Mode: Python -*-
+
+Import('libpok_arch_env')
+
+libpok_arch_env.Program(target = 'x86.lo', source = Glob('*.c'))
+
+# EOF

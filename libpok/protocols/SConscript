@@ -7,8 +7,8 @@ libpok_env.Program(target = 'protocols.lo', source = [
 'blowfish/blowfish.lo',
 'des/des.lo'])
 
-SConscript('./blowfish/SConscript')
-SConscript('./ceasar/SConscript')
-SConscript('./des/SConscript')
+SConscript('blowfish/SConscript')
+SConscript('ceasar/SConscript')
+SConscript('des/SConscript')
 
 # EOF

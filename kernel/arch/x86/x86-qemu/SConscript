@@ -1,0 +1,7 @@
+# -*- Mode: Python -*-
+
+Import('kernel_env')
+
+kernel_env.Program(target = 'x86-qemu.lo', source = Glob('*.[Sc]'))
+
+# EOF
