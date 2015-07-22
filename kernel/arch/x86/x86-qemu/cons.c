@@ -63,7 +63,7 @@ int read_serial()
 {
 	int data;
 	data=inb(COM1+COM_RX);
-	if ( !(inb(COM1+COM_LSR) & COM_LSR_RFE) && (data_to_read()) )
+	if ( !(inb(COM1+COM_LSR) & COM_LSR_RFE) ) )
 		return data;
 	return -1;
 
