@@ -1,0 +1,9 @@
+# -*- Mode: Python -*-
+
+Import('env')
+
+env.Program(target = 'kernel.lo', source = [
+env['POK_PATH']+'/kernel/pok.lo',
+'deployment.c'])
+
+# EOF

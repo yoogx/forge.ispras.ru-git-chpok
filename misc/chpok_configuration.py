@@ -19,24 +19,27 @@ simplify generation of POK kernel configuration.
 
 """
 
+from __future__ import print_function
+
 import sys
 import os
 import abc
 import json
 import functools
 import collections
-import ipaddress
+import ipaddr
 
-class TimeSlot(metaclass=abc.ABCMeta):
-    __slots__ = ["duration"]
+class TimeSlot():
+	__metaclass__ = abc.ABCMeta
+	__slots__ = ["duration"]
+	
+	@abc.abstractmethod
+	def get_kind_constant(self):
+		pass
 
-    @abc.abstractmethod
-    def get_kind_constant(self):
-        pass
-
-    def validate(self):
-        if not isinstance(self.duration, int):
-            raise TypeError
+	def validate(self):
+		if not isinstance(self.duration, int):
+			raise TypeError
         
 class TimeSlotSpare(TimeSlot):
     __slots__ = []
@@ -54,7 +57,7 @@ class TimeSlotPartition(TimeSlot):
         return "POK_SLOT_PARTITION"
 
     def validate(self):
-        super().validate()
+        super(TimeSlotPartition, self).validate()
 
         if not isinstance(self.periodic_processing_start, bool):
             raise TypeError
@@ -200,10 +203,11 @@ class Channel:
     def requires_network(self):
         return any(isinstance(x, UDPConnection) for x in [self.src, self.dst])
 
-class Connection(metaclass=abc.ABCMeta):
-    @abc.abstractmethod
-    def validate(self):
-        pass
+class Connection():
+	__metaclass__ = abc.ABCMeta
+	@abc.abstractmethod
+	def validate(self):
+		pass
 
 class LocalConnection(Connection):
     __slots__ = ["port"]
@@ -222,7 +226,7 @@ class UDPConnection(Connection):
         if not hasattr(self, "host"):
             raise AttributeError("host")
 
-        if not isinstance(self.host, ipaddress.IPv4Address):
+        if not isinstance(self.host, ipaddr.IPv4Address):
             raise TypeError(type(self.host))
 
         if not hasattr(self, "port"):
@@ -253,7 +257,7 @@ class NetworkConfiguration:
         
         if not hasattr(self, "ip"):
             raise AttributeError
-        if not isinstance(self.ip, ipaddress.IPv4Address):
+        if not isinstance(self.ip, ipaddr.IPv4Address):
             raise TypeError
 
     #def mac_to_string(self):
