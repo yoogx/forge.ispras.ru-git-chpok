@@ -52,8 +52,6 @@ static void write_serial(char a)
    ns16550_writeb(NS16550_REG_THR, a);
 }
 
-//MY CODE START			[
-
 #define UART_LSR_DR   0x01
 #define UART_LSR_RFE  0x80
 	
@@ -76,7 +74,6 @@ int read_serial()
 }
 
 
-//MY CODE END 			]
 
 
 pok_bool_t pok_cons_write (const char *s, size_t length)
