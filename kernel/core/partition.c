@@ -180,6 +180,17 @@ pok_ret_t pok_partition_init ()
       pok_partition_t *part = &pok_partitions[i];
        
       /*
+       * Set partition name
+       */
+        
+      for (int j=0; j<POK_CONFIG_SCHEDULING_NBSLOTS; j++){
+            if (pok_module_sched[j].type == POK_SLOT_PARTITION)
+                    if(pok_module_sched[j].partition.id == i)
+                            part->name=pok_module_sched[j].partition.name;
+      }
+
+
+      /*
        * Partition is not paused
        */
       

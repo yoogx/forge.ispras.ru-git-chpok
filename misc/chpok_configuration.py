@@ -48,6 +48,7 @@ class TimeSlotPartition(TimeSlot):
     __slots__ = [
         "partition",
         "periodic_processing_start",
+        "name",
     ]
 
     def get_kind_constant(self):
@@ -407,6 +408,7 @@ TIMESLOT_PARTITION_TEMPLATE = """\
       .duration = %(duration)d,
       .partition = 
       { .id = %(partition)d,
+        .name = "%(name)s",
         .periodic_processing_start = %(periodic_processing_start)s,
       }
     },
@@ -673,7 +675,9 @@ def write_kernel_deployment_c(conf, f):
             p(TIMESLOT_PARTITION_TEMPLATE % dict(
                 duration=slot.duration,
                 partition=slot.partition,
+                name=slot.name,
                 periodic_processing_start="TRUE" if slot.periodic_processing_start else "FALSE"
+
             ))
         elif isinstance(slot, TimeSlotNetwork):
             p(TIMESLOT_NETWORKING_TEMPLATE % dict(

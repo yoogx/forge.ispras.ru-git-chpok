@@ -112,6 +112,7 @@ class ArincConfigParser:
                 s = chpok_configuration.TimeSlotPartition()
                 s.partition = partname_to_index[x.attrib["PartitionNameRef"]]
                 s.periodic_processing_start = parse_bool(x.attrib["PeriodicProcessingStart"])
+                s.name=x.attrib["PartitionNameRef"]
             elif slot_type == "Network":
                 s = chpok_configuration.TimeSlotNetwork()
             elif slot_type == "Monitor":

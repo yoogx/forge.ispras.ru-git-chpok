@@ -57,6 +57,7 @@ typedef struct
         struct {
             pok_partition_id_t id;
             pok_bool_t periodic_processing_start;
+            char name[128];
         } partition;
     };
 } pok_sched_slot_t;

@@ -10,6 +10,7 @@
 		            //add a new command.
 
 
+
 /*
  * Convert string in int
  */
@@ -132,7 +133,7 @@ int info_partition(int argc,char **argv){
     }
     
     printf("\n\n");
-    printf("Info about partition №%d\n",number);
+    printf("Info about partition #%d\n",number);
     printf("is_paused = %d\n",pok_partitions[number].is_paused);
     printf("base_addr = 0x%x\n",pok_partitions[number].base_addr);     
     printf("base_vaddr = 0x%x\n",pok_partitions[number].base_vaddr);   	
