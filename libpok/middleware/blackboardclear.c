@@ -60,7 +60,7 @@ pok_ret_t pok_blackboard_clear (const pok_blackboard_id_t id)
    pok_blackboards[id].empty = TRUE;
 
    if (pok_event_unlock(pok_blackboards[id].lock) != POK_ERRNO_OK) {
-        return pok_errno_einval;
+        return POK_ERRNO_EINVAL;
    }
    return POK_ERRNO_OK;
 }
