@@ -15,3 +15,5 @@ libpart.a
 *.elf
 *.uboot
 *.elf.map
+*.pyc
+.sconsign.dblite
