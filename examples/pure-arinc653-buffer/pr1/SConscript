@@ -4,7 +4,7 @@ Import('env')
 
 pr1_env = env.Clone()
 pr1_env['CPPPATH'] = [pr1_env['POK_PATH']+'/libpok/include', pr1_env['POK_PATH']+'/examples/pure-arinc653-buffer']
-pr1_env.Append(CFLAGS = ' -include /home/alex/workspace/chpok/examples/pure-arinc653-buffer/pr1/deployment.h')
+pr1_env.Append(CFLAGS = ' -include '+pr1_env['SCONSTRUCT_DIR']+'/pr1/deployment.h')
 
 source_objs = [
 'main.c',

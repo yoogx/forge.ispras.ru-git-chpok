@@ -21,7 +21,7 @@ env = Environment(variables = vars, ENV = os.environ)
 
 env['POK_PATH'] = os.environ['POK_PATH']
 env['SCONSTRUCT_DIR'] = Dir('.').abspath
-env['DEPLOYMENT_HEADER'] = 'kernel/deployment.h'
+env['DEPLOYMENT_HEADER'] = env['SCONSTRUCT_DIR']+'/kernel/deployment.h'
 
 Export('env')
 
