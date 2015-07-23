@@ -1,4 +1,4 @@
-
+#include <bsp.h>
 #include <libc.h>
 
 #define BUFLEN 1024
@@ -38,8 +38,23 @@ readline(const char *prompt)
 			for (int j=0; j<i; j++){
 				printf("%c", buf[j]);
 			}
-        }  else if (c == 91 ) { //if c=up arrow it consist of 2 simbols - '[A'
-       		c = getchar();//read second simbol 'A'
+        }  else if (c == '[') { //if c=up arrow it consist of 2 simbols - '[A'
+            buf[i]=c;       		
+   			printf("%c",buf[i]);
+            c = getchar();
+            if (c != 'A') { //Check that second simbol = 'A'
+                    i++;
+                    if (c == '\r'  || c == '\n' ){
+                            printf("\n");
+                            buf[i] = 0;
+                            buf_transfer(buf,previous_buf,i-1);
+                            previous_size=i-1;
+			                return buf;
+                    }
+                    buf[i++]=c;
+        			printf("%c",buf[i-1]);
+                    continue;
+            } 
             buf_transfer(previous_buf,buf,previous_size);
 
 
