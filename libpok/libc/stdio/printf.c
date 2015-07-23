@@ -134,7 +134,7 @@ static void print_float(t_putc putc,
  * finally, printf
  */
 //XXX for now precision is used only for floating points
-const char * handle_fmt(t_putc putc, void * out, const char* format, va_list args)
+const char * handle_fmt(t_putc putc, void * out, const char* format, va_list *args)
 {
     unsigned l = 0;
     int pad = 0;
@@ -174,7 +174,7 @@ const char * handle_fmt(t_putc putc, void * out, const char* format, va_list arg
            case 's':
                 {
                     //TODO implement l!=0 case
-                    const char *s = va_arg(args, const char *);
+                    const char *s = va_arg(*args, const char *);
                     if (!s)
                         s = (const char *)"(null)";
                     int len = strlen(s);
@@ -196,11 +196,11 @@ const char * handle_fmt(t_putc putc, void * out, const char* format, va_list arg
                     long long value;
 
                     if (l == 2)
-                        value = va_arg(args, unsigned long long);
+                        value = va_arg(*args, unsigned long long);
                     else if (l == 1)
-                        value = va_arg(args, unsigned long);
+                        value = va_arg(*args, unsigned long);
                     else 
-                        value = va_arg(args, unsigned );
+                        value = va_arg(*args, unsigned );
 
                     print_num(putc, out, value, 16, pad, 0, pad_with_zero);
                     return ++format;
@@ -210,11 +210,11 @@ const char * handle_fmt(t_putc putc, void * out, const char* format, va_list arg
                 {
                     long long value;
                     if (l == 2)
-                        value = va_arg(args, long long);
+                        value = va_arg(*args, long long);
                     else if (l == 1)
-                        value = va_arg(args, long);
+                        value = va_arg(*args, long);
                     else 
-                        value = va_arg(args, int);
+                        value = va_arg(*args, int);
                     int neg = value < 0;
                     if (neg)
                         value = -value;
@@ -225,11 +225,11 @@ const char * handle_fmt(t_putc putc, void * out, const char* format, va_list arg
                 {
                     long long value;
                     if (l == 2)
-                        value = va_arg(args, unsigned long long);
+                        value = va_arg(*args, unsigned long long);
                     else if (l == 1)
-                        value = va_arg(args, unsigned long);
+                        value = va_arg(*args, unsigned long);
                     else 
-                        value = va_arg(args, unsigned );
+                        value = va_arg(*args, unsigned );
 
                     print_num(putc, out, value, 10, pad, 0, pad_with_zero);
                     return ++format;
@@ -238,9 +238,9 @@ const char * handle_fmt(t_putc putc, void * out, const char* format, va_list arg
                 {
                     long double value;
                     if (l == 2)
-                        value = va_arg(args, long double);
+                        value = va_arg(*args, long double);
                     else
-                        value = va_arg(args, double);
+                        value = va_arg(*args, double);
                     int neg = value < 0;
                     if (neg)
                         value = -value;
@@ -251,7 +251,7 @@ const char * handle_fmt(t_putc putc, void * out, const char* format, va_list arg
                 }
             case 'c':
                 //TODO implement l!=0 case
-                putc(va_arg(args, unsigned ), out);
+                putc(va_arg(*args, unsigned ), out);
                 return ++format;
             case '%':
                 putc('%', out);
@@ -267,7 +267,7 @@ const char * handle_fmt(t_putc putc, void * out, const char* format, va_list arg
     return format;
 }
 
-void vprintf(t_putc putc, void *out, const char* format, va_list args)
+void vprintf(t_putc putc, void *out, const char* format, va_list *args)
 {
     while(*format) {
         if (*format == '%') {
@@ -286,7 +286,7 @@ int printf(const char *format, ...)
     struct s_file* out_file = init_buffered_output();
 
     va_start(args, format);
-    vprintf (buf_putc, out_file, format, args);
+    vprintf (buf_putc, out_file, format, &args);
     va_end(args);
 
     close_buffered_output(out_file);
