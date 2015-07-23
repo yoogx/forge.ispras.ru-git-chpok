@@ -1,9 +1,9 @@
 # -*- Mode: Python -*-
 
-Import('main_env')
+Import('env')
 
-main_env.Program(target = 'kernel.lo', source = [
-main_env['POK_PATH']+'/build/'+main_env['ARCH']+'/kernel/pok.lo',
+env.Program(target = 'kernel.lo', source = [
+env['POK_PATH']+'/build/'+env['ARCH']+'/kernel/pok.lo',
 'deployment.c'])
 
 # EOF

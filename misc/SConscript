@@ -1,0 +1,60 @@
+# -*- Mode: Python -*-
+
+import sys
+import os
+
+def print_cmd_line(s, target, src, env):
+	# s is the original command line, target and src are lists of target
+	# and source nodes respectively, and env is the environment.
+	sys.stdout.write("Making %s...\n" %(' and '.join([str(x) for x in target])))
+
+Import('env')
+
+# Flags common for all architectures
+#env['PRINT_CMD_LINE_FUNC'] = print_cmd_line
+env['CPPPATH'] = [env['POK_PATH']+'/kernel/include']
+env['LINKFLAGS'] = '-r'
+env['DEPLOYMENT_HEADER'] = '/home/alex/workspace/chpok-utils/kernel/deployment.h'
+env['PARTITIONS'] = ['pr1/pr1.elf']
+env['QEMU_FLAGS'] = ' -serial stdio'
+env['ARCH'] = env['arch']
+
+if env['ARCH'] == 'ppc':
+	# ppc-specific flags
+	env['CFLAGS'] = '-std=gnu99 -iwithprefix include -DPOK_ARCH_PPC -Wall -g -O -Wuninitialized \
+		-ffreestanding -nostdlib -nostdinc -mregnames -mcpu=e500mc \
+		-D__POK_C__ -DPOK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE=1'
+	env['BSP'] = 'e500mc'
+	env['AR'] = 'powerpc-elf-ar'
+	env['CC'] = 'powerpc-elf-gcc'
+	env['LINK'] = 'powerpc-elf-ld'
+	env['OBJCOPY'] = 'powerpc-elf-objcopy'
+	env['OBJDUMP'] = 'powerpc-elf-objdump'
+	env['RANLIB'] = 'powerpc-elf-ranlib'
+	env['ASFLAGS'] = env['CFLAGS']
+	env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
+	env['QEMU'] = 'qemu-system-ppc'
+	env.Append(QEMU_FLAGS = ' -M ppce500 -cpu e500mc -kernel pok.elf')
+
+elif env['ARCH'] == 'x86':
+	# x86-specific flags
+	env['CFLAGS'] = '-std=gnu99 -iwithprefix include -DPOK_ARCH_X86 -Wall -g -Og -Wuninitialized \
+		-ffreestanding -nostdlib -nostdinc \
+		-D__POK_C__ -DPOK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE=1'
+	env['BSP'] = 'x86-qemu'
+	env['AR'] = 'i386-elf-ar'
+	env['CC'] = 'i386-elf-gcc'
+	env['LINK'] = 'i386-elf-ld'
+	env['OBJCOPY'] = 'i386-elf-objcopy'
+	env['OBJDUMP'] = 'i386-elf-objdump'
+	env['RANLIB'] = 'i386-elf-ranlib'
+	env['ASFLAGS'] = env['CFLAGS']
+	env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
+	env['QEMU'] = 'qemu-system-i386'
+	env.Append(QEMU_FLAGS = ' -kernel pok.elf')
+
+Export('env')
+
+SConscript(env['SCONSTRUCT_DIR']+'/SConscript')
+
+# EOF

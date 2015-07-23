@@ -10,11 +10,6 @@ import arinc653_xml_conf
 import chpok_configuration
 import xml.etree.ElementTree as ET
 
-def print_cmd_line(s, target, src, main_env):
-	# s is the original command line, target and src are lists of target
-	# and source nodes respectively, and main_env is the main_environment.
-	sys.stdout.write("Making %s...\n" %(' and '.join([str(x) for x in target])))
-
 vars = Variables()
 vars.AddVariables(
 	('directory', 'directory', '.'),
@@ -22,66 +17,27 @@ vars.AddVariables(
 	('arch', 'architecture', 'ppc')
 )
 
-main_env = Environment(variables = vars, ENV = os.environ)
+env = Environment(variables = vars, ENV = os.environ)
 
-# Flags common for all architectures
-#main_main_env['PRINT_CMD_LINE_FUNC'] = print_cmd_line
-main_env['POK_PATH'] = os.environ['POK_PATH']
-main_env['CPPPATH'] = [main_env['POK_PATH']+'/kernel/include']
-main_env['LINKFLAGS'] = '-r'
-main_env['DEPLOYMENT_HEADER'] = main_env['POK_PATH']+'/examples/pure-arinc653-buffer/kernel/deployment.h'
-main_env['PARTITIONS'] = ['pr1/pr1.elf']
-main_env.Append(QEMU_MISC = '-serial file:/dev/stdout -s -S')
-main_env['ARCH'] = main_env['arch']
+env['POK_PATH'] = os.environ['POK_PATH']
+env['SCONSTRUCT_DIR'] = Dir('.').abspath
 
-if main_env['arch'] == 'ppc':
-	# ppc-specific flags
-	main_env['CFLAGS'] = '-std=gnu99 -iwithprefix include -DPOK_ARCH_PPC -Wall -g -O -Wuninitialized \
-		-ffreestanding -nostdlib -nostdinc -mregnames -mcpu=e500mc \
-		-D__POK_C__ -DPOK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE=1'
-	main_env['BSP'] = 'e500mc'
-	main_env['AR'] = 'powerpc-elf-ar'
-	main_env['CC'] = 'powerpc-elf-gcc'
-	main_env['LINK'] = 'powerpc-elf-ld'
-	main_env['OBJCOPY'] = 'powerpc-elf-objcopy'
-	main_env['OBJDUMP'] = 'powerpc-elf-objdump'
-	main_env['RANLIB'] = 'powerpc-elf-ranlib'
-	main_env['ASFLAGS'] = main_env['CFLAGS']
-	main_env['LIBGCC'] = '/home/alex/workspace/powerpc-elf-4.9.1-Linux-x86_64/lib/gcc/powerpc-elf/4.9.1/libgcc.a'
-	main_env['QEMU'] = './qemu_wrapper.py qemu-system-ppc'
+Export('env')
 
-elif main_env['arch'] == 'x86':
-	# x86-specific flags
-	main_env['CFLAGS'] = '-std=gnu99 -iwithprefix include -DPOK_ARCH_X86 -Wall -g -O -Wuninitialized \
-		-ffreestanding -nostdlib -nostdinc \
-		-D__POK_C__ -DPOK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE=1'
-	main_env['BSP'] = 'x86-qemu'
-	main_env['AR'] = 'i386-elf-ar'
-	main_env['CC'] = 'i386-elf-gcc'
-	main_env['LINK'] = 'i386-elf-ld'
-	main_env['OBJCOPY'] = 'i386-elf-objcopy'
-	main_env['OBJDUMP'] = 'i386-elf-objdump'
-	main_env['RANLIB'] = 'i386-elf-ranlib'
-	main_env['ASFLAGS'] = main_env['CFLAGS']
-	main_env['LIBGCC'] = '/home/alex/workspace/i386-elf-4.9.1-Linux-x86_64/lib/gcc/i386-elf/4.9.1/libgcc.a'
-	main_env['QEMU'] = './qemu_wrapper.py qemu-system-i386'
-
-Export('main_env')
-
-partition_dirs = (os.path.join(main_env['directory'], "pr%d" % i) for i in itertools.count(1))
+partition_dirs = (os.path.join(env['directory'], "pr%d" % i) for i in itertools.count(1))
 partition_dirs = list(itertools.islice(partition_dirs, 255)) # XXX limited to 255 partitions right now
-kernel_dir = os.path.join(main_env['directory'], "kernel")
+kernel_dir = os.path.join(env['directory'], "kernel")
 
-root = ET.parse(main_env['xml'])
+root = ET.parse(env['xml'])
 
 parser = arinc653_xml_conf.ArincConfigParser()
 conf = parser.parse(root)
 
 chpok_configuration.write_configuration(conf, kernel_dir, partition_dirs)
-	
-SConscript('kernel/SConscript')
-SConscript(main_env['POK_PATH']+'build/SConscript')
-SConscript('pr1/SConscript')
-SConscript('SConscript')
+
+SConscript(env['POK_PATH']+'/misc/SConscript')
+
+env.Command('run', [], env['QEMU']+env['QEMU_FLAGS'])
+env.Ignore('.', 'run')
 
 # EOF
