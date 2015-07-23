@@ -48,6 +48,7 @@ class TimeSlotPartition(TimeSlot):
     __slots__ = [
         "partition",
         "periodic_processing_start",
+        "name",
     ]
 
     def get_kind_constant(self):
@@ -67,6 +68,12 @@ class TimeSlotNetwork(TimeSlot):
 
     def get_kind_constant(self):
         return "POK_SLOT_NETWORKING"
+#code
+class TimeSlotMonitor(TimeSlot):
+    __slots__ = []
+
+    def get_kind_constant(self):
+        return "POK_SLOT_MONITOR"
 
 class Partition:
     __slots__ = [
@@ -401,6 +408,7 @@ TIMESLOT_PARTITION_TEMPLATE = """\
       .duration = %(duration)d,
       .partition = 
       { .id = %(partition)d,
+        .name = "%(name)s",
         .periodic_processing_start = %(periodic_processing_start)s,
       }
     },
@@ -408,6 +416,12 @@ TIMESLOT_PARTITION_TEMPLATE = """\
 
 TIMESLOT_NETWORKING_TEMPLATE = """\
     { .type = POK_SLOT_NETWORKING,
+      .duration = %(duration)d,
+    },
+"""
+
+TIMESLOT_MONITOR_TEMPLATE = """\
+    { .type = POK_SLOT_MONITOR,
       .duration = %(duration)d,
     },
 """
@@ -575,6 +589,9 @@ def write_kernel_deployment_h(conf, f):
         p("#define POK_NEEDS_PCI 1")
         p("#define POK_NEEDS_NETWORKING 1")
         p("#define POK_NEEDS_NETWORKING_VIRTIO 1")
+        
+
+    p("#define POK_NEEDS_MONITOR 1")
 
     total_threads = (
         1 + # kernel thread
@@ -587,7 +604,9 @@ def write_kernel_deployment_h(conf, f):
 
     if conf.network:
         total_threads += 1
-
+#Add 1 thread for monitor
+    total_threads +=1	
+	
     p("#define POK_CONFIG_NB_THREADS %d" % total_threads)
 
     p("#define POK_CONFIG_PARTITIONS_NTHREADS {%s}" % ", ".join(
@@ -656,10 +675,17 @@ def write_kernel_deployment_c(conf, f):
             p(TIMESLOT_PARTITION_TEMPLATE % dict(
                 duration=slot.duration,
                 partition=slot.partition,
+                name=slot.name,
                 periodic_processing_start="TRUE" if slot.periodic_processing_start else "FALSE"
+
             ))
         elif isinstance(slot, TimeSlotNetwork):
             p(TIMESLOT_NETWORKING_TEMPLATE % dict(
+                duration=slot.duration
+            ))
+        elif isinstance(slot, TimeSlotMonitor):
+            pass
+            p(TIMESLOT_MONITOR_TEMPLATE % dict(
                 duration=slot.duration
             ))
         else:

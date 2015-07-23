@@ -36,6 +36,14 @@ typedef enum
 #if defined(POK_NEEDS_NETWORKING)
     POK_SLOT_NETWORKING = 2,
 #endif
+
+#if defined(POK_NEEDS_MONITOR)
+ 
+    POK_SLOT_MONITOR = 2,
+
+#endif
+
+
 } pok_sched_slot_type_t;
 
 typedef struct
@@ -49,6 +57,7 @@ typedef struct
         struct {
             pok_partition_id_t id;
             pok_bool_t periodic_processing_start;
+            char name[128];
         } partition;
     };
 } pok_sched_slot_t;

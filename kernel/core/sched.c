@@ -59,6 +59,8 @@
 #include <net/network.h>
 #endif
 
+
+
 #include <dependencies.h>
 
 #include <core/debug.h>
@@ -113,16 +115,27 @@ void pok_sched_init (void)
  */
 static pok_bool_t pok_elect_partition(void)
 {
+    int partition_id;
     uint64_t now = POK_GETTICK();
 
     if (pok_sched_next_deadline > now) {
         return FALSE;
     }
 
-    pok_sched_current_slot = (pok_sched_current_slot + 1) % POK_CONFIG_SCHEDULING_NBSLOTS;
-    pok_sched_next_deadline += pok_module_sched[pok_sched_current_slot].duration; 
+    for (int i=1; i<=POK_CONFIG_SCHEDULING_NBSLOTS; i++){
+        pok_sched_current_slot = (pok_sched_current_slot + 1) % POK_CONFIG_SCHEDULING_NBSLOTS;
+        if (pok_module_sched[pok_sched_current_slot].type != POK_SLOT_PARTITION) {
+            pok_sched_next_deadline += pok_module_sched[pok_sched_current_slot].duration; 
+            return TRUE;
+        }
+        partition_id = pok_module_sched[pok_sched_current_slot].partition.id;
+        if (pok_partitions[partition_id].is_paused == FALSE) {
+            pok_sched_next_deadline += pok_module_sched[pok_sched_current_slot].duration; 
+            return TRUE;
+        }
+    }
+    return FALSE;
 
-    return TRUE;
 }
 #endif
 
@@ -321,6 +334,14 @@ void pok_sched()
             case POK_SLOT_NETWORKING:
                 break;
 #endif
+
+
+#if defined(POK_NEEDS_MONITOR)
+            case POK_SLOT_MONITOR:
+                break;
+#endif
+
+
             default:
                 assert(FALSE);
         }
@@ -359,6 +380,17 @@ void pok_sched()
         elected_thread = NETWORK_THREAD;
     }
 #endif
+
+#if defined(POK_NEEDS_MONITOR)
+
+    else if (slot->type == POK_SLOT_MONITOR) {
+        elected_thread = MONITOR_THREAD;
+    }
+
+#endif
+
+
+
     else {
         assert(FALSE);
     }

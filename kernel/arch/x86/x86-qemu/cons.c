@@ -47,6 +47,30 @@ void write_serial(char a) {
 #endif
 
 
+#define COM_LSR		5	// In:	Line Status Register
+#define COM_RX		0	// In:	Receive buffer (DLAB=0)
+#define   COM_LSR_DATA	0x01	//   Data available
+#define   COM_LSR_RFE	0x80	//   Error in Received FIFO
+	
+int data_to_read() //return 0 if no data to read
+{
+	if (!(inb(COM1+COM_LSR) & COM_LSR_DATA))
+		return 0;
+	return 1;
+}
+
+int read_serial()
+{
+	int data;
+	data=inb(COM1+COM_RX);
+	if ( !(inb(COM1+COM_LSR) & COM_LSR_RFE) )
+		return data;
+	return -1;
+
+}
+
+
+
 
 void pok_cons_print_char (const char c)
 {

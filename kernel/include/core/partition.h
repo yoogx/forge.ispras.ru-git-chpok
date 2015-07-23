@@ -101,6 +101,7 @@ typedef enum
  */
 typedef struct
 {
+   pok_bool_t               is_paused;      /*Partition paused or not*/
    uint32_t                 base_addr;    /**< The base address inside the whole memory (where the segment is in the whole memory ?) */
    uint32_t                 base_vaddr;   /**< The virtual address of the partition. The address the threads sees when they are
                                         *    executed

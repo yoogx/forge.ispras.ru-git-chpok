@@ -1,0 +1,29 @@
+This's a very simple example of pure ARINC653 application for POK. 
+
+It starts two processes, and one of them sends messages to the other via 
+buffer API.
+
+Compiler toolchain (default system will do) and qemu has to be installed.
+
+First, set POK_PATH environment variable to the path of POK
+(e.g. 'export POK_PATH=/tmp/pok'). 
+It should be set all the time, including the first run and subsequent ones.
+
+Then, run 'make configure' from POK's root directory.
+Script will find compiler, linker and other utils.
+The command only needs to run  only once.
+
+After that, change directory to this example, run 'make',
+and, if build is successful, 'make run'.
+
+== Useful files ==
+    kernel/deployment.h - kernel configuration (number of partitions, processes, and other resources)
+    kernel/Makefile 
+
+    pr1/deployment.h - configuration file for the first partition
+    pr1/main.c - you can find the partition's entry point here
+    pr1/Makefile - if you need multiple source file, OBJS variable might be useful
+
+    Makefile
+
+-- If you have any questions, please email me at malkov@ispras.ru

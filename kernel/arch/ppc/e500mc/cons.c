@@ -52,6 +52,27 @@ static void write_serial(char a)
    ns16550_writeb(NS16550_REG_THR, a);
 }
 
+#define UART_LSR_DR   0x01
+#define UART_LSR_RFE  0x80
+	
+int data_to_read() //return 0 if no data to read
+		  
+{
+	if (!(ns16550_readb(NS16550_REG_LSR) & UART_LSR_DR))
+		return 0;
+	return 1;
+}
+
+int read_serial()
+{
+	int data;
+	data=ns16550_readb(NS16550_REG_THR);
+	if ( !(ns16550_readb(NS16550_REG_LSR) & UART_LSR_RFE) )
+		return data;
+	return -1;
+
+}
+
 pok_bool_t pok_cons_write (const char *s, size_t length)
 {
    for (; length > 0; length--)
