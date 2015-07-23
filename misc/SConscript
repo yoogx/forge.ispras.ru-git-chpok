@@ -6,12 +6,18 @@ import os
 def print_cmd_line(s, target, src, env):
 	# s is the original command line, target and src are lists of target
 	# and source nodes respectively, and env is the environment.
-	sys.stdout.write("Making %s...\n" %(' and '.join([str(x) for x in target])))
+
+        # For now len is always 1
+        if len(target) == 1:
+            x = str(target[0])
+            sys.stdout.write("%s ...\n" % os.path.relpath(x, start=env['POK_PATH']))
+        else:
+            sys.stdout.write("Making %s...\n" %(' and '.join([str(x) for x in target])))
 
 Import('env')
 
 # Flags common for all architectures
-#env['PRINT_CMD_LINE_FUNC'] = print_cmd_line
+env['PRINT_CMD_LINE_FUNC'] = print_cmd_line
 env['CPPPATH'] = [env['POK_PATH']+'/kernel/include']
 env['LINKFLAGS'] = '-r'
 env['PARTITIONS'] = ['pr1/pr1.elf']
