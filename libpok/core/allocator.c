@@ -80,7 +80,7 @@ void pok_allocator_print_spaces ()
    printf ("[LIBPOK] [ALLOCATOR] Used spaces = %lu\n", (unsigned long) pok_allocator_used_spaces);
    for (space = 0 ; space < pok_allocator_used_spaces ; space++)
    {
-      printf ("[LIBPOK] [ALLOCATOR] Space %lu start=%d size=%d allocated=%d\n",
+      printf ("[LIBPOK] [ALLOCATOR] Space %lu start=%zu size=%zu allocated=%d\n",
               (unsigned long) space,
               pok_allocator_spaces[space].start,
               pok_allocator_spaces[space].size,
@@ -104,13 +104,13 @@ void* pok_allocator_allocate (size_t needed_size)
    }
 
 #ifdef POK_NEEDS_DEBUG
-   printf("Try to take a new memory chunk, required space=%d\n", needed_size);
+   printf("Try to take a new memory chunk, required space=%zu\n", needed_size);
 #endif
 
    for (space = 0 ; space < pok_allocator_used_spaces ; space++)
    {
 #ifdef POK_NEEDS_DEBUG
-      printf ("[LIBPOK] [ALLOCATOR] Look space %lu, size %d, allocated=%d\n",
+      printf ("[LIBPOK] [ALLOCATOR] Look space %lu, size %zu, allocated=%d\n",
               (unsigned long) space,
               pok_allocator_spaces[space].size,
               pok_allocator_spaces[space].allocated);
@@ -147,7 +147,7 @@ void* pok_allocator_allocate (size_t needed_size)
             pok_allocator_spaces[new_space].start        = pok_allocator_spaces[space].start + needed_size;
 
 #ifdef POK_NEEDS_DEBUG
-            printf("[LIBPOK] [ALLOCATOR] Allocate space %lu, CREATE NEW SPACE %lu (size=%d)\n",
+            printf("[LIBPOK] [ALLOCATOR] Allocate space %lu, CREATE NEW SPACE %lu (size=%zu)\n",
                     (unsigned long) space,
                     (unsigned long) new_space,
                     pok_allocator_spaces[new_space].size);
@@ -160,7 +160,7 @@ void* pok_allocator_allocate (size_t needed_size)
    }
 
 #ifdef POK_NEEDS_DEBUG
-      printf ("[LIBPOK] [ALLOCATOR] Didn't find any space for that amount of memory (%d)\n", needed_size);
+      printf ("[LIBPOK] [ALLOCATOR] Didn't find any space for that amount of memory (%zu)\n", needed_size);
 #endif
    return NULL;
 }

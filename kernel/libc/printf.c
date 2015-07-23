@@ -169,6 +169,10 @@ const char * handle_fmt(t_putc putc, void * out, const char* format, va_list arg
                 was_dot = 1;
                 format++;
                 break;
+           case 'z':		// size_t modifier
+                l = 0;
+                format++;
+                break;
            case 's':
                 {
                     //TODO implement l!=0 case
