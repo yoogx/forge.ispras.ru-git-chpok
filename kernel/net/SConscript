@@ -1,0 +1,8 @@
+# -*- Mode: Python -*-
+
+Import('kernel_env')
+
+kernel_env.Program(target = 'net.lo', source = Glob('*.c'))
+
+
+# EOF

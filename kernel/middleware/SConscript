@@ -1,0 +1,7 @@
+# -*- Mode: Python -*-
+
+Import('kernel_env')
+
+kernel_env.Program(target = 'middleware.lo', source = Glob('*.c'))
+
+# EOF

@@ -1,0 +1,10 @@
+# -*- Mode: Python -*-
+
+Import('libpok_env')
+
+libpok_core_env = libpok_env.Clone()
+libpok_core_env.Append(CPPPATH = libpok_core_env['POK_PATH']+'/libpok/core')
+
+libpok_env.Program(target = 'core.lo', source = Glob('*.c'))
+
+# EOF

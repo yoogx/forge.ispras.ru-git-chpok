@@ -1,0 +1,31 @@
+# -*- Mode: Python -*-
+
+Import('env')
+
+libpok_env = env.Clone()
+
+libpok_env.Append(CFLAGS = ' -include /home/alex/workspace/chpok-utils/pr1/deployment.h')
+libpok_env['CPPPATH'] = [env['POK_PATH']+'/libpok/include']
+
+libpok_env.StaticLibrary(target = 'pok', source = [
+'arch/arch.lo',
+'core/core.lo',
+'drivers/drivers.lo',
+'middleware/middleware.lo',
+'arinc653/arinc653.lo',
+'libm/libm.lo',
+'protocols/protocols.lo',
+'libc/libc.lo'])
+
+Export('libpok_env')
+
+SConscript('arch/SConscript')
+SConscript('core/SConscript')
+SConscript('drivers/SConscript')
+SConscript('middleware/SConscript')
+SConscript('arinc653/SConscript')
+SConscript('libm/SConscript')
+SConscript('protocols/SConscript')
+SConscript('libc/SConscript')
+
+# EOF

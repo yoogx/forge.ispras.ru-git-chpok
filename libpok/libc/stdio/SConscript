@@ -1,0 +1,10 @@
+# -*- Mode: Python -*-
+
+Import('libpok_env')
+
+libpok_stdio_env = libpok_env.Clone()
+libpok_stdio_env.Append(CPPPATH = libpok_stdio_env['POK_PATH']+'/libpok/libc/stdio')
+
+libpok_stdio_env.Program(target = 'stdio.lo', source = Glob('*.c'))
+
+# EOF

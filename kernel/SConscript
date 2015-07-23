@@ -1,0 +1,25 @@
+# -*- Mode: Python -*-
+
+Import('env')
+
+kernel_env = env.Clone()
+kernel_env.Append(CFLAGS = ' -include '+kernel_env['DEPLOYMENT_HEADER']+' -Werror')
+
+kernel_env.Program(target = 'pok.lo', source = [
+'core/core.lo',
+'middleware/middleware.lo',
+'libc/libc.lo',
+'arch/arch.lo',
+'drivers/drivers.lo',
+'net/net.lo'])
+
+Export('kernel_env')
+
+SConscript('core/SConscript')
+SConscript('middleware/SConscript')
+SConscript('libc/SConscript')
+SConscript('arch/SConscript')
+SConscript('drivers/SConscript')
+SConscript('net/SConscript')
+
+# EOF

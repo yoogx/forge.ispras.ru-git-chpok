@@ -1,0 +1,13 @@
+# -*- Mode: Python -*-
+
+Import('kernel_env')
+
+kernel_env.Program(target = 'ppc.lo', source = [
+Glob('*.[Sc]'),
+'e500mc/e500mc.lo',
+'libfdt/libfdt.lo'])
+
+SConscript('e500mc/SConscript')
+SConscript('libfdt/SConscript')
+
+# EOF

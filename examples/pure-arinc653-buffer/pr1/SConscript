@@ -1,0 +1,37 @@
+# -*- Mode: Python -*-
+
+Import('env')
+
+pr1_env = env.Clone()
+pr1_env['CPPPATH'] = [pr1_env['POK_PATH']+'/libpok/include', pr1_env['POK_PATH']+'/examples/pure-arinc653-buffer']
+pr1_env.Append(CFLAGS = ' -include /home/alex/workspace/chpok/examples/pure-arinc653-buffer/pr1/deployment.h')
+
+source_objs = [
+'main.c',
+'deployment.c']
+
+build_path_libpok = pr1_env['POK_PATH']+'/build/'+pr1_env['ARCH']+'/libpok'
+
+libpart = pr1_env.StaticLibrary(target = 'part', source = [
+source_objs,
+build_path_libpok+'/arch/arch.lo',
+build_path_libpok+'/core/core.lo',
+build_path_libpok+'/drivers/drivers.lo',
+build_path_libpok+'/middleware/middleware.lo',
+build_path_libpok+'/arinc653/arinc653.lo',
+build_path_libpok+'/libm/libm.lo',
+build_path_libpok+'/protocols/protocols.lo',
+build_path_libpok+'/libc/libc.lo'])
+
+pr1_env['LINKFLAGS'] = str(' -T '+pr1_env['POK_PATH']+'/misc/ldscripts/'+pr1_env['ARCH']+'/'+pr1_env['BSP']+'/partition.lds'+
+' -Map pr1/pr1.elf.map')
+
+pr1_command = pr1_env.Command(target = 'pr1.elf',
+source = source_objs,
+action = pr1_env['LINK']+pr1_env['LINKFLAGS']+' '+
+'pr1/main.o pr1/deployment.o'+
+' -o pr1/pr1.elf -L'+build_path_libpok+' -lpok '+
+pr1_env['LIBGCC'])
+pr1_env.Depends(pr1_command, [libpart, build_path_libpok+'/libpok.a'])
+
+# EOF

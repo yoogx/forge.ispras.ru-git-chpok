@@ -1,0 +1,58 @@
+# -*- Mode: Python -*-
+
+import os
+import shutil
+
+Import('env')
+
+pok_env = env.Clone()
+pok_env.Append(CPPPATH = pok_env['POK_PATH']+'/kernel/include')
+
+pok_env['LINKFLAGS'] = str(' -T '+pok_env['POK_PATH']+'/misc/ldscripts/'+pok_env['ARCH']+'/'+pok_env['BSP']+'/kernel.lds'+
+' -Map pok.elf.map')
+
+# there should (perhaps) also be padding to get aligned file size
+def merge_partitions(target, source, env):
+	with open('partitions.bin', 'wb') as part:
+		for p in pok_env['PARTITIONS']:
+			with open(p, 'rb') as orig_part:
+				shutil.copyfileobj(orig_part, part)
+
+def create_sizes_c(target, source, env):
+	with open('sizes.c', 'w') as sizes:
+		sizes.write('#include <types.h>\n')
+		sizes.write('uint32_t pok_elf_sizes[] = {\n')
+		for p in pok_env['PARTITIONS']:
+			sizes.write(str(os.path.getsize(p)))
+			if pok_env['PARTITIONS'].index(p) != len(pok_env['PARTITIONS']) - 1:
+				sizes.write(',\n')
+		sizes.write('\n};\n')
+
+merge_command = pok_env.Command(target = 'partitions.bin',
+source = [],
+action = merge_partitions)
+pok_env.Depends(merge_command, pok_env['PARTITIONS'])
+
+sizes_c_command = pok_env.Command(target = 'sizes.c',
+source = [],
+action = create_sizes_c)
+pok_env.Depends(sizes_c_command, pok_env['PARTITIONS'])
+
+compile_sizes = pok_env.Command(target = 'sizes.o',
+source = 'sizes.c',
+action = [
+pok_env['CC']+' -c -o sizes.o '+pok_env['CFLAGS']+' -I'+pok_env['POK_PATH']+'/kernel/include'+' sizes.c',
+pok_env['OBJCOPY']+' --add-section .archive2=partitions.bin sizes.o'])
+pok_env.Depends(compile_sizes, sizes_c_command)
+
+pok_target = pok_env.Program(target = 'pok.elf', source = [
+'sizes.o',
+'kernel/kernel.lo',
+pok_env['LIBGCC']])
+pok_env.Depends(pok_target, compile_sizes)
+
+SConscript('kernel/SConscript')
+SConscript('pr1/SConscript')
+SConscript(env['POK_PATH']+'build/SConscript')
+
+# EOF

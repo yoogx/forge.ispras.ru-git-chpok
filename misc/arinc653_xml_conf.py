@@ -1,14 +1,10 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 
-import os
-
-import itertools
-
-import ipaddress
-
+#import os
+#import itertools
+import ipaddr
 import chpok_configuration
-
-import xml.etree.ElementTree as ET
+#import xml.etree.ElementTree as ET
 
 def parse_bool(s):
     # this follows xsd:boolean
@@ -173,7 +169,7 @@ class ArincConfigParser:
         elif root.tag == "UDP":
             res = chpok_configuration.UDPConnection()
 
-            res.host = ipaddress.ip_address(root.attrib["IP"])
+            res.host = ipaddr.ip_address(root.attrib["IP"])
             res.port = int(root.attrib["Port"])
         else:
             raise RuntimeError("unknown connection tag name %r" % root.tag)
@@ -186,7 +182,7 @@ class ArincConfigParser:
 
         res = chpok_configuration.NetworkConfiguration()
 
-        res.ip = ipaddress.ip_address(root.attrib["IP"])
+        res.ip = ipaddr.ip_address(root.attrib["IP"])
         
         #if "MAC" in root.attrib:
         #    res.mac = bytes(int(x, 16) for x in root.attrib["MAC"].split(":"))
@@ -210,7 +206,7 @@ class ArincConfigParser:
             ))
 
         return res
-
+'''
 def parse_args():
     import argparse
 
@@ -238,3 +234,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+'''
