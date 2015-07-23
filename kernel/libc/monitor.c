@@ -9,6 +9,10 @@
 #define NCOMMANDS 8 //Number of commands, change it if you want to 
 		            //add a new command.
 
+/*
+ *  Don't use '[' in your command!
+ */
+
 
 
 /*
@@ -135,19 +139,19 @@ int info_partition(int argc,char **argv){
     printf("\n\n");
     printf("Info about partition #%d\n",number);
     printf("is_paused = %d\n",pok_partitions[number].is_paused);
-    printf("base_addr = 0x%x\n",pok_partitions[number].base_addr);     
-    printf("base_vaddr = 0x%x\n",pok_partitions[number].base_vaddr);   	
-    printf("size = 0x%d\n",pok_partitions[number].size);  	
+    printf("base_addr = 0x%lx\n",pok_partitions[number].base_addr);     
+    printf("base_vaddr = 0x%lx\n",pok_partitions[number].base_vaddr);   	
+    printf("size = 0x%lx\n",pok_partitions[number].size);  	
     printf("name = %s\n",pok_partitions[number].name);    	
-    printf("nthreads = %d\n",pok_partitions[number].nthreads);    	
+    printf("nthreads = %lu\n",pok_partitions[number].nthreads);    	
     printf("priority = 0x%x\n",pok_partitions[number].priority);  	
-    printf("period = %d\n",pok_partitions[number].period);   	
-    printf("activation = %d\n",pok_partitions[number].activation);     	
-    printf("prev_thread = %d\n",pok_partitions[number].prev_thread); 	
-    printf("current_thread = %d\n",pok_partitions[number].current_thread);   	
-    printf("thread_index_low = %d\n",pok_partitions[number].thread_index_low);   	
-    printf("thread_index_high = %d\n",pok_partitions[number].thread_index_high);    	
-    printf("thread_index = %d\n",pok_partitions[number].thread_index);  	
+    printf("period = %lu\n",pok_partitions[number].period);   	
+    printf("activation = %llu\n",pok_partitions[number].activation);     	
+    printf("prev_thread = %lu\n",pok_partitions[number].prev_thread); 	
+    printf("current_thread = %lu\n",pok_partitions[number].current_thread);   	
+    printf("thread_index_low = %lu\n",pok_partitions[number].thread_index_low);   	
+    printf("thread_index_high = %lu\n",pok_partitions[number].thread_index_high);    	
+    printf("thread_index = %lu\n",pok_partitions[number].thread_index);  	
 #if defined(POK_NEEDS_LOCKOBJECTS) || defined(POK_NEEDS_ERROR_HANDLING)
     printf("lockobj_index_low = 0x%x\n",pok_partitions[number].lockobj_index_low);   	
     printf("lockobj_index_high = 0x%x\n",pok_partitions[number].lockobj_index_high);    	

@@ -21,7 +21,7 @@ readline(const char *prompt)
 	if (prompt != NULL)
 		printf("%s", prompt);
 	int i = 0;
-	long int c = 0;	
+	int c = 0;	
 	while (1) {
 		c = getchar();
 		if (c < 0) {
