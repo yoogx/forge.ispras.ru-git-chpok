@@ -73,13 +73,20 @@ pok_ret_t pok_blackboard_display (const pok_blackboard_id_t   id,
       return POK_ERRNO_EINVAL;
    }
 
-   pok_event_lock (pok_blackboards[id].lock);
+   if (pok_event_lock(pok_blackboards[id].lock) != POK_ERRNO_OK) {
+        return pok_errno_einval;
+   }
+
+
 
    memcpy (&pok_blackboards_data[pok_blackboards[id].index], message, len);
    pok_blackboards[id].current_message_size = len;
    pok_blackboards[id].empty = FALSE;
 
-   pok_event_unlock (pok_blackboards[id].lock);
+   if (pok_event_unlock(pok_blackboards[id].lock) != POK_ERRNO_OK) {
+        return pok_errno_einval;
+   }
+
 
    pok_event_broadcast (pok_blackboards[id].lock);
 
