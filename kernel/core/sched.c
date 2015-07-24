@@ -47,9 +47,7 @@
 #include <core/sched.h>
 #include <core/thread.h>
 
-#ifdef POK_NEEDS_PARTITIONS
 #include <core/partition.h>
-#endif
 
 #if defined(POK_NEEDS_PORTS_QUEUEING) || defined(POK_NEEDS_PORTS_SAMPLING)
 #include <middleware/port.h>
@@ -71,8 +69,9 @@
 
 extern pok_thread_t       pok_threads[];
 
-#ifdef POK_NEEDS_PARTITIONS
 extern pok_partition_t    pok_partitions[];
+
+pok_bool_t current_partition_on_pause = FALSE;
 
 /**
  * \brief The variable that contains the value of partition currently being executed
@@ -80,7 +79,6 @@ extern pok_partition_t    pok_partitions[];
 uint8_t                   pok_current_partition;
 
 void                      pok_sched_partition_switch();
-#endif
 
 uint64_t            pok_sched_next_deadline;
 uint64_t            pok_sched_next_major_frame;
@@ -105,7 +103,6 @@ void pok_sched_init (void)
    }
 }
 
-#ifdef POK_NEEDS_PARTITIONS
 /*
  * Changes current scheduling slot,
  * if it's time to.
@@ -122,22 +119,22 @@ static pok_bool_t pok_elect_partition(void)
         return FALSE;
     }
 
-    for (int i=1; i<=POK_CONFIG_SCHEDULING_NBSLOTS; i++){
-        pok_sched_current_slot = (pok_sched_current_slot + 1) % POK_CONFIG_SCHEDULING_NBSLOTS;
-        if (pok_module_sched[pok_sched_current_slot].type != POK_SLOT_PARTITION) {
-            pok_sched_next_deadline += pok_module_sched[pok_sched_current_slot].duration; 
-            return TRUE;
-        }
-        partition_id = pok_module_sched[pok_sched_current_slot].partition.id;
-        if (pok_partitions[partition_id].is_paused == FALSE) {
-            pok_sched_next_deadline += pok_module_sched[pok_sched_current_slot].duration; 
-            return TRUE;
-        }
+    pok_sched_current_slot = (pok_sched_current_slot + 1) % POK_CONFIG_SCHEDULING_NBSLOTS;
+    if (pok_module_sched[pok_sched_current_slot].type != POK_SLOT_PARTITION) {
+        pok_sched_next_deadline += pok_module_sched[pok_sched_current_slot].duration; 
+        current_partition_on_pause = FALSE;
+        return TRUE;
     }
-    return FALSE;
+    partition_id = pok_module_sched[pok_sched_current_slot].partition.id;
+    pok_sched_next_deadline += pok_module_sched[pok_sched_current_slot].duration; 
+    if (pok_partitions[partition_id].is_paused == TRUE) {
+        current_partition_on_pause = TRUE;
+    }else{
+        current_partition_on_pause = FALSE;
+    }                    
+    return TRUE;
 
 }
-#endif
 
 #ifdef POK_TEST_SUPPORT_PRINT_WHEN_ALL_THREADS_STOPPED
 static void check_all_threads_stopped(void) {
@@ -180,7 +177,6 @@ static void check_all_threads_stopped(void) {
 }
 #endif
 
-#ifdef POK_NEEDS_PARTITIONS
 
 static void pok_unlock_sleeping_threads(pok_partition_t *new_partition)
 {
@@ -285,12 +281,6 @@ static pok_thread_id_t pok_elect_thread(void)
          }
       
           elected = new_partition->scheduler->elect_thread();
-#ifdef POK_NEEDS_INSTRUMENTATION
-          if ( (elected != IDLE_THREAD) && (elected != new_partition->thread_main))
-          {
-            pok_instrumentation_running_task (elected);
-          }
-#endif
          break;
 
       default:
@@ -306,9 +296,7 @@ static pok_thread_id_t pok_elect_thread(void)
 
    return elected;
 }
-#endif /* POK_NEEDS_PARTITIONS */
 
-#ifdef POK_NEEDS_PARTITIONS
 void pok_sched()
 {
     const pok_sched_slot_t *slot;
@@ -320,109 +308,79 @@ void pok_sched()
 
         slot = &pok_module_sched[pok_sched_current_slot];
 
-        switch (slot->type) {
-            case POK_SLOT_SPARE:
-                break;
-            case POK_SLOT_PARTITION:
+        if (slot->type == POK_SLOT_PARTITION) {
                 pok_current_partition = slot->partition.id;
 #if defined(POK_NEEDS_PORTS_SAMPLING) || defined(POK_NEEDS_PORTS_QUEUEING)
                 // beginning of partition window would be reasonable time to do this kind of stuff
                 pok_port_flush_partition(POK_SCHED_CURRENT_PARTITION);
 #endif
-                break;
-#if defined(POK_NEEDS_NETWORKING)
-            case POK_SLOT_NETWORKING:
-                break;
-#endif
-
-
-#if defined(POK_NEEDS_MONITOR)
-            case POK_SLOT_MONITOR:
-                break;
-#endif
-
-
-            default:
-                assert(FALSE);
         }
     } else {
         slot = &pok_module_sched[pok_sched_current_slot];
     }
 
-    if (slot->type == POK_SLOT_SPARE) {
-        // always idle here
-        elected_thread = IDLE_THREAD;
-    }
-    else if (slot->type == POK_SLOT_PARTITION) {
+    
+    switch (slot->type){
+
+        case POK_SLOT_SPARE:
+             // always idle here
+            elected_thread = IDLE_THREAD;
+            break;
+
+        
+        case POK_SLOT_PARTITION:
 #ifdef POK_NEEDS_ERROR_HANDLING
-        pok_error_check_deadlines();
+            pok_error_check_deadlines();
 #endif 
-        elected_thread = pok_elect_thread();
+            elected_thread = pok_elect_thread();
 
-        if (pok_partitions[pok_current_partition].current_thread != elected_thread) {
-            if (pok_partitions[pok_current_partition].current_thread != IDLE_THREAD) {
-                // prev_thread is never IDLE_THREAD (because it's not relevant)
-                pok_partitions[pok_current_partition].prev_thread = pok_partitions[pok_current_partition].current_thread;
+            if (pok_partitions[pok_current_partition].current_thread != elected_thread) {
+                if (pok_partitions[pok_current_partition].current_thread != IDLE_THREAD) {
+                    // prev_thread is never IDLE_THREAD (because it's not relevant)
+                    pok_partitions[pok_current_partition].prev_thread = pok_partitions[pok_current_partition].current_thread;
+                }
+                pok_partitions[pok_current_partition].current_thread = elected_thread;
             }
-            pok_partitions[pok_current_partition].current_thread = elected_thread;
-        }
 
-        if (elected_thread == IDLE_THREAD) {
-            // if we have nothing to do anyway, why can't we flush some ports?
-            // the operation is mostly free, anyway
+            if (elected_thread == IDLE_THREAD) {
+                // if we have nothing to do anyway, why can't we flush some ports?
+                // the operation is mostly free, anyway
 #if defined(POK_NEEDS_PORTS_SAMPLING) || defined(POK_NEEDS_PORTS_QUEUEING)
-            pok_port_flush_partition(POK_SCHED_CURRENT_PARTITION);
+                pok_port_flush_partition(POK_SCHED_CURRENT_PARTITION);
 #endif
-        }
-    }
+            }
+            break;
+
+
 #if defined(POK_NEEDS_NETWORKING)
-    else if (slot->type == POK_SLOT_NETWORKING) {
-        elected_thread = NETWORK_THREAD;
-    }
+        case POK_SLOT_NETWORKING:
+            elected_thread = NETWORK_THREAD;
+            break;
+        
 #endif
 
 #if defined(POK_NEEDS_MONITOR)
 
-    else if (slot->type == POK_SLOT_MONITOR) {
-        elected_thread = MONITOR_THREAD;
-    }
+        case POK_SLOT_MONITOR:
+            elected_thread = MONITOR_THREAD;
+            break;
 
 #endif
 
 
 
-    else {
-        assert(FALSE);
-    }
+        default:
+            assert(FALSE);
    
-    pok_sched_context_switch(elected_thread);
+    }
+    if (current_partition_on_pause == FALSE){
+        pok_sched_context_switch(elected_thread);
+    }else{
+        /*Wait in the monitor*/
+        pok_sched_context_switch(MONITOR_THREAD);
+    }
 }
 
-#else
-void pok_sched_thread_switch ()
-{
-   int i;
-   uint64_t now;
-   pok_thread_id_t elected;
-
-   now = POK_GETTICK();
-   for (i = 0; i <= POK_CONFIG_NB_THREADS; ++i)
-   {
-     if ((pok_threads[i].state == POK_STATE_WAITING) &&
-	 (pok_threads[i].wakeup_time <= now))
-      {
-         pok_threads[i].state = POK_STATE_RUNNABLE;
-      }
-   }
-
-   elected = pok_sched_part_election (0, POK_CONFIG_NB_THREADS);
-   /*
-    *  FIXME : current debug session about exceptions-handled
-   printf ("switch to thread %d\n", elected);
-   */
-   pok_sched_context_switch(elected);
-}
-#endif /* POK_NEEDS_PARTITIONS */
 
 /*
  * Context-switch function to switch from one thread to another
@@ -546,8 +504,6 @@ pok_ret_t pok_sched_replenish(int64_t budget)
     return POK_ERRNO_OK;
 }
 
-#ifdef POK_NEEDS_PARTITIONS
-
 uint32_t pok_sched_get_current(pok_thread_id_t *thread_id)
 {
     if (KERNEL_THREAD == POK_SCHED_CURRENT_THREAD 
@@ -569,6 +525,5 @@ uint32_t pok_sched_get_current(pok_thread_id_t *thread_id)
     *thread_id= POK_SCHED_CURRENT_THREAD;
     return POK_ERRNO_OK;
 }
-#endif
 
 #endif /* __POK_NEEDS_SCHED */
