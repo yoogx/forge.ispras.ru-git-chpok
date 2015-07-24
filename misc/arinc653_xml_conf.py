@@ -169,7 +169,8 @@ class ArincConfigParser:
         elif root.tag == "UDP":
             res = chpok_configuration.UDPConnection()
 
-            res.host = ipaddr.ip_address(root.attrib["IP"])
+            #print('ipaddr: ', root.attrib['IP'])
+            res.host = ipaddr.IPAddress(root.attrib["IP"])
             res.port = int(root.attrib["Port"])
         else:
             raise RuntimeError("unknown connection tag name %r" % root.tag)
@@ -182,7 +183,7 @@ class ArincConfigParser:
 
         res = chpok_configuration.NetworkConfiguration()
 
-        res.ip = ipaddr.ip_address(root.attrib["IP"])
+        res.ip = ipaddr.IPAddress(root.attrib["IP"])
         
         #if "MAC" in root.attrib:
         #    res.mac = bytes(int(x, 16) for x in root.attrib["MAC"].split(":"))

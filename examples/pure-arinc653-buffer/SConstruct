@@ -20,6 +20,7 @@ vars.AddVariables(
 env = Environment(variables = vars, ENV = os.environ)
 
 env['POK_PATH'] = os.environ['POK_PATH']
+env['PARTITIONS'] = ['pr1/pr1.elf']
 env['SCONSTRUCT_DIR'] = Dir('.').abspath
 env['DEPLOYMENT_HEADER'] = env['SCONSTRUCT_DIR']+'/kernel/deployment.h'
 
@@ -40,5 +41,7 @@ SConscript(env['POK_PATH']+'/misc/SConscript')
 
 env.Command('run', [], env['QEMU']+env['QEMU_FLAGS'])
 env.Ignore('.', 'run')
+
+env.Clean('all', [env['POK_PATH']+'/build/ppc', env['POK_PATH']+'/build/x86'])
 
 # EOF
