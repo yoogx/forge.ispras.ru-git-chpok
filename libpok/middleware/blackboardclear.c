@@ -53,9 +53,15 @@ pok_ret_t pok_blackboard_clear (const pok_blackboard_id_t id)
       return POK_ERRNO_EINVAL;
    }
 
-   pok_event_lock(pok_blackboards[id].lock);
+   if (pok_event_lock(pok_blackboards[id].lock) != POK_ERRNO_OK) {
+        return POK_ERRNO_EINVAL;
+   }
+
    pok_blackboards[id].empty = TRUE;
-   pok_event_unlock(pok_blackboards[id].lock);
+
+   if (pok_event_unlock(pok_blackboards[id].lock) != POK_ERRNO_OK) {
+        return POK_ERRNO_EINVAL;
+   }
    return POK_ERRNO_OK;
 }
 

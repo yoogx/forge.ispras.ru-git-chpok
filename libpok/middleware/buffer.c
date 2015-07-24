@@ -427,7 +427,9 @@ pok_ret_t pok_buffer_receive (
 
     pok_buffer_t *buffer = &pok_buffers[id];
 
-    pok_event_lock(buffer->lock); 
+    if (pok_event_lock(buffer->lock) != POK_ERRNO_OK) {
+        return POK_ERRNO_EINVAL;
+    }
 
     if (buffer_is_empty(buffer)) {
         if (delay_ms == 0) {
@@ -477,7 +479,9 @@ pok_ret_t pok_buffer_receive (
             // (if we weren't removed by other process)
             buffer_wait_list_remove(buffer, &wait_list_entry);
 
-            pok_event_unlock(buffer->lock);
+            if (pok_event_unlock(buffer->lock) != POK_ERRNO_OK) {
+                return POK_ERRNO_EINVAL;
+            }
             return wait_list_entry.result;
         }
     }
@@ -498,7 +502,9 @@ pok_ret_t pok_buffer_receive (
             pok_event_signal_thread(buffer->lock, buffer->wait_list->thread);
             buffer->wait_list = buffer->wait_list->next;
     
-            pok_event_unlock (pok_buffers[id].lock);
+            if (pok_event_unlock(pok_buffers[id].lock) != POK_ERRNO_OK) {
+                return POK_ERRNO_EINVAL;
+            }
             
             pok_thread_yield();
 
@@ -506,7 +512,9 @@ pok_ret_t pok_buffer_receive (
         }
     }
 
-    pok_event_unlock (pok_buffers[id].lock);
+    if (pok_event_unlock(pok_buffers[id].lock) != POK_ERRNO_OK) {
+        return POK_ERRNO_EINVAL;
+    }
     return POK_ERRNO_OK;
 
 
@@ -540,8 +548,9 @@ pok_ret_t pok_buffer_send (
     }
 
     int64_t delay_ms = arinc_time_to_ms(timeout);
-
-    pok_event_lock (buffer->lock); 
+    if (pok_event_lock(buffer->lock) != POK_ERRNO_OK) {
+        return POK_ERRNO_EINVAL;
+    }
 
     if (buffer_is_full(buffer)) {
         if (delay_ms == 0) {
@@ -589,7 +598,9 @@ pok_ret_t pok_buffer_send (
         // (if we weren't removed by other process)
         buffer_wait_list_remove(buffer, &wait_list_entry);
 
-        pok_event_unlock(pok_buffers[id].lock);
+        if (pok_event_unlock(pok_buffers[id].lock) != POK_ERRNO_OK) {
+            return POK_ERRNO_EINVAL;
+        }
         return wait_list_entry.result;
     }
 
@@ -606,7 +617,9 @@ pok_ret_t pok_buffer_send (
             pok_event_signal_thread(buffer->lock, buffer->wait_list->thread);
             buffer->wait_list = buffer->wait_list->next;
 
-            pok_event_unlock(buffer->lock);
+            if (pok_event_unlock(buffer->lock) != POK_ERRNO_OK) {
+                return POK_ERRNO_EINVAL;
+            }
             
             pok_thread_yield();
             
@@ -617,7 +630,9 @@ pok_ret_t pok_buffer_send (
     // queue it in the buffer
     buffer_push(buffer, data, len);
 
-    pok_event_unlock (pok_buffers[id].lock);
+    if (pok_event_unlock(pok_buffers[id].lock) != POK_ERRNO_OK) {
+        return POK_ERRNO_EINVAL;
+    }
 
     return POK_ERRNO_OK;
 }
@@ -640,14 +655,18 @@ pok_ret_t pok_buffer_status (
     // we have to do that in critical section,
     // otherwise, nb_messages might be inconsistent with
     // waiting_processes
-    pok_event_lock(buffer->lock); 
+    if (pok_event_lock(buffer->lock) != POK_ERRNO_OK) {
+        return POK_ERRNO_EINVAL;
+    }
 
     status->nb_messages = buffer->number_of_messages;
     status->max_messages = buffer->max_number_of_messages;
     status->message_size = buffer->msg_size;
     status->waiting_processes = buffer_wait_list_length(buffer);
     
-    pok_event_unlock(buffer->lock); 
+    if (pok_event_unlock(buffer->lock) != POK_ERRNO_OK) {
+        return POK_ERRNO_EINVAL;
+    }
 
     return POK_ERRNO_OK;
 }

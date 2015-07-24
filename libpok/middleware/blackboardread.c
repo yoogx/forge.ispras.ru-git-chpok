@@ -67,7 +67,9 @@ pok_ret_t pok_blackboard_read (const pok_blackboard_id_t   id,
 
    int64_t delay_ms = arinc_time_to_ms(timeout);
    pok_ret_t ret;
-   pok_event_lock (pok_blackboards[id].lock);
+   if (pok_event_lock(pok_blackboards[id].lock) != POK_ERRNO_OK) {
+        return POK_ERRNO_EINVAL;
+   }
 
    if (pok_blackboards[id].empty) {
       if (delay_ms == 0) {
@@ -94,7 +96,10 @@ pok_ret_t pok_blackboard_read (const pok_blackboard_id_t   id,
    *len = pok_blackboards[id].current_message_size;
    memcpy (data, &pok_blackboards_data[pok_blackboards[id].index], *len);
 
-   pok_event_unlock (pok_blackboards[id].lock);
+   if (pok_event_unlock(pok_blackboards[id].lock) != POK_ERRNO_OK) {
+        return POK_ERRNO_EINVAL;
+   }
+
    return POK_ERRNO_OK;
 }
 
