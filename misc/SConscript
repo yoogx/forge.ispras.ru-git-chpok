@@ -14,7 +14,6 @@ Import('env')
 #env['PRINT_CMD_LINE_FUNC'] = print_cmd_line
 env['CPPPATH'] = [env['POK_PATH']+'/kernel/include']
 env['LINKFLAGS'] = '-r'
-env['PARTITIONS'] = ['pr1/pr1.elf']
 env['QEMU_FLAGS'] = ' -serial stdio'
 env['ARCH'] = env['arch']
 
