@@ -1,10 +1,8 @@
 /misc/mk/config.mk
 /misc/__pycache__/
-/examples/*/kernel/deployment.c
-/examples/*/kernel/deployment.h
 /examples/*/sizes.c
-/examples/*/pr1/deployment.c
-/examples/*/pr1/deployment.h
+/examples/*/*/deployment.c
+/examples/*/*/deployment.h
 *.o
 *.lo
 .depend.mk
@@ -17,3 +15,4 @@ libpart.a
 *.elf.map
 *.pyc
 .sconsign.dblite
+scons_build.log
