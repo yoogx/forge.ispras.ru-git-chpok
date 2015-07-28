@@ -181,6 +181,10 @@ pause_N(int argc, char **argv){
     }    
     int number=0;
     number=atoi(argv[1]);
+    if (number >= POK_CONFIG_NB_PARTITIONS) {
+        printf("There is no such partition!\n");
+        return 0;        
+    }
     //Change mode of this partition to paused
     pok_partitions[number].is_paused=TRUE;
     printf("Partition %d paused\n",number);
@@ -201,6 +205,10 @@ resume_N(int argc, char **argv){
     }    
     int number=0;
     number=atoi(argv[1]);
+    if (number >= POK_CONFIG_NB_PARTITIONS) {
+        printf("There is no such partition!\n");
+        return 0;        
+    }
     //Change mode of this partition to not paused
     pok_partitions[number].is_paused=FALSE;
     printf("Partition %d resumed\n",number);
@@ -221,6 +229,10 @@ restart_N(int argc, char **argv){
     }    
     int number=0;
     number=atoi(argv[1]);
+    if (number >= POK_CONFIG_NB_PARTITIONS) {
+        printf("There is no such partition!\n");
+        return 0;        
+    }
     //Change mode of this partition and call reinit to restart it
     pok_partition_set_mode(number,POK_PARTITION_MODE_INIT_COLD);
     pok_partition_reinit(number);
