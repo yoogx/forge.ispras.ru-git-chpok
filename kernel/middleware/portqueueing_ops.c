@@ -25,12 +25,6 @@
 #include <middleware/port.h>
 #include <middleware/port_utils.h>
 
-#if 0
-#define DEBUG_PRINT(...) printf(__VA_ARGS__)
-#else
-#define DEBUG_PRINT(...)
-#endif
-
 static void port_wait_list_append(
         pok_port_queueing_t *port, 
         pok_port_queueing_wait_list_t *entry)
@@ -106,39 +100,39 @@ pok_ret_t pok_port_queueing_create(
     int index = find_queueing_port(name, POK_SCHED_CURRENT_PARTITION);
     
     if (index < 0) {
-        DEBUG_PRINT("there's no port named %s\n", name);
+        printf("there's no port named %s\n", name);
         return POK_ERRNO_PORT;
     }
     
     pok_port_queueing_t *port = &pok_queueing_ports[index];
 
     if (port->header.created) {
-        DEBUG_PRINT("port already created\n");
+        printf("port already created\n");
         return POK_ERRNO_EXISTS;
     }
 
     if (message_size <= 0 || message_size != port->max_message_size) {
-        DEBUG_PRINT("size doesn't match (%u supplied, %u expected)\n", (unsigned) message_size, (unsigned) port->max_message_size);
+        printf("size doesn't match (%u supplied, %u expected)\n", (unsigned) message_size, (unsigned) port->max_message_size);
         return POK_ERRNO_EINVAL;
     }
     if (max_nb_messages <= 0 || max_nb_messages != port->max_nb_messages) {
-        DEBUG_PRINT("max_nb_messages doesn't match (%u supplied, %u expected)\n", (unsigned) max_nb_messages, (unsigned) port->max_nb_messages);
+        printf("max_nb_messages doesn't match (%u supplied, %u expected)\n", (unsigned) max_nb_messages, (unsigned) port->max_nb_messages);
         return POK_ERRNO_EINVAL;
     }
     if (direction != POK_PORT_DIRECTION_IN && direction != POK_PORT_DIRECTION_OUT) {
-        DEBUG_PRINT("direction is not recognized\n");
+        printf("direction is not recognized\n");
         return POK_ERRNO_EINVAL;
     }
     if (direction != port->header.direction) {
-        DEBUG_PRINT("direction doesn't match\n");
+        printf("direction doesn't match\n");
         return POK_ERRNO_EINVAL;
     }
     if (discipline != POK_PORT_QUEUEING_DISCIPLINE_FIFO && discipline != POK_PORT_QUEUEING_DISCIPLINE_PRIORITY) {
-        DEBUG_PRINT("queueing discipline is not recognized\n");
+        printf("queueing discipline is not recognized\n");
         return POK_ERRNO_EINVAL;
     }
     if (POK_CURRENT_PARTITION.mode == POK_PARTITION_MODE_NORMAL) {
-        DEBUG_PRINT("partition mode is normal\n");
+        printf("partition mode is normal\n");
         return POK_ERRNO_MODE;
     }
 
@@ -155,7 +149,7 @@ pok_ret_t pok_port_queueing_create(
     port->wait_list = NULL;
     port->discipline = discipline;
 
-    DEBUG_PRINT("port %s (index=%d) created\n", name, index);
+    //printf("port %s (index=%d) created\n", name, index);
 
     return POK_ERRNO_OK;
 }
@@ -176,17 +170,17 @@ pok_ret_t pok_port_queueing_receive(
     pok_port_queueing_t *port = &pok_queueing_ports[id];
    
     if (port->header.partition != POK_SCHED_CURRENT_PARTITION) {
-        DEBUG_PRINT("port doesn't belong to this partition\n");
+        printf("port doesn't belong to this partition\n");
         return POK_ERRNO_EINVAL;
     }
 
     if (!port->header.created) {
-        DEBUG_PRINT("port is not created yet\n");
+        printf("port is not created yet\n");
         return POK_ERRNO_EINVAL;
     }
 
     if (port->header.direction != POK_PORT_DIRECTION_IN) {
-        DEBUG_PRINT("port is for sending, not for receiving\n");
+        printf("port is for sending, not for receiving\n");
         return POK_ERRNO_DIRECTION;
     }
 
@@ -204,19 +198,19 @@ pok_ret_t pok_port_queueing_receive(
     // queue is empty...
 
     if (timeout == 0) {
-        DEBUG_PRINT("port is empty (non-blocking read)\n");
+        printf("port is empty (non-blocking read)\n");
         ret = POK_ERRNO_EMPTY;
         goto end;
     } 
 
     if (POK_CURRENT_PARTITION.lock_level > 0) {
-        DEBUG_PRINT("can't wait with preemption locked\n");
+        printf("can't wait with preemption locked\n");
         ret = POK_ERRNO_MODE;
         goto end;
     }
 
     if (pok_thread_is_error_handling(&POK_CURRENT_THREAD)) {
-        DEBUG_PRINT("can't wait in error handler\n");
+        printf("can't wait in error handler\n");
         ret = POK_ERRNO_MODE;
         goto end;
     }
@@ -263,33 +257,33 @@ pok_ret_t pok_port_queueing_send(
     pok_ret_t ret;
 
     if (id >= POK_CONFIG_NB_QUEUEING_PORTS) {
-        DEBUG_PRINT("port is out of range\n");
+        printf("port is out of range\n");
         return POK_ERRNO_PORT;
     }
     pok_port_queueing_t *port = &pok_queueing_ports[id];
    
     if (port->header.partition != POK_SCHED_CURRENT_PARTITION) {
-        DEBUG_PRINT("port doesn't belong to this partition\n");
+        printf("port doesn't belong to this partition\n");
         return POK_ERRNO_EINVAL;
     }
 
     if (!port->header.created) {
-        DEBUG_PRINT("port is not created yet\n");
+        printf("port is not created yet\n");
         return POK_ERRNO_EINVAL;
     }
 
     if (len <= 0) {
-        DEBUG_PRINT("len <= 0\n");
+        printf("len <= 0\n");
         return POK_ERRNO_EINVAL;
     }
 
     if (len > port->max_message_size) {
-        DEBUG_PRINT("invalid message length\n");
+        printf("invalid message length\n");
         return POK_ERRNO_PARAM;
     }
 
     if (port->header.direction != POK_PORT_DIRECTION_OUT) {
-        DEBUG_PRINT("port is for receiving, not for sending");
+        printf("port is for receiving, not for sending");
         return POK_ERRNO_DIRECTION;
     }
 
@@ -305,19 +299,19 @@ pok_ret_t pok_port_queueing_send(
     // queue is full...
 
     if (timeout == 0) {
-        DEBUG_PRINT("port is full (non-blocking write)\n");
+        printf("port is full (non-blocking write)\n");
         ret = POK_ERRNO_FULL;
         goto end;
     }   
 
     if (POK_CURRENT_PARTITION.lock_level > 0) {
-        DEBUG_PRINT("can't wait with preemption locked\n");
+        printf("can't wait with preemption locked\n");
         ret = POK_ERRNO_MODE;
         goto end;
     }
     
     if (pok_thread_is_error_handling(&POK_CURRENT_THREAD)) {
-        DEBUG_PRINT("can't wait in error handler\n");
+        printf("can't wait in error handler\n");
         ret = POK_ERRNO_MODE;
         goto end;
     }

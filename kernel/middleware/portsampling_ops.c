@@ -25,12 +25,6 @@
 #include <middleware/port.h>
 #include <middleware/queue.h>
 
-#if 0
-#define DEBUG_PRINT(...) printf(__VA_ARGS__)
-#else
-#define DEBUG_PRINT(...)
-#endif
-
 /* This file contains entry points from system calls
  * (and most of the logic)
  */
@@ -68,27 +62,27 @@ pok_ret_t pok_port_sampling_create(
 
     // check that attributes passed match attributes in the configuration
     if (size <= 0 || size != port->max_message_size) {
-        DEBUG_PRINT("size doesn't match (%u supplied, %u expected)\n", (unsigned) size, (unsigned) port->max_message_size);
+        printf("size doesn't match (%u supplied, %u expected)\n", (unsigned) size, (unsigned) port->max_message_size);
         return POK_ERRNO_EINVAL;
     }
     if (direction != POK_PORT_DIRECTION_IN && direction != POK_PORT_DIRECTION_OUT) {
-        DEBUG_PRINT("direction is not recognized\n");
+        printf("direction is not recognized\n");
         return POK_ERRNO_EINVAL;
     }
     if (direction != port->header.direction) {
-        DEBUG_PRINT("direction doesn't match\n");
+        printf("direction doesn't match\n");
         return POK_ERRNO_EINVAL;
     }
     // check that partition mode is not normal
 #ifdef POK_NEEDS_PARTITIONS
     if (POK_CURRENT_PARTITION.mode == POK_PARTITION_MODE_NORMAL) {
-        DEBUG_PRINT("partition mode is normal\n");
+        printf("partition mode is normal\n");
         return POK_ERRNO_MODE;
     }
 #endif
 
     if (port->header.created) {
-        DEBUG_PRINT("port already created\n");
+        printf("port already created\n");
         return POK_ERRNO_EXISTS;
     }
 
@@ -124,23 +118,23 @@ pok_ret_t pok_port_sampling_write(
     
     // check that it belongs to the current partition
     if (port->header.partition != POK_SCHED_CURRENT_PARTITION) {
-        DEBUG_PRINT("port %d doesn't belong to this partition %d\n", (int) id, (int) POK_SCHED_CURRENT_PARTITION);
+        printf("port %d doesn't belong to this partition %d\n", (int) id, (int) POK_SCHED_CURRENT_PARTITION);
         return POK_ERRNO_PORT;
     }
 
     // check that it's created
     if (!port->header.created) {
-        DEBUG_PRINT("port is not created\n");
+        printf("port is not created\n");
         return POK_ERRNO_PORT;
     }
 
     if (len <= 0) {
-        DEBUG_PRINT("len <= 0\n");
+        printf("len <= 0\n");
         return POK_ERRNO_EINVAL;
     }
 
     if (len > port->max_message_size) {
-        DEBUG_PRINT("message length is greater than port's max (%u > %u)\n", (unsigned) len, (unsigned) port->max_message_size);
+        printf("message length is greater than port's max (%u > %u)\n", (unsigned) len, (unsigned) port->max_message_size);
         return POK_ERRNO_EINVAL;
     }
 
@@ -180,7 +174,7 @@ pok_ret_t pok_port_sampling_read(
     
     // check that it belongs to the current partition
     if (port->header.partition != POK_SCHED_CURRENT_PARTITION) {
-        DEBUG_PRINT("port %d doesn't belong to this partition %d\n", (int) id, (int) POK_SCHED_CURRENT_PARTITION);
+        printf("port %d doesn't belong to this partition %d\n", (int) id, (int) POK_SCHED_CURRENT_PARTITION);
         return POK_ERRNO_PORT;
     }
     
