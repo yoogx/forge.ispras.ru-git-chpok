@@ -30,7 +30,7 @@ int atoi(char * s)
 
 
 
-int NOT_EXIT=1; // 0 if we want to exit from console
+pok_bool_t want_to_exit=FALSE; 
 
 int mon_help(int argc, char **argv);
 
@@ -57,7 +57,7 @@ struct Command {
 
 static struct Command commands[] = {
 	{ "help", "" , "Display all list of commands", mon_help },
-    { "help_about" , "/command/" , "Display descriptions of this commands", help_about},
+    { "help_about" , "/command/" , "Display descriptions of this command", help_about},
     {"ps", "" ,"Display list of partition",print_partition},
     {"info_partition", "/N/" ,"Display information about partition N",info_partition},
     {"pause", "/N/" ,"Pause partition N",pause_N},
@@ -256,7 +256,7 @@ exit_from_monitor(int argc, char **argv){
 
 	(void) argc;
 	(void) argv;
-    NOT_EXIT=0;
+    want_to_exit=TRUE;
     return 0;
 
 }
@@ -314,12 +314,12 @@ void
 monitor()
 {
 	char *buf;
-    NOT_EXIT=1;
+    want_to_exit=FALSE;
 	printf("Welcome to the monitor!\n");
 	printf("Type 'help' for a list of commands.\n");
 
 
-	while (NOT_EXIT == 1) {
+	while (!want_to_exit) {
 		buf = readline("K> ");
 		if (buf != NULL)
 			if (runcmd(buf) < 0)
