@@ -50,19 +50,20 @@ int info_partition(int argc,char ** argv);
 
 struct Command {
 	const char *name;
+    const char *argc;
 	const char *desc;
 	int (*func)(int argc, char** argv);
 };
 
 static struct Command commands[] = {
-	{ "help", "Display all list of commands", mon_help },
-    { "help_about" , "Display descriptions of this commands", help_about},
-    {"ps","Display list of partition",print_partition},
-    {"info_partition","Display information about this partition",info_partition},
-    {"pause","Pause this partition",pause_N},
-    {"resume","Continue this partition",resume_N},
-    {"restart","Restart this partition",restart_N},
-    {"exit","Exit from console",exit_from_monitor},
+	{ "help", "" , "Display all list of commands", mon_help },
+    { "help_about" , "/command/" , "Display descriptions of this commands", help_about},
+    {"ps", "" ,"Display list of partition",print_partition},
+    {"info_partition", "/N/" ,"Display information about partition N",info_partition},
+    {"pause", "/N/" ,"Pause partition N",pause_N},
+    {"resume", "/N/" ,"Continue partition N",resume_N},
+    {"restart", "/N/" ,"Restart partition N",restart_N},
+    {"exit", "" ,"Exit from console",exit_from_monitor},
 };
 
 /* 
@@ -72,11 +73,15 @@ static struct Command commands[] = {
 int
 mon_help(int argc, char **argv)
 {
+    if (argc > 1){
+        printf("Too many arguments for help!\n");
+        return 0;
+    }
 	int i;
 	(void) argc;
 	(void) argv;
 	for (i = 0; i < NCOMMANDS; i++)
-		printf("%s - %s\n", commands[i].name, commands[i].desc);
+		printf("%s %s- %s\n", commands[i].name,commands[i].argc,commands[i].desc);
 	return 0;
 }
 
@@ -104,6 +109,10 @@ help_about(int argc,char **argv)
 int 
 print_partition(int argc, char **argv){
 
+    if (argc > 1){
+        printf("Too many arguments for ps!\n");
+        return 0;
+    }
    pok_partition_id_t number_of_current_partition;
    pok_current_partition_get_id(&number_of_current_partition);
    if (POK_CONFIG_NB_PARTITIONS > 1) 
