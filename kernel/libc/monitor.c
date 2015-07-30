@@ -30,7 +30,7 @@ int atoi(char * s)
     return n;
 }
 
-pok_bool_t *partition_on_pause;
+pok_bool_t *partiton_on_pause;
 
 pok_bool_t want_to_exit=FALSE; 
 
@@ -149,7 +149,7 @@ int info_partition(int argc,char **argv){
     
     printf("\n\n");
     printf("Info about partition #%d\n",number);
-    printf("is_paused = %d\n",pok_partitions[number].is_paused);
+    printf("is_paused = %d\n",partiton_on_pause[number]);
     printf("base_addr = 0x%lx\n",pok_partitions[number].base_addr);     
     printf("base_vaddr = 0x%lx\n",pok_partitions[number].base_vaddr);       
     printf("size = 0x%lx\n",pok_partitions[number].size);   
@@ -197,7 +197,7 @@ pause_N(int argc, char **argv){
         return 0;        
     }
     //Change mode of this partition to paused
-    pok_partitions[number].is_paused=TRUE;
+    partiton_on_pause[number]=TRUE;
     printf("Partition %d paused\n",number);
     return 0;
 
@@ -221,7 +221,7 @@ resume_N(int argc, char **argv){
         return 0;        
     }
     //Change mode of this partition to not paused
-    pok_partitions[number].is_paused=FALSE;
+    partiton_on_pause[number]=FALSE;
     printf("Partition %d resumed\n",number);
     return 0;
 
@@ -334,12 +334,31 @@ monitor()
 void pok_monitor_thread(void)
 {
     printf("pok_monitor_thread\n");     
-       pok_arch_preempt_enable(); //Initialize interrupts   
+    pok_arch_preempt_enable(); //Initialize interrupts   
+    for (int i=0; i < POK_CONFIG_NB_PARTITIONS; i++){
+        partiton_on_pause[i]=TRUE;
+    }
     for (;;) {
         if (data_to_read() == 1) {
+            /*
+             * Set all partition on pause
+             */
+            for (int i=0; i < POK_CONFIG_NB_PARTITIONS; i++){
+                if (!pok_partitions[i].is_paused){ 
+                    partiton_on_pause[i]=FALSE;
+                    pok_partitions[i].is_paused=TRUE;
+                }
+            }
+            
             //pok_arch_preempt_disable();         
             monitor();
             //pok_arch_preempt_enable();        
+            
+            for (int i=0; i < POK_CONFIG_NB_PARTITIONS; i++){
+                if (!partiton_on_pause[i]){ 
+                    pok_partitions[i].is_paused=FALSE;
+                }
+            }
         }
         #ifdef i386
         asm("hlt");
@@ -353,7 +372,7 @@ void pok_monitor_thread_init()
     pok_threads[MONITOR_THREAD].entry = pok_monitor_thread;
     pok_threads[MONITOR_THREAD].sp = pok_context_create(MONITOR_THREAD, 4096, (uintptr_t) pok_monitor_thread);
     pok_bool_t tmp[POK_CONFIG_NB_PARTITIONS];
-    partition_on_pause = tmp;
+    partiton_on_pause = tmp;
 #endif
 }
 
