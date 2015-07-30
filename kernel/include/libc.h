@@ -47,6 +47,7 @@ char * readline(const char *prompt);
 int getchar(void);
 void monitor();
 void pok_monitor_thread(void);
+void pok_monitor_thread_init();
 #endif /* NEEDS_CONSOLE or NEEDS_DEBUG */
 
 #endif

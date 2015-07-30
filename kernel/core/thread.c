@@ -74,19 +74,8 @@ static void pok_network_thread_init(void)
     pok_threads[NETWORK_THREAD].entry = pok_network_thread;
     pok_threads[NETWORK_THREAD].sp = pok_context_create(NETWORK_THREAD, 4096, (uintptr_t) pok_network_thread);
 }
-	#endif
+#endif
 
-
-
-#ifdef POK_NEEDS_MONITOR
-
-static void pok_monitor_thread_init(void)
-{
-	pok_threads[MONITOR_THREAD].entry = pok_monitor_thread;
-    pok_threads[MONITOR_THREAD].sp = pok_context_create(MONITOR_THREAD, 4096, (uintptr_t) pok_monitor_thread);
-}
-
-	#endif
 
 
 
@@ -119,11 +108,7 @@ void pok_thread_init(void)
 
 #endif
 
-#ifdef POK_NEEDS_MONITOR
    pok_monitor_thread_init();
-#endif
-
-
 
    for (i = 0; i < POK_CONFIG_NB_THREADS; ++i)
    {

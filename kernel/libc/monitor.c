@@ -9,6 +9,8 @@
 #define NCOMMANDS 8 //Number of commands, change it if you want to 
                     //add a new command.
 
+
+
 /*
  *  Don't use '[' in your command!
  */
@@ -28,7 +30,7 @@ int atoi(char * s)
     return n;
 }
 
-
+pok_bool_t *partition_on_pause;
 
 pok_bool_t want_to_exit=FALSE; 
 
@@ -335,13 +337,24 @@ void pok_monitor_thread(void)
        pok_arch_preempt_enable(); //Initialize interrupts   
     for (;;) {
         if (data_to_read() == 1) {
-            pok_arch_preempt_disable();         
+            //pok_arch_preempt_disable();         
             monitor();
-            pok_arch_preempt_enable();        
+            //pok_arch_preempt_enable();        
         }
         #ifdef i386
         asm("hlt");
         #endif
     }
 }
+
+void pok_monitor_thread_init()
+{
+#ifdef POK_NEEDS_MONITOR
+    pok_threads[MONITOR_THREAD].entry = pok_monitor_thread;
+    pok_threads[MONITOR_THREAD].sp = pok_context_create(MONITOR_THREAD, 4096, (uintptr_t) pok_monitor_thread);
+    pok_bool_t tmp[POK_CONFIG_NB_PARTITIONS];
+    partition_on_pause = tmp;
+#endif
+}
+
 
