@@ -4,7 +4,6 @@
 #include <arinc653/partition.h>
 #include <arinc653/time.h>
 
-static BUFFER_ID_TYPE global_buffer_id;
 
 static void first_process(void)
 {
@@ -18,7 +17,6 @@ static void first_process(void)
 static int real_main(void)
 {
     RETURN_CODE_TYPE ret;
-    BUFFER_ID_TYPE id;
     PROCESS_ID_TYPE pid;
     PROCESS_ATTRIBUTE_TYPE process_attrs = {
         .PERIOD = INFINITE_TIME_VALUE,
