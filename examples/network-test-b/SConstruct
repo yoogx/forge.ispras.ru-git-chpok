@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 vars = Variables()
 vars.AddVariables(
 	('xml', 'xml config to be passed to parser', 'config.xml'),
-	('arch', 'architecture', 'ppc')
+	EnumVariable('arch', 'architecture', 'ppc', allowed_values = ('ppc', 'x86'))
 )
 
 env = Environment(variables = vars, ENV = os.environ)
