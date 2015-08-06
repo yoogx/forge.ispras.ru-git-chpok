@@ -20,7 +20,7 @@ env = Environment(variables = vars, ENV = os.environ)
 
 Help(vars.GenerateHelpText(env))
 
-env['POK_PATH'] = os.environ['POK_PATH']
+env['POK_PATH'] = os.path.join(os.environ['POK_PATH'], '')
 env['PARTITIONS'] = ['pr1/pr1.elf']
 env['SCONSTRUCT_DIR'] = Dir('.').abspath
 env['DEPLOYMENT_HEADER'] = env['SCONSTRUCT_DIR']+'/kernel/deployment.h'
