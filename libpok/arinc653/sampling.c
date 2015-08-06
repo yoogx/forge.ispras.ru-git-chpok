@@ -114,7 +114,7 @@ void WRITE_SAMPLING_MESSAGE (
         *RETURN_CODE = INVALID_PARAM;
 	return;
     }
-    if (SAMPLING_PORT_ID == 0) {
+    if (SAMPLING_PORT_ID <= 0) {
         *RETURN_CODE = INVALID_PARAM;
         return;
     }
@@ -136,8 +136,7 @@ void READ_SAMPLING_MESSAGE (
 			 /*out*/ RETURN_CODE_TYPE           *RETURN_CODE )
 {
     pok_ret_t core_ret;
-    
-    if (SAMPLING_PORT_ID == 0) {
+    if (SAMPLING_PORT_ID <= 0) {
         *RETURN_CODE = INVALID_PARAM;
         return;
     }
@@ -176,7 +175,7 @@ void GET_SAMPLING_PORT_STATUS (
     pok_ret_t core_ret;
     pok_port_sampling_status_t status;
 
-    if (SAMPLING_PORT_ID == 0) {
+    if (SAMPLING_PORT_ID <= 0) {
         *RETURN_CODE = INVALID_PARAM;
         return;
     }
