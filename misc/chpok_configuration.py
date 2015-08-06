@@ -328,8 +328,8 @@ class Configuration:
             if networking_time_slot_exists:
                 raise ValueError("Networking is disabled, but there's (unnecessary) network processing time slot in the schedule")
 
-            if any(chan.requires_network() for chan in self.channels):
-                raise ValueError("Network channel is present, but networking is not configured")
+            #if any(chan.requires_network() for chan in self.channels):
+            #    raise ValueError("Network channel is present, but networking is not configured")
             
         # validate schedule
         partitions_set = set(range(len(self.partitions)))
@@ -474,22 +474,25 @@ static struct {
 """
 
 PORT_CONNECTION_NULL = """\
-    { .kind = POK_PORT_CONNECTION_NULL
-    }
+ {
+            .kind = POK_PORT_CONNECTION_NULL
+        }\
 """
 
 PORT_CONNECTION_LOCAL_TEMPLATE = """\
-    { .kind = POK_PORT_CONNECTION_LOCAL, 
-      .local =  {
-        .port_id = %(port_id)d, 
-      }
-    }
+ { 
+        .kind = POK_PORT_CONNECTION_LOCAL, 
+            .local =  {
+                .port_id = %(port_id)d, 
+            }
+        }\
 """
 
-PORT_CONNECTION_UDP_TEMPLATE = """
-    { .kind = POK_PORT_CONNECTION_UDP,
-      .udp = {.ptr = %s }
-    }
+PORT_CONNECTION_UDP_TEMPLATE = """\
+ { 
+        .kind = POK_PORT_CONNECTION_UDP,
+            .udp = {.ptr = %s }
+        }\
 """
 
 # this one is terrible
@@ -648,6 +651,11 @@ def write_kernel_deployment_h(conf, f):
 
     if conf.test_support_print_when_all_threads_stopped:
         p("#define POK_TEST_SUPPORT_PRINT_WHEN_ALL_THREADS_STOPPED 1")
+
+    n_queueing_channels = len([c for c in conf.channels if c.is_queueing()])
+    n_sampling_channels = len([c for c in conf.channels if c.is_sampling()])
+    p("#define POK_CONFIG_NB_QUEUEING_CHANNELS %d" % n_queueing_channels)
+    p("#define POK_CONFIG_NB_SAMPLING_CHANNELS %d" % n_sampling_channels)
 
     p("#endif") # __POK_KERNEL_GENERATED_DEPLOYMENT_H_ 
 
@@ -889,16 +897,11 @@ def write_kernel_deployment_c_ports(conf, f):
         for channel in conf.channels:
             if not predicate(channel): continue
 
-            p("{")
-            p(".src = %s," % get_connection_string(channel.src))
-            p(".dst = %s," % get_connection_string(channel.dst))
-            p("},")
-
-        p("{")
-        p(".src = %s," % PORT_CONNECTION_NULL)
-        p(".dst = %s," % PORT_CONNECTION_NULL)
-        p("},")
-
+            p("    {")
+            p("        .src = %s," % get_connection_string(channel.src))
+            p("");
+            p("        .dst = %s," % get_connection_string(channel.dst))
+            p("    },")
         p("};")
 
     print_channels(lambda c: c.is_queueing(), "pok_queueing_port_channels")

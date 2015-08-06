@@ -48,9 +48,7 @@
 #include <errno.h>
 #include <core/lockobj.h>
 
-#ifdef POK_NEEDS_NETWORKING
-#include <net/network.h>
-#endif
+#include <net/network_needs.h>
 
 typedef enum
 {
@@ -91,14 +89,10 @@ typedef struct
 
 typedef enum
 {
-    POK_PORT_CONNECTION_NULL = 0, // used as a sentinel
-    POK_PORT_CONNECTION_LOCAL = 1,
-#ifdef POK_NEEDS_NETWORKING
-    POK_PORT_CONNECTION_UDP = 2,
-#endif
+    POK_PORT_CONNECTION_LOCAL,
+    POK_PORT_CONNECTION_UDP,
 } pok_port_connection_kind_t;
 
-#ifdef POK_NEEDS_NETWORKING
 typedef struct
 {
     uint32_t ip;
@@ -138,7 +132,6 @@ typedef struct
     uint32_t ip;
     uint16_t port;
 } pok_port_connection_queueing_udp_recv_t;
-#endif
 
 typedef struct
 {
@@ -148,7 +141,6 @@ typedef struct
         struct {
             pok_port_id_t port_id;
         } local;
-#ifdef POK_NEEDS_NETWORKING
         struct {
             union {
                 // actual type depends on whether it's src or dst,
@@ -161,7 +153,6 @@ typedef struct
                 void *ptr; // this one for simplicity of code generation
             };
         } udp;
-#endif
     };
 } pok_port_connection_t;
 
