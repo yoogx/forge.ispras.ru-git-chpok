@@ -483,7 +483,7 @@ PORT_CONNECTION_LOCAL_TEMPLATE = """\
  { 
         .kind = POK_PORT_CONNECTION_LOCAL, 
             .local =  {
-                .port_id = %(port_id)d, 
+                .port_id = %(port_id)d,
             }
         }\
 """
@@ -642,12 +642,11 @@ def write_kernel_deployment_h(conf, f):
     n_sampling_ports = len(conf.get_all_sampling_ports())
     n_queueing_ports = len(conf.get_all_queueing_ports())
 
-    if n_sampling_ports > 0:
-        p("#define POK_NEEDS_PORTS_SAMPLING 1")
-        p("#define POK_CONFIG_NB_SAMPLING_PORTS %d" % n_sampling_ports)
-    if n_queueing_ports > 0:
-        p("#define POK_NEEDS_PORTS_QUEUEING 1")
-        p("#define POK_CONFIG_NB_QUEUEING_PORTS %d" % n_queueing_ports)
+    p("#define POK_NEEDS_PORTS_SAMPLING 1")
+    p("#define POK_CONFIG_NB_SAMPLING_PORTS %d" % n_sampling_ports)
+
+    p("#define POK_NEEDS_PORTS_QUEUEING 1")
+    p("#define POK_CONFIG_NB_QUEUEING_PORTS %d" % n_queueing_ports)
 
     if conf.test_support_print_when_all_threads_stopped:
         p("#define POK_TEST_SUPPORT_PRINT_WHEN_ALL_THREADS_STOPPED 1")
@@ -863,34 +862,32 @@ def write_kernel_deployment_c_ports(conf, f):
             assert False
 
     # print non-static definitions
-    if all_sampling_ports:
-        p("pok_port_sampling_t pok_sampling_ports[] = {")
-        for i, port in enumerate(all_sampling_ports):
+    p("pok_port_sampling_t pok_sampling_ports[] = {")
+    for i, port in enumerate(all_sampling_ports):
 
-            p(SAMPLING_PORT_TEMPLATE % dict(
-                name=_c_string(port.name),
-                partition=get_partition(port),
-                direction=_get_port_direction(port),
-                max_message_size=port.max_message_size,
-                data="&" + get_internal_port_name(port, "data")
-            ))
-        p("};")
+        p(SAMPLING_PORT_TEMPLATE % dict(
+            name=_c_string(port.name),
+            partition=get_partition(port),
+            direction=_get_port_direction(port),
+            max_message_size=port.max_message_size,
+            data="&" + get_internal_port_name(port, "data")
+        ))
+    p("};")
 
     
-    if all_queueing_ports:
-        p("pok_port_queueing_t pok_queueing_ports[] = {")
-        for i, port in enumerate(all_queueing_ports):
-
-            p(QUEUEING_PORT_TEMPLATE % dict(
-                name=_c_string(port.name),
-                partition=get_partition(port),
-                direction=_get_port_direction(port),
-                max_message_size=port.max_message_size,
-                max_nb_messages=port.max_nb_messages,
-                data="&" + get_internal_port_name(port, "data"),
-                data_stride="sizeof(%s[0])" % get_internal_port_name(port, "data")
-            ))
-        p("};")
+    #if all_queueing_ports:
+    p("pok_port_queueing_t pok_queueing_ports[] = {")
+    for i, port in enumerate(all_queueing_ports):
+        p(QUEUEING_PORT_TEMPLATE % dict(
+            name=_c_string(port.name),
+            partition=get_partition(port),
+            direction=_get_port_direction(port),
+            max_message_size=port.max_message_size,
+            max_nb_messages=port.max_nb_messages,
+            data="&" + get_internal_port_name(port, "data"),
+            data_stride="sizeof(%s[0])" % get_internal_port_name(port, "data")
+        ))
+    p("};")
 
     def print_channels(predicate, variable_name):
         p("pok_port_channel_t %s[] = {" % variable_name)

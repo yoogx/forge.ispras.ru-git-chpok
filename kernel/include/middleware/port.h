@@ -42,8 +42,6 @@
 #ifndef __POK_KERNEL_PORTS_H__
 #define __POK_KERNEL_PORTS_H__
 
-#if defined(POK_NEEDS_PORTS_QUEUEING) || defined(POK_NEEDS_PORTS_SAMPLING)
-
 #include <types.h>
 #include <errno.h>
 #include <core/lockobj.h>
@@ -177,7 +175,6 @@ void pok_port_reset(pok_partition_id_t);
 
 void pok_port_flush_partition(pok_partition_id_t);
 
-#ifdef POK_NEEDS_PORTS_QUEUEING
 typedef struct pok_port_queueing_wait_list_t
 {
     struct pok_port_queueing_wait_list_t *next;
@@ -274,9 +271,7 @@ pok_ret_t pok_port_queueing_id(
     const char      *name,
     pok_port_id_t   *id
 );
-#endif // POK_NEEDS_PORTS_QUEUEING
 
-#ifdef POK_NEEDS_PORTS_SAMPLING
 typedef struct
 {
     pok_port_header_t           header;
@@ -333,8 +328,4 @@ pok_ret_t pok_port_sampling_status (
     const pok_port_id_t         id,
     pok_port_sampling_status_t  *status
 );
-#endif // POK_NEEDS_PORTS_SAMPLING
-
-#endif // defined(POK_NEEDS_PORTS_QUEUEING) || defined(POK_NEEDS_PORTS_SAMPLING)
-
 #endif // __POK_KERNEL_PORTS_H__
