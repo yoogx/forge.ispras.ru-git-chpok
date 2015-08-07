@@ -43,7 +43,7 @@ source = 'sizes.c',
 action = [
 pok_env['CC']+' -c -o sizes.o '+pok_env['CFLAGS']+' -I'+pok_env['POK_PATH']+'/kernel/include'+' sizes.c',
 pok_env['OBJCOPY']+' --add-section .archive2=partitions.bin sizes.o'])
-pok_env.Depends(compile_sizes, sizes_c_command)
+pok_env.Depends(compile_sizes, [sizes_c_command, pok_env['PARTITIONS']])
 
 pok_target = pok_env.Program(target = 'pok.elf', source = [
 'sizes.o',
