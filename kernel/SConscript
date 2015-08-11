@@ -11,7 +11,8 @@ kernel_env.Program(target = 'pok.lo', source = [
 'libc/libc.lo',
 'arch/arch.lo',
 'drivers/drivers.lo',
-'net/net.lo'])
+'net/net.lo',
+'config.c'])
 
 Export('kernel_env')
 

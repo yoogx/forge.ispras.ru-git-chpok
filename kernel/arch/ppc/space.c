@@ -35,7 +35,7 @@ struct pok_space
   size_t        size;
 };
 
-struct pok_space spaces[POK_CONFIG_NB_PARTITIONS];
+extern struct pok_space spaces[];
 
 pok_ret_t pok_create_space (pok_partition_id_t partition_id,
                             uintptr_t addr,

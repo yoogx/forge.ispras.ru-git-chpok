@@ -42,6 +42,8 @@
 #ifndef __POK_KERNEL_PORTS_H__
 #define __POK_KERNEL_PORTS_H__
 
+#include <config.h>
+
 #if defined(POK_NEEDS_PORTS_QUEUEING) || defined(POK_NEEDS_PORTS_SAMPLING)
 
 #include <types.h>
@@ -228,7 +230,7 @@ typedef struct
 
 } pok_port_queueing_t;
 
-extern pok_port_queueing_t pok_queueing_ports[POK_CONFIG_NB_QUEUEING_PORTS];
+extern pok_port_queueing_t pok_queueing_ports[];
 extern pok_port_channel_t pok_queueing_port_channels[];
 
 /* Queueing port functions */
@@ -298,7 +300,7 @@ typedef struct
     pok_port_data_t             *data;
 } pok_port_sampling_t;
 
-extern pok_port_sampling_t pok_sampling_ports[POK_CONFIG_NB_SAMPLING_PORTS];
+extern pok_port_sampling_t pok_sampling_ports[];
 extern pok_port_channel_t pok_sampling_port_channels[];
 
 /* Sampling port functions */

@@ -41,6 +41,8 @@
 #ifndef __POK_PARTITION_H__
 #define __POK_PARTITION_H__
 
+#include <config.h>
+
 #ifdef POK_NEEDS_PARTITIONS
 
 #include <types.h>
@@ -150,7 +152,7 @@ typedef struct
   pok_start_condition_t	    start_condition;
 } pok_partition_t;
 
-extern pok_partition_t pok_partitions[POK_CONFIG_NB_PARTITIONS];
+extern pok_partition_t *pok_partitions;
 
 /**
  * Access to the current partition variable.

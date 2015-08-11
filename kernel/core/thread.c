@@ -64,9 +64,9 @@
  *    - one for the kernel thread (this code)
  *    - one for the idle task
  */
-pok_thread_t                 pok_threads[POK_CONFIG_NB_THREADS];
+extern pok_thread_t        *pok_threads;
 
-extern pok_partition_t     pok_partitions[POK_CONFIG_NB_PARTITIONS];
+extern pok_partition_t     *pok_partitions;
 
 #ifdef POK_NEEDS_NETWORKING
 static void pok_network_thread_init(void)

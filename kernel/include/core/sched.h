@@ -17,6 +17,8 @@
 #ifndef __POK_SCHED_H__
 #define __POK_SCHED_H__
 
+#include <config.h>
+
 #if defined (POK_NEEDS_SCHED) || defined (POK_NEEDS_THREADS)
 
 #include <types.h>
@@ -63,7 +65,7 @@ typedef struct
 } pok_sched_slot_t;
 
 // as usual, defined in deployment.c
-extern const pok_sched_slot_t pok_module_sched[POK_CONFIG_SCHEDULING_NBSLOTS];
+extern const pok_sched_slot_t pok_module_sched[];
 #endif
 
 

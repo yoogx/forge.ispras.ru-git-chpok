@@ -36,6 +36,8 @@
 #ifndef __POK_THREAD_H__
 #define __POK_THREAD_H__
 
+#include <config.h>
+
 #ifdef POK_NEEDS_THREADS
 
 #include <types.h>
@@ -301,7 +303,7 @@ pok_ret_t       pok_partition_thread_create(
 	pok_partition_id_t      partition_id);
 #endif
 
-extern pok_thread_t              pok_threads[POK_CONFIG_NB_THREADS];
+extern pok_thread_t              *pok_threads;
 
 #define POK_CURRENT_THREAD pok_threads[POK_SCHED_CURRENT_THREAD]
 

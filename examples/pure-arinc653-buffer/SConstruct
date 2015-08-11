@@ -23,7 +23,8 @@ Help(vars.GenerateHelpText(env))
 env['POK_PATH'] = os.path.join(os.environ['POK_PATH'], '')
 env['PARTITIONS'] = ['pr1/pr1.elf']
 env['SCONSTRUCT_DIR'] = Dir('.').abspath
-env['DEPLOYMENT_HEADER'] = env['SCONSTRUCT_DIR']+'/kernel/deployment.h'
+#env['DEPLOYMENT_HEADER'] = env['SCONSTRUCT_DIR']+'/kernel/deployment.h'
+env['DEPLOYMENT_HEADER'] = env['POK_PATH']+'/kernel/include/config.h'
 
 Export('env')
 
@@ -40,7 +41,7 @@ chpok_configuration.write_configuration(conf, 'kernel', partition_dirs)
 SConscript(env['POK_PATH']+'/misc/SConscript')
 
 # uncomment this line if you want to use gdb
-env.Append(QEMU_FLAGS = ' -S -s')
+#env.Append(QEMU_FLAGS = ' -S -s')
 
 #env.Append(QEMU_FLAGS = ' -display none')
 
