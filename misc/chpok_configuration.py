@@ -480,8 +480,8 @@ PORT_CONNECTION_NULL = """\
 """
 
 PORT_CONNECTION_LOCAL_TEMPLATE = """\
- { 
-        .kind = POK_PORT_CONNECTION_LOCAL, 
+ {
+            .kind = POK_PORT_CONNECTION_LOCAL,
             .local =  {
                 .port_id = %(port_id)d,
             }
@@ -489,8 +489,8 @@ PORT_CONNECTION_LOCAL_TEMPLATE = """\
 """
 
 PORT_CONNECTION_UDP_TEMPLATE = """\
- { 
-        .kind = POK_PORT_CONNECTION_UDP,
+ {
+            .kind = POK_PORT_CONNECTION_UDP,
             .udp = {.ptr = %s }
         }\
 """

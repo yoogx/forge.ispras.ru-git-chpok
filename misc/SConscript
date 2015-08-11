@@ -6,9 +6,14 @@ import os
 def print_cmd_line(s, target, src, env):
 	# s is the original command line, target and src are lists of target
 	# and source nodes respectively, and env is the environment.
+        global log_file_opened
+        if not log_file_opened and str(target[0]) != 'run':
+            open(env['SCONSTRUCT_DIR']+'/scons_build.log', 'w')
+            log_file_opened = True
 
-	with open(env['SCONSTRUCT_DIR']+'/scons_build.log', 'a') as log:
-		log.write("%s\n"%s)
+        if str(target[0]) != 'run':
+            with open(env['SCONSTRUCT_DIR']+'/scons_build.log', 'a') as log:
+                    log.write("%s\n"%s)
 
 	# For now len is always 1
 	if len(target) == 1:
@@ -19,7 +24,7 @@ def print_cmd_line(s, target, src, env):
 
 Import('env')
 
-open(env['SCONSTRUCT_DIR']+'/scons_build.log', 'w')
+log_file_opened = False
 
 # Flags common for all architectures
 env['PRINT_CMD_LINE_FUNC'] = print_cmd_line
@@ -30,12 +35,12 @@ env['ARCH'] = env['arch']
 
 if env['ARCH'] == 'ppc':
 	# ppc-specific flags
-	env['CFLAGS'] = '-std=gnu99 -iwithprefix include -DPOK_ARCH_PPC -Wall -g -O -Wuninitialized \
+	env['CFLAGS'] = '-std=gnu99 -iwithprefix include -DPOK_ARCH_PPC -Wall -g -O0 -Wuninitialized \
 		-ffreestanding -nostdlib -nostdinc -mregnames -mcpu=e500mc \
 		-D__POK_C__ -DPOK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE=1'
 	env['BSP'] = 'e500mc'
 	env['AR'] = 'powerpc-elf-ar'
-	env['CC'] = 'powerpc-elf-gcc'
+	env['CC'] = 'ccache powerpc-elf-gcc'
 	env['LINK'] = 'powerpc-elf-ld'
 	env['OBJCOPY'] = 'powerpc-elf-objcopy'
 	env['OBJDUMP'] = 'powerpc-elf-objdump'
