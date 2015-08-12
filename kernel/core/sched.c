@@ -67,10 +67,6 @@
 
 #include <assert.h>
 
-extern pok_thread_t       *pok_threads;
-
-extern pok_partition_t    *pok_partitions;
-
 pok_bool_t current_partition_on_pause = FALSE;
 
 /**

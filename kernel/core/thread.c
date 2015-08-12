@@ -58,16 +58,6 @@
 
 #ifdef POK_NEEDS_THREADS
 
-/**
- * We declare an array of threads. The amount of threads
- * is fixed by the software developper and we add two theads
- *    - one for the kernel thread (this code)
- *    - one for the idle task
- */
-extern pok_thread_t        *pok_threads;
-
-extern pok_partition_t     *pok_partitions;
-
 #ifdef POK_NEEDS_NETWORKING
 static void pok_network_thread_init(void)
 {

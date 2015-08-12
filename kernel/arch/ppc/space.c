@@ -29,12 +29,6 @@
 #include "mmu.h"
 #include "space.h"
 
-struct pok_space
-{
-  uintptr_t     phys_base;
-  size_t        size;
-};
-
 extern struct pok_space spaces[];
 
 pok_ret_t pok_create_space (pok_partition_id_t partition_id,

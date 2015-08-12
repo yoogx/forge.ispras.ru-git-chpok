@@ -11,10 +11,12 @@ kernel_env.Program(target = 'pok.lo', source = [
 'libc/libc.lo',
 'arch/arch.lo',
 'drivers/drivers.lo',
-'net/net.lo',
-'config.c'])
+'net/net.lo'])
 
 Export('kernel_env')
+
+#kernel_env.SConsignFile(kernel_env['POK_PATH']+'/kernel/scons_signatures')
+#SConsignFile(None)
 
 SConscript('core/SConscript')
 SConscript('middleware/SConscript')

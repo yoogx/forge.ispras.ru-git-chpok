@@ -152,7 +152,7 @@ typedef struct
   pok_start_condition_t	    start_condition;
 } pok_partition_t;
 
-extern pok_partition_t *pok_partitions;
+extern pok_partition_t pok_partitions[];
 
 /**
  * Access to the current partition variable.

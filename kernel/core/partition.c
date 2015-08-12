@@ -61,12 +61,6 @@
 #include <libc.h>
 #include <assert.h>
 
-/**
- * \brief The array that contains ALL partitions in the system.
- */
-extern pok_partition_t *pok_partitions;
-
-
 uint8_t			 pok_partitions_index = 0;
 
 

@@ -18,6 +18,9 @@
 #define POK_NEEDS_MONITOR 1
 #define POK_NEEDS_PORTS_SAMPLING 1
 #define POK_NEEDS_PORTS_QUEUEING 1
+//#define POK_NEEDS_NETWORKING 1
+//#define POK_NEEDS_NETWORKING_VIRTIO 1
+//#define POK_NEEDS_PCI 1
 
 #define POK_CONFIG_NB_THREADS pok_config_nb_threads
 #define POK_CONFIG_PARTITIONS_NTHREADS pok_config_partitions_nthreads

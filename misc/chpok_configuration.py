@@ -575,14 +575,31 @@ def write_kernel_deployment_c(conf, f):
     n_sampling_ports = len(conf.get_all_sampling_ports())
     n_queueing_ports = len(conf.get_all_queueing_ports())
     
-    if n_sampling_ports > 0:
-        p("unsigned pok_config_nb_sampling_ports = %d;" % n_sampling_ports)
+    #if n_sampling_ports > 0:
+    p("unsigned pok_config_nb_sampling_ports = %d;" % n_sampling_ports)
     
-    if n_queueing_ports > 0:
-        p("unsigned pok_config_nb_queueing_ports = %d;" % n_queueing_ports)
+    #if n_queueing_ports > 0:
+    p("unsigned pok_config_nb_queueing_ports = %d;" % n_queueing_ports)
+    
+    p("enum {")
+    p("tmp_pok_config_nb_threads = %d," % total_threads)
+    p("tmp_pok_config_nb_lockobjects = %d," % 
+        sum(part.get_needed_lock_objects() for part in conf.partitions))
+    p("tmp_pok_config_nb_partitions = %d," % len(conf.partitions))
+    p("};")
+    
+    p("#include <config.h>")
+    p("#include <middleware/port.h>")
+    p("#include <core/thread.h>")
+    p("#include <core/partition.h>")
+    
+    p("pok_lockobj_t pok_partitions_lockobjs[tmp_pok_config_nb_lockobjects + 1];")
+    p("pok_thread_t pok_threads[tmp_pok_config_nb_threads];")
+    p("pok_partition_t pok_partitions[tmp_pok_config_nb_partitions];")
+    p("struct pok_space spaces[tmp_pok_config_nb_partitions];")
 
-    if len(conf.get_all_ports()) > 0:
-        write_kernel_deployment_c_ports(conf, f)
+    #if len(conf.get_all_ports()) > 0:
+    write_kernel_deployment_c_ports(conf, f)
 
     write_kernel_deployment_c_hm_tables(conf, f)
 
@@ -626,8 +643,6 @@ def write_kernel_deployment_c(conf, f):
 
 def write_kernel_deployment_c_ports(conf, f):
     p = functools.partial(print, file=f)
-
-    p("#include <middleware/port.h>")
 
     # various misc. functions
 
@@ -781,34 +796,34 @@ def write_kernel_deployment_c_ports(conf, f):
             assert False
 
     # print non-static definitions
-    if all_sampling_ports:
-        p("pok_port_sampling_t pok_sampling_ports[] = {")
-        for i, port in enumerate(all_sampling_ports):
+    #if all_sampling_ports:
+    p("pok_port_sampling_t pok_sampling_ports[] = {")
+    for i, port in enumerate(all_sampling_ports):
 
-            p(SAMPLING_PORT_TEMPLATE % dict(
-                name=_c_string(port.name),
-                partition=get_partition(port),
-                direction=_get_port_direction(port),
-                max_message_size=port.max_message_size,
-                data="&" + get_internal_port_name(port, "data")
-            ))
-        p("};")
+        p(SAMPLING_PORT_TEMPLATE % dict(
+            name=_c_string(port.name),
+            partition=get_partition(port),
+            direction=_get_port_direction(port),
+            max_message_size=port.max_message_size,
+            data="&" + get_internal_port_name(port, "data")
+        ))
+    p("};")
 
     
-    if all_queueing_ports:
-        p("pok_port_queueing_t pok_queueing_ports[] = {")
-        for i, port in enumerate(all_queueing_ports):
+    #if all_queueing_ports:
+    p("pok_port_queueing_t pok_queueing_ports[] = {")
+    for i, port in enumerate(all_queueing_ports):
 
-            p(QUEUEING_PORT_TEMPLATE % dict(
-                name=_c_string(port.name),
-                partition=get_partition(port),
-                direction=_get_port_direction(port),
-                max_message_size=port.max_message_size,
-                max_nb_messages=port.max_nb_messages,
-                data="&" + get_internal_port_name(port, "data"),
-                data_stride="sizeof(%s[0])" % get_internal_port_name(port, "data")
-            ))
-        p("};")
+        p(QUEUEING_PORT_TEMPLATE % dict(
+            name=_c_string(port.name),
+            partition=get_partition(port),
+            direction=_get_port_direction(port),
+            max_message_size=port.max_message_size,
+            max_nb_messages=port.max_nb_messages,
+            data="&" + get_internal_port_name(port, "data"),
+            data_stride="sizeof(%s[0])" % get_internal_port_name(port, "data")
+        ))
+    p("};")
 
     def print_channels(predicate, variable_name):
         p("pok_port_channel_t %s[] = {" % variable_name)

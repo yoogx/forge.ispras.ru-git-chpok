@@ -20,6 +20,9 @@ libpok_env.StaticLibrary(target = 'pok', source = [
 
 Export('libpok_env')
 
+#libpok_env.SConsignFile(libpok_env['POK_PATH']+'/libpok/scons_signatures')
+#SConsignFile(None)
+
 SConscript('arch/SConscript')
 SConscript('core/SConscript')
 SConscript('drivers/SConscript')

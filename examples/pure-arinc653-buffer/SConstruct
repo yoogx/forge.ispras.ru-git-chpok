@@ -50,5 +50,16 @@ env.Command('debug', [], env['GDB']+' pok.elf -ex "target remote :1234"')
 env.Ignore('.', 'debug')
 
 env.Clean('chpok', [env['POK_PATH']+'/build/ppc', env['POK_PATH']+'/build/x86'])
+env.Clean('local', [
+'kernel/deployment.o',
+'kernel/kernel.lo',
+'pr1/main.o',
+'pr1/deployment.o',
+'pr1/libpart.a',
+'pr1/pr1.elf',
+'partitions.bin',
+'sizes.c',
+'sizes.o',
+'pok.elf'])
 
 # EOF

@@ -55,7 +55,7 @@
  */
 
 
-#ifdef POK_NEEDS_NETWORK
+#ifdef POK_NEEDS_NETWORKING
 
 #define NETWORK_THREAD POK_CONFIG_NB_THREADS-4
 #define POK_KERNEL_THREADS 4
@@ -303,7 +303,7 @@ pok_ret_t       pok_partition_thread_create(
 	pok_partition_id_t      partition_id);
 #endif
 
-extern pok_thread_t              *pok_threads;
+extern pok_thread_t              pok_threads[];
 
 #define POK_CURRENT_THREAD pok_threads[POK_SCHED_CURRENT_THREAD]
 

@@ -28,6 +28,12 @@
 #include <types.h>
 #include <errno.h>
 
+struct pok_space
+{
+  uintptr_t     phys_base;
+  size_t        size;
+};
+
 /**
  * Function that initializes architecture concerns.
  */
