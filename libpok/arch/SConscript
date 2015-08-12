@@ -2,13 +2,8 @@
 
 Import('libpok_env')
 
-libpok_arch_env = libpok_env.Clone()
-libpok_arch_env.Append(CPPPATH = libpok_arch_env['POK_PATH']+'/libpok/arch/'+libpok_arch_env['ARCH'])
+libpok_env.Program(target = 'arch.lo', source = libpok_env['ARCH']+'/'+libpok_env['ARCH']+'.lo')
 
-libpok_arch_env.Program(target = 'arch.lo', source = libpok_arch_env['ARCH']+'/'+libpok_arch_env['ARCH']+'.lo')
-
-Export('libpok_arch_env')
-
-SConscript(libpok_arch_env['ARCH']+'/SConscript')
+SConscript(libpok_env['ARCH']+'/SConscript')
 
 # EOF

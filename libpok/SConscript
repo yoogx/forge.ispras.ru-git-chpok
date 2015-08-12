@@ -4,7 +4,7 @@ Import('env')
 
 libpok_env = env.Clone()
 
-libpok_env.Append(CFLAGS = ' -include'+libpok_env['SCONSTRUCT_DIR']+'/pr1/deployment.h')
+libpok_env.Append(CFLAGS = ' -include '+env['POK_PATH']+'/libpok/include/config.h')
 libpok_env['CPPPATH'] = [env['POK_PATH']+'/libpok/include']
 
 libpok_env.StaticLibrary(target = 'pok', source = [
@@ -15,7 +15,8 @@ libpok_env.StaticLibrary(target = 'pok', source = [
 'arinc653/arinc653.lo',
 'libm/libm.lo',
 'protocols/protocols.lo',
-'libc/libc.lo'])
+'libc/libc.lo',
+'config.c'])
 
 Export('libpok_env')
 

@@ -20,8 +20,8 @@
 #include <middleware/buffer.h>
 
 #ifdef POK_NEEDS_BLACKBOARDS
-pok_blackboard_t pok_blackboards[POK_CONFIG_NB_BLACKBOARDS];
-char pok_blackboards_data[POK_CONFIG_BLACKBOARD_DATA_SIZE]; 
+pok_blackboard_t *pok_blackboards;
+char *pok_blackboards_data; 
 #endif
 
 #endif

@@ -63,7 +63,7 @@ typedef struct
    char              name[POK_SEM_MAX_NAME_LENGTH];
 } pok_arinc653_semaphore_layer_t;
 
-pok_arinc653_semaphore_layer_t         pok_arinc653_semaphores_layers[POK_CONFIG_ARINC653_NB_SEMAPHORES];
+pok_arinc653_semaphore_layer_t *pok_arinc653_semaphores_layers;
 
 pok_bool_t           pok_arinc653_semaphores_initialized = 0;
 

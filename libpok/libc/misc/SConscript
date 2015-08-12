@@ -2,9 +2,6 @@
 
 Import('libpok_env')
 
-libpok_misc_env = libpok_env.Clone()
-libpok_misc_env.Append(CPPPATH = libpok_misc_env['POK_PATH']+'/libpok/libc/misc')
-
-libpok_misc_env.Program(target = 'misc.lo', source = Glob('*.c'))
+libpok_env.Program(target = 'misc.lo', source = Glob('*.c'))
 
 # EOF

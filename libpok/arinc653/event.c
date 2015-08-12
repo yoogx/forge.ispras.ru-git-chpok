@@ -65,7 +65,7 @@ typedef struct
    char              name[POK_EVENT_MAX_NAME_LENGTH];
 }pok_arinc653_event_layer_t;
 
-pok_arinc653_event_layer_t    pok_arinc653_events_layers[POK_CONFIG_NB_EVENTS];
+pok_arinc653_event_layer_t *pok_arinc653_events_layers;
 
 static void init_events() 
 {

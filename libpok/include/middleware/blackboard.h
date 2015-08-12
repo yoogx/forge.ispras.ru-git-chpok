@@ -87,8 +87,8 @@ pok_ret_t pok_blackboard_id     (char*                            name,
 pok_ret_t pok_blackboard_status (const pok_blackboard_id_t        id,
                                  pok_blackboard_status_t*         status);
 
-extern pok_blackboard_t pok_blackboards[POK_CONFIG_NB_BLACKBOARDS];
-extern char pok_blackboards_data[POK_CONFIG_BLACKBOARD_DATA_SIZE]; 
+extern pok_blackboard_t *pok_blackboards;
+extern char *pok_blackboards_data; 
 
 #endif
 #endif

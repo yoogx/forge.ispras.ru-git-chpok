@@ -2,9 +2,6 @@
 
 Import('libpok_env')
 
-libpok_ceasar_env = libpok_env.Clone()
-libpok_ceasar_env.Append(CPPPATH = libpok_ceasar_env['POK_PATH']+'/libpok/protocols/ceasar')
-
-libpok_ceasar_env.Program(target = 'ceasar.lo', source = Glob('*.c'))
+libpok_env.Program(target = 'ceasar.lo', source = Glob('*.c'))
 
 # EOF

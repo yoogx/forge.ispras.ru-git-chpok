@@ -153,9 +153,9 @@ typedef struct
 } pok_buffer_data_t;
 
 // actual allocated data structures (as global static variables)
-static pok_buffer_t pok_buffers[POK_CONFIG_NB_BUFFERS];
+extern pok_buffer_t *pok_buffers;
 
-static char pok_buffers_data[POK_CONFIG_BUFFER_DATA_SIZE]; 
+extern char *pok_buffers_data; 
 static pok_size_t pok_buffers_data_index = 0;
 
 // misc. functions

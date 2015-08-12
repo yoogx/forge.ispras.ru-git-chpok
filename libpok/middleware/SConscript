@@ -2,9 +2,6 @@
 
 Import('libpok_env')
 
-libpok_middleware_env = libpok_env.Clone()
-libpok_middleware_env.Append(CPPPATH = libpok_middleware_env['POK_PATH']+'/libpok/middleware')
-
-libpok_middleware_env.Program(target = 'middleware.lo', source = Glob('*.c'))
+libpok_env.Program(target = 'middleware.lo', source = Glob('*.c'))
 
 # EOF
