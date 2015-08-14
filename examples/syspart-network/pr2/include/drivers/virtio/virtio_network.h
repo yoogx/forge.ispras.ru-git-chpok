@@ -14,36 +14,12 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifdef POK_NEEDS_NETWORKING
 
-#ifndef __POK_KERNEL_VIRTIO_VIRTQUEUE_H__
-#define __POK_KERNEL_VIRTIO_VIRTQUEUE_H__
+#ifndef __POK_DRIVERS_VIRTIO_VIRTIO_NETWORK_H__
+#define __POK_DRIVERS_VIRTIO_VIRTIO_NETWORK_H__
 
 #include <net/network.h>
 
-#include "virtio_ring.h"
+extern pok_network_driver_device_t pok_network_virtio_device;
 
-struct virtio_virtqueue {
-    struct vring vring;
-
-    // index of first free descriptor
-    uint16_t free_index;
-
-    // count of free descriptors
-    uint16_t num_free;
-
-    // last seen used
-    uint16_t last_seen_used;
-
-    struct {
-        pok_network_buffer_callback_t callback;
-        void *callback_arg;
-    } *callbacks;
-};
-
-void* virtio_virtqueue_setup(struct virtio_virtqueue *vq, uint16_t size, size_t alignment);
-
-void virtio_virtqueue_allocate_callbacks(struct virtio_virtqueue *vq);
-
-#endif // __POK_KERNEL_VIRTIO_VIRTQUEUE_H__
-#endif // POK_NEEDS_NETWORKING
+#endif // __POK_DRIVERS_VIRTIO_VIRTIO_NETWORK_H__

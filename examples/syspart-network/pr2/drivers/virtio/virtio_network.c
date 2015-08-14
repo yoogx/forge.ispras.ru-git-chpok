@@ -15,18 +15,10 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef POK_NEEDS_NETWORKING_VIRTIO
-
-#include <assert.h>
-
-#include <arch.h>
+#include <string.h>
+#include <stdio.h>
 #include <pci.h>
 #include <ioports.h>
-
-#include <core/thread.h>
-
-#include <bsp.h>
-#include <libc.h>
 
 #include <net/byteorder.h>
 #include <net/ether.h>
@@ -84,18 +76,46 @@ static struct virtio_network_device virtio_network_device;
  */
 static void maybe_lock_preemption(pok_bool_t *saved)
 {
+    return;
+    /*
     *saved = pok_arch_preempt_enabled();
     if (*saved) {
         pok_arch_preempt_disable();
     }
+    */
 }
 
 
 static void maybe_unlock_preemption(const pok_bool_t *saved)
 {
+    return;
+    /*
     if (*saved) {
         pok_arch_preempt_enable();
     }
+    */
+}
+//TODO move to pci.c
+static unsigned int pci_read(unsigned int bus,
+        unsigned int dev,
+        unsigned int fun,
+        unsigned int reg)
+{
+    unsigned int addr = (1 << 31) | (bus << 16) | (dev << 11) | (fun << 8) | (reg & 0xfc);
+    unsigned int val = -1;
+    unsigned cfg_addr = 0xe0008000;
+    unsigned cfg_data = 0xe0008004;
+
+    out_be32((uint32_t *) cfg_addr, addr);
+    val = in_le32((uint32_t *) cfg_data);
+
+    return (val >> ((reg & 3) << 3));
+}
+//TODO move to pci.c
+unsigned int pci_read_reg(s_pci_device* d,
+        unsigned int reg)
+{
+    return (pci_read(d->bus, d->dev, d->fun, reg));
 }
 
 static int virtio_pci_search(s_pci_device* d) {
@@ -139,7 +159,7 @@ static int virtio_pci_search(s_pci_device* d) {
             {
                 printf("------------\n");
                 printf("bus %d dev %d fun %d\n", bus, dev, fun);
-                printf("bar0 0x%x\n", d->bar[0]);
+                printf("bar0 0x%lx\n", d->bar[0]);
 
                 {
                     uint32_t * cfg_addr = (uint32_t*) 0xe0008000;
@@ -212,7 +232,6 @@ static void use_receive_buffer(struct virtio_network_device *dev, struct receive
 
     if (vq->num_free < 1) {
         PRINTF("no free RX descriptors\n");
-        assert(FALSE && "no free RX descriptors - what");
         return; // FIXME return error code
     }
 
@@ -433,7 +452,7 @@ static void reclaim_receive_buffers(void)
 
     // network thread only
     // TODO also ensure we're not in timer interrupt
-    assert(POK_SCHED_CURRENT_THREAD == NETWORK_THREAD);
+    //assert(POK_SCHED_CURRENT_THREAD == NETWORK_THREAD);
         
     pok_bool_t saved_preemption;
     maybe_lock_preemption(&saved_preemption);
@@ -496,5 +515,3 @@ pok_network_driver_device_t pok_network_virtio_device = {
     .ops = &driver_ops,
     .mac = virtio_network_device.mac
 };
-
-#endif

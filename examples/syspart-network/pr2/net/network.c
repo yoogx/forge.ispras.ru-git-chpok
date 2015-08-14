@@ -15,11 +15,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef POK_NEEDS_NETWORKING
-
-#include <assert.h>
-#include <libc.h>
-#include <arch.h>
+//#include <assert.h>
+//#include <libc.h>
+//#include <arch.h>
 
 #include <net/network.h>
 #include <net/byteorder.h>
@@ -27,13 +25,14 @@
 #include <net/ip.h>
 #include <net/udp.h>
 
+#include <stdio.h>
+#include <string.h>
+
 static pok_bool_t initialized = FALSE;
 
-#ifdef POK_NEEDS_NETWORKING_VIRTIO
-    #include <drivers/virtio/virtio_network.h>
-    #define NETWORK_DRIVER pok_network_virtio_device
-    #define NETWORK_DRIVER_OPS (pok_network_virtio_device.ops)
-#endif
+#include <drivers/virtio/virtio_network.h>
+#define NETWORK_DRIVER pok_network_virtio_device
+#define NETWORK_DRIVER_OPS (pok_network_virtio_device.ops)
 
 static pok_network_udp_receive_callback_t *receive_callback_list = NULL;
 
@@ -212,8 +211,16 @@ pok_bool_t pok_network_send_udp_gather(
 {
     if (!initialized) return FALSE;
 
-    assert(sg_list_len >= 1);
-    assert(sg_list[0].size == POK_NETWORK_OVERHEAD);
+    if (sg_list_len == 0) {
+        printf("pok_network_send_udp_gather: list_len should not be zero");
+        return FALSE;
+    }
+
+    if (sg_list[0].size != POK_NETWORK_OVERHEAD) {
+        printf("pok_network_send_udp_gather: wrong size of list element");
+        return FALSE;
+    }
+
 
     size_t payload_length = 0;
     size_t i;
@@ -264,29 +271,27 @@ void pok_network_flush_send(void)
     }
 }
 
-void pok_network_thread(void)
-{
-    pok_arch_preempt_enable();
-    for (;;) {
-        if (initialized) {
-            pok_network_reclaim_send_buffers();
-            pok_network_reclaim_receive_buffers();
-        }
-
-        /*
-         * Conserve electricity (and CPU time).
-         * It's actually very important in QEMU, 
-         * where virtual machine competes for resources with host 
-         * and even other guests.
-         *
-         * TODO Enable network card interrupt here, so we'd wake up
-         *      as soon as there's work to be done.
-         *      (Currently, we wake up on timer interrupt)
-         */
-        #ifdef i386
-        asm("hlt");
-        #endif
-    }
-}
-
-#endif
+//void pok_network_thread(void)
+//{
+//    pok_arch_preempt_enable();
+//    for (;;) {
+//        if (initialized) {
+//            pok_network_reclaim_send_buffers();
+//            pok_network_reclaim_receive_buffers();
+//        }
+//
+//        /*
+//         * Conserve electricity (and CPU time).
+//         * It's actually very important in QEMU, 
+//         * where virtual machine competes for resources with host 
+//         * and even other guests.
+//         *
+//         * TODO Enable network card interrupt here, so we'd wake up
+//         *      as soon as there's work to be done.
+//         *      (Currently, we wake up on timer interrupt)
+//         */
+//        #ifdef i386
+//        asm("hlt");
+//        #endif
+//    }
+//}

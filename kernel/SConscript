@@ -10,7 +10,6 @@ kernel_env.Program(target = 'pok.lo', source = [
 'middleware/middleware.lo',
 'libc/libc.lo',
 'arch/arch.lo',
-'drivers/drivers.lo'
 ])
 
 Export('kernel_env')
@@ -19,6 +18,5 @@ SConscript('core/SConscript')
 SConscript('middleware/SConscript')
 SConscript('libc/SConscript')
 SConscript('arch/SConscript')
-SConscript('drivers/SConscript')
 
 # EOF

@@ -29,7 +29,7 @@ void pok_pci_init()
 {
     bridge_props = devtree_get_pci_props();
 
-    printf("bridge\n\tcfg_addr: 0x%lx\n\tcfg_data: 0x%lx\n",
+    printf("bridge\n\tcfg_addr: 0x%x\n\tcfg_data: 0x%x\n",
             bridge_props.cfg_addr, bridge_props.cfg_data);
 }
 

@@ -15,19 +15,17 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifdef POK_NEEDS_NETWORKING
-
 #ifndef __POK_NET_NETWORK_H__
 #define __POK_NET_NETWORK_H__
 
 #include <types.h>
 
-#ifdef POK_NEEDS_NETWORKING_VIRTIO 
+//#ifdef POK_NEEDS_NETWORKING_VIRTIO 
     // virtio header 
     #define POK_NETWORK_OVERHEAD_DRIVER 10    
-#else
-    #error "no suitable network driver available"
-#endif
+//#else
+//    #error "no suitable network driver available"
+//#endif
 
 // ethernet + ip + udp
 #define POK_NETWORK_OVERHEAD_PROTO (14+20+8)
@@ -151,5 +149,4 @@ void pok_network_thread(void);
  */
 extern const uint32_t pok_network_ip_address;
 
-#endif
 #endif
