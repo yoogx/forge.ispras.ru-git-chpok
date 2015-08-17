@@ -21,6 +21,8 @@ Import('env')
 
 open(env['SCONSTRUCT_DIR']+'/scons_build.log', 'w')
 
+# This tells scons to store all file signatures 
+# in a separate .sconsign file in each directory
 SConsignFile(None)
 
 # Flags common for all architectures
