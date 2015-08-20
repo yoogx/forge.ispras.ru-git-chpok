@@ -36,7 +36,7 @@ typedef enum
     POK_SLOT_SPARE = 0, // idle thread is always scheduled here
     POK_SLOT_PARTITION = 1,
 #if defined(POK_NEEDS_NETWORKING)
-    POK_SLOT_NETWORKING = 2,
+    POK_SLOT_NETWORKING = 3,
 #endif
 
 #if defined(POK_NEEDS_MONITOR)

@@ -575,10 +575,8 @@ def write_kernel_deployment_c(conf, f):
     n_sampling_ports = len(conf.get_all_sampling_ports())
     n_queueing_ports = len(conf.get_all_queueing_ports())
     
-    #if n_sampling_ports > 0:
     p("unsigned pok_config_nb_sampling_ports = %d;" % n_sampling_ports)
     
-    #if n_queueing_ports > 0:
     p("unsigned pok_config_nb_queueing_ports = %d;" % n_queueing_ports)
     
     p("enum {")
@@ -885,7 +883,7 @@ def write_partition_deployment_c(conf, partition_idx, f):
     p("unsigned pok_config_nb_buffers = %d;" % part.num_arinc653_buffers)
     p("unsigned pok_config_buffer_data_size = %d;" % part.buffer_data_size)
     
-    p("unsigned pok_config_nb_blackboards = %d;" % part.num_arinc653_buffers)
+    p("unsigned pok_config_nb_blackboards = %d;" % part.num_arinc653_blackboards)
     p("unsigned pok_config_blackboard_data_size = %d;" % part.blackboard_data_size)
     
     p("unsigned pok_config_arinc653_nb_semaphores = %d;" % part.num_arinc653_semaphores)

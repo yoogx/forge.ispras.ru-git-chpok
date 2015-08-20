@@ -139,7 +139,7 @@ static int virtio_pci_search(s_pci_device* d) {
             {
                 printf("------------\n");
                 printf("bus %d dev %d fun %d\n", bus, dev, fun);
-                printf("bar0 0x%x\n", d->bar[0]);
+                printf("bar0 0x%lx\n", d->bar[0]);
 
                 {
                     uint32_t * cfg_addr = (uint32_t*) 0xe0008000;
