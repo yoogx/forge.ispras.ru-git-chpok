@@ -1,0 +1,9 @@
+# -*- Mode: Python -*-
+
+Import('kernel_env')
+
+kernel_env.Program(target = kernel_env['BSP'] + '.lo', source = Glob('*.c'))
+
+kernel_env.Depends('ppc.lo', [kernel_env['BSP']+'/'+kernel_env['BSP']+'.lo', 'libfdt/libfdt.lo'])
+
+# EOF

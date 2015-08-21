@@ -2,12 +2,17 @@
 
 Import('kernel_env')
 
+assert "BSP" in kernel_env
+assert kernel_env['BSP']
+
+# TODO Check that folder with kernel_env['BSP'] exists
+
 kernel_env.Program(target = 'ppc.lo', source = [
 Glob('*.[Sc]'),
-'e500mc/e500mc.lo',
+kernel_env['BSP']+'/' + kernel_env['BSP'] + '.lo',
 'libfdt/libfdt.lo'])
 
-SConscript('e500mc/SConscript')
+SConscript(kernel_env['BSP']+'/SConscript')
 SConscript('libfdt/SConscript')
 
 # EOF

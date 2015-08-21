@@ -33,7 +33,8 @@ if env['ARCH'] == 'ppc':
     env['CFLAGS'] = '-std=gnu99 -iwithprefix include -DPOK_ARCH_PPC -Wall -g -O0 -Wuninitialized \
         -ffreestanding -nostdlib -nostdinc -mregnames -mcpu=e500mc \
         -D__POK_C__ -DPOK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE=1'
-    env['BSP'] = 'e500mc'
+#    env['BSP'] = 'e500mc' 
+    env['BSP'] = 'p3041'
     env['AR'] = 'powerpc-elf-ar'
     env['CC'] = 'powerpc-elf-gcc'
     env['LINK'] = 'powerpc-elf-ld'
