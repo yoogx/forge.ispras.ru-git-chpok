@@ -14,6 +14,8 @@
  * Created by julien on Thu Jul 30 15:49:30 2009 
  */
 
+#include <config.h>
+
 #include <types.h>
 #include <core/dependencies.h>
 

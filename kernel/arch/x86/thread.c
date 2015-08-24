@@ -20,6 +20,8 @@
  **\author  Julian Pidancet
  */
 
+#include <config.h>
+
 #include <bsp.h>
 #include <libc.h>
 #include <errno.h>

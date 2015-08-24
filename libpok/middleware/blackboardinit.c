@@ -14,6 +14,7 @@
  * Created by julien on Thu Jan 15 23:34:13 2009 
  */
 
+#include <core/dependencies.h>
 
 #ifdef POK_NEEDS_MIDDLEWARE
 #ifdef POK_NEEDS_BLACKBOARDS

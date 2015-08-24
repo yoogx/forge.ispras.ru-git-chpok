@@ -21,6 +21,8 @@
  * \date    2008-2009
  */
 
+#include <config.h>
+
 #include <arch.h>
 #include <bsp.h>
 #include <net/network.h>
@@ -39,8 +41,6 @@ void pok_boot ()
 {
    pok_arch_init();
    pok_bsp_init();
-   
-   //pok_config_init();
 
 #ifdef POK_NEEDS_NETWORKING
    pok_network_init();

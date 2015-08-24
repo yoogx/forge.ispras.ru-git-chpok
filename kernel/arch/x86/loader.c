@@ -1,3 +1,5 @@
+#include <config.h>
+
 #include <types.h>
 #include <core/loader.h>
 #include <core/partition.h>

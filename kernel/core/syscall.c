@@ -32,6 +32,8 @@
  * Created by julien on Wed Oct 21 13:12:27 2009
  */
 
+#include <config.h>
+
 #include <bsp.h>
 #include <types.h>
 #include <libc.h>

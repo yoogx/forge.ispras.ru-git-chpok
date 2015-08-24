@@ -14,6 +14,7 @@
  * Created by julien on Thu Jan 15 23:34:13 2009 
  */
 
+#include <config.h>
 
 #if defined (POK_NEEDS_TIME) || defined (POK_NEEDS_THREADS) || defined (POK_NEEDS_SCHED)
 

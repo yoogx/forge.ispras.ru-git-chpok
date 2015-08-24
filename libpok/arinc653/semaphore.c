@@ -37,6 +37,8 @@
  * \brief Provides ARINC653 API functionnalities for semaphore management.
  */
 
+#include <config.h>
+
 #ifdef POK_NEEDS_ARINC653_SEMAPHORE
 
 #include <types.h>

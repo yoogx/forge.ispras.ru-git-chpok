@@ -15,6 +15,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+#include <config.h>
+
 #ifdef POK_NEEDS_NETWORKING
 
 #ifndef __POK_NET_NETWORK_H__

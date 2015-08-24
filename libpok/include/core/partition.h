@@ -14,6 +14,8 @@
  * Created by julien on Mon Jan 19 14:18:51 2009 
  */
 
+#include <config.h>
+
 #include <core/dependencies.h>
 
 #ifdef POK_NEEDS_PARTITIONS

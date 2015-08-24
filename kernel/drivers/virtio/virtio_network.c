@@ -15,6 +15,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <config.h>
+
 #ifdef POK_NEEDS_NETWORKING_VIRTIO
 
 #include <assert.h>

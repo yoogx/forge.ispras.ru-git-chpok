@@ -36,6 +36,8 @@
 #ifndef __POK_USER_BUFFER_H__
 #define __POK_USER_BUFFER_H__
 
+#include <config.h>
+
 #ifdef POK_NEEDS_MIDDLEWARE
 #ifdef POK_NEEDS_BUFFERS
 

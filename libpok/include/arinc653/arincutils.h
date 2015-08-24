@@ -14,6 +14,8 @@
  * Created by matias on Wed May 04 09:34:13 2012 
  */
 
+#include <config.h>
+
 #ifdef POK_NEEDS_ARINC653_PROCESS
 
 #include <arinc653/process.h>

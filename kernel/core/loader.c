@@ -25,6 +25,7 @@
  * be defined) to work.
  */
 
+#include <config.h>
 
 #ifdef POK_NEEDS_PARTITIONS
 

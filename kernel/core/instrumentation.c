@@ -14,6 +14,8 @@
  * Created by julien on Wed Sep 30 17:30:02 2009 
  */
 
+#include <config.h>
+
 #ifdef POK_NEEDS_INSTRUMENTATION
 
 #include <core/thread.h>

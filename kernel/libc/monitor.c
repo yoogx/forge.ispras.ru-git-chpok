@@ -1,4 +1,4 @@
-
+#include <config.h>
 
 #include <libc.h>
 #include <bsp.h>

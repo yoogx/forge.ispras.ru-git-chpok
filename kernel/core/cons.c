@@ -14,6 +14,8 @@
  * Created by julien on Thu Jan 15 23:34:13 2009 
  */
 
+#include <config.h>
+
 #if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
 
 #include <arch.h>

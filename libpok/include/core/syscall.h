@@ -17,6 +17,8 @@
 #ifndef __LIBPOK_SYSCALL_H__
 #define __LIBPOK_SYSCALL_H__
 
+#include <config.h>
+
 #include <types.h>
 #include <errno.h>
 

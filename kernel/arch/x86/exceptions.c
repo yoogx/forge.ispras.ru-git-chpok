@@ -19,6 +19,8 @@
  * \author     Julian Pidancet
  */
 
+#include <config.h>
+
 #if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_ERROR_HANDLING)
 
 #include <errno.h>

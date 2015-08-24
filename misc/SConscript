@@ -25,6 +25,8 @@ open(env['SCONSTRUCT_DIR']+'/scons_build.log', 'w')
 # in a separate .sconsign file in each directory
 SConsignFile(None)
 
+#CacheDir(env['POK_PATH']+'/cache')
+
 # Flags common for all architectures
 env['PRINT_CMD_LINE_FUNC'] = print_cmd_line
 env['CPPPATH'] = [env['POK_PATH']+'/kernel/include']

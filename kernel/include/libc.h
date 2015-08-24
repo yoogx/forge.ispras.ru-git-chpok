@@ -14,9 +14,10 @@
  * Created by julien on Thu Jan 15 23:34:13 2009 
  */
 
-
 #ifndef __POK_KERNEL_LIBC_H__
 #define __POK_KERNEL_LIBC_H__
+
+#include <config.h>
 
 #include <types.h>
 

@@ -14,6 +14,7 @@
  * Created by julien on Thu Jan 15 23:34:13 2009 
  */
 
+#include <config.h>
 
 #ifdef POK_NEEDS_ARINC653_SEMAPHORE
 #ifndef APEX_SEMAPHORE

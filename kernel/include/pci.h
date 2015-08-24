@@ -14,6 +14,7 @@
  * Created by laurent on Mon Jun 08 11:03:02 2009 
  */
 
+#include <config.h>
 
 #ifdef POK_NEEDS_PCI
 

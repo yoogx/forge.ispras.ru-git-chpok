@@ -1,5 +1,3 @@
-#include <middleware/port.h>
-#include <core/sched.h>
 #include <types.h>
 
 #define POK_NEEDS_LOCKOBJECTS  1
@@ -43,5 +41,3 @@ extern unsigned pok_config_scheduling_nbslots;
 extern unsigned pok_config_scheduling_major_frame;
 extern unsigned pok_config_nb_sampling_ports;
 extern unsigned pok_config_nb_queueing_ports;
-
-void pok_config_init();

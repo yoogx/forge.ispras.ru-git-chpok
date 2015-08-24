@@ -3,7 +3,7 @@
 Import('env')
 
 kernel_env = env.Clone()
-kernel_env.Append(CFLAGS = ' -include '+kernel_env['POK_PATH']+'/kernel/include/config.h -Werror')
+kernel_env.Append(CFLAGS = ' -Werror')
 
 kernel_env.Program(target = 'pok.lo', source = [
 'core/core.lo',
@@ -14,9 +14,6 @@ kernel_env.Program(target = 'pok.lo', source = [
 'net/net.lo'])
 
 Export('kernel_env')
-
-#kernel_env.SConsignFile(kernel_env['POK_PATH']+'/kernel/scons_signatures')
-#SConsignFile(None)
 
 SConscript('core/SConscript')
 SConscript('middleware/SConscript')

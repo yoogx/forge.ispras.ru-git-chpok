@@ -42,6 +42,8 @@
  * POK_NEEDS_PARTITIONS maccro.
  */
 
+#include <config.h>
+
 #ifdef POK_NEEDS_PARTITIONS
 
 #include <arch.h>

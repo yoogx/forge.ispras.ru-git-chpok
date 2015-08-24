@@ -42,6 +42,7 @@
  * does not differ so much.
  */
 
+#include <config.h>
 
 #if defined (POK_NEEDS_LOCKOBJECTS) || defined (POK_NEEDS_PORTS_QUEUEING) || defined (POK_NEEDS_PORTS_SAMPLING)
 

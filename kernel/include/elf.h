@@ -16,7 +16,7 @@
 
 
 #ifndef ELF_H_
-# define ELF_H_
+#define ELF_H_
 
 typedef uint16_t Elf32_Half;
 typedef uint32_t Elf32_Word;

@@ -38,6 +38,8 @@
  **\\author Julien Delange
  */
 
+#include <config.h>
+
 #if defined (POK_NEEDS_SCHED) || defined (POK_NEEDS_THREADS)
 
 #include <types.h>

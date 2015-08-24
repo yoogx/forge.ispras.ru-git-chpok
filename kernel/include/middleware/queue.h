@@ -18,6 +18,8 @@
 #ifndef __POK_KERNEL_QUEUES_H__
 #define __POK_KERNEL_QUEUES_H__
 
+#include <config.h>
+
 #if defined (POK_NEEDS_PORTS_SAMPLING) || defined (POK_NEEDS_PORTS_QUEUEING)
 
 #include <types.h>

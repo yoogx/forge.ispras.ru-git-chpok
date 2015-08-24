@@ -39,6 +39,8 @@
  * \brief   Thread management in kernel
  */
 
+#include <config.h>
+
 #include <types.h>
 
 #include <arch.h>

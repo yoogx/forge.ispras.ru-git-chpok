@@ -14,6 +14,7 @@
  * Created by julien on Fri Dec 11 16:32:31 2009 
  */
 
+#include <config.h>
 
 #include <types.h>
 

@@ -4,7 +4,6 @@ Import('env')
 
 libpok_env = env.Clone()
 
-libpok_env.Append(CFLAGS = ' -include '+env['POK_PATH']+'/libpok/include/config.h')
 libpok_env['CPPPATH'] = [env['POK_PATH']+'/libpok/include']
 
 libpok_env.StaticLibrary(target = 'pok', source = [
@@ -19,9 +18,6 @@ libpok_env.StaticLibrary(target = 'pok', source = [
 'config.c'])
 
 Export('libpok_env')
-
-#libpok_env.SConsignFile(libpok_env['POK_PATH']+'/libpok/scons_signatures')
-#SConsignFile(None)
 
 SConscript('arch/SConscript')
 SConscript('core/SConscript')

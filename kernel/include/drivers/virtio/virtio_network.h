@@ -15,6 +15,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <config.h>
+
 #ifdef POK_NEEDS_NETWORKING_VIRTIO
 #ifndef __POK_DRIVERS_VIRTIO_VIRTIO_NETWORK_H__
 #define __POK_DRIVERS_VIRTIO_VIRTIO_NETWORK_H__
