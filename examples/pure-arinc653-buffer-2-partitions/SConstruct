@@ -39,6 +39,8 @@ Export('env')
 
 SConscript(env['POK_PATH']+'/misc/SConscript')
 
+env.Append(QEMU_FLAGS = ' -kernel pok.elf')
+
 # uncomment this line if you want to use gdb
 #env.Append(QEMU_FLAGS = ' -S -s')
 

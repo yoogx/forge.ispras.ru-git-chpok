@@ -53,7 +53,7 @@ if env['ARCH'] == 'ppc':
     env['ASFLAGS'] = env['CFLAGS']
     env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
     env['QEMU'] = 'qemu-system-ppc'
-    env.Append(QEMU_FLAGS = ' -kernel pok.elf -M ppce500')
+    env.Append(QEMU_FLAGS = ' -M ppce500')
 
 elif env['ARCH'] == 'x86':
     # x86-specific flags
@@ -70,7 +70,6 @@ elif env['ARCH'] == 'x86':
     env['ASFLAGS'] = env['CFLAGS']
     env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
     env['QEMU'] = 'qemu-system-i386'
-    env.Append(QEMU_FLAGS = ' -kernel pok.elf')
 
 bsp_cflags_dict = {'e500mc': ' -mcpu=e500mc', 'p3041': ' -mcpu=e500mc', 'x86-qemu': ''}
 env.Append(CFLAGS = bsp_cflags_dict[env['BSP']])
