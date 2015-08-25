@@ -4,10 +4,10 @@ Import('kernel_env')
 
 kernel_env.Program(target = 'ppc.lo', source = [
 Glob('*.[Sc]'),
-'e500mc/e500mc.lo',
+kernel_env['BSP']+'/' + kernel_env['BSP'] + '.lo',
 'libfdt/libfdt.lo'])
 
-SConscript('e500mc/SConscript')
+SConscript(kernel_env['BSP']+'/SConscript')
 SConscript('libfdt/SConscript')
 
 # EOF

@@ -8,8 +8,8 @@ pr2_env.Append(CFLAGS = ' -include '+pr2_env['POK_PATH']+'/libpok/include/config
 
 build_path_libpok = pr2_env['POK_PATH']+'/build/'+pr2_env['ARCH']+'/libpok'
 
-pr2_env['LINKFLAGS'] = str(' -T '+pr2_env['POK_PATH']+'/misc/ldscripts/'+pr2_env['ARCH']+'/'+pr2_env['BSP']+'/partition.lds'+
-' -Map pr2/pr2.elf.map')
+ldscript = pr1_env['POK_PATH']+'/misc/ldscripts/'+pr2_env['ARCH']+'/'+pr2_env['BSP']+'/partition.lds'
+pr2_env['LINKFLAGS'] = str(' -T '+ldscript+' -Map pr2/pr2.elf.map')
 
 objs = pr2_env.StaticObject(source = Glob('*.c'))
 
@@ -23,6 +23,6 @@ action = pr2_env['LINK']+pr2_env['LINKFLAGS']+' '+
 source_objs +
 ' -o pr2/pr2.elf -L'+build_path_libpok+' -lpok '+
 pr2_env['LIBGCC'])
-pr2_env.Depends(pr2_command, [objs, build_path_libpok+'/libpok.a'])
+pr2_env.Depends(pr2_command, [objs, build_path_libpok+'/libpok.a', ldscript])
 
 # EOF
