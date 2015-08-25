@@ -23,8 +23,8 @@ build_path_libpok+'/libm/libm.lo',
 build_path_libpok+'/protocols/protocols.lo',
 build_path_libpok+'/libc/libc.lo'])
 
-pr1_env['LINKFLAGS'] = str(' -T '+pr1_env['POK_PATH']+'/misc/ldscripts/'+pr1_env['ARCH']+'/'+pr1_env['BSP']+'/partition.lds'+
-' -Map pr1/pr1.elf.map')
+ldscript = pr1_env['POK_PATH']+'/misc/ldscripts/'+pr1_env['ARCH']+'/'+pr1_env['BSP']+'/partition.lds'
+pr1_env['LINKFLAGS'] = str(' -T '+ldscript+' -Map pr1/pr1.elf.map')
 
 pr1_command = pr1_env.Command(target = 'pr1.elf',
 source = source_objs,
@@ -32,6 +32,6 @@ action = pr1_env['LINK']+pr1_env['LINKFLAGS']+' '+
 'pr1/main.o pr1/deployment.o'+
 ' -o pr1/pr1.elf -L'+build_path_libpok+' -lpok '+
 pr1_env['LIBGCC'])
-pr1_env.Depends(pr1_command, [libpart, build_path_libpok+'/libpok.a'])
+pr1_env.Depends(pr1_command, [libpart, build_path_libpok+'/libpok.a', ldscript])
 
 # EOF
