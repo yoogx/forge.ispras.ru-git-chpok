@@ -2,6 +2,6 @@
 
 Import('kernel_env')
 
-kernel_env.Program(target = 'x86-qemu.lo', source = Glob('*.[Sc]'))
+kernel_env.Program(target = kernel_env['BSP']+'.lo', source = Glob('*.[Sc]'))
 
 # EOF

@@ -4,8 +4,8 @@ Import('kernel_env')
 
 kernel_env.Program(target = 'x86.lo', source = [
 Glob('*.c'),
-'x86-qemu/x86-qemu.lo'])
+kernel_env['BSP']+'/' + kernel_env['BSP'] + '.lo'])
 
-SConscript('x86-qemu/SConscript')
+SConscript(kernel_env['BSP']+'/SConscript')
 
 # EOF

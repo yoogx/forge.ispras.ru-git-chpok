@@ -72,6 +72,8 @@
  * [including the GNU Public Licence.]
  */
 
+#include <config.h>
+
 #ifdef POK_NEEDS_PROTOCOLS_BLOWFISH
 
 #include <libc/stdio.h>

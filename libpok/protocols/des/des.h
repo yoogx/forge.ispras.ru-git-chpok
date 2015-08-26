@@ -72,6 +72,8 @@
  * [including the GNU Public Licence.]
  */
 
+#include <config.h>
+
 #ifdef POK_NEEDS_PROTOCOLS_DES
 
 #ifndef __POK_PROTOCOLS_OPENSSL_DES_H__

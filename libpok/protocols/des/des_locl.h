@@ -72,6 +72,8 @@
  * [including the GNU Public Licence.]
  */
 
+#include <config.h>
+
 #ifdef POK_NEEDS_PROTOCOLS_DES
 
 #ifndef HEADER_DES_LOCL_H

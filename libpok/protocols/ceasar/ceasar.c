@@ -20,6 +20,7 @@
  **\\author Julien Delange
  */
 
+#include <config.h>
 
 #include <protocols/ceasar.h>
 #include <libc/string.h>

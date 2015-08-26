@@ -21,6 +21,8 @@
  * \date    2008-2009
  */
 
+#include <config.h>
+
 #include <errno.h>
 #include <arch/x86/multiboot.h>
 #include <types.h>
