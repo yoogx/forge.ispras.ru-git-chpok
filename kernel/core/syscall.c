@@ -37,6 +37,7 @@
 #include <bsp.h>
 #include <types.h>
 #include <libc.h>
+#include <ioports.h>
 
 #include <errno.h>
 #include <core/debug.h>
