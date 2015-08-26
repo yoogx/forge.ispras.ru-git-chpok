@@ -20,6 +20,12 @@
 //#define POK_NEEDS_NETWORKING_VIRTIO 1
 //#define POK_NEEDS_PCI 1
 
+//#define POK_NEEDS_INSTRUMENTATION 1
+//#define POK_NEEDS_IO 1
+//#define POK_NEEDS_COVERAGE_INFOS 1
+//#define POK_NEEDS_DMA 1
+//#define POK_NEEDS_DEPRECIATED 1
+
 #define POK_CONFIG_NB_THREADS pok_config_nb_threads
 #define POK_CONFIG_PARTITIONS_NTHREADS pok_config_partitions_nthreads
 #define POK_CONFIG_NB_PARTITIONS pok_config_nb_partitions
