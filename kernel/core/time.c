@@ -41,7 +41,9 @@
 uint64_t pok_tick_counter = 0;
 
 #ifdef POK_NEEDS_SIMULATION
-uint64_t sim_stop_tick = (uint64_t) -1LL;
+#include <stdint.h>
+
+uint64_t sim_stop_tick = UINT64_MAX;
 #endif
 
 /**
