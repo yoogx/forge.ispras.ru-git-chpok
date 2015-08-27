@@ -17,7 +17,7 @@
 #include <core/dependencies.h>
 #include <libc/string.h>
 
-#if defined (POK_CONFIG_NEEDS_FUNC_MEMCPY) || (defined (POK_ARCH_SPARC) && defined (POK_NEEDS_FUNC_PRINTF))
+#if defined (POK_CONFIG_NEEDS_FUNC_MEMCPY) || (defined (__sparc__) && defined (POK_NEEDS_FUNC_PRINTF))
 /*
  * For printf, the SPARC architecture needs memcpy() func
  */
