@@ -35,6 +35,21 @@ extern uint64_t pok_tick_counter;
     do { pok_tick_counter += 1; pok_sched (); } \
     while (0)
 
+#ifdef POK_NEEDS_SIMULATION
+extern uint64_t sim_tick_counter;
+extern uint64_t sim_stop_tick;
+
+#undef CLOCK_HANDLER
+#define CLOCK_HANDLER \
+    do { \
+        pok_tick_counter += 1; \
+        if (sim_tick_counter < sim_stop_tick) { \
+            sim_tick_counter += 1; \
+        } \
+        pok_sched (); \
+    } while (0)
+#endif // POK_NEEDS_SIMULATION
+
 #define POK_GETTICK() pok_tick_counter
 
 typedef int clockid_t;
