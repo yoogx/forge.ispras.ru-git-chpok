@@ -83,6 +83,11 @@ uint64_t            pok_sched_next_major_frame;
 uint8_t             pok_sched_current_slot = 0; /* Which slot are we executing at this time ?*/
 pok_thread_id_t     current_thread;
 
+#ifdef POK_NEEDS_SIMULATION
+extern uint64_t sim_tick_counter;
+extern uint64_t sim_stop_tick;
+#endif
+
 void pok_sched_thread_switch (void);
 
 /**
@@ -300,6 +305,13 @@ void pok_sched()
 {
     const pok_sched_slot_t *slot;
     pok_thread_id_t elected_thread = 0;
+
+#ifdef POK_NEEDS_SIMULATION
+    if (sim_tick_counter >= sim_stop_tick) {
+        pok_sched_context_switch(IDLE_THREAD);
+        // return is useless, isn't it?
+    }
+#endif
 
     if (pok_elect_partition()) {
         // basically, this block of code runs
