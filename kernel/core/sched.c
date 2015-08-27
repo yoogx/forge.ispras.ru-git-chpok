@@ -84,7 +84,6 @@ uint8_t             pok_sched_current_slot = 0; /* Which slot are we executing a
 pok_thread_id_t     current_thread;
 
 #ifdef POK_NEEDS_SIMULATION
-extern uint64_t sim_tick_counter;
 extern uint64_t sim_stop_tick;
 #endif
 
@@ -307,7 +306,7 @@ void pok_sched()
     pok_thread_id_t elected_thread = 0;
 
 #ifdef POK_NEEDS_SIMULATION
-    if (sim_tick_counter >= sim_stop_tick) {
+    if (POK_GETTICK() >= sim_stop_tick) {
         pok_sched_context_switch(IDLE_THREAD);
         // return is useless, isn't it?
     }
