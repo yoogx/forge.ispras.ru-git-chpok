@@ -1,11 +1,11 @@
 # -*- Mode: Python -*-
 
-Import('kernel_env')
+Import('arch_env')
 
-kernel_env.Program(target = 'x86.lo', source = [
+arch_env.Program(target = 'x86.lo', source = [
 Glob('*.c'),
-kernel_env['BSP']+'/' + kernel_env['BSP'] + '.lo'])
+arch_env['BSP']+'/'+arch_env['BSP']+'.lo'])
 
-SConscript(kernel_env['BSP']+'/SConscript')
+SConscript(arch_env['BSP']+'/SConscript')
 
 # EOF

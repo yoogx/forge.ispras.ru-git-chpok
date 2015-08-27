@@ -29,6 +29,7 @@
 #include "reg.h"
 #include "mmu.h"
 #include "space.h"
+#include "cons.h"
 
 extern struct pok_space spaces[];
 
@@ -38,6 +39,7 @@ pok_ret_t pok_create_space (pok_partition_id_t partition_id,
 {
 #ifdef POK_NEEDS_DEBUG
   printf ("pok_create_space partid=%d: phys=%x size=%x\n", partition_id, addr, size);
+  printf("CCSRBAR: %llu\n", CCSRBAR_BASE);
 #endif
   spaces[partition_id].phys_base = addr;
   spaces[partition_id].size = size;

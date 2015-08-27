@@ -1,7 +1,7 @@
 # -*- Mode: Python -*-
 
-Import('kernel_env')
+Import('arch_env')
 
-kernel_env.Program(target = kernel_env['BSP'] + '.lo', source = Glob('*.c'))
+arch_env.Program(target = arch_env['BSP'] + '.lo', source = Glob('*.c'))
 
 # EOF

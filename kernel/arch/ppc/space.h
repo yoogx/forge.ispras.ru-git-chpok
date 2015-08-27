@@ -14,14 +14,6 @@ void pok_arch_space_init (void);
 #define POK_PARTITION_MEMORY_BASE 0x80000000ULL
 #define POK_PARTITION_MEMORY_SIZE 0x1000000ULL 
 
-#ifdef POK_BSP_E500MC
-#define CCSRBAR_BASE 0xE0000000ULL
-#endif
-// TODO Move these constants to BSP
-#ifdef POK_BSP_P3041
-#define CCSRBAR_BASE 0x0FE000000ULL
-#endif
-
 #define CCSRBAR_SIZE 0x1000000ULL
 
 #endif

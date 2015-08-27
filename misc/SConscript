@@ -42,7 +42,7 @@ if env['ARCH'] == 'ppc':
     # ppc-specific flags
     env['CFLAGS'] = '-std=gnu99 -iwithprefix include -DPOK_ARCH_PPC -Wall -g -O0 -Wuninitialized \
         -ffreestanding -nostdlib -nostdinc -mregnames \
-        -D__POK_C__ -DPOK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE=1'
+        -DPOK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE=1'
     env['AR'] = 'powerpc-elf-ar'
     env['CC'] = 'powerpc-elf-gcc'
     env['LINK'] = 'powerpc-elf-ld'
@@ -58,7 +58,7 @@ elif env['ARCH'] == 'x86':
     # x86-specific flags
     env['CFLAGS'] = '-std=gnu99 -iwithprefix include -DPOK_ARCH_X86 -Wall -g -Og -Wuninitialized \
         -ffreestanding -nostdlib -nostdinc \
-        -D__POK_C__ -DPOK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE=1'
+        -DPOK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE=1'
     env['AR'] = 'i386-elf-ar'
     env['CC'] = 'i386-elf-gcc'
     env['LINK'] = 'i386-elf-ld'
@@ -72,9 +72,6 @@ elif env['ARCH'] == 'x86':
 
 bsp_cpu_dict = {'e500mc': ' -mcpu=e500mc', 'p3041': ' -mcpu=e500mc', 'x86-qemu': ''}
 env.Append(CFLAGS = bsp_cpu_dict[env['BSP']])
-
-bsp_macro_dict = {'e500mc': ' -DPOK_BSP_E500MC', 'p3041': ' -DPOK_BSP_P3041', 'x86-qemu': ''}
-env.Append(CFLAGS = bsp_macro_dict[env['BSP']])
 
 bsp_qemu_dict = {'e500mc': ' -M ppce500 -cpu e500mc', 'p3041': ' -M ppce500 -cpu e500mc', 'x86-qemu': ''}
 env.Append(QEMU_FLAGS = bsp_qemu_dict[env['BSP']])
