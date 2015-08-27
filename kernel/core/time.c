@@ -42,7 +42,7 @@ uint64_t pok_tick_counter = 0;
 
 #ifdef POK_NEEDS_SIMULATION
 uint64_t sim_tick_counter = 0;
-uint64_t sim_stop_tick = 0xFFFFFFFFFFFFFFFFUL;
+uint64_t sim_stop_tick = (uint64_t) -1LL;
 #endif
 
 /**
