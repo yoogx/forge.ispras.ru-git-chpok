@@ -89,4 +89,14 @@ static inline int pok_arch_mmu_shift_by_size(unsigned size)
 
 #define MAS7_RPN                0xFFFFFFFF
 
+void pok_ppc_insert_tlb1(
+        uint32_t virtual, 
+        uint64_t physical, 
+        unsigned pgsize_enum, 
+        unsigned permissions,
+        unsigned wimge,
+        unsigned pid,
+        unsigned entry
+        );
+
 #endif

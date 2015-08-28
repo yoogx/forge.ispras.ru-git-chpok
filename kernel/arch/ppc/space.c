@@ -221,23 +221,16 @@ void pok_insert_tlb1(
      * written into the selected TLB entry in the TLB1 array.
      */
     
-    uint32_t mas0, mas1, mas2, mas3, mas7;
     unsigned entry;
 
     entry = pok_get_next_tlb1_index(is_resident);
-    mas0 = MAS0_TLBSEL(1) | MAS0_ESEL(entry);
-    mas1 = MAS1_VALID | MAS1_TID(pid) | MAS1_TSIZE(pgsize_enum);
-    mas2 = (virtual & MAS2_EPN) | wimge;
-    mas3 = (physical & MAS3_RPN) | permissions; 
-    mas7 = physical >> 32;
-
-    mtspr(SPRN_MAS0, mas0); 
-    mtspr(SPRN_MAS1, mas1); 
-    mtspr(SPRN_MAS2, mas2);
-    mtspr(SPRN_MAS3, mas3);
-    mtspr(SPRN_MAS7, mas7);
-
-    asm volatile("isync; tlbwe; isync":::"memory");
+    pok_ppc_insert_tlb1(virtual, 
+        physical, 
+        pgsize_enum, 
+        permissions,
+        wimge,
+        pid,
+        entry);
 }
 
 /*
