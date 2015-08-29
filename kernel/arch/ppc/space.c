@@ -151,6 +151,8 @@ void pok_space_context_restart(
 }
 
 
+static unsigned next_resident = 0;
+static unsigned next_non_resident = 0;
 
 /*
  * Returns next available TLB1 entry index.
@@ -167,11 +169,9 @@ void pok_space_context_restart(
  */
 int pok_get_next_tlb1_index(int is_resident)
 {
-    static unsigned next_resident = 0;
-    static unsigned next_non_resident = 0;
 
     unsigned res;
-    unsigned available_space = mfspr(SPRN_TLB1CFG) & TLBnCFG_N_ENTRY;
+    unsigned available_space = pok_ppc_tlb_get_nentry(1); // mfspr(SPRN_TLB1CFG) & TLBnCFG_N_ENTRY_MASK;
 
     if (is_resident) {
         if (next_resident >= available_space) {
@@ -224,13 +224,15 @@ void pok_insert_tlb1(
     unsigned entry;
 
     entry = pok_get_next_tlb1_index(is_resident);
-    pok_ppc_insert_tlb1(virtual, 
+    pok_ppc_tlb_write(1,
+		virtual, 
         physical, 
         pgsize_enum, 
         permissions,
         wimge,
         pid,
-        entry);
+        entry,
+        TRUE);
 }
 
 /*
@@ -259,6 +261,13 @@ void pok_arch_space_init (void)
         0, // any pid 
         TRUE
     );
+    /*
+     * Clear all other mappings. For instance, those created by u-boot.
+     */
+    unsigned limit = pok_ppc_tlb_get_nentry(1);
+    for (unsigned i = next_resident; i < limit; i++) {
+		pok_ppc_tlb_clear_entry(1, i);
+	}
 }
 
 //TODO get this values from devtree!
