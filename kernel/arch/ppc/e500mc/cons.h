@@ -18,8 +18,6 @@
 #ifndef __POK_CONS_H__
 #define __POK_CONS_H__
 
-#define CCSRBAR_BASE 0xE0000000ULL
-
 int         pok_cons_init(void);
 
 

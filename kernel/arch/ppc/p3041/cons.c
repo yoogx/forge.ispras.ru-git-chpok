@@ -23,6 +23,7 @@
 #include <core/debug.h>
 #include <core/cons.h>
 #include "cons.h"
+#include "bspconfig.h"
 
 #if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
 
@@ -35,7 +36,7 @@
 
 static void ns16550_writeb(int offset, int value)
 {
-    outb(CCSRBAR_BASE + P3041_SERIAL0_REGS_OFFSET + offset, value);
+    outb(CCSRBAR_BASE + P3041_SERIAL0_REGS_OFFSET + offset, (char)value);
 }
 
 static int ns16550_readb(int offset)
@@ -47,7 +48,8 @@ static void write_serial(char a)
 {
    while ((ns16550_readb(NS16550_REG_LSR) & UART_LSR_THRE) == 0)
      ;
-
+   if (a == '\n') 
+		write_serial('\r');
    ns16550_writeb(NS16550_REG_THR, a);
 }
 

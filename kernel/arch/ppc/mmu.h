@@ -122,6 +122,17 @@ void pok_ppc_tlb_clear_entry(
     );
     
 /*
+ * @ requires tlbsel < 2;
+ */
+void pok_ppc_tlb_read_entry(
+	unsigned tlbsel,
+	unsigned entry,
+	unsigned *valid, 
+	unsigned *tsize, 
+	uint32_t *epn,
+	uint64_t *rpn);
+
+/*
  * @ requires tlbsel < 5;
  */
 // unsigned pok_ppc_get_tlb_nentry(

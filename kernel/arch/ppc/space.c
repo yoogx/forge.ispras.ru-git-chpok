@@ -13,6 +13,7 @@
  *
  * Created by julien on Thu Jan 15 23:34:13 2009 
  */
+// TODO Fix space.c to compile with 64 bit address
 
 #include <config.h>
 
@@ -29,7 +30,7 @@
 #include "reg.h"
 #include "mmu.h"
 #include "space.h"
-#include "cons.h"
+#include "bspconfig.h"
 
 extern struct pok_space spaces[];
 
@@ -235,6 +236,27 @@ void pok_insert_tlb1(
         TRUE);
 }
 
+static inline const char* pok_ppc_tlb_size(unsigned size)
+{
+    switch (size) {
+#define CASE(x) case E500MC_PGSIZE_##x: return #x; 
+        CASE(4K);
+        CASE(16K);
+        CASE(64K);
+        CASE(256K);
+        CASE(1M);
+        CASE(4M);
+        CASE(16M);
+        CASE(64M);
+        CASE(256M);
+        CASE(1G);
+        CASE(4G);
+#undef CASE
+		default:
+			return "Unknown";
+    }
+}
+
 /*
  *  Quote from the manual:
  *
@@ -246,6 +268,34 @@ void pok_insert_tlb1(
  */
 // XXX not implemented
 void pok_instert_tlb0();
+
+static int pok_ccsrbar_ready = 0;
+static void pok_ppc_tlb_print(unsigned tlbsel) {
+    unsigned limit = pok_ppc_tlb_get_nentry(1);
+
+    for (unsigned i = 0; i < limit; i++) {
+		unsigned valid;
+		unsigned tsize; 
+		uint32_t epn;
+		uint64_t rpn;
+		pok_ppc_tlb_read_entry(tlbsel, i, 
+			&valid,
+			&tsize,
+			&epn,
+			&rpn
+			);
+		if (valid) {
+			printf("DEBUG: tlb entry %d:%d:\r\n", tlbsel, i);
+			printf("DEBUG:   Valid\r\n");
+			printf("DEBUG:   Effective: %p\r\n", (void*)epn);
+			// FIXME This is wrong. We print only 32 bits out of 36
+			printf("DEBUG:   Physical: %x:%p\r\n", 
+				(unsigned)(rpn>>32), (void*)(unsigned)rpn);
+			printf("DEBUG:   Size: %s\r\n", pok_ppc_tlb_size(tsize));
+			
+		} 
+	}
+}
 
 void pok_arch_space_init (void)
 {
@@ -265,9 +315,26 @@ void pok_arch_space_init (void)
      * Clear all other mappings. For instance, those created by u-boot.
      */
     unsigned limit = pok_ppc_tlb_get_nentry(1);
-    for (unsigned i = next_resident; i < limit; i++) {
+    pok_ppc_tlb_write(1, 
+		CCSRBAR_BASE, CCSRBAR_BASE, E500MC_PGSIZE_16M, 
+		MAS3_SW | MAS3_SR | MAS3_SX,
+		MAS2_W | MAS2_I | MAS2_M | MAS2_G, 
+		0, 
+		limit-1,
+		TRUE
+	);
+	pok_ccsrbar_ready = 1;
+    pok_ppc_tlb_print(0);
+    pok_ppc_tlb_print(1);
+//    pok_ppc_tlb_clear_entry(1, 2);
+    for (unsigned i = 1; i < limit-1; i++) {
 		pok_ppc_tlb_clear_entry(1, i);
 	}
+	// DIRTY HACK
+	// By some reason P3041 DUART blocks when TLB entry #1 is overrriden.
+	// Preserve it, let's POK write it's entries starting 2
+	next_non_resident = next_resident = 2;
+	//
 }
 
 //TODO get this values from devtree!
@@ -279,7 +346,12 @@ void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
     (void) syndrome;
 
     unsigned pid = mfspr(SPRN_PID);
-
+	if (pok_ccsrbar_ready) {
+		printf("DEBUG: page fault: pid: %u, address %p, syndrome %u\n", 
+			pid,
+			(void*)faulting_address, 
+			(unsigned)syndrome);
+	}
     if (faulting_address >= CCSRBAR_BASE && faulting_address < CCSRBAR_BASE + CCSRBAR_SIZE) {
         pok_insert_tlb1(
             CCSRBAR_BASE, 
