@@ -3,8 +3,10 @@
 /examples/*/sizes.c
 /examples/*/*/deployment.c
 /examples/*/*/deployment.h
+*~
 *.o
 *.lo
+*.log
 .depend.mk
 .depend
 libpok.a
@@ -14,5 +16,9 @@ libpart.a
 *.uboot
 *.elf.map
 *.pyc
+# scons files
+.sconsign
 .sconsign.dblite
 scons_build.log
+build/
+cache/
