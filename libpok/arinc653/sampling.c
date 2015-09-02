@@ -86,9 +86,9 @@ void CREATE_SAMPLING_PORT (
          }
 
          int64_t refresh_ms = arinc_time_to_ms(REFRESH_PERIOD);
-    
          if (refresh_ms < 0 || refresh_ms > UINT32_MAX) {
             *RETURN_CODE = INVALID_CONFIG;
+            return;
          }
 
 	 core_ret = pok_port_sampling_create (SAMPLING_PORT_NAME, MAX_MESSAGE_SIZE, core_direction, (uint32_t) refresh_ms, &core_id);
@@ -115,7 +115,7 @@ void WRITE_SAMPLING_MESSAGE (
         *RETURN_CODE = INVALID_PARAM;
 	return;
     }
-    if (SAMPLING_PORT_ID == 0) {
+    if (SAMPLING_PORT_ID <= 0) {
         *RETURN_CODE = INVALID_PARAM;
         return;
     }
@@ -138,7 +138,7 @@ void READ_SAMPLING_MESSAGE (
 {
     pok_ret_t core_ret;
     
-    if (SAMPLING_PORT_ID == 0) {
+    if (SAMPLING_PORT_ID <= 0) {
         *RETURN_CODE = INVALID_PARAM;
         return;
     }
@@ -177,7 +177,7 @@ void GET_SAMPLING_PORT_STATUS (
     pok_ret_t core_ret;
     pok_port_sampling_status_t status;
 
-    if (SAMPLING_PORT_ID == 0) {
+    if (SAMPLING_PORT_ID <= 0) {
         *RETURN_CODE = INVALID_PARAM;
         return;
     }
