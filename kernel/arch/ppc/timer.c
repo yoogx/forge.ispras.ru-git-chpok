@@ -82,6 +82,9 @@ void pok_arch_decr_int (void)
   do
   {
     err = set_decrementer();
+#ifdef POK_NEEDS_SIMULATION
+    if (pok_tick_counter >= sim_stop_tick) continue;
+#endif
     pok_tick_counter += 1;
   } while (err != POK_ERRNO_OK);
 
