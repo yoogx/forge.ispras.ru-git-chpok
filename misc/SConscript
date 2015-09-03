@@ -40,9 +40,8 @@ env['ARCH'] = bsp_arch_dict[env['BSP']]
 
 if env['ARCH'] == 'ppc':
     # ppc-specific flags
-    env['CFLAGS'] = '-std=gnu99 -iwithprefix include -DPOK_ARCH_PPC -Wall -g -O0 -Wuninitialized \
-        -ffreestanding -nostdlib -nostdinc -mregnames \
-        -DPOK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE=1'
+    env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -g -O0 -Wuninitialized \
+        -ffreestanding -nostdlib -nostdinc -mregnames'
     env['AR'] = 'powerpc-elf-ar'
     env['CC'] = 'powerpc-elf-gcc'
     env['LINK'] = 'powerpc-elf-ld'
@@ -56,9 +55,8 @@ if env['ARCH'] == 'ppc':
 
 elif env['ARCH'] == 'x86':
     # x86-specific flags
-    env['CFLAGS'] = '-std=gnu99 -iwithprefix include -DPOK_ARCH_X86 -Wall -g -Og -Wuninitialized \
-        -ffreestanding -nostdlib -nostdinc \
-        -DPOK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE=1'
+    env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -g -Og -Wuninitialized \
+        -ffreestanding -nostdlib -nostdinc'
     env['AR'] = 'i386-elf-ar'
     env['CC'] = 'i386-elf-gcc'
     env['LINK'] = 'i386-elf-ld'

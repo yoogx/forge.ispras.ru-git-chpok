@@ -75,7 +75,7 @@ void CREATE_QUEUING_PORT (
          break;
 
       default:
-         *RETURN_CODE = INVALID_PARAM;
+         *RETURN_CODE = INVALID_CONFIG;
          return;
    }
 
@@ -90,7 +90,7 @@ void CREATE_QUEUING_PORT (
          break;
 
       default:
-         *RETURN_CODE = INVALID_PARAM;
+         *RETURN_CODE = INVALID_CONFIG;
          return;
    }
 

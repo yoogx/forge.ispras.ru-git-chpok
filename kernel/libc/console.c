@@ -1,4 +1,3 @@
-
 #include <libc.h>
 #include <bsp.h>
 
@@ -66,7 +65,8 @@ getchar(void)
     int c;
     
     while ((c = cons_getc()) == 0){
-#ifdef POK_ARCH_X86
+//#ifdef POK_ARCH_X86
+#ifdef __i386__
         asm("hlt");
 #endif
     }
