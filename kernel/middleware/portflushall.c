@@ -379,6 +379,10 @@ void pok_port_flush_partition (pok_partition_id_t pid)
 
         if (port->header.partition != pid) continue;
 
+#ifdef POK_NEEDS_SIMULATION
+        have_something_to_send |= (pok_queueing_ports[chan->src.local.port_id].nb_message > 0);
+#endif // POK_NEEDS_SIMULATION
+
         pok_queueing_channel_flush(chan);
     }
 #endif
