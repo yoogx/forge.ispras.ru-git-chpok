@@ -357,9 +357,17 @@ static void pok_sampling_channel_flush(pok_port_channel_t *chan)
 
 #endif // POK_NEEDS_PORTS_SAMPLING
 
+#ifdef POK_NEEDS_SIMULATION
+#include <stdint.h>
+#endif
+
 void pok_port_flush_partition (pok_partition_id_t pid)
 {
 #ifdef POK_NEEDS_NETWORKING
+#ifdef POK_NEEDS_SIMULATION
+    pok_bool_t have_something_to_send = FALSE;
+#endif // POK_NEEDS_SIMULATION
+
     pok_network_reclaim_send_buffers(); 
 #endif
 
@@ -389,6 +397,12 @@ void pok_port_flush_partition (pok_partition_id_t pid)
 
 #ifdef POK_NEEDS_NETWORKING
     pok_network_flush_send();
+
+#ifdef POK_NEEDS_SIMULATION
+    if (have_something_to_send && sim_stop_tick != UINT64_MAX) {
+        sim_stop_tick = pok_tick_counter;
+    }
+#endif // POK_NEEDS_SIMULATION
 #endif
 }
 
