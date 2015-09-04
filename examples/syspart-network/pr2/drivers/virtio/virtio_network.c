@@ -96,13 +96,13 @@ static void maybe_unlock_preemption(const pok_bool_t *saved)
     */
 }
 //TODO move to pci.c
-static unsigned int pci_read(unsigned int bus,
-        unsigned int dev,
-        unsigned int fun,
-        unsigned int reg)
+static unsigned pci_read(unsigned bus,
+                         unsigned dev,
+                         unsigned fun,
+                         unsigned reg)
 {
-    unsigned int addr = (1 << 31) | (bus << 16) | (dev << 11) | (fun << 8) | (reg & 0xfc);
-    unsigned int val = -1;
+    unsigned addr = (1 << 31) | (bus << 16) | (dev << 11) | (fun << 8) | (reg & 0xfc);
+    unsigned val = -1;
     unsigned cfg_addr = 0xe0008000;
     unsigned cfg_data = 0xe0008004;
 
@@ -112,8 +112,8 @@ static unsigned int pci_read(unsigned int bus,
     return (val >> ((reg & 3) << 3));
 }
 //TODO move to pci.c
-unsigned int pci_read_reg(s_pci_device* d,
-        unsigned int reg)
+unsigned pci_read_reg(s_pci_device* d,
+        unsigned reg)
 {
     return (pci_read(d->bus, d->dev, d->fun, reg));
 }
@@ -121,69 +121,54 @@ unsigned int pci_read_reg(s_pci_device* d,
 static int virtio_pci_search(s_pci_device* d) {
     // slightly adapted code from pci.c
 
-    unsigned int bus = 0;
-    unsigned int dev = 0;
-    unsigned int fun = 0;
+    unsigned bus = 0;
+    unsigned dev = 0;
+    unsigned fun = 0;
 
-//TODO: change to bus_startno, bus_endno
+    //TODO: change to bus_startno, bus_endno
     for (bus = 0; bus < PCI_BUS_MAX; bus++)
         for (dev = 0; dev < PCI_DEV_MAX; dev++)
         {
             uint16_t vendor = (uint16_t) pci_read(bus, dev, 0, PCI_REG_VENDORID);
-            //printf("vendor %x != %x \n", vendor, VIRTIO_PCI_VENDORID);
-            if (vendor != VIRTIO_PCI_VENDORID) continue;
+            if (vendor != VIRTIO_PCI_VENDORID)
+                continue;
 
             uint16_t deviceid = (uint16_t) pci_read(bus, dev, 0, PCI_REG_DEVICEID);
-            if (!(deviceid >= VIRTIO_PCI_DEVICEID_MIN && deviceid <= VIRTIO_PCI_DEVICEID_MAX)) continue;
+            if (!(deviceid >= VIRTIO_PCI_DEVICEID_MIN && deviceid <= VIRTIO_PCI_DEVICEID_MAX))
+                continue;
             
             // we do not handle type 1 or 2 PCI configuration spaces
 	    if (pci_read(bus, dev, fun, PCI_REG_HEADERTYPE) != 0)
 	        continue;
 
             uint16_t subsystem = pci_read(bus, dev, 0, PCI_REG_SUBSYSTEM) >> 16;
-
-            if (subsystem != VIRTIO_ID_NET) continue;
+            if (subsystem != VIRTIO_ID_NET)
+                continue;
             
             d->bus = bus;
             d->dev = dev;
             d->fun = fun;
-//#ifdef __PPC__
-            d->bar[0] = 0xe1001000;//pci_read(bus, dev, fun, PCI_REG_BAR0) & ~0xFU; // mask lower bits, which mean something else
-//#else
-//            d->bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0) & ~0xFU; // mask lower bits, which mean something else
-//#endif
+            //d->irq_line = (unsigned char) pci_read_reg(d, PCI_REG_IRQLINE);
 
-            d->irq_line = (unsigned char) pci_read_reg(d, PCI_REG_IRQLINE);
+#ifdef __PPC__
+            d->bar[0] = 0xe1001000;
 
-//#ifdef __PPC__
+            //init virtio pci-device
             {
-                printf("------------\n");
-                printf("bus %d dev %d fun %d\n", bus, dev, fun);
-                printf("bar0 0x%lx\n", d->bar[0]);
+                uint32_t * cfg_addr = (uint32_t*) 0xe0008000;
+                void * cfg_data = (void *) 0xe0008004;
 
-                {
-                    uint32_t * cfg_addr = (uint32_t*) 0xe0008000;
-                    void * cfg_data = (void *) 0xe0008004;
+                //TODO call pci write word
+                out_be32(cfg_addr, 0x80000810);
+                out_le16(cfg_data, 0x1001);
 
-                    out_be32(cfg_addr, 0x80000810);
-                    out_le16(cfg_data, 0x1001);
-
-                    out_be32(cfg_addr, 0x80000804);
-                    out_le16(cfg_data, 0x7);
-                }
-
-                uint8_t mac[ETH_ALEN];
-
-                int i;
-                printf(" mac: ");
-                for (i = 0; i < ETH_ALEN; i++) {
-                    mac[i] = inb(d->bar[0] + VIRTIO_PCI_CONFIG_OFF(FALSE) + i);
-                    printf("%x:", mac[i]);
-                }
-                printf("\n");
-                printf("------------\n");
+                out_be32(cfg_addr, 0x80000804);
+                out_le16(cfg_data, 0x7);
             }
-//#endif
+#else
+    //i386
+            d->bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0) & ~0xFU; // mask lower bits, which mean something else
+#endif
 
             return 0;
         }
