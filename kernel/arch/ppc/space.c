@@ -269,17 +269,6 @@ void pok_arch_space_init (void)
         0, // any pid 
         TRUE
     );
-
-    pok_insert_tlb1(
-        0x4000000, 
-        0x4000000, 
-        E500MC_PGSIZE_64M,  //TODO make smaller
-        //MAS3_SW | MAS3_SR | MAS3_SX,
-        MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,
-        0,
-        0, // any pid 
-        TRUE
-    );
 }
 
 //TODO get this values from devtree!
@@ -297,22 +286,19 @@ void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
             CCSRBAR_BASE, 
             CCSRBAR_BASE, 
             E500MC_PGSIZE_16M, 
-            //MAS3_SW | MAS3_SR,
-            MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,
+            MAS3_SW | MAS3_SR,
             MAS2_W | MAS2_I | MAS2_M | MAS2_G,
             0, /* any pid */
             TRUE 
         );
     } else if (faulting_address >= MPC8544_PCI_IO && faulting_address < MPC8544_PCI_IO + MPC8544_PCI_IO_SIZE) {
-       // printf("faulting address %x\n", faulting_address);
 		pok_insert_tlb1(
             MPC8544_PCI_IO,
             MPC8544_PCI_IO,
             E500MC_PGSIZE_64K,
-            //MAS3_SW | MAS3_SR,
-            MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,
+            MAS3_SW | MAS3_SR,
             MAS2_W | MAS2_I | MAS2_M | MAS2_G,
-            0,
+            0, /* any pid */
             TRUE
         );
     } else if (
