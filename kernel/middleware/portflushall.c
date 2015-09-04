@@ -100,6 +100,9 @@ static pok_bool_t queueing_dst_try_pop_waiting(
             pok_lockobj_eventsignal_thread(&dst->header.lock, dst->wait_list->thread);
 
             dst->wait_list = dst->wait_list->next;
+            
+            //????
+            dst->nb_message++;
 
             return TRUE;
         }
@@ -129,6 +132,7 @@ static void pok_queueing_transfer(
 
         dst_place->message_size = src_place->message_size;
         memcpy(&dst_place->data[0], &src_place->data[0], src_place->message_size);
+        printf("copy from %p to %p\n", &src_place->data[0] , &dst_place->data[0]);
     
         dst->nb_message++;
     }
@@ -386,6 +390,7 @@ void pok_port_flush_partition (pok_partition_id_t pid)
 #endif
 }
 
+#if 0
 #ifdef POK_NEEDS_NETWORKING
 static pok_bool_t udp_callback_f(uint32_t ip, uint16_t port, const char *payload, size_t length)
 {
@@ -441,6 +446,7 @@ static pok_bool_t udp_callback_f(uint32_t ip, uint16_t port, const char *payload
                 } else {
                     pok_port_utils_queueing_write(dst, payload, length);
                 }
+
             }
 
             return TRUE;
@@ -455,5 +461,6 @@ void pok_port_network_init(void)
     pok_network_register_udp_receive_callback(&udp_callback);
 }
 #endif // POK_NEEDS_NETWORKING
+#endif
 
 #endif // defined (POK_NEEDS_PORTS_QUEUEING) || defined (POK_NEEDS_PORTS_SAMPLING)
