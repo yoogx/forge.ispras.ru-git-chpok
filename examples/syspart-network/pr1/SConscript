@@ -4,12 +4,12 @@ Import('env')
 
 pr1_env = env.Clone()
 pr1_env['CPPPATH'] = [pr1_env['POK_PATH']+'/libpok/include']
-pr1_env.Append(CFLAGS = ' -include '+pr1_env['SCONSTRUCT_DIR']+'/pr1/deployment.h')
+pr1_env.Append(CFLAGS = ' -include '+pr1_env['POK_PATH']+'/libpok/include/config.h')
 
 build_path_libpok = pr1_env['POK_PATH']+'/build/'+pr1_env['ARCH']+'/libpok'
 
-pr1_env['LINKFLAGS'] = str(' -T '+pr1_env['POK_PATH']+'/misc/ldscripts/'+pr1_env['ARCH']+'/'+pr1_env['BSP']+'/partition.lds'+
-    ' -Map pr1/pr1.elf.map')
+ldscript = pr1_env['POK_PATH']+'/misc/ldscripts/'+pr1_env['ARCH']+'/'+pr1_env['BSP']+'/partition.lds'
+pr1_env['LINKFLAGS'] = str(' -T '+ldscript+' -Map pr1/pr1.elf.map')
 
 objs = pr1_env.StaticObject(source = Glob('*.c'))
 
@@ -23,6 +23,7 @@ pr1_command = pr1_env.Command(target = 'pr1.elf',
     source_objs+
     ' -o pr1/pr1.elf -L'+build_path_libpok+' -lpok '+
     pr1_env['LIBGCC'])
-pr1_env.Depends(pr1_command, [objs, build_path_libpok+'/libpok.a'])
+
+pr1_env.Depends(pr1_command, [objs, build_path_libpok+'/libpok.a', ldscript])
 
 # EOF

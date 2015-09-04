@@ -5,11 +5,13 @@ Import('env')
 sysnet_env = env.Clone()
 sysnet_env['CPPPATH'] = [sysnet_env['POK_PATH']+'/libpok/include', 
     sysnet_env['POK_PATH']+'/examples/syspart-network/pr2/include'] #TODO fix this
-sysnet_env.Append(CFLAGS = ' -include '+sysnet_env['SCONSTRUCT_DIR']+'/pr2/deployment.h')
+sysnet_env.Append(CFLAGS = ' -include '+sysnet_env['POK_PATH']+'/libpok/include/config.h')
+
+build_path_libpok = sysnet_env['POK_PATH']+'/build/'+sysnet_env['ARCH']+'/libpok'
+
+ldscript = sysnet_env['POK_PATH']+'/misc/ldscripts/'+sysnet_env['ARCH']+'/'+sysnet_env['BSP']+'/partition.lds'
 
 objs = sysnet_env.StaticObject(source = Glob('*.c'))
-
-print(objs)
 
 source_objs = ''
 for obj in objs:
@@ -18,10 +20,8 @@ for obj in objs:
 source_objs += 'pr2/net/net.lo'
 source_objs += ' pr2/drivers/drivers.lo'
 
-build_path_libpok = sysnet_env['POK_PATH']+'/build/'+sysnet_env['ARCH']+'/libpok'
-
 sysnet_env_partition = sysnet_env.Clone()
-sysnet_env_partition['LINKFLAGS'] = str(' -T '+sysnet_env['POK_PATH']+'/misc/ldscripts/'+sysnet_env['ARCH']+'/'+sysnet_env['BSP']+'/partition.lds'+ ' -Map pr2/pr2.elf.map')
+sysnet_env_partition['LINKFLAGS'] = str(' -T '+ldscript+' -Map pr2/pr2.elf.map')
 
 sysnet_command = sysnet_env_partition.Command(target = 'pr2.elf',
     source = [],
@@ -30,7 +30,7 @@ sysnet_command = sysnet_env_partition.Command(target = 'pr2.elf',
     ' -o pr2/pr2.elf -L'+build_path_libpok+' -lpok '+
     sysnet_env['LIBGCC'])
 
-sysnet_env_partition.Depends(sysnet_command, [objs, 'net/net.lo', 'drivers/drivers.lo', build_path_libpok+'/libpok.a'])
+sysnet_env_partition.Depends(sysnet_command, [objs, 'net/net.lo', 'drivers/drivers.lo', build_path_libpok+'/libpok.a', ldscript])
 
 Export ('sysnet_env')
 SConscript('drivers/SConscript')
