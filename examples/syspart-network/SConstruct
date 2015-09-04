@@ -40,7 +40,9 @@ chpok_configuration.write_configuration(conf, kernel_dir, partition_dirs)
 SConscript(env['POK_PATH']+'/misc/SConscript')
 
 env.Append(QEMU_FLAGS = ' -S -s')
+env.Append(QEMU_FLAGS = ' -net nic,vlan=0,name=virt0,model=virtio,macaddr=52:54:00:00:00:00 -net tap,ifname=chpoktap0,script=no,downscript=no')
 
+print(env['QEMU_FLAGS'])
 env.Command('run', [], env['QEMU']+env['QEMU_FLAGS'])
 env.Ignore('.', 'run')
 
