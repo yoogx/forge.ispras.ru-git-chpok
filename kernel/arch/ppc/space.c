@@ -242,7 +242,7 @@ void pok_insert_tlb1(
  *      the core provides a hint that can be used for implementing a round-robin replacement algorithm. <...>
  */
 // XXX not implemented
-void pok_instert_tlb0();
+void pok_insert_tlb0();
 
 void pok_arch_space_init (void)
 {
