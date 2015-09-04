@@ -586,10 +586,10 @@ def write_kernel_deployment_c(conf, f):
     p("unsigned pok_config_nb_sampling_channels = %d;"% n_sampling_channels)
     
     p("enum {")
-    p("tmp_pok_config_nb_threads = %d," % total_threads)
-    p("tmp_pok_config_nb_lockobjects = %d," % 
+    p("    tmp_pok_config_nb_threads = %d," % total_threads)
+    p("    tmp_pok_config_nb_lockobjects = %d," % 
         sum(part.get_needed_lock_objects() for part in conf.partitions))
-    p("tmp_pok_config_nb_partitions = %d," % len(conf.partitions))
+    p("    tmp_pok_config_nb_partitions = %d," % len(conf.partitions))
     p("};")
     
     p("#include <config.h>")
@@ -602,6 +602,8 @@ def write_kernel_deployment_c(conf, f):
     p("pok_partition_t pok_partitions[tmp_pok_config_nb_partitions];")
     p("struct pok_space spaces[tmp_pok_config_nb_partitions];")
 
+    p("")
+    p("")
     #if len(conf.get_all_ports()) > 0:
     write_kernel_deployment_c_ports(conf, f)
 
