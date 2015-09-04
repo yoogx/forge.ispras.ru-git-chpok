@@ -24,6 +24,7 @@
 #include <net/ether.h>
 #include <net/ip.h>
 #include <net/udp.h>
+#include <memory.h>
 
 #include "virtio_config.h"
 #include "virtio_ids.h"
@@ -153,7 +154,7 @@ static int virtio_pci_search(s_pci_device* d) {
 #ifdef __PPC__
             d->bar[0] = 0xe1001000;
 
-            //init virtio pci-device
+            //init pci-device
             {
                 uint32_t * cfg_addr = (uint32_t*) 0xe0008000;
                 void * cfg_data = (void *) 0xe0008004;
@@ -191,7 +192,7 @@ static void setup_virtqueue(
     void *mem = virtio_virtqueue_setup(vq, queue_size, VIRTIO_PCI_VRING_ALIGN);
 
     // give device queue's physical address
-    outl(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_PFN, (uintptr_t) mem / VIRTIO_PCI_VRING_ALIGN);
+    outl(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_PFN, pok_virt_to_phys(mem) / VIRTIO_PCI_VRING_ALIGN);
 }
 
 static void set_status_bit(s_pci_device *pcidev, uint8_t bit)
@@ -354,8 +355,7 @@ static pok_bool_t send_frame_gather(const pok_network_sg_list_t *sg_list,
         if (i > 0) {
             desc = &vq->vring.desc[desc->next];
         }
-        desc->addr = (uintptr_t) sg_list[i].buffer;
-        printf("desc->addr = %llx\n", desc->addr);
+        desc->addr = pok_virt_to_phys(sg_list[i].buffer);
         desc->len = sg_list[i].size;
         desc->flags = VRING_DESC_F_NEXT;
     }

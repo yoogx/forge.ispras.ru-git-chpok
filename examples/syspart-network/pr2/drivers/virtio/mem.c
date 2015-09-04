@@ -1,10 +1,10 @@
 #include <types.h>
 #include <stdio.h>
 
-#define MEMSIZE 0x10000
+#define MEMSIZE 0x8000 //should be enough for virtio
 
-//char memory_for_driver[MEMSIZE];
-static void * start = (void *)0x4000000;
+char start[MEMSIZE];
+//static void * start = (void *)0x4000000;
 //static void * start = (void *)0x80010000;
 static char * end = NULL;
 
@@ -21,7 +21,6 @@ void * driver_mem_alloc (size_t sz)
         printf("Needs more memory!\n");
         return NULL;
     }
-    printf("Virtio: allocated 0x%zx bytes: %p\n", sz, res);
     return res;
 }
 

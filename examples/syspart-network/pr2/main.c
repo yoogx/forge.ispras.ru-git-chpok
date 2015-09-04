@@ -5,6 +5,7 @@
 #include <arinc653/time.h>
 #include <arinc653/queueing.h>
 #include <arinc653/sampling.h>
+#include <memory.h>
 
 #include <net/network.h>
 
@@ -27,9 +28,8 @@ static void first_process(void)
         unsigned y;
     } __attribute__((packed)) msg;
 
-//    unsigned last_x = 0;
-//    n-static initialization of a flexible array member
-//
+    unsigned last_x = 0;
+
 //    while (1) {
 //        RETURN_CODE_TYPE ret;
 //        MESSAGE_SIZE_TYPE len;
@@ -52,48 +52,18 @@ static void first_process(void)
 //        }
 //        last_x = msg.x;
 //
-//        TIMED_WAIT(SECOND, &ret);
+//        TIMED_WAIT(SECOND/2, &ret);
 ////TIMED_WAIT(1000000000LL, &ret);
 //    }
-//
+
     {
-        /*
-        typedef struct
-        {
-            uint32_t ip;
-            uint16_t port;
-            pok_bool_t buffer_being_used;
-            char *buffer; 
-        } pok_port_connection_sampling_udp_send_t;
-        char my_tmp_buffer[256]; //include POK_NETWORK_OVERHEAD
-        pok_port_connection_sampling_udp_send_t tmp_conn_info = {
-            .ip = 0xa000002,
-            .port = 10000,
-            .buffer_being_used = FALSE,
-            .buffer = &my_tmp_buffer[0],
-        };
-        pok_port_connection_sampling_udp_send_t *conn_info = &tmp_conn_info;
-
-        if (conn_info->buffer_being_used) {
-            // it means that our buffer is still in use by
-            // the network driver
-            //
-            // it might mean that network card is overwhelmed by requests
-            printf("buffer is still being used\n");
-            return;
-        }
-        conn_info->buffer_being_used = TRUE;
-        */
-
         msg.x = 5;
         strcpy(msg.message, "test sp message");
         msg.y = 7;
 
 
         pok_bool_t buffer_being_used;
-        //char message_buffer[256];
-        char *message_buffer = driver_mem_alloc(256);
-        printf("POK_NETWORK_OVERHEAD %d\n", POK_NETWORK_OVERHEAD);
+        char message_buffer[256];
         memcpy(message_buffer + POK_NETWORK_OVERHEAD, &msg, sizeof(msg));
 
         if (!pok_network_send_udp(

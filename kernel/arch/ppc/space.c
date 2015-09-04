@@ -275,7 +275,8 @@ void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
             CCSRBAR_BASE, 
             CCSRBAR_BASE, 
             E500MC_PGSIZE_16M, 
-            MAS3_SW | MAS3_SR,
+            //MAS3_SW | MAS3_SR,
+            MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,
             MAS2_W | MAS2_I | MAS2_M | MAS2_G,
             0, /* any pid */
             TRUE 
@@ -285,7 +286,8 @@ void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
             MPC8544_PCI_IO,
             MPC8544_PCI_IO,
             E500MC_PGSIZE_64K,
-            MAS3_SW | MAS3_SR,
+            //MAS3_SW | MAS3_SR,
+            MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,
             MAS2_W | MAS2_I | MAS2_M | MAS2_G,
             0, /* any pid */
             TRUE
@@ -308,7 +310,16 @@ void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
         );
     } else {
         // TODO handle it correctly, distinguish kernel code / user code, etc.
+        printf("error accessing 0x%x address\n", faulting_address);
         pok_fatal("bad memory access");
     }
 }
+
+uintptr_t pok_virt_to_phys(uintptr_t virt) {
+
+    pok_partition_id_t partid = mfspr(SPRN_PID) - 1;
+
+    return virt - POK_PARTITION_MEMORY_BASE + spaces[partid].phys_base;
+}
+
 

@@ -47,6 +47,7 @@
 #include <core/lockobj.h>
 #include <core/time.h>
 #include <core/error.h>
+#include <memory.h>
 
 #include <middleware/port.h>
 
@@ -363,6 +364,8 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
          }
        break;
 #endif /* POK_NEEDS_IO */
+      case POK_SYSCALL_MEM_VIRT_TO_PHYS:
+        return pok_virt_to_phys(args->arg1);
 
       default:
        /*
