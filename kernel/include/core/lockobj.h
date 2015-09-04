@@ -36,6 +36,8 @@
 #ifndef __POK_KERNEL_LOCKOBJ_H__
 #define __POK_KERNEL_LOCKOBJ_H__
 
+#include <config.h>
+
 #include <types.h>
 #include <arch.h>
 

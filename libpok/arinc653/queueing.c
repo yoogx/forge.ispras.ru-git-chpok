@@ -32,6 +32,8 @@
  * Created by julien on Thu Jan 15 23:34:13 2009 
  */
 
+#include <config.h>
+
 #include <core/dependencies.h>
 
 #ifdef POK_NEEDS_ARINC653_QUEUEING
@@ -73,7 +75,7 @@ void CREATE_QUEUING_PORT (
          break;
 
       default:
-         *RETURN_CODE = INVALID_PARAM;
+         *RETURN_CODE = INVALID_CONFIG;
          return;
    }
 
@@ -88,7 +90,7 @@ void CREATE_QUEUING_PORT (
          break;
 
       default:
-         *RETURN_CODE = INVALID_PARAM;
+         *RETURN_CODE = INVALID_CONFIG;
          return;
    }
 

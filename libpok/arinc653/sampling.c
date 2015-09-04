@@ -32,6 +32,7 @@
  * Created by julien on Thu Jan 15 23:34:13 2009
  */
 
+#include <config.h>
 
 #ifdef POK_NEEDS_ARINC653_SAMPLING
 
@@ -85,9 +86,9 @@ void CREATE_SAMPLING_PORT (
          }
 
          int64_t refresh_ms = arinc_time_to_ms(REFRESH_PERIOD);
-    
          if (refresh_ms < 0 || refresh_ms > UINT32_MAX) {
             *RETURN_CODE = INVALID_CONFIG;
+            return;
          }
 
 	 core_ret = pok_port_sampling_create (SAMPLING_PORT_NAME, MAX_MESSAGE_SIZE, core_direction, (uint32_t) refresh_ms, &core_id);
@@ -136,6 +137,7 @@ void READ_SAMPLING_MESSAGE (
 			 /*out*/ RETURN_CODE_TYPE           *RETURN_CODE )
 {
     pok_ret_t core_ret;
+    
     if (SAMPLING_PORT_ID <= 0) {
         *RETURN_CODE = INVALID_PARAM;
         return;

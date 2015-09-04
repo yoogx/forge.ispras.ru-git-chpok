@@ -14,9 +14,10 @@
  * Created by julien on Thu Jan 15 23:34:13 2009 
  */
 
-
 #ifndef __POK_KERNEL_LIBC_H__
 #define __POK_KERNEL_LIBC_H__
+
+#include <config.h>
 
 #include <types.h>
 
@@ -43,10 +44,12 @@ void *memchr(const void *s, int c, size_t n);
 #if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
 
 int printf(const char *format, ...)__attribute__ ((format(printf, 1, 2)));
+void snprintf(char *dst, unsigned size, const char *format, ...) __attribute__ ((format(printf, 3, 4)));
 char * readline(const char *prompt);
 int getchar(void);
 void monitor();
 void pok_monitor_thread(void);
+void pok_monitor_thread_init();
 #endif /* NEEDS_CONSOLE or NEEDS_DEBUG */
 
 #endif

@@ -15,10 +15,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//#include <assert.h>
-//#include <libc.h>
-//#include <arch.h>
-
 #include <net/network.h>
 #include <net/byteorder.h>
 #include <net/ether.h>

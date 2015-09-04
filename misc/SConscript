@@ -4,68 +4,80 @@ import sys
 import os
 
 def print_cmd_line(s, target, src, env):
-	# s is the original command line, target and src are lists of target
-	# and source nodes respectively, and env is the environment.
-        global log_file_opened
-        if not log_file_opened and str(target[0]) != 'run':
-            open(env['SCONSTRUCT_DIR']+'/scons_build.log', 'w')
-            log_file_opened = True
+    # s is the original command line, target and src are lists of target
+    # and source nodes respectively, and env is the environment.
+    global log_file_opened
+    if not log_file_opened and str(target[0]) != 'run':
+        open(env['SCONSTRUCT_DIR']+'/scons_build.log', 'w')
+        log_file_opened = True
 
-        if str(target[0]) != 'run':
-            with open(env['SCONSTRUCT_DIR']+'/scons_build.log', 'a') as log:
-                    log.write("%s\n"%s)
+    if str(target[0]) != 'run':
+        with open(env['SCONSTRUCT_DIR']+'/scons_build.log', 'a') as log:
+                log.write("%s\n"%s)
 
-	# For now len is always 1
-	if len(target) == 1:
-		x = str(target[0])
-		sys.stdout.write("%s ...\n" % os.path.relpath(x, start=env['POK_PATH']))
-	else:
-		sys.stdout.write("Making %s...\n" %(' and '.join([str(x) for x in target])))
+    # For now len is always 1
+    if len(target) == 1:
+        x = str(target[0])
+        sys.stdout.write("%s ...\n" % os.path.relpath(x, start=env['POK_PATH']))
+    else:
+        sys.stdout.write("Making %s...\n" %(' and '.join([str(x) for x in target])))
 
 Import('env')
 
 log_file_opened = False
+
+# This tells scons to store all file signatures 
+# in a separate .sconsign file in each directory
+SConsignFile(None)
+
+# Cache built files
+CacheDir(env['POK_PATH']+'/cache')
 
 # Flags common for all architectures
 env['PRINT_CMD_LINE_FUNC'] = print_cmd_line
 env['CPPPATH'] = [env['POK_PATH']+'/kernel/include']
 env['LINKFLAGS'] = '-r'
 env['QEMU_FLAGS'] = ' -serial stdio'
-env['ARCH'] = env['arch']
+env['BSP'] = env['bsp']
+
+bsp_arch_dict = {'e500mc': 'ppc', 'p3041': 'ppc', 'x86-qemu': 'x86'}
+env['ARCH'] = bsp_arch_dict[env['BSP']]
 
 if env['ARCH'] == 'ppc':
-	# ppc-specific flags
-	env['CFLAGS'] = '-std=gnu99 -iwithprefix include -DPOK_ARCH_PPC -Wall -g -O0 -Wuninitialized \
-		-ffreestanding -nostdlib -nostdinc -mregnames -mcpu=e500mc \
-		-D__POK_C__ -DPOK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE=1'
-	env['BSP'] = 'e500mc'
-	env['AR'] = 'powerpc-elf-ar'
-	env['CC'] = 'ccache powerpc-elf-gcc'
-	env['LINK'] = 'powerpc-elf-ld'
-	env['OBJCOPY'] = 'powerpc-elf-objcopy'
-	env['OBJDUMP'] = 'powerpc-elf-objdump'
-	env['RANLIB'] = 'powerpc-elf-ranlib'
-	env['ASFLAGS'] = env['CFLAGS']
-	env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
-	env['QEMU'] = 'qemu-system-ppc'
-	env.Append(QEMU_FLAGS = ' -M ppce500 -cpu e500mc -kernel pok.elf')
+    # ppc-specific flags
+    env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -g -O0 -Wuninitialized \
+        -ffreestanding -nostdlib -nostdinc -mregnames'
+    env['AR'] = 'powerpc-elf-ar'
+    env['CC'] = 'powerpc-elf-gcc'
+    env['LINK'] = 'powerpc-elf-ld'
+    env['OBJCOPY'] = 'powerpc-elf-objcopy'
+    env['OBJDUMP'] = 'powerpc-elf-objdump'
+    env['RANLIB'] = 'powerpc-elf-ranlib'
+    env['GDB'] = 'powerpc-elf-gdb'
+    env['ASFLAGS'] = env['CFLAGS']
+    env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
+    env['QEMU'] = 'qemu-system-ppc'
 
 elif env['ARCH'] == 'x86':
-	# x86-specific flags
-	env['CFLAGS'] = '-std=gnu99 -iwithprefix include -DPOK_ARCH_X86 -Wall -g -Og -Wuninitialized \
-		-ffreestanding -nostdlib -nostdinc \
-		-D__POK_C__ -DPOK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE=1'
-	env['BSP'] = 'x86-qemu'
-	env['AR'] = 'i386-elf-ar'
-	env['CC'] = 'i386-elf-gcc'
-	env['LINK'] = 'i386-elf-ld'
-	env['OBJCOPY'] = 'i386-elf-objcopy'
-	env['OBJDUMP'] = 'i386-elf-objdump'
-	env['RANLIB'] = 'i386-elf-ranlib'
-	env['ASFLAGS'] = env['CFLAGS']
-	env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
-	env['QEMU'] = 'qemu-system-i386'
-	env.Append(QEMU_FLAGS = ' -kernel pok.elf')
+    # x86-specific flags
+    env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -g -Og -Wuninitialized \
+        -ffreestanding -nostdlib -nostdinc'
+    env['AR'] = 'i386-elf-ar'
+    env['CC'] = 'i386-elf-gcc'
+    env['LINK'] = 'i386-elf-ld'
+    env['OBJCOPY'] = 'i386-elf-objcopy'
+    env['OBJDUMP'] = 'i386-elf-objdump'
+    env['RANLIB'] = 'i386-elf-ranlib'
+    env['GDB'] = 'i386-elf-gdb'
+    env['ASFLAGS'] = env['CFLAGS']
+    env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
+    env['QEMU'] = 'qemu-system-i386'
+
+bsp_cpu_dict = {'e500mc': ' -mcpu=e500mc', 'p3041': ' -mcpu=e500mc', 'x86-qemu': ''}
+env.Append(CFLAGS = bsp_cpu_dict[env['BSP']])
+
+bsp_qemu_dict = {'e500mc': ' -M ppce500 -cpu e500mc', 'p3041': ' -M ppce500 -cpu e500mc', 'x86-qemu': ''}
+env.Append(QEMU_FLAGS = bsp_qemu_dict[env['BSP']])
 
 Export('env')
 

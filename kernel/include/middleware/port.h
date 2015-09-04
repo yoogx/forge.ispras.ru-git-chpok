@@ -222,7 +222,7 @@ typedef struct
 
 } pok_port_queueing_t;
 
-extern pok_port_queueing_t pok_queueing_ports[POK_CONFIG_NB_QUEUEING_PORTS];
+extern pok_port_queueing_t pok_queueing_ports[];
 extern pok_port_channel_t pok_queueing_port_channels[];
 
 /* Queueing port functions */
@@ -290,7 +290,7 @@ typedef struct
     pok_port_data_t             *data;
 } pok_port_sampling_t;
 
-extern pok_port_sampling_t pok_sampling_ports[POK_CONFIG_NB_SAMPLING_PORTS];
+extern pok_port_sampling_t pok_sampling_ports[];
 extern pok_port_channel_t pok_sampling_port_channels[];
 
 /* Sampling port functions */

@@ -30,16 +30,16 @@ import collections
 import ipaddr
 
 class TimeSlot():
-	__metaclass__ = abc.ABCMeta
-	__slots__ = ["duration"]
-	
-	@abc.abstractmethod
-	def get_kind_constant(self):
-		pass
+    __metaclass__ = abc.ABCMeta
+    __slots__ = ["duration"]
+    
+    @abc.abstractmethod
+    def get_kind_constant(self):
+        pass
 
-	def validate(self):
-		if not isinstance(self.duration, int):
-			raise TypeError
+    def validate(self):
+        if not isinstance(self.duration, int):
+            raise TypeError
         
 class TimeSlotSpare(TimeSlot):
     __slots__ = []
@@ -211,10 +211,10 @@ class Channel:
         return any(isinstance(x, UDPConnection) for x in [self.src, self.dst])
 
 class Connection():
-	__metaclass__ = abc.ABCMeta
-	@abc.abstractmethod
-	def validate(self):
-		pass
+    __metaclass__ = abc.ABCMeta
+    @abc.abstractmethod
+    def validate(self):
+        pass
 
 class LocalConnection(Connection):
     __slots__ = ["port"]
@@ -352,58 +352,6 @@ class Configuration:
 
     def get_all_channels(self):
         return self.channels
-
-COMMON_KERNEL_DEFINES = """\
-#define POK_NEEDS_LOCKOBJECTS  1
-#define POK_NEEDS_THREADS      1
-#define POK_NEEDS_PARTITIONS   1
-#define POK_NEEDS_SCHED        1
-#define POK_NEEDS_TIME         1
-#define POK_NEEDS_GETTICK      1
-#define POK_NEEDS_DEBUG        1
-#define POK_NEEDS_SERIAL       1
-#define POK_NEEDS_CONSOLE      1
-#define POK_NEEDS_ERROR_HANDLING 1
-#define POK_NEEDS_THREAD_SUSPEND 1
-#define POK_NEEDS_THREAD_SLEEP 1
-#define POK_NEEDS_THREAD_ID 1
-
-#define POK_NEEDS_PCI           1
-
-
-""" 
-
-COMMON_PARTITION_DEFINES = """\
-#define POK_NEEDS_TIMER 1
-#define POK_NEEDS_THREADS 1
-
-#define POK_NEEDS_PARTITIONS 1
-
-#define POK_NEEDS_DEBUG 1
-#define POK_NEEDS_CONSOLE 1
-
-#define POK_NEEDS_LIBC_STDLIB 1
-#define POK_CONFIG_NEEDS_FUNC_MEMCPY         1
-#define POK_CONFIG_NEEDS_FUNC_MEMSET         1
-#define POK_CONFIG_NEEDS_FUNC_MEMCMP         1
-#define POK_CONFIG_NEEDS_FUNC_STRCMP         1
-#define POK_CONFIG_NEEDS_FUNC_STRNCMP        1
-#define POK_CONFIG_NEEDS_FUNC_STRCPY         1
-#define POK_CONFIG_NEEDS_FUNC_STRNCPY        1
-#define POK_CONFIG_NEEDS_FUNC_STRLEN         1
-#define POK_CONFIG_NEEDS_FUNC_STREQ          1
-#define POK_CONFIG_NEEDS_FUNC_ITOA           1
-#define POK_CONFIG_NEEDS_FUNC_UDIVDI3        1
-
-#define POK_NEEDS_MIDDLEWARE 1
-
-#define POK_NEEDS_ARINC653_PARTITION 1
-#define POK_NEEDS_ARINC653_PROCESS 1
-#define POK_NEEDS_ARINC653_ERROR 1
-#define POK_NEEDS_ARINC653_SAMPLING 1
-#define POK_NEEDS_ARINC653_QUEUEING 1
-#define POK_NEEDS_ARINC653_TIME 1
-"""
 
 TIMESLOT_SPARE_TEMPLATE = """\
     { .type = POK_SLOT_SPARE,
@@ -571,9 +519,6 @@ def _c_string(b):
     return json.dumps(b)
 
 def write_configuration(conf, kernel_dir, partition_dirs):
-    with open(os.path.join(kernel_dir, "deployment.h"), "w") as f:
-        write_kernel_deployment_h(conf, f)
-
     with open(os.path.join(kernel_dir, "deployment.c"), "w") as f:
         write_kernel_deployment_c(conf, f)
 
@@ -582,28 +527,14 @@ def write_configuration(conf, kernel_dir, partition_dirs):
     assert len(partition_dirs) >= len(conf.partitions)
 
     for i in range(len(conf.partitions)):
-        with open(os.path.join(partition_dirs[i], "deployment.h"), "w") as f:
-            write_partition_deployment_h(conf, i, f)
-            
         with open(os.path.join(partition_dirs[i], "deployment.c"), "w") as f:
             write_partition_deployment_c(conf, i, f)
 
-def write_kernel_deployment_h(conf, f):
+def write_kernel_deployment_c(conf, f):
     p = functools.partial(print, file=f)
-
-    p("#ifndef __POK_KERNEL_GENERATED_DEPLOYMENT_H_")
-    p("#define __POK_KERNEL_GENERATED_DEPLOYMENT_H_")
     
-    p(COMMON_KERNEL_DEFINES)
-
-    if conf.network:
-        p("#define POK_NEEDS_PCI 1")
-        p("#define POK_NEEDS_NETWORKING 1")
-        p("#define POK_NEEDS_NETWORKING_VIRTIO 1")
-        
-
-    p("#define POK_NEEDS_MONITOR 1")
-
+    p("#include <types.h>")
+    
     total_threads = (
         1 + # kernel thread
         1 + # idle thread
@@ -616,58 +547,63 @@ def write_kernel_deployment_h(conf, f):
     if conf.network:
         total_threads += 1
 #Add 1 thread for monitor
-    total_threads +=1	
-	
-    p("#define POK_CONFIG_NB_THREADS %d" % total_threads)
-
-    p("#define POK_CONFIG_PARTITIONS_NTHREADS {%s}" % ", ".join(
+    total_threads +=1
+    
+    p("uint8_t pok_config_nb_threads = %d;" % total_threads)
+    
+    p("uint32_t pok_config_partitions_nthreads[] = {%s};" % ", ".join(
         str(part.get_needed_threads()) for part in conf.partitions
     ))
-
-
-    p("#define POK_CONFIG_NB_PARTITIONS %d" % len(conf.partitions))
-
-    p("#define POK_CONFIG_NB_LOCKOBJECTS %d" % 
+    
+    p("unsigned pok_config_nb_partitions = %d;" % len(conf.partitions))
+    
+    p("unsigned pok_config_nb_lockobjects = %d;" % 
         sum(part.get_needed_lock_objects() for part in conf.partitions))
-    p("#define POK_CONFIG_PARTITIONS_NLOCKOBJECTS {%s}" % ", ".join(
+    
+    p("uint8_t pok_config_partitions_nlockobjects[] = {%s};" % ", ".join(
         str(part.get_needed_lock_objects()) for part in conf.partitions
     ))
     
-    p("#define POK_CONFIG_PARTITIONS_SIZE {%s}" % ", ".join(
+    p("uint32_t pok_config_partitions_size[] = {%s};" % ", ".join(
         str(part.size) for part in conf.partitions
     ))
-
-    p("#define POK_CONFIG_SCHEDULING_NBSLOTS %d" % len(conf.slots))
-
-    p("#define POK_CONFIG_SCHEDULING_MAJOR_FRAME %d" %
+    
+    p("unsigned pok_config_scheduling_nbslots = %d;" % len(conf.slots))
+    
+    p("unsigned pok_config_scheduling_major_frame = %d;" %
         sum(slot.duration for slot in conf.slots)
     )
-
+    
     n_sampling_ports = len(conf.get_all_sampling_ports())
     n_queueing_ports = len(conf.get_all_queueing_ports())
-
-    p("#define POK_NEEDS_PORTS_SAMPLING 1")
-    p("#define POK_CONFIG_NB_SAMPLING_PORTS %d" % n_sampling_ports)
-
-    p("#define POK_NEEDS_PORTS_QUEUEING 1")
-    p("#define POK_CONFIG_NB_QUEUEING_PORTS %d" % n_queueing_ports)
-
-    if conf.test_support_print_when_all_threads_stopped:
-        p("#define POK_TEST_SUPPORT_PRINT_WHEN_ALL_THREADS_STOPPED 1")
+    
+    p("unsigned pok_config_nb_sampling_ports = %d;" % n_sampling_ports)
+    p("unsigned pok_config_nb_queueing_ports = %d;" % n_queueing_ports)
 
     n_queueing_channels = len([c for c in conf.channels if c.is_queueing()])
     n_sampling_channels = len([c for c in conf.channels if c.is_sampling()])
-    p("#define POK_CONFIG_NB_QUEUEING_CHANNELS %d" % n_queueing_channels)
-    p("#define POK_CONFIG_NB_SAMPLING_CHANNELS %d" % n_sampling_channels)
-
-    p("#endif") # __POK_KERNEL_GENERATED_DEPLOYMENT_H_ 
-
-def write_kernel_deployment_c(conf, f):
-    p = functools.partial(print, file=f)
+    p("unsigned pok_config_nb_queueing_channels = %d;"% n_queueing_channels)
+    p("unsigned pok_config_nb_sampling_channels = %d;"% n_sampling_channels)
     
-    p('#include "deployment.h"')
-    if len(conf.get_all_ports()) > 0:
-        write_kernel_deployment_c_ports(conf, f)
+    p("enum {")
+    p("tmp_pok_config_nb_threads = %d," % total_threads)
+    p("tmp_pok_config_nb_lockobjects = %d," % 
+        sum(part.get_needed_lock_objects() for part in conf.partitions))
+    p("tmp_pok_config_nb_partitions = %d," % len(conf.partitions))
+    p("};")
+    
+    p("#include <config.h>")
+    p("#include <middleware/port.h>")
+    p("#include <core/thread.h>")
+    p("#include <core/partition.h>")
+    
+    p("pok_lockobj_t pok_partitions_lockobjs[tmp_pok_config_nb_lockobjects + 1];")
+    p("pok_thread_t pok_threads[tmp_pok_config_nb_threads];")
+    p("pok_partition_t pok_partitions[tmp_pok_config_nb_partitions];")
+    p("struct pok_space spaces[tmp_pok_config_nb_partitions];")
+
+    #if len(conf.get_all_ports()) > 0:
+    write_kernel_deployment_c_ports(conf, f)
 
     write_kernel_deployment_c_hm_tables(conf, f)
 
@@ -680,7 +616,7 @@ def write_kernel_deployment_c(conf, f):
 
         p("const uint32_t pok_network_ip_address = %s;" % hex(int(conf.network.ip)))
 
-    p("const pok_sched_slot_t pok_module_sched[POK_CONFIG_SCHEDULING_NBSLOTS] = {")
+    p("const pok_sched_slot_t pok_module_sched[] = {")
     for slot in conf.slots:
         if isinstance(slot, TimeSlotSpare):
             p(TIMESLOT_SPARE_TEMPLATE % dict(
@@ -711,8 +647,6 @@ def write_kernel_deployment_c(conf, f):
 
 def write_kernel_deployment_c_ports(conf, f):
     p = functools.partial(print, file=f)
-
-    p("#include <middleware/port.h>")
 
     # various misc. functions
 
@@ -866,6 +800,7 @@ def write_kernel_deployment_c_ports(conf, f):
             assert False
 
     # print non-static definitions
+    #if all_sampling_ports:
     p("pok_port_sampling_t pok_sampling_ports[] = {")
     for i, port in enumerate(all_sampling_ports):
 
@@ -935,49 +870,25 @@ def write_kernel_deployment_c_hm_tables(conf, f):
         p("};")
         p("")
 
-    p("const pok_error_hm_partition_t * const pok_partition_hm_tables[POK_CONFIG_NB_PARTITIONS] = {")
+    p("const pok_error_hm_partition_t * const pok_partition_hm_tables[] = {")
     for i in range(len(conf.partitions)):
         p("  partition_hm_table%d," % i)
     p("};")
 
-
-def write_partition_deployment_h(conf, partition_idx, f):
-    p = functools.partial(print, file=f)
-
-    p("#ifndef __POK_USER_GENERATED_DEPLOYMENT_H_")
-    p("#define __POK_USER_GENERATED_DEPLOYMENT_H_")
-    
-    p(COMMON_PARTITION_DEFINES)
-
-    part = conf.partitions[partition_idx]
-
-    if part.num_arinc653_buffers > 0:
-        p("#define POK_NEEDS_BUFFERS 1")
-        p("#define POK_NEEDS_ARINC653_BUFFER 1")
-        p("#define POK_CONFIG_NB_BUFFERS %d" % part.num_arinc653_buffers)
-
-        p("#define POK_CONFIG_BUFFER_DATA_SIZE %d" % part.buffer_data_size)
-        
-    if part.num_arinc653_blackboards > 0:
-        p("#define POK_NEEDS_BLACKBOARDS 1")
-        p("#define POK_NEEDS_ARINC653_BLACKBOARD 1")
-        p("#define POK_CONFIG_NB_BLACKBOARDS %d" % part.num_arinc653_buffers)
-        p("#define POK_CONFIG_BLACKBOARD_DATA_SIZE %d" % part.blackboard_data_size)
-
-    if part.num_arinc653_semaphores > 0:
-        p("#define POK_NEEDS_ARINC653_SEMAPHORE 1")
-        p("#define POK_CONFIG_ARINC653_NB_SEMAPHORES %d" % part.num_arinc653_semaphores)
-
-    if part.num_arinc653_events > 0:
-        p("#define POK_NEEDS_ARINC653_EVENT 1")
-        p("#define POK_CONFIG_ARINC653_NB_EVENTS %d" % part.num_arinc653_events)
-        p("#define POK_CONFIG_NB_EVENTS %d" % part.num_arinc653_events)
-
-    p("#define POK_CONFIG_NB_THREADS %d" % part.get_needed_threads())
-
-    p("#endif")
-
 def write_partition_deployment_c(conf, partition_idx, f):
     p = functools.partial(print, file=f)
-
-    p('#include "deployment.h"')
+    
+    part = conf.partitions[partition_idx]
+    
+    p("unsigned pok_config_nb_buffers = %d;" % part.num_arinc653_buffers)
+    p("unsigned pok_config_buffer_data_size = %d;" % part.buffer_data_size)
+    
+    p("unsigned pok_config_nb_blackboards = %d;" % part.num_arinc653_blackboards)
+    p("unsigned pok_config_blackboard_data_size = %d;" % part.blackboard_data_size)
+    
+    p("unsigned pok_config_arinc653_nb_semaphores = %d;" % part.num_arinc653_semaphores)
+    
+    p("unsigned pok_config_arinc653_nb_events = %d;" % part.num_arinc653_events)
+    p("unsigned pok_config_nb_events = %d;" % part.num_arinc653_events)
+    
+    p("unsigned pok_config_nb_threads = %d;" % part.get_needed_threads())

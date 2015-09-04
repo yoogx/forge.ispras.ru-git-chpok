@@ -26,6 +26,7 @@
  * OpenSSL function to crypts data.
  */
 
+#include <config.h>
 
 #include <protocols/des.h>
 #include <libc/string.h>

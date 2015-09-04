@@ -17,6 +17,8 @@
 #ifndef __LIBPOK_SYSCALL_H__
 #define __LIBPOK_SYSCALL_H__
 
+#include <config.h>
+
 #include <types.h>
 #include <errno.h>
 
@@ -105,7 +107,8 @@ typedef struct
 } pok_syscall_args_t;
 
 
-#ifdef POK_ARCH_X86
+//#ifdef POK_ARCH_X86
+#ifdef __i386__
 /*
  * To reduce the number of functions and improve code coverage, we define
  * only one function to perform the syscall, the other are just maccro

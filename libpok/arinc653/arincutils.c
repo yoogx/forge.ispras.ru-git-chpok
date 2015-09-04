@@ -14,12 +14,14 @@
  * Created by matias on Wed Apr 04 09:34:13 2012
  */
 
+#include <config.h>
+
 #ifdef POK_NEEDS_ARINC653_PROCESS
 
 #include  <arinc653/arincutils.h>
 #include <libc/string.h>
 
-ARINC_ATTRIBUTE arinc_process_attribute[POK_CONFIG_NB_THREADS];
+ARINC_ATTRIBUTE *arinc_process_attribute;
 
 pok_bool_t get_process_id(PROCESS_NAME_TYPE process_name, pok_thread_id_t *id)
 {

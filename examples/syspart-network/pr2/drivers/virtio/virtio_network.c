@@ -147,7 +147,7 @@ static int virtio_pci_search(s_pci_device* d) {
             d->bus = bus;
             d->dev = dev;
             d->fun = fun;
-//#ifdef POK_ARCH_PPC
+//#ifdef __PPC__
             d->bar[0] = 0xe1001000;//pci_read(bus, dev, fun, PCI_REG_BAR0) & ~0xFU; // mask lower bits, which mean something else
 //#else
 //            d->bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0) & ~0xFU; // mask lower bits, which mean something else
@@ -155,7 +155,7 @@ static int virtio_pci_search(s_pci_device* d) {
 
             d->irq_line = (unsigned char) pci_read_reg(d, PCI_REG_IRQLINE);
 
-//#ifdef POK_ARCH_PPC
+//#ifdef __PPC__
             {
                 printf("------------\n");
                 printf("bus %d dev %d fun %d\n", bus, dev, fun);

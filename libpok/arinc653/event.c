@@ -32,6 +32,7 @@
  * Created by julien on Thu Jan 15 23:34:13 2009 
  */
 
+#include <config.h>
 
 #ifdef POK_NEEDS_ARINC653_EVENT
 #include <arinc653/types.h>
@@ -65,7 +66,7 @@ typedef struct
    char              name[POK_EVENT_MAX_NAME_LENGTH];
 }pok_arinc653_event_layer_t;
 
-pok_arinc653_event_layer_t    pok_arinc653_events_layers[POK_CONFIG_NB_EVENTS];
+pok_arinc653_event_layer_t *pok_arinc653_events_layers;
 
 static void init_events() 
 {

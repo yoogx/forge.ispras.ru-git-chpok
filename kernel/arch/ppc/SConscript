@@ -1,13 +1,13 @@
 # -*- Mode: Python -*-
 
-Import('kernel_env')
+Import('arch_env')
 
-kernel_env.Program(target = 'ppc.lo', source = [
+arch_env.Program(target = 'ppc.lo', source = [
 Glob('*.[Sc]'),
-'e500mc/e500mc.lo',
+arch_env['BSP']+'/' + arch_env['BSP'] + '.lo',
 'libfdt/libfdt.lo'])
 
-SConscript('e500mc/SConscript')
+SConscript(arch_env['BSP']+'/SConscript')
 SConscript('libfdt/SConscript')
 
 # EOF

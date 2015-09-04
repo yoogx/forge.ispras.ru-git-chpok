@@ -42,6 +42,8 @@
  * POK_NEEDS_PARTITIONS maccro.
  */
 
+#include <config.h>
+
 #ifdef POK_NEEDS_PARTITIONS
 
 #include <arch.h>
@@ -60,12 +62,6 @@
 
 #include <libc.h>
 #include <assert.h>
-
-/**
- * \brief The array that contains ALL partitions in the system.
- */
-pok_partition_t pok_partitions[POK_CONFIG_NB_PARTITIONS];
-
 
 uint8_t			 pok_partitions_index = 0;
 
@@ -161,11 +157,8 @@ pok_ret_t pok_partition_init ()
    pok_thread_id_t    threads_index = 0;
    pok_thread_id_t    total_threads = 0;
 
-   const uint32_t	partition_size[POK_CONFIG_NB_PARTITIONS] = POK_CONFIG_PARTITIONS_SIZE;
-#ifdef POK_CONFIG_PARTITIONS_LOADADDR
-   const uint32_t	program_loadaddr[POK_CONFIG_NB_PARTITIONS]
-      = POK_CONFIG_PROGRAM_LOADADDR;
-#endif
+   uint32_t	*partition_size = POK_CONFIG_PARTITIONS_SIZE;
+
 #ifdef POK_NEEDS_LOCKOBJECTS
    uint8_t lockobj_index = 0;
 #endif
@@ -211,7 +204,7 @@ pok_ret_t pok_partition_init ()
        * Allocate threads
        */
       part->thread_index_low  = threads_index;
-      part->nthreads          = ((uint32_t[]) POK_CONFIG_PARTITIONS_NTHREADS) [i];
+      part->nthreads          = POK_CONFIG_PARTITIONS_NTHREADS[i];
 
       total_threads += part->nthreads;
 
@@ -222,7 +215,7 @@ pok_ret_t pok_partition_init ()
       }
 #endif
 
-      part->thread_index_high = part->thread_index_low + ((uint32_t[]) POK_CONFIG_PARTITIONS_NTHREADS) [i];
+      part->thread_index_high = part->thread_index_low + POK_CONFIG_PARTITIONS_NTHREADS[i];
       part->activation        = 0; // FIXME that can't be right
       part->period            = POK_CONFIG_SCHEDULING_MAJOR_FRAME;
       part->current_thread    = IDLE_THREAD;
@@ -235,8 +228,8 @@ pok_ret_t pok_partition_init ()
        */
 #ifdef POK_NEEDS_LOCKOBJECTS
       part->lockobj_index_low    = lockobj_index;
-      part->lockobj_index_high   = lockobj_index + ((uint8_t[]) POK_CONFIG_PARTITIONS_NLOCKOBJECTS[i]);
-      part->nlockobjs            = ((uint8_t[]) POK_CONFIG_PARTITIONS_NLOCKOBJECTS[i]);
+      part->lockobj_index_high   = lockobj_index + POK_CONFIG_PARTITIONS_NLOCKOBJECTS[i];
+      part->nlockobjs            = POK_CONFIG_PARTITIONS_NLOCKOBJECTS[i];
       lockobj_index                          = lockobj_index + part->nlockobjs;
 #endif
       

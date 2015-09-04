@@ -18,6 +18,8 @@
 #ifndef __POK_KERNEL_SEMAPHORE_H__
 #define __POK_KERNEL_SEMAPHORE_H__
 
+#include <config.h>
+
 #include <core/dependencies.h>
 
 #ifdef POK_NEEDS_SEMAPHORES

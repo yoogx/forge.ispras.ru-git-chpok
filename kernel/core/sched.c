@@ -38,6 +38,8 @@
  **\\author Julien Delange
  */
 
+#include <config.h>
+
 #if defined (POK_NEEDS_SCHED) || defined (POK_NEEDS_THREADS)
 
 #include <types.h>
@@ -67,10 +69,6 @@
 
 #include <assert.h>
 
-extern pok_thread_t       pok_threads[];
-
-extern pok_partition_t    pok_partitions[];
-
 pok_bool_t current_partition_on_pause = FALSE;
 
 /**
@@ -83,7 +81,7 @@ void                      pok_sched_partition_switch();
 uint64_t            pok_sched_next_deadline;
 uint64_t            pok_sched_next_major_frame;
 uint8_t             pok_sched_current_slot = 0; /* Which slot are we executing at this time ?*/
-pok_thread_id_t     current_thread = KERNEL_THREAD;
+pok_thread_id_t     current_thread;
 
 void pok_sched_thread_switch (void);
 
@@ -94,6 +92,7 @@ void pok_sched_thread_switch (void);
 void pok_sched_init (void)
 {
    pok_sched_current_slot        = 0;
+   current_thread = KERNEL_THREAD;
    pok_sched_next_major_frame    = POK_CONFIG_SCHEDULING_MAJOR_FRAME;
    pok_sched_next_deadline       = pok_module_sched[0].duration;
    if (pok_module_sched[0].type == POK_SLOT_PARTITION) {

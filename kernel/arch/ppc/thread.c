@@ -14,6 +14,7 @@
  * Created by julien on Thu Jan 15 23:34:13 2009 
  */
 
+#include <config.h>
 
 #include <bsp.h>
 #include <libc.h>
@@ -51,7 +52,7 @@ uint32_t		pok_context_create (uint32_t id,
   return (uint32_t)sp;
 }
 
-uint32_t pok_context_reset(uint32_t stack_size,
+void pok_context_reset(uint32_t stack_size,
 			    uint32_t stack_addr)
 {
   context_t* sp;
@@ -68,7 +69,6 @@ uint32_t pok_context_reset(uint32_t stack_size,
   sp->r15     = id;
   sp->lr      = (uint32_t) pok_arch_thread_start;
   sp->sp      = (uint32_t) &sp->back_chain;
-  return 0;
 }
 
 #endif

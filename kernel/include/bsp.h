@@ -24,6 +24,8 @@
 #ifndef __POK_BSP_H__
 #define __POK_BSP_H__
 
+#include <config.h>
+
 #include <types.h>
 #include <errno.h>
 

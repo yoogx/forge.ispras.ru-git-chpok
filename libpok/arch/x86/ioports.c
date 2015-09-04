@@ -14,6 +14,7 @@
  * Created by laurent on Sun Jun 07 18:39:49 2009 
  */
 
+#include <config.h>
 
 #ifdef POK_NEEDS_IO
 

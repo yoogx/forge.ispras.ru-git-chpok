@@ -14,6 +14,8 @@
  * Created by julien on Thu Jan 15 23:34:13 2009 
  */
 
+#include <config.h>
+
 #include <errno.h>
 
 #ifdef POK_NEEDS_BLACKBOARDS
@@ -30,6 +32,7 @@ int main();
 
 int __pok_partition_start ()
 {
+    pok_libpok_config_init();
 #ifdef POK_NEEDS_MIDDLEWARE
 
 #ifdef POK_NEEDS_BLACKBOARDS

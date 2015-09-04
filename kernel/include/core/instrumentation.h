@@ -17,6 +17,8 @@
 #ifndef __POK_KERNEL_INSTRUMENTATION_H__
 #define __POK_KERNEL_INSTRUMENTATION_H__
 
+#include <config.h>
+
 #ifdef POK_NEEDS_INSTRUMENTATION
 
 #include <libc.h>

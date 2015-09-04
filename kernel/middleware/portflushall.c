@@ -41,6 +41,8 @@
  * \auther  Maxim Malkov
  */
 
+#include <config.h>
+
 #if defined (POK_NEEDS_PORTS_QUEUEING) || defined (POK_NEEDS_PORTS_SAMPLING)
 
 #include <bsp.h>

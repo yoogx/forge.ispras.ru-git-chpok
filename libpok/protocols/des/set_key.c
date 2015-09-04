@@ -80,6 +80,7 @@
  * 1.0 First working version
  */
 
+#include <config.h>
 
 #ifdef POK_NEEDS_PROTOCOLS_DES
 

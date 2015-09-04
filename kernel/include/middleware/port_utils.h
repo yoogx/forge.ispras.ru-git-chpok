@@ -17,6 +17,8 @@
 #ifndef __POK_KERNEL_PORT_UTILS_H__
 #define __POK_KERNEL_PORT_UTILS_H__
 
+#include <config.h>
+
 #include <middleware/port.h>
 
 #ifdef POK_NEEDS_PORTS_QUEUEING

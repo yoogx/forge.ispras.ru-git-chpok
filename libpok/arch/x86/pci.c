@@ -14,6 +14,8 @@
  * Created by laurent on Mon Jun 08 11:18:27 2009 
  */
 
+#include <config.h>
+
 #ifdef POK_NEEDS_PCI
 
 # include <arch/x86/pci.h>

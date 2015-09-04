@@ -14,6 +14,8 @@
  * Created by julien on Mon Jan 19 10:51:40 2009 
  */
 
+#include <config.h>
+
 #ifdef POK_NEEDS_ERROR_HANDLING
 
 #include <types.h>
@@ -29,7 +31,7 @@
 /*
  * This should be defined in kernel's deployment.c
  */
-extern const pok_error_hm_partition_t * const pok_partition_hm_tables[POK_CONFIG_NB_PARTITIONS];
+extern const pok_error_hm_partition_t * const pok_partition_hm_tables[];
 
 pok_ret_t pok_error_thread_create (uint32_t stack_size, void* entry)
 {

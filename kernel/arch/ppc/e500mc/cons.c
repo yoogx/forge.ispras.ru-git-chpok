@@ -14,6 +14,7 @@
  * Created by julien on Thu Jan 15 23:34:13 2009 
  */
 
+#include <config.h>
 
 #include <errno.h>
 
@@ -24,8 +25,6 @@
 #include "cons.h"
 
 #if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
-
-#define CCSRBAR_BASE 0xE0000000ULL
 
 #define MPC8544_SERIAL0_REGS_OFFSET 0x4500ULL
 

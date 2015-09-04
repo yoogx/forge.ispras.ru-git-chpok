@@ -39,6 +39,8 @@
  * \brief   Thread management in kernel
  */
 
+#include <config.h>
+
 #include <types.h>
 
 #include <arch.h>
@@ -58,35 +60,14 @@
 
 #ifdef POK_NEEDS_THREADS
 
-/**
- * We declare an array of threads. The amount of threads
- * is fixed by the software developper and we add two theads
- *    - one for the kernel thread (this code)
- *    - one for the idle task
- */
-pok_thread_t		         pok_threads[POK_CONFIG_NB_THREADS];
-
-extern pok_partition_t     pok_partitions[POK_CONFIG_NB_PARTITIONS];
-
 #ifdef POK_NEEDS_NETWORKING
 static void pok_network_thread_init(void)
 {
     pok_threads[NETWORK_THREAD].entry = pok_network_thread;
     pok_threads[NETWORK_THREAD].sp = pok_context_create(NETWORK_THREAD, 4096, (uintptr_t) pok_network_thread);
 }
-	#endif
+#endif
 
-
-
-#ifdef POK_NEEDS_MONITOR
-
-static void pok_monitor_thread_init(void)
-{
-	pok_threads[MONITOR_THREAD].entry = pok_monitor_thread;
-    pok_threads[MONITOR_THREAD].sp = pok_context_create(MONITOR_THREAD, 4096, (uintptr_t) pok_monitor_thread);
-}
-
-	#endif
 
 
 
@@ -98,32 +79,28 @@ void pok_thread_init(void)
 {
    pok_thread_id_t i;
 
-   pok_threads[KERNEL_THREAD].priority	   = 0;
-   pok_threads[KERNEL_THREAD].base_priority	   = 0;
-   pok_threads[KERNEL_THREAD].state		   = POK_STATE_RUNNABLE;
+   pok_threads[KERNEL_THREAD].priority     = 0;
+   pok_threads[KERNEL_THREAD].base_priority    = 0;
+   pok_threads[KERNEL_THREAD].state        = POK_STATE_RUNNABLE;
    pok_threads[KERNEL_THREAD].next_activation = 0;
 
    pok_threads[IDLE_THREAD].period                     = -1;
    pok_threads[IDLE_THREAD].deadline                   = -1;
    pok_threads[IDLE_THREAD].time_capacity              = -1;
    pok_threads[IDLE_THREAD].next_activation            = 0;
-   pok_threads[IDLE_THREAD].wakeup_time		       = 0;
-   pok_threads[IDLE_THREAD].entry		       = pok_arch_idle;
-   pok_threads[IDLE_THREAD].base_priority		       = 0;
-   pok_threads[IDLE_THREAD].state		       = POK_STATE_RUNNABLE;
+   pok_threads[IDLE_THREAD].wakeup_time            = 0;
+   pok_threads[IDLE_THREAD].entry              = pok_arch_idle;
+   pok_threads[IDLE_THREAD].base_priority              = 0;
+   pok_threads[IDLE_THREAD].state              = POK_STATE_RUNNABLE;
 
-   pok_threads[IDLE_THREAD].sp			       = pok_context_create(IDLE_THREAD, IDLE_STACK_SIZE, (uint32_t)pok_arch_idle);
+   pok_threads[IDLE_THREAD].sp                 = pok_context_create(IDLE_THREAD, IDLE_STACK_SIZE, (uint32_t)pok_arch_idle);
 
 #ifdef POK_NEEDS_NETWORKING
    pok_network_thread_init();
 
 #endif
 
-#ifdef POK_NEEDS_MONITOR
    pok_monitor_thread_init();
-#endif
-
-
 
    for (i = 0; i < POK_CONFIG_NB_THREADS; ++i)
    {
@@ -210,7 +187,7 @@ pok_ret_t pok_partition_thread_create (pok_thread_id_t*         thread_id,
    // XXX perhaps, create in stopped state?
    thread->state         = POK_STATE_RUNNABLE;
    thread->wakeup_time   = 0;
-   thread->sp		 = pok_space_context_create(
+   thread->sp        = pok_space_context_create(
         partition_id,
         (uintptr_t)attr->entry,
         stack_vaddr,
@@ -338,12 +315,12 @@ pok_ret_t pok_thread_delayed_start (pok_thread_id_t id, int64_t ms)
     if (thread->period < 0) { //-1 <==> ARINC INFINITE_TIME_VALUE
         // aperiodic process
         if (pok_partitions[thread->partition].mode == POK_PARTITION_MODE_NORMAL) {
-  	    if (ms == 0) {
-  	        thread->state = POK_STATE_RUNNABLE;
-  	    } else {
-  	        thread->state = POK_STATE_WAITING;
-  	        thread->wakeup_time = POK_GETTICK() + ms;
-  	    }
+        if (ms == 0) {
+            thread->state = POK_STATE_RUNNABLE;
+        } else {
+            thread->state = POK_STATE_WAITING;
+            thread->wakeup_time = POK_GETTICK() + ms;
+        }
 
             // init DEADLINE_TIME (end_time)
             if (thread->time_capacity >= 0) {
@@ -352,13 +329,13 @@ pok_ret_t pok_thread_delayed_start (pok_thread_id_t id, int64_t ms)
                 thread->end_time = -1;
             }
 
-	    //the preemption is always enabled so
+        //the preemption is always enabled so
             // XXX no, it isn't
-  	    pok_sched();
-  	} else { //the partition mode is cold or warm start
-  	    thread->state = POK_STATE_DELAYED_START;
-	    thread->wakeup_time = ms; // temporarly storing the delay, see set_partition_mode
-  	}
+        pok_sched();
+    } else { //the partition mode is cold or warm start
+        thread->state = POK_STATE_DELAYED_START;
+        thread->wakeup_time = ms; // temporarly storing the delay, see set_partition_mode
+    }
     } else {
         // this assumes that this periodic process' processing window will be
         // the same as the one in which START was called

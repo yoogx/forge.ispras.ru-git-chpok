@@ -18,6 +18,8 @@
  * Remember boys, blowfish encrypts data on 8 bytes !
  */
 
+#include <config.h>
+
 #ifdef POK_NEEDS_PROTOCOLS_BLOWFISH
 
 #include "blowfish.h"

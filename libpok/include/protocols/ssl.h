@@ -17,6 +17,8 @@
 #ifndef __LIBPOK_PROTOCOLS_SSL_H__
 #define __LIBPOK_PROTOCOLS_SSL_H__
 
+#include <config.h>
+
 #include <types.h>
 
 /**

@@ -8,8 +8,8 @@ Import('env')
 pok_env = env.Clone()
 pok_env.Append(CPPPATH = pok_env['POK_PATH']+'/kernel/include')
 
-pok_env['LINKFLAGS'] = str(' -T '+pok_env['POK_PATH']+'/misc/ldscripts/'+pok_env['ARCH']+'/'+pok_env['BSP']+'/kernel.lds'+
-' -Map pok.elf.map')
+ldscript = pok_env['POK_PATH']+'/misc/ldscripts/'+pok_env['ARCH']+'/'+pok_env['BSP']+'/kernel.lds'
+pok_env['LINKFLAGS'] = str(' -T '+ldscript+' -Map pok.elf.map')
 
 # there should (perhaps) also be padding to get aligned file size
 def merge_partitions(target, source, env):
@@ -43,13 +43,13 @@ source = 'sizes.c',
 action = [
 pok_env['CC']+' -c -o sizes.o '+pok_env['CFLAGS']+' -I'+pok_env['POK_PATH']+'/kernel/include'+' sizes.c',
 pok_env['OBJCOPY']+' --add-section .archive2=partitions.bin sizes.o'])
-pok_env.Depends(compile_sizes, sizes_c_command)
+pok_env.Depends(compile_sizes, pok_env['PARTITIONS'])
 
 pok_target = pok_env.Program(target = 'pok.elf', source = [
 'sizes.o',
 'kernel/kernel.lo',
 pok_env['LIBGCC']])
-pok_env.Depends(pok_target, compile_sizes)
+pok_env.Depends(pok_target, [compile_sizes, ldscript])
 
 SConscript('kernel/SConscript')
 SConscript('pr1/SConscript')

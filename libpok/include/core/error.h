@@ -14,6 +14,8 @@
  * Created by julien on Mon Jan 19 10:51:40 2009 
  */
 
+#include <config.h>
+
 #include <core/dependencies.h>
 
 #ifdef POK_NEEDS_ERROR_HANDLING

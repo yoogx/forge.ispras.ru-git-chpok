@@ -17,6 +17,8 @@
 #ifndef __POK_KERNEL_DEPENDENCIES_H__
 #define __POK_KERNEL_DEPENDENCIES_H__
 
+#include <config.h>
+
 #ifdef POK_NEEDS_ERROR_HANDLING
    #ifndef POK_NEEDS_SCHED_STOP_SELF
       #define POK_NEEDS_SCHED_STOP_SELF 1

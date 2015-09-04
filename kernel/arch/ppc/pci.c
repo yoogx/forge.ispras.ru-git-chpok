@@ -14,6 +14,8 @@
  * Created by laurent on Mon Jun 08 11:01:12 2009 
  */
 
+#include <config.h>
+
 #ifdef POK_NEEDS_PCI
 
 # include <errno.h>

@@ -3,7 +3,7 @@
 Import('env')
 
 kernel_env = env.Clone()
-kernel_env.Append(CFLAGS = ' -include '+kernel_env['DEPLOYMENT_HEADER']+' -Werror')
+kernel_env.Append(CFLAGS = ' -Werror')
 
 kernel_env.Program(target = 'pok.lo', source = [
 'core/core.lo',

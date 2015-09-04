@@ -21,6 +21,8 @@
  * \date    2008-2009
  */
 
+#include <config.h>
+
 #include <arch.h>
 #include <bsp.h>
 #include <core/time.h>
@@ -73,7 +75,7 @@ void pok_boot ()
 
    for (tmp = 0 ; tmp < POK_CONFIG_NB_THREADS ; tmp++)
    {
-      printf ("[INSTRUMENTATION][CHEDDAR] <task_activation>   0   task %d</task_activation>\n", tmp);
+      printf ("[INSTRUMENTATION][CHEDDAR] <task_activation>   0   task %lu</task_activation>\n", tmp);
    }
 #endif
 

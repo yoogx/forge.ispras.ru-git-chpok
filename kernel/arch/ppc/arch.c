@@ -21,6 +21,8 @@
  * \brief   Provide generic architecture access for PPC architecture
  */
 
+#include <config.h>
+
 #include <types.h>
 #include <errno.h>
 #include <core/partition.h>

@@ -3,35 +3,26 @@
 Import('env')
 
 pr2_env = env.Clone()
-pr2_env['CPPPATH'] = [pr2_env['POK_PATH']+'/libpok/include', pr2_env['POK_PATH']+'/examples/pure-arinc653-buffer']
-pr2_env.Append(CFLAGS = ' -include '+pr2_env['SCONSTRUCT_DIR']+'/pr2/deployment.h')
-
-source_objs = [
-'main.c',
-'deployment.c']
+pr2_env['CPPPATH'] = pr2_env['POK_PATH']+'/libpok/include'
+pr2_env.Append(CFLAGS = ' -include '+pr2_env['POK_PATH']+'/libpok/include/config.h')
 
 build_path_libpok = pr2_env['POK_PATH']+'/build/'+pr2_env['ARCH']+'/libpok'
 
-libpart = pr2_env.StaticLibrary(target = 'part', source = [
-source_objs,
-build_path_libpok+'/arch/arch.lo',
-build_path_libpok+'/core/core.lo',
-build_path_libpok+'/drivers/drivers.lo',
-build_path_libpok+'/middleware/middleware.lo',
-build_path_libpok+'/arinc653/arinc653.lo',
-build_path_libpok+'/libm/libm.lo',
-build_path_libpok+'/protocols/protocols.lo',
-build_path_libpok+'/libc/libc.lo'])
+ldscript = pr2_env['POK_PATH']+'/misc/ldscripts/'+pr2_env['ARCH']+'/'+pr2_env['BSP']+'/partition.lds'
+pr2_env['LINKFLAGS'] = str(' -T '+ldscript+' -Map pr2/pr2.elf.map')
 
-pr2_env['LINKFLAGS'] = str(' -T '+pr2_env['POK_PATH']+'/misc/ldscripts/'+pr2_env['ARCH']+'/'+pr2_env['BSP']+'/partition.lds'+
-' -Map pr2/pr2.elf.map')
+objs = pr2_env.StaticObject(source = Glob('*.c'))
+
+source_objs = ''
+for obj in objs:
+    source_objs += 'pr2/' + str(obj) + ' '
 
 pr2_command = pr2_env.Command(target = 'pr2.elf',
-source = source_objs,
+source = [],
 action = pr2_env['LINK']+pr2_env['LINKFLAGS']+' '+
-'pr2/main.o pr2/deployment.o'+
+source_objs +
 ' -o pr2/pr2.elf -L'+build_path_libpok+' -lpok '+
 pr2_env['LIBGCC'])
-pr2_env.Depends(pr2_command, [libpart, build_path_libpok+'/libpok.a'])
+pr2_env.Depends(pr2_command, [objs, build_path_libpok+'/libpok.a', ldscript])
 
 # EOF

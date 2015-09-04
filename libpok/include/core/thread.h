@@ -35,6 +35,8 @@
 #ifndef __POK_THREAD_H__
 #define __POK_THREAD_H__
 
+#include <config.h>
+
 #include <core/dependencies.h>
 
 #ifdef POK_NEEDS_THREADS

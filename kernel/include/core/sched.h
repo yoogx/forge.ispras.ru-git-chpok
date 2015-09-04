@@ -17,6 +17,8 @@
 #ifndef __POK_SCHED_H__
 #define __POK_SCHED_H__
 
+#include <config.h>
+
 #if defined (POK_NEEDS_SCHED) || defined (POK_NEEDS_THREADS)
 
 #include <types.h>
@@ -34,7 +36,7 @@ typedef enum
     POK_SLOT_SPARE = 0, // idle thread is always scheduled here
     POK_SLOT_PARTITION = 1,
 #if defined(POK_NEEDS_NETWORKING)
-    POK_SLOT_NETWORKING = 2,
+    POK_SLOT_NETWORKING = 3,
 #endif
 
 #if defined(POK_NEEDS_MONITOR)
@@ -63,7 +65,7 @@ typedef struct
 } pok_sched_slot_t;
 
 // as usual, defined in deployment.c
-extern const pok_sched_slot_t pok_module_sched[POK_CONFIG_SCHEDULING_NBSLOTS];
+extern const pok_sched_slot_t pok_module_sched[];
 #endif
 
 

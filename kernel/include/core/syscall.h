@@ -35,6 +35,8 @@
 #ifndef __POK_SYSCALL_H__
 #define __POK_SYSCALL_H__
 
+#include <config.h>
+
 #include <types.h>
 #include <errno.h>
 

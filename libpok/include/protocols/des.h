@@ -32,6 +32,7 @@
  * http://en.wikipedia.org/wiki/Data_Encryption_Standard
  */
 
+#include <config.h>
 
 #include <types.h>
 

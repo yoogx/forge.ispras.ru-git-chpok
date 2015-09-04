@@ -38,6 +38,7 @@
  * is the same than the uncrypted size.
  */
 
+#include <config.h>
 
 #include <types.h>
 

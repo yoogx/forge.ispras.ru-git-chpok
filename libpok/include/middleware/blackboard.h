@@ -36,6 +36,8 @@
 #ifndef  __POK_USER_BLACKBOARD_H__
 #define __POK_USER_BLACKBOARD_H__
 
+#include <config.h>
+
 #ifdef POK_NEEDS_MIDDLEWARE
 #ifdef POK_NEEDS_BLACKBOARDS
 
@@ -87,8 +89,8 @@ pok_ret_t pok_blackboard_id     (char*                            name,
 pok_ret_t pok_blackboard_status (const pok_blackboard_id_t        id,
                                  pok_blackboard_status_t*         status);
 
-extern pok_blackboard_t pok_blackboards[POK_CONFIG_NB_BLACKBOARDS];
-extern char pok_blackboards_data[POK_CONFIG_BLACKBOARD_DATA_SIZE]; 
+extern pok_blackboard_t *pok_blackboards;
+extern char *pok_blackboards_data; 
 
 #endif
 #endif

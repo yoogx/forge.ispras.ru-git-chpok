@@ -14,6 +14,8 @@
  * Created by laurent on Sun Jun 07 18:44:37 2009 
  */
 
+#include <config.h>
+
 #ifdef POK_NEEDS_IO
 
 # ifndef __POK_x86_IO_H__

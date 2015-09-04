@@ -18,6 +18,8 @@
 #ifndef __POK_KERNEL_QUEUES_H__
 #define __POK_KERNEL_QUEUES_H__
 
+#include <config.h>
+
 #ifdef POK_NEEDS_MIDDLEWARE
 
 #include <types.h>

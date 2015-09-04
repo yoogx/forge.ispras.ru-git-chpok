@@ -72,6 +72,8 @@
  * [including the GNU Public Licence.]
  */
 
+#include <config.h>
+
 #ifdef POK_NEEDS_PROTOCOLS_BLOWFISH
 
 static const BF_KEY bf_init= {

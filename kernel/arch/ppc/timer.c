@@ -14,7 +14,6 @@
  * Created by julien on Thu Jan 15 23:34:13 2009 
  */
 
-
 #include <errno.h>
 #include <bsp.h>
 #include <core/time.h>

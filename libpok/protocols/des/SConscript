@@ -2,9 +2,6 @@
 
 Import('libpok_env')
 
-libpok_des_env = libpok_env.Clone()
-libpok_des_env.Append(CPPPATH = libpok_des_env['POK_PATH']+'/libpok/protocols/des')
-
-libpok_des_env.Program(target = 'des.lo', source = Glob('*.c'))
+libpok_env.Program(target = 'des.lo', source = Glob('*.c'))
 
 # EOF
