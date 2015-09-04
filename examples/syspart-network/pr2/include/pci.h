@@ -63,6 +63,7 @@ typedef struct
   void*		irq_handler;
 } s_pci_device;
 
+#if 0
 /*unsigned int pci_read(unsigned int bus,
 		      unsigned int dev,
 		      unsigned int fun,
@@ -83,6 +84,7 @@ pok_ret_t pci_register(s_pci_device* dev);
 
 void pok_pci_init();
 
+#endif
 
 
 # endif /* __POK_PCI_H__ */

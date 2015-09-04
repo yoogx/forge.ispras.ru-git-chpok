@@ -130,6 +130,8 @@ void pok_network_reclaim_send_buffers(void);
  */
 void pok_network_reclaim_receive_buffers(void);
 
+void pok_network_reclaim_buffers(void);
+
 /*
  * Must be called after a bunch of packets
  * have been queued for sending.

@@ -8,44 +8,110 @@
 
 #include <net/network.h>
 
+#include "drivers/virtio/mem.h"
+
 SAMPLING_PORT_ID_TYPE SP2;
 #define SECOND 1000000000LL
 
+static void pok_sampling_channel_udp_buffer_callback(void *arg) {
+    printf("callback\n");
+    pok_bool_t *var = (pok_bool_t*) arg;
+    *var = FALSE;
+}
+
 static void first_process(void)
 {
-    RETURN_CODE_TYPE ret;
-
     struct {
         unsigned x;
         char message[32];
         unsigned y;
     } __attribute__((packed)) msg;
 
-    unsigned last_x = 0;
+//    unsigned last_x = 0;
+//    n-static initialization of a flexible array member
+//
+//    while (1) {
+//        RETURN_CODE_TYPE ret;
+//        MESSAGE_SIZE_TYPE len;
+//        VALIDITY_TYPE validity;
+//
+//        READ_SAMPLING_MESSAGE(SP2, (MESSAGE_ADDR_TYPE) &msg, &len, &validity, &ret);
+//
+//        if (ret == NO_ERROR) {
+//            printf("PR2: %u %s %u\n", msg.x, msg.message, msg.y);
+//        } else {
+//            printf("PR2: sp error: %u\n", ret);
+//        }
+//
+//        if (msg.x < last_x) {
+//            printf("PR2: warning: received SP message out of order\n");
+//        } else if (msg.x > last_x + 1) {
+//            printf("PR2: warning: possible SP packet loss\n");
+//        } else if (msg.x == last_x && last_x != 0) {
+//            printf("PR2: warning: possible SP duplicate message\n");
+//        }
+//        last_x = msg.x;
+//
+//        TIMED_WAIT(SECOND, &ret);
+////TIMED_WAIT(1000000000LL, &ret);
+//    }
+//
+    {
+        /*
+        typedef struct
+        {
+            uint32_t ip;
+            uint16_t port;
+            pok_bool_t buffer_being_used;
+            char *buffer; 
+        } pok_port_connection_sampling_udp_send_t;
+        char my_tmp_buffer[256]; //include POK_NETWORK_OVERHEAD
+        pok_port_connection_sampling_udp_send_t tmp_conn_info = {
+            .ip = 0xa000002,
+            .port = 10000,
+            .buffer_being_used = FALSE,
+            .buffer = &my_tmp_buffer[0],
+        };
+        pok_port_connection_sampling_udp_send_t *conn_info = &tmp_conn_info;
 
-    while (1) {
-        MESSAGE_SIZE_TYPE len;
-        VALIDITY_TYPE validity;
+        if (conn_info->buffer_being_used) {
+            // it means that our buffer is still in use by
+            // the network driver
+            //
+            // it might mean that network card is overwhelmed by requests
+            printf("buffer is still being used\n");
+            return;
+        }
+        conn_info->buffer_being_used = TRUE;
+        */
 
-        READ_SAMPLING_MESSAGE(SP2, (MESSAGE_ADDR_TYPE) &msg, &len, &validity, &ret);
+        msg.x = 5;
+        strcpy(msg.message, "test sp message");
+        msg.y = 7;
 
-        if (ret == NO_ERROR) {
-            printf("PR2: %u %s %u\n", msg.x, msg.message, msg.y);
-        } else {
-            printf("PR2: sp error: %u\n", ret);
+
+        pok_bool_t buffer_being_used;
+        //char message_buffer[256];
+        char *message_buffer = driver_mem_alloc(256);
+        printf("POK_NETWORK_OVERHEAD %d\n", POK_NETWORK_OVERHEAD);
+        memcpy(message_buffer + POK_NETWORK_OVERHEAD, &msg, sizeof(msg));
+
+        if (!pok_network_send_udp(
+                            message_buffer,
+                            sizeof(msg),
+                            0xa000002,
+                            10000,
+                            pok_sampling_channel_udp_buffer_callback,
+                            &buffer_being_used)) 
+        {
+            printf("Error in send_udp\n");
         }
 
-        if (msg.x < last_x) {
-            printf("PR2: warning: received SP message out of order\n");
-        } else if (msg.x > last_x + 1) {
-            printf("PR2: warning: possible SP packet loss\n");
-        } else if (msg.x == last_x && last_x != 0) {
-            printf("PR2: warning: possible SP duplicate message\n");
-        }
-        last_x = msg.x;
 
-        TIMED_WAIT(SECOND, &ret);
-//TIMED_WAIT(1000000000LL, &ret);
+        pok_network_flush_send();
+        pok_network_reclaim_buffers();
+
+        STOP_SELF();
     }
 }
 
@@ -89,6 +155,7 @@ static int real_main(void)
 
     
     //----- NETWORK
+    //
     pok_network_init();
 
 

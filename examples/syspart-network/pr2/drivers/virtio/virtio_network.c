@@ -147,15 +147,15 @@ static int virtio_pci_search(s_pci_device* d) {
             d->bus = bus;
             d->dev = dev;
             d->fun = fun;
-#ifdef POK_ARCH_PPC
+//#ifdef POK_ARCH_PPC
             d->bar[0] = 0xe1001000;//pci_read(bus, dev, fun, PCI_REG_BAR0) & ~0xFU; // mask lower bits, which mean something else
-#else
-            d->bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0) & ~0xFU; // mask lower bits, which mean something else
-#endif
+//#else
+//            d->bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0) & ~0xFU; // mask lower bits, which mean something else
+//#endif
 
             d->irq_line = (unsigned char) pci_read_reg(d, PCI_REG_IRQLINE);
 
-#ifdef POK_ARCH_PPC
+//#ifdef POK_ARCH_PPC
             {
                 printf("------------\n");
                 printf("bus %d dev %d fun %d\n", bus, dev, fun);
@@ -177,14 +177,13 @@ static int virtio_pci_search(s_pci_device* d) {
                 int i;
                 printf(" mac: ");
                 for (i = 0; i < ETH_ALEN; i++) {
-                    //mac[i] = inb(d->bar[0] + VIRTIO_PCI_CONFIG_OFF(FALSE) + i);
-                    mac[i] = inb(0xe1001000 + VIRTIO_PCI_CONFIG_OFF(FALSE) + i);
+                    mac[i] = inb(d->bar[0] + VIRTIO_PCI_CONFIG_OFF(FALSE) + i);
                     printf("%x:", mac[i]);
                 }
                 printf("\n");
                 printf("------------\n");
             }
-#endif
+//#endif
 
             return 0;
         }
@@ -371,6 +370,7 @@ static pok_bool_t send_frame_gather(const pok_network_sg_list_t *sg_list,
             desc = &vq->vring.desc[desc->next];
         }
         desc->addr = (uintptr_t) sg_list[i].buffer;
+        printf("desc->addr = %llx\n", desc->addr);
         desc->len = sg_list[i].size;
         desc->flags = VRING_DESC_F_NEXT;
     }
@@ -387,6 +387,7 @@ static pok_bool_t send_frame_gather(const pok_network_sg_list_t *sg_list,
     __sync_synchronize();
     
     vq->vring.avail->idx++;
+    printf("vq->vring.avail->idx %u\n", vq->vring.avail->idx);
 
     return TRUE;
 }
@@ -415,7 +416,9 @@ static void reclaim_send_buffers(void)
     
     pok_bool_t saved_preemption;
     maybe_lock_preemption(&saved_preemption);
-    
+
+    printf("vq->vring.used->idx %u\n", vq->vring.used->idx); 
+    printf("vq->last_seen_used %u\n", vq->last_seen_used); 
     while (vq->last_seen_used != vq->vring.used->idx) {
         uint16_t index = vq->last_seen_used & (vq->vring.num-1);
         struct vring_used_elem *e = &vq->vring.used->ring[index];
@@ -496,6 +499,7 @@ static void reclaim_receive_buffers(void)
 
 static void flush_send(void)
 {
+    printf("flushing send ...\n");
     struct virtio_network_device *dev = &virtio_network_device;
 
     outw(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_NOTIFY, (uint16_t) VIRTIO_NETWORK_TX_VIRTQUEUE);
