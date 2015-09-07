@@ -379,9 +379,9 @@ void pok_port_flush_partition (pok_partition_id_t pid)
 
         if (port->header.partition != pid) continue;
 
-#ifdef POK_NEEDS_SIMULATION
+#if defined(POK_NEEDS_SIMULATION) && defined(POK_NEEDS_NETWORKING)
         have_something_to_send |= (pok_queueing_ports[chan->src.local.port_id].nb_message > 0);
-#endif // POK_NEEDS_SIMULATION
+#endif // POK_NEEDS_SIMULATION && POK_NEEDS_NETWORKING
 
         pok_queueing_channel_flush(chan);
     }
@@ -395,11 +395,11 @@ void pok_port_flush_partition (pok_partition_id_t pid)
 
         if (port->header.partition != pid) continue;
 
-#ifdef POK_NEEDS_SIMULATION
+#if defined(POK_NEEDS_SIMULATION) && defined(POK_NEEDS_NETWORKING)
         // TODO To implement this as soon as there will be enough information.
         // Example of implementation:
         //have_something_to_send |= (pok_sampling_ports[chan->src.local.port_id].freshness);
-#endif // POK_NEEDS_SIMULATION
+#endif // POK_NEEDS_SIMULATION && POK_NEEDS_NETWORKING
 
         pok_sampling_channel_flush(chan);
     }
