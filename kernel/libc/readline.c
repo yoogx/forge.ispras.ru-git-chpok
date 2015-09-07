@@ -1,6 +1,7 @@
 #include <bsp.h>
 #include <libc.h>
 
+
 #define BUFMEM 10
 #define BUFLEN 1024
 
@@ -24,6 +25,7 @@ int current_buf_number = 0;       //Current number in previous_buffers that we h
 int number_of_last_buf = 0;          //Position in buf memory of the last written buf
 
 void buf_transfer(char *buf1,char *buf2,int j){
+    memset(buf2, 0, BUFLEN);
     for (int i = 0; i <= j; i++){
         buf2[i] = buf1[i];
     }
@@ -104,7 +106,7 @@ readline(const char *prompt)
                 clear_console(i + strlen(prompt));
                 i = previous_buffers[right_number_in_mem(current_buf_number)].size + 1;
                 update_console(buf,i,prompt);
-                if (more_than_BUFMEM || current_buf_number + 1 < number_of_last_buf)
+                if (more_than_BUFMEM || current_buf_number + 2 < number_of_last_buf)
                     current_buf_number = right_number_in_mem(current_buf_number);
             }
         }  else if (c >= ' ' && i < BUFLEN - 1) {//if c=simbol
