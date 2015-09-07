@@ -339,7 +339,7 @@ void pok_monitor_thread(void)
         partiton_on_pause[i]=TRUE;
     }
     for (;;) {
-        if (data_to_read() == 1) {
+        if (data_to_read_0() == 1) {
             /*
              * Set all partition on pause
              */

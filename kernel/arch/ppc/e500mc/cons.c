@@ -27,50 +27,89 @@
 #if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
 
 #define MPC8544_SERIAL0_REGS_OFFSET 0x4500ULL
+#define MPC8544_SERIAL1_REGS_OFFSET 0x4600ULL
 
 #define NS16550_REG_THR 0
 #define NS16550_REG_LSR 5
 
 #define UART_LSR_THRE   0x20
 
-static void ns16550_writeb(int offset, int value)
+static void ns16550_writeb(int offset, int value,int flag)
 {
-    outb(CCSRBAR_BASE + MPC8544_SERIAL0_REGS_OFFSET + offset, value);
+   if (flag == 0){
+        outb(CCSRBAR_BASE + MPC8544_SERIAL0_REGS_OFFSET + offset, value);
+    }else{
+        outb(CCSRBAR_BASE + MPC8544_SERIAL1_REGS_OFFSET + offset, value);
+    }
 }
 
-static int ns16550_readb(int offset)
+static int ns16550_readb(int offset, int flag)
 {
-    return inb(CCSRBAR_BASE + MPC8544_SERIAL0_REGS_OFFSET + offset);
+    if (flag == 0){
+        return inb(CCSRBAR_BASE + MPC8544_SERIAL0_REGS_OFFSET + offset);
+    }
+    return inb(CCSRBAR_BASE + MPC8544_SERIAL1_REGS_OFFSET + offset);
+
 }
 
-static void write_serial(char a)
+
+
+ void write_serial_1(char a)
 {
-   while ((ns16550_readb(NS16550_REG_LSR) & UART_LSR_THRE) == 0)
+   while ((ns16550_readb(NS16550_REG_LSR, 1) & UART_LSR_THRE) == 0)
      ;
 
-   ns16550_writeb(NS16550_REG_THR, a);
+   ns16550_writeb(NS16550_REG_THR, a, 1);
+}
+
+static void write_serial_0(char a)
+{
+   while ((ns16550_readb(NS16550_REG_LSR, 0) & UART_LSR_THRE) == 0)
+     ;
+
+   ns16550_writeb(NS16550_REG_THR, a, 0);
+    //write_serial_1(a);
 }
 
 #define UART_LSR_DR   0x01
 #define UART_LSR_RFE  0x80
 	
-int data_to_read() //return 0 if no data to read
+int data_to_read_0() //return 0 if no data to read
 		  
 {
-	if (!(ns16550_readb(NS16550_REG_LSR) & UART_LSR_DR))
+	if (!(ns16550_readb(NS16550_REG_LSR, 0) & UART_LSR_DR))
 		return 0;
 	return 1;
 }
 
-int read_serial()
+int data_to_read_1() //return 0 if no data to read
+		  
+{
+	if (!(ns16550_readb(NS16550_REG_LSR, 1) & UART_LSR_DR))
+		return 0;
+	return 1;
+}
+
+int read_serial_0()
 {
 	int data;
-	data=ns16550_readb(NS16550_REG_THR);
-	if ( !(ns16550_readb(NS16550_REG_LSR) & UART_LSR_RFE) )
+	data=ns16550_readb(NS16550_REG_THR,0);
+	if ( !(ns16550_readb(NS16550_REG_LSR,0) & UART_LSR_RFE) )
 		return data;
 	return -1;
 
 }
+
+int read_serial_1()
+{
+	int data;
+	data=ns16550_readb(NS16550_REG_THR,1);
+	if ( !(ns16550_readb(NS16550_REG_LSR,1) & UART_LSR_RFE) )
+		return data;
+	return -1;
+
+}
+
 
 pok_bool_t pok_cons_write (const char *s, size_t length)
 {
@@ -78,10 +117,10 @@ pok_bool_t pok_cons_write (const char *s, size_t length)
     for (; length > 0; length--) {
         c = *s++;
         if (c != '\n')
-            write_serial(c);
+            write_serial_0(c);
         else {
-            write_serial('\r');
-            write_serial('\n');
+            write_serial_0('\r');
+            write_serial_0('\n');
         }
     }
    return 0;
@@ -90,7 +129,7 @@ pok_bool_t pok_cons_write (const char *s, size_t length)
 
 int pok_cons_init (void)
 {
-    pok_print_init (write_serial, NULL);
+    pok_print_init (write_serial_0, NULL);
     return 0;
 }
 #else
