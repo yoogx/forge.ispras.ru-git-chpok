@@ -1,4 +1,9 @@
 
+libpok/middleware/queueinit.c unused file
+libpok/middleware/resourses.c unused file?
+
+POK_NEEDS_PORTS_VIRTUAL never set
+
 KERNEL
 ========================================================================
  - Make a little memory allocator for the kernel space
