@@ -34,7 +34,7 @@ static pok_network_udp_receive_callback_t *receive_callback_list = NULL;
 
 static void packet_received_callback(const char *data, size_t len)
 {
-    printf("packet_received_callback");
+    printf("packet_received_callback\n");
     // TODO validate checksums, TTL, and all that stuff
     
     if (len < sizeof(struct ether_hdr)) {
