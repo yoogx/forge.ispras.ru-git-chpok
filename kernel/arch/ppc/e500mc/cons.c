@@ -74,8 +74,16 @@ int read_serial()
 
 pok_bool_t pok_cons_write (const char *s, size_t length)
 {
-   for (; length > 0; length--)
-      write_serial (*s++);
+    char c;
+    for (; length > 0; length--) {
+        c = *s++;
+        if (c != '\n')
+            write_serial(c);
+        else {
+            write_serial('\r');
+            write_serial('\n');
+        }
+    }
    return 0;
 }
 
