@@ -32,9 +32,9 @@ static void first_process(void)
         msg.x++;
         msg.y--;
         
-        //TIMED_WAIT(1LL * 1000 * 1000 * 1000 / 20, &ret);
-        //TIMED_WAIT(10*SECOND, &ret);
-        TIMED_WAIT(SECOND+10, &ret);
+        //TIMED_WAIT(SECOND + 10, &ret); <-- This is magic value. If you change
+        //next line to this, then you won't have duplicate messages
+        TIMED_WAIT(SECOND, &ret);
     }
 }
 

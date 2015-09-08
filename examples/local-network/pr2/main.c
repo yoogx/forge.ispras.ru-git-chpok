@@ -42,7 +42,6 @@ static void first_process(void)
         last_x = msg.x;
 
         TIMED_WAIT(SECOND, &ret);
-//TIMED_WAIT(1000000000LL, &ret);
     }
 
 }
