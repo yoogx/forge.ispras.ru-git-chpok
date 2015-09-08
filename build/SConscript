@@ -4,6 +4,7 @@ Import('env')
 
 SConscript('../kernel/SConscript', variant_dir = env['ARCH']+'/kernel', duplicate = 0)
 SConscript('../libpok/SConscript', variant_dir = env['ARCH']+'/libpok', duplicate = 0)
+SConscript('../syspart/SConscript',variant_dir = env['ARCH']+'/syspart', duplicate = 0)
 
 Export('env')
 

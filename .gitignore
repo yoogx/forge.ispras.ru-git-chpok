@@ -4,7 +4,6 @@
 /examples/*/*/deployment.c
 *.o
 *.lo
-libpok.a
 *.bin
 *.elf
 *.uboot

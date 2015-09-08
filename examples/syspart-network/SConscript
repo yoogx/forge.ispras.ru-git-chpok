@@ -29,8 +29,8 @@ def create_sizes_c(target, source, env):
         sizes.write('\n};\n')
 
 merge_command = pok_env.Command(target = 'partitions.bin',
-source = [],
-action = merge_partitions)
+    source = [],
+    action = merge_partitions)
 pok_env.Depends(merge_command, pok_env['PARTITIONS'])
 
 sizes_c_command = pok_env.Command(target = 'sizes.c',

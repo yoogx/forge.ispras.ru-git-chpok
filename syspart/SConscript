@@ -1,0 +1,20 @@
+# -*- Mode: Python -*-
+
+Import('env')
+
+syspart_env = env.Clone()
+
+syspart_env['CPPPATH'] = [env['POK_PATH']+'/libpok/include',
+                          env['POK_PATH']+'/syspart/include']
+
+syspart_env.Program(target = 'syspart.lo', source = [
+    'net/net.lo',
+    'drivers/drivers.lo'
+])
+
+Export('syspart_env')
+
+SConscript('net/SConscript')
+SConscript('drivers/SConscript')
+
+# EOF

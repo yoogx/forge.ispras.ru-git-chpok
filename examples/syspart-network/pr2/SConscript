@@ -2,37 +2,38 @@
 
 Import('env')
 
-sysnet_env = env.Clone()
-sysnet_env['CPPPATH'] = [sysnet_env['POK_PATH']+'/libpok/include', 
-    sysnet_env['POK_PATH']+'/examples/syspart-network/pr2/include'] #TODO fix this
-sysnet_env.Append(CFLAGS = ' -include '+sysnet_env['POK_PATH']+'/libpok/include/config.h')
+pr2_env = env.Clone()
 
-build_path_libpok = sysnet_env['POK_PATH']+'/build/'+sysnet_env['ARCH']+'/libpok'
+pr2_env['CPPPATH'] = [pr2_env['POK_PATH']+'/libpok/include', 
+                      pr2_env['POK_PATH']+'/syspart/include']
+pr2_env.Append(CFLAGS = ' -include '+pr2_env['POK_PATH']+'/libpok/include/config.h')
 
-ldscript = sysnet_env['POK_PATH']+'/misc/ldscripts/'+sysnet_env['ARCH']+'/'+sysnet_env['BSP']+'/partition.lds'
+build_path_libpok  =    pr2_env['POK_PATH']+'/build/'+pr2_env['ARCH']+'/libpok'
+build_path_syspart_lo = pr2_env['POK_PATH']+'/build/'+pr2_env['ARCH']+'/syspart/syspart.lo'
+#print(build_path_syspart_so)
 
-objs = sysnet_env.StaticObject(source = Glob('*.c'))
+ldscript = pr2_env['POK_PATH']+'/misc/ldscripts/'+pr2_env['ARCH']+'/'+pr2_env['BSP']+'/partition.lds'
+pr2_env['LINKFLAGS'] = str(' -T '+ldscript+' -Map pr2/pr2.elf.map')
+
+objs = pr2_env.StaticObject(source = Glob('*.c'))
 
 source_objs = ''
 for obj in objs:
     source_objs += 'pr2/' + str(obj) + ' '
 
-source_objs += 'pr2/net/net.lo'
-source_objs += ' pr2/drivers/drivers.lo'
-
-sysnet_env_partition = sysnet_env.Clone()
-sysnet_env_partition['LINKFLAGS'] = str(' -T '+ldscript+' -Map pr2/pr2.elf.map')
-
-sysnet_command = sysnet_env_partition.Command(target = 'pr2.elf',
+pr2_command = pr2_env.Command(target = 'pr2.elf',
     source = [],
-    action = sysnet_env_partition['LINK']+ sysnet_env_partition['LINKFLAGS']+' '+
-    source_objs+
+    action = pr2_env['LINK']+ pr2_env['LINKFLAGS']+' '+
+    source_objs +
+    build_path_syspart_lo+
     ' -o pr2/pr2.elf -L'+build_path_libpok+' -lpok '+
-    sysnet_env['LIBGCC'])
+    pr2_env['LIBGCC'])
 
-sysnet_env_partition.Depends(sysnet_command, [objs, 'net/net.lo', 'drivers/drivers.lo', build_path_libpok+'/libpok.a', ldscript])
+pr2_env.Depends(pr2_command, [
+                    objs, 
+                    build_path_syspart_lo,
+                    build_path_libpok+'/libpok.a', 
+                    ldscript
+                ])
 
-Export ('sysnet_env')
-SConscript('drivers/SConscript')
-SConscript('net/SConscript')
 # EOF

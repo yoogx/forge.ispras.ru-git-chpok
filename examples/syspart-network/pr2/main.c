@@ -8,8 +8,7 @@
 #include <memory.h>
 
 #include <net/network.h>
-
-#include "drivers/virtio/mem.h"
+//#include <drivers/virtio/mem.h>
 
 SAMPLING_PORT_ID_TYPE SP2;
 #define SECOND 1000000000LL
