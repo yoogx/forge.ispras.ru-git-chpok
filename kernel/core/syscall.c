@@ -367,6 +367,9 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
       case POK_SYSCALL_MEM_VIRT_TO_PHYS:
         return pok_virt_to_phys(args->arg1);
 
+      case POK_SYSCALL_MEM_PHYS_TO_VIRT:
+        return pok_phys_to_virt(args->arg1);
+
       default:
        /*
         * Unrecognized system call ID.

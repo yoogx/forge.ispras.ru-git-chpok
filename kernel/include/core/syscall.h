@@ -114,6 +114,7 @@ typedef enum
 #endif
 
    POK_SYSCALL_MEM_VIRT_TO_PHYS                    = 701,
+   POK_SYSCALL_MEM_PHYS_TO_VIRT                    = 702,
 } pok_syscall_id_t;
 
 typedef struct

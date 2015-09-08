@@ -322,4 +322,11 @@ uintptr_t pok_virt_to_phys(uintptr_t virt) {
     return virt - POK_PARTITION_MEMORY_BASE + spaces[partid].phys_base;
 }
 
+uintptr_t pok_phys_to_virt(uintptr_t phys) {
+
+    pok_partition_id_t partid = mfspr(SPRN_PID) - 1;
+
+    return phys - spaces[partid].phys_base + POK_PARTITION_MEMORY_BASE;
+}
+
 

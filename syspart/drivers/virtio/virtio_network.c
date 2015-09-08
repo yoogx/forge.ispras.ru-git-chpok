@@ -228,7 +228,7 @@ static void use_receive_buffer(struct virtio_network_device *dev, struct receive
     desc = &vq->vring.desc[head];
     vq->free_index = desc->next;
 
-    desc->addr = (uintptr_t) buf;
+    desc->addr = pok_virt_to_phys(buf);
     desc->len = sizeof(*buf);
     desc->flags = VRING_DESC_F_WRITE;
 
@@ -449,10 +449,10 @@ static void reclaim_receive_buffers(void)
 
     while (vq->last_seen_used != vq->vring.used->idx) {
         uint16_t index = vq->last_seen_used & (vq->vring.num-1);
-        struct vring_used_elem *e = &vq->vring.used->ring[index];   
+        struct vring_used_elem *e = &vq->vring.used->ring[index];
         struct vring_desc *desc = &vq->vring.desc[e->id];
 
-        struct receive_buffer *buf = (struct receive_buffer*) (uint32_t) desc->addr;
+        struct receive_buffer *buf = pok_phys_to_virt(desc->addr);
         
         process_received_buffer(buf, e->len);
 
