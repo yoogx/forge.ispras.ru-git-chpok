@@ -252,7 +252,7 @@ void pok_arch_space_init (void)
     pok_insert_tlb1(
         0, 
         0, 
-        E500MC_PGSIZE_64M,  //TODO make smaller
+        E500MC_PGSIZE_256M,  //TODO make smaller
         MAS3_SW | MAS3_SR | MAS3_SX,
         0,
         0, // any pid 
