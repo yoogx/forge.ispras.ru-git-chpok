@@ -383,7 +383,6 @@ void pok_sched()
     if (current_partition_on_pause == FALSE){
         pok_sched_context_switch(elected_thread);
     }else{
-        /*Wait in the monitor*/
         pok_sched_context_switch(MONITOR_THREAD);
     }
 }

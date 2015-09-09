@@ -126,6 +126,20 @@ pok_bool_t pok_cons_write (const char *s, size_t length)
    return 0;
 }
 
+pok_bool_t pok_cons_write_1 (const char *s, size_t length)
+{
+    char c;
+    for (; length > 0; length--) {
+        c = *s++;
+        if (c != '\n')
+            write_serial_1(c);
+        else {
+            write_serial_1('\r');
+            write_serial_1('\n');
+        }
+    }
+   return 0;
+}
 
 int pok_cons_init (void)
 {
