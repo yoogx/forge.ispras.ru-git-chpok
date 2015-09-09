@@ -113,6 +113,8 @@ class ArincConfigParser:
                 s = chpok_configuration.TimeSlotNetwork()
             elif slot_type == "Monitor":
                 s = chpok_configuration.TimeSlotMonitor()
+            elif slot_type == "GDB":
+                s = chpok_configuration.TimeSlotGDB()
             else:
                 raise ValueError("unknown slot type %r" % slot_type)
 

@@ -50,6 +50,8 @@ int getchar(void);
 void monitor();
 void pok_monitor_thread(void);
 void pok_monitor_thread_init();
+void pok_gdb_thread(void);
+void pok_gdb_thread_init();
 #endif /* NEEDS_CONSOLE or NEEDS_DEBUG */
 
 #endif

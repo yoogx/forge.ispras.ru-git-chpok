@@ -48,8 +48,8 @@ void pok_gdb_thread(void)
     //for (int i=0; i < POK_CONFIG_NB_PARTITIONS; i++){
     //    partiton_on_pause[i]=TRUE;
     //}
-    for (;;) {
-        if (data_to_read_1() == 1) {
+    //for (;;) {
+      //  if (data_to_read_1() == 1) {
             /*
              * Set all partition on pause
              */
@@ -61,7 +61,7 @@ void pok_gdb_thread(void)
             //}
             
             //pok_arch_preempt_disable();         
-            gdb();
+            //gdb();
             //pok_arch_preempt_enable();        
             
             //for (int i=0; i < POK_CONFIG_NB_PARTITIONS; i++){
@@ -69,21 +69,20 @@ void pok_gdb_thread(void)
              //       pok_partitions[i].is_paused=FALSE;
             //    }
             //}
-        }
+        //}
         #ifdef i386
         asm("hlt");
         #endif
-    }
+    //}
 }
 
 void pok_gdb_thread_init()
 {
-//#ifdef POK_NEEDS_MONITOR
-    //pok_threads[MONITOR_THREAD].entry = pok_monitor_thread;
-    //pok_threads[MONITOR_THREAD].sp = pok_context_create(MONITOR_THREAD, 4096, (uintptr_t) pok_monitor_thread);
-    //pok_bool_t tmp[POK_CONFIG_NB_PARTITIONS];
-    //partiton_on_pause = tmp;
-//#endif
+    
+#ifdef POK_NEEDS_GDB
+    pok_threads[GDB_THREAD].entry = pok_gdb_thread;
+    pok_threads[GDB_THREAD].sp = pok_context_create(GDB_THREAD, 4096, (uintptr_t) pok_gdb_thread);
+#endif
 }
 
 

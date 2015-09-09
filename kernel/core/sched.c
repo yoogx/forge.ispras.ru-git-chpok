@@ -366,7 +366,13 @@ void pok_sched()
 
 #endif
 
-        
+#if defined(POK_NEEDS_GDB)
+
+        case POK_SLOT_GDB:
+            elected_thread = GDB_THREAD;
+            break;
+
+#endif        
 
 
 
