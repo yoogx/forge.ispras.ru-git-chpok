@@ -372,7 +372,6 @@ static pok_bool_t send_frame_gather(const pok_network_sg_list_t *sg_list,
     __sync_synchronize();
     
     vq->vring.avail->idx++;
-    printf("vq->vring.avail->idx %u\n", vq->vring.avail->idx);
 
     return TRUE;
 }
@@ -402,8 +401,6 @@ static void reclaim_send_buffers(void)
     pok_bool_t saved_preemption;
     maybe_lock_preemption(&saved_preemption);
 
-    printf("vq->vring.used->idx %u\n", vq->vring.used->idx); 
-    printf("vq->last_seen_used %u\n", vq->last_seen_used); 
     while (vq->last_seen_used != vq->vring.used->idx) {
         uint16_t index = vq->last_seen_used & (vq->vring.num-1);
         struct vring_used_elem *e = &vq->vring.used->ring[index];
@@ -484,7 +481,6 @@ static void reclaim_receive_buffers(void)
 
 static void flush_send(void)
 {
-    printf("flushing send ...\n");
     struct virtio_network_device *dev = &virtio_network_device;
 
     outw(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_NOTIFY, (uint16_t) VIRTIO_NETWORK_TX_VIRTQUEUE);

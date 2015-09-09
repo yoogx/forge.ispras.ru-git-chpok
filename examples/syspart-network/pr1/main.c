@@ -11,7 +11,6 @@ SAMPLING_PORT_ID_TYPE SP1;
 
 static void first_process(void)
 {
-    STOP_SELF();
     RETURN_CODE_TYPE ret;
 
     struct {

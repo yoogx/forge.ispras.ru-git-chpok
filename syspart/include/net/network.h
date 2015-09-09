@@ -57,7 +57,6 @@ typedef struct {
                                     void *callback_arg);
 
     void (*set_packet_received_callback)(void (*f)(const char *, size_t));
-    void (*register_udp_receive_callback)(pok_network_udp_receive_callback_t *cb);
 
     void (*reclaim_send_buffers)(void);
     void (*reclaim_receive_buffers)(void);
