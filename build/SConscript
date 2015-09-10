@@ -2,8 +2,9 @@
 
 Import('env')
 
-SConscript('../kernel/SConscript', variant_dir = env['ARCH']+'/kernel', duplicate = 0)
-SConscript('../libpok/SConscript', variant_dir = env['ARCH']+'/libpok', duplicate = 0)
+SConscript('../boards/SConscript', variant_dir = env['BSP']+'/boards', duplicate = 0)
+SConscript('../kernel/SConscript', variant_dir = env['BSP']+'/kernel', duplicate = 0)
+SConscript('../libpok/SConscript', variant_dir = env['BSP']+'/libpok', duplicate = 0)
 
 Export('env')
 

@@ -4,10 +4,8 @@ Import('arch_env')
 
 arch_env.Program(target = 'ppc.lo', source = [
 Glob('*.[Sc]'),
-arch_env['BSP']+'/' + arch_env['BSP'] + '.lo',
 'libfdt/libfdt.lo'])
 
-SConscript(arch_env['BSP']+'/SConscript')
 SConscript('libfdt/SConscript')
 
 # EOF
