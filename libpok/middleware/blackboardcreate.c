@@ -52,6 +52,10 @@ pok_ret_t pok_blackboard_create (char*                             name,
    pok_ret_t   ret;
    uint8_t     n;
 
+   if ((int) msg_size <= 0) {
+       return POK_ERRNO_SIZE;
+   }
+   
    // XXX global blackboard create lock?
 
    // try to find existing blackboard
