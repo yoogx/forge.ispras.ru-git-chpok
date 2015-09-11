@@ -1,4 +1,6 @@
 
+pok_port_size_t is unsigned but MESSAGE_SIZE_TYPE is signed, and there are casts between them
+
 libpok/middleware/queueinit.c unused file
 libpok/middleware/resourses.c unused file?
 
