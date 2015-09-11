@@ -20,14 +20,11 @@ static pok_bool_t received_callback(
     //TODO check ip, port see kernel/middleware/portflushall.c:397
     RETURN_CODE_TYPE ret;
     {
-        printf("PR2: sending message receive from network... \n");
+        printf("PR2: sending message received from network... \n");
         WRITE_SAMPLING_MESSAGE(SP2, (MESSAGE_ADDR_TYPE) payload, length, &ret);
         if (ret != NO_ERROR) {
             printf("error: %u\n", ret);
         }
-
-        msg.x++;
-        msg.y--;
         
     }
     return TRUE;

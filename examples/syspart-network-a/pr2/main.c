@@ -5,7 +5,6 @@
 #include <arinc653/time.h>
 #include <arinc653/queueing.h>
 #include <arinc653/sampling.h>
-#include <memory.h>
 
 #include <net/network.h>
 
@@ -32,7 +31,8 @@ static void first_process(void)
         RETURN_CODE_TYPE ret;
         MESSAGE_SIZE_TYPE len;
         VALIDITY_TYPE validity;
-
+        
+        //TODO change msg to message+OVERHEAD
         READ_SAMPLING_MESSAGE(SP2, (MESSAGE_ADDR_TYPE) &msg, &len, &validity, &ret);
 
         if (ret == NO_ERROR) {
@@ -53,6 +53,7 @@ static void first_process(void)
 
 
         if (ret == NO_ERROR) {
+
             //TODO add checking if buffer is free!
             pok_bool_t buffer_being_used;
             static char message_buffer[256];
@@ -75,37 +76,7 @@ static void first_process(void)
         }
 
         TIMED_WAIT(SECOND, &ret);
-//TIMED_WAIT(1000000000LL, &ret);
     }
-
-    /*
-    {
-        msg.x = 5;
-        strcpy(msg.message, "test sp message");
-        msg.y = 7;
-
-
-        pok_bool_t buffer_being_used;
-        char message_buffer[256];
-        memcpy(message_buffer + POK_NETWORK_OVERHEAD, &msg, sizeof(msg));
-
-        if (!pok_network_send_udp(
-                            message_buffer,
-                            sizeof(msg),
-                            0xa000002,
-                            10000,
-                            pok_sampling_channel_udp_buffer_callback,
-                            &buffer_being_used)) 
-        {
-            printf("Error in send_udp\n");
-        }
-
-
-        pok_network_flush_send();
-        pok_network_reclaim_buffers();
-
-        STOP_SELF();
-    }*/
 }
 
 
