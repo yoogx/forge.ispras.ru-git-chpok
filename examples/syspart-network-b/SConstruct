@@ -45,7 +45,7 @@ SConscript(env['POK_PATH']+'/misc/SConscript')
 env.Append(QEMU_FLAGS = ' -kernel pok.elf')
 
 # uncomment this line if you want to use gdb
-env.Append(QEMU_FLAGS = ' -S -s')
+#env.Append(QEMU_FLAGS = ' -S -s')
 
 #env.Append(QEMU_FLAGS = ' -display none')
 env.Append(QEMU_FLAGS = ' -net nic,vlan=0,name=virt0,model=virtio,macaddr=52:54:00:00:00:01 -net tap,ifname=chpoktap1,script=no,downscript=no')

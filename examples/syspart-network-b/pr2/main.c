@@ -5,31 +5,20 @@
 #include <arinc653/time.h>
 #include <arinc653/queueing.h>
 #include <arinc653/sampling.h>
-#include <memory.h>
 
 #include <net/network.h>
 
 SAMPLING_PORT_ID_TYPE SP2;
 #define SECOND 1000000000LL
 
-//static void pok_sampling_channel_udp_buffer_callback(void *arg) {
-//    printf("callback\n");
-//    pok_bool_t *var = (pok_bool_t*) arg;
-//    *var = FALSE;
-//}
-static pok_bool_t received_callback(uint32_t ip, uint16_t port, const char *payload, size_t length) {
+static pok_bool_t received_callback(
+        uint32_t ip,
+        uint16_t port,
+        const char *payload,
+        size_t length)
+{
     //TODO check ip, port see kernel/middleware/portflushall.c:397
     RETURN_CODE_TYPE ret;
-
-    struct {
-        unsigned x;
-        char message[32];
-        unsigned y;
-    } __attribute__((packed)) msg;
-
-    msg.x = 0;
-    strcpy(msg.message, "test sp message");
-    msg.y = -1;
     {
         printf("PR2: sending message receive from network... \n");
         WRITE_SAMPLING_MESSAGE(SP2, (MESSAGE_ADDR_TYPE) payload, length, &ret);
@@ -40,7 +29,6 @@ static pok_bool_t received_callback(uint32_t ip, uint16_t port, const char *payl
         msg.x++;
         msg.y--;
         
-        //TIMED_WAIT(SECOND, &ret);
     }
     return TRUE;
 }
