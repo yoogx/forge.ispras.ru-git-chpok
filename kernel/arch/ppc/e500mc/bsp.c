@@ -25,13 +25,16 @@
 #include <pci.h>
 #include "../devtree.h"
 
+extern char _end[];
 
 int pok_bsp_init (void)
 {
    pok_cons_init ();
 
    //devtree_dummy_dump();
-
+   if ((uintptr_t) _end > 0x4000000ULL)
+       pok_fatal("Kernel size if more than 64 megabytes");
+ 
 #ifdef POK_NEEDS_PCI
    pok_pci_init();
 #endif
@@ -39,8 +42,6 @@ int pok_bsp_init (void)
    return (POK_ERRNO_OK);
 }
 
-
-extern char _end[];
 
 static char *heap_end = _end;
 
