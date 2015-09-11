@@ -259,6 +259,9 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
          return pok_port_sampling_status ((const pok_port_id_t)args->arg1,
                                           (pok_port_sampling_status_t*) (args->arg2 + infos->base_addr));
          break;
+      case POK_SYSCALL_MIDDLEWARE_SAMPLING_CHECK:
+         return pok_port_sampling_check ((const pok_port_id_t)args->arg1);
+         break;
 #endif /* POK_NEEDS_PORTS_SAMPLING */
 
 

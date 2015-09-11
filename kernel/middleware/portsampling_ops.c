@@ -204,6 +204,7 @@ pok_ret_t pok_port_sampling_read(
 
             port->last_validity = (age < port->refresh);
             *valid = port->last_validity;
+            port->is_new = FALSE;
         } else {
             *len = 0;
             port->last_validity = FALSE;
@@ -264,6 +265,20 @@ pok_ret_t pok_port_sampling_status (
     status->validity = port->last_validity;
 
     return POK_ERRNO_OK;
+}
+/**
+ * Return true if message in buffer hasn't been read yet
+ */
+
+pok_bool_t pok_port_sampling_check(const pok_port_id_t id)
+{
+    if (id >= POK_CONFIG_NB_SAMPLING_PORTS) {
+        printf("pok_port_sampling_check: wrong port id\n");
+        return FALSE;
+    }
+
+    pok_port_sampling_t *port = &pok_sampling_ports[id];
+    return port->not_empty && port->is_new;
 }
  
 #endif

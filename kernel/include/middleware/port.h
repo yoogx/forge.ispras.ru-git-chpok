@@ -287,6 +287,7 @@ typedef struct
     uint64_t                    last_receive;
     pok_bool_t                  last_validity;
     pok_bool_t                  not_empty;
+    pok_bool_t                  is_new;//TRUE if data hasn't been read yet
     pok_port_data_t             *data;
 } pok_port_sampling_t;
 
@@ -334,4 +335,9 @@ pok_ret_t pok_port_sampling_status (
     const pok_port_id_t         id,
     pok_port_sampling_status_t  *status
 );
+
+pok_bool_t pok_port_sampling_check(
+    const pok_port_id_t id
+);
+
 #endif // __POK_KERNEL_PORTS_H__

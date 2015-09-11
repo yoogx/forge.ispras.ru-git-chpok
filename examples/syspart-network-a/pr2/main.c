@@ -25,34 +25,19 @@ static void first_process(void)
         unsigned y;
     } __attribute__((packed)) msg;
 
-    unsigned last_x = 0;
-
     while (1) {
         RETURN_CODE_TYPE ret;
         MESSAGE_SIZE_TYPE len;
         VALIDITY_TYPE validity;
         
+        if (!SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(SP2)) {
+            continue;
+        }
         //TODO change msg to message+OVERHEAD
         READ_SAMPLING_MESSAGE(SP2, (MESSAGE_ADDR_TYPE) &msg, &len, &validity, &ret);
 
         if (ret == NO_ERROR) {
             printf("PR2: {%u \"%s\" %u}\n", msg.x, msg.message, msg.y);
-
-            if (msg.x < last_x) {
-                printf("PR2: warning: received SP message out of order\n");
-            } else if (msg.x > last_x + 1) {
-                printf("PR2: warning: possible SP packet loss\n");
-            } else if (msg.x == last_x && last_x != 0) {
-                printf("PR2: warning: possible SP duplicate message\n");
-            }
-
-            last_x = msg.x;
-        } else {
-            printf("PR2: sp error: %u\n", ret);
-        }
-
-
-        if (ret == NO_ERROR) {
 
             //TODO add checking if buffer is free!
             pok_bool_t buffer_being_used;
@@ -73,9 +58,11 @@ static void first_process(void)
 
             pok_network_flush_send();
             pok_network_reclaim_buffers();
+
+        } else {
+            printf("PR2: sp error: %u\n", ret);
         }
 
-        TIMED_WAIT(SECOND, &ret);
     }
 }
 

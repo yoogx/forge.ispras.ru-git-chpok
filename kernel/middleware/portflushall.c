@@ -282,6 +282,7 @@ static pok_bool_t pok_sampling_channel_flush_local(
     memcpy(&dst->data->data[0], &src->data->data[0], src->data->message_size);
     dst->data->message_size = src->data->message_size;
     dst->not_empty = TRUE;
+    dst->is_new = TRUE;
     dst->last_receive = POK_GETTICK(); // TODO or copy it from src port?
 
     return TRUE;

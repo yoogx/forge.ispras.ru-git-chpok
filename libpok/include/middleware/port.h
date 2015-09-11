@@ -142,6 +142,9 @@ pok_ret_t pok_port_sampling_read (const pok_port_id_t                      id,
  * pok_ret_t pok_port_sampling_status (const pok_port_id_t                       id,
  *                                     const pok_port_sampling_status_t*               status);
  */
+
+#define pok_port_sampling_check(id) \
+        pok_syscall1(POK_SYSCALL_MIDDLEWARE_SAMPLING_CHECK,(uint32_t)id)
 #endif
 
 #endif
