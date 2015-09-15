@@ -12,19 +12,19 @@ static pok_bool_t *partiton_on_pause;
 void
 gdb()
 {
-    char *buf;
-    pok_bool_t want_to_exit=FALSE;
+////    char *buf;
+////     pok_bool_t want_to_exit=FALSE;
     printf("Welcome to GDB!\n");
-    printf("Type 'help' for a list of commands.\n");
-
-
-    while (!want_to_exit) {
+ 
+    handle_exception (20);   
+    printf("Exit from handle_exception\n");
+    /*while (!want_to_exit) {
         buf = readline2("K> ");
         if (buf != NULL)
             //if (runcmd(buf) < 0)
                 break;
             
-    }
+    }*/
 }
 
 

@@ -24,6 +24,8 @@
 #include <types.h>
 #include <errno.h> 
 #include <core/debug.h>
+#include <libc.h>
+
 
 #include "space.h"
 #include "timer.h"
@@ -101,5 +103,7 @@ void pok_int_inst_tlb_miss(uintptr_t ea, uintptr_t dear, unsigned long esr) {
 
 void pok_int_debug(uintptr_t ea) {
     (void) ea;
+    printf("\n\n\n\n\n\n DEBUG INTERRUPT \n\n\n\n\n\n\n");
+
     pok_fatal("Debug interrupt");
 }

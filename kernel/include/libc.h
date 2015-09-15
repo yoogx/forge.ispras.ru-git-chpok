@@ -50,6 +50,8 @@ char * readline2(const char *prompt);
 int getchar(void);
 int getchar2(void);
 void monitor();
+void handle_exception (int exceptionVector);
+
 void pok_monitor_thread(void);
 void pok_monitor_thread_init();
 void pok_gdb_thread(void);
