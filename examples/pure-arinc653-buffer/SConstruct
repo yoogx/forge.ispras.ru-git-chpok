@@ -10,12 +10,12 @@ import arinc653_xml_conf
 import chpok_configuration
 import xml.etree.ElementTree as ET
 
-boards = ['e500mc', 'e500v2', 'p3041', 'x86-qemu']
+boards = ['e500mc', 'e500_highmem', 'p3041', 'x86-qemu']
 
 vars = Variables()
 vars.AddVariables(
 	('xml', 'xml config to be passed to parser', 'config.xml'),
-    EnumVariable('bsp', 'bsp', 'e500v2', allowed_values = boards)
+    EnumVariable('bsp', 'bsp', 'e500_highmem', allowed_values = boards)
 )
 
 env = Environment(variables = vars, ENV = os.environ)
