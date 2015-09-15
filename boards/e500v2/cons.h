@@ -19,7 +19,7 @@
 #define __POK_CONS_H__
 
 #define CCSRBAR_BASE         0xE0000000ULL
-#define CCSRBAR_BASE_PHYS    0xE0000000ULL
+#define CCSRBAR_BASE_PHYS    0xFE0000000ULL
 
 int         pok_cons_init(void);
 

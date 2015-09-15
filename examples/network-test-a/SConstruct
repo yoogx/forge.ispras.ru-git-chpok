@@ -10,7 +10,7 @@ import arinc653_xml_conf
 import chpok_configuration
 import xml.etree.ElementTree as ET
 
-boards = ['e500mc', 'p3041', 'x86-qemu']
+boards = ['e500mc', 'e500v2', 'p3041', 'x86-qemu']
 
 vars = Variables()
 vars.AddVariables(
@@ -47,6 +47,7 @@ env.Append(QEMU_FLAGS = ' -kernel pok.elf')
 #env.Append(QEMU_FLAGS = ' -S -s')
 
 #env.Append(QEMU_FLAGS = ' -display none')
+#env.Append(QEMU_FLAGS = ' -monitor tcp::4444,server,nowait')
 
 env.Command('run', [], env['QEMU']+env['QEMU_FLAGS'])
 env.Ignore('.', 'run')
