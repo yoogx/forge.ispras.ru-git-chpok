@@ -18,10 +18,15 @@
 #ifndef __POK_CONS_H__
 #define __POK_CONS_H__
 
-#define CCSRBAR_BASE         0xE0000000ULL
-#define CCSRBAR_BASE_PHYS    0xFE0000000ULL
+typedef struct {
+    uint32_t ccsrbar_size;
+    uint64_t ccsrbar_base;
+    uint64_t ccsrbar_base_phys;
+    uint32_t serial0_regs_offset;
+} pok_bsp_t;
 
-int         pok_cons_init(void);
+extern pok_bsp_t pok_bsp;
 
+int pok_cons_init(void);
 
 #endif

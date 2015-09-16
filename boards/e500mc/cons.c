@@ -22,25 +22,30 @@
 #include <libc.h>
 #include <core/debug.h>
 #include <core/cons.h>
-#include "cons.h"
+#include <cons.h>
 
 #if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
-
-#define MPC8544_SERIAL0_REGS_OFFSET 0x4500ULL
 
 #define NS16550_REG_THR 0
 #define NS16550_REG_LSR 5
 
 #define UART_LSR_THRE   0x20
 
+pok_bsp_t pok_bsp = {
+    .ccsrbar_size = 0x1000000ULL,
+    .ccsrbar_base = 0xE0000000ULL,
+    .ccsrbar_base_phys = 0xE0000000ULL,
+    .serial0_regs_offset = 0x4500ULL
+};
+
 static void ns16550_writeb(int offset, int value)
 {
-    outb(CCSRBAR_BASE + MPC8544_SERIAL0_REGS_OFFSET + offset, value);
+    outb(pok_bsp.ccsrbar_base + pok_bsp.serial0_regs_offset + offset, value);
 }
 
 static int ns16550_readb(int offset)
 {
-    return inb(CCSRBAR_BASE + MPC8544_SERIAL0_REGS_OFFSET + offset);
+    return inb(pok_bsp.ccsrbar_base + pok_bsp.serial0_regs_offset + offset);
 }
 
 static void write_serial(char a)
@@ -55,7 +60,6 @@ static void write_serial(char a)
 #define UART_LSR_RFE  0x80
 	
 int data_to_read() //return 0 if no data to read
-		  
 {
 	if (!(ns16550_readb(NS16550_REG_LSR) & UART_LSR_DR))
 		return 0;
@@ -79,7 +83,6 @@ pok_bool_t pok_cons_write (const char *s, size_t length)
    return 0;
 }
 
-
 int pok_cons_init (void)
 {
     pok_print_init (write_serial, NULL);
@@ -91,5 +94,3 @@ int pok_cons_init (void)
    return 0;
 }
 #endif
-
-
