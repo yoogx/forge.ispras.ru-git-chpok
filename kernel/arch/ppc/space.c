@@ -204,7 +204,7 @@ int pok_get_next_tlb1_index(int is_resident)
  *      number to MAS0[ESEL] before executing a tlbwe instruction.
  */
 void pok_insert_tlb1(
-        uint32_t virtual, 
+        uint64_t virtual, 
         uint64_t physical, 
         unsigned pgsize_enum, 
         unsigned permissions,
@@ -270,10 +270,10 @@ void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
 
     unsigned pid = mfspr(SPRN_PID);
 
-    if (faulting_address >= CCSRBAR_BASE && faulting_address < CCSRBAR_BASE + CCSRBAR_SIZE) {
+    if (faulting_address >= pok_bsp.ccsrbar_base && faulting_address < pok_bsp.ccsrbar_base + pok_bsp.ccsrbar_size) {
         pok_insert_tlb1(
-            CCSRBAR_BASE, 
-            CCSRBAR_BASE, 
+            pok_bsp.ccsrbar_base, 
+            pok_bsp.ccsrbar_base_phys, 
             E500MC_PGSIZE_16M, 
             MAS3_SW | MAS3_SR,
             MAS2_W | MAS2_I | MAS2_M | MAS2_G,

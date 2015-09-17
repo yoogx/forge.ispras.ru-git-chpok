@@ -14,6 +14,4 @@ void pok_arch_space_init (void);
 #define POK_PARTITION_MEMORY_BASE 0x80000000ULL
 #define POK_PARTITION_MEMORY_SIZE 0x1000000ULL 
 
-#define CCSRBAR_SIZE 0x1000000ULL
-
 #endif
