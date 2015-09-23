@@ -7,107 +7,81 @@
 #include <arinc653/sampling.h>
 
 #include <net/network.h>
+#include <sysconfig.h>
 
-// ***************THIS WILL BE MOVED TO DEPLOYMENT.C**************
-// START {{{
-//
-//
-//
-
-typedef struct
-{
-    uint32_t max_message_size;
-    uint32_t max_nb_messages;
-    uint32_t nb_message;
-    uint32_t head;
-    size_t   data_stride;
-    char    *data;
-} queue_t;
-
-enum q_status{
-    QUEUEING_STATUS_NONE, // message hasn't been touched by network code at all
-    QUEUEING_STATUS_PENDING, // message has been sent to the driver, and its buffer is still in use by that driver
-    QUEUEING_STATUS_SENT, // message sent, buffer is free to use, but place is still occupied (it will be reclaimed soon)
-};
-
-typedef struct
-{
-    MESSAGE_SIZE_TYPE message_size;
-    enum q_status status;
-    uint32_t queue_idx;
-    char     data[];
-} q_data_t;
-
-static inline q_data_t * utils_queue_tail(queue_t *queue)
-{
-    uint32_t index = (queue->head + queue->nb_message) % queue->max_nb_messages;
-    return (q_data_t*) (queue->data + queue->data_stride * index);
-}
-
-static inline q_data_t * utils_queue_head(queue_t *queue)
-{
-    uint32_t index = queue->head;
-    return (q_data_t *) (queue->data + queue->data_stride * index);
-}
-
-static inline pok_bool_t utils_queue_empty(queue_t *queue)
-{
-    return queue->nb_message == 0;
-}
-
-static inline pok_bool_t utils_queue_full(queue_t *queue) 
-{
-    return queue->nb_message == queue->max_nb_messages;
-}
-
-static struct {
-    MESSAGE_SIZE_TYPE message_size;
-    enum q_status status;
-    uint32_t queue_idx;
-    char data[POK_NETWORK_OVERHEAD + 64];
-} qp_0_data[10];
-
-
-queue_t queues[] = {
-    {
-        .max_message_size = 64,
-        .max_nb_messages = 10,
-        
-        .data = (void *) qp_0_data,
-        .data_stride = sizeof(qp_0_data[0]),
-    },
-
-};
-
-const uint32_t pok_network_ip_address = 0xa000001;
-
-// END }}}
-// ***************************************************************
-//TODO DELETE IT
-struct message {
-    unsigned x;
-    char message[32];
-    unsigned y;
-} __attribute__((packed));
-
-// ***************************************************************
-
-SAMPLING_PORT_ID_TYPE QP2;
 #define SECOND 1000000000LL
+
+static void queueing_send_to_partition(unsigned link_idx, MESSAGE_ADDR_TYPE payload, size_t length)
+{
+    port_info_t *port_info = &links[link_idx].linked_port_info;
+    RETURN_CODE_TYPE ret;
+
+    SEND_QUEUING_MESSAGE(
+            port_info->id,
+            payload,
+            length,
+            0,
+            &ret);
+
+    if (ret == NOT_AVAILABLE) {
+        printf("Buffer is full, drop packet\n");
+    } else if (ret != NO_ERROR) {
+        printf("SYSNET %ld port error: %u\n", port_info->id, ret);
+    }
+}
+
+static void sampling_send_to_partition(unsigned link_idx, MESSAGE_ADDR_TYPE payload, size_t length)
+{
+    port_info_t *port_info = &links[link_idx].linked_port_info;
+    RETURN_CODE_TYPE ret;
+
+    WRITE_SAMPLING_MESSAGE(
+            port_info->id,
+            payload, 
+            length, 
+            &ret);
+
+    if (ret != NO_ERROR) {
+        printf("error: %u\n", ret);
+    }
+        
+}
+static pok_bool_t udp_received_callback(
+        uint32_t ip, 
+        uint16_t port, 
+        const char *payload, 
+        size_t length) 
+{
+    for (int i = 0; i<sysconfig_links_nb; i++) {
+        if (links[i].protocol != UDP)
+            continue;
+
+        port_info_t port_info = links[i].linked_port_info;
+        udp_data_t udp_data = links[i].udp_data;
+
+        if (port_info.direction != SOURCE)
+            continue;
+        if (udp_data.ip != ip || udp_data.port != port) {
+            continue;
+        }
+
+        if (port_info.kind == POK_PORT_KIND_QUEUEING)
+            queueing_send_to_partition(i, (MESSAGE_ADDR_TYPE) payload, length);
+        else 
+            sampling_send_to_partition(i, (MESSAGE_ADDR_TYPE) payload, length);
+    }
+
+    return FALSE;
+}
 
 static void udp_sent_queueing_callback(void *arg)
 {
-    printf("callback\n");
     q_data_t *qdata = arg;
     qdata->status = QUEUEING_STATUS_SENT;
     queue_t *queue = &queues[qdata->queue_idx];
-    //queue_t *queue = &queues[0];
 
-    //printf("%lu\n", queue->nb_message);
     for (int i = 0; i < queue->nb_message; i++) {
         q_data_t *cur_data = utils_queue_head(queue);
-
-        //uint32_t index = (queue->head + queue->nb_message) % queue->max_nb_messages;
 
         if (cur_data->status == QUEUEING_STATUS_SENT) {
             queue->head = (queue->head + 1) % queue->max_nb_messages;
@@ -121,72 +95,141 @@ static void udp_sent_queueing_callback(void *arg)
             break;
         }
     }
-
 }
 
-static void first_process(void)
+static void udp_sent_sampling_callback(void *arg) {
+    pok_bool_t *var = (pok_bool_t*) arg;
+    if (!*var)
+        printf("error: buffer is no busy in callback\n");
+    *var = FALSE;
+}
+
+static void queueing_send_outside(unsigned link_idx)
 {
+    link_t link = links[link_idx];
+    unsigned queue_idx = link.buffer_idx;
     RETURN_CODE_TYPE ret;
+    queue_t *queue = &queues[queue_idx];
 
-    while (1) {
-        queue_t *queue = &queues[0];
+    while (!utils_queue_full(queue)) {
 
-        if (utils_queue_full(queue)){
-            printf("FULLL\n");
-            continue;
-        }
-        if(queue->nb_message>queue->max_nb_messages/2) {
+        if (queue->nb_message > queue->max_nb_messages/2) {
             pok_network_reclaim_send_buffers();
         }
 
         q_data_t *dst_place = utils_queue_tail(queue);
         if (dst_place->status != QUEUEING_STATUS_NONE) {
-            printf("ERROR. status is not NONE\n");
+            printf("SYSNET error: status is not NONE\n");
             STOP_SELF();
         }
-
+        //TODO fix OVERHEAD
         RECEIVE_QUEUING_MESSAGE(
-                QP2, 
-                0, 
-                (MESSAGE_ADDR_TYPE ) (dst_place->data+POK_NETWORK_OVERHEAD), 
-                &dst_place->message_size, 
+                link.linked_port_info.id,
+                0,
+                (MESSAGE_ADDR_TYPE ) (dst_place->data + POK_NETWORK_OVERHEAD),
+                &dst_place->message_size,
                 &ret
                 );
 
-        if (ret == NOT_AVAILABLE) {
-            continue;
+        if (ret != NO_ERROR) {
+            if (ret != NOT_AVAILABLE)
+                printf("SYSNET: %s port error: %u\n", 
+                        link.linked_port_info.name, ret);
+
+            break;
+        } 
+
+        queue->nb_message++;
+
+        if (link.protocol == UDP) {
+            pok_bool_t res = pok_network_send_udp(
+                    dst_place->data,
+                    dst_place->message_size,
+                    link.udp_data.ip,
+                    link.udp_data.port,
+                    udp_sent_queueing_callback,
+                    (void*) dst_place
+                    );
+
+            if (!res)
+                printf("SYSNET: Error in send_udp\n");
         }
 
+        dst_place->status = QUEUEING_STATUS_PENDING;
+        dst_place->queue_idx = queue_idx;
+        pok_network_flush_send();
+    }
+}
 
+static void sampling_send_outside(unsigned link_idx)
+{
+    link_t link = links[link_idx];
+    RETURN_CODE_TYPE ret;
+    VALIDITY_TYPE validity;
+    sample_t *sample = &samples[link.buffer_idx];
+    s_data_t *dst_place = sample->data;
 
-        if (ret != NO_ERROR ) {
-            printf("PR2: error: %u\n", ret);
-        } else {
-            queue->nb_message++;
+    if (!SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(link.linked_port_info.id))
+        return;
 
-            {
-                struct message msg = *(struct message *)(dst_place->data+
-                        POK_NETWORK_OVERHEAD);
-                printf("PR2: Received queueing {%u \"%s\" %u}\n", 
-                        msg.x, msg.message, msg.y);
-            }
+    if (dst_place->busy) {
+        printf("SYSNET error: sampling buffer is busy\n");
+        STOP_SELF();
+        return;
+    }
 
-            if (!pok_network_send_udp(
-                        dst_place->data,
-                        dst_place->message_size,
-                        0xa000002,
-                        10000,
-                        udp_sent_queueing_callback,
-                        (void*) dst_place
-                        )) {
-                printf("Error in send_udp\n");
-            }
+    //TODO fix OVERHEAD
+    READ_SAMPLING_MESSAGE(
+            link.linked_port_info.id,
+            (MESSAGE_ADDR_TYPE ) (dst_place->data + POK_NETWORK_OVERHEAD),
+            &dst_place->message_size,
+            &validity,
+            &ret
+            );
 
-            dst_place->status = QUEUEING_STATUS_PENDING;
-            dst_place->queue_idx = 0; //TODO
-            pok_network_flush_send();
+    if (ret != NO_ERROR) {
+        if (ret != NOT_AVAILABLE)
+            printf("SYSNET: %s port error: %u\n", 
+                    link.linked_port_info.name, ret);
 
+        return;
+    }
+
+    dst_place->busy = TRUE;
+
+    if (link.protocol == UDP) {
+        pok_bool_t res = pok_network_send_udp(
+                dst_place->data,
+                dst_place->message_size,
+                link.udp_data.ip,
+                link.udp_data.port,
+                udp_sent_sampling_callback,
+                &dst_place->busy
+                );
+
+        if (!res)
+            printf("SYSNET: Error in send_udp\n");
+    }
+
+    pok_network_flush_send();
+}
+
+static void first_process(void)
+{
+    while (1) {
+        for (int i = 0; i<sysconfig_links_nb; i++) {
+            port_info_t port_info = links[i].linked_port_info;
+
+            if (port_info.direction != DESTINATION)
+                break;
+            if (port_info.kind == POK_PORT_KIND_QUEUEING)
+                queueing_send_outside(i);
+            else 
+                sampling_send_outside(i);
+
+            pok_network_reclaim_send_buffers();
         }
+        pok_network_reclaim_receive_buffers();
     }
 }
 
@@ -222,13 +265,37 @@ static int real_main(void)
         printf("process 1 \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
     }
 
-
-    // create ports
-    CREATE_QUEUING_PORT("QP2", 64, 10, DESTINATION, FIFO, &QP2, &ret);
+    for (int i = 0; i<sysconfig_links_nb; i++) {
+        port_info_t *port_info = &links[i].linked_port_info;
+        // create ports
+        if (port_info->kind == POK_PORT_KIND_QUEUEING) {
+            CREATE_QUEUING_PORT(
+                    port_info->name, 
+                    port_info->queueing_data.max_message_size, 
+                    port_info->queueing_data.max_nb_messages, 
+                    port_info->direction,
+                    FIFO, 
+                    &port_info->id, 
+                    &ret);
+        } else { 
+            CREATE_SAMPLING_PORT(
+                    port_info->name, 
+                    port_info->sampling_data.max_message_size, 
+                    port_info->direction,
+                    0,
+                    &port_info->id, 
+                    &ret);
+        }
+       
+        if (ret != NO_ERROR)
+            printf("error %d creating %s port\n", ret, port_info->name);
+    }
 
     // network init
     pok_network_init();
 
+    static pok_network_udp_receive_callback_t udp_callback = {udp_received_callback, NULL};
+    pok_network_register_udp_receive_callback(&udp_callback);
 
     // transition to NORMAL operating mode
     // N.B. if everything is OK, this never returns

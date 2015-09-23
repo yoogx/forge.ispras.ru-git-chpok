@@ -28,6 +28,8 @@ static void first_process(void)
 
         if (ret == NO_ERROR) {
             printf("PR1: {%u, \"%s\", %u}\n", msg.x, msg.message, msg.y);
+        } else if (ret == NO_ACTION) {
+            printf("waiting for packet\n");
         } else {
             printf("PR1: sp error: %u\n", ret);
         }

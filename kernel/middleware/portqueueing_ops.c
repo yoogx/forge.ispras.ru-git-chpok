@@ -202,7 +202,7 @@ pok_ret_t pok_port_queueing_receive(
     // queue is empty...
 
     if (timeout == 0) {
-        printf("port is empty (non-blocking read)\n");
+        //printf("port is empty (non-blocking read)\n");
         ret = POK_ERRNO_EMPTY;
         goto end;
     } 
