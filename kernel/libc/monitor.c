@@ -343,22 +343,26 @@ void pok_monitor_thread(void)
             /*
              * Set all partition on pause
              */
+            pok_arch_preempt_disable();         
             for (int i=0; i < POK_CONFIG_NB_PARTITIONS; i++){
                 if (!pok_partitions[i].is_paused){ 
                     partiton_on_pause[i]=FALSE;
                     pok_partitions[i].is_paused=TRUE;
                 }
             }
+            pok_arch_preempt_enable();         
             
             //pok_arch_preempt_disable();         
             monitor();
             //pok_arch_preempt_enable();        
-            
+
+            pok_arch_preempt_disable();         
             for (int i=0; i < POK_CONFIG_NB_PARTITIONS; i++){
                 if (!partiton_on_pause[i]){ 
                     pok_partitions[i].is_paused=FALSE;
                 }
             }
+            pok_arch_preempt_enable();         
         }
         #ifdef i386
         asm("hlt");
