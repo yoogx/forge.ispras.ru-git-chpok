@@ -135,7 +135,7 @@ int getDebugChar(){
 /************************************************************************/
 /* BUFMAX defines the maximum number of characters in inbound/outbound buffers*/
 /* at least NUMREGBYTES*2 are needed for register packets */
-#define BUFMAX 400
+#define BUFMAX 1000
 
 static char initialized;  /* boolean flag. != 0 means we've been initialized */
 
@@ -154,6 +154,9 @@ enum regnames { r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13,
 r14, r15, r16, r17, r18, r19, r20, r21, r22, r23, r24, r25, r26, r27, r28, r29,
 r30, r31, pc, msr, cr, lr, ctr, xer 
 };
+
+
+
 /*enum regnames {EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
 	       PC *//* also known as eip *//*,
 	       PS *//* also known as eflags *//*,
@@ -422,81 +425,138 @@ static char remcomInBuffer[BUFMAX];
 static char remcomOutBuffer[BUFMAX];
 
 /* scan for the sequence $<data>#<checksum>     */
-
-//// unsighned char *
-char *
-getpacket (void)
+static void
+getpacket(char *buffer)
 {
-////  unsigned char *buffer = &remcomInBuffer[0];
-  printf("Lets getpacket <- \n");
-  char *buffer = &remcomInBuffer[0];
-  unsigned char checksum;
-  unsigned char xmitcsum;
-  int count;
-  char ch;
+	unsigned char checksum;
+	unsigned char xmitcsum;
+	int i;
+	int count;
+	unsigned char ch;
 
-  while (1)
-    {
-      /* wait around for the start character, ignore all other characters */
-      while ((ch = getDebugChar ()) != '$')
-	;
+	do {
+		/* wait around for the start character, ignore all other
+		 * characters */
+		while ((ch = (getDebugChar() & 0x7f)) != '$') ;
 
-    retry:
-      checksum = 0;
-      xmitcsum = -1;
-      count = 0;
+		checksum = 0;
+		xmitcsum = -1;
 
-      /* now, read until a # or end of buffer is found */
-      while (count < BUFMAX)
-	{
-	  ch = getDebugChar ();
-	  if (ch == '$')
-	    goto retry;
-	  if (ch == '#')
-	    break;
-	  checksum = checksum + ch;
-	  buffer[count] = ch;
-	  count = count + 1;
-	}
-      buffer[count] = 0;
+		count = 0;
 
-      if (ch == '#')
-	{
-	  ch = getDebugChar ();
-	  xmitcsum = hex (ch) << 4;
-	  ch = getDebugChar ();
-	  xmitcsum += hex (ch);
-
-	  if (checksum != xmitcsum)
-	    {
-	      if (remote_debug)
-		{
-		  ////fprintf (stderr,
-			////   "bad checksum.  My count = 0x%x, sent=0x%x. buf=%s\n",
-			////  checksum, xmitcsum, buffer);
-		}
-	      putDebugChar ('-');	/* failed checksum */
-	    }
-	  else
-	    {
-	      putDebugChar ('+');	/* successful transfer */
-
-	      /* if a sequence char is present, reply the sequence ID */
-	      if (buffer[2] == ':')
-		{
-		  putDebugChar (buffer[0]);
-		  putDebugChar (buffer[1]);
-
- 	      printf("\n");
-          return &buffer[3];
+		/* now, read until a # or end of buffer is found */
+		while (count < BUFMAX) {
+			ch = getDebugChar() & 0x7f;
+			if (ch == '#')
+				break;
+			checksum = checksum + ch;
+			buffer[count] = ch;
+			count = count + 1;
 		}
 
-          printf("\n");
-	      return &buffer[0];
-	    }
-	}
-    }
+		if (count >= BUFMAX)
+			continue;
+
+		buffer[count] = 0;
+
+		if (ch == '#') {
+			xmitcsum = hex(getDebugChar() & 0x7f) << 4;
+			xmitcsum |= hex(getDebugChar() & 0x7f);
+			if (checksum != xmitcsum)
+				putDebugChar('-');	/* failed checksum */
+			else {
+				putDebugChar('+'); /* successful transfer */
+				/* if a sequence char is present, reply the ID */
+				if (buffer[2] == ':') {
+					putDebugChar(buffer[0]);
+					putDebugChar(buffer[1]);
+					/* remove sequence chars from buffer */
+					count = strlen(buffer);
+					for (i=3; i <= count; i++)
+						buffer[i-3] = buffer[i];
+				}
+			}
+		}
+	} while (checksum != xmitcsum);
 }
+
+
+/* scan for the sequence $<data>#<checksum>     */
+
+//~ //// unsighned char *
+//~ char *
+//~ getpacket (void)
+//~ {
+//~ ////  unsigned char *buffer = &remcomInBuffer[0];
+  //~ printf("Lets getpacket <- \n");
+  //~ char *buffer = &remcomInBuffer[0];
+  //~ unsigned char checksum;
+  //~ unsigned char xmitcsum;
+  //~ int count;
+  //~ char ch;
+//~ 
+  //~ while (1)
+    //~ {
+      //~ /* wait around for the start character, ignore all other characters */
+      //~ while ((ch = getDebugChar ()) != '$')
+	//~ ;
+//~ 
+    //~ retry:
+      //~ checksum = 0;
+      //~ xmitcsum = -1;
+      //~ count = 0;
+//~ 
+      //~ /* now, read until a # or end of buffer is found */
+      //~ while (count < BUFMAX)
+	//~ {
+	  //~ ch = getDebugChar ();
+	  //~ if (ch == '$')
+	    //~ goto retry;
+	  //~ if (ch == '#')
+	    //~ break;
+	  //~ checksum = checksum + ch;
+	  //~ buffer[count] = ch;
+	  //~ count = count + 1;
+	//~ }
+      //~ buffer[count] = 0;
+//~ 
+      //~ if (ch == '#')
+	//~ {
+	  //~ ch = getDebugChar ();
+	  //~ xmitcsum = hex (ch) << 4;
+	  //~ ch = getDebugChar ();
+	  //~ xmitcsum += hex (ch);
+//~ 
+	  //~ if (checksum != xmitcsum)
+	    //~ {
+	      //~ if (remote_debug)
+		//~ {
+		  //~ ////fprintf (stderr,
+			//~ ////   "bad checksum.  My count = 0x%x, sent=0x%x. buf=%s\n",
+			//~ ////  checksum, xmitcsum, buffer);
+		//~ }
+	      //~ putDebugChar ('-');	/* failed checksum */
+	    //~ }
+	  //~ else
+	    //~ {
+	      //~ putDebugChar ('+');	/* successful transfer */
+//~ 
+	      //~ /* if a sequence char is present, reply the sequence ID */
+	      //~ if (buffer[2] == ':')
+		//~ {
+		  //~ putDebugChar (buffer[0]);
+		  //~ putDebugChar (buffer[1]);
+//~ 
+ 	      //~ printf("\n");
+          //~ return &buffer[3];
+		//~ }
+//~ 
+          //~ printf("\n");
+	      //~ return &buffer[0];
+	    //~ }
+	//~ }
+    //~ }
+//~ }
 
 /* send the packet in buffer.  */
 
@@ -720,8 +780,46 @@ hexToInt (char **ptr, int *intValue)
  * This function does all command procesing for interfacing to gdb.
  */
 void
-handle_exception (int exceptionVector)
+handle_exception (int exceptionVector, struct regs * ea)
 {
+  /*Add regs*/
+  registers[r0]=ea->r0;
+  registers[r1]=ea->r1;
+  registers[r2]=ea->r2;
+  registers[r3]=ea->r3;
+  registers[r4]=ea->r4;
+  registers[r5]=ea->r5;
+  registers[r6]=ea->r6;
+  registers[r7]=ea->r7;
+  registers[r8]=ea->r8;
+  registers[r9]=ea->r9;
+  registers[r10]=ea->r10;
+  registers[r11]=ea->r11;
+  registers[r12]=ea->r12;
+  registers[r13]=ea->r13;
+  registers[ctr]=ea->ctr;
+  registers[xer]=ea->xer;
+  registers[pc]=ea->srr0;
+  registers[lr]=ea->lr;
+    printf("cr = 0x%x\n",registers[cr]);
+    printf("r0 = 0x%x\n",registers[r0]);
+    printf("r2 = 0x%x\n",registers[r2]);
+    printf("r3 = 0x%x\n",registers[r3]);
+    printf("r4 = 0x%x\n",registers[r4]);
+    printf("r5 = 0x%x\n",registers[r5]);
+    printf("r6 = 0x%x\n",registers[r6]);
+    printf("r7 = 0x%x\n",registers[r7]);
+    printf("r8 = 0x%x\n",registers[r8]);
+    printf("r9 = 0x%x\n",registers[r9]);
+    printf("r10 = 0x%x\n",registers[r10]);
+    printf("r11 = 0x%x\n",registers[r11]);
+    printf("r12 = 0x%x\n",registers[r12]);
+    printf("r13 = 0x%x\n",registers[r13]);
+    printf("ctr = 0x%x\n",registers[ctr]);
+    printf("xer = 0x%x\n",registers[xer]);
+    printf("srr0 or pc = 0x%x\n",registers[pc]); 
+    printf("lr = 0x%x\n",registers[lr]);  
+  
   memset(remcomOutBuffer, 0, BUFMAX);
   memset(remcomInBuffer, 0, BUFMAX);
   int sigval;////, stepping;
@@ -739,7 +837,7 @@ handle_exception (int exceptionVector)
 
   /* reply to host that an exception has occurred */
   ////sigval = computeSignal (exceptionVector);
-  sigval = 7;
+  sigval = 5;
 
   ptr = remcomOutBuffer;
 
@@ -764,24 +862,25 @@ handle_exception (int exceptionVector)
 	*ptr++ = 'T';
 	*ptr++ = hexchars[sigval >> 4];
 	*ptr++ = hexchars[sigval & 0xf];
-	*ptr++ = hexchars[PC_REGNUM >> 4];
-	*ptr++ = hexchars[PC_REGNUM & 0xf];
+	*ptr++ = hexchars[64 >> 4];
+	*ptr++ = hexchars[64 & 0xf];
 	*ptr++ = ':';
-	ptr = mem2hex((char *)&registers[pc], ptr, 4);
+	ptr = mem2hex((char *)(&registers[pc]), ptr, 4);
 	*ptr++ = ';';
-	*ptr++ = hexchars[SP_REGNUM >> 4];
-	*ptr++ = hexchars[SP_REGNUM & 0xf];
+	*ptr++ = hexchars[1 >> 4];
+	*ptr++ = hexchars[1 & 0xf];
 	*ptr++ = ':';
-	ptr = mem2hex(((char *)&registers) + SP_REGNUM*4, ptr, 4);
+    ptr = mem2hex((char *)(&registers) + 1*4, ptr, 4);
 	*ptr++ = ';';
     ptr = 0;
+    putpacket ( (unsigned char *) remcomOutBuffer);
     
     
     	while (1) {
 		remcomOutBuffer[0] = 0;
 
-		ptr=getpacket();
-		switch (*ptr++) {
+		getpacket(remcomInBuffer);
+		switch (remcomInBuffer[0]) {
 		case '?':               /* report most recent signal */
 			remcomOutBuffer[0] = 'S';
 			remcomOutBuffer[1] = hexchars[sigval >> 4];
@@ -832,8 +931,8 @@ handle_exception (int exceptionVector)
 			/* pc, msr, cr, lr, ctr, xer, (mq is unused) */
 			ptr = mem2hex((char *)&registers[pc]/*[nip]*/, ptr, 4);
 			ptr = mem2hex((char *)&registers[msr], ptr, 4);
-			ptr = mem2hex((char *)&registers[pc]/*[ccr]*/, ptr, 4);
-			ptr = mem2hex((char *)&registers[pc]/*[link]*/, ptr, 4);
+			ptr = mem2hex((char *)&registers[cr]/*[ccr]*/, ptr, 4);
+			ptr = mem2hex((char *)&registers[lr]/*[link]*/, ptr, 4);
 			ptr = mem2hex((char *)&registers[ctr], ptr, 4);
 			ptr = mem2hex((char *)&registers[xer], ptr, 4);
 		}
@@ -858,8 +957,8 @@ handle_exception (int exceptionVector)
 			/* pc, msr, cr, lr, ctr, xer, (mq is unused) */
 			ptr = hex2mem(ptr, (char *)&registers[pc]/*nip*/, 4);
 			ptr = hex2mem(ptr, (char *)&registers[msr], 4);
-			ptr = hex2mem(ptr, (char *)&registers[pc]/*[ccr]*/, 4);
-			ptr = hex2mem(ptr, (char *)&registers[pc]/*[link]*/, 4);
+			ptr = hex2mem(ptr, (char *)&registers[cr]/*[ccr]*/, 4);
+			ptr = hex2mem(ptr, (char *)&registers[lr]/*[link]*/, 4);
 			ptr = hex2mem(ptr, (char *)&registers[ctr], 4);
 			ptr = hex2mem(ptr, (char *)&registers[xer], 4);
 

@@ -31,6 +31,9 @@
 #include "timer.h"
 #include "syscalls.h"
 
+
+
+
 void pok_int_critical_input(uintptr_t ea) {
     (void) ea;
     pok_fatal("Critical input interrupt"); 
@@ -61,8 +64,57 @@ void pok_int_alignment(uintptr_t ea) {
     pok_fatal("Alignment interrupt");
 }
 
-void pok_int_program(uintptr_t ea) {
-    (void) ea;
+int k=0;
+
+void pok_int_program(struct regs * ea) {
+
+////printf("ea = 0x%lx\n", ea);
+
+////    (void) ea;
+    k++;
+    printf("addr = 0x%lx\n",(uint32_t) ea);
+    printf("offset1 = 0x%lx\n",ea->r1);
+    printf("offset2 = 0x%lx\n",ea->offset2);
+    printf("cr = 0x%lx\n",ea->cr);
+    printf("r0 = 0x%lx\n",ea->r0);
+    printf("r2 = 0x%lx\n",ea->r2);
+    printf("r3 = 0x%lx\n",ea->r3);
+    printf("r4 = 0x%lx\n",ea->r4);
+    printf("r5 = 0x%lx\n",ea->r5);
+    printf("r6 = 0x%lx\n",ea->r6);
+    printf("r7 = 0x%lx\n",ea->r7);
+    printf("r8 = 0x%lx\n",ea->r8);
+    printf("r9 = 0x%lx\n",ea->r9);
+    printf("r10 = 0x%lx\n",ea->r10);
+    printf("r11 = 0x%lx\n",ea->r11);
+    printf("r12 = 0x%lx\n",ea->r12);
+    printf("r13 = 0x%lx\n",ea->r13);
+    printf("ctr = 0x%lx\n",ea->ctr);
+    printf("xer = 0x%lx\n",ea->xer);
+    printf("srr0 or pc = 0x%lx\n",ea->srr0); 
+    printf("srr1 = 0x%lx\n",ea->srr1);
+    printf("offset3 = 0x%lx\n",ea->offset3);
+    printf("offset4 = 0x%lx\n",ea->offset4);
+    printf("offset5 = 0x%lx\n",ea->offset5);
+    printf("offset6 = 0x%lx\n",ea->offset6);
+    printf("offset7 = 0x%lx\n",ea->offset7);
+    printf("lr = 0x%lx\n",ea->lr);
+    printf("offset8 = 0x%lx\n",ea->offset8);
+    printf("offset9 = 0x%lx\n",ea->offset9);
+    printf("offset10 = 0x%lx\n",ea->offset10);
+    printf("offset11 = 0x%lx\n",ea->offset11);
+    printf("offset12 = 0x%lx\n",ea->offset12);
+    printf("offset13 = 0x%lx\n",ea->offset13);
+    printf("offset14 = 0x%lx\n",ea->offset14);
+    printf("offset15 = 0x%lx\n",ea->offset15);
+
+    handle_exception(17,ea); 
+
+    while (k != 1){
+        
+    }
+    asm("trap");
+
     pok_fatal("Program interrupt");
 }
 
@@ -103,7 +155,5 @@ void pok_int_inst_tlb_miss(uintptr_t ea, uintptr_t dear, unsigned long esr) {
 
 void pok_int_debug(uintptr_t ea) {
     (void) ea;
-    printf("\n\n\n\n\n\n DEBUG INTERRUPT \n\n\n\n\n\n\n");
-
     pok_fatal("Debug interrupt");
 }

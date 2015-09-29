@@ -16,7 +16,7 @@ gdb()
 ////     pok_bool_t want_to_exit=FALSE;
     printf("Welcome to GDB!\n");
  
-    handle_exception (20);   
+    ///handle_exception (20);   
     printf("Exit from handle_exception\n");
     /*while (!want_to_exit) {
         buf = readline2("K> ");

@@ -53,7 +53,9 @@ reserved_0000:
         mfsrr0  %r3;                             \
         stw     %r3,72(%r1);  /* srr0 */         \
         mfsrr1  %r4;                             \
-        stw     %r4,76(%r1)  /* srr1 */
+        stw     %r4,76(%r1)  /* srr1 */         
+
+        
         
         /* Restore registers */
         .globl pok_arch_rfi
@@ -112,6 +114,92 @@ pok_arch_rfi:
         stwu %r4, -FRAME_SIZE(%r1);/*save it*/  \
 2:      SAVE_REGS;                              \
         mfsrr0 %r3; /* EA of exception */
+
+
+
+#define EXCEPTION_PROLOGUE1                     \
+        mtsprg  3,%r3;                          \
+        mtsprg  2,%r4;                          \
+        mfcr    %r3;                            \
+        /* Enable floating point bit in msr */  \
+        mfmsr %r4;                              \
+        ori %r4,%r4,MSR_FP;                     \
+        mtmsr %r4;                              \
+        mfsrr1  %r4;                            \
+        andi.   %r4,%r4,MSR_PR;                 \
+        bne     1f;                             \
+        /* Already on kernel stack */           \
+        stwu %r1, -FRAME_SIZE(%r1);             \
+        b       2f;                             \
+1:      /* User stack right now          */     \
+        mr %r4, %r1;                            \
+        mfsprg %r1, 1;                          \
+        stwu %r4, -FRAME_SIZE(%r1);/*save it*/  \
+2:      SAVE_REGS;                              \
+        mfsrr0 %r3; /* EA of exception */       \
+        mr	%r3, %r1;
+
+
+#define GPR0 16
+#define GPR1 20
+#define GPR2 24
+#define GPR3 28
+#define GPR4 32
+#define GPR5 36
+#define GPR6 40
+#define GPR7 44
+#define GPR8 48
+#define GPR9 52
+#define GPR10 56
+#define GPR11 60
+#define GPR12 64
+#define GPR13 68
+
+#define INT_FRAME_SIZE 192
+#define _CCR 168
+#define _LINK 160
+
+#define SPRN_SPRG0	0x110	/* Special Purpose Register General 0 */
+#define SPRN_SRR1	0x01B	/* Save/Restore Register 1 */
+#define SPRN_SPRG_WSCRATCH0	SPRN_SPRG0
+#define SPRN_SPRG_RSCRATCH0	SPRN_SPRG0
+
+#define SAVE_GPR(n, base)	stw	n,GPR0+4*(n)(base)
+
+#define SAVE_2GPRS(n, base)	SAVE_GPR(n, base); SAVE_GPR(n+1, base)
+#define SAVE_4GPRS(n, base)	SAVE_2GPRS(n, base); SAVE_2GPRS(n+2, base)
+
+
+#define NORMAL_EXCEPTION_PROLOG						     \
+	mtspr	SPRN_SPRG_WSCRATCH0, %r10;	/* save one register */	     \
+	mfcr	%r13;			/* save CR in r13 for now	   */\
+	mfspr	%r11, SPRN_SRR1;		                                     \
+	andi.	%r11, %r11, MSR_PR;	/* check whether user or kernel    */\
+	mr	%r11, %r1;						     \
+	beq	1f;							     \
+	/* if from user, start at top of this thread's kernel stack */       \
+1 :	subi	%r11, %r11, INT_FRAME_SIZE; /* Allocate exception frame */     \
+    mflr    %r4;                             \
+    stw     %r4,INT_FRAME_SIZE+4(%r11);  /* lr */ \
+	stw	%r13, _CCR(%r11);		/* save various registers */	     \
+	stw	%r12,GPR12(%r11);						     \
+	stw	%r9,GPR9(%r11);						     \
+	mfspr	%r13, SPRN_SPRG_RSCRATCH0;				     \
+	mflr	%r10;							     \
+	stw	%r10,_LINK(%r11);						     \
+    mfsrr0  %r12;                             \
+	stw	%r1, GPR1(%r11);						     \
+    mfsrr1  %r9;                             \
+	stw	%r1, 0(%r11);						     \
+	mr	%r1, %r11;						     \
+	stw	%r0,GPR0(%r11);						     \
+	stw	%r10, 8(%r11);						     \
+	SAVE_4GPRS(3, %r11);						     \
+	SAVE_2GPRS(7, %r11);						     \
+    mfsrr0 %r3; /* EA of exception */						     \
+    mr	%r3, %r1;
+
+
 
 
 failed: b failed
@@ -212,7 +300,7 @@ label##_asm:
         b pok_arch_rfi
 
     START_EXCEPTION(pok_int_program)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE1
 
         bl pok_int_program
         b pok_arch_rfi

@@ -50,7 +50,44 @@ char * readline2(const char *prompt);
 int getchar(void);
 int getchar2(void);
 void monitor();
-void handle_exception (int exceptionVector);
+struct  regs{
+    uint32_t r1;
+    uint32_t offset2;
+    uint32_t cr;
+    uint32_t r0;
+    uint32_t r2;
+    uint32_t r3;
+    uint32_t r4;
+    uint32_t r5;
+    uint32_t r6;
+    uint32_t r7;
+    uint32_t r8;
+    uint32_t r9;
+    uint32_t r10;
+    uint32_t r11;
+    uint32_t r12;
+    uint32_t r13;
+    uint32_t ctr;
+    uint32_t xer;
+    uint32_t srr0; // == pc
+    uint32_t srr1;
+    uint32_t offset3;
+    uint32_t offset4;
+    uint32_t offset5;
+    uint32_t offset6;
+    uint32_t offset7;
+    uint32_t lr;
+    uint32_t offset8;
+    uint32_t offset9;
+    uint32_t offset10;
+    uint32_t offset11;
+    uint32_t offset12;
+    uint32_t offset13;
+    uint32_t offset14;
+    uint32_t offset15;
+};
+
+void handle_exception (int exceptionVector, struct regs * ea);
 
 void pok_monitor_thread(void);
 void pok_monitor_thread_init();

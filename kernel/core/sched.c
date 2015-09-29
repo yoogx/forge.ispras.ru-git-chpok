@@ -38,25 +38,6 @@
  **\\author Julien Delange
  */
  
-/* #ifndef __stringify
-#define __stringify_1(x)        #x
-#define __stringify(x)          __stringify_1(x)
-#endif
- 
- #define mfmsr()         ({unsigned long rval; \
-                                asm volatile("mfmsr %0" : "=r" (rval) : \
-                                                                                    : "memory"); rval;})
-#define mtmsr(v)        asm volatile("mtmsr %0" : \
-                                             : "r" ((unsigned long)(v)) \
-                                             : "memory")
-#define mfspr(rn)       ({unsigned long rval; \
-                                asm volatile("mfspr %0," __stringify(rn) \
-                                                                    : "=r" (rval)); rval;})
-#define mtspr(rn, v)    asm volatile("mtspr " __stringify(rn) ",%0" : \
-                                             : "r" ((unsigned long)(v)) \
-                                             : "memory") 
-                                             
- #define SPRN_DBCR0      0x134  */ /* Debug Control Register 0 */
 
 
 
@@ -143,21 +124,8 @@ static pok_bool_t pok_elect_partition(void)
         return FALSE;
     }
     
-    ////if (data_to_read_1() == 1){
-    ////    //debug interrupt
-    ////    asm("dnh 31,0");
-    ////}
-    /*    printf("before debug\n");
-        mtmsr(mfmsr() | (1<<(9)));
-        unsigned long reg=mfspr(SPRN_DBCR0);
-        printf("%lx\n",reg);
-     */   
-      /*  mtspr(SPRN_DBCR0,reg | 0x4000000UL);
-        reg=mfspr(SPRN_DBCR0);
-        printf("%lx\n",reg);
-       /// asm("dnh 31,0");
-        printf("after debug\n");
-    */pok_sched_current_slot = (pok_sched_current_slot + 1) % POK_CONFIG_SCHEDULING_NBSLOTS;
+    asm("trap");
+    pok_sched_current_slot = (pok_sched_current_slot + 1) % POK_CONFIG_SCHEDULING_NBSLOTS;
     if (pok_module_sched[pok_sched_current_slot].type != POK_SLOT_PARTITION) {
         pok_sched_next_deadline += pok_module_sched[pok_sched_current_slot].duration; 
         current_partition_on_pause = FALSE;
