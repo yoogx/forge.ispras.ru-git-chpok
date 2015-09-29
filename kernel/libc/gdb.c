@@ -12,19 +12,9 @@ static pok_bool_t *partiton_on_pause;
 void
 gdb()
 {
-////    char *buf;
-////     pok_bool_t want_to_exit=FALSE;
-    printf("Welcome to GDB!\n");
- 
-    ///handle_exception (20);   
-    printf("Exit from handle_exception\n");
-    /*while (!want_to_exit) {
-        buf = readline2("K> ");
-        if (buf != NULL)
-            //if (runcmd(buf) < 0)
-                break;
-            
-    }*/
+    printf("Welcome to GDB server!\n");
+    asm("trap");
+    printf("Exit from GDB server!\n");
 }
 
 
@@ -41,6 +31,7 @@ void pok_gdb_thread(void)
             /*
              * Set all partition on pause
              */
+            pok_arch_preempt_disable();         
             for (int i=0; i < POK_CONFIG_NB_PARTITIONS; i++){
                 if (!pok_partitions[i].is_paused){ 
                     partiton_on_pause[i]=FALSE;
@@ -48,15 +39,14 @@ void pok_gdb_thread(void)
                 }
             }
             
-            pok_arch_preempt_disable();         
             gdb();
-            //pok_arch_preempt_enable();        
             
             for (int i=0; i < POK_CONFIG_NB_PARTITIONS; i++){
                 if (!partiton_on_pause[i]){ 
                     pok_partitions[i].is_paused=FALSE;
                 }
             }
+            pok_arch_preempt_enable();        
         }
     }
     printf("End of gdb func\n");

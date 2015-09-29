@@ -124,7 +124,7 @@ static pok_bool_t pok_elect_partition(void)
         return FALSE;
     }
     
-    asm("trap");
+////    asm("trap");
     pok_sched_current_slot = (pok_sched_current_slot + 1) % POK_CONFIG_SCHEDULING_NBSLOTS;
     if (pok_module_sched[pok_sched_current_slot].type != POK_SLOT_PARTITION) {
         pok_sched_next_deadline += pok_module_sched[pok_sched_current_slot].duration; 

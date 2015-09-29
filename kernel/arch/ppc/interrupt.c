@@ -25,7 +25,7 @@
 #include <errno.h> 
 #include <core/debug.h>
 #include <libc.h>
-
+#include <bsp.h>
 
 #include "space.h"
 #include "timer.h"
@@ -71,61 +71,72 @@ void pok_int_program(struct regs * ea) {
 ////printf("ea = 0x%lx\n", ea);
 
 ////    (void) ea;
+    if (data_to_read_1() == 1){
     k++;
-    printf("addr = 0x%lx\n",(uint32_t) ea);
-    printf("offset1 = 0x%lx\n",ea->offset1);
-    printf("cr = 0x%lx\n",ea->cr);
-    printf("ctr = 0x%lx\n",ea->ctr);
-    printf("xer = 0x%lx\n",ea->xer);
-    printf("srr0 or pc = 0x%lx\n",ea->srr0); 
-    printf("srr1 = 0x%lx\n",ea->srr1);
-    printf("r0 = 0x%lx\n",ea->r0);
-    printf("r1 = 0x%lx\n",ea->r1);
-    printf("r2 = 0x%lx\n",ea->r2);
-    printf("r3 = 0x%lx\n",ea->r3);
-    printf("r4 = 0x%lx\n",ea->r4);
-    printf("r5 = 0x%lx\n",ea->r5);
-    printf("r6 = 0x%lx\n",ea->r6);
-    printf("r7 = 0x%lx\n",ea->r7);
-    printf("r8 = 0x%lx\n",ea->r8);
-    printf("r9 = 0x%lx\n",ea->r9);
-    printf("r10 = 0x%lx\n",ea->r10);
-    printf("r11 = 0x%lx\n",ea->r11);
-    printf("r12 = 0x%lx\n",ea->r12);
-    printf("r13 = 0x%lx\n",ea->r13);
-    printf("r14 = 0x%lx\n",ea->r14);
-    printf("r15 = 0x%lx\n",ea->r15);
-    printf("r16 = 0x%lx\n",ea->r16);
-    printf("r17 = 0x%lx\n",ea->r17);
-    printf("r18 = 0x%lx\n",ea->r18);
-    printf("r19 = 0x%lx\n",ea->r19);
-    printf("r20 = 0x%lx\n",ea->r20);
-    printf("r21 = 0x%lx\n",ea->r21);
-    printf("r22 = 0x%lx\n",ea->r22);
-    printf("r23 = 0x%lx\n",ea->r23);
-    printf("r24 = 0x%lx\n",ea->r24);
-    printf("r25 = 0x%lx\n",ea->r25);
-    printf("r26 = 0x%lx\n",ea->r26);
-    printf("r27 = 0x%lx\n",ea->r27);
-    printf("r28 = 0x%lx\n",ea->r28);
-    printf("r29 = 0x%lx\n",ea->r29);
-    printf("r30 = 0x%lx\n",ea->r30);
-    printf("r31 = 0x%lx\n",ea->r31);
-    printf("offset2 = 0x%lx\n",ea->offset2);
-    printf("offset3 = 0x%lx\n",ea->offset3);
-    printf("offset4 = 0x%lx\n",ea->offset4);
-    printf("offset5 = 0x%lx\n",ea->offset5);
-    printf("offset6 = 0x%lx\n",ea->offset6);
-    printf("lr = 0x%lx\n",ea->lr);
+    }
+    //~ printf("\n\n            In pok_int_programm:\n");
+    //~ printf("addr = 0x%lx\n",(uint32_t) ea);
+    //~ printf("offset1 = 0x%lx\n",ea->offset1);
+    //~ printf("cr = 0x%lx\n",ea->cr);
+    //~ printf("ctr = 0x%lx\n",ea->ctr);
+    //~ printf("xer = 0x%lx\n",ea->xer);
+    //~ printf("srr0 or pc = 0x%lx\n",ea->srr0); 
+    //~ printf("srr1 = 0x%lx\n",ea->srr1);
+    //~ printf("r0 = 0x%lx\n",ea->r0);
+    //~ printf("r1 = 0x%lx\n",ea->r1);
+    //~ printf("r2 = 0x%lx\n",ea->r2);
+    //~ printf("r3 = 0x%lx\n",ea->r3);
+    //~ printf("r4 = 0x%lx\n",ea->r4);
+    //~ printf("r5 = 0x%lx\n",ea->r5);
+    //~ printf("r6 = 0x%lx\n",ea->r6);
+    //~ printf("r7 = 0x%lx\n",ea->r7);
+    //~ printf("r8 = 0x%lx\n",ea->r8);
+    //~ printf("r9 = 0x%lx\n",ea->r9);
+    //~ printf("r10 = 0x%lx\n",ea->r10);
+    //~ printf("r11 = 0x%lx\n",ea->r11);
+    //~ printf("r12 = 0x%lx\n",ea->r12);
+    //~ printf("r13 = 0x%lx\n",ea->r13);
+    //~ printf("r14 = 0x%lx\n",ea->r14);
+    //~ printf("r15 = 0x%lx\n",ea->r15);
+    //~ printf("r16 = 0x%lx\n",ea->r16);
+    //~ printf("r17 = 0x%lx\n",ea->r17);
+    //~ printf("r18 = 0x%lx\n",ea->r18);
+    //~ printf("r19 = 0x%lx\n",ea->r19);
+    //~ printf("r20 = 0x%lx\n",ea->r20);
+    //~ printf("r21 = 0x%lx\n",ea->r21);
+    //~ printf("r22 = 0x%lx\n",ea->r22);
+    //~ printf("r23 = 0x%lx\n",ea->r23);
+    //~ printf("r24 = 0x%lx\n",ea->r24);
+    //~ printf("r25 = 0x%lx\n",ea->r25);
+    //~ printf("r26 = 0x%lx\n",ea->r26);
+    //~ printf("r27 = 0x%lx\n",ea->r27);
+    //~ printf("r28 = 0x%lx\n",ea->r28);
+    //~ printf("r29 = 0x%lx\n",ea->r29);
+    //~ printf("r30 = 0x%lx\n",ea->r30);
+    //~ printf("r31 = 0x%lx\n",ea->r31);
+    //~ printf("offset2 = 0x%lx\n",ea->offset2);
+    //~ printf("offset3 = 0x%lx\n",ea->offset3);
+    //~ printf("offset4 = 0x%lx\n",ea->offset4);
+    //~ printf("offset5 = 0x%lx\n",ea->offset5);
+    //~ printf("offset6 = 0x%lx\n",ea->offset6);
+    //~ printf("lr = 0x%lx\n",ea->lr);
 
     handle_exception(17,ea); 
+    printf("\n          Exit from handle exeprion\n");
 
-    while (k != 1){
-        
-    }
-    asm("trap");
+    if (k == 1){
+/*
+ * it was a trap from gdb.c (in gdb.c function)
+ */ 
+        ea->srr0+=4;
+    }    
+    k=0;
+////    while (k != 1){
+////        
+////    }
+////    asm("trap");
 
-    pok_fatal("Program interrupt");
+////    pok_fatal("Program interrupt");
 }
 
 void pok_int_fp_unavail(uintptr_t ea) {

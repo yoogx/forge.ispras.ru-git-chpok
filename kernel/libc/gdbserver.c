@@ -512,43 +512,44 @@ handle_exception (int exceptionVector, struct regs * ea)
   registers[pc]=ea->srr0;
   registers[msr]=ea->srr1;
   registers[lr]=ea->lr;
-    printf("cr = 0x%x\n",registers[cr]);
-    printf("r0 = 0x%x\n",registers[r0]);
-    printf("r2 = 0x%x\n",registers[r2]);
-    printf("r3 = 0x%x\n",registers[r3]);
-    printf("r4 = 0x%x\n",registers[r4]);
-    printf("r5 = 0x%x\n",registers[r5]);
-    printf("r6 = 0x%x\n",registers[r6]);
-    printf("r7 = 0x%x\n",registers[r7]);
-    printf("r8 = 0x%x\n",registers[r8]);
-    printf("r9 = 0x%x\n",registers[r9]);
-    printf("r10 = 0x%x\n",registers[r10]);
-    printf("r11 = 0x%x\n",registers[r11]);
-    printf("r12 = 0x%x\n",registers[r12]);
-    printf("r13 = 0x%x\n",registers[r13]);
-    printf("r14 = 0x%x\n",registers[r14]);
-    printf("r15 = 0x%x\n",registers[r15]);
-    printf("r16 = 0x%x\n",registers[r16]);
-    printf("r17 = 0x%x\n",registers[r17]);
-    printf("r18 = 0x%x\n",registers[r18]);
-    printf("r19 = 0x%x\n",registers[r19]);
-    printf("r20 = 0x%x\n",registers[r20]);
-    printf("r21 = 0x%x\n",registers[r21]);
-    printf("r22 = 0x%x\n",registers[r22]);
-    printf("r23 = 0x%x\n",registers[r23]);
-    printf("r24 = 0x%x\n",registers[r24]);
-    printf("r25 = 0x%x\n",registers[r25]);
-    printf("r26 = 0x%x\n",registers[r26]);
-    printf("r27 = 0x%x\n",registers[r27]);
-    printf("r28 = 0x%x\n",registers[r28]);
-    printf("r29 = 0x%x\n",registers[r29]);
-    printf("r30 = 0x%x\n",registers[r30]);
-    printf("r31 = 0x%x\n",registers[r31]);
-    printf("ctr = 0x%x\n",registers[ctr]);
-    printf("xer = 0x%x\n",registers[xer]);
-    printf("srr0 or pc = 0x%x\n",registers[pc]); 
-    printf("srr1 or mrc = 0x%x\n",registers[msr]); 
-    printf("lr = 0x%x\n",registers[lr]);  
+    //~ printf("\n\n            In gdbserver:\n");
+    //~ printf("cr = 0x%x\n",registers[cr]);
+    //~ printf("r0 = 0x%x\n",registers[r0]);
+    //~ printf("r2 = 0x%x\n",registers[r2]);
+    //~ printf("r3 = 0x%x\n",registers[r3]);
+    //~ printf("r4 = 0x%x\n",registers[r4]);
+    //~ printf("r5 = 0x%x\n",registers[r5]);
+    //~ printf("r6 = 0x%x\n",registers[r6]);
+    //~ printf("r7 = 0x%x\n",registers[r7]);
+    //~ printf("r8 = 0x%x\n",registers[r8]);
+    //~ printf("r9 = 0x%x\n",registers[r9]);
+    //~ printf("r10 = 0x%x\n",registers[r10]);
+    //~ printf("r11 = 0x%x\n",registers[r11]);
+    //~ printf("r12 = 0x%x\n",registers[r12]);
+    //~ printf("r13 = 0x%x\n",registers[r13]);
+    //~ printf("r14 = 0x%x\n",registers[r14]);
+    //~ printf("r15 = 0x%x\n",registers[r15]);
+    //~ printf("r16 = 0x%x\n",registers[r16]);
+    //~ printf("r17 = 0x%x\n",registers[r17]);
+    //~ printf("r18 = 0x%x\n",registers[r18]);
+    //~ printf("r19 = 0x%x\n",registers[r19]);
+    //~ printf("r20 = 0x%x\n",registers[r20]);
+    //~ printf("r21 = 0x%x\n",registers[r21]);
+    //~ printf("r22 = 0x%x\n",registers[r22]);
+    //~ printf("r23 = 0x%x\n",registers[r23]);
+    //~ printf("r24 = 0x%x\n",registers[r24]);
+    //~ printf("r25 = 0x%x\n",registers[r25]);
+    //~ printf("r26 = 0x%x\n",registers[r26]);
+    //~ printf("r27 = 0x%x\n",registers[r27]);
+    //~ printf("r28 = 0x%x\n",registers[r28]);
+    //~ printf("r29 = 0x%x\n",registers[r29]);
+    //~ printf("r30 = 0x%x\n",registers[r30]);
+    //~ printf("r31 = 0x%x\n",registers[r31]);
+    //~ printf("ctr = 0x%x\n",registers[ctr]);
+    //~ printf("xer = 0x%x\n",registers[xer]);
+    //~ printf("srr0 or pc = 0x%x\n",registers[pc]); 
+    //~ printf("srr1 or mrc = 0x%x\n",registers[msr]); 
+    //~ printf("lr = 0x%x\n",registers[lr]);  
   
   memset(remcomOutBuffer, 0, BUFMAX);
   memset(remcomInBuffer, 0, BUFMAX);
@@ -685,7 +686,7 @@ handle_exception (int exceptionVector, struct regs * ea)
 
 		case 'm':	/* mAA..AA,LLLL  Read LLLL bytes at address AA..AA */
 				/* Try to read %x,%x.  */
-
+            printf("It's 'm'! \n");
 			ptr = &remcomInBuffer[1];
 
 			if (hexToInt(&ptr, &addr)
@@ -723,12 +724,13 @@ handle_exception (int exceptionVector, struct regs * ea)
 		case 'k':    /* kill the program, actually just continue */
 		case 'c':    /* cAA..AA  Continue; address AA..AA optional */
 			/* try to read optional parameter, pc unchanged if no parm */
-
+            printf("\nContinue\n\n");
 			ptr = &remcomInBuffer[1];
 			if (hexToInt(&ptr, &addr)) {
-				registers[pc]/*nip*/ = addr;
+				printf("\nIn if\n");
+                registers[pc]/*nip*/ = addr;
 			}
-
+        
 /* Need to flush the instruction cache here, as we may have deposited a
  * breakpoint, and the icache probably has no way of knowing that a data ref to
  * some location may have changed something that is in the instruction cache.
@@ -738,7 +740,12 @@ handle_exception (int exceptionVector, struct regs * ea)
 ////			kgdb_interruptible(1);
 ////			unlock_kernel();
 ////			kgdb_active = 0;
-			return;
+			//my code
+////            ea->srr0+=4;
+            //my code end
+            
+            
+            return;
 
 		case 's':
 ////			kgdb_flush_cache_all();
@@ -761,148 +768,7 @@ handle_exception (int exceptionVector, struct regs * ea)
 		/* reply to the request */
 		putpacket((unsigned char *)remcomOutBuffer);
 	} /* while(1) */
-
-////  *ptr++ = ';';
-
-  /**ptr = '\0';
-  
-  putpacket ( (unsigned char *) remcomOutBuffer);
-
-  stepping = 0;
-
-  while (1 == 1)
-    {
-      remcomOutBuffer[0] = 0;
-      ptr = getpacket ();
-      switch (*ptr++)
-	{
-	case '?':
-      printf("? and so on\n");
-	  remcomOutBuffer[0] = 'S';
-	  remcomOutBuffer[1] = hexchars[sigval >> 4];
-	  remcomOutBuffer[2] = hexchars[sigval % 16];
-	  remcomOutBuffer[3] = 0;
-	  break;
-	case 'd':
-      printf("d and so on\n");
-	  remote_debug = !(remote_debug);	*//* toggle debug flag */
-/*	  break;
-	case 'g':		*//* return the value of the CPU registers */
-/*      printf("g and so on\n");
-	  mem2hex ((char *) registers, remcomOutBuffer, NUMREGBYTES, 0);
-	  break;
-	case 'G':		*//* set the value of the CPU registers - return OK */
-/*      printf("G and so on\n");
-	  hex2mem (ptr, (char *) registers, NUMREGBYTES, 0);
-	  strcpy (remcomOutBuffer, "OK");
-	  break;
-	case 'P':		*//* set the value of a single CPU register - return OK */
-/*	  {
-        printf("P and so on\n");
-	    int regno;
-
-	    if (hexToInt (&ptr, &regno) && *ptr++ == '=')
-	      if (regno >= 0 && regno < NUMREGS)
-		{
-		  hex2mem (ptr, (char *) &registers[regno], 4, 0);
-		  strcpy (remcomOutBuffer, "OK");
-		  break;
-		}
-
-	    strcpy (remcomOutBuffer, "E01");
-	    break;
-	  }
-*/
-	  /* mAA..AA,LLLL  Read LLLL bytes at address AA..AA */
-/*	case 'm':
-      printf("m and so on\n");
-*/	  /* TRY TO READ %x,%x.  IF SUCCEED, SET PTR = 0 */
-/*	  if (hexToInt (&ptr, &addr))
-	    if (*(ptr++) == ',')
-	      if (hexToInt (&ptr, &length))
-		{
-		  ptr = 0;
-		  mem_err = 0;
-		  mem2hex ((char *) addr, remcomOutBuffer, length, 1);
-		  if (mem_err)
-		    {
-		      strcpy (remcomOutBuffer, "E03");
-		      debug_error ("memory fault");
-		    }
-		}
-
-	  if (ptr)
-	    {
-	      strcpy (remcomOutBuffer, "E01");
-	    }
-	  break;
-
-*/	  /* MAA..AA,LLLL: Write LLLL bytes at address AA.AA return OK */
-/*	case 'M':
-      printf("M and so on\n");
-*/	  /* TRY TO READ '%x,%x:'.  IF SUCCEED, SET PTR = 0 */
-/*	  if (hexToInt (&ptr, &addr))
-	    if (*(ptr++) == ',')
-	      if (hexToInt (&ptr, &length))
-		if (*(ptr++) == ':')
-		  {
-		    mem_err = 0;
-		    hex2mem (ptr, (char *) addr, length, 1);
-
-		    if (mem_err)
-		      {
-			strcpy (remcomOutBuffer, "E03");
-			debug_error ("memory fault");
-		      }
-		    else
-		      {
-			strcpy (remcomOutBuffer, "OK");
-		      }
-
-		    ptr = 0;
-		  }
-	  if (ptr)
-	    {
-	      strcpy (remcomOutBuffer, "E02");
-	    }
-	  break;
-
-*/	  /* cAA..AA    Continue at address AA..AA(optional) */
-	  /* sAA..AA   Step one instruction from AA..AA(optional) */
-/*	case 's':
-      printf("s and so on\n");
-	  stepping = 1;
-	case 'c':
-      printf("c and so on\n");
-*/	  /* try to read optional parameter, pc unchanged if no parm */
-/*	  if (hexToInt (&ptr, &addr))
-	    registers[PC] = addr;
-////	  newPC = registers[PC];
-
-*/	  /* clear the trace bit */
-////	  registers[PS] &= 0xfffffeff;
-
-	  /* set the trace bit if we're stepping */
-/*	  if (stepping)
-	    registers[PS] |= 0x100;
-
-	  _returnFromException ();	*//* this is a jump */
-/*	  break;
-
-*/	  /* kill the program */
-/*	case 'k':		*//* do nothing */
-/*      printf("k and so on\n");
-#if 0
-*/	  /* Huh? This doesn't look like "nothing".
-	     m68k-stub.c and sparc-stub.c don't have it.  */
-/*	  BREAKPOINT ();
-#endif
-	  break;
-	}*/			/* switch */
-
-      /* reply to the request */
-    ////  putpacket ((unsigned char *)remcomOutBuffer);
-    ////}
+    printf("\n\n\n          End of handle_exeption\n\n");
 }
 
 /* this function is used to set up exception handlers for tracing and
