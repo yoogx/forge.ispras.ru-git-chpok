@@ -141,26 +141,26 @@ pok_ret_t pok_partition_thread_create (pok_thread_id_t*         thread_id,
    }
 
    if (attr->stack_size != POK_USER_STACK_SIZE) {
-      return POK_ERRNO_PARAM; // XXX refine error codes
+      return POK_ERRNO_PARAM;
    }
    if (attr->period == 0) {
-       return POK_ERRNO_PARAM; // XXX same
+       return POK_ERRNO_PARAM;
    }
    if (attr->time_capacity == 0) {
-       return POK_ERRNO_EINVAL; // XXX same
+       return POK_ERRNO_PARAM;
    }
    if (attr->time_capacity > 0 && attr->period > 0 && attr->time_capacity > attr->period) {
        // for periodic process, time capacity <= period
-       return POK_ERRNO_EINVAL; // XXX same
+       return POK_ERRNO_PARAM;
    }
    if (attr->time_capacity < 0 && attr->period > 0) {
        // periodic process must have definite time capacity
-       return POK_ERRNO_EINVAL; // XXX same
+       return POK_ERRNO_PARAM;
    }
 
    // do at least basic check of entry point
    if (!POK_CHECK_VPTR_IN_PARTITION(partition_id, attr->entry)) {
-      return POK_ERRNO_EINVAL;
+      return POK_ERRNO_PARAM;
    }
 
    id = pok_partitions[partition_id].thread_index++;
@@ -331,7 +331,9 @@ pok_ret_t pok_thread_delayed_start (pok_thread_id_t id, int64_t ms)
 
         //the preemption is always enabled so
             // XXX no, it isn't
-        pok_sched();
+        if (POK_CURRENT_PARTITION.lock_level == 0) {
+            pok_sched();
+        }
     } else { //the partition mode is cold or warm start
         thread->state = POK_STATE_DELAYED_START;
         thread->wakeup_time = ms; // temporarly storing the delay, see set_partition_mode
@@ -404,7 +406,9 @@ pok_ret_t pok_thread_set_priority(pok_thread_id_t id, uint32_t priority)
     thread->priority = priority;
     /* preemption is always enabled so ... */
     // XXX no, it isn't
-    pok_sched();
+    if (POK_CURRENT_PARTITION.lock_level == 0) {
+        pok_sched();
+    }
     return POK_ERRNO_OK;
 }
 
@@ -440,7 +444,9 @@ pok_ret_t pok_thread_resume(pok_thread_id_t id)
 
     /* preemption is always enabled */
     // XXX no, it isn't
-    pok_sched();
+    if (POK_CURRENT_PARTITION.lock_level == 0) {
+        pok_sched();
+    }
     return POK_ERRNO_OK;
 }
 
