@@ -52,7 +52,7 @@ int getchar2(void);
 void monitor();
 struct  regs{
     uint32_t r1;
-    uint32_t offset2;
+    uint32_t offset1;
     uint32_t cr;
     uint32_t r0;
     uint32_t r2;
@@ -71,20 +71,30 @@ struct  regs{
     uint32_t xer;
     uint32_t srr0; // == pc
     uint32_t srr1;
+    uint32_t r14;
+    uint32_t r15;
+    uint32_t r16;
+    uint32_t r17;
+    uint32_t r18;
+    uint32_t r19;
+    uint32_t r20;
+    uint32_t r21;
+    uint32_t r22;
+    uint32_t r23;
+    uint32_t r24;
+    uint32_t r25;
+    uint32_t r26;
+    uint32_t r27;
+    uint32_t r28;
+    uint32_t r29;
+    uint32_t r30;
+    uint32_t r31;
+    uint32_t offset2;
     uint32_t offset3;
     uint32_t offset4;
     uint32_t offset5;
     uint32_t offset6;
-    uint32_t offset7;
     uint32_t lr;
-    uint32_t offset8;
-    uint32_t offset9;
-    uint32_t offset10;
-    uint32_t offset11;
-    uint32_t offset12;
-    uint32_t offset13;
-    uint32_t offset14;
-    uint32_t offset15;
 };
 
 void handle_exception (int exceptionVector, struct regs * ea);
