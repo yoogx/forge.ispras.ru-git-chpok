@@ -505,9 +505,13 @@ pok_ret_t pok_thread_suspend(int64_t ms)
     if (pok_thread_is_periodic(thread)) {
         return POK_ERRNO_MODE;
     }
+    
+    if (ms == 0) {
+        return POK_ERRNO_OK;
+    }
 
     // TODO find a better way
-    uint64_t wakeup = ms >= 0 ? POK_GETTICK() + (uint64_t) ms : (uint64_t) -1;
+    uint64_t wakeup = ms > 0 ? POK_GETTICK() + (uint64_t) ms : (uint64_t) -1;
 
     thread->suspended = TRUE;
     thread->suspend_timeout = wakeup;
