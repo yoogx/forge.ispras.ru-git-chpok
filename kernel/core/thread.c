@@ -466,10 +466,16 @@ pok_ret_t pok_thread_suspend_target(pok_thread_id_t id)
         return POK_ERRNO_THREADATTR;
     }
 
-    // TODO if preemption is disabled
+    // if preemption is disabled
     // and it's error handling process
     // and target is the process that started the EH process
     // it's an error
+    if (POK_CURRENT_PARTITION.lock_level > 0 &&
+        pok_thread_is_error_handling(&POK_CURRENT_THREAD) &&
+        id == pok_partitions[thread->partition].prev_thread)
+    {
+        return POK_ERRNO_MODE;
+    }
     
     // can't suspend stopped (dormant) process
     if (thread->state == POK_STATE_STOPPED) {
