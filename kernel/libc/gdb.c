@@ -28,25 +28,12 @@ void pok_gdb_thread(void)
     for (;;) {
         if (data_to_read_1() == 1) {
             printf("\n\nIt works!!!!!\n\n");
-            /*
-             * Set all partition on pause
-             */
+
             pok_arch_preempt_disable();         
-            for (int i=0; i < POK_CONFIG_NB_PARTITIONS; i++){
-                if (!pok_partitions[i].is_paused){ 
-                    partiton_on_pause[i]=FALSE;
-                    pok_partitions[i].is_paused=TRUE;
-                }
-            }
-            
             gdb();
-            
-            for (int i=0; i < POK_CONFIG_NB_PARTITIONS; i++){
-                if (!partiton_on_pause[i]){ 
-                    pok_partitions[i].is_paused=FALSE;
-                }
-            }
             pok_arch_preempt_enable();        
+           
+            
         }
     }
     printf("End of gdb func\n");

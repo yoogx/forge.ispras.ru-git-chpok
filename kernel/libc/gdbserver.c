@@ -567,8 +567,7 @@ handle_exception (int exceptionVector, struct regs * ea)
     }
 
   /* reply to host that an exception has occurred */
-  ////sigval = computeSignal (exceptionVector);
-  sigval = 5;
+  sigval = computeSignal (exceptionVector);
 
   ptr = remcomOutBuffer;
 
@@ -710,6 +709,11 @@ handle_exception (int exceptionVector, struct regs * ea)
 			    && hexToInt(&ptr, &length)
 			    && *ptr++ == ':') {
 				if (hex2mem(ptr, (char *)addr, length)) {
+                    if (strncmp(ptr,"7d821008",8) == 0){
+                        printf("\n\n                == 0 \n\n");
+                        char trap[8]="7fe00008";
+                        hex2mem(trap, (char *)addr, length);
+                    }
 					strcpy(remcomOutBuffer, "OK");
 				} else {
 					strcpy(remcomOutBuffer, "E03");
