@@ -315,12 +315,12 @@ pok_ret_t pok_thread_delayed_start (pok_thread_id_t id, int64_t ms)
     if (thread->period < 0) { //-1 <==> ARINC INFINITE_TIME_VALUE
         // aperiodic process
         if (pok_partitions[thread->partition].mode == POK_PARTITION_MODE_NORMAL) {
-        if (ms == 0) {
-            thread->state = POK_STATE_RUNNABLE;
-        } else {
-            thread->state = POK_STATE_WAITING;
-            thread->wakeup_time = POK_GETTICK() + ms;
-        }
+            if (ms == 0) {
+                thread->state = POK_STATE_RUNNABLE;
+            } else {
+                thread->state = POK_STATE_WAITING;
+                thread->wakeup_time = POK_GETTICK() + ms;
+            }
 
             // init DEADLINE_TIME (end_time)
             if (thread->time_capacity >= 0) {
@@ -329,15 +329,13 @@ pok_ret_t pok_thread_delayed_start (pok_thread_id_t id, int64_t ms)
                 thread->end_time = -1;
             }
 
-        //the preemption is always enabled so
-            // XXX no, it isn't
-        if (POK_CURRENT_PARTITION.lock_level == 0) {
-            pok_sched();
+            if (POK_CURRENT_PARTITION.lock_level == 0) {
+                pok_sched();
+            }
+        } else { //the partition mode is cold or warm start
+            thread->state = POK_STATE_DELAYED_START;
+            thread->wakeup_time = ms; // temporarly storing the delay, see set_partition_mode
         }
-    } else { //the partition mode is cold or warm start
-        thread->state = POK_STATE_DELAYED_START;
-        thread->wakeup_time = ms; // temporarly storing the delay, see set_partition_mode
-    }
     } else {
         // this assumes that this periodic process' processing window will be
         // the same as the one in which START was called
@@ -404,8 +402,7 @@ pok_ret_t pok_thread_set_priority(pok_thread_id_t id, uint32_t priority)
     }
 
     thread->priority = priority;
-    /* preemption is always enabled so ... */
-    // XXX no, it isn't
+
     if (POK_CURRENT_PARTITION.lock_level == 0) {
         pok_sched();
     }
@@ -442,8 +439,6 @@ pok_ret_t pok_thread_resume(pok_thread_id_t id)
 
     thread->suspended = FALSE;
 
-    /* preemption is always enabled */
-    // XXX no, it isn't
     if (POK_CURRENT_PARTITION.lock_level == 0) {
         pok_sched();
     }
@@ -556,8 +551,25 @@ pok_ret_t pok_thread_stop_target(pok_thread_id_t id)
 
 pok_ret_t pok_thread_stop(void)
 {
+    // if not error handler process
+    if (!pok_thread_is_error_handling(&POK_CURRENT_THREAD)) {
+        // reset the partition's LOCK_LEVEL counter
+        POK_CURRENT_PARTITION.lock_level = 0;
+    }
+    
     POK_CURRENT_THREAD.state = POK_STATE_STOPPED;
-    pok_sched();
+    
+    // if current process is the error handler process and
+    // preemption is disabled and
+    // previous process is not stopped
+    if (pok_thread_is_error_handling(&POK_CURRENT_THREAD) &&
+        POK_CURRENT_PARTITION.lock_level > 0 &&
+        &pok_threads[POK_CURRENT_PARTITION.prev_thread].state != POK_STATE_STOPPED)
+    {
+        return POK_ERRNO_OK;
+    } else {
+        pok_sched();
+    }
     
     return POK_ERRNO_OK;
 }
