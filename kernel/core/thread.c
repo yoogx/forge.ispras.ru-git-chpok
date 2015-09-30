@@ -545,6 +545,15 @@ pok_ret_t pok_thread_stop_target(pok_thread_id_t id)
     }
 
     thread->state = POK_STATE_STOPPED;
+    
+    // if current process is error handler and
+    // PROCESS_ID is process which the error handler preempted
+    if (pok_thread_is_error_handling(&POK_CURRENT_THREAD) &&
+        id == pok_partitions[thread->partition].prev_thread)
+    {
+        // reset the partition's LOCK_LEVEL counter
+        POK_CURRENT_PARTITION.lock_level = 0;
+    }
 
     return POK_ERRNO_OK;
 }
