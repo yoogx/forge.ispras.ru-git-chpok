@@ -10,19 +10,21 @@ static char buf[BUFLEN];
 struct buff {
     char buf[BUFLEN];
     int size;
+    pok_bool_t head;
+    pok_bool_t tail;
 };
 
 /*
  * TRUE if we have more than 10 written commands
  */
 
-pok_bool_t more_than_BUFMEM = FALSE;
+pok_bool_t more_than_2_in_MEM = FALSE;
 
-struct buff previous_buffers[BUFMEM];
+struct buff buffers[BUFMEM];
 
-int current_buf_number = 0;       //Current number in previous_buffers that we have printed on the screen
+int current_buf_number = -1;       //Current number in buffers that we have printed on the screen
 
-int number_of_last_buf = 0;          //Position in buf memory of the last written buf
+int number_of_last_buf = -1;          //Position in buf memory of the last written buf
 
 void buf_transfer(char *buf1,char *buf2,int j){
     memset(buf2, 0, BUFLEN);
@@ -31,15 +33,17 @@ void buf_transfer(char *buf1,char *buf2,int j){
     }
 }
 
-int left_number_in_mem(int mem){
-    if (mem != 0) 
+int upper_number_in_mem(int mem){
+    if (buffers[mem].tail) 
+        return mem;
+    if (mem > 0)
         return mem - 1;
-    if (more_than_BUFMEM)
-        return BUFMEM - 1;
-    return mem;
+    return BUFMEM - 1;
 }
 
-int right_number_in_mem(int mem){
+int lower_number_in_mem(int mem){
+    if (buffers[mem].head)
+        return mem;
     return (mem + 1) % BUFMEM;
 }
 
@@ -82,44 +86,83 @@ readline(const char *prompt)
             if (c != 'A' && c !='B') { //Check that second simbol != 'A' or 'B'
                     i++;
                     if (c == '\r'  || c == '\n' ){//if c=Enter or end of string
-                            printf("\n");
-                            buf[i] = 0;
-                            buf_transfer(buf,previous_buffers[number_of_last_buf].buf,i - 1);
-                            previous_buffers[number_of_last_buf].size = i - 1;
-                            if (number_of_last_buf + 1 == BUFMEM) more_than_BUFMEM = TRUE;
+                        printf("\n");
+                        if (number_of_last_buf != -1){
+                            int prev=number_of_last_buf;
                             number_of_last_buf = (number_of_last_buf + 1) % BUFMEM;
-                            current_buf_number = number_of_last_buf;
-                            return buf;
+                            current_buf_number = BUFMEM;
+                            if (more_than_2_in_MEM){
+                                buffers[(number_of_last_buf + 1) % BUFMEM].tail=buffers[number_of_last_buf].tail | buffers[(number_of_last_buf + 1) % BUFMEM].tail;
+                                buffers[prev].tail=FALSE;
+                                buffers[number_of_last_buf].tail=FALSE;
+                            }
+                            buffers[prev].head=FALSE;
+                            if (number_of_last_buf > 1)
+                                more_than_2_in_MEM=TRUE;
+                            }else{
+                                number_of_last_buf = (number_of_last_buf + 1) % BUFMEM;
+                                current_buf_number = BUFMEM;
+                                buffers[0].tail=TRUE;
+                            }
+                        buf[i] = 0;
+                        buf_transfer(buf,buffers[number_of_last_buf].buf,i - 1);
+                        buffers[number_of_last_buf].size = i - 1;
+                        buffers[number_of_last_buf].head=TRUE;
+                        return buf;
                     }
                     buf[i++] = c;
                     printf("%c",buf[i - 1]);
                     continue;
             }
-            if (c == 'A'){
-                buf_transfer(previous_buffers[left_number_in_mem(current_buf_number)].buf,buf,previous_buffers[left_number_in_mem(current_buf_number)].size);
-                clear_console(i + strlen(prompt));
-                i = previous_buffers[left_number_in_mem(current_buf_number)].size + 1;
-                update_console(buf,i,prompt);
-                current_buf_number = left_number_in_mem(current_buf_number);
-            }else if (c == 'B'){
-                buf_transfer(previous_buffers[right_number_in_mem(current_buf_number)].buf,buf,previous_buffers[right_number_in_mem(current_buf_number)].size);
-                clear_console(i + strlen(prompt));
-                i = previous_buffers[right_number_in_mem(current_buf_number)].size + 1;
-                update_console(buf,i,prompt);
-                if (more_than_BUFMEM || current_buf_number + 2 < number_of_last_buf)
-                    current_buf_number = right_number_in_mem(current_buf_number);
+            if (c == 'A' && current_buf_number != -1){
+                if (current_buf_number == BUFMEM){
+                    buf_transfer(buffers[number_of_last_buf].buf,buf,buffers[number_of_last_buf].size);
+                    clear_console(i + strlen(prompt));
+                    i = buffers[number_of_last_buf].size + 1;
+                    update_console(buf,i,prompt);
+                    current_buf_number = number_of_last_buf;
+                }else{    
+                    buf_transfer(buffers[upper_number_in_mem(current_buf_number)].buf,buf,buffers[upper_number_in_mem(current_buf_number)].size);
+                    clear_console(i + strlen(prompt));
+                    i = buffers[upper_number_in_mem(current_buf_number)].size + 1;
+                    update_console(buf,i,prompt);
+                    current_buf_number = upper_number_in_mem(current_buf_number);
             }
+            }else if (c == 'B' && current_buf_number != -1 && current_buf_number != BUFMEM){
+                buf_transfer(buffers[lower_number_in_mem(current_buf_number)].buf,buf,buffers[lower_number_in_mem(current_buf_number)].size);
+                clear_console(i + strlen(prompt));
+                i = buffers[lower_number_in_mem(current_buf_number)].size + 1;
+                update_console(buf,i,prompt);
+                current_buf_number = lower_number_in_mem(current_buf_number);
+            }
+            clear_console(i + strlen(prompt));
+            update_console(buf,i,prompt);
         }  else if (c >= ' ' && i < BUFLEN - 1) {//if c=simbol
             printf("%c",c);
             buf[i++] = c;
         }  else if (c == '\r'  || c == '\n' ) {//if c=Enter or end of string
             printf("\n");
+            if (number_of_last_buf != -1){
+                int prev=number_of_last_buf;
+                number_of_last_buf = (number_of_last_buf + 1) % BUFMEM;
+                current_buf_number = BUFMEM;
+                if (more_than_2_in_MEM){
+                    buffers[(number_of_last_buf + 1) % BUFMEM].tail=buffers[number_of_last_buf].tail | buffers[(number_of_last_buf + 1) % BUFMEM].tail;
+                    buffers[prev].tail=FALSE;
+                    buffers[number_of_last_buf].tail=FALSE;
+                }
+                buffers[prev].head=FALSE;
+                if (number_of_last_buf > 1)
+                    more_than_2_in_MEM=TRUE;
+            }else{
+                number_of_last_buf = (number_of_last_buf + 1) % BUFMEM;
+                current_buf_number = BUFMEM;
+                buffers[0].tail=TRUE;
+            }
             buf[i] = 0;
-            buf_transfer(buf,previous_buffers[number_of_last_buf].buf,i - 1);
-            previous_buffers[number_of_last_buf].size = i - 1;
-            if (number_of_last_buf + 1 == BUFMEM) more_than_BUFMEM = TRUE;
-            number_of_last_buf = (number_of_last_buf + 1) % BUFMEM;
-            current_buf_number = number_of_last_buf;
+            buf_transfer(buf,buffers[number_of_last_buf].buf,i - 1);
+            buffers[number_of_last_buf].size = i - 1;
+            buffers[number_of_last_buf].head=TRUE;
             return buf;
         }
     }
