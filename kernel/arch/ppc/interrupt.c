@@ -70,9 +70,12 @@ void pok_int_program(struct regs * ea) {
 
 ////printf("ea = 0x%lx\n", ea);
 
-////    (void) ea;
-    if (data_to_read_1() == 1){
-    k++;
+//// 0x10200 = adress of pok_trap in entry.S
+    if (ea->srr0 == 0x10200){
+        k++;
+        handle_exception(17,ea); 
+    }else{
+        handle_exception(3,ea); 
     }
     //~ printf("\n\n            In pok_int_programm:\n");
     //~ printf("addr = 0x%lx\n",(uint32_t) ea);
@@ -121,7 +124,6 @@ void pok_int_program(struct regs * ea) {
     //~ printf("offset6 = 0x%lx\n",ea->offset6);
     //~ printf("lr = 0x%lx\n",ea->lr);
 
-    handle_exception(17,ea); 
     printf("\n          Exit from handle exeprion\n");
 
     if (k == 1){
@@ -131,10 +133,6 @@ void pok_int_program(struct regs * ea) {
         ea->srr0+=4;
     }    
     k=0;
-////    while (k != 1){
-////        
-////    }
-////    asm("trap");
 
 ////    pok_fatal("Program interrupt");
 }

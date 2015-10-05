@@ -6,6 +6,8 @@
 #include <core/partition.h>
 
 
+void pok_trap();
+
 static pok_bool_t *partiton_on_pause;
 
 
@@ -13,7 +15,7 @@ void
 gdb()
 {
     printf("Welcome to GDB server!\n");
-    asm("trap");
+    pok_trap();
     printf("Exit from GDB server!\n");
 }
 

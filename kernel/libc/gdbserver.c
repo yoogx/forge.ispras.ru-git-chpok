@@ -95,8 +95,6 @@
  *
  ****************************************************************************/
 
-//#include <stdio.h>
-//#include <libc/string.h>
 #include <libc.h>
 #include <bsp.h>
 
@@ -433,6 +431,9 @@ computeSignal (int exceptionVector)
     case 16:
       sigval = 7;
       break;			/* coprocessor error */
+    case 17:            /* SIGINT  */
+      sigval = 2;
+      break;
     default:
       sigval = 7;		/* "software generated" */
     }
@@ -467,6 +468,11 @@ hexToInt (char **ptr, int *intValue)
 
   return (numChars);
 }
+
+char instr[8]="00000000";
+int addr_instr=0;
+char trap[8]="7fe00008";
+
 
 /*
  * This function does all command procesing for interfacing to gdb.
@@ -566,6 +572,11 @@ handle_exception (int exceptionVector, struct regs * ea)
 	      exceptionVector, registers[pc], registers[pc]);
     }
 
+  if (addr_instr != 0){
+    hex2mem(instr, (char *) (addr_instr), 4);
+    addr_instr=0;
+  }
+  
   /* reply to host that an exception has occurred */
   sigval = computeSignal (exceptionVector);
 
@@ -711,7 +722,6 @@ handle_exception (int exceptionVector, struct regs * ea)
 				if (hex2mem(ptr, (char *)addr, length)) {
                     if (strncmp(ptr,"7d821008",8) == 0){
                         printf("\n\n                == 0 \n\n");
-                        char trap[8]="7fe00008";
                         hex2mem(trap, (char *)addr, length);
                     }
 					strcpy(remcomOutBuffer, "OK");
@@ -752,6 +762,14 @@ handle_exception (int exceptionVector, struct regs * ea)
             return;
 
 		case 's':
+            mem2hex((char *)(registers[pc]+4), instr,4);            
+            hex2mem(trap, (char *)(registers[pc]+4), 4);
+            addr_instr = registers[pc] + 4;
+           
+				////flush_icache_range(addr, addr+length);
+
+                
+
 ////			kgdb_flush_cache_all();
 ////			registers->msr |= MSR_SE;
 ////#if 0
