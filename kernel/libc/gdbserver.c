@@ -474,6 +474,19 @@ int addr_instr=0;
 char trap[8]="7fe00008";
 
 
+
+#define MSR_SE_LG	10		/* Single Step */
+#define __MASK(X)	(1<<(X))
+#define MSR_SE		__MASK(MSR_SE_LG)	/* Single Step */
+
+static inline void set_msr(int msr)
+{
+	asm volatile("mtmsr %0" : : "r" (msr));
+}
+
+
+
+
 /*
  * This function does all command procesing for interfacing to gdb.
  */
@@ -771,9 +784,10 @@ handle_exception (int exceptionVector, struct regs * ea)
                 
 
 ////			kgdb_flush_cache_all();
-////			registers->msr |= MSR_SE;
+////			registers[msr] |= MSR_SE;
+            
 ////#if 0
-////			set_msr(msr | MSR_SE);
+////			set_msr(registers[msr]);
 ////#endif
 ////			unlock_kernel();
 ////			kgdb_active = 0;
