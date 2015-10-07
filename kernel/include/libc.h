@@ -46,7 +46,6 @@ void *memchr(const void *s, int c, size_t n);
 int printf(const char *format, ...)__attribute__ ((format(printf, 1, 2)));
 void snprintf(char *dst, unsigned size, const char *format, ...) __attribute__ ((format(printf, 3, 4)));
 char * readline(const char *prompt);
-char * readline2(const char *prompt);
 int getchar(void);
 int getchar2(void);
 void monitor();
