@@ -57,7 +57,7 @@ void REPORT_APPLICATION_MESSAGE (MESSAGE_ADDR_TYPE    MESSAGE,
                                  MESSAGE_SIZE_TYPE    LENGTH,
                                  RETURN_CODE_TYPE     *RETURN_CODE )
 {
-   if (LENGTH < 0) {
+   if (LENGTH < 0 || LENGTH > MAX_ERROR_MESSAGE_SIZE) {
        *RETURN_CODE = INVALID_PARAM;
        return;
    }
@@ -80,7 +80,7 @@ void CREATE_ERROR_HANDLER (SYSTEM_ADDRESS_TYPE  ENTRY_POINT,
         MAP_ERROR(POK_ERRNO_EXISTS, NO_ACTION);
         MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
         MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG);
-        MAP_ERROR_DEFAULT(NOT_AVAILABLE);
+        MAP_ERROR_DEFAULT(INVALID_CONFIG);
     }
 }
 
@@ -114,21 +114,19 @@ void RAISE_APPLICATION_ERROR (ERROR_CODE_TYPE            ERROR_CODE,
                               ERROR_MESSAGE_SIZE_TYPE    LENGTH,
                               RETURN_CODE_TYPE           *RETURN_CODE)
 {
-  if (LENGTH > 64)
-   {
-      *RETURN_CODE = INVALID_PARAM;
-      return;
-   }
-
-   if ( (ERROR_CODE != APPLICATION_ERROR))
-   {
-      *RETURN_CODE = INVALID_PARAM;
-      return;
-   }
-
-   pok_error_raise_application_error ((char*) MESSAGE, LENGTH);
-
-   *RETURN_CODE = NO_ERROR;
+    if (LENGTH < 0 || LENGTH > MAX_ERROR_MESSAGE_SIZE) {
+        *RETURN_CODE = INVALID_PARAM;
+        return;
+    }
+    
+    if ((ERROR_CODE != APPLICATION_ERROR)) {
+        *RETURN_CODE = INVALID_PARAM;
+        return;
+    }
+    
+    pok_error_raise_application_error ((char*) MESSAGE, LENGTH);
+    
+    *RETURN_CODE = NO_ERROR;
 }
 
 #endif
