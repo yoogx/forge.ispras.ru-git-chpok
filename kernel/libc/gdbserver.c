@@ -121,12 +121,12 @@ extern void exceptionHandler();	/* assign an exception handler   */
 
 void putDebugChar(char c){
     pok_cons_write_1(&c,1);
-    pok_cons_write(&c,1);
+    ////pok_cons_write(&c,1);
 }
 
 int getDebugChar(){
     int inf=getchar2();
-    printf("%c",inf);
+    ////printf("%c",inf);
     return inf;
 }
 
@@ -192,7 +192,7 @@ static char remcomOutBuffer[BUFMAX];
 static void
 getpacket(char *buffer)
 {
-    printf("Lets getpacket <---\n");
+    ////printf("Lets getpacket <---\n");
 	unsigned char checksum;
 	unsigned char xmitcsum;
 	int i;
@@ -243,7 +243,7 @@ getpacket(char *buffer)
 			}
 		}
 	} while (checksum != xmitcsum);
-    printf("\n");
+    ////printf("\n");
 }
 
 
@@ -256,7 +256,7 @@ putpacket (unsigned char *buffer)
   unsigned char checksum;
   int count;
   char ch;
-  printf("Lets putpacket --->\n");
+  ////printf("Lets putpacket --->\n");
   /*  $<packet info>#<checksum>. */
   do
     {
@@ -279,7 +279,7 @@ putpacket (unsigned char *buffer)
 
     }
   while (getDebugChar () != '+');
-    printf("\n");
+    ////printf("\n");
 }
 
 void
@@ -581,8 +581,8 @@ handle_exception (int exceptionVector, struct regs * ea)
 
   if (1 == 1)////remote_debug)
     {
-      printf ("vector=%d, sr=0x%x, pc=0x%x\n",
-	      exceptionVector, registers[pc], registers[pc]);
+      ////printf ("vector=%d, sr=0x%x, pc=0x%x\n",
+	  ////    exceptionVector, registers[pc], registers[pc]);
     }
 
   if (addr_instr != 0){
@@ -709,7 +709,7 @@ handle_exception (int exceptionVector, struct regs * ea)
 
 		case 'm':	/* mAA..AA,LLLL  Read LLLL bytes at address AA..AA */
 				/* Try to read %x,%x.  */
-            printf("It's 'm'! \n");
+            ////printf("It's 'm'! \n");
 			ptr = &remcomInBuffer[1];
 
 			if (hexToInt(&ptr, &addr)
@@ -734,7 +734,7 @@ handle_exception (int exceptionVector, struct regs * ea)
 			    && *ptr++ == ':') {
 				if (hex2mem(ptr, (char *)addr, length)) {
                     if (strncmp(ptr,"7d821008",8) == 0){
-                        printf("\n\n                == 0 \n\n");
+                        ////printf("\n\n                == 0 \n\n");
                         hex2mem(trap, (char *)addr, length);
                     }
 					strcpy(remcomOutBuffer, "OK");
@@ -754,7 +754,7 @@ handle_exception (int exceptionVector, struct regs * ea)
             printf("\nContinue\n\n");
 			ptr = &remcomInBuffer[1];
 			if (hexToInt(&ptr, &addr)) {
-				printf("\nIn if\n");
+				////printf("\nIn if\n");
                 registers[pc]/*nip*/ = addr;
 			}
         
@@ -798,13 +798,13 @@ handle_exception (int exceptionVector, struct regs * ea)
 			break;
 		}			/* switch */
 		if (remcomOutBuffer[0] && 0 /*kdebug*/) {
-			printf("remcomInBuffer: %s\n", remcomInBuffer);
-			printf("remcomOutBuffer: %s\n", remcomOutBuffer);
+			////printf("remcomInBuffer: %s\n", remcomInBuffer);
+			////printf("remcomOutBuffer: %s\n", remcomOutBuffer);
 		}
 		/* reply to the request */
 		putpacket((unsigned char *)remcomOutBuffer);
 	} /* while(1) */
-    printf("\n\n\n          End of handle_exeption\n\n");
+    ////printf("\n\n\n          End of handle_exeption\n\n");
 }
 
 /* this function is used to set up exception handlers for tracing and
