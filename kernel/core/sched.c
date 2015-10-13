@@ -37,6 +37,11 @@
  **\\brief  Function for partitions and kernel scheduling
  **\\author Julien Delange
  */
+ 
+
+
+
+ 
 
 #include <config.h>
 
@@ -44,6 +49,7 @@
 
 #include <types.h>
 #include <arch.h>
+#include <bsp.h>
 
 #include <core/time.h>
 #include <core/sched.h>
@@ -117,7 +123,7 @@ static pok_bool_t pok_elect_partition(void)
     if (pok_sched_next_deadline > now) {
         return FALSE;
     }
-
+    
     pok_sched_current_slot = (pok_sched_current_slot + 1) % POK_CONFIG_SCHEDULING_NBSLOTS;
     if (pok_module_sched[pok_sched_current_slot].type != POK_SLOT_PARTITION) {
         pok_sched_next_deadline += pok_module_sched[pok_sched_current_slot].duration; 
@@ -366,6 +372,14 @@ void pok_sched()
 
 #endif
 
+#if defined(POK_NEEDS_GDB)
+
+        case POK_SLOT_GDB:
+            elected_thread = GDB_THREAD;
+            break;
+
+#endif        
+
 
 
         default:
@@ -375,7 +389,6 @@ void pok_sched()
     if (current_partition_on_pause == FALSE){
         pok_sched_context_switch(elected_thread);
     }else{
-        /*Wait in the monitor*/
         pok_sched_context_switch(MONITOR_THREAD);
     }
 }

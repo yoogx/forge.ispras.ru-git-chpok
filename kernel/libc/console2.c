@@ -10,11 +10,11 @@
 
 
 static int
-serial_proc_data(void) //Read data from DUART (1 word)
+serial_proc_data2(void) //Read data from DUART (1 word)
 {
-    if (!data_to_read_0())
+    if (!data_to_read_1())
         return -1;
-    return read_serial_0();
+    return read_serial_1();
 }
 
 
@@ -27,11 +27,11 @@ static struct {
 } cons;
 
 static void
-cons_intr() //read all elements from DUART
+cons_intr2() //read all elements from DUART
 {
     int c;
 
-    while ((c = serial_proc_data()) != -1) {
+    while ((c = serial_proc_data2()) != -1) {
         if (c == 0)
             continue;
         cons.buf[cons.wpos++] = c;
@@ -42,11 +42,11 @@ cons_intr() //read all elements from DUART
 
 // return the next input character from the console, or 0 if none waiting
 int
-cons_getc(void) //Get 1 element from cons
+cons_getc2(void) //Get 1 element from cons
 {
     int c;
 
-    cons_intr();
+    cons_intr2();
 
     // grab the next character from the input buffer.
     if (cons.rpos != cons.wpos) {
@@ -60,11 +60,11 @@ cons_getc(void) //Get 1 element from cons
 
 
 int
-getchar(void)
+getchar2(void)
 {
     int c;
     
-    while ((c = cons_getc()) == 0){
+    while ((c = cons_getc2()) == 0){
 //#ifdef POK_ARCH_X86
 #ifdef __i386__
         asm("hlt");

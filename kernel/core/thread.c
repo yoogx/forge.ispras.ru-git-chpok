@@ -102,6 +102,11 @@ void pok_thread_init(void)
 
    pok_monitor_thread_init();
 
+#ifdef POK_NEEDS_GDB
+   pok_gdb_thread_init();
+#endif
+
+
    for (i = 0; i < POK_CONFIG_NB_THREADS; ++i)
    {
       pok_threads[i].period                     = 0;

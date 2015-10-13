@@ -47,10 +47,14 @@ pok_ret_t pok_bsp_time_init ();
 
 bool_t pok_cons_write (const char* s,
                        size_t length);
+bool_t pok_cons_write_1 (const char* s,
+                       size_t length);
 
 
-int data_to_read();
-int read_serial();
+int data_to_read_0();
+int read_serial_0();
+int data_to_read_1();
+int read_serial_1();
 
 
 #ifdef POK_NEEDS_DEBUG

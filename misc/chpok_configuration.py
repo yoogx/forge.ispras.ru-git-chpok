@@ -77,6 +77,11 @@ class TimeSlotMonitor(TimeSlot):
 
     def get_kind_constant(self):
         return "POK_SLOT_MONITOR"
+class TimeSlotGDB(TimeSlot):
+    __slots__ = []
+
+    def get_kind_constant(self):
+        return "POK_SLOT_GDB"
 
 class Partition:
     __slots__ = [
@@ -383,6 +388,12 @@ TIMESLOT_MONITOR_TEMPLATE = """\
     },
 """
 
+TIMESLOT_GDB_TEMPLATE = """\
+    { .type = POK_SLOT_GDB,
+      .duration = %(duration)d,
+    },
+"""
+
 SAMPLING_PORT_TEMPLATE = """\
     {
         .header = {
@@ -546,6 +557,8 @@ def write_kernel_deployment_c(conf, f):
         total_threads += 1
 #Add 1 thread for monitor
     total_threads +=1
+#Add 1 thread for gdb
+    total_threads +=1
     
     p("uint8_t pok_config_nb_threads = %d;" % total_threads)
     
@@ -631,6 +644,11 @@ def write_kernel_deployment_c(conf, f):
         elif isinstance(slot, TimeSlotMonitor):
             pass
             p(TIMESLOT_MONITOR_TEMPLATE % dict(
+                duration=slot.duration
+            ))
+        elif isinstance(slot, TimeSlotGDB):
+            pass
+            p(TIMESLOT_GDB_TEMPLATE % dict(
                 duration=slot.duration
             ))
         else:
