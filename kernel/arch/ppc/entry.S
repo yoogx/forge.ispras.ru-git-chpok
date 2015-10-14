@@ -1,4 +1,5 @@
 #include "msr.h"
+#include "fpscr.h"
 #include "reg.h"
 
 /*
@@ -116,10 +117,10 @@ pok_arch_rfi:
         mfsrr0 %r3; /* EA of exception */
 
 
-#define SAVE_FP_FOR_INT(num) stfd %f##num,(152+8*num)(%r1)
-#define LOAD_FP_FOR_INT(num) lfd %f##num,(152+8*num)(%r1)
+#define SAVE_FP_FOR_INT(num) stfd %f##num,(156+8*num)(%r1)
+#define LOAD_FP_FOR_INT(num) lfd %f##num,(156+8*num)(%r1)
 
-#define FRAME_SIZE_FOR_INT 168 /*96+72*/
+#define FRAME_SIZE_FOR_INT 172 /*96+76*/
         /* r4 is available, r1 is set, r3 contains cr,
            sprg3 contains r3 and sprg2 contains r2.  */
 #define SAVE_REGS_FOR_INT                               \
@@ -168,7 +169,11 @@ pok_arch_rfi:
         stw     %r28,136(%r1); /* r28 */                \
         stw     %r29,140(%r1); /* r29 */                \
         stw     %r30,144(%r1); /* r30 */                \
-        stw     %r31,148(%r1); /* r31 */
+        stw     %r31,148(%r1); /* r31 */				\
+        mffs	%f1;		   /* FPSCR */				\
+        SAVE_FP_FOR_INT(1);    /* f1 */					\
+        lwz		%r0,168(%r1);							\
+        stw     %r0,152(%r1);  /* FPSCR */				\
         
 
         
@@ -295,6 +300,17 @@ _pok_reset:
         blt 1b
 2:
 */
+		/* Enable floating point bit in MSR */
+        mfmsr %r7
+        ori %r7,%r7,MSR_FP
+        mtmsr %r7
+		/* Enable floating point exceptions in FPSCR */
+        lis		%r7,FPSCR_AEE@h
+        ori		%r7,%r7,FPSCR_AEE@l
+        stw		%r7,12(%r1)
+        lfd		%f0,8(%r1)
+        mtfsf	0xFF,%f0
+
         /* Call C function */
         bl pok_boot
 1:      b  1b
