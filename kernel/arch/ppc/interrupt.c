@@ -66,12 +66,17 @@ void pok_int_alignment(uintptr_t ea) {
 
 int k=0;
 
+extern void * pok_trap_addr;
+extern void * pok_trap;
+
+
 void pok_int_program(struct regs * ea) {
 
 ////printf("ea = 0x%lx\n", ea);
 
-//// 0x10200 = adress of pok_trap in entry.S
-    if (ea->srr0 == 0x10200){
+//// pok_trap_addr = address of pok_trap in entry.S
+
+    if (ea->srr0 == (unsigned) (& pok_trap_addr)){
         k++;
         handle_exception(17,ea); 
     }else{

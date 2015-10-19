@@ -34,14 +34,25 @@ static char *const   vga_base = (char *)0xb8000;
 struct s_cons        g_cons;
 
 #if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS) || defined (POK_NEEDS_SERIAL)
-#define  COM1      0x3F8
+#define  COM0      0x3F8
+#define  COM1      0x2f8
 
-int is_transmit_empty() {
+int is_transmit_empty_0() {
+   return inb(COM0 + 5) & 0x20;
+}
+
+int is_transmit_empty_1() {
    return inb(COM1 + 5) & 0x20;
 }
 
-void write_serial(char a) {
-   while (is_transmit_empty() == 0);
+void write_serial_0(char a) {
+   while (is_transmit_empty_0() == 0);
+
+   outb(COM0,a);
+}
+
+void write_serial_1(char a) {
+   while (is_transmit_empty_1() == 0);
 
    outb(COM1,a);
 }
@@ -53,14 +64,31 @@ void write_serial(char a) {
 #define   COM_LSR_DATA	0x01	//   Data available
 #define   COM_LSR_RFE	0x80	//   Error in Received FIFO
 	
-int data_to_read() //return 0 if no data to read
+int data_to_read_0() //return 0 if no data to read
+{
+	if (!(inb(COM0+COM_LSR) & COM_LSR_DATA))
+		return 0;
+	return 1;
+}
+
+int data_to_read_1() //return 0 if no data to read
 {
 	if (!(inb(COM1+COM_LSR) & COM_LSR_DATA))
 		return 0;
 	return 1;
 }
 
-int read_serial()
+int read_serial_0()
+{
+	int data;
+	data=inb(COM0+COM_RX);
+	if ( !(inb(COM0+COM_LSR) & COM_LSR_RFE) )
+		return data;
+	return -1;
+
+}
+
+int read_serial_1()
 {
 	int data;
 	data=inb(COM1+COM_RX);
@@ -82,7 +110,7 @@ void pok_cons_print_char (const char c)
 #endif
 
 #if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS) || defined (POK_NEEDS_SERIAL)
-   write_serial (c);
+   write_serial_0 (c);
 #endif
 
 #ifdef POK_NEEDS_CONSOLE
@@ -210,6 +238,21 @@ pok_bool_t pok_cons_write (const char *s, size_t length)
       ++i;
    }
    return res;
+}
+
+pok_bool_t pok_cons_write_1 (const char *s, size_t length)
+{
+    char c;
+    for (; length > 0; length--) {
+        c = *s++;
+        if (c != '\n')
+            write_serial_1(c);
+        else {
+            write_serial_1('\r');
+            write_serial_1('\n');
+        }
+    }
+   return 0;
 }
 
 #ifdef POK_NEEDS_CONSOLE

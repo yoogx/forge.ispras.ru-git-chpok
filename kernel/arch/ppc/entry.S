@@ -252,12 +252,15 @@ pok_arch_rfi_for_int:
 
 
         . = base + 0x200
+        .global pok_trap_addr
+pok_trap_addr:
         .global pok_trap
 pok_trap:
         trap
         blr
 
 failed: b failed
+
 
         . = base + 0x250
         .globl _pok_reset

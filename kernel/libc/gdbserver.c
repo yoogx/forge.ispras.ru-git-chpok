@@ -143,14 +143,27 @@ int     remote_debug;
 static const char hexchars[]="0123456789abcdef";
 
 /* Number of registers.  */
+#ifdef __PPC__
 #define NUMREGS	38
-
+#endif
+#ifdef __i386__
+#define NUMREGS	16
+#endif
 /* Number of bytes of registers.  */
 #define NUMREGBYTES (NUMREGS * 4)
 
-enum regnames { r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13,
+enum regnames {
+#ifdef __PPC__
+r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13,
 r14, r15, r16, r17, r18, r19, r20, r21, r22, r23, r24, r25, r26, r27, r28, r29,
 r30, r31, pc, msr, cr, lr, ctr, xer 
+#endif
+#ifdef __i386__
+EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
+	       PC /* also known as eip */,
+	       PS /* also known as eflags */,
+	       CS, SS, DS, ES, FS, GS
+#endif
 };
 
 
@@ -188,6 +201,7 @@ hex (ch)
 static char remcomInBuffer[BUFMAX];
 static char remcomOutBuffer[BUFMAX];
 
+#ifdef __PPC__
 /* scan for the sequence $<data>#<checksum>     */
 static void
 getpacket(char *buffer)
@@ -245,7 +259,77 @@ getpacket(char *buffer)
 	} while (checksum != xmitcsum);
     ////printf("\n");
 }
+#endif
+#ifdef __i386__
+unsigned char *
+getpacket (void)
+{
+  ////printf("Lets getpacket <---\n");
+  unsigned char *buffer = (unsigned char *) (&remcomInBuffer[0]);
+  unsigned char checksum;
+  unsigned char xmitcsum;
+  int count;
+  char ch;
 
+  while (1)
+    {
+      /* wait around for the start character, ignore all other characters */
+      while ((ch = getDebugChar ()) != '$')
+	;
+    retry:
+      checksum = 0;
+      xmitcsum = -1;
+      count = 0;
+
+      /* now, read until a # or end of buffer is found */
+      while (count < BUFMAX - 1)
+	{
+	  ch = getDebugChar ();
+	  if (ch == '$')
+	    goto retry;
+	  if (ch == '#')
+	    break;
+	  checksum = checksum + ch;
+	  buffer[count] = ch;
+	  count = count + 1;
+	}
+      buffer[count] = 0;
+
+      if (ch == '#')
+	{
+	  ch = getDebugChar ();
+	  xmitcsum = hex (ch) << 4;
+	  ch = getDebugChar ();
+	  xmitcsum += hex (ch);
+
+	  if (checksum != xmitcsum)
+	    {
+	      putDebugChar ('-');	/* failed checksum */
+	    }
+	  else
+      {
+          
+      }
+      
+	    {
+	      putDebugChar ('+');	/* successful transfer */
+
+	      /* if a sequence char is present, reply the sequence ID */
+	      if (buffer[2] == ':')
+		{
+		  putDebugChar (buffer[0]);
+		  putDebugChar (buffer[1]);
+
+		  return &buffer[3];
+		}
+
+	      return &buffer[0];
+	    }
+	}
+    }
+    ////printf("\n");
+}
+#endif
 
 
 /* send the packet in buffer.  */
@@ -256,7 +340,7 @@ putpacket (unsigned char *buffer)
   unsigned char checksum;
   int count;
   char ch;
-  ////printf("Lets putpacket --->\n");
+  ////printf("\nLets putpacket --->\n");
   /*  $<packet info>#<checksum>. */
   do
     {
@@ -469,10 +553,17 @@ hexToInt (char **ptr, int *intValue)
   return (numChars);
 }
 
+#ifdef __PPC__
 char instr[8]="00000000";
 int addr_instr=0;
 char trap[8]="7fe00008";
+#endif
+#ifdef __i386__
+char instr[2]="00";
+int addr_instr=0;
+char trap[2]="CC";
 
+#endif
 
 
 #define MSR_SE_LG	10		/* Single Step */
@@ -494,6 +585,7 @@ void
 handle_exception (int exceptionVector, struct regs * ea)
 {
   /*Add regs*/
+#ifdef __PPC__
   registers[r0]=ea->r0;
   registers[r1]=ea->r1;
   registers[r2]=ea->r2;
@@ -531,53 +623,34 @@ handle_exception (int exceptionVector, struct regs * ea)
   registers[pc]=ea->srr0;
   registers[msr]=ea->srr1;
   registers[lr]=ea->lr;
-    //~ printf("\n\n            In gdbserver:\n");
-    //~ printf("cr = 0x%x\n",registers[cr]);
-    //~ printf("r0 = 0x%x\n",registers[r0]);
-    //~ printf("r2 = 0x%x\n",registers[r2]);
-    //~ printf("r3 = 0x%x\n",registers[r3]);
-    //~ printf("r4 = 0x%x\n",registers[r4]);
-    //~ printf("r5 = 0x%x\n",registers[r5]);
-    //~ printf("r6 = 0x%x\n",registers[r6]);
-    //~ printf("r7 = 0x%x\n",registers[r7]);
-    //~ printf("r8 = 0x%x\n",registers[r8]);
-    //~ printf("r9 = 0x%x\n",registers[r9]);
-    //~ printf("r10 = 0x%x\n",registers[r10]);
-    //~ printf("r11 = 0x%x\n",registers[r11]);
-    //~ printf("r12 = 0x%x\n",registers[r12]);
-    //~ printf("r13 = 0x%x\n",registers[r13]);
-    //~ printf("r14 = 0x%x\n",registers[r14]);
-    //~ printf("r15 = 0x%x\n",registers[r15]);
-    //~ printf("r16 = 0x%x\n",registers[r16]);
-    //~ printf("r17 = 0x%x\n",registers[r17]);
-    //~ printf("r18 = 0x%x\n",registers[r18]);
-    //~ printf("r19 = 0x%x\n",registers[r19]);
-    //~ printf("r20 = 0x%x\n",registers[r20]);
-    //~ printf("r21 = 0x%x\n",registers[r21]);
-    //~ printf("r22 = 0x%x\n",registers[r22]);
-    //~ printf("r23 = 0x%x\n",registers[r23]);
-    //~ printf("r24 = 0x%x\n",registers[r24]);
-    //~ printf("r25 = 0x%x\n",registers[r25]);
-    //~ printf("r26 = 0x%x\n",registers[r26]);
-    //~ printf("r27 = 0x%x\n",registers[r27]);
-    //~ printf("r28 = 0x%x\n",registers[r28]);
-    //~ printf("r29 = 0x%x\n",registers[r29]);
-    //~ printf("r30 = 0x%x\n",registers[r30]);
-    //~ printf("r31 = 0x%x\n",registers[r31]);
-    //~ printf("ctr = 0x%x\n",registers[ctr]);
-    //~ printf("xer = 0x%x\n",registers[xer]);
-    //~ printf("srr0 or pc = 0x%x\n",registers[pc]); 
-    //~ printf("srr1 or mrc = 0x%x\n",registers[msr]); 
-    //~ printf("lr = 0x%x\n",registers[lr]);  
+#endif
+#ifdef __i386__
+  registers[EAX]=ea->eax;
+  registers[ECX]=ea->ecx;
+  registers[EDX]=ea->edx;
+  registers[EBX]=ea->ebx;
+  registers[ESP]=ea->__esp;
+  registers[EBP]=ea->ebp;
+  registers[ESI]=ea->esi;
+  registers[EDI]=ea->edi;
+  registers[PC]=ea->eip;
+  registers[PS]=ea->eflags;
+  registers[CS]=ea->cs;
+  registers[SS]=ea->ss;
+  registers[DS]=ea->ds;
+  registers[ES]=ea->es;
+  registers[FS]=-1;
+  registers[GS]=-1;
+#endif
   
   memset(remcomOutBuffer, 0, BUFMAX);
   memset(remcomInBuffer, 0, BUFMAX);
-  int sigval;////, stepping;
+  int sigval;
+#ifdef __i386__
+  pok_bool_t stepping=FALSE;
+#endif
   int addr, length;
   char *ptr;
-////  int newPC;
-
-  ////gdb_i386vector = exceptionVector;
 
   if (1 == 1)////remote_debug)
     {
@@ -586,15 +659,21 @@ handle_exception (int exceptionVector, struct regs * ea)
     }
 
   if (addr_instr != 0){
+#ifdef __PPC__    
     hex2mem(instr, (char *) (addr_instr), 4);
     addr_instr=0;
+#endif
+#ifdef __i386__
+    hex2mem(instr, (char *) (addr_instr), 1);
+    addr_instr=0;
+#endif
   }
   
   /* reply to host that an exception has occurred */
   sigval = computeSignal (exceptionVector);
 
   ptr = remcomOutBuffer;
-
+#ifdef __PPC__
 	*ptr++ = 'T';
 	*ptr++ = hexchars[sigval >> 4];
 	*ptr++ = hexchars[sigval & 0xf];
@@ -609,15 +688,40 @@ handle_exception (int exceptionVector, struct regs * ea)
     ptr = mem2hex((char *)(&registers) + 1*4, ptr, 4);
 	*ptr++ = ';';
     ptr = 0;
+#endif
+#ifdef __i386__
+  *ptr++ = 'T';			/* notify gdb with signo, PC, FP and SP */
+  *ptr++ = hexchars[sigval >> 4];
+  *ptr++ = hexchars[sigval & 0xf];
+
+  *ptr++ = hexchars[ESP]; 
+  *ptr++ = ':';
+  ptr = mem2hex((char *)&registers[ESP], ptr, 4, 0);	/* SP */
+  *ptr++ = ';';
+
+  *ptr++ = hexchars[EBP]; 
+  *ptr++ = ':';
+  ptr = mem2hex((char *)&registers[EBP], ptr, 4, 0); 	/* FP */
+  *ptr++ = ';';
+
+  *ptr++ = hexchars[PC]; 
+  *ptr++ = ':';
+  ptr = mem2hex((char *)&registers[PC], ptr, 4, 0); 	/* PC */
+  *ptr++ = ';';
+
+  *ptr = '\0';
+#endif      
     putpacket ( (unsigned char *) remcomOutBuffer);
     
     
     	while (1) {
+#ifdef __PPC__
 		remcomOutBuffer[0] = 0;
 
 		getpacket(remcomInBuffer);
 		switch (remcomInBuffer[0]) {
-		case '?':               /* report most recent signal */
+        
+        case '?':               /* report most recent signal */
 			remcomOutBuffer[0] = 'S';
 			remcomOutBuffer[1] = hexchars[sigval >> 4];
 			remcomOutBuffer[2] = hexchars[sigval & 0xf];
@@ -699,7 +803,7 @@ handle_exception (int exceptionVector, struct regs * ea)
 			ptr = hex2mem(ptr, (char *)&registers[xer], 4);
 
 			strcpy(remcomOutBuffer,"OK");
-		}
+      		}
 			break;
 		case 'H':
 			/* don't do anything, yet, just acknowledge */
@@ -803,6 +907,124 @@ handle_exception (int exceptionVector, struct regs * ea)
 		}
 		/* reply to the request */
 		putpacket((unsigned char *)remcomOutBuffer);
+#endif
+#ifdef __i386__
+      remcomOutBuffer[0] = 0;
+      ptr = (char *)getpacket ();
+
+      switch (*ptr++)
+	{
+	case '?':
+	  remcomOutBuffer[0] = 'S';
+	  remcomOutBuffer[1] = hexchars[sigval >> 4];
+	  remcomOutBuffer[2] = hexchars[sigval % 16];
+	  remcomOutBuffer[3] = 0;
+	  break;
+	case 'd':
+	  remote_debug = !(remote_debug);	/* toggle debug flag */
+	  break;
+	case 'g':		/* return the value of the CPU registers */
+	  mem2hex ((char *) registers, remcomOutBuffer, NUMREGBYTES, 0);
+	  break;
+	case 'G':		/* set the value of the CPU registers - return OK */
+	  hex2mem (ptr, (char *) registers, NUMREGBYTES, 0);
+	  strcpy (remcomOutBuffer, "OK");
+	  break;
+	case 'P':		/* set the value of a single CPU register - return OK */
+	  {
+	    int regno;
+
+	    if (hexToInt (&ptr, &regno) && *ptr++ == '=')
+	      if (regno >= 0 && regno < NUMREGS)
+		{
+		  hex2mem (ptr, (char *) &registers[regno], 4, 0);
+		  strcpy (remcomOutBuffer, "OK");
+		  break;
+		}
+
+	    strcpy (remcomOutBuffer, "E01");
+	    break;
+	  }
+
+	  /* mAA..AA,LLLL  Read LLLL bytes at address AA..AA */
+	case 'm':
+	  /* TRY TO READ %x,%x.  IF SUCCEED, SET PTR = 0 */
+	  if (hexToInt (&ptr, &addr))
+	    if (*(ptr++) == ',')
+	      if (hexToInt (&ptr, &length))
+		{
+		  ptr = 0;
+		  mem_err = 0;
+		  mem2hex ((char *) addr, remcomOutBuffer, length, 1);
+		  if (mem_err)
+		    {
+		      strcpy (remcomOutBuffer, "E03");
+		      debug_error ("memory fault");
+		    }
+		}
+
+	  if (ptr)
+	    {
+	      strcpy (remcomOutBuffer, "E01");
+	    }
+	  break;
+
+	  /* MAA..AA,LLLL: Write LLLL bytes at address AA.AA return OK */
+	case 'M':
+	  /* TRY TO READ '%x,%x:'.  IF SUCCEED, SET PTR = 0 */
+	  if (hexToInt (&ptr, &addr))
+	    if (*(ptr++) == ',')
+	      if (hexToInt (&ptr, &length))
+		if (*(ptr++) == ':')
+		  {
+		    mem_err = 0;
+		    hex2mem (ptr, (char *) addr, length, 1);
+		    if (mem_err)
+		      {
+			strcpy (remcomOutBuffer, "E03");
+			debug_error ("memory fault");
+		      }
+		    else
+		      {
+			strcpy (remcomOutBuffer, "OK");
+		      }
+
+		    ptr = 0;
+		  }
+	  if (ptr)
+	    {
+	      strcpy (remcomOutBuffer, "E02");
+	    }
+	  break;
+
+	  /* cAA..AA    Continue at address AA..AA(optional) */
+	  /* sAA..AA   Step one instruction from AA..AA(optional) */
+	case 's':
+	  stepping = TRUE;
+	case 'k':		/* do nothing */
+	case 'c':
+	  /* try to read optional parameter, pc unchanged if no parm */
+	  if (hexToInt (&ptr, &addr))
+	    registers[PC] = addr;
+
+
+	  /* clear the trace bit */
+      registers[PS] &= 0xfffffeff;
+      ea->eflags = registers[PS];
+	  /* set the trace bit if we're stepping */
+	  if (stepping){
+        printf("\n\n\nStepping\n\n\n");
+        stepping=FALSE;
+        registers[PS] |= 0x100;
+        ea->eflags = registers[PS];      
+      }
+	  return;
+
+	}			/* switch */
+
+      /* reply to the request */
+      putpacket ((unsigned char *)remcomOutBuffer);
+#endif
 	} /* while(1) */
     ////printf("\n\n\n          End of handle_exeption\n\n");
 }

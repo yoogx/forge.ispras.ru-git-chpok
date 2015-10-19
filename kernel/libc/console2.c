@@ -65,10 +65,6 @@ getchar2(void)
     int c;
     
     while ((c = cons_getc2()) == 0){
-//#ifdef POK_ARCH_X86
-#ifdef __i386__
-        asm("hlt");
-#endif
     }
     return c;
 }
