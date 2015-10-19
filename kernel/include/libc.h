@@ -90,6 +90,7 @@ struct  regs{
     uint32_t r29;
     uint32_t r30;
     uint32_t r31;
+    uint32_t fpscr;
     uint32_t offset2;
     uint32_t offset3;
     uint32_t offset4;
