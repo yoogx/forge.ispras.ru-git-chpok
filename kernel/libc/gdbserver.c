@@ -121,12 +121,12 @@ extern void exceptionHandler();	/* assign an exception handler   */
 
 void putDebugChar(char c){
     pok_cons_write_1(&c,1);
-    ////pok_cons_write(&c,1);
+    pok_cons_write(&c,1);
 }
 
 int getDebugChar(){
     int inf=getchar2();
-    ////printf("%c",inf);
+    printf("%c",inf);
     return inf;
 }
 
@@ -206,7 +206,7 @@ static char remcomOutBuffer[BUFMAX];
 static void
 getpacket(char *buffer)
 {
-    ////printf("Lets getpacket <---\n");
+    printf("Lets getpacket <---\n");
 	unsigned char checksum;
 	unsigned char xmitcsum;
 	int i;
@@ -257,14 +257,14 @@ getpacket(char *buffer)
 			}
 		}
 	} while (checksum != xmitcsum);
-    ////printf("\n");
+    printf("\n");
 }
 #endif
 #ifdef __i386__
 unsigned char *
 getpacket (void)
 {
-  ////printf("Lets getpacket <---\n");
+  printf("Lets getpacket <---\n");
   unsigned char *buffer = (unsigned char *) (&remcomInBuffer[0]);
   unsigned char checksum;
   unsigned char xmitcsum;
@@ -327,7 +327,7 @@ getpacket (void)
 	    }
 	}
     }
-    ////printf("\n");
+    printf("\n");
 }
 #endif
 
@@ -340,7 +340,7 @@ putpacket (unsigned char *buffer)
   unsigned char checksum;
   int count;
   char ch;
-  ////printf("\nLets putpacket --->\n");
+  printf("\nLets putpacket --->\n");
   /*  $<packet info>#<checksum>. */
   do
     {
@@ -363,7 +363,7 @@ putpacket (unsigned char *buffer)
 
     }
   while (getDebugChar () != '+');
-    ////printf("\n");
+    printf("\n");
 }
 
 void
@@ -556,6 +556,8 @@ hexToInt (char **ptr, int *intValue)
 #ifdef __PPC__
 char instr[8]="00000000";
 int addr_instr=0;
+char instr2[8]="00000000";
+int addr_instr2=0;
 char trap[8]="7fe00008";
 #endif
 #ifdef __i386__
@@ -662,6 +664,8 @@ handle_exception (int exceptionVector, struct regs * ea)
 #ifdef __PPC__    
     hex2mem(instr, (char *) (addr_instr), 4);
     addr_instr=0;
+    hex2mem(instr2, (char *) (addr_instr2), 4);
+    addr_instr2=0;
 #endif
 #ifdef __i386__
     hex2mem(instr, (char *) (addr_instr), 1);
@@ -879,6 +883,77 @@ handle_exception (int exceptionVector, struct regs * ea)
             return;
 
 		case 's':
+        {
+            uint32_t inst=*((uint32_t *)registers[pc]);
+            printf("inst=0x%lx;\n",inst);
+            uint32_t c_inst=registers[pc];
+            printf("c_inst=0x%lx;\n",c_inst);
+/*
+ * if it's  unconditional branching, e.g. 'b' or 'bl'
+ */
+            if ((inst >> (6*4+2)) == 0x12){
+                if (!(inst & 0x2)){
+                    inst=((inst << 6) >> 8) << 2;
+                    if (inst >> 25){
+                        inst=inst | 0xFE000000;
+                    }
+                    printf("%lx\n",(inst + c_inst));
+                    inst=inst + c_inst;
+                    mem2hex((char *)(registers[pc]+4), instr,4);            
+                    hex2mem(trap, (char *)(registers[pc]+4), 4);
+                    addr_instr = registers[pc] + 4;
+                    mem2hex((char *)(inst), instr2,4);            
+                    hex2mem(trap, (char *)(inst), 4);
+                    addr_instr2 = inst;
+                    return;
+                }else{
+                    printf("%lx\n",((inst << 6) >> 8) << 2);
+                    inst=((inst << 6) >> 8) << 2;
+                    mem2hex((char *)(registers[pc]+4), instr,4);            
+                    hex2mem(trap, (char *)(registers[pc]+4), 4);
+                    addr_instr = registers[pc] + 4;
+                    mem2hex((char *)(inst), instr2,4);            
+                    hex2mem(trap, (char *)(inst), 4);
+                    addr_instr2 = inst;
+                    return;
+                }
+                if (inst & 0x1){
+                }
+            }
+/*
+ * if it's conditional branching, e.g. 'bne' or 'beq'
+ */    
+            if ((inst >> (6*4+2)) == 0x10){
+                if (!(inst & 0x2)){
+                    inst=((inst << 16) >> 18) << 2;
+                    if (inst >> 15){
+                        inst=inst | 0xFFFF8000;
+                    }
+                    printf("%lx\n",(inst + c_inst));
+                    inst=inst + c_inst;
+                    mem2hex((char *)(registers[pc]+4), instr,4);            
+                    hex2mem(trap, (char *)(registers[pc]+4), 4);
+                    addr_instr = registers[pc] + 4;
+                    printf("%lx\n",(inst + c_inst));
+                    mem2hex((char *)(inst), instr2,4);            
+                    hex2mem(trap, (char *)(inst), 4);
+                    addr_instr2 = inst;
+                    return;
+            
+                }else{
+                    printf("%lx\n",((inst << 16) >> 18) << 2);
+                    inst=((inst << 16) >> 18) << 2;
+                    mem2hex((char *)(registers[pc]+4), instr,4);            
+                    hex2mem(trap, (char *)(registers[pc]+4), 4);
+                    addr_instr = registers[pc] + 4;
+                    mem2hex((char *)(inst), instr2,4);            
+                    hex2mem(trap, (char *)(inst), 4);
+                    addr_instr2 = inst;
+                    return;
+                }
+                if (inst & 0x1){
+                }
+            }
             mem2hex((char *)(registers[pc]+4), instr,4);            
             hex2mem(trap, (char *)(registers[pc]+4), 4);
             addr_instr = registers[pc] + 4;
@@ -896,7 +971,7 @@ handle_exception (int exceptionVector, struct regs * ea)
 ////			unlock_kernel();
 ////			kgdb_active = 0;
 			return;
-
+        }
 		case 'r':		/* Reset (if user process..exit ???)*/
 ////			panic("kgdb reset.");
 			break;
