@@ -48,6 +48,7 @@
 #include <core/thread.h>
 #include <core/error.h>
 #include <utils.h>
+#include <types.h>
 
 // must be at least MAX_NAME_LENGTH of ARINC653
 #define POK_EVENT_MAX_NAME_LENGTH 30
@@ -83,6 +84,11 @@ void CREATE_EVENT (EVENT_NAME_TYPE EVENT_NAME,
                    EVENT_ID_TYPE *EVENT_ID,
                    RETURN_CODE_TYPE *RETURN_CODE)
 {
+	int j=0;
+   while(EVENT_NAME[j]){
+	   EVENT_NAME[j]=toupperr(EVENT_NAME[j]);
+	   j++;
+	   }
    pok_event_id_t    core_id;
    pok_ret_t         core_ret;
 

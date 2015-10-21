@@ -41,6 +41,7 @@
 #include <middleware/port.h>
 #include <middleware/buffer.h>
 
+
 #include <core/partition.h>
 
 #define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
@@ -54,6 +55,11 @@ void CREATE_BUFFER (
        /*out*/ BUFFER_ID_TYPE           *BUFFER_ID, 
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
+   int i=0;
+   while(BUFFER_NAME[i]){
+	   BUFFER_NAME[i]=toupperr(BUFFER_NAME[i]);
+	   i++;
+	   }
    pok_ret_t                  core_ret;
    pok_buffer_id_t            core_id;
    pok_queueing_discipline_t  core_discipline;

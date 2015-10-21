@@ -36,6 +36,7 @@
 
 #ifdef POK_NEEDS_ARINC653_BLACKBOARD
 
+#include <types.h>
 #include <arinc653/types.h>
 #include <arinc653/blackboard.h>
 #include <middleware/blackboard.h>
@@ -49,6 +50,11 @@ void CREATE_BLACKBOARD (
        /*out*/ BLACKBOARD_ID_TYPE       *BLACKBOARD_ID, 
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
+	 int i=0;
+   while(BLACKBOARD_NAME[i]){
+	   BLACKBOARD_NAME[i]=toupperr(BLACKBOARD_NAME[i]);
+	   i++;
+	   }
    pok_blackboard_id_t  core_id;
    pok_ret_t            core_ret;
 

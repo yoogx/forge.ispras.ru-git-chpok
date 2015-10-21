@@ -45,6 +45,14 @@
 
 static pok_size_t pok_blackboards_data_index = 0;
 
+int toupperr(int c) {
+    if (c >= 'a' && c <= 'z') {
+        return 'A' + c - 'a';
+    }
+    return c;
+}
+
+
 pok_ret_t pok_blackboard_create (char*                             name, 
                                  const pok_port_size_t             msg_size, 
                                  pok_blackboard_id_t*              id)
@@ -55,6 +63,11 @@ pok_ret_t pok_blackboard_create (char*                             name,
    if ((int) msg_size <= 0) {
        return POK_ERRNO_SIZE;
    }
+   int i=0;
+   while(name[i]){
+	   name[i]=toupperr(name[i]);
+	   i++;
+	   }
    
    // XXX global blackboard create lock?
 
