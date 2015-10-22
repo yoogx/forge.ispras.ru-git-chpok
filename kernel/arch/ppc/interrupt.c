@@ -24,14 +24,15 @@
 #include <types.h>
 #include <errno.h> 
 #include <core/debug.h>
+#include <core/sched.h>
+#include <core/error.h>
 #include <libc.h>
 #include <bsp.h>
 
 #include "space.h"
 #include "timer.h"
 #include "syscalls.h"
-
-
+#include "fpscr.h"
 
 
 void pok_int_critical_input(uintptr_t ea) {
@@ -73,14 +74,26 @@ extern void * pok_trap;
 void pok_int_program(struct regs * ea) {
 
 ////printf("ea = 0x%lx\n", ea);
+	printf("%s: ea->fpscr: 0x%lx\n", __func__, ea->fpscr);
+	
+	if (((ea->fpscr & FPSCR_ZE) && (ea->fpscr & FPSCR_ZX)) ||
+		((ea->fpscr & FPSCR_OE) && (ea->fpscr & FPSCR_OX)) ||
+		((ea->fpscr & FPSCR_UE) && (ea->fpscr & FPSCR_UX)) ||
+		((ea->fpscr & FPSCR_VE) && (ea->fpscr & FPSCR_VX)) ||
+		((ea->fpscr & FPSCR_XE) && (ea->fpscr & FPSCR_XX)))
+	{
+		printf("%s: numeric exception!\n", __func__);
+		pok_error_raise_thread(POK_ERROR_KIND_NUMERIC_ERROR, POK_SCHED_CURRENT_THREAD, NULL, 0);
+		return;
+	}
 
 //// pok_trap_addr = address of pok_trap in entry.S
 
     if (ea->srr0 == (unsigned) (& pok_trap_addr)){
         k++;
-        handle_exception(17,ea); 
-    }else{
-        handle_exception(3,ea); 
+        handle_exception(17, ea);
+    } else {
+        handle_exception(3, ea);
     }
     //~ printf("\n\n            In pok_int_programm:\n");
     //~ printf("addr = 0x%lx\n",(uint32_t) ea);
@@ -129,7 +142,7 @@ void pok_int_program(struct regs * ea) {
     //~ printf("offset6 = 0x%lx\n",ea->offset6);
     //~ printf("lr = 0x%lx\n",ea->lr);
 
-    printf("\n          Exit from handle exeprion\n");
+    printf("\n          Exit from handle exception\n");
 
     if (k == 1){
 /*
@@ -159,7 +172,7 @@ void pok_int_decrementer(uintptr_t ea) {
 
 void pok_int_interval_timer(uintptr_t ea) {
     (void) ea;
-    pok_fatal("Inteval timer interrupt");
+    pok_fatal("Interval timer interrupt");
 }
 
 void pok_int_watchdog(uintptr_t ea) {

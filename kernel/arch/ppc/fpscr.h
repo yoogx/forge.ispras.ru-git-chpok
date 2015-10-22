@@ -18,7 +18,7 @@
 #ifndef __POK_PPC_FPSCR_H__
 #define __POK_PPC_FPSCR_H__
 
-#define __MASK_FLIP(X)       (1<<(31-X))
+#define __MASK_FLIP(X)       (1<<(31-(X)))
 
 #define FPSCR_FX_LG			0	/* Exception Summary */
 #define FPSCR_FEX_LG		1	/* Enabled Exception Summary */
@@ -68,6 +68,12 @@
 #define FPSCR_XE			__MASK_FLIP(FPSCR_XE_LG)	/* Inexact Exception Enable */
 #define FPSCR_NI			__MASK_FLIP(FPSCR_NI_LG)	/* Non-IEEE Mode */
 
-#define FPSCR_AEE			(FPSCR_VE|FPSCR_OE|FPSCR_UE|FPSCR_ZE|FPSCR_XE)
+#define FPSCR_VX			__MASK_FLIP(FPSCR_VX_LG)	/* Invalid Operation Exception Summary */
+#define FPSCR_OX			__MASK_FLIP(FPSCR_OX_LG)	/* Overflow Exception */
+#define FPSCR_UX			__MASK_FLIP(FPSCR_UX_LG)	/* Underflow Exception */
+#define FPSCR_ZX			__MASK_FLIP(FPSCR_ZX_LG)	/* Zero Divide Exception */
+#define FPSCR_XX			__MASK_FLIP(FPSCR_XX_LG)	/* Inexact Exception */
+
+#define FPSCR_AEE			(FPSCR_VE|FPSCR_OE|FPSCR_UE|FPSCR_ZE) /* All Exceptions Enable */
 
 #endif

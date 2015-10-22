@@ -182,6 +182,12 @@ pok_arch_rfi:
         .globl pok_arch_rfi_for_int
 pok_arch_rfi_for_int:
         LOAD_FP_FOR_INT(0)
+        /* Leave only exception enable bits in FPSCR */
+        lis		%r2,FPSCR_AEE@h
+        ori		%r2,%r2,FPSCR_AEE@l
+        stw		%r2,168(%r1)
+        lfd		%f1,164(%r1)
+        mtfsf	0xFF,%f1
         lwz     %r31,148(%r1)         
         lwz     %r30,144(%r1)          
         lwz     %r29,140(%r1)          
