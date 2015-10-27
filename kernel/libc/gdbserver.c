@@ -97,7 +97,8 @@
 
 #include <libc.h>
 #include <bsp.h>
-
+#include <core/thread.h>
+#include <config.h>
 
 
 /************************************************************************
@@ -577,7 +578,44 @@ static inline void set_msr(int msr)
 	asm volatile("mtmsr %0" : : "r" (msr));
 }
 
+static char info_thread[59] = "StoppedRunnableWaitingLockWait next activationDelayed start";
 
+static int pok_thread_info(pok_state_t State, int * info_offset){
+  switch (State){
+        case POK_STATE_STOPPED: // DORMANT (must be started first)
+        {
+            printf("STOPPED\n");
+            *info_offset = 0;
+            return  7;
+        }
+        case POK_STATE_RUNNABLE: // READY
+        {
+            *info_offset = 7;
+            return 8;
+        }
+        case POK_STATE_WAITING: // WAITING (sleeping for specified time OR waiting for a lock with timeout)
+        {
+            *info_offset = 15;
+            return 7;
+        }
+        case POK_STATE_LOCK:  // WAITING (waiting for a lock without timeout)
+        {
+            *info_offset = 22;
+            return 4;
+        }
+        case POK_STATE_WAIT_NEXT_ACTIVATION:  // WAITING (for next activation aka "release point")
+        {
+            *info_offset = 26;
+            return 20;
+        }
+        case POK_STATE_DELAYED_START:  // WAITING (waitng for partition mode NORMAL)
+        {
+            *info_offset = 46;
+            return 13;
+        }
+    }
+    return 0;
+}
 
 
 /*
@@ -586,6 +624,7 @@ static inline void set_msr(int msr)
 void
 handle_exception (int exceptionVector, struct regs * ea)
 {
+            int number_of_thread=0;
   /*Add regs*/
 #ifdef __PPC__
   registers[r0]=ea->r0;
@@ -664,12 +703,16 @@ handle_exception (int exceptionVector, struct regs * ea)
 #ifdef __PPC__    
     hex2mem(instr, (char *) (addr_instr), 4);
     addr_instr=0;
-    hex2mem(instr2, (char *) (addr_instr2), 4);
-    addr_instr2=0;
+    if (addr_instr2 != 0){
+        hex2mem(instr2, (char *) (addr_instr2), 4);
+        addr_instr2=0;
+    }
 #endif
 #ifdef __i386__
-    hex2mem(instr, (char *) (addr_instr), 1);
-    addr_instr=0;
+    if (addr_instr2 != 0){
+        hex2mem(instr, (char *) (addr_instr), 1);
+        addr_instr=0;
+    }
 #endif
   }
   
@@ -717,7 +760,6 @@ handle_exception (int exceptionVector, struct regs * ea)
 #endif      
     putpacket ( (unsigned char *) remcomOutBuffer);
     
-    
     	while (1) {
 #ifdef __PPC__
 		remcomOutBuffer[0] = 0;
@@ -731,21 +773,73 @@ handle_exception (int exceptionVector, struct regs * ea)
 			remcomOutBuffer[2] = hexchars[sigval & 0xf];
 			remcomOutBuffer[3] = 0;
 			break;
-#if 0
 		case 'q': /* this screws up gdb for some reason...*/
 		{
-			extern long _start, sdata, __bss_start;
-    
+			//~ extern long _start, sdata, __bss_start;
 			ptr = &remcomInBuffer[1];
-			if (strncmp(ptr, "Offsets", 7) != 0)
-				break;
+            if (strncmp(ptr, "C", 1) == 0){
+                ptr = remcomOutBuffer;
+                *ptr++ = 'Q';
+                *ptr++ = 'C';
+                int p = POK_SCHED_CURRENT_THREAD;////pok_threads[0].;
+                    
+                ptr = mem2hex( (char *)(&p),ptr,4); 
+                *ptr++ = 0;
+                break;
+            }
+            if (strncmp(ptr, "Offsets", 7) == 0){
+                //~ strcpy(remcomOutBuffer,"OK");
+                //~ break;
+                ptr = remcomOutBuffer;
+			//~ sprintf(ptr, "Text=%8.8x;Data=%8.8x;Bss=%8.8x",
+				//~ &_start, &sdata, &__bss_start);
+                break;
+            }
+            if (strncmp(ptr, "fThreadInfo", 11) == 0)	{
+                number_of_thread=0;
+                printf("in first if\n");
+                ptr = remcomOutBuffer;
+                *ptr++ = 'm';
+                int p = 0;////pok_threads[0].;
+                
+                ptr = mem2hex( (char *)(&p),ptr,4); 
+                *ptr++ = 0;
+                break;
+            }
+            if (strncmp(ptr, "sThreadInfo", 11) == 0){
+                if (number_of_thread == POK_CONFIG_NB_THREADS){
+                    ptr = remcomOutBuffer;
+                    *ptr++ = 'l';
+                    *ptr++ = 0;
+                    break;
+                }
+                number_of_thread++;
+                ptr = remcomOutBuffer;
+                *ptr++ = 'm';
+                int p = number_of_thread;////pok_threads[0].;
+                ptr = mem2hex( (char *)(&p),ptr,4); 
+                *ptr++ = 0;
+                break;
+             }
+             if (strncmp(ptr, "ThreadExtraInfo", 15) == 0){
+                ptr += 16;
+                int thread_num;
+                hexToInt(&ptr, &thread_num);
+                printf("thread_num=%d\n",thread_num);
+                printf("pok_threads[%d].state=%d\n",thread_num,pok_threads[thread_num].state);
+                ptr = remcomOutBuffer;
+                int info_offset=0;
+                int lengh = pok_thread_info(pok_threads[thread_num].state,&info_offset);
+                printf("lengh = %d\n",lengh);
+                printf("info_offset = %d\n",info_offset);
+                printf("%c%c%c\n",info_thread[info_offset],info_thread[info_offset+1],info_thread[info_offset+2]);
+                //~ strcpy(ptr,info);
+                ptr = mem2hex( (char *) (&info_thread[info_offset]), ptr, lengh);
+                *ptr++ = 0;
+                break;
+            }
 
-			ptr = remcomOutBuffer;
-			sprintf(ptr, "Text=%8.8x;Data=%8.8x;Bss=%8.8x",
-				&_start, &sdata, &__bss_start);
-			break;
 		}
-#endif
 		case 'd':
 			/* toggle debug flag */
 			////kdebug ^= 1;
@@ -953,6 +1047,19 @@ handle_exception (int exceptionVector, struct regs * ea)
                 }
                 if (inst & 0x1){
                 }
+            }
+/*
+ *  If it's a 'brl' instruction
+ */            
+            if ((inst >> (6*4+2)) == 0x13){
+                printf("lr=%x\n",registers[lr]);
+                mem2hex((char *)(registers[lr]), instr,4);            
+                hex2mem(trap, (char *)(registers[lr]), 4);
+                addr_instr = registers[lr];                
+                mem2hex((char *)(registers[pc]+4), instr2,4);            
+                hex2mem(trap, (char *)(registers[pc]+4), 4);
+                addr_instr2 = registers[pc] + 4;
+                return;
             }
             mem2hex((char *)(registers[pc]+4), instr,4);            
             hex2mem(trap, (char *)(registers[pc]+4), 4);
