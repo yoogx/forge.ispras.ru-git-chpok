@@ -75,6 +75,7 @@ void pok_int_program(struct regs * ea) {
 
 ////printf("ea = 0x%lx\n", ea);
 	printf("%s: ea->fpscr: 0x%lx\n", __func__, ea->fpscr);
+	printf("%s: ea->xer: 0x%lx\n", __func__, ea->xer);
 	
 	if (((ea->fpscr & FPSCR_ZE) && (ea->fpscr & FPSCR_ZX)) ||
 		((ea->fpscr & FPSCR_OE) && (ea->fpscr & FPSCR_OX)) ||
@@ -83,7 +84,11 @@ void pok_int_program(struct regs * ea) {
 		((ea->fpscr & FPSCR_XE) && (ea->fpscr & FPSCR_XX)))
 	{
 		printf("%s: numeric exception!\n", __func__);
-		pok_error_raise_thread(POK_ERROR_KIND_NUMERIC_ERROR, POK_SCHED_CURRENT_THREAD, NULL, 0);
+		pok_error_raise_thread(POK_ERROR_KIND_NUMERIC_ERROR, POK_SCHED_CURRENT_THREAD, "", 0);
+		/* Step over the instruction which caused exception
+		 * so that CPU won't retry it
+		 */
+		ea->srr0 += 4;
 		return;
 	}
 
