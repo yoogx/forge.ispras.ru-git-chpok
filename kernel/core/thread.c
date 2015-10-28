@@ -197,7 +197,7 @@ pok_ret_t pok_partition_thread_create (pok_thread_id_t*         thread_id,
         (uintptr_t)attr->entry,
         stack_vaddr,
         0xdead,
-        0xbeaf
+        0xbeef
     );
    thread->initial_sp = thread->sp;
    /*
@@ -313,7 +313,7 @@ pok_ret_t pok_thread_delayed_start (pok_thread_id_t id, int64_t ms)
         (uintptr_t) thread->entry,
         thread->init_stack_addr,
         0xdead,
-        0xbeaf
+        0xbeef
     );
 
   

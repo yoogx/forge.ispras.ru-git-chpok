@@ -98,7 +98,7 @@ static void pok_error_enable(void)
         (uintptr_t) thread->entry,
         thread->init_stack_addr,
         0xdead,
-        0xbeaf
+        0xbeef
     );
 
     // XXX hack hack hack - force context switch instead of returning from interrupt
