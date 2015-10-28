@@ -47,6 +47,10 @@ void pok_int_machine_check(uintptr_t ea) {
 
 void pok_int_data_storage(uintptr_t ea, uintptr_t dear, unsigned long esr) {
     (void) ea;
+    if (dear == (uintptr_t) NULL) {
+		pok_error_raise_thread(POK_ERROR_KIND_MEMORY_VIOLATION, POK_SCHED_CURRENT_THREAD, "", 0);
+		return;
+	}
     pok_arch_handle_page_fault(dear, esr);
 }
 
