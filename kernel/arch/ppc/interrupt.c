@@ -33,6 +33,7 @@
 #include "timer.h"
 #include "syscalls.h"
 #include "fpscr.h"
+#include "esr.h"
 
 
 void pok_int_critical_input(uintptr_t ea) {
@@ -48,7 +49,7 @@ void pok_int_machine_check(uintptr_t ea) {
 void pok_int_data_storage(uintptr_t ea, uintptr_t dear, unsigned long esr) {
     (void) ea;
     if (dear == (uintptr_t) NULL) {
-		pok_error_raise_thread(POK_ERROR_KIND_MEMORY_VIOLATION, POK_SCHED_CURRENT_THREAD, "", 0);
+		POK_ERROR_CURRENT_THREAD(POK_ERROR_KIND_MEMORY_VIOLATION);
 		return;
 	}
     pok_arch_handle_page_fault(dear, esr);
@@ -57,7 +58,7 @@ void pok_int_data_storage(uintptr_t ea, uintptr_t dear, unsigned long esr) {
 void pok_int_inst_storage(uintptr_t ea, uintptr_t dear, unsigned long esr) {
     (void) ea;
     if (ea == (uintptr_t) NULL) {
-		pok_error_raise_thread(POK_ERROR_KIND_MEMORY_VIOLATION, POK_SCHED_CURRENT_THREAD, "", 0);
+		POK_ERROR_CURRENT_THREAD(POK_ERROR_KIND_MEMORY_VIOLATION);
 		return;
 	}
     pok_arch_handle_page_fault(dear, esr);
@@ -79,11 +80,18 @@ extern void * pok_trap_addr;
 extern void * pok_trap;
 
 
-void pok_int_program(struct regs * ea) {
+void pok_int_program(struct regs * ea, unsigned long esr) {
 
 ////printf("ea = 0x%lx\n", ea);
 	printf("%s: ea->fpscr: 0x%lx\n", __func__, ea->fpscr);
 	printf("%s: ea->xer: 0x%lx\n", __func__, ea->xer);
+	printf("%s: esr: 0x%lx\n", __func__, esr);
+	
+	if (esr & ESR_PIL) {
+		printf("%s: esr: illegal instruction exception\n", __func__);
+		POK_ERROR_CURRENT_THREAD(POK_ERROR_KIND_ILLEGAL_REQUEST);
+		return;
+	}
 	
 	if (((ea->fpscr & FPSCR_ZE) && (ea->fpscr & FPSCR_ZX)) ||
 		((ea->fpscr & FPSCR_OE) && (ea->fpscr & FPSCR_OX)) ||
@@ -92,7 +100,7 @@ void pok_int_program(struct regs * ea) {
 		((ea->fpscr & FPSCR_XE) && (ea->fpscr & FPSCR_XX)))
 	{
 		printf("%s: numeric exception!\n", __func__);
-		pok_error_raise_thread(POK_ERROR_KIND_NUMERIC_ERROR, POK_SCHED_CURRENT_THREAD, "", 0);
+		POK_ERROR_CURRENT_THREAD(POK_ERROR_KIND_NUMERIC_ERROR);
 		/* Step over the instruction which caused exception
 		 * so that CPU won't retry it
 		 */

@@ -106,8 +106,6 @@ typedef struct
 	 uint32_t             arg5;
 } pok_syscall_args_t;
 
-
-//#ifdef POK_ARCH_X86
 #ifdef __i386__
 /*
  * To reduce the number of functions and improve code coverage, we define

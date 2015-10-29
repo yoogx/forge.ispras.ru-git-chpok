@@ -381,6 +381,8 @@ label##_asm:
 
     START_EXCEPTION(pok_int_program)
         EXCEPTION_PROLOGUE_FOR_INT
+        
+        mfspr %r4, SPRN_ESR // ESR - exception syndrome
 
         bl pok_int_program
         b pok_arch_rfi_for_int
