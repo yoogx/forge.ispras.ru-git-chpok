@@ -48,5 +48,4 @@ typedef enum {
     POK_QUEUEING_DISCIPLINE_FIFO,
     POK_QUEUEING_DISCIPLINE_PRIORITY,
 } pok_queueing_discipline_t;
-int toupperr(int c);
 #endif

@@ -40,6 +40,7 @@
 #include <types.h>
 #include <middleware/port.h>
 #include <middleware/buffer.h>
+#include <utils.h>
 
 
 #include <core/partition.h>
@@ -55,11 +56,7 @@ void CREATE_BUFFER (
        /*out*/ BUFFER_ID_TYPE           *BUFFER_ID, 
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-   int i=0;
-   while(BUFFER_NAME[i]){
-	   BUFFER_NAME[i]=toupperr(BUFFER_NAME[i]);
-	   i++;
-	   }
+   new_toupper(BUFFER_NAME);
    pok_ret_t                  core_ret;
    pok_buffer_id_t            core_id;
    pok_queueing_discipline_t  core_discipline;
@@ -171,6 +168,7 @@ void GET_BUFFER_ID (
        /*out*/ BUFFER_ID_TYPE           *BUFFER_ID, 
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
+   new_toupper(BUFFER_NAME);
    pok_buffer_id_t id;
    pok_ret_t core_ret = pok_buffer_id(BUFFER_NAME, &id);
 

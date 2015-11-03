@@ -15,6 +15,7 @@ libpok_env.StaticLibrary(target = 'pok', source = [
 'libm/libm.lo',
 'protocols/protocols.lo',
 'libc/libc.lo',
+'utils/utils.lo',
 'config.c'])
 
 Export('libpok_env')
@@ -27,5 +28,6 @@ SConscript('arinc653/SConscript')
 SConscript('libm/SConscript')
 SConscript('protocols/SConscript')
 SConscript('libc/SConscript')
+SConscript('utils/SConscript')
 
 # EOF

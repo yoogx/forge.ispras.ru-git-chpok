@@ -87,11 +87,7 @@ void CREATE_SEMAPHORE (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
                        SEMAPHORE_ID_TYPE *SEMAPHORE_ID,
                        RETURN_CODE_TYPE *RETURN_CODE )
 {
-	int j=0;
-   while(SEMAPHORE_NAME[j]){
-	   SEMAPHORE_NAME[j]=toupperr(SEMAPHORE_NAME[j]);
-	   j++;
-	   }
+	new_toupper(SEMAPHORE_NAME);
    pok_sem_id_t      sem_id;
    pok_ret_t         core_ret;
 
@@ -276,6 +272,7 @@ void GET_SEMAPHORE_ID (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
                        SEMAPHORE_ID_TYPE *SEMAPHORE_ID,
                        RETURN_CODE_TYPE *RETURN_CODE )
 {
+	new_toupper(SEMAPHORE_NAME);
    size_t i;
 
    CHECK_SEM_INIT;

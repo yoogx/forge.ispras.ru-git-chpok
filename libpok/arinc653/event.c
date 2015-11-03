@@ -84,11 +84,7 @@ void CREATE_EVENT (EVENT_NAME_TYPE EVENT_NAME,
                    EVENT_ID_TYPE *EVENT_ID,
                    RETURN_CODE_TYPE *RETURN_CODE)
 {
-	int j=0;
-   while(EVENT_NAME[j]){
-	   EVENT_NAME[j]=toupperr(EVENT_NAME[j]);
-	   j++;
-	   }
+	new_toupper(EVENT_NAME);
    pok_event_id_t    core_id;
    pok_ret_t         core_ret;
 
@@ -274,6 +270,7 @@ void GET_EVENT_ID (EVENT_NAME_TYPE EVENT_NAME,
                    EVENT_ID_TYPE *EVENT_ID,
                    RETURN_CODE_TYPE *RETURN_CODE)
 {
+   new_toupper(EVENT_NAME);
    size_t i;
 
    *RETURN_CODE = INVALID_CONFIG;

@@ -40,6 +40,7 @@
 #include <arinc653/types.h>
 #include <arinc653/blackboard.h>
 #include <middleware/blackboard.h>
+#include <utils.h>
 
 #define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
 #define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
@@ -50,11 +51,8 @@ void CREATE_BLACKBOARD (
        /*out*/ BLACKBOARD_ID_TYPE       *BLACKBOARD_ID, 
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-	 int i=0;
-   while(BLACKBOARD_NAME[i]){
-	   BLACKBOARD_NAME[i]=toupperr(BLACKBOARD_NAME[i]);
-	   i++;
-	   }
+	new_toupper(BLACKBOARD_NAME);
+	   
    pok_blackboard_id_t  core_id;
    pok_ret_t            core_ret;
 
@@ -145,6 +143,7 @@ void GET_BLACKBOARD_ID (
        /*out*/ BLACKBOARD_ID_TYPE       *BLACKBOARD_ID, 
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
+	new_toupper(BLACKBOARD_NAME);
    pok_ret_t core_ret;
    pok_blackboard_id_t id;
    core_ret = pok_blackboard_id(BLACKBOARD_NAME, &id);

@@ -61,6 +61,7 @@ void GET_PROCESS_ID(
     PROCESS_ID_TYPE   *process_id,
     RETURN_CODE_TYPE  *return_code)
 {
+	new_toupper(process_name);
     pok_thread_id_t id;
     if (get_process_id(process_name, &id)) {
         *process_id = id + 1;
