@@ -398,6 +398,7 @@ void pok_sched()
  * Context-switch function to switch from one thread to another
  * Rely on architecture-dependent functionnalities (must include arch.h)
  */
+ 
 void pok_sched_context_switch(pok_thread_id_t elected_id)
 {
    uint32_t *current_sp;
@@ -411,14 +412,13 @@ void pok_sched_context_switch(pok_thread_id_t elected_id)
 
    current_sp = &POK_CURRENT_THREAD.sp;
    new_sp = pok_threads[elected_id].sp;
-
+   POK_CURRENT_THREAD.entry_sp = global_r1_from_entryS;
    pok_space_switch(POK_CURRENT_THREAD.partition,
 		    pok_threads[elected_id].partition);
 
    current_thread = elected_id;
    
    POK_CURRENT_THREAD.force_restart = FALSE;
-
    pok_context_switch(current_sp, new_sp);
 }
 

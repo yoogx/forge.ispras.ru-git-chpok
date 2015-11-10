@@ -10,7 +10,7 @@
     SPRG2 - scratch register
     SPRG3 - scratch register
 */
-
+        
         .section ".start", "ax"
 
 base = .
@@ -18,6 +18,8 @@ base = .
 reserved_0000:
         /* fails */
 1:      b 1b 
+
+
 
 #define SAVE_FP(num) stfd %f##num,(80+8*num)(%r1)
 #define LOAD_FP(num) lfd %f##num,(80+8*num)(%r1)
@@ -55,7 +57,7 @@ reserved_0000:
         stw     %r3,72(%r1);  /* srr0 */         \
         mfsrr1  %r4;                             \
         stw     %r4,76(%r1)  /* srr1 */         
-
+        
         
         
         /* Restore registers */
@@ -114,6 +116,9 @@ pok_arch_rfi:
         mfsprg %r1, 1;                          \
         stwu %r4, -FRAME_SIZE(%r1);/*save it*/  \
 2:      SAVE_REGS;                              \
+        lis %r5, global_r1_from_entryS@ha;      \
+        addi %r5, %r5, global_r1_from_entryS@l; \
+        stw %r1, 0(r5);                         \
         mfsrr0 %r3; /* EA of exception */
 
 
@@ -255,6 +260,29 @@ pok_arch_rfi_for_int:
         mfsrr0 %r3; /* EA of exception */               \
         mr	%r3, %r1;
 
+#define EXCEPTION_PROLOGUE_FOR_DEC                      \
+        mtsprg  3,%r3;                                  \
+        mtsprg  2,%r4;                                  \
+        mfcr    %r3;                                    \
+        /* Enable floating point bit in msr */          \
+        mfmsr %r4;                                      \
+        ori %r4,%r4,MSR_FP;                             \
+        mtmsr %r4;                                      \
+        mfsrr1  %r4;                                    \
+        andi.   %r4,%r4,MSR_PR;                         \
+        bne     1f;                                     \
+        /* Already on kernel stack */                   \
+        stwu %r1, -FRAME_SIZE_FOR_INT(%r1);             \
+        b       2f;                                     \
+1:      /* User stack right now          */             \
+        mr %r4, %r1;                                    \
+        mfsprg %r1, 1;                                  \
+        stwu %r4, -FRAME_SIZE_FOR_INT(%r1);/*save it*/  \
+2:      SAVE_REGS_FOR_INT;                              \
+        lis %r5, global_r1_from_entryS@ha;              \
+        addi %r5, %r5, global_r1_from_entryS@l;         \
+        stw %r1, 0(r5);                                 \
+        mfsrr0 %r3; /* EA of exception */               
 
         . = base + 0x200
         .global pok_trap_addr
@@ -263,6 +291,9 @@ pok_trap_addr:
 pok_trap:
         trap
         blr
+
+
+
 
 failed: b failed
 
@@ -402,10 +433,10 @@ label##_asm:
         b       pok_arch_rfi       
 
     START_EXCEPTION(pok_int_decrementer)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_DEC
 
         bl      pok_int_decrementer 
-        b       pok_arch_rfi
+        b       pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_interval_timer)
         EXCEPTION_PROLOGUE

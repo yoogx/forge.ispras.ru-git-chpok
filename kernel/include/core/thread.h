@@ -257,6 +257,12 @@ typedef struct
      * state is the state before thread restart, and no longer valid).
      */
     pok_bool_t          force_restart;
+
+    /*
+     * Stack from entry.S
+     * There all registers have been saved.
+     */
+    uint32_t            entry_sp;
 } pok_thread_t;
 
 /*

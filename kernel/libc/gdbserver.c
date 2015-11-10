@@ -98,6 +98,8 @@
 #include <libc.h>
 #include <bsp.h>
 #include <core/thread.h>
+
+#include <core/debug.h>
 #include <config.h>
 
 
@@ -146,6 +148,12 @@ static const char hexchars[]="0123456789abcdef";
 /* Number of registers.  */
 #ifdef __PPC__
 #define NUMREGS	38
+enum fp_regnames {
+f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13,
+f14, f15, f16, f17, f18, f19, f20, f21, f22, f23, f24, f25, f26, f27, f28, f29,
+f30, f31    
+};
+uint32_t fp_registers[32];
 #endif
 #ifdef __i386__
 #define NUMREGS	16
@@ -569,6 +577,7 @@ char trap[2]="CC";
 #endif
 
 
+
 #define MSR_SE_LG	10		/* Single Step */
 #define __MASK(X)	(1<<(X))
 #define MSR_SE		__MASK(MSR_SE_LG)	/* Single Step */
@@ -618,14 +627,10 @@ static int pok_thread_info(pok_state_t State, int * info_offset){
 }
 
 
-/*
- * This function does all command procesing for interfacing to gdb.
- */
-void
-handle_exception (int exceptionVector, struct regs * ea)
-{
-            int number_of_thread=0;
-  /*Add regs*/
+
+
+
+void set_regs(struct regs *ea){
 #ifdef __PPC__
   registers[r0]=ea->r0;
   registers[r1]=ea->r1;
@@ -664,7 +669,41 @@ handle_exception (int exceptionVector, struct regs * ea)
   registers[pc]=ea->srr0;
   registers[msr]=ea->srr1;
   registers[lr]=ea->lr;
-#endif
+  registers[cr]=ea->cr;
+  fp_registers[f0]=0;
+  fp_registers[f1]=0;
+  fp_registers[f2]=0;
+  fp_registers[f3]=0;
+  fp_registers[f4]=0;
+  fp_registers[f5]=0;
+  fp_registers[f6]=0;
+  fp_registers[f7]=0;
+  fp_registers[f8]=0;
+  fp_registers[f9]=0;
+  fp_registers[f10]=0;
+  fp_registers[f11]=0;
+  fp_registers[f12]=0;
+  fp_registers[f13]=0;
+  fp_registers[f14]=0;
+  fp_registers[f15]=0;
+  fp_registers[f16]=0;
+  fp_registers[f17]=0;
+  fp_registers[f18]=0;
+  fp_registers[f19]=0;
+  fp_registers[f20]=0;
+  fp_registers[f21]=0;
+  fp_registers[f22]=0;
+  fp_registers[f23]=0;
+  fp_registers[f24]=0;
+  fp_registers[f25]=0;
+  fp_registers[f26]=0;
+  fp_registers[f27]=0;
+  fp_registers[f28]=0;
+  fp_registers[f29]=0;
+  fp_registers[f30]=0;
+  fp_registers[f31]=0;
+  
+#endif    
 #ifdef __i386__
   registers[EAX]=ea->eax;
   registers[ECX]=ea->ecx;
@@ -683,6 +722,21 @@ handle_exception (int exceptionVector, struct regs * ea)
   registers[FS]=-1;
   registers[GS]=-1;
 #endif
+}
+
+
+
+/*
+ * This function does all command procesing for interfacing to gdb.
+ */
+void
+handle_exception (int exceptionVector, struct regs * ea)
+{
+   int using_thread = -1;
+   int number_of_thread = 0;
+  /*Add regs*/
+  set_regs(ea);
+
   
   memset(remcomOutBuffer, 0, BUFMAX);
   memset(remcomInBuffer, 0, BUFMAX);
@@ -760,7 +814,7 @@ handle_exception (int exceptionVector, struct regs * ea)
 #endif      
     putpacket ( (unsigned char *) remcomOutBuffer);
     
-    	while (1) {
+    while (1) {
 #ifdef __PPC__
 		remcomOutBuffer[0] = 0;
 
@@ -781,7 +835,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                 ptr = remcomOutBuffer;
                 *ptr++ = 'Q';
                 *ptr++ = 'C';
-                int p = POK_SCHED_CURRENT_THREAD;////pok_threads[0].;
+                int p = POK_SCHED_CURRENT_THREAD;
                     
                 ptr = mem2hex( (char *)(&p),ptr,4); 
                 *ptr++ = 0;
@@ -798,12 +852,13 @@ handle_exception (int exceptionVector, struct regs * ea)
             if (strncmp(ptr, "fThreadInfo", 11) == 0)	{
                 number_of_thread=0;
                 printf("in first if\n");
-                ptr = remcomOutBuffer;
+                ptr = remcomOutBuffer;  
                 *ptr++ = 'm';
-                int p = 0;////pok_threads[0].;
+                int previous_thread = 0;
                 
-                ptr = mem2hex( (char *)(&p),ptr,4); 
+                ptr = mem2hex( (char *)(&previous_thread),ptr,4); 
                 *ptr++ = 0;
+                number_of_thread++;
                 break;
             }
             if (strncmp(ptr, "sThreadInfo", 11) == 0){
@@ -813,11 +868,11 @@ handle_exception (int exceptionVector, struct regs * ea)
                     *ptr++ = 0;
                     break;
                 }
-                number_of_thread++;
                 ptr = remcomOutBuffer;
                 *ptr++ = 'm';
-                int p = number_of_thread;////pok_threads[0].;
-                ptr = mem2hex( (char *)(&p),ptr,4); 
+                int previous_thread = number_of_thread;
+                ptr = mem2hex( (char *)(&previous_thread),ptr,4); 
+                number_of_thread++;
                 *ptr++ = 0;
                 break;
              }
@@ -827,6 +882,9 @@ handle_exception (int exceptionVector, struct regs * ea)
                 hexToInt(&ptr, &thread_num);
                 printf("thread_num=%d\n",thread_num);
                 printf("pok_threads[%d].state=%d\n",thread_num,pok_threads[thread_num].state);
+                //~ struct thread_stack * id = (struct thread_stack *) pok_threads[thread_num].sp;
+
+
                 ptr = remcomOutBuffer;
                 int info_offset=0;
                 int lengh = pok_thread_info(pok_threads[thread_num].state,&info_offset);
@@ -856,16 +914,16 @@ handle_exception (int exceptionVector, struct regs * ea)
 				 * }
 				 */
 		{
-			int i;
+			//~ int i;
 			ptr = remcomOutBuffer;
 			/* General Purpose Regs */
 			ptr = mem2hex((char *)registers, ptr, 32 * 4);
 			/* Floating Point registers - FIXME */
-			/*ptr = mem2hex((char *), ptr, 32 * 8);*/
-			for(i=0; i<(32*8*2); i++) { /* 2chars/byte */
-				ptr[i] = '0';
-			}
-			ptr += 32*8*2;
+			ptr = mem2hex((char *)fp_registers, ptr, 32 * 8);
+			//~ for(i=0; i<(32*8*2); i++) { /* 2chars/byte */
+				//~ ptr[i] = '0';
+			//~ }
+			//~ ptr += 32*8*2;
 			/* pc, msr, cr, lr, ctr, xer, (mq is unused) */
 			ptr = mem2hex((char *)&registers[pc]/*[nip]*/, ptr, 4);
 			ptr = mem2hex((char *)&registers[msr], ptr, 4);
@@ -889,8 +947,8 @@ handle_exception (int exceptionVector, struct regs * ea)
 			hex2mem(ptr, (char *)registers, 32 * 4);
 
 			/* Floating Point registers - FIXME?? */
-			/*ptr = hex2mem(ptr, ??, 32 * 8);*/
-			ptr += 32*8*2;
+			ptr = hex2mem(ptr, (char *)fp_registers, 32 * 8);
+			////ptr += 32*8*2;
 
 			/* pc, msr, cr, lr, ctr, xer, (mq is unused) */
 			ptr = hex2mem(ptr, (char *)&registers[pc]/*nip*/, 4);
@@ -905,8 +963,45 @@ handle_exception (int exceptionVector, struct regs * ea)
 			break;
 		case 'H':
 			/* don't do anything, yet, just acknowledge */
-			hexToInt(&ptr, &addr);
-			strcpy(remcomOutBuffer,"OK");
+            if (number_of_thread == 0){
+                //TODO: FIX IT
+                strcpy(remcomOutBuffer,"OK");
+                printf("\nH break\n");
+                break;
+            }    
+            ptr = &remcomInBuffer[1];
+            if ( *ptr == 'c'){
+                    if (exceptionVector == 17){
+                        strcpy(remcomOutBuffer,"OK");
+                        printf("\nHc-1 break\n");
+                        break;
+                    }
+                using_thread = POK_SCHED_CURRENT_THREAD;
+                printf("pok_threads[%d].sp=0x%lx\n",using_thread,pok_threads[using_thread].sp);
+                printf("pok_threads[%d].entry_sp=0x%lx\n",using_thread,pok_threads[using_thread].entry_sp);
+                set_regs((struct regs *)pok_threads[using_thread].entry_sp);
+                
+            }else if (*ptr++ == 'g'){
+                hexToInt(&ptr, &addr);
+                if (addr != -1) 
+                {
+                    using_thread = addr;
+                    //~ strcpy(remcomOutBuffer,"OK");
+                    //~ printf("\nH-1 break\n");
+                    //~ break;
+                
+                }else using_thread = POK_SCHED_CURRENT_THREAD;
+                printf("pok_threads[%d].sp=0x%lx\n",using_thread,pok_threads[using_thread].sp);
+                printf("pok_threads[%d].entry_sp=0x%lx\n",using_thread,pok_threads[using_thread].entry_sp);
+                printf("POK_CONFIG_NB_THREADS = %d\n\n",POK_CONFIG_NB_THREADS);
+                printf("MONITOR_THREAD = %d\n\n",MONITOR_THREAD);
+                printf("POK_SCHED_CURRENT_THREAD = %d\n\n",POK_SCHED_CURRENT_THREAD);
+                set_regs((struct regs *)pok_threads[using_thread].entry_sp);
+                printf("\nentry= 0x%lx\n",(uint32_t) pok_threads[using_thread].entry);
+            }
+			printf("\nH\n");
+            
+            strcpy(remcomOutBuffer,"OK");
 			break;
 
 		case 'm':	/* mAA..AA,LLLL  Read LLLL bytes at address AA..AA */
@@ -917,7 +1012,7 @@ handle_exception (int exceptionVector, struct regs * ea)
 			if (hexToInt(&ptr, &addr)
 			    && *ptr++ == ','
 			    && hexToInt(&ptr, &length))	{
-				if (mem2hex((char *)addr, remcomOutBuffer,length))
+                    if (mem2hex((char *)addr, remcomOutBuffer,length))
 					break;
 				strcpy (remcomOutBuffer, "E03");
 			} else {
@@ -969,10 +1064,6 @@ handle_exception (int exceptionVector, struct regs * ea)
 ////			kgdb_interruptible(1);
 ////			unlock_kernel();
 ////			kgdb_active = 0;
-			//my code
-////            ea->srr0+=4;
-            //my code end
-            
             
             return;
 
