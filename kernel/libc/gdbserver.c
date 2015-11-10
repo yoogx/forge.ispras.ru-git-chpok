@@ -735,6 +735,7 @@ handle_exception (int exceptionVector, struct regs * ea)
    int using_thread = -1;
    int number_of_thread = 0;
   /*Add regs*/
+  
   set_regs(ea);
 
   
@@ -888,6 +889,18 @@ handle_exception (int exceptionVector, struct regs * ea)
                 ptr = remcomOutBuffer;
                 int info_offset=0;
                 int lengh = pok_thread_info(pok_threads[thread_num].state,&info_offset);
+                if (thread_num == POK_SCHED_CURRENT_THREAD){
+                    ptr = mem2hex( (char *) &("* "), ptr, 2);
+                }
+                if (thread_num == MONITOR_THREAD){
+                    ptr = mem2hex( (char *) &("MONITOR "), ptr, 8);
+                }
+                if (thread_num == GDB_THREAD){
+                    ptr = mem2hex( (char *) &("GDB "), ptr, 4);
+                }
+                if (thread_num == IDLE_THREAD){
+                    ptr = mem2hex( (char *) &("IDLE "), ptr, 5);
+                }
                 printf("lengh = %d\n",lengh);
                 printf("info_offset = %d\n",info_offset);
                 printf("%c%c%c\n",info_thread[info_offset],info_thread[info_offset+1],info_thread[info_offset+2]);
@@ -1048,6 +1061,7 @@ handle_exception (int exceptionVector, struct regs * ea)
 		case 'k':    /* kill the program, actually just continue */
 		case 'c':    /* cAA..AA  Continue; address AA..AA optional */
 			/* try to read optional parameter, pc unchanged if no parm */
+            set_regs(ea);
             printf("\nContinue\n\n");
 			ptr = &remcomInBuffer[1];
 			if (hexToInt(&ptr, &addr)) {
@@ -1064,11 +1078,11 @@ handle_exception (int exceptionVector, struct regs * ea)
 ////			kgdb_interruptible(1);
 ////			unlock_kernel();
 ////			kgdb_active = 0;
-            
             return;
 
 		case 's':
         {
+            set_regs(ea);
             uint32_t inst=*((uint32_t *)registers[pc]);
             printf("inst=0x%lx;\n",inst);
             uint32_t c_inst=registers[pc];
