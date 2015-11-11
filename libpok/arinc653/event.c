@@ -49,22 +49,12 @@
 #include <core/error.h>
 #include <utils.h>
 
-// must be at least MAX_NAME_LENGTH of ARINC653
-#define POK_EVENT_MAX_NAME_LENGTH 30
 #define POK_EVENT_NAME_EQ(x, y) (strncmp((x), (y), POK_EVENT_MAX_NAME_LENGTH) == 0)
 
 #define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
 #define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
 
 bool_t pok_arinc653_events_initialized = 0;
-
-typedef struct
-{
-   pok_event_id_t    core_id;
-   pok_bool_t        ready;
-   pok_bool_t        is_up;
-   char              name[POK_EVENT_MAX_NAME_LENGTH];
-}pok_arinc653_event_layer_t;
 
 pok_arinc653_event_layer_t *pok_arinc653_events_layers;
 

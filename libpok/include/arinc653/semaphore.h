@@ -27,6 +27,16 @@
 #include <arinc653/types.h>
 #include <arinc653/process.h>
 
+// must be at least MAX_NAME_LENGTH of ARINC653
+#define POK_SEM_MAX_NAME_LENGTH 30
+
+typedef struct
+{
+   pok_bool_t        ready;
+   pok_sem_id_t      core_id;
+   char              name[POK_SEM_MAX_NAME_LENGTH];
+} pok_arinc653_semaphore_layer_t;
+
 /*----------------------------------------------------------------------*/
 /* */
 /* SEMAPHORE constant definitions */

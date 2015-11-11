@@ -51,19 +51,10 @@
 #include <core/error.h>
 #include <utils.h>
 
-// must be at least MAX_NAME_LENGTH of ARINC653
-#define POK_SEM_MAX_NAME_LENGTH 30
 #define POK_SEM_NAME_EQ(x, y) (strncmp((x), (y), POK_SEM_MAX_NAME_LENGTH) == 0)
 
 #define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
 #define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
-
-typedef struct
-{
-   pok_bool_t        ready;
-   pok_sem_id_t      core_id;
-   char              name[POK_SEM_MAX_NAME_LENGTH];
-} pok_arinc653_semaphore_layer_t;
 
 pok_arinc653_semaphore_layer_t *pok_arinc653_semaphores_layers;
 
