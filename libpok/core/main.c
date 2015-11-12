@@ -32,7 +32,6 @@ int main();
 
 int __pok_partition_start ()
 {
-    pok_libpok_config_init();
 #ifdef POK_NEEDS_MIDDLEWARE
 
 #ifdef POK_NEEDS_BLACKBOARDS
