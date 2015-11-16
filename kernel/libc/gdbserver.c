@@ -589,6 +589,7 @@ static inline void set_msr(int msr)
 
 static char info_thread[59] = "StoppedRunnableWaitingLockWait next activationDelayed start";
 
+
 static int pok_thread_info(pok_state_t State, int * info_offset){
   switch (State){
         case POK_STATE_STOPPED: // DORMANT (must be started first)
@@ -625,7 +626,6 @@ static int pok_thread_info(pok_state_t State, int * info_offset){
     }
     return 0;
 }
-
 
 
 
@@ -732,10 +732,11 @@ void set_regs(struct regs *ea){
 void
 handle_exception (int exceptionVector, struct regs * ea)
 {
-   int using_thread = -1;
-   int number_of_thread = 0;
+
   /*Add regs*/
 #ifdef __PPC__
+   int using_thread = -1;
+   int number_of_thread = 0;
    uint32_t old_entryS = pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp;
    pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = (uint32_t) ea;
 #endif
@@ -747,7 +748,11 @@ handle_exception (int exceptionVector, struct regs * ea)
   memset(remcomInBuffer, 0, BUFMAX);
   int sigval;
 #ifdef __i386__
-  pok_bool_t stepping=FALSE;
+   int using_thread = -1;
+   int number_of_thread = 0;
+   uint32_t old_entryS = pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp;
+   pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = (uint32_t) ea;
+   pok_bool_t stepping=FALSE;
 #endif
   int addr, length;
   char *ptr;
@@ -767,12 +772,12 @@ handle_exception (int exceptionVector, struct regs * ea)
         addr_instr2=0;
     }
 #endif
-#ifdef __i386__
-    if (addr_instr2 != 0){
-        hex2mem(instr, (char *) (addr_instr), 1);
-        addr_instr=0;
-    }
-#endif
+//~ #ifdef __i386__
+    //~ if (addr_instr2 != 0){
+        //~ hex2mem(instr, (char *) (addr_instr), 1);
+        //~ addr_instr=0;
+    //~ }
+//~ #endif
   }
   
   /* reply to host that an exception has occurred */
@@ -829,7 +834,16 @@ handle_exception (int exceptionVector, struct regs * ea)
   *ptr++ = ':';
   ptr = mem2hex((char *)&registers[PC], ptr, 4, 0); 	/* PC */
   *ptr++ = ';';
-
+    *ptr++ = 't';
+    *ptr++ = 'h';
+    *ptr++ = 'r';
+    *ptr++ = 'e';
+    *ptr++ = 'a';
+    *ptr++ = 'd';
+	*ptr++ = ':';
+    uint32_t U = POK_SCHED_CURRENT_THREAD + 1;
+    ptr = mem2hex( (char *)(&U),ptr,4); 
+	*ptr++ = ';';
   *ptr = '\0';
 #endif      
     putpacket ( (unsigned char *) remcomOutBuffer);
@@ -956,7 +970,8 @@ handle_exception (int exceptionVector, struct regs * ea)
                 break;
             }
 
-		}
+            break;
+        }
 		case 'd':
 			/* toggle debug flag */
 			////kdebug ^= 1;
@@ -1107,9 +1122,9 @@ handle_exception (int exceptionVector, struct regs * ea)
 		case 'k':    /* kill the program, actually just continue */
 		case 'c':    /* cAA..AA  Continue; address AA..AA optional */
 			/* try to read optional parameter, pc unchanged if no parm */
-#ifdef __PPC__
+
             pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = old_entryS;
-#endif       
+       
             set_regs(ea);
             printf("\nContinue\n\n");
 			ptr = &remcomInBuffer[1];
@@ -1253,7 +1268,103 @@ handle_exception (int exceptionVector, struct regs * ea)
 
       switch (*ptr++)
 	{
-	case '?':
+		case 'q': /* this screws up gdb for some reason...*/
+		{
+			//~ extern long _start, sdata, __bss_start;
+			ptr = &remcomInBuffer[1];
+            if (strncmp(ptr, "C", 1) == 0){
+                ptr = remcomOutBuffer;
+                *ptr++ = 'Q';
+                *ptr++ = 'C';
+                uint32_t p = POK_SCHED_CURRENT_THREAD + 1;
+                ptr = mem2hex( (char *)(&p),ptr,1); 
+                *ptr++ = 0;
+                break;
+            }
+            if (strncmp(ptr, "Offsets", 7) == 0){
+                //~ strcpy(remcomOutBuffer,"OK");
+                //~ break;
+                ptr = remcomOutBuffer;
+			//~ sprintf(ptr, "Text=%8.8x;Data=%8.8x;Bss=%8.8x",
+				//~ &_start, &sdata, &__bss_start);
+                break;
+            }
+            if (strncmp(ptr, "Supported", 9) == 0){
+                /*FIX IT*/
+                //~ char * answer = "multiprocess+";
+                //~ ptr = remcomOutBuffer;
+                //~ for (int i=0; i < 13; i++)
+                    //~ *ptr++ = answer[i];
+                //~ *ptr++ = 0;
+                
+                
+                break;
+                
+            }
+            if (strncmp(ptr, "fThreadInfo", 11) == 0)	{
+                number_of_thread = 1;
+                printf("in first if\n");
+                ptr = remcomOutBuffer;  
+                *ptr++ = 'm';
+                int previous_thread = 1;
+                ptr = mem2hex( (char *)(&previous_thread),ptr,1); 
+                *ptr++ = 0;
+                number_of_thread++;
+                break;
+            }
+            if (strncmp(ptr, "sThreadInfo", 11) == 0){
+                if (number_of_thread == POK_CONFIG_NB_THREADS +1){
+                    ptr = remcomOutBuffer;
+                    *ptr++ = 'l';
+                    *ptr++ = 0;
+                    break;
+                }
+                ptr = remcomOutBuffer;
+                *ptr++ = 'm';
+                int previous_thread = number_of_thread;
+                ptr = mem2hex( (char *)(&previous_thread),ptr,1); 
+                number_of_thread++;
+                *ptr++ = 0;
+                break;
+             }
+             if (strncmp(ptr, "ThreadExtraInfo", 15) == 0){
+                ptr += 16;
+                int thread_num;
+                /*FIX IT*/
+                hexToInt(&ptr, &thread_num);
+                thread_num --;
+                printf("thread_num=%d\n",thread_num);
+                printf("pok_threads[%d].state=%d\n",thread_num,pok_threads[thread_num].state);
+                //~ struct thread_stack * id = (struct thread_stack *) pok_threads[thread_num].sp;
+
+
+                ptr = remcomOutBuffer;
+                int info_offset=0;
+                int lengh = pok_thread_info(pok_threads[thread_num].state,&info_offset);
+                if (thread_num == POK_SCHED_CURRENT_THREAD){
+                    ptr = mem2hex( (char *) &("* "), ptr, 2);
+                }
+                if (thread_num == MONITOR_THREAD){
+                    ptr = mem2hex( (char *) &("MONITOR "), ptr, 8);
+                }
+                if (thread_num == GDB_THREAD){
+                    ptr = mem2hex( (char *) &("GDB "), ptr, 4);
+                }
+                if (thread_num == IDLE_THREAD){
+                    ptr = mem2hex( (char *) &("IDLE "), ptr, 5);
+                }
+                printf("lengh = %d\n",lengh);
+                printf("info_offset = %d\n",info_offset);
+                printf("%c%c%c\n",info_thread[info_offset],info_thread[info_offset+1],info_thread[info_offset+2]);
+                //~ strcpy(ptr,info);
+                ptr = mem2hex( (char *) (&info_thread[info_offset]), ptr, lengh);
+                *ptr++ = 0;
+                break;
+            }
+
+        break;
+        }
+    case '?':
 	  remcomOutBuffer[0] = 'S';
 	  remcomOutBuffer[1] = hexchars[sigval >> 4];
 	  remcomOutBuffer[2] = hexchars[sigval % 16];
@@ -1336,12 +1447,60 @@ handle_exception (int exceptionVector, struct regs * ea)
 	    }
 	  break;
 
-	  /* cAA..AA    Continue at address AA..AA(optional) */
+	case 'H':
+        {
+        /* don't do anything, yet, just acknowledge */
+        if (number_of_thread == 1){
+            //TODO: FIX IT
+            strcpy(remcomOutBuffer,"OK");
+            printf("\nH break\n");
+            break;
+        }    
+        ptr = &remcomInBuffer[1];
+        if ( *ptr == 'c'){
+            using_thread = POK_SCHED_CURRENT_THREAD;
+            printf("pok_threads[%d].sp=0x%lx\n",using_thread,pok_threads[using_thread].sp);
+            printf("pok_threads[%d].entry_sp=0x%lx\n",using_thread,pok_threads[using_thread].entry_sp);
+            //~ set_regs((struct regs *)pok_threads[using_thread].entry_sp);
+            
+        }else if (*ptr++ == 'g'){
+            /*FIX IT*/
+            //~ while (*ptr != '.')
+                //~ ptr++;
+            //~ ptr++;
+            hexToInt(&ptr, &addr);
+            if (addr != -1 && addr != 0) 
+            {
+                using_thread = addr;
+                using_thread --;
+                //~ strcpy(remcomOutBuffer,"OK");
+                //~ printf("\nH-1 break\n");
+                //~ break;
+            
+            }else using_thread = POK_SCHED_CURRENT_THREAD;
+            printf("pok_threads[%d].sp=0x%lx\n",using_thread,pok_threads[using_thread].sp);
+            printf("pok_threads[%d].entry_sp=0x%lx\n",using_thread,pok_threads[using_thread].entry_sp);
+            printf("POK_CONFIG_NB_THREADS = %d\n\n",POK_CONFIG_NB_THREADS);
+            printf("MONITOR_THREAD = %d\n\n",MONITOR_THREAD);
+            printf("POK_SCHED_CURRENT_THREAD = %d\n\n",POK_SCHED_CURRENT_THREAD);
+            //~ set_regs((struct regs *)pok_threads[using_thread].entry_sp);
+            printf("\nentry= 0x%lx\n",(uint32_t) pok_threads[using_thread].entry);
+        }
+        printf("\nH\n");
+        
+        strcpy(remcomOutBuffer,"OK");
+        break;
+        }
+      /* cAA..AA    Continue at address AA..AA(optional) */
 	  /* sAA..AA   Step one instruction from AA..AA(optional) */
 	case 's':
 	  stepping = TRUE;
 	case 'k':		/* do nothing */
 	case 'c':
+      pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = old_entryS;
+       
+      set_regs(ea);
+
 	  /* try to read optional parameter, pc unchanged if no parm */
 	  if (hexToInt (&ptr, &addr))
 	    registers[PC] = addr;
