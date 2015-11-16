@@ -793,6 +793,21 @@ handle_exception (int exceptionVector, struct regs * ea)
 	*ptr++ = ':';
     ptr = mem2hex((char *)(&registers) + 1*4, ptr, 4);
 	*ptr++ = ';';
+    *ptr++ = 't';
+    *ptr++ = 'h';
+    *ptr++ = 'r';
+    *ptr++ = 'e';
+    *ptr++ = 'a';
+    *ptr++ = 'd';
+	*ptr++ = ':';
+    uint32_t U = POK_SCHED_CURRENT_THREAD + 1;
+    int U_part=1;
+    *ptr++ = 'p';
+    ptr = mem2hex( (char *)(&U_part),ptr,4); 
+    *ptr++ = '.';
+    ptr = mem2hex( (char *)(&U),ptr,4); 
+	*ptr++ = ';';
+
     ptr = 0;
 #endif
 #ifdef __i386__
@@ -858,12 +873,16 @@ handle_exception (int exceptionVector, struct regs * ea)
                 break;
             }
             if (strncmp(ptr, "Supported", 9) == 0){
+                /*FIX IT*/
                 char * answer = "multiprocess+";
                 ptr = remcomOutBuffer;
                 for (int i=0; i < 13; i++)
                     *ptr++ = answer[i];
                 *ptr++ = 0;
+                
+                
                 break;
+                
             }
             if (strncmp(ptr, "fThreadInfo", 11) == 0)	{
                 number_of_thread = 1;
@@ -902,6 +921,7 @@ handle_exception (int exceptionVector, struct regs * ea)
              if (strncmp(ptr, "ThreadExtraInfo", 15) == 0){
                 ptr += 16;
                 int thread_num;
+                /*FIX IT*/
                 while (* ptr != '.')
                     ptr++;
                 ptr++;
@@ -1010,17 +1030,13 @@ handle_exception (int exceptionVector, struct regs * ea)
             }    
             ptr = &remcomInBuffer[1];
             if ( *ptr == 'c'){
-                    if (exceptionVector == 17){
-                        strcpy(remcomOutBuffer,"OK");
-                        printf("\nHc-1 break\n");
-                        break;
-                    }
                 using_thread = POK_SCHED_CURRENT_THREAD;
                 printf("pok_threads[%d].sp=0x%lx\n",using_thread,pok_threads[using_thread].sp);
                 printf("pok_threads[%d].entry_sp=0x%lx\n",using_thread,pok_threads[using_thread].entry_sp);
                 set_regs((struct regs *)pok_threads[using_thread].entry_sp);
                 
             }else if (*ptr++ == 'g'){
+                /*FIX IT*/
                 while (*ptr != '.')
                     ptr++;
                 ptr++;

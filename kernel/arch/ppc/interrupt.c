@@ -129,7 +129,7 @@ void pok_int_program(struct regs * ea) {
     //~ printf("offset6 = 0x%lx\n",ea->offset6);
     //~ printf("lr = 0x%lx\n",ea->lr);
 
-    printf("\n          Exit from handle exeprion\n");
+    printf("\n          Exit from handle exception\n");
 
     if (k == 1){
 /*
