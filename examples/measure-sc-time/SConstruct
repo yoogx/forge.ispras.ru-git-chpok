@@ -1,0 +1,72 @@
+# -*- Mode: Python -*-
+
+import sys
+import os
+import itertools
+
+sys.path.insert(1, os.path.join(os.environ["POK_PATH"], "misc"))
+import arinc653_xml_conf
+
+import chpok_configuration
+import xml.etree.ElementTree as ET
+
+boards = ['e500mc', 'e500_highmem', 'p3041', 'x86-qemu']
+
+vars = Variables()
+vars.AddVariables(
+	('xml', 'xml config to be passed to parser', 'config.xml'),
+    EnumVariable('bsp', 'bsp', 'e500_highmem', allowed_values = boards)
+)
+
+env = Environment(variables = vars, ENV = os.environ)
+
+Help(vars.GenerateHelpText(env))
+
+env['POK_PATH'] = os.path.join(os.environ['POK_PATH'], '')
+env['PARTITIONS'] = ['pr1/pr1.elf']
+env['SCONSTRUCT_DIR'] = Dir('.').abspath
+
+# this prevents config parsing when we don't need to build
+if not COMMAND_LINE_TARGETS and not env.GetOption('clean') and not env.GetOption('help'):
+    root = ET.parse(env['xml'])
+    
+    parser = arinc653_xml_conf.ArincConfigParser()
+    conf = parser.parse(root)
+    
+    partition_dirs = ("pr%d" % i for i in itertools.count(1))
+    partition_dirs = list(itertools.islice(partition_dirs, 255)) # XXX limited to 255 partitions right now
+    chpok_configuration.write_configuration(conf, 'kernel', partition_dirs)
+
+Export('env')
+
+SConscript(env['POK_PATH']+'/misc/SConscript')
+
+env.Append(QEMU_FLAGS = ' -kernel pok.elf')
+
+# uncomment this line if you want to use gdb
+#env.Append(QEMU_FLAGS = ' -S -s')
+
+#env.Append(QEMU_FLAGS = ' -display none')
+#env.Append(QEMU_FLAGS = ' -monitor tcp::4444,server,nowait')
+
+env.Command('run', [], env['QEMU']+env['QEMU_FLAGS'])
+env.Ignore('.', 'run')
+
+env.Command('debug', [], env['GDB']+' pok.elf -ex "target remote :1234"')
+env.Ignore('.', 'debug')
+
+env.Clean('chpok', [env['POK_PATH']+'/build/'+bsp for bsp in boards])
+env.Clean('local', [
+'kernel/deployment.c',
+'kernel/deployment.o',
+'kernel/kernel.lo',
+'pr1/main.o',
+'pr1/deployment.c',
+'pr1/deployment.o',
+'pr1/pr1.elf',
+'partitions.bin',
+'sizes.c',
+'sizes.o',
+'pok.elf'])
+
+# EOF

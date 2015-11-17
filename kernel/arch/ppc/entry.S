@@ -224,6 +224,14 @@ label##_asm:
         b pok_arch_rfi
 
     START_EXCEPTION(pok_int_system_call)
+		mtsprg  2,%r4
+		lis		%r4, 2048
+		cmpw	%r3, %r4
+		bne		sc_cont
+		rfi
+		
+		sc_cont:
+		mfsprg  %r4, 2
         EXCEPTION_PROLOGUE
 
         /* load system call arguments back from the stack */

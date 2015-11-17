@@ -42,6 +42,8 @@
 
 typedef enum
 {
+   POK_SYSCALL_TEST_ADD = 2049,
+
    POK_SYSCALL_CONSWRITE                           =  10,
    POK_SYSCALL_GETTICK                             =  20,
    POK_SYSCALL_INT_NUMBER                          =  42,

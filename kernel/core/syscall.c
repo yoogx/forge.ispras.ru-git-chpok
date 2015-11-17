@@ -62,6 +62,9 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
 {
    switch (syscall_id)
    {
+	   case POK_SYSCALL_TEST_ADD:
+		return args->arg1 + args->arg2;
+		break;
 #if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG)
       case POK_SYSCALL_CONSWRITE:
          POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg1 + infos->base_addr)
