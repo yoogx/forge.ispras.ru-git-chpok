@@ -260,7 +260,7 @@ pok_arch_rfi_for_int:
         mfsrr0 %r3; /* EA of exception */               \
         mr	%r3, %r1;
 
-#define EXCEPTION_PROLOGUE_FOR_DEC                      \
+#define EXCEPTION_PROLOGUE_FOR_GDB                      \
         mtsprg  3,%r3;                                  \
         mtsprg  2,%r4;                                  \
         mfcr    %r3;                                    \
@@ -365,44 +365,44 @@ label##_asm:
 // Handlers themselves:
 
     START_EXCEPTION(pok_int_critical_input)
-        EXCEPTION_PROLOGUE 
+        EXCEPTION_PROLOGUE_FOR_GDB
         bl pok_int_critical_input
-        b pok_arch_rfi
+        b pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_machine_check)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
         bl pok_int_machine_check
-        b pok_arch_rfi
+        b pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_data_storage)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
         
         mfspr %r4, SPRN_DEAR // DEAR - faulting address
         mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
         bl pok_int_data_storage
-        b  pok_arch_rfi
+        b  pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_inst_storage)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
         
         mfspr %r4, SPRN_DEAR // DEAR - faulting address
         mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
         bl pok_int_inst_storage
-        b  pok_arch_rfi
+        b  pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_ext_interrupt)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
 
         bl pok_int_ext_interrupt
-        b pok_arch_rfi
+        b pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_alignment)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
 
         bl pok_int_alignment
-        b pok_arch_rfi
+        b pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_program)
         EXCEPTION_PROLOGUE_FOR_INT
@@ -411,13 +411,13 @@ label##_asm:
         b pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_fp_unavail)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
 
         bl pok_int_fp_unavail
-        b pok_arch_rfi
+        b pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_system_call)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
 
         /* load system call arguments back from the stack */
         lwz     %r4,20(%r1)
@@ -430,49 +430,49 @@ label##_asm:
         bl      pok_int_system_call 
         stw     %r3,20(%r1)
         
-        b       pok_arch_rfi       
+        b       pok_arch_rfi_for_int       
 
     START_EXCEPTION(pok_int_decrementer)
-        EXCEPTION_PROLOGUE_FOR_DEC
+        EXCEPTION_PROLOGUE_FOR_GDB
 
         bl      pok_int_decrementer 
         b       pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_interval_timer)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
 
         bl      pok_int_interval_timer
-        b       pok_arch_rfi
+        b       pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_watchdog)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
 
         bl      pok_int_watchdog
-        b       pok_arch_rfi
+        b       pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_data_tlb_miss)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
         
         mfspr %r4, SPRN_DEAR // DEAR - faulting address
         mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
         bl      pok_int_data_tlb_miss
-        b       pok_arch_rfi
+        b       pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_inst_tlb_miss)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
 
         mfspr %r4, SPRN_DEAR // DEAR - faulting address
         mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
         bl      pok_int_inst_tlb_miss
-        b       pok_arch_rfi
+        b       pok_arch_rfi_for_int
         
     START_EXCEPTION(pok_int_debug)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
 
         bl      pok_int_debug
-        b       pok_arch_rfi
+        b       pok_arch_rfi_for_int
 
 #define SET_IVOR(vector_number, vector_label)           \
                 li      r26,vector_label##_asm @ l;             \

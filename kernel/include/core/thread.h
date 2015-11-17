@@ -259,8 +259,8 @@ typedef struct
     pok_bool_t          force_restart;
 
     /*
-     * Stack from entry.S
-     * There all registers have been saved.
+     * Stack from entry.S for PPC and from interrupt.h for i386
+     * where all registers have been saved.
      */
     uint32_t            entry_sp;
 } pok_thread_t;

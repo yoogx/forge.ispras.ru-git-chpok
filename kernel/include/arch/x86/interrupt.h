@@ -61,6 +61,7 @@ void name##_handler(interrupt_frame* frame);				\
       "pusha				\n"				\
       "push %ds				\n"				\
       "push %es				\n"				\
+      "mov  %esp,global_r1_from_entryS 				\n"				\
       "push %esp			\n"				\
       "mov $0x10, %ax			\n"				\
       "mov %ax, %ds			\n"				\
@@ -86,6 +87,7 @@ void name##_handler(interrupt_frame* frame);			\
       "pusha				\n"				\
       "push %ds				\n"				\
       "push %es				\n"				\
+      "mov  %esp,global_r1_from_entryS 				\n"				\
       "push %esp			\n"				\
       "mov $0x10, %ax			\n"				\
       "mov %ax, %ds			\n"				\
