@@ -15,8 +15,7 @@ libpok_env.StaticLibrary(target = 'pok', source = [
 'libm/libm.lo',
 'protocols/protocols.lo',
 'libc/libc.lo',
-'utils/utils.lo',
-'config.c'])
+'utils/utils.lo'])
 
 Export('libpok_env')
 

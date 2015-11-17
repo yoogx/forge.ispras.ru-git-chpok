@@ -53,6 +53,5 @@ pok_env.Depends(pok_target, [compile_sizes, ldscript])
 
 SConscript('kernel/SConscript')
 SConscript('pr1/SConscript')
-SConscript(env['POK_PATH']+'/build/SConscript')
 
 # EOF

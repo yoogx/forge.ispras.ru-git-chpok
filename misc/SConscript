@@ -93,4 +93,8 @@ Export('env')
 
 SConscript(env['SCONSTRUCT_DIR']+'/SConscript')
 
+SConscript('../boards/SConscript', variant_dir = '../build/'+env['BSP']+'/boards', duplicate = 0)
+SConscript('../kernel/SConscript', variant_dir = '../build/'+env['BSP']+'/kernel', duplicate = 0)
+SConscript('../libpok/SConscript', variant_dir = '../build/'+env['BSP']+'/libpok', duplicate = 0)
+
 # EOF
