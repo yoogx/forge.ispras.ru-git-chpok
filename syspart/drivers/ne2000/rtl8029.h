@@ -14,14 +14,18 @@
  * Created by julien on Mon May 18 18:44:51 2009 
  */
 
+//TODO move to config.h or delete
+#define POK_NEEDS_RTL8029
+
+
 #ifdef POK_NEEDS_RTL8029
 # ifndef __POK_RTL8029_H__
 #  define __POK_RTL8029_H__
 
 #  include <libc/stdio.h>
 #  include <libc/string.h>
-#  include <arch/x86/pci.h>
-#  include <arch/x86/ioports.h>
+#  include <pci.h>
+//#  include <arch/x86/ioports.h>
 #  include <middleware/port.h>
 
 #  define ETH_DATA_MAXLEN	1500
