@@ -37,6 +37,8 @@ typedef struct
    char              name[POK_SEM_MAX_NAME_LENGTH];
 } pok_arinc653_semaphore_layer_t;
 
+extern pok_arinc653_semaphore_layer_t pok_arinc653_semaphores_layers[];
+
 /*----------------------------------------------------------------------*/
 /* */
 /* SEMAPHORE constant definitions */
