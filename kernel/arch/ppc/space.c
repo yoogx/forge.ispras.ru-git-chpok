@@ -31,8 +31,6 @@
 #include "space.h"
 #include "cons.h"
 
-extern struct pok_space spaces[];
-
 pok_ret_t pok_create_space (pok_partition_id_t partition_id,
                             uintptr_t addr,
                             size_t size)
