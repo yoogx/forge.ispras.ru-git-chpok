@@ -56,8 +56,6 @@
 #define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
 #define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
 
-pok_arinc653_semaphore_layer_t *pok_arinc653_semaphores_layers;
-
 pok_bool_t           pok_arinc653_semaphores_initialized = 0;
 
 static void init_semaphores(void)

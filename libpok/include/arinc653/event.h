@@ -39,6 +39,8 @@ typedef struct
    char              name[POK_EVENT_MAX_NAME_LENGTH];
 } pok_arinc653_event_layer_t;
 
+extern pok_arinc653_event_layer_t pok_arinc653_events_layers[];
+
 
 /*----------------------------------------------------------------------*/
 /* */

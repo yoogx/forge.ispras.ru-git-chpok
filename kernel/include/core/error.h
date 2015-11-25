@@ -73,6 +73,8 @@ typedef struct
     pok_error_kind_t target_error_code; // error code to pass to error handler process (has to be defined only if level is 'process')
 } pok_error_hm_partition_t;
 
+extern const pok_error_hm_partition_t * const pok_partition_hm_tables[];
+
 /*
  * Creates an error-handler thread for the current partition.
  *

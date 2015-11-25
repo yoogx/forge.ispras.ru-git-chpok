@@ -57,8 +57,6 @@
 
 bool_t pok_arinc653_events_initialized = 0;
 
-pok_arinc653_event_layer_t *pok_arinc653_events_layers;
-
 static void init_events() 
 {
    size_t i;
