@@ -62,6 +62,11 @@ pok_ret_t pok_blackboard_display (const pok_blackboard_id_t   id,
    {
       return POK_ERRNO_SIZE;
    }
+   
+   if (len <= 0)
+   {
+      return POK_ERRNO_SIZE;
+   }
 
    if (pok_blackboards[id].ready != TRUE)
    {
