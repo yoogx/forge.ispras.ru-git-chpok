@@ -71,7 +71,7 @@ typedef struct
                       */
 
 //stupid workaround. pci_write should be added in x86
-#ifdef POK_ARCH_PPC
+#ifdef __PPC__
 
 void pci_write_word(s_pci_device *d, uint32_t reg, uint16_t val);
 

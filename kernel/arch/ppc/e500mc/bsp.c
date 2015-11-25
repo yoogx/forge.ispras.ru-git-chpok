@@ -22,7 +22,6 @@
 #include "cons.h"
 #include "../space.h"
 
-#include <pci.h>
 #include "../devtree.h"
 
 extern char _end[];
