@@ -186,3 +186,10 @@ void pok_space_context_restart(
         arg2
     );
 }
+
+uintptr_t pok_virt_to_phys(uintptr_t virt) {
+    pok_fatal("pok_virt_to_phys unimplemented\n");
+}
+uintptr_t pok_phys_to_virt(uintptr_t virt) {
+    pok_fatal("pok_phys_to_virt unimplemented\n");
+}

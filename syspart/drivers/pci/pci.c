@@ -51,6 +51,7 @@ unsigned int pci_read_reg(s_pci_device* d, unsigned int reg)
 }
 
 
+#ifdef __PPC__
 void pci_write_word(s_pci_device *d, uint32_t reg, uint16_t val)
 {
     uint32_t addr = (1 << 31) | (d->bus << 16) | (d->dev << 11) | 
@@ -59,9 +60,11 @@ void pci_write_word(s_pci_device *d, uint32_t reg, uint16_t val)
     out_be32((uint32_t *) bridge.cfg_addr, addr);
     out_le16((uint16_t *) bridge.cfg_data, val);
 }
+#endif
 
 void pci_list()
 {
+#ifdef __PPC__
     {
         //TODO call pci write word
         out_be32(bridge.cfg_addr, 0x80000810); //write something to BAR0
@@ -70,21 +73,25 @@ void pci_list()
         out_be32(bridge.cfg_addr, 0x80000804);//write something to COMMAND register
         out_le16(bridge.cfg_data, 0x7);
     }
+#endif
 
     for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
       for (unsigned int dev = 0; dev < PCI_DEV_MAX; dev++)
         for (unsigned int fun = 0; fun < PCI_FUN_MAX; fun++)
         {
-            unsigned vendor = pci_read(bus, dev, fun, PCI_REG_VENDORID);
+            uint16_t vendor = (uint16_t) pci_read(bus, dev, fun, PCI_REG_VENDORID);
+            uint16_t device = (uint16_t) pci_read(bus, dev, fun, PCI_REG_DEVICEID);
 
-            if (vendor != 0xffffffff) {
-                printf("****0x%08x:0x%08x(0x%x) == 0x%x ***\n",
+            if (vendor != 0xffff) {
+                printf("%02x:%02x:%02x ", bus, dev, fun);
+                printf("device %04x:%04x(header 0x%x) bar0 = 0x%x \n",
                         vendor,
-                        pci_read(bus, dev, fun, PCI_REG_DEVICEID),
+                        device,
                         pci_read(bus, dev, fun, PCI_REG_HEADERTYPE),
                         pci_read(bus, dev, fun, PCI_REG_BAR0));
             }
         }
+
 
 }
 

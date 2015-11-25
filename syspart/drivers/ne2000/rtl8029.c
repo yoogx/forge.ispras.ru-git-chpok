@@ -399,8 +399,10 @@ static unsigned pci_read(unsigned bus,
     unsigned cfg_addr = 0xe0008000;
     unsigned cfg_data = 0xe0008004;
 
+#ifdef __PPC__
     out_be32((uint32_t *) cfg_addr, addr);
     val = in_le32((uint32_t *) cfg_data);
+#endif
 
     return (val >> ((reg & 3) << 3));
 }
@@ -432,8 +434,8 @@ int pci_open(s_pci_device* d)
 	  d->dev = dev;
 	  d->fun = fun;
 
+#ifdef __PPC__
           d->bar[0] = 0xe1001000;
-	  //d->bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0);
           printf ("bar0 %lx\n", d->bar[0]);
           {
                 uint32_t * cfg_addr = (uint32_t*) 0xe0008000;
@@ -446,6 +448,9 @@ int pci_open(s_pci_device* d)
                 out_be32(cfg_addr, 0x80000804);//write something to COMMAND register
                 out_le16(cfg_data, 0x7);
           }
+#else
+	  d->bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0);
+#endif
           //XXX curently interrupts are unsupported
           //d->irq_line = (unsigned char) pci_read_reg(d, PCI_REG_IRQLINE);
 

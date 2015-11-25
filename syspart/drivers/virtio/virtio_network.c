@@ -107,13 +107,15 @@ static unsigned pci_read(unsigned bus,
     unsigned cfg_addr = 0xe0008000;
     unsigned cfg_data = 0xe0008004;
 
+#ifdef __PPC__
     out_be32((uint32_t *) cfg_addr, addr);
     val = in_le32((uint32_t *) cfg_data);
+#endif
 
     return (val >> ((reg & 3) << 3));
 }
 //TODO move to pci.c
-unsigned pci_read_reg(s_pci_device* d,
+static unsigned pci_read_reg(s_pci_device* d,
         unsigned reg)
 {
     return (pci_read(d->bus, d->dev, d->fun, reg));
@@ -435,10 +437,6 @@ static void reclaim_receive_buffers(void)
     struct virtio_network_device *dev = &virtio_network_device;
     struct virtio_virtqueue *vq = &dev->rx_vq;
 
-    // network thread only
-    // TODO also ensure we're not in timer interrupt
-    //assert(POK_SCHED_CURRENT_THREAD == NETWORK_THREAD);
-        
     pok_bool_t saved_preemption;
     maybe_lock_preemption(&saved_preemption);
 
