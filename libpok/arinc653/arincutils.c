@@ -25,7 +25,7 @@ pok_bool_t get_process_id(PROCESS_NAME_TYPE process_name, pok_thread_id_t *id)
 {
     pok_thread_id_t i;
     for (i = 0; i < POK_CONFIG_NB_THREADS; i++) {
-        if (strcmp(process_name, arinc_process_attribute[i].NAME) == 0) {
+		if (strcmp(process_name, arinc_process_attribute[i].NAME) == 0) {
             if (id != NULL) {
                 *id = i;
             }

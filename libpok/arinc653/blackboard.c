@@ -51,13 +51,16 @@ void CREATE_BLACKBOARD (
        /*out*/ BLACKBOARD_ID_TYPE       *BLACKBOARD_ID, 
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
+	
 	new_toupper(BLACKBOARD_NAME);
+
 	   
    pok_blackboard_id_t  core_id;
    pok_ret_t            core_ret;
 
    core_ret = pok_blackboard_create (BLACKBOARD_NAME, MAX_MESSAGE_SIZE, &core_id);
- 
+ 	
+
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
       MAP_ERROR(POK_ERRNO_READY, NO_ACTION);
@@ -68,6 +71,8 @@ void CREATE_BLACKBOARD (
    }
 
    *BLACKBOARD_ID = core_id + 1;
+   //uint8_t id = 0; 
+   //Printf("getting pok_blackboards[%u].size = %ld\n", id, pok_blackboards[id].size);
 }
  
 void DISPLAY_BLACKBOARD ( 
@@ -162,7 +167,7 @@ void GET_BLACKBOARD_STATUS (
        /*out*/ BLACKBOARD_STATUS_TYPE   *BLACKBOARD_STATUS, 
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-    pok_ret_t core_ret;
+     pok_ret_t core_ret;
     pok_blackboard_status_t status;
     if (BLACKBOARD_ID == 0) {
       core_ret = POK_ERRNO_EINVAL;

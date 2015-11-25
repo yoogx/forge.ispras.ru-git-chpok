@@ -40,15 +40,20 @@
 #include <middleware/blackboard.h>
 #include <errno.h>
 #include <types.h>
+#include <utils.h>
 #include <libc/string.h>
+
 
 pok_ret_t pok_blackboard_id (char*                name, 
                              pok_blackboard_id_t* id)
 {
    uint8_t n;
+   	new_toupper(name);
+
 
    for (n=0 ; n < POK_CONFIG_NB_BLACKBOARDS ; n++)
    {
+	  printf("%s",pok_blackboards[n].name);
       if (POK_BLACKBOARD_NAME_EQ(name, pok_blackboards[n].name))
       {
          *id = n;

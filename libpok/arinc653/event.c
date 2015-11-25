@@ -79,7 +79,6 @@ void CREATE_EVENT (EVENT_NAME_TYPE EVENT_NAME,
    *RETURN_CODE = INVALID_CONFIG;
 
    CHECK_EVENTS_INIT
-
 #ifdef POK_NEEDS_PARTITIONS
    pok_partition_mode_t operating_mode;
    pok_current_partition_get_operating_mode(&operating_mode);
@@ -92,14 +91,13 @@ void CREATE_EVENT (EVENT_NAME_TYPE EVENT_NAME,
    // try to find existing one
    size_t i;
    for (i = 0; i < POK_CONFIG_ARINC653_NB_EVENTS; i++) {
-      if (pok_arinc653_events_layers[i].ready && 
+	  if (pok_arinc653_events_layers[i].ready && 
           POK_EVENT_NAME_EQ(EVENT_NAME, pok_arinc653_events_layers[i].name)) 
       {
          *RETURN_CODE = NO_ACTION;
          return;
       }
    }
-
    // otherwise, create a new one
    for (i = 0; i < POK_CONFIG_ARINC653_NB_EVENTS; i++) {
       if (!pok_arinc653_events_layers[i].ready) {
@@ -125,6 +123,7 @@ void CREATE_EVENT (EVENT_NAME_TYPE EVENT_NAME,
          return;
       }
    }
+   
    
    // out of events
    *RETURN_CODE = INVALID_CONFIG;
