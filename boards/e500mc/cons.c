@@ -80,7 +80,8 @@ static void write_serial_0(char a)
 	
 int data_to_read_0() //return 0 if no data to read
 {
-	if (!(ns16550_readb(NS16550_REG_LSR, 0) & UART_LSR_DR))
+    int flags = ns16550_readb(NS16550_REG_LSR, 0);
+	if ((!(flags & UART_LSR_DR)) || (flags & UART_LSR_RFE))
 		return 0;
 	return 1;
 }
@@ -88,7 +89,8 @@ int data_to_read_0() //return 0 if no data to read
 int data_to_read_1() //return 0 if no data to read
 		  
 {
-	if (!(ns16550_readb(NS16550_REG_LSR, 1) & UART_LSR_DR))
+    int flags = ns16550_readb(NS16550_REG_LSR, 1);
+	if ((!(flags & UART_LSR_DR)) || (flags & UART_LSR_RFE))
 		return 0;
 	return 1;
 }

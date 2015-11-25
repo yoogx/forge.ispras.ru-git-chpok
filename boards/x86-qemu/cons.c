@@ -66,14 +66,16 @@ void write_serial_1(char a) {
 	
 int data_to_read_0() //return 0 if no data to read
 {
-	if (!(inb(COM0+COM_LSR) & COM_LSR_DATA))
+    int flags = inb(COM0 + COM_LSR);
+	if (!(flags & COM_LSR_DATA) || (flags & COM_LSR_RFE))
 		return 0;
 	return 1;
 }
 
 int data_to_read_1() //return 0 if no data to read
 {
-	if (!(inb(COM1+COM_LSR) & COM_LSR_DATA))
+    int flags = inb(COM1 + COM_LSR);
+	if (!(flags & COM_LSR_DATA) || (flags & COM_LSR_RFE))
 		return 0;
 	return 1;
 }

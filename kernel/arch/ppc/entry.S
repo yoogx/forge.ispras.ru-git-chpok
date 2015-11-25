@@ -116,8 +116,8 @@ pok_arch_rfi:
         mfsprg %r1, 1;                          \
         stwu %r4, -FRAME_SIZE(%r1);/*save it*/  \
 2:      SAVE_REGS;                              \
-        lis %r5, global_r1_from_entryS@ha;      \
-        addi %r5, %r5, global_r1_from_entryS@l; \
+        lis %r5, global_thread_stack@ha;      \
+        addi %r5, %r5, global_thread_stack@l; \
         stw %r1, 0(r5);                         \
         mfsrr0 %r3; /* EA of exception */
 
@@ -279,8 +279,8 @@ pok_arch_rfi_for_int:
         mfsprg %r1, 1;                                  \
         stwu %r4, -FRAME_SIZE_FOR_INT(%r1);/*save it*/  \
 2:      SAVE_REGS_FOR_INT;                              \
-        lis %r5, global_r1_from_entryS@ha;              \
-        addi %r5, %r5, global_r1_from_entryS@l;         \
+        lis %r5, global_thread_stack@ha;              \
+        addi %r5, %r5, global_thread_stack@l;         \
         stw %r1, 0(r5);                                 \
         mfsrr0 %r3; /* EA of exception */               
 

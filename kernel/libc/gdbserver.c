@@ -188,7 +188,7 @@ EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
 /*
  * these should not be static cuz they can be used outside this module
  */
-int registers[NUMREGS];
+uint32_t registers[NUMREGS];
 
 #define STACKSIZE 10000
 int remcomStack[STACKSIZE/sizeof(int)];
@@ -757,24 +757,18 @@ handle_exception (int exceptionVector, struct regs * ea)
 {
 
   /*Add regs*/
-#ifdef __PPC__
-    int using_thread = -1;
-    int number_of_thread = 0;
     uint32_t old_entryS = pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp;
     pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = (uint32_t) ea;
-#endif
-  
+    
     set_regs(ea);
 
+    int using_thread = -1;
+    int number_of_thread = 0;
   
     memset(remcomOutBuffer, 0, BUFMAX);
     memset(remcomInBuffer, 0, BUFMAX);
     int sigval;
 #ifdef __i386__
-    int using_thread = -1;
-    int number_of_thread = 0;
-    uint32_t old_entryS = pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp;
-    pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = (uint32_t) ea;
     pok_bool_t stepping = FALSE;
 #endif
     int addr, length;
@@ -840,6 +834,7 @@ handle_exception (int exceptionVector, struct regs * ea)
     ptr = 0;
 #endif
 #ifdef __i386__
+
     *ptr++ = 'T';         /* notify gdb with signo, PC, FP and SP */
     *ptr++ = hexchars[sigval >> 4];
     *ptr++ = hexchars[sigval & 0xf];
@@ -1194,6 +1189,7 @@ handle_exception (int exceptionVector, struct regs * ea)
 
         case 's':
         {
+            ////TODO:Use special registers for single step instruction
             pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = old_entryS;
             set_regs(ea);
             uint32_t inst = *((uint32_t *)registers[pc]);
@@ -1270,7 +1266,7 @@ handle_exception (int exceptionVector, struct regs * ea)
  *  If it's a 'brl' instruction
  */            
             if ((inst >> (6*4+2)) == 0x13){
-                printf("lr=%x\n",registers[lr]);
+                printf("lr=%lx\n",registers[lr]);
                 mem2hex((char *)(registers[lr]), instr,4);            
                 hex2mem(trap, (char *)(registers[lr]), 4);
                 addr_instr = registers[lr];                
@@ -1515,6 +1511,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                 printf("pok_threads[%d].sp=0x%lx\n",using_thread,pok_threads[using_thread].sp);
                 printf("pok_threads[%d].entry_sp=0x%lx\n",using_thread,pok_threads[using_thread].entry_sp);
                 set_regs((struct regs *)pok_threads[using_thread].entry_sp);
+                printf("registers [eip] = 0x%lx\n",registers[PC]);
             
             }else if (*ptr++ == 'g'){
             /*FIX IT*/

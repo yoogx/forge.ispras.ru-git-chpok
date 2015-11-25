@@ -79,7 +79,7 @@ extern const pok_sched_slot_t pok_module_sched[];
 
 extern pok_thread_id_t current_thread;
 
-uintptr_t global_r1_from_entryS;
+extern uintptr_t global_thread_stack;
 #define POK_SCHED_CURRENT_THREAD current_thread
 
 // must match libpok/include/core/thread.h

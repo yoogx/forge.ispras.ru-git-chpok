@@ -182,6 +182,8 @@ static void check_all_threads_stopped(void) {
 }
 #endif
 
+uintptr_t global_thread_stack = 0;
+
 
 static void pok_unlock_sleeping_threads(pok_partition_t *new_partition)
 {
@@ -412,7 +414,7 @@ void pok_sched_context_switch(pok_thread_id_t elected_id)
 
    current_sp = &POK_CURRENT_THREAD.sp;
    new_sp = pok_threads[elected_id].sp;
-   POK_CURRENT_THREAD.entry_sp = global_r1_from_entryS;
+   POK_CURRENT_THREAD.entry_sp = global_thread_stack;
    pok_space_switch(POK_CURRENT_THREAD.partition,
 		    pok_threads[elected_id].partition);
 
