@@ -14,7 +14,7 @@
  * Created by julien on Mon May 18 18:44:51 2009 
  */
 
-//TODO move to config.h or delete
+//TODO move define to config.h or delete
 #define POK_NEEDS_RTL8029
 
 
@@ -71,8 +71,9 @@ typedef struct
 {
   s_pci_device  pci;
   unsigned int  addr;
-  char		mac[6];
+  uint8_t       mac[6];
   pok_queue_t	recv_buf[20]; /* TODO: random constant */
+  void (*packet_received_callback)(const char *, size_t);
 } s_ne2000_dev;
 
 typedef struct
@@ -217,7 +218,6 @@ typedef struct
 							// in 256 bytes block
 #  define NE2000_RXBUFSZ (NE2000_MEMSZ - NE2000_TXBUFSZ) // rx buf size
 							// in 256 bytes block
-#  define outb(a,b) pok_outb((b), (a))
 
 # endif /* !__POK_RTL8029_H__ */
 #endif /* POK_NEEDS_RTL8029 */

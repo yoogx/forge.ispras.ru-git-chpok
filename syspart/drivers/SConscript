@@ -2,8 +2,13 @@
 
 Import('syspart_env')
 
-syspart_env.Program(target = 'drivers.lo', source = 'virtio/virtio.lo')
+syspart_env.Program(target = 'drivers.lo', source = [
+    'virtio/virtio.lo',
+    'ne2000/ne2000.lo'
+])
+
 
 SConscript('virtio/SConscript')
+SConscript('ne2000/SConscript')
 
 # EOF

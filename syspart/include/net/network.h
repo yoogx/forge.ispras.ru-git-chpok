@@ -44,6 +44,7 @@ typedef struct {
     size_t size;
 } pok_network_sg_list_t;
 
+//XXX maybe pok_bool_t is a bad choice
 typedef struct {
     pok_bool_t (*init)(void);
     pok_bool_t (*send_frame)(char *buffer,

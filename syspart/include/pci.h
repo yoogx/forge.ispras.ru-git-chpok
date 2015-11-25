@@ -15,7 +15,7 @@
  */
 
 
-# ifndef __POK_PCI_H__
+# ifndef __POK__PCI_H__
 # define __POK__PCI_H__
 
 #include <types.h>

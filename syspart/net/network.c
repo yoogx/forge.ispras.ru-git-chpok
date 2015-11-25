@@ -27,8 +27,16 @@
 static pok_bool_t initialized = FALSE;
 
 #include <drivers/virtio/virtio_network.h>
+#include <drivers/ne2000/ne2000.h>
+#if 0
 #define NETWORK_DRIVER pok_network_virtio_device
 #define NETWORK_DRIVER_OPS (pok_network_virtio_device.ops)
+#else
+#define NETWORK_DRIVER pok_network_ne2000_device
+#define NETWORK_DRIVER_OPS (pok_network_ne2000_device.ops)
+#undef POK_NETWORK_OVERHEAD_DRIVER
+#define POK_NETWORK_OVERHEAD_DRIVER 0
+#endif
 
 static pok_network_udp_receive_callback_t *receive_callback_list = NULL;
 

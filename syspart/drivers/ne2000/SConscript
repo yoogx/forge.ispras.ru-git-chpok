@@ -2,6 +2,6 @@
 
 Import('syspart_env')
 
-libpok_env.Program(target = 'ne2000.lo', source = Glob('*.c'))
+syspart_env.Program(target = 'ne2000.lo', source = Glob('*.c'))
 
 # EOF
