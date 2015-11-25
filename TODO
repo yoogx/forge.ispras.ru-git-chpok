@@ -1,3 +1,4 @@
+remove `pok_error_raise_partition(part_id, POK_ERROR_KIND_PARTITION_CONFIGUR    ATION)` from loader.c both for ppc and x86
 
 pok_port_size_t is unsigned but MESSAGE_SIZE_TYPE is signed, and there are casts between them
 
