@@ -20,6 +20,7 @@
 #include <net/ether.h>
 #include <net/ip.h>
 #include <net/udp.h>
+#include <pci.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -128,6 +129,8 @@ static void packet_received_callback(const char *data, size_t len)
 
 void pok_network_init(void)
 {
+    pci_init();
+
     printf("initializing network >>>\n");
     if (NETWORK_DRIVER_OPS->init()) {
         NETWORK_DRIVER_OPS->set_packet_received_callback(packet_received_callback);

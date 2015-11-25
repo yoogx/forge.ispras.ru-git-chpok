@@ -4,11 +4,13 @@ Import('syspart_env')
 
 syspart_env.Program(target = 'drivers.lo', source = [
     'virtio/virtio.lo',
-    'ne2000/ne2000.lo'
+    'ne2000/ne2000.lo',
+    'pci/pci.lo'
 ])
 
 
 SConscript('virtio/SConscript')
 SConscript('ne2000/SConscript')
+SConscript('pci/SConscript')
 
 # EOF

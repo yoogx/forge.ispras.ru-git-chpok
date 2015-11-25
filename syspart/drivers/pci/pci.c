@@ -1,45 +1,26 @@
 
+#include <pci.h>
+#include <ioports.h>
+#include <stdio.h>
 
-struct pci_bridge_props bridge_props;
+struct pci_bridge bridge;
 
-void pok_pci_init()
+void pci_init()
 {
-    bridge_props = devtree_get_pci_props();
 
-    printf("bridge\n\tcfg_addr: 0x%lx\n\tcfg_data: 0x%lx\n",
-            bridge_props.cfg_addr, bridge_props.cfg_data);
-}
+    //TODO make syscall
+    //bridge = devtree_get_pci_props();
+//#ifdef __PPC__
+    bridge.cfg_addr = (uint32_t*) 0xe0008000;
+    bridge.cfg_data = (void *) 0xe0008004;
+//#endif
 
-void pci_list()
-{
-    //move to pci_init
-    {
-        uint32_t * cfg_addr = (uint32_t*) 0xe0008000;
-        void * cfg_data = (void *) 0xe0008004;
-
-        //TODO call pci write word
-        out_be32(cfg_addr, 0x80000810); //write something to BAR0
-        out_le16(cfg_data, 0x1001);
-
-        out_be32(cfg_addr, 0x80000804);//write something to COMMAND register
-        out_le16(cfg_data, 0x7);
-    }
-
-    for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
-        for (unsigned int dev = 0; dev < PCI_DEV_MAX; dev++)
-            for (unsigned int fun = 0; fun < PCI_FUN_MAX; fun++)
-            {
-                unsigned vendor = pci_read(bus, dev, fun, PCI_REG_VENDORID);
-
-                if (vendor != 0xffffffff) {
-                    printf("****0x%08x:0x%08x(0x%x) == 0x%x ***\n",
-                            vendor,
-                            pci_read(bus, dev, fun, PCI_REG_DEVICEID),
-                            pci_read(bus, dev, fun, PCI_REG_HEADERTYPE),
-                            pci_read(bus, dev, fun, PCI_REG_BAR0));
-                }
-            }
-
+    printf("\n***********************************************\n");
+    printf("PCI initializing\n");
+    printf("bridge cfg_addr: %p cfg_data: %p\n",
+            bridge.cfg_addr, bridge.cfg_data);
+    pci_list();
+    printf("\n***********************************************\n\n");
 }
 
 unsigned int pci_read(
@@ -53,8 +34,8 @@ unsigned int pci_read(
     unsigned int val = -1;
 
 #ifdef __PPC__
-    out_be32((uint32_t *) bridge_props.cfg_addr, addr);
-    val = in_le32((uint32_t *) bridge_props.cfg_data);
+    out_be32((uint32_t *) bridge.cfg_addr, addr);
+    val = in_le32((uint32_t *) bridge.cfg_data);
 #else
     outl(PCI_CONFIG_ADDRESS, addr);
     val = inl(PCI_CONFIG_DATA);
@@ -75,39 +56,67 @@ void pci_write_word(s_pci_device *d, uint32_t reg, uint16_t val)
     uint32_t addr = (1 << 31) | (d->bus << 16) | (d->dev << 11) | 
         (d->fun << 8) | (reg & 0xfc);
 
-    out_be32((uint32_t *) bridge_props.cfg_addr, addr);
-    out_le16((uint16_t *) bridge_props.cfg_data, val);
+    out_be32((uint32_t *) bridge.cfg_addr, addr);
+    out_le16((uint16_t *) bridge.cfg_data, val);
 }
 
-static inline
-int pci_open(s_pci_device* d)
+void pci_list()
 {
-  unsigned int bus = 0;
-  unsigned int dev = 0;
-  unsigned int fun = 0;
+    {
+        //TODO call pci write word
+        out_be32(bridge.cfg_addr, 0x80000810); //write something to BAR0
+        out_le16(bridge.cfg_data, 0x1001);
 
-  for (bus = 0; bus < PCI_BUS_MAX; bus++)
-    for (dev = 0; dev < PCI_DEV_MAX; dev++)
-      for (fun = 0; fun < PCI_FUN_MAX; fun++)
-	if (((unsigned short) pci_read(bus, dev, fun, PCI_REG_VENDORID)) == d->vendorid &&
-	    ((unsigned short) pci_read(bus, dev, fun, PCI_REG_DEVICEID)) == d->deviceid)
-	{
-	  // we do not handle type 1 or 2 PCI configuration spaces
-	  if (pci_read(bus, dev, fun, PCI_REG_HEADERTYPE) != 0)
-	    continue;
+        out_be32(bridge.cfg_addr, 0x80000804);//write something to COMMAND register
+        out_le16(bridge.cfg_data, 0x7);
+    }
 
-	  d->bus = bus;
-	  d->dev = dev;
-	  d->fun = fun;
-          //TODO
+    for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
+      for (unsigned int dev = 0; dev < PCI_DEV_MAX; dev++)
+        for (unsigned int fun = 0; fun < PCI_FUN_MAX; fun++)
+        {
+            unsigned vendor = pci_read(bus, dev, fun, PCI_REG_VENDORID);
 
-	  //d->bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0);
-	  //d->irq_line = (unsigned char) pci_read_reg(d, PCI_REG_IRQLINE);
+            if (vendor != 0xffffffff) {
+                printf("****0x%08x:0x%08x(0x%x) == 0x%x ***\n",
+                        vendor,
+                        pci_read(bus, dev, fun, PCI_REG_DEVICEID),
+                        pci_read(bus, dev, fun, PCI_REG_HEADERTYPE),
+                        pci_read(bus, dev, fun, PCI_REG_BAR0));
+            }
+        }
 
-	  return (0);
-	}
+}
 
-  return (-1);
+
+static inline int pci_open(s_pci_device* d)
+{
+    unsigned int bus = 0;
+    unsigned int dev = 0;
+    unsigned int fun = 0;
+
+    for (bus = 0; bus < PCI_BUS_MAX; bus++)
+      for (dev = 0; dev < PCI_DEV_MAX; dev++)
+        for (fun = 0; fun < PCI_FUN_MAX; fun++)
+          if (((unsigned short) pci_read(bus, dev, fun, PCI_REG_VENDORID)) == d->vendorid &&
+              ((unsigned short) pci_read(bus, dev, fun, PCI_REG_DEVICEID)) == d->deviceid)
+          {
+                // we do not handle type 1 or 2 PCI configuration spaces
+                if (pci_read(bus, dev, fun, PCI_REG_HEADERTYPE) != 0)
+                    continue;
+
+                d->bus = bus;
+                d->dev = dev;
+                d->fun = fun;
+                //TODO
+
+                //d->bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0);
+                //d->irq_line = (unsigned char) pci_read_reg(d, PCI_REG_IRQLINE);
+
+                return (0);
+          }
+
+    return (-1);
 }
 
 
