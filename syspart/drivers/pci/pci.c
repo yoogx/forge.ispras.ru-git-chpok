@@ -3,7 +3,19 @@
 #include <ioports.h>
 #include <stdio.h>
 
+#include "pci_internal.h"
+
 struct pci_bridge bridge;
+
+static char *get_pci_class_name(int classcode) {
+    int i = 0;
+    while (pci_classnames[i].name != NULL) {
+        if (pci_classnames[i].classcode == (classcode & 0xFFFF00))
+            return pci_classnames[i].name;
+        i++;
+    }
+    return "Unknown";
+}
 
 void pci_init()
 {
@@ -45,22 +57,20 @@ unsigned int pci_read(
 }
 
 
-unsigned int pci_read_reg(s_pci_device* d, unsigned int reg)
-{
-    return (pci_read(d->bus, d->dev, d->fun, reg));
-}
-
-
-#ifdef __PPC__
 void pci_write_word(s_pci_device *d, uint32_t reg, uint16_t val)
 {
     uint32_t addr = (1 << 31) | (d->bus << 16) | (d->dev << 11) | 
         (d->fun << 8) | (reg & 0xfc);
 
+#ifdef __PPC__
     out_be32((uint32_t *) bridge.cfg_addr, addr);
     out_le16((uint16_t *) bridge.cfg_data, val);
-}
+#else
+    outl(PCI_CONFIG_ADDRESS, addr);
+    outw(PCI_CONFIG_DATA, val);
 #endif
+
+}
 
 void pci_list()
 {
@@ -82,17 +92,28 @@ void pci_list()
             uint16_t vendor = (uint16_t) pci_read(bus, dev, fun, PCI_REG_VENDORID);
             uint16_t device = (uint16_t) pci_read(bus, dev, fun, PCI_REG_DEVICEID);
 
-            if (vendor != 0xffff) {
+            if (vendor != 0xFFFF) {
+                uint32_t classcode = 0xFFFFFF & pci_read(bus, dev, fun, PCI_REG_PROGIFID);
                 printf("%02x:%02x:%02x ", bus, dev, fun);
-                printf("device %04x:%04x(header 0x%x) bar0 = 0x%x \n",
+                printf("%s:\n", get_pci_class_name(classcode));
+                printf("\t PCI device %04x:%04x (header 0x%02x)\n",
                         vendor,
                         device,
-                        pci_read(bus, dev, fun, PCI_REG_HEADERTYPE),
-                        pci_read(bus, dev, fun, PCI_REG_BAR0));
+                        0xFF & pci_read(bus, dev, fun, PCI_REG_HEADERTYPE));
+
+                uint32_t bar0 = pci_read(bus, dev, fun, PCI_REG_BAR0);
+                if (bar0) {
+                    printf("\t BAR0: 0x%lx\n", bar0);
+                }
+
+                /*
+                if (classcode == 0x20000) {
+                    usigned addr = bar0;
+                    printf("MAC addr = ");
+                }
+                */
             }
         }
-
-
 }
 
 

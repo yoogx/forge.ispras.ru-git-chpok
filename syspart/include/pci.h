@@ -32,6 +32,7 @@
 #  define PCI_REG_VENDORID	0x00
 #  define PCI_REG_DEVICEID	0x02
 #  define PCI_REG_COMMAND       0x04
+#  define PCI_REG_PROGIFID      0x09
 #  define PCI_REG_HEADERTYPE	0x0E
 #  define PCI_REG_BAR0		0x10
 #  define PCI_REG_SUBSYSTEM     0x2C
@@ -87,10 +88,5 @@ pok_ret_t pci_register(s_pci_device* dev);
 void pok_pci_init();
 
 #endif
-
-struct pci_bridge {
-    uint32_t *cfg_addr;
-    void     *cfg_data;
-};
 
 # endif /* __POK_PCI_H__ */
