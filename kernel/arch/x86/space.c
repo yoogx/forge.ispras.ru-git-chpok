@@ -73,7 +73,7 @@ static void pok_dispatch_space(
    ctx.eax     = arg1;
    ctx.ebx     = arg2;
    ctx.cs      = code_sel;
-   ctx.eflags  = 1 << 9;
+   ctx.eflags  = 1 << 9 | 3<<12;
    ctx.esp     = user_sp;
 
    tss_set_esp0 (kernel_sp);
@@ -133,7 +133,7 @@ pok_space_context_init(
     sp->ctx.__esp  = (uint32_t)(&sp->ctx.eip); /* for pusha */
     sp->ctx.eip    = (uint32_t)pok_dispatch_space;
     sp->ctx.cs     = GDT_CORE_CODE_SEGMENT << 3;
-    sp->ctx.eflags = 1 << 9;
+    sp->ctx.eflags = 1 << 9 | 3<<12;
     
     sp->arg1          = arg1;
     sp->arg2          = arg2;

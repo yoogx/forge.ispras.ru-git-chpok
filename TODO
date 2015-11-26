@@ -1,3 +1,5 @@
+currently in eflags IOPL bits are set on every context_switch to all partitions. Make setting IOPL only for system_partition
+
 remove `pok_error_raise_partition(part_id, POK_ERROR_KIND_PARTITION_CONFIGUR    ATION)` from loader.c both for ppc and x86
 
 pok_port_size_t is unsigned but MESSAGE_SIZE_TYPE is signed, and there are casts between them
