@@ -51,9 +51,8 @@ pok_ret_t pok_blackboard_create (char*                             name,
                                  pok_blackboard_id_t*              id)
 {
    pok_ret_t   ret;
-   uint8_t     n=0;
-   //for (n=0 ; n < POK_CONFIG_NB_BLACKBOARDS ; n++)
-//pok_blackboards[n].size                = 128;
+   uint8_t     n;
+  
    if ((int) msg_size <= 0) {
        return POK_ERRNO_SIZE;
    }
@@ -62,12 +61,6 @@ pok_ret_t pok_blackboard_create (char*                             name,
 
    // try to find existing blackboard
    for (n=0;  n < POK_CONFIG_NB_BLACKBOARDS ; n++) {
-	   printf("pok_blackboards[%d].ready___%d\n",n,pok_blackboards[n].ready);
-	   for(int i = 0; i<30; i++){
-	   printf("%c",pok_blackboards[n].name[i]);
-   }
-	   printf("name--%d-------%s\n",n,name);
-	   
       if (pok_blackboards[n].ready && POK_BLACKBOARD_NAME_EQ(pok_blackboards[n].name, name)) {
          return POK_ERRNO_READY;
       }
@@ -76,11 +69,9 @@ pok_ret_t pok_blackboard_create (char*                             name,
    // TODO ensure that we still have free space
 
    // create a new one
-  // for (n=0 ; n < POK_CONFIG_NB_BLACKBOARDS ; n++)
-  // printf("setting pok_blackboards[%u].size = %ld\n", n, pok_blackboards[n].size);
    for (n=0 ; n < POK_CONFIG_NB_BLACKBOARDS ; n++)
    {
-      if (!pok_blackboards[n].ready||n==0) {
+      if (!pok_blackboards[n].ready) {
          ret = pok_event_create (&pok_blackboards[n].lock, POK_QUEUEING_DISCIPLINE_PRIORITY);
 
          if (ret != POK_ERRNO_OK)
@@ -93,14 +84,6 @@ pok_ret_t pok_blackboard_create (char*                             name,
          pok_blackboards[n].index               = pok_blackboards_data_index;
          pok_blackboards[n].waiting_processes   = 0;
          pok_blackboards[n].size                = msg_size;
-         //printf("setting pok_blackboards[%u].size = %ld\n", n, pok_blackboards[n].size);
-         
-         //printf("setting----- pok_blackboards[%u].size = %ld\n", n, pok_blackboards[n].size);
-        //*id                                    = n;
-         //pok_blackboards_data_index             = pok_blackboards_data_index + msg_size;
-         //strncpy(pok_blackboards[n].name, name, POK_BLACKBOARD_MAX_NAME_LENGTH);
-         //for (m=0 ; m < POK_CONFIG_NB_BLACKBOARDS ; m++)
-   //printf("setting pok_blackboards[%u].size = %ld\n", m, pok_blackboards[m].size);
    *id                                    = n;
    pok_blackboards_data_index             = pok_blackboards_data_index + msg_size;
    strncpy(pok_blackboards[n].name, name, POK_BLACKBOARD_MAX_NAME_LENGTH);
