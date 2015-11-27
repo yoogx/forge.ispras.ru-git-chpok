@@ -308,7 +308,7 @@ void pok_sched()
 #ifdef POK_NEEDS_SIMULATION
     if (POK_GETTICK() >= sim_stop_tick) {
         pok_sched_context_switch(IDLE_THREAD);
-        // return is useless, isn't it?
+        return;
     }
 #endif
 
