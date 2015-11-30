@@ -52,7 +52,7 @@ pok_ret_t pok_blackboard_create (char*                             name,
 {
    pok_ret_t   ret;
    uint8_t     n;
-  
+
    if ((int) msg_size <= 0) {
        return POK_ERRNO_SIZE;
    }
@@ -84,9 +84,9 @@ pok_ret_t pok_blackboard_create (char*                             name,
          pok_blackboards[n].index               = pok_blackboards_data_index;
          pok_blackboards[n].waiting_processes   = 0;
          pok_blackboards[n].size                = msg_size;
-   *id                                    = n;
-   pok_blackboards_data_index             = pok_blackboards_data_index + msg_size;
-   strncpy(pok_blackboards[n].name, name, POK_BLACKBOARD_MAX_NAME_LENGTH);
+         *id                                    = n;
+         pok_blackboards_data_index             = pok_blackboards_data_index + msg_size;
+         strncpy(pok_blackboards[n].name, name, POK_BLACKBOARD_MAX_NAME_LENGTH);
          return POK_ERRNO_OK;
       }
    }

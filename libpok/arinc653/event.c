@@ -72,7 +72,7 @@ void CREATE_EVENT (EVENT_NAME_TYPE EVENT_NAME,
                    EVENT_ID_TYPE *EVENT_ID,
                    RETURN_CODE_TYPE *RETURN_CODE)
 {
-	new_toupper(EVENT_NAME);
+   new_toupper(EVENT_NAME);
    pok_event_id_t    core_id;
    pok_ret_t         core_ret;
 
@@ -92,7 +92,7 @@ void CREATE_EVENT (EVENT_NAME_TYPE EVENT_NAME,
    // try to find existing one
    size_t i;
    for (i = 0; i < POK_CONFIG_ARINC653_NB_EVENTS; i++) {
-	  if (pok_arinc653_events_layers[i].ready && 
+      if (pok_arinc653_events_layers[i].ready && 
           POK_EVENT_NAME_EQ(EVENT_NAME, pok_arinc653_events_layers[i].name)) 
       {
          *RETURN_CODE = NO_ACTION;

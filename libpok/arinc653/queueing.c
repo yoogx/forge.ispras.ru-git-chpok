@@ -56,7 +56,7 @@ void CREATE_QUEUING_PORT (
       /*out*/ QUEUING_PORT_ID_TYPE      *QUEUING_PORT_ID,
       /*out*/ RETURN_CODE_TYPE          *RETURN_CODE)
 {
-	new_toupper(QUEUING_PORT_NAME);
+   new_toupper(QUEUING_PORT_NAME);
    pok_ret_t                        core_ret;
    pok_port_id_t                    core_id;
    pok_port_queueing_create_arg_t   arg;
@@ -177,7 +177,7 @@ void GET_QUEUING_PORT_ID (
       /*out*/ QUEUING_PORT_ID_TYPE      *QUEUING_PORT_ID,
       /*out*/ RETURN_CODE_TYPE          *RETURN_CODE)
 {
-	new_toupper(QUEUING_PORT_NAME);
+    new_toupper(QUEUING_PORT_NAME);
     pok_ret_t core_ret;
     pok_port_id_t id;
 

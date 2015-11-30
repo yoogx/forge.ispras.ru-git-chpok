@@ -51,8 +51,8 @@ void CREATE_BLACKBOARD (
        /*out*/ BLACKBOARD_ID_TYPE       *BLACKBOARD_ID, 
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-	new_toupper(BLACKBOARD_NAME);
-	   
+   new_toupper(BLACKBOARD_NAME);
+
    pok_blackboard_id_t  core_id;
    pok_ret_t            core_ret;
 
@@ -67,7 +67,7 @@ void CREATE_BLACKBOARD (
       MAP_ERROR_DEFAULT(INVALID_CONFIG);
    }
 
-   *BLACKBOARD_ID = core_id + 1;   
+   *BLACKBOARD_ID = core_id + 1;
 }
  
 void DISPLAY_BLACKBOARD ( 
@@ -143,7 +143,7 @@ void GET_BLACKBOARD_ID (
        /*out*/ BLACKBOARD_ID_TYPE       *BLACKBOARD_ID, 
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-	new_toupper(BLACKBOARD_NAME);
+   new_toupper(BLACKBOARD_NAME);
    pok_ret_t core_ret;
    pok_blackboard_id_t id;
    core_ret = pok_blackboard_id(BLACKBOARD_NAME, &id);
