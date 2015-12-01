@@ -34,6 +34,8 @@ env['CPPPATH'] = [env['POK_PATH']+'/kernel/include']
 env['LINKFLAGS'] = '-r'
 env['QEMU_FLAGS'] = ' -serial stdio'
 env['BSP'] = env['bsp']
+# 16 MBytes
+env['MAX_PART_SIZE'] = 16 * 2**20
 
 bsp_arch_dict = {
     'e500mc':          'ppc',
@@ -54,7 +56,6 @@ if env['ARCH'] == 'ppc':
     env['OBJDUMP'] = 'powerpc-elf-objdump'
     env['RANLIB'] = 'powerpc-elf-ranlib'
     env['GDB'] = 'powerpc-elf-gdb'
-    env['ASFLAGS'] = env['CFLAGS']
     env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
     env['QEMU'] = 'qemu-system-ppc'
 
@@ -69,9 +70,10 @@ elif env['ARCH'] == 'x86':
     env['OBJDUMP'] = 'i386-elf-objdump'
     env['RANLIB'] = 'i386-elf-ranlib'
     env['GDB'] = 'i386-elf-gdb'
-    env['ASFLAGS'] = env['CFLAGS']
     env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
     env['QEMU'] = 'qemu-system-i386'
+
+env['ASFLAGS'] = env['CFLAGS']
 
 bsp_cpu_dict = {
     'e500mc':          ' -mcpu=e500mc',
