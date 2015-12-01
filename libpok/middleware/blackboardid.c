@@ -48,7 +48,7 @@ pok_ret_t pok_blackboard_id (char*                name,
                              pok_blackboard_id_t* id)
 {
    uint8_t n;
-   new_toupper(name);
+   strtoupper(name);
 
 
    for (n=0 ; n < POK_CONFIG_NB_BLACKBOARDS ; n++)

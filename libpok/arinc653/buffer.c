@@ -56,7 +56,7 @@ void CREATE_BUFFER (
        /*out*/ BUFFER_ID_TYPE           *BUFFER_ID, 
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-   new_toupper(BUFFER_NAME);
+   strtoupper(BUFFER_NAME);
    pok_ret_t                  core_ret;
    pok_buffer_id_t            core_id;
    pok_queueing_discipline_t  core_discipline;
@@ -168,7 +168,7 @@ void GET_BUFFER_ID (
        /*out*/ BUFFER_ID_TYPE           *BUFFER_ID, 
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-   new_toupper(BUFFER_NAME);
+   strtoupper(BUFFER_NAME);
    pok_buffer_id_t id;
    pok_ret_t core_ret = pok_buffer_id(BUFFER_NAME, &id);
 

@@ -7,7 +7,7 @@ int chr_toupper(int c)
   return c;
 }
 
-void new_toupper(char* s)
+void strtoupper(char* s)
 {
   int i=0;
   while(s[i]){
