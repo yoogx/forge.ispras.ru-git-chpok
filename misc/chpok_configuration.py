@@ -865,6 +865,7 @@ def write_kernel_deployment_c_hm_tables(conf, f):
 
             p("  {%s, %s, %s, %s}," % (kind, level, action, target_error_code))
 
+        p("  {POK_ERROR_KIND_PARTITION_CONFIGURATION, POK_ERROR_LEVEL_PARTITION, POK_ERROR_ACTION_IDLE, POK_ERROR_KIND_PARTITION_CONFIGURATION},")
         p("  {POK_ERROR_KIND_INVALID, POK_ERROR_LEVEL_PROCESS, POK_ERROR_ACTION_IGNORE, POK_ERROR_KIND_INVALID} /* sentinel value */")
 
         p("};")
