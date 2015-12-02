@@ -6,9 +6,9 @@ pr2_env = env.Clone()
 pr2_env['CPPPATH'] = pr2_env['POK_PATH']+'/libpok/include'
 pr2_env.Append(CFLAGS = ' -include '+pr2_env['POK_PATH']+'/libpok/include/config.h')
 
-build_path_libpok = pr2_env['POK_PATH']+'/build/'+pr2_env['ARCH']+'/libpok'
+build_path_libpok = pr2_env['POK_PATH']+'/build/'+pr2_env['BSP']+'/libpok'
 
-ldscript = pr2_env['POK_PATH']+'/misc/ldscripts/'+pr2_env['ARCH']+'/'+pr2_env['BSP']+'/partition.lds'
+ldscript = pr2_env['POK_PATH']+'/boards/'+pr2_env['BSP']+'/ldscripts/partition.lds'
 pr2_env['LINKFLAGS'] = str(' -T '+ldscript+' -Map pr2/pr2.elf.map')
 
 objs = pr2_env.StaticObject(source = Glob('*.c'))
@@ -20,7 +20,7 @@ for obj in objs:
 pr2_command = pr2_env.Command(target = 'pr2.elf',
     source = [],
     action = pr2_env['LINK']+pr2_env['LINKFLAGS']+' '+
-    source_objs+
+    source_objs +
     ' -o pr2/pr2.elf -L'+build_path_libpok+' -lpok '+
     pr2_env['LIBGCC'])
 pr2_env.Depends(pr2_command, [objs, build_path_libpok+'/libpok.a', ldscript])
