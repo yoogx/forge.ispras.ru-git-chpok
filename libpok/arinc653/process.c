@@ -61,6 +61,7 @@ void GET_PROCESS_ID(
     PROCESS_ID_TYPE   *process_id,
     RETURN_CODE_TYPE  *return_code)
 {
+	strtoupper(process_name);
     pok_thread_id_t id;
     if (get_process_id(process_name, &id)) {
         *process_id = id + 1;
@@ -90,6 +91,8 @@ void GET_PROCESS_STATUS (
     PROCESS_STATUS_TYPE *process_status,
     RETURN_CODE_TYPE    *return_code)
 {
+
+    strtoupper(process_status->ATTRIBUTES.NAME);
     pok_thread_status_t status;
     pok_ret_t           core_ret;
 
@@ -139,6 +142,7 @@ void CREATE_PROCESS (
     PROCESS_ID_TYPE         *process_id,
     RETURN_CODE_TYPE        *return_code)
 {
+    strtoupper(attributes->NAME);
     pok_thread_attr_t core_attr;
     pok_ret_t         core_ret;
     pok_thread_id_t   core_process_id;
