@@ -6,9 +6,9 @@ pr1_env = env.Clone()
 pr1_env['CPPPATH'] = [pr1_env['POK_PATH']+'/libpok/include']
 pr1_env.Append(CFLAGS = ' -include '+pr1_env['POK_PATH']+'/libpok/include/config.h')
 
-build_path_libpok = pr1_env['POK_PATH']+'/build/'+pr1_env['ARCH']+'/libpok'
+build_path_libpok = pr1_env['POK_PATH']+'/build/'+pr1_env['BSP']+'/libpok'
 
-ldscript = pr1_env['POK_PATH']+'/misc/ldscripts/'+pr1_env['ARCH']+'/'+pr1_env['BSP']+'/partition.lds'
+ldscript = pr1_env['POK_PATH']+'/boards/'+pr1_env['BSP']+'/ldscripts/partition.lds'
 pr1_env['LINKFLAGS'] = str(' -T '+ldscript+' -Map pr1/pr1.elf.map')
 
 objs = pr1_env.StaticObject(source = Glob('*.c'))

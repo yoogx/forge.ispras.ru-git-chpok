@@ -20,10 +20,12 @@
 #include <arch.h>
 #include <core/debug.h>
 #include "cons.h"
-#include "../space.h"
+#include "space.h"
 
-#include "../devtree.h"
+#include "devtree.h"
 
+
+extern char _end[];
 
 int pok_bsp_init (void)
 {
@@ -41,8 +43,6 @@ int pok_bsp_init (void)
    return (POK_ERRNO_OK);
 }
 
-
-extern char _end[];
 
 static char *heap_end = _end;
 

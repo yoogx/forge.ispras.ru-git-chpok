@@ -8,7 +8,7 @@ Import('env')
 pok_env = env.Clone()
 pok_env.Append(CPPPATH = pok_env['POK_PATH']+'/kernel/include')
 
-ldscript = pok_env['POK_PATH']+'/misc/ldscripts/'+pok_env['ARCH']+'/'+pok_env['BSP']+'/kernel.lds'
+ldscript = pok_env['POK_PATH']+'/boards/'+pok_env['BSP']+'/ldscripts/kernel.lds'
 pok_env['LINKFLAGS'] = str(' -T '+ldscript+' -Map pok.elf.map')
 
 # there should (perhaps) also be padding to get aligned file size
@@ -29,13 +29,13 @@ def create_sizes_c(target, source, env):
         sizes.write('\n};\n')
 
 merge_command = pok_env.Command(target = 'partitions.bin',
-source = [],
+source = pok_env['PARTITIONS'],
 action = merge_partitions)
 pok_env.Depends(merge_command, pok_env['PARTITIONS'])
 
 sizes_c_command = pok_env.Command(target = 'sizes.c',
-    source = [],
-    action = create_sizes_c)
+source = pok_env['PARTITIONS'],
+action = create_sizes_c)
 pok_env.Depends(sizes_c_command, pok_env['PARTITIONS'])
 
 compile_sizes = pok_env.Command(target = 'sizes.o',

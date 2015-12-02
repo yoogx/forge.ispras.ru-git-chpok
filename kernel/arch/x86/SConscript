@@ -2,10 +2,6 @@
 
 Import('arch_env')
 
-arch_env.Program(target = 'x86.lo', source = [
-Glob('*.c'),
-arch_env['BSP']+'/'+arch_env['BSP']+'.lo'])
-
-SConscript(arch_env['BSP']+'/SConscript')
+arch_env.Program(target = 'x86.lo', source = Glob('*.c'))
 
 # EOF

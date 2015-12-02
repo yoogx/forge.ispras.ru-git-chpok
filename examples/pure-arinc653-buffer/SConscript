@@ -8,7 +8,7 @@ Import('env')
 pok_env = env.Clone()
 pok_env.Append(CPPPATH = pok_env['POK_PATH']+'/kernel/include')
 
-ldscript = pok_env['POK_PATH']+'/misc/ldscripts/'+pok_env['ARCH']+'/'+pok_env['BSP']+'/kernel.lds'
+ldscript = pok_env['POK_PATH']+'/boards/'+pok_env['BSP']+'/ldscripts/kernel.lds'
 pok_env['LINKFLAGS'] = str(' -T '+ldscript+' -Map pok.elf.map')
 
 # there should (perhaps) also be padding to get aligned file size

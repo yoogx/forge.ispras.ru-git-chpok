@@ -3,7 +3,7 @@
 Import('kernel_env')
 
 arch_env = kernel_env.Clone()
-arch_env.Append(CPPPATH = arch_env['POK_PATH']+'/kernel/arch/'+arch_env['ARCH']+'/'+arch_env['BSP'])
+arch_env.Append(CPPPATH = arch_env['POK_PATH']+'/boards/'+arch_env['BSP'])
 
 arch_env.Program(target = 'arch.lo', source = arch_env['ARCH']+'/'+arch_env['ARCH']+'.lo')
 

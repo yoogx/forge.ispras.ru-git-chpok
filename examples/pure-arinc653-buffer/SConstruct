@@ -10,10 +10,12 @@ import arinc653_xml_conf
 import chpok_configuration
 import xml.etree.ElementTree as ET
 
+boards = ['e500mc', 'e500v2', 'p3041', 'x86-qemu']
+
 vars = Variables()
 vars.AddVariables(
 	('xml', 'xml config to be passed to parser', 'config.xml'),
-    EnumVariable('bsp', 'bsp', 'e500mc', allowed_values = ('e500mc', 'p3041', 'x86-qemu'))
+    EnumVariable('bsp', 'bsp', 'e500v2', allowed_values = boards)
 )
 
 env = Environment(variables = vars, ENV = os.environ)
@@ -45,6 +47,7 @@ env.Append(QEMU_FLAGS = ' -kernel pok.elf')
 #env.Append(QEMU_FLAGS = ' -S -s')
 
 #env.Append(QEMU_FLAGS = ' -display none')
+#env.Append(QEMU_FLAGS = ' -monitor tcp::4444,server,nowait')
 
 env.Command('run', [], env['QEMU']+env['QEMU_FLAGS'])
 env.Ignore('.', 'run')
@@ -52,11 +55,13 @@ env.Ignore('.', 'run')
 env.Command('debug', [], env['GDB']+' pok.elf -ex "target remote :1234"')
 env.Ignore('.', 'debug')
 
-env.Clean('chpok', [env['POK_PATH']+'/build/ppc', env['POK_PATH']+'/build/x86'])
+env.Clean('chpok', [env['POK_PATH']+'/build/'+bsp for bsp in boards])
 env.Clean('local', [
+'kernel/deployment.c',
 'kernel/deployment.o',
 'kernel/kernel.lo',
 'pr1/main.o',
+'pr1/deployment.c',
 'pr1/deployment.o',
 'pr1/pr1.elf',
 'partitions.bin',
