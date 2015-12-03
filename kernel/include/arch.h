@@ -34,6 +34,8 @@ struct pok_space
   size_t        size;
 };
 
+extern struct pok_space spaces[];
+
 /**
  * Function that initializes architecture concerns.
  */

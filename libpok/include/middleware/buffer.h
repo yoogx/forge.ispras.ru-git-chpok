@@ -44,6 +44,9 @@
 #include <types.h>
 #include <errno.h>
 
+// must be at least MAX_NAME_LENGTH of ARINC653 (which is 30)
+#define POK_BUFFER_MAX_NAME_LENGTH 30
+
 /* 
  * This essentially mirrors ARINC-653 BUFFER_STATUS type.
  */
@@ -54,6 +57,98 @@ typedef struct {
    pok_range_t          waiting_processes;
 } pok_buffer_status_t;
 
+typedef struct pok_buffer_wait_list_t
+{
+    struct pok_buffer_wait_list_t *next;
+
+    pok_thread_id_t thread;
+    int priority;
+    int64_t timeout;
+    pok_ret_t result;
+    
+    union {
+        struct {
+            const char *data_ptr;
+            pok_port_size_t data_size;
+        } sending;
+
+        struct {
+            char *data_ptr;
+            pok_port_size_t *data_size_ptr;
+        } receiving;
+    };
+} pok_buffer_wait_list_t;
+
+typedef struct
+{
+   /* Flag indicating that buffer has been created.
+    * 
+    * If it's not, all other members are undefined.
+    */
+   pok_bool_t                   ready;
+
+   /* 
+    * Pointer to buffer (where messages are stored) 
+    * As of now, it's allocated from 
+    * static pok_buffers_data[POK_CONFIG_BUFFER_DATA_SIZE],
+    * but it cab be changed to be allocated elsewhere.
+    */
+   void                         *buffer;
+
+   /*
+    * Maximum message size (as given when buffer was created).
+    */
+   pok_port_size_t              msg_size;
+
+   /*
+    * Index of the first message (that is going to be read next).
+    */
+   pok_port_size_t              head_index;
+
+   /*
+    * Number of messages currently stored in the buffer.
+    */
+   pok_port_size_t              number_of_messages;          
+
+   /*
+    * Maximum number of messages that can be queued in the buffer.
+    */
+   pok_port_size_t              max_number_of_messages;       
+
+   /*
+    * Queueing discipline. We need one here to properly
+    * sort processes in the wait list.
+    */
+   pok_queueing_discipline_t    discipline;
+
+   /*
+    * The synchronization object, obviously.
+    */
+   pok_event_id_t               lock;
+
+   /*
+    * The wait list. 
+    * When buffer is empty, processes attempting to receive message go here.
+    * Likewise, when it's full, writing processes go here.
+    *
+    * Note that since buffer can't be full and empty at the same time,
+    * we can use a single list.
+    *
+    * Wait list entries are allocated on the stack of 
+    * the corresponding waiting process.
+    */
+   pok_buffer_wait_list_t       *wait_list;
+
+   /*
+    * Buffer name, as specified when it was created.
+    */
+   char                         name[POK_BUFFER_MAX_NAME_LENGTH];
+} pok_buffer_t;
+
+// actual allocated data structures (as global static variables)
+extern pok_buffer_t pok_buffers[];
+
+extern char pok_buffers_data[]; 
 
 pok_ret_t pok_buffer_create(
         const char                      *name, 

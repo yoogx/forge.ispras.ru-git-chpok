@@ -58,8 +58,6 @@
 
 #include <assert.h>
 
-extern pok_lockobj_t           pok_partitions_lockobjs[];
-
 static void push_thread(pok_lockobj_queue_t **list, pok_lockobj_queue_t *entry)
 {
     while (*list != NULL && (*list)->priority >= entry->priority) {

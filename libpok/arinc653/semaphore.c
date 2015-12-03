@@ -51,21 +51,10 @@
 #include <core/error.h>
 #include <utils.h>
 
-// must be at least MAX_NAME_LENGTH of ARINC653
-#define POK_SEM_MAX_NAME_LENGTH 30
 #define POK_SEM_NAME_EQ(x, y) (strncmp((x), (y), POK_SEM_MAX_NAME_LENGTH) == 0)
 
 #define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
 #define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
-
-typedef struct
-{
-   pok_bool_t        ready;
-   pok_sem_id_t      core_id;
-   char              name[POK_SEM_MAX_NAME_LENGTH];
-} pok_arinc653_semaphore_layer_t;
-
-pok_arinc653_semaphore_layer_t *pok_arinc653_semaphores_layers;
 
 pok_bool_t           pok_arinc653_semaphores_initialized = 0;
 
@@ -87,6 +76,7 @@ void CREATE_SEMAPHORE (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
                        SEMAPHORE_ID_TYPE *SEMAPHORE_ID,
                        RETURN_CODE_TYPE *RETURN_CODE )
 {
+   strtoupper(SEMAPHORE_NAME);
    pok_sem_id_t      sem_id;
    pok_ret_t         core_ret;
 
@@ -271,6 +261,7 @@ void GET_SEMAPHORE_ID (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
                        SEMAPHORE_ID_TYPE *SEMAPHORE_ID,
                        RETURN_CODE_TYPE *RETURN_CODE )
 {
+   strtoupper(SEMAPHORE_NAME);
    size_t i;
 
    CHECK_SEM_INIT;

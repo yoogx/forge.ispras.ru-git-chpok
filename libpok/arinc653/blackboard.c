@@ -39,6 +39,7 @@
 #include <arinc653/types.h>
 #include <arinc653/blackboard.h>
 #include <middleware/blackboard.h>
+#include <utils.h>
 
 #define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
 #define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
@@ -49,15 +50,19 @@ void CREATE_BLACKBOARD (
        /*out*/ BLACKBOARD_ID_TYPE       *BLACKBOARD_ID, 
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
+   strtoupper(BLACKBOARD_NAME);
+
    pok_blackboard_id_t  core_id;
    pok_ret_t            core_ret;
 
    core_ret = pok_blackboard_create (BLACKBOARD_NAME, MAX_MESSAGE_SIZE, &core_id);
- 
+
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
       MAP_ERROR(POK_ERRNO_READY, NO_ACTION);
+      MAP_ERROR(POK_ERRNO_SIZE, INVALID_PARAM);
       MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG);
+      MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
       MAP_ERROR_DEFAULT(INVALID_CONFIG);
    }
 
@@ -137,6 +142,7 @@ void GET_BLACKBOARD_ID (
        /*out*/ BLACKBOARD_ID_TYPE       *BLACKBOARD_ID, 
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
+   strtoupper(BLACKBOARD_NAME);
    pok_ret_t core_ret;
    pok_blackboard_id_t id;
    core_ret = pok_blackboard_id(BLACKBOARD_NAME, &id);

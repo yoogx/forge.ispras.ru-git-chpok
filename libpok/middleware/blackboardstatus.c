@@ -53,7 +53,6 @@ pok_ret_t pok_blackboard_status (const pok_blackboard_id_t id,
    if (!pok_blackboards[id].ready) {
       return POK_ERRNO_EINVAL;
    }
-
    status->waiting_processes = pok_blackboards[id].waiting_processes;
    status->msg_size          = pok_blackboards[id].size;
    status->empty             = pok_blackboards[id].empty;

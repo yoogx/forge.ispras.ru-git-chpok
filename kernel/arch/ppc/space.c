@@ -31,8 +31,6 @@
 #include "space.h"
 #include "cons.h"
 
-extern struct pok_space spaces[];
-
 pok_ret_t pok_create_space (pok_partition_id_t partition_id,
                             uintptr_t addr,
                             size_t size)
@@ -270,10 +268,10 @@ void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
 
     unsigned pid = mfspr(SPRN_PID);
 
-    if (faulting_address >= CCSRBAR_BASE && faulting_address < CCSRBAR_BASE + CCSRBAR_SIZE) {
+    if (faulting_address >= pok_bsp.ccsrbar_base && faulting_address < pok_bsp.ccsrbar_base + pok_bsp.ccsrbar_size) {
         pok_insert_tlb1(
-            CCSRBAR_BASE, 
-            CCSRBAR_BASE_PHYS, 
+            pok_bsp.ccsrbar_base, 
+            pok_bsp.ccsrbar_base_phys, 
             E500MC_PGSIZE_16M, 
             //MAS3_SW | MAS3_SR,
             MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,

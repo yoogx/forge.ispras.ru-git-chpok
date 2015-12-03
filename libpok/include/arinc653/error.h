@@ -28,7 +28,7 @@
 
 #include <arinc653/types.h>
 
-#define  MAX_ERROR_MESSAGE_SIZE         64 
+#define  MAX_ERROR_MESSAGE_SIZE         128
  
 typedef  APEX_INTEGER   ERROR_MESSAGE_SIZE_TYPE; 
  

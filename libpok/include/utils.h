@@ -21,5 +21,6 @@ static inline SYSTEM_TIME_TYPE ms_to_arinc_time(int64_t time) {
     }
     return time * 1000000;
 }
+void strtoupper(char* s);
 
 #endif

@@ -39,12 +39,14 @@ env['CPPPATH'] = [env['POK_PATH']+'/kernel/include']
 env['LINKFLAGS'] = '-r'
 env['QEMU_FLAGS'] = ' -serial stdio'
 env['BSP'] = env['bsp']
+# 16 MBytes
+env['MAX_PART_SIZE'] = 16 * 2**20
 
 bsp_arch_dict = {
-    'e500mc':   'ppc',
-    'e500v2':   'ppc',
-    'p3041':    'ppc',
-    'x86-qemu': 'x86'
+    'e500mc':          'ppc',
+    'e500_highmem':    'ppc',
+    'p3041':           'ppc',
+    'x86-qemu':        'x86'
 }
 env['ARCH'] = bsp_arch_dict[env['BSP']]
 
@@ -59,7 +61,6 @@ if env['ARCH'] == 'ppc':
     env['OBJDUMP'] = 'powerpc-elf-objdump'
     env['RANLIB'] = 'powerpc-elf-ranlib'
     env['GDB'] = 'powerpc-elf-gdb'
-    env['ASFLAGS'] = env['CFLAGS']
     env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
     env['QEMU'] = 'qemu-system-ppc'
 
@@ -74,28 +75,33 @@ elif env['ARCH'] == 'x86':
     env['OBJDUMP'] = 'i386-elf-objdump'
     env['RANLIB'] = 'i386-elf-ranlib'
     env['GDB'] = 'i386-elf-gdb'
-    env['ASFLAGS'] = env['CFLAGS']
     env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
     env['QEMU'] = 'qemu-system-i386'
 
+env['ASFLAGS'] = env['CFLAGS']
+
 bsp_cpu_dict = {
-    'e500mc':   ' -mcpu=e500mc',
-    'e500v2':   ' -mcpu=e500mc',
-    'p3041':    ' -mcpu=e500mc',
-    'x86-qemu': ''
+    'e500mc':          ' -mcpu=e500mc',
+    'e500_highmem':    ' -mcpu=e500mc',
+    'p3041':           ' -mcpu=e500mc',
+    'x86-qemu':        ''
 }
 env.Append(CFLAGS = bsp_cpu_dict[env['BSP']])
 
 bsp_qemu_dict = {
-    'e500mc':   ' -M ppce500 -cpu e500mc',
-    'e500v2':   ' -M ppce500 -cpu e500mc',
-    'p3041':    ' -M ppce500 -cpu e500mc',
-    'x86-qemu': ''
+    'e500mc':          ' -M ppce500 -cpu e500mc',
+    'e500_highmem':    ' -M ppce500 -cpu e500mc',
+    'p3041':           ' -M ppce500 -cpu e500mc',
+    'x86-qemu':        ''
 }
 env.Append(QEMU_FLAGS = bsp_qemu_dict[env['BSP']])
 
 Export('env')
 
 SConscript(env['SCONSTRUCT_DIR']+'/SConscript')
+
+SConscript('../boards/SConscript', variant_dir = '../build/'+env['BSP']+'/boards', duplicate = 0)
+SConscript('../kernel/SConscript', variant_dir = '../build/'+env['BSP']+'/kernel', duplicate = 0)
+SConscript('../libpok/SConscript', variant_dir = '../build/'+env['BSP']+'/libpok', duplicate = 0)
 
 # EOF

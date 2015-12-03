@@ -163,6 +163,8 @@ typedef struct {
     uint32_t waiting_processes; 
 } pok_lockobj_status_t; 
 
+extern pok_lockobj_t pok_partitions_lockobjs[];
+
 pok_ret_t pok_lockobj_create (pok_lockobj_t* obj, const pok_lockobj_attr_t* attr);
 pok_ret_t pok_lockobj_init ();
 pok_ret_t pok_lockobj_partition_create (pok_lockobj_id_t* id, const pok_lockobj_attr_t* attr);
