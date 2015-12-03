@@ -99,6 +99,8 @@ void pok_sched_init (void)
       pok_current_partition      = pok_module_sched[0].partition.id;
    } else {
       // otherwise, we simply don't care
+      pok_fatal("pok_module_sched[0].type != POK_SLOT_PARTITION."
+              "Currect implementation  doesn't allow this.");
    }
 }
 
@@ -126,11 +128,8 @@ static pok_bool_t pok_elect_partition(void)
     }
     partition_id = pok_module_sched[pok_sched_current_slot].partition.id;
     pok_sched_next_deadline += pok_module_sched[pok_sched_current_slot].duration; 
-    if (pok_partitions[partition_id].is_paused == TRUE) {
-        current_partition_on_pause = TRUE;
-    }else{
-        current_partition_on_pause = FALSE;
-    }                    
+
+    current_partition_on_pause = pok_partitions[partition_id].is_paused;
     return TRUE;
 
 }
@@ -315,6 +314,7 @@ void pok_sched()
 #endif
         }
     } else {
+        //XXX Hasn't slot already equal this?
         slot = &pok_module_sched[pok_sched_current_slot];
     }
 
