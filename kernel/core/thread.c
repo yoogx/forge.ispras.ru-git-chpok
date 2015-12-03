@@ -145,7 +145,7 @@ pok_ret_t pok_partition_thread_create (pok_thread_id_t*         thread_id,
       return POK_ERRNO_TOOMANY;
    }
 
-   if (attr->stack_size != POK_USER_STACK_SIZE) {
+   if (attr->stack_size > POK_USER_STACK_SIZE) {
       return POK_ERRNO_PARAM;
    }
    if (attr->period == 0) {

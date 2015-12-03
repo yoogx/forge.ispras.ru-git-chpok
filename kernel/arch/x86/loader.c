@@ -1,6 +1,7 @@
 #include <config.h>
 
 #include <types.h>
+#include <libc.h>
 #include <core/loader.h>
 #include <core/partition.h>
 
@@ -21,6 +22,8 @@ void pok_arch_load_partition(pok_partition_id_t part_id, uintptr_t *entry)
     
     if (elf_size > pok_partitions[part_id].size)
     {
+		printf("Declared size for partition %d : %ld\n", part_id, pok_partitions[part_id].size);
+        printf("Real size for partition %d     : %ld\n", part_id, elf_size);
 #ifdef POK_NEEDS_ERROR_HANDLING
         pok_error_raise_partition(part_id, POK_ERROR_KIND_PARTITION_CONFIGURATION);
 #else
@@ -29,13 +32,10 @@ void pok_arch_load_partition(pok_partition_id_t part_id, uintptr_t *entry)
        * for such error
        * So, when we are using the debug mode, we print a fatal error.
        */
-
-        printf("Declared size for partition %d : %d\n", part_id, pok_partitions[part_id].size);
-        printf("Real size for partition %d     : %d\n", part_id, size);
         pok_fatal ("Partition size is not correct\n");
 #endif
 #endif
-   }    
+    }    
 
     /*
      * When we're running kernel code, 

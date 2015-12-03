@@ -42,6 +42,7 @@
 #include <libc/string.h>
 #include <core/event.h>
 #include <middleware/blackboard.h>
+#include <utils.h>
 
 static pok_size_t pok_blackboards_data_index = 0;
 
