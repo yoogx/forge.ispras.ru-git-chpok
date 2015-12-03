@@ -335,6 +335,9 @@ class Configuration:
         partitions_set = set(range(len(self.partitions)))
         partitions_without_periodic_processing = set(partitions_set) # copy
 
+        if not isinstance(self.slots[0], TimeSlotPartition):
+            raise ValueError("First time slot must be partition slot")
+
         for slot in self.slots:
             slot.validate()
 
