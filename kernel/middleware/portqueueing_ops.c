@@ -231,7 +231,7 @@ pok_ret_t pok_port_queueing_receive(
         wait_list_entry.thread = POK_SCHED_CURRENT_THREAD;
 
         wait_list_entry.receiving.data_ptr = (void *) pok_virt_to_phys((uintptr_t) data);
-        wait_list_entry.receiving.data_size_ptr = len;
+        wait_list_entry.receiving.data_size_ptr = (void *) pok_virt_to_phys((uintptr_t) len);
 
         port_wait_list_append(port, &wait_list_entry);
 
@@ -332,7 +332,7 @@ pok_ret_t pok_port_queueing_send(
         wait_list_entry.thread = POK_SCHED_CURRENT_THREAD;
 
         wait_list_entry.sending.data_ptr = (void *) pok_virt_to_phys((uintptr_t) data);
-        wait_list_entry.sending.data_size = len;
+        wait_list_entry.sending.data_size_ptr = (void *) pok_virt_to_phys((uintptr_t) &len);
 
         port_wait_list_append(port, &wait_list_entry);
 
