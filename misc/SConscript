@@ -62,7 +62,7 @@ if env['ARCH'] == 'ppc':
     env['RANLIB'] = 'powerpc-elf-ranlib'
     env['GDB'] = 'powerpc-elf-gdb'
     env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
-    env['QEMU'] = 'qemu-system-ppc'
+    env['QEMU'] = '/home/kurban/workspace/POK/qemu-2.2.1/ppc-softmmu/qemu-system-ppc'
 
 elif env['ARCH'] == 'x86':
     # x86-specific flags
@@ -103,5 +103,6 @@ SConscript(env['SCONSTRUCT_DIR']+'/SConscript')
 SConscript('../boards/SConscript', variant_dir = '../build/'+env['BSP']+'/boards', duplicate = 0)
 SConscript('../kernel/SConscript', variant_dir = '../build/'+env['BSP']+'/kernel', duplicate = 0)
 SConscript('../libpok/SConscript', variant_dir = '../build/'+env['BSP']+'/libpok', duplicate = 0)
+SConscript('../syspart/SConscript', variant_dir = '../build/'+env['BSP']+'/syspart', duplicate = 0)
 
 # EOF

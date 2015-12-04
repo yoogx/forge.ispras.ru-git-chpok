@@ -10,7 +10,7 @@ import arinc653_xml_conf
 import chpok_configuration
 import xml.etree.ElementTree as ET
 
-boards = ['e500mc', 'e500v2', 'p3041', 'x86-qemu']
+boards = ['e500mc', 'e500_highmem', 'p3041', 'x86-qemu']
 
 vars = Variables()
 vars.AddVariables(
@@ -48,8 +48,8 @@ env.Append(QEMU_FLAGS = ' -kernel pok.elf')
 
 env.Append(QEMU_FLAGS = ' -display none')
 #env.Append(QEMU_FLAGS = ' -net nic,vlan=0,model=ne2k_pci,macaddr=52:54:00:00:00:00 -net tap,ifname=chpoktap0,script=no,downscript=no')
-env.Append(QEMU_FLAGS = ' -net nic,vlan=0,model=ne2k_pci,macaddr=52:54:12:34:56:78 -net tap,ifname=chpoktap0,script=no,downscript=no')
-#env.Append(QEMU_FLAGS = '  -net nic,vlan=0,model=ne2k_pci,macaddr=52:54:01:11:21:31 -net nic,vlan=0,model=ne2k_pci,macaddr=52:54:02:12:22:32 -net nic,vlan=0,model=virtio,macaddr=52:54:03:13:23:33')
+#env.Append(QEMU_FLAGS = ' -net nic,vlan=0,model=ne2k_pci,macaddr=52:54:12:34:56:78 -net tap,ifname=chpoktap0,script=no,downscript=no')
+env.Append(QEMU_FLAGS = '  -net nic,vlan=0,model=ne2k_pci,macaddr=52:54:01:11:21:31 -net nic,vlan=0,model=ne2k_pci,macaddr=52:54:02:12:22:32 -net nic,vlan=0,model=virtio,macaddr=52:54:03:13:23:33')
 
 
 env.Command('run', [], env['QEMU']+env['QEMU_FLAGS'])
