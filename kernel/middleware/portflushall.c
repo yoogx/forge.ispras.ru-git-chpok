@@ -71,7 +71,7 @@ static pok_bool_t queueing_src_try_pop_waiting(pok_port_queueing_t *src)
         } else { 
             src->wait_list->result = POK_ERRNO_OK;
 
-            pok_port_utils_queueing_write(src, src->wait_list->sending.data_ptr, *src->wait_list->sending.data_size_ptr);
+            pok_port_utils_queueing_write(src, src->wait_list->sending.data_ptr, src->wait_list->sending.data_size);
             
             pok_lockobj_eventsignal_thread(&src->header.lock, src->wait_list->thread);
 

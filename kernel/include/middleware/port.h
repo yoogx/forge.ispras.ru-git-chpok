@@ -193,7 +193,7 @@ typedef struct pok_port_queueing_wait_list_t
     union {
         struct {
             const char *data_ptr;
-            const pok_port_size_t *data_size_ptr;
+            pok_port_size_t data_size;
         } sending;
 
         struct {
