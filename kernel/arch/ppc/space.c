@@ -30,6 +30,7 @@
 #include "mmu.h"
 #include "space.h"
 #include "cons.h"
+#include "core/partition.h"
 
 pok_ret_t pok_create_space (pok_partition_id_t partition_id,
                             uintptr_t addr,
@@ -313,18 +314,30 @@ void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
     }
 }
 
-uintptr_t pok_virt_to_phys(uintptr_t virt) {
-
+//Double check here because these function are called not only in syscall
+//(where there is checking), but also inside kernel
+//TODO: maybe rename to pok_arch_?
+uintptr_t pok_virt_to_phys(uintptr_t virt)
+{
     pok_partition_id_t partid = mfspr(SPRN_PID) - 1;
+    if (!POK_CHECK_PTR_IN_PARTITION(partid, virt)) {
+        printf("pok_virt_to_phys: wrong virtual address %p\n", (void*)virt);
+        pok_fatal("wrong pointer in pok_virt_to_phys\n");
+    }
 
     return virt - POK_PARTITION_MEMORY_BASE + spaces[partid].phys_base;
 }
 
-uintptr_t pok_phys_to_virt(uintptr_t phys) {
-
+uintptr_t pok_phys_to_virt(uintptr_t phys)
+{
     pok_partition_id_t partid = mfspr(SPRN_PID) - 1;
 
-    return phys - spaces[partid].phys_base + POK_PARTITION_MEMORY_BASE;
+    uintptr_t virt = phys - spaces[partid].phys_base + POK_PARTITION_MEMORY_BASE;
+    if (!POK_CHECK_PTR_IN_PARTITION(partid, virt)) {
+        printf("pok_phys_to_virt: wrong virtual address %p\n", (void*)virt);
+        pok_fatal("wrong pointer in pok_phys_to_virt\n");
+    }
+    return virt;
 }
 
 
