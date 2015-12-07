@@ -34,15 +34,13 @@
 #include "virtio_net.h"
 
 #define VIRTIO_PCI_VENDORID 0x1AF4
-#define VIRTIO_PCI_DEVICEID_MIN 0x1000
-#define VIRTIO_PCI_DEVICEID_MAX 0x103F
 
 #define VIRTIO_NETWORK_RX_VIRTQUEUE 0
 #define VIRTIO_NETWORK_TX_VIRTQUEUE 1
 
 // FIXME
 #define POK_MAX_RECEIVE_BUFFERS 100
-
+#define DRV_NAME "virtio-net"
 #define PRINTF(fmt, ...) printf("virtio_network: " fmt, ##__VA_ARGS__)
 
 struct virtio_network_device {
@@ -96,88 +94,6 @@ static void maybe_unlock_preemption(const pok_bool_t *saved)
     }
     */
 }
-//TODO move to pci.c
-static unsigned pci_read(unsigned bus,
-                         unsigned dev,
-                         unsigned fun,
-                         unsigned reg)
-{
-    unsigned addr = (1 << 31) | (bus << 16) | (dev << 11) | (fun << 8) | (reg & 0xfc);
-    unsigned val = -1;
-    unsigned cfg_addr = 0xe0008000;
-    unsigned cfg_data = 0xe0008004;
-
-#ifdef __PPC__
-    out_be32((uint32_t *) cfg_addr, addr);
-    val = in_le32((uint32_t *) cfg_data);
-#endif
-
-    return (val >> ((reg & 3) << 3));
-}
-//TODO move to pci.c
-static unsigned pci_read_reg(s_pci_device* d,
-        unsigned reg)
-{
-    return (pci_read(d->bus, d->dev, d->fun, reg));
-}
-
-static int virtio_pci_search(s_pci_device* d) {
-    // slightly adapted code from pci.c
-
-    unsigned bus = 0;
-    unsigned dev = 0;
-    unsigned fun = 0;
-
-    //TODO: change to bus_startno, bus_endno
-    for (bus = 0; bus < PCI_BUS_MAX; bus++)
-        for (dev = 0; dev < PCI_DEV_MAX; dev++)
-        {
-            uint16_t vendor = (uint16_t) pci_read(bus, dev, 0, PCI_REG_VENDORID);
-            if (vendor != VIRTIO_PCI_VENDORID)
-                continue;
-
-            uint16_t deviceid = (uint16_t) pci_read(bus, dev, 0, PCI_REG_DEVICEID);
-            if (!(deviceid >= VIRTIO_PCI_DEVICEID_MIN && deviceid <= VIRTIO_PCI_DEVICEID_MAX))
-                continue;
-            
-            // we do not handle type 1 or 2 PCI configuration spaces
-	    if (pci_read(bus, dev, fun, PCI_REG_HEADERTYPE) != 0)
-	        continue;
-
-            uint16_t subsystem = pci_read(bus, dev, 0, PCI_REG_SUBSYSTEM) >> 16;
-            if (subsystem != VIRTIO_ID_NET)
-                continue;
-            
-            d->bus = bus;
-            d->dev = dev;
-            d->fun = fun;
-            //d->irq_line = (unsigned char) pci_read_reg(d, PCI_REG_IRQLINE);
-
-#ifdef __PPC__
-            d->bar[0] = 0xe1001000;
-
-            //init pci-device
-            {
-                uint32_t * cfg_addr = (uint32_t*) 0xe0008000;
-                void * cfg_data = (void *) 0xe0008004;
-
-                //TODO call pci write word
-                out_be32(cfg_addr, 0x80000810);
-                out_le16(cfg_data, 0x1001);
-
-                out_be32(cfg_addr, 0x80000804);
-                out_le16(cfg_data, 0x7);
-            }
-#else
-    //i386
-            d->bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0) & ~0xFU; // mask lower bits, which mean something else
-#endif
-
-            return 0;
-        }
-
-    return -1;
-}
 
 static void setup_virtqueue(
         struct virtio_network_device *dev, 
@@ -211,6 +127,13 @@ static void read_mac_address(struct virtio_network_device *dev)
     for (i = 0; i < ETH_ALEN; i++) {
         mac[i] = inb(dev->pci_device.bar[0] + VIRTIO_PCI_CONFIG_OFF(FALSE) + i);
     }
+    printf("!!!!!!!!!!%x:%x:%x:%x:%x:%x\n",
+            mac[0],
+            mac[1],
+            mac[2],
+            mac[3],
+            mac[4],
+            mac[5]);
 }
 
 static void use_receive_buffer(struct virtio_network_device *dev, struct receive_buffer *buf)
@@ -278,14 +201,20 @@ static void process_received_buffer(
  * BEGIN "public" interface
  */
 
-static pok_bool_t init_driver(void)
+static int open_device(struct pci_device *pci_dev)
 {
+    printf("virtio-net pci probing device!\n");
     struct virtio_network_device *dev = &virtio_network_device;
 
-    if (virtio_pci_search(&dev->pci_device) < 0) {
-        PRINTF("failed to find the PCI device\n");
-        return FALSE;
-    }
+
+    dev->pci_device = *pci_dev;
+
+        //xxx XXX XXX XXX 
+        //subsystem = pci_read_reg(dev, PCI_REG_SUBSYSTEM) >> 16;
+        //if (subsystem != VIRTIO_ID_NET)
+        //    printf("WARNING: wrong subsystem in virtio net device");
+        //xxx XXX XXX XXX 
+
 
     // 1. Reset the device
     outb(dev->pci_device.bar[0] + VIRTIO_PCI_STATUS, 0x0);
@@ -485,7 +414,6 @@ static void flush_send(void)
 }
 
 static const pok_network_driver_ops_t driver_ops = {
-    .init = init_driver,
     .send_frame = send_frame,
     .send_frame_gather = send_frame_gather,
     .set_packet_received_callback = set_packet_received_callback,
@@ -498,3 +426,14 @@ pok_network_driver_device_t pok_network_virtio_device = {
     .ops = &driver_ops,
     .mac = virtio_network_device.mac
 };
+
+static const struct pci_device_id virtio_pci_devid_tbl[] = {
+    { VIRTIO_PCI_VENDORID, PCI_ANY_ID},
+};
+
+struct pci_driver virtio_pci_driver = {
+    .name     = DRV_NAME,
+    .probe    = open_device,
+    .id_table = virtio_pci_devid_tbl
+};
+

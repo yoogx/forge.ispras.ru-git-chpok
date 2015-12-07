@@ -29,7 +29,7 @@ static pok_bool_t initialized = FALSE;
 
 #include <drivers/virtio/virtio_network.h>
 #include <drivers/ne2000/ne2000.h>
-#if 0
+#if 1
 #define NETWORK_DRIVER pok_network_virtio_device
 #define NETWORK_DRIVER_OPS (pok_network_virtio_device.ops)
 #else
@@ -131,12 +131,8 @@ void pok_network_init(void)
 {
     pci_init();
 
-    printf("initializing network >>>\n");
-    if (NETWORK_DRIVER_OPS->init()) {
-        NETWORK_DRIVER_OPS->set_packet_received_callback(packet_received_callback);
-        initialized = TRUE;
-    }
-    printf("<<<end of initialization\n");
+    NETWORK_DRIVER_OPS->set_packet_received_callback(packet_received_callback);
+    initialized = TRUE;
 }
 
 static void fill_in_udp_header(

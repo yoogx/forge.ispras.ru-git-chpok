@@ -24,6 +24,8 @@
 #include "rtl8029.h"
 #ifdef POK_NEEDS_RTL8029
 
+#define DRV_NAME "ne2k-pci"
+
 //#include <middleware/port.h>
 #include <pci.h>
 #include <ioports.h>
@@ -50,8 +52,6 @@ int ne2000_write(const s_ne2000_dev* dev,
 		     unsigned short	 count,
 		     unsigned short	 offset)
 {
-  printf("ne2000_write\n");
-  hexdump(buf, count);
   const char* p = NULL;
   int ret = count;
 
@@ -71,8 +71,7 @@ int ne2000_write(const s_ne2000_dev* dev,
   outb_inverse((inb((dev)->addr + NE2000_CR) & ~(NE2000_CR_RD0 | NE2000_CR_RD2)) |
        NE2000_CR_RD1, (dev)->addr);
 
-  for (p = buf; count > 0; count--, p++)
-  {
+  for (p = buf; count > 0; count--, p++) {
     outb_inverse(*p, dev->addr + NE2000_DMA_PORT);
   }
 
@@ -388,31 +387,6 @@ void rtl8029_polling ()
 
 #endif
 
-//TODO Temp and dirty. Move to pci.c
-static unsigned pci_read(unsigned bus,
-                         unsigned dev,
-                         unsigned fun,
-                         unsigned reg)
-{
-    unsigned addr = (1 << 31) | (bus << 16) | (dev << 11) | (fun << 8) | (reg & 0xfc);
-    unsigned val = -1;
-    unsigned cfg_addr = 0xe0008000;
-    unsigned cfg_data = 0xe0008004;
-
-#ifdef __PPC__
-    out_be32((uint32_t *) cfg_addr, addr);
-    val = in_le32((uint32_t *) cfg_data);
-#endif
-
-    return (val >> ((reg & 3) << 3));
-}
-//TODO move to pci.c
-static unsigned pci_read_reg(s_pci_device* d,
-        unsigned reg)
-{
-    return (pci_read(d->bus, d->dev, d->fun, reg));
-}
-
 static inline
 int pci_open(s_pci_device* d)
 {
@@ -482,20 +456,14 @@ pok_ret_t pci_register(s_pci_device*	dev)
  *  Seeks and registers PCI interface, set configuration and fills the
  *  dev structure.
  */
-static pok_bool_t rtl8029_init (void)
+static int rtl8029_init (struct pci_device *pci_dev)
 {
     printf("rtl8029 init called\n");
-  dev.pci.vendorid = 0x10ec;
-  dev.pci.deviceid = 0x8029;
-  dev.pci.io_range = 0x10;
+ // dev.pci.vendorid = 0x10ec;
+ // dev.pci.deviceid = 0x8029;
+ // dev.pci.io_range = 0x10;
 
-  if (pci_register(&(dev.pci)) != 0)
-  {
-    printf("rtl8029: PCI init failed!\n");
-    return FALSE;
-  }
-
-  dev.addr = dev.pci.bar[0] & (~0x1F);
+  dev.addr = pci_dev->bar[0] & (~0x1F);
   printf("bar0 addr = 0x%x\n", dev.addr);
 
   unsigned char	i = 0;
@@ -776,7 +744,6 @@ static void flush_send(void)
 }
 
 static const pok_network_driver_ops_t driver_ops = {
-    .init                         = rtl8029_init,
     .send_frame = send_frame,
     .send_frame_gather = send_frame_gather,
     .set_packet_received_callback = set_packet_received_callback,
@@ -788,6 +755,18 @@ static const pok_network_driver_ops_t driver_ops = {
 pok_network_driver_device_t pok_network_ne2000_device = {
     .ops = &driver_ops,
     .mac = dev.mac
+};
+
+
+static const struct pci_device_id ne2k_pci_tbl[] = {
+    { 0x10ec, 0x8029},
+    //Here may be others cards from ne2k family
+};
+
+struct pci_driver ne2k_driver = {
+    .name     = DRV_NAME,
+    .probe    = rtl8029_init,
+    .id_table = ne2k_pci_tbl
 };
 
 #endif

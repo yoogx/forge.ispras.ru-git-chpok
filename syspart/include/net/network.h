@@ -46,7 +46,6 @@ typedef struct {
 
 //XXX maybe pok_bool_t is a bad choice
 typedef struct {
-    pok_bool_t (*init)(void);
     pok_bool_t (*send_frame)(char *buffer,
                              size_t size,
                              pok_network_buffer_callback_t callback,

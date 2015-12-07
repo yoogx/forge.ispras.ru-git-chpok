@@ -50,7 +50,7 @@
 /*
  * Structure to holds some device information
  */
-typedef struct
+typedef struct pci_device
 {
   uint16_t	bus;
   uint16_t	dev;
@@ -66,12 +66,12 @@ typedef struct
 
 void pci_init(void);
 void pci_list(void);
-#if 0
-/*unsigned int pci_read(unsigned int bus,
-		      unsigned int dev,
-		      unsigned int fun,
-		      unsigned int reg);
-                      */
+
+unsigned int pci_read(
+        unsigned bus,
+        unsigned dev,
+        unsigned fun,
+        unsigned reg);
 
 //stupid workaround. pci_write should be added in x86
 #ifdef __PPC__
@@ -80,6 +80,7 @@ void pci_write_word(s_pci_device *d, uint32_t reg, uint16_t val);
 
 #endif
 
+#if 0
 unsigned int pci_read_reg(s_pci_device* d,
 			  unsigned int reg);
 
@@ -88,5 +89,21 @@ pok_ret_t pci_register(s_pci_device* dev);
 void pok_pci_init();
 
 #endif
+
+/* These was got from Linux kernel */
+#define PCI_ANY_ID (~0)
+
+struct pci_device_id {
+    uint16_t vendor;
+    uint16_t device;
+};
+
+struct pci_driver {
+    const char *name;
+    int (*probe) (struct pci_device *dev);
+    const struct pci_device_id *id_table;
+};
+
+
 
 # endif /* __POK_PCI_H__ */

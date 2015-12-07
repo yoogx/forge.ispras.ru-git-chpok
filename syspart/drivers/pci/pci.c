@@ -5,6 +5,14 @@
 
 #include "pci_internal.h"
 
+extern struct pci_driver ne2k_driver;
+extern struct pci_driver virtio_pci_driver;
+
+struct pci_driver *pci_driver_table[] = {
+    //&ne2k_driver,
+    &virtio_pci_driver,
+};
+
 struct pci_bridge bridge;
 
 static char *get_pci_class_name(int classcode) {
@@ -17,22 +25,12 @@ static char *get_pci_class_name(int classcode) {
     return "Unknown";
 }
 
-void pci_init()
+int pci_match_device(const struct pci_device_id *id, const struct pci_device *dev)
 {
-
-    //TODO make syscall
-    //bridge = devtree_get_pci_props();
-//#ifdef __PPC__
-    bridge.cfg_addr = (uint32_t*) 0xe0008000;
-    bridge.cfg_data = (void *) 0xe0008004;
-//#endif
-
-    printf("\n***********************************************\n");
-    printf("PCI initializing\n");
-    printf("bridge cfg_addr: %p cfg_data: %p\n",
-            bridge.cfg_addr, bridge.cfg_data);
-    pci_list();
-    printf("\n***********************************************\n\n");
+    if ((id->vendor == PCI_ANY_ID || id->vendor == dev->vendorid) &&
+            (id->device == PCI_ANY_ID || id->device == dev->deviceid))
+        return 1;
+    return 0;
 }
 
 unsigned int pci_read(
@@ -74,16 +72,16 @@ void pci_write_word(s_pci_device *d, uint32_t reg, uint16_t val)
 
 void pci_list()
 {
-#ifdef __PPC__
-    {
-        //TODO call pci write word
-        out_be32(bridge.cfg_addr, 0x80000810); //write something to BAR0
-        out_le16(bridge.cfg_data, 0x1001);
-
-        out_be32(bridge.cfg_addr, 0x80000804);//write something to COMMAND register
-        out_le16(bridge.cfg_data, 0x7);
-    }
-#endif
+//#ifdef __PPC__
+//    {
+//        //TODO call pci write word
+//        out_be32(bridge.cfg_addr, 0x80000810); //write something to BAR0
+//        out_le16(bridge.cfg_data, 0x1001);
+//
+//        out_be32(bridge.cfg_addr, 0x80000804);//write something to COMMAND register
+//        out_le16(bridge.cfg_data, 0x7);
+//    }
+//#endif
 
     for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
       for (unsigned int dev = 0; dev < PCI_DEV_MAX; dev++)
@@ -117,71 +115,60 @@ void pci_list()
 }
 
 
-static inline int pci_open(s_pci_device* d)
+void pci_init()
 {
-    unsigned int bus = 0;
-    unsigned int dev = 0;
-    unsigned int fun = 0;
 
-    for (bus = 0; bus < PCI_BUS_MAX; bus++)
-      for (dev = 0; dev < PCI_DEV_MAX; dev++)
-        for (fun = 0; fun < PCI_FUN_MAX; fun++)
-          if (((unsigned short) pci_read(bus, dev, fun, PCI_REG_VENDORID)) == d->vendorid &&
-              ((unsigned short) pci_read(bus, dev, fun, PCI_REG_DEVICEID)) == d->deviceid)
-          {
-                // we do not handle type 1 or 2 PCI configuration spaces
-                if (pci_read(bus, dev, fun, PCI_REG_HEADERTYPE) != 0)
-                    continue;
+    //TODO make syscall
+    //bridge = devtree_get_pci_props();
+//#ifdef __PPC__
+    bridge.cfg_addr = (uint32_t*) 0xe0008000;
+    bridge.cfg_data = (void *) 0xe0008004;
+//#endif
 
-                d->bus = bus;
-                d->dev = dev;
-                d->fun = fun;
-                //TODO
-
-                //d->bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0);
-                //d->irq_line = (unsigned char) pci_read_reg(d, PCI_REG_IRQLINE);
-
-                return (0);
-          }
-
-    return (-1);
-}
+    printf("\n***********************************************\n");
+    printf("PCI initializing\n");
+    printf("bridge cfg_addr: %p cfg_data: %p\n",
+            bridge.cfg_addr, bridge.cfg_data);
+    pci_list();
+    printf("\n***********************************************\n\n");
 
 
-//Maybe some day we will implement interrupts. Then this can be usefull
-#if 0 
-void dummy_pci_handler(void)
-{
-  __asm__ volatile
-    (
-     ".globl pci_handler\n"
-     "pci_handler:\n"
-     "push %eax\n"		// save restricted context
-     "push %edx\n"
-     "mov $0x20, %al\n"
-     "mov $0xA0, %dx\n"		// ack slave pic
-     "outb %al, %dx\n"
-     "mov $0x20, %dx\n"		// ack master pic
-     "outb %al, %dx\n"
-     "pop %edx\n"		// restore retricted context
-     "pop %eax\n"
-     "iret\n"			// return
-    );
-}
+    for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
+      for (unsigned int dev = 0; dev < PCI_DEV_MAX; dev++)
+      {
+            int fun = 0;
+            // Currently we do not handle type 1 or 2 PCI configuration spaces
+            if ((pci_read(bus, dev, fun, PCI_REG_HEADERTYPE) & 0xFF) != 0)
+                continue;
+            struct pci_device pci_dev;
+            pci_dev.bus = bus;
+            pci_dev.dev = dev;
+            pci_dev.fun = fun;
+            pci_dev.vendorid  = (uint16_t) pci_read(bus, dev, fun, PCI_REG_VENDORID);
+            pci_dev.deviceid  = (uint16_t) pci_read(bus, dev, fun, PCI_REG_DEVICEID);
+            //pci_dev.classcode = (uint16_t) pci_read(bus, dev, fun, PCI_REG_PROGIFID);
 
-pok_ret_t pci_register(s_pci_device*	dev)
-{
-  if (pci_open(dev) != 0)
-    return (-1);
+            //for (pci_driver in pci_driver_table) {
+            //    if pci_match(&pci_driver, &pci_dev) {
+             {{
+                  struct pci_driver *pci_driver = pci_driver_table[0];
+#ifdef __PPC__
+                    {
+                        //TODO call pci write word
+                        out_be32(bridge.cfg_addr, 0x80000810); //write something to BAR0
+                        out_le16(bridge.cfg_data, 0x1001);
 
-  /*
-  pok_idt_set_gate(32 + dev->irq_line,
-		   GDT_CORE_CODE_SEGMENT,
-		   (uint32_t) pci_handler,
-		   IDTE_INTERRUPT,
-		   0);
-  */
-
-  return (0);
-}
+                        out_be32(bridge.cfg_addr, 0x80000804);//write something to COMMAND register
+                        out_le16(bridge.cfg_data, 0x7);
+                    }
+                    pci_dev.bar[0] = 0xe1001000;
+#else
+                    pci_dev.bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0);
 #endif
+                    //uint32_t bar0 = pci_read(bus, dev, fun, PCI_REG_BAR0);
+                    //dev init;
+                    pci_driver->probe(&pci_dev);
+                }
+            }
+        }
+}
