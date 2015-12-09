@@ -1,0 +1,161 @@
+define Thread_pid
+    set $i = 0
+    set $V = 1
+    while $i < pok_config_nb_partitions
+        if pok_partitions[$i].thread_index_high > $arg0 - 1
+            set $V = $i + 2
+            loop_break
+            end
+        set $i = $i + 1
+        end
+    set $PID = $V
+    end
+
+define Remove_symbol_file
+    eval "remove-symbol-file -a 0x%x", pok_partitions[$arg0].base_vaddr
+    end
+
+
+
+define Easy_switch
+    set $G = $arg0 + 1
+    if $OLD_PID != 0
+        eval "remove-symbol-file -a 0x%x", pok_partitions[$OLD_PID - 2].base_vaddr
+        end
+    eval "add-symbol-file pr%d/pr%d.elf 0x%x", $G,$G,pok_partitions[$arg0].base_vaddr
+    end
+
+
+define Switch_to 
+    if $arg0 > 1
+        set $K = $arg0 - 2 
+        eval "Easy_switch %d",$K
+        set $OLD_PID = $arg0
+        end
+    end
+
+document Switch_to
+Switch to the partition (load symbol-file if it needs)
+Syntax: Switch_to PID 
+    end
+
+    
+    
+define Thread_break
+    eval "Thread_pid %d",$arg1
+    set $V = $PID
+    eval "Switch_to %d",$V
+    break $arg0 thread $arg1
+    eval ""
+    set $V = current_thread + 1
+    eval "Thread_pid %d",$V
+    set $V = $PID
+    eval "Switch_to %d",$V
+      
+    end
+
+document Thread_break
+Set breakpoint on chosen thread
+Syntax: Thread_break ADDR THREAD_NUMBER
+    end
+
+define connect_to 
+    set $OLD_PID = 0
+    target remote$arg0
+    end
+
+document connect_to
+Use a remote computer via a serial line, using a gdb-specific protocol.
+Specify the serial device it is connected to
+(e.g. /dev/ttyS0, /dev/ttya, COM1, etc.).
+Syntax: connect_to PORT_ADDR
+    end
+
+define hook-stop
+    if pok_partitions[pok_config_nb_threads - 1].thread_index_high > current_thread
+        eval "Thread_pid %d",current_thread + 1
+        eval "Switch_to %d",$PID
+    end
+end
+
+
+
+define Part_break
+    set $Part_break_i = 0
+    set $Max_part = pok_config_nb_partitions - 1
+    if $arg0 > $Max_part + 2
+        print "Error, there is no such partition"
+        loop_break
+    else
+        if $arg0 == 1
+            set $Part_break_i = pok_partitions[$Max_part].thread_index_high        
+            Switch_to $arg0
+            while $Part_break_i < pok_config_nb_threads
+                eval "thread %d",$Part_break_i + 1
+                set $addr = $pc
+                if $addr != 0x0
+                    eval "b *0x%x thread %d",$addr, $Part_break_i + 1
+                    end
+                set $Part_break_i = $Part_break_i + 1
+                end
+            eval "thread %d",current_thread + 1
+            print "Ok on zero part"
+            loop_break
+        else
+            set $Part_break_i = pok_partitions[$arg0 - 2].thread_index_low        
+            Switch_to $arg0
+            while $Part_break_i < pok_partitions[$arg0 - 2].thread_index_high
+                eval "thread %d",$Part_break_i + 1
+                set $addr = $pc
+                if $addr != 0x0
+                    eval "b *0x%x thread %d",$addr, $Part_break_i+1
+                    end
+                set $Part_break_i = $Part_break_i + 1
+                end
+            eval "thread %d",$current_thread + 1
+            print "Ok on %d part",$arg0
+            end
+        end
+    end
+    
+
+document Part_break
+Set breakpoints on all partition's threads
+Syntax: Part_break PID
+    end
+    
+    
+    
+define P_info
+    set $P_info_old_pid = 0
+    if $argc == 0
+        set $P_info_i = pok_config_nb_threads
+        while $P_info_i > 0
+            eval "Thread_pid %d",$P_info_i
+            if $P_info_old_pid != $PID
+                eval "Switch_to %d",$PID
+                end
+            eval "info thread %d",$P_info_i            
+            set $P_info_i = $P_info_i - 1
+            set $P_info_old_pid = $PID
+            end
+        eval "Thread_pid %d",current_thread + 1
+        if $P_info_old_pid != $PID
+            eval "Switch_to %d",$PID
+            end
+    else
+        eval "Thread_pid %d",$arg0
+        if $P_info_old_pid != $PID
+            eval "Switch_to %d",$PID
+            end
+        eval "info thread %d",$arg0            
+        set $P_info_i = $P_info_i - 1
+        set $P_info_old_pid = $PID
+        end
+    end
+    
+document P_info
+Print information about all or chosen threads in system. Similar to "info thread", but it loads symbol files.
+Syntax: P_info THREAD_NUMBER
+    end    
+
