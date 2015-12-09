@@ -105,6 +105,7 @@
 #include <libc.h>
 #include <bsp.h>
 #include <core/thread.h>
+#include <core/partition.h>
 
 #include <core/debug.h>
 #include <config.h>
@@ -233,7 +234,7 @@ getpacket(char *buffer)
         /* wait around for the start character, ignore all other
          * characters */
         while ((ch = (getDebugChar() & 0x7f)) != '$') ;
-
+        
         checksum = 0;
         xmitcsum = -1;
 
@@ -376,7 +377,6 @@ putpacket (unsigned char *buffer)
         putDebugChar ('#');
         putDebugChar (hexchars[checksum >> 4]);
         putDebugChar (hexchars[checksum % 16]);
-
     }
     while (getDebugChar () != '+');
         printf("\n");
@@ -594,6 +594,20 @@ static inline void set_msr(int msr)
     asm volatile("mtmsr %0" : : "r" (msr));
 }
 
+#define SPRN_PID        0x030   /* Process ID */
+
+#define __stringify_1(x)        #x
+#define __stringify(x)          __stringify_1(x)
+
+#define mfspr(rn)       ({unsigned long rval; \
+                                asm volatile("mfspr %0," __stringify(rn) \
+                                                                    : "=r" (rval)); rval;})
+#define mtspr(rn, v)    asm volatile("mtspr " __stringify(rn) ",%0" : \
+                                             : "r" ((unsigned long)(v)) \
+                                             : "memory")
+
+
+
 static char info_thread[59] = "StoppedRunnableWaitingLockWait next activationDelayed start";
 
 
@@ -748,6 +762,14 @@ void set_regs(struct regs *ea){
 }
 
 
+pok_partition_id_t give_part_num_of_thread(int thread_num){
+
+    for (int i = 0; i < POK_CONFIG_NB_PARTITIONS; i++){
+        if (pok_partitions[i].thread_index_high > thread_num) return i + 1;
+    }
+    return 0;
+}
+
 
 /*
  * This function does all command procesing for interfacing to gdb.
@@ -755,14 +777,12 @@ void set_regs(struct regs *ea){
 void
 handle_exception (int exceptionVector, struct regs * ea)
 {
-
   /*Add regs*/
     uint32_t old_entryS = pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp;
     pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = (uint32_t) ea;
     
     set_regs(ea);
-
-    int using_thread = -1;
+    int using_thread = POK_SCHED_CURRENT_THREAD;
     int number_of_thread = 0;
   
     memset(remcomOutBuffer, 0, BUFMAX);
@@ -822,14 +842,15 @@ handle_exception (int exceptionVector, struct regs * ea)
     *ptr++ = 'a';
     *ptr++ = 'd';
     *ptr++ = ':';
-    
-    int part_of_this_thread = 1;
+
+    int thread_num = POK_SCHED_CURRENT_THREAD + 1;
+    int part_of_this_thread = 1;////give_part_num_of_thread(thread_num);
     *ptr++ = 'p';
     ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
     *ptr++ = '.';
-    uint32_t thread_num = POK_SCHED_CURRENT_THREAD + 1;
-    ptr = mem2hex( (char *)(&thread_num), ptr, 4); 
+    ptr = mem2hex( (char *)(&(thread_num)), ptr, 4); 
     *ptr++ = ';';
+
 
     ptr = 0;
 #endif
@@ -860,10 +881,10 @@ handle_exception (int exceptionVector, struct regs * ea)
     *ptr++ = 'a';
     *ptr++ = 'd';
     *ptr++ = ':';
-    uint32_t thread_num = POK_SCHED_CURRENT_THREAD + 1;
-    ptr = mem2hex( (char *)(&thread_num), ptr, 1); 
+    thread_num = POK_SCHED_CURRENT_THREAD + 1;
+    ptr = mem2hex( (char *)&thread_num, ptr, 1); 
     *ptr++ = ';';
-  *ptr = '\0';
+  *ptr = '0';
 #endif      
     putpacket ( (unsigned char *) remcomOutBuffer);
     
@@ -873,7 +894,7 @@ handle_exception (int exceptionVector, struct regs * ea)
 
         getpacket(remcomInBuffer);
         switch (remcomInBuffer[0]) {
-        
+
         case 'T':               /*Find out if the thread thread-id is alive*/
             ptr = &remcomInBuffer[1];
             int thread_num = -1;
@@ -904,7 +925,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                 *ptr++ = 'C';
                 uint32_t p = POK_SCHED_CURRENT_THREAD + 1;
                 ////TODO: Change number of process
-                int part_of_this_thread = 1;
+                int part_of_this_thread = 1;////give_part_num_of_thread(p);
                 *ptr++ = 'p';
                 ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
                 *ptr++ = '.';
@@ -916,12 +937,47 @@ handle_exception (int exceptionVector, struct regs * ea)
                 //~ strcpy(remcomOutBuffer,"OK");
                 //~ break;
                 ////FIX IT
+                //~ if (SS == 0){
+                    //~ SS ++;
+                    //~ ptr = remcomOutBuffer;
+                    //~ break;
+                //~ }
                 ptr = remcomOutBuffer;
+                //~ *ptr++ = 'T';
+                //~ *ptr++ = 'e';
+                //~ *ptr++ = 'x';
+                //~ *ptr++ = 't';
+                //~ *ptr++ = 'S';
+//~ 
+                //~ *ptr++ = 'e';
+                //~ *ptr++ = 'g';
+                //~ *ptr++ = '=';
+                    //~ uint32_t offset = 0x10000;
+                //~ ptr = mem2hex((char *) offset, ptr, 4);
+                *ptr++ = 0;
             //~ sprintf(ptr, "Text=%8.8x;Data=%8.8x;Bss=%8.8x",
                 //~ &_start, &sdata, &__bss_start);
                 break;
             }
-            if (strncmp(ptr, "Supported", 9) == 0){
+            if (strncmp(ptr, "Attached:", 9) == 0){
+                ptr += 9;
+                int part_id;
+                hexToInt(&ptr, &part_id);
+                ptr = remcomOutBuffer;
+                //~ if (part_id <= POK_CONFIG_NB_PARTITIONS + 2 && part_id >= 1){
+                    *ptr++ = '1';
+                //~ }
+                *ptr = 0;
+                break;
+            }
+            if (strncmp(ptr, "Symbol::", 8) == 0){
+
+                ptr = remcomOutBuffer;
+                remcomOutBuffer[0] = 'O';
+                remcomOutBuffer[1] = 'K';
+                remcomOutBuffer[2] = 0;
+                break;
+            }            if (strncmp(ptr, "Supported", 9) == 0){
                 ptr+= (9 + 1); //qSupported:
                 while  (strncmp(ptr, "multiprocess", 9) != 0){
                     ptr++;
@@ -942,12 +998,11 @@ handle_exception (int exceptionVector, struct regs * ea)
             }
             if (strncmp(ptr, "fThreadInfo", 11) == 0)   {
                 number_of_thread = 1;
-                printf("in first if\n");
                 ptr = remcomOutBuffer;  
                 *ptr++ = 'm';
                 int previous_thread = 1;
                 ////TODO: Change number of process
-                int part_of_this_thread = 1;
+                int part_of_this_thread = 1;////give_part_num_of_thread(previous_thread);
                 *ptr++ = 'p';
                 ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
                 *ptr++ = '.';
@@ -957,7 +1012,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                 break;
             }
             if (strncmp(ptr, "sThreadInfo", 11) == 0){
-                if (number_of_thread == POK_CONFIG_NB_THREADS +1){
+                if (number_of_thread == POK_CONFIG_NB_THREADS + 1){
                     ptr = remcomOutBuffer;
                     *ptr++ = 'l';
                     *ptr++ = 0;
@@ -967,7 +1022,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                 *ptr++ = 'm';
                 int previous_thread = number_of_thread;
                 ////TODO: Change number of process
-                int part_of_this_thread = 1;
+                int part_of_this_thread = 1;////give_part_num_of_thread(previous_thread);
                 *ptr++ = 'p';
                 ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
                 *ptr++ = '.';
@@ -985,9 +1040,6 @@ handle_exception (int exceptionVector, struct regs * ea)
                 ptr++;
                 hexToInt(&ptr, &thread_num);
                 thread_num --;
-                printf("thread_num=%d\n", thread_num);
-                printf("pok_threads[%d].state=%d\n", thread_num, pok_threads[thread_num].state);
-                //~ struct thread_stack * id = (struct thread_stack *) pok_threads[thread_num].sp;
 
 
                 ptr = remcomOutBuffer;
@@ -996,6 +1048,18 @@ handle_exception (int exceptionVector, struct regs * ea)
                 if (thread_num == POK_SCHED_CURRENT_THREAD){
                     ptr = mem2hex( (char *) &("* "), ptr, 2);
                 }
+                
+                //FIXME
+                ptr = mem2hex( (char *) &("P"), ptr, 1);
+                int pid = give_part_num_of_thread(thread_num);
+                if (pid == 0) ptr = mem2hex( (char *) &("0 "), ptr, 2);
+                if (pid == 1) ptr = mem2hex( (char *) &("1 "), ptr, 2);
+                if (pid == 2) ptr = mem2hex( (char *) &("2 "), ptr, 2);
+                if (pid == 3) ptr = mem2hex( (char *) &("3 "), ptr, 2);
+                if (pid == 4) ptr = mem2hex( (char *) &("4 "), ptr, 2);
+                if (pid == 5) ptr = mem2hex( (char *) &("5 "), ptr, 2);
+                
+
                 if (thread_num == MONITOR_THREAD){
                     ptr = mem2hex( (char *) &("MONITOR "), ptr, 8);
                 }
@@ -1005,10 +1069,6 @@ handle_exception (int exceptionVector, struct regs * ea)
                 if (thread_num == IDLE_THREAD){
                     ptr = mem2hex( (char *) &("IDLE "), ptr, 5);
                 }
-                printf("lengh = %d\n", lengh);
-                printf("info_offset = %d\n", info_offset);
-                printf("%c%c%c\n", info_thread[info_offset], info_thread[info_offset+1], info_thread[info_offset+2]);
-                //~ strcpy(ptr,info);
                 ptr = mem2hex( (char *) (&info_thread[info_offset]), ptr, lengh);
                 *ptr++ = 0;
                 break;
@@ -1032,8 +1092,8 @@ handle_exception (int exceptionVector, struct regs * ea)
                  * }
                  */
         {
-            //~ int i;
             ptr = remcomOutBuffer;
+            uint32_t old_pc = registers[pc];
             /* General Purpose Regs */
             ptr = mem2hex((char *)registers, ptr, 32 * 4);
             /* Floating Point registers - FIXME */
@@ -1043,12 +1103,13 @@ handle_exception (int exceptionVector, struct regs * ea)
             //~ }
             //~ ptr += 32*8*2;
             /* pc, msr, cr, lr, ctr, xer, (mq is unused) */
-            ptr = mem2hex((char *)&registers[pc]/*[nip]*/, ptr, 4);
+            ptr = mem2hex((char *)&registers[pc], ptr, 4);
             ptr = mem2hex((char *)&registers[msr], ptr, 4);
             ptr = mem2hex((char *)&registers[cr]/*[ccr]*/, ptr, 4);
             ptr = mem2hex((char *)&registers[lr]/*[link]*/, ptr, 4);
             ptr = mem2hex((char *)&registers[ctr], ptr, 4);
             ptr = mem2hex((char *)&registers[xer], ptr, 4);
+            registers[pc] = old_pc;
         }
             break;
 
@@ -1067,7 +1128,6 @@ handle_exception (int exceptionVector, struct regs * ea)
             /* Floating Point registers - FIXME?? */
             ptr = hex2mem(ptr, (char *)fp_registers, 32 * 8);
             ////ptr += 32*8*2;
-
             /* pc, msr, cr, lr, ctr, xer, (mq is unused) */
             ptr = hex2mem(ptr, (char *)&registers[pc]/*nip*/, 4);
             ptr = hex2mem(ptr, (char *)&registers[msr], 4);
@@ -1083,14 +1143,14 @@ handle_exception (int exceptionVector, struct regs * ea)
             if (number_of_thread == 1){
                 //TODO: FIX IT
                 strcpy(remcomOutBuffer,"OK");
-                printf("\nH break\n");
+                //~ printf("\nH break\n");
                 break;
             }    
             ptr = &remcomInBuffer[1];
             if ( *ptr == 'c'){
                 using_thread = POK_SCHED_CURRENT_THREAD;
-                printf("pok_threads[%d].sp=0x%lx\n",using_thread,pok_threads[using_thread].sp);
-                printf("pok_threads[%d].entry_sp=0x%lx\n",using_thread,pok_threads[using_thread].entry_sp);
+                //~ printf("pok_threads[%d].sp=0x%lx\n",using_thread,pok_threads[using_thread].sp);
+                //~ printf("pok_threads[%d].entry_sp=0x%lx\n",using_thread,pok_threads[using_thread].entry_sp);
                 set_regs((struct regs *)pok_threads[using_thread].entry_sp);
                 
             }else if (*ptr++ == 'g'){
@@ -1108,60 +1168,77 @@ handle_exception (int exceptionVector, struct regs * ea)
                     //~ break;
                 
                 }else using_thread = POK_SCHED_CURRENT_THREAD;
-                printf("pok_threads[%d].sp=0x%lx\n",using_thread,pok_threads[using_thread].sp);
-                printf("pok_threads[%d].entry_sp=0x%lx\n",using_thread,pok_threads[using_thread].entry_sp);
-                printf("POK_CONFIG_NB_THREADS = %d\n\n",POK_CONFIG_NB_THREADS);
-                printf("MONITOR_THREAD = %d\n\n",MONITOR_THREAD);
-                printf("POK_SCHED_CURRENT_THREAD = %d\n\n",POK_SCHED_CURRENT_THREAD);
                 set_regs((struct regs *)pok_threads[using_thread].entry_sp);
-                printf("\nentry= 0x%lx\n",(uint32_t) pok_threads[using_thread].entry);
             }
-            printf("\nH\n");
+            //~ printf("\nH\n");
             
             strcpy(remcomOutBuffer,"OK");
             break;
 
         case 'm':   /* mAA..AA,LLLL  Read LLLL bytes at address AA..AA */
                 /* Try to read %x,%x.  */
-            ////printf("It's 'm'! \n");
-            ptr = &remcomInBuffer[1];
-
-            if (hexToInt(&ptr, &addr)
-                && *ptr++ == ','
-                && hexToInt(&ptr, &length)) {
-                    if (mem2hex((char *)addr, remcomOutBuffer,length))
-                    break;
-                strcpy (remcomOutBuffer, "E03");
-            } else {
-                strcpy(remcomOutBuffer,"E01");
+            {
+                ptr = &remcomInBuffer[1];
+                int old_pid = mfspr(SPRN_PID);
+                int new_pid = give_part_num_of_thread(using_thread + 1);
+                if (hexToInt(&ptr, &addr)
+                    && *ptr++ == ','
+                    && hexToInt(&ptr, &length)) {
+                    if (addr > 0x80000000)
+                        mtspr(SPRN_PID, new_pid);
+                    if (mem2hex((char *)addr, remcomOutBuffer,length)){
+                        mtspr(SPRN_PID, old_pid);
+                        break;
+                    }
+                    strcpy (remcomOutBuffer, "E03");
+                    if (addr > 0x80000000)
+                        mtspr(SPRN_PID, old_pid);
+                } else {
+                    strcpy(remcomOutBuffer,"E01");
+                }
+                break;
             }
-            break;
-
         case 'M': /* MAA..AA,LLLL: Write LLLL bytes at address AA.AA return OK */
             /* Try to read '%x,%x:'.  */
+            {
 
-            ptr = &remcomInBuffer[1];
-
-            if (hexToInt(&ptr, &addr)
-                && *ptr++ == ','
-                && hexToInt(&ptr, &length)
-                && *ptr++ == ':') {
-                if (hex2mem(ptr, (char *)addr, length)) {
-                    if (strncmp(ptr, "7d821008", 8) == 0){
-                        ////printf("\n\n                == 0 \n\n");
-                        hex2mem(trap, (char *)addr, length);
+                ptr = &remcomInBuffer[1];
+                int old_pid = mfspr(SPRN_PID);
+                int new_pid = give_part_num_of_thread(using_thread + 1);
+                if (hexToInt(&ptr, &addr)
+                    && *ptr++ == ','
+                    && hexToInt(&ptr, &length)
+                    && *ptr++ == ':') {
+                    if (addr > 0x80000000)
+                        mtspr(SPRN_PID, new_pid);
+                    if (strncmp(ptr, "7d821008", 8) == 0)
+                        ptr = trap;
+                    if (hex2mem(ptr, (char *)addr, length)) {
+                        strcpy(remcomOutBuffer, "OK");
+                    } else {
+                        strcpy(remcomOutBuffer, "E03");
                     }
-                    strcpy(remcomOutBuffer, "OK");
+                    if (addr > 0x80000000)
+                        mtspr(SPRN_PID, old_pid);
                 } else {
-                    strcpy(remcomOutBuffer, "E03");
+                    strcpy(remcomOutBuffer, "E02");
                 }
-                ////flush_icache_range(addr, addr+length);
-            } else {
-                strcpy(remcomOutBuffer, "E02");
+                break;
             }
-            break;
 
-
+        case 'D':               /*
+                                 * The first form of the packet is used to detach gdb from the remote system
+                                 * It is sent to the remote target before gdb disconnects via the detach command.
+                                 */
+            ptr = &remcomInBuffer[2];
+            int part_id;
+            hexToInt(&ptr, &part_id);
+            remcomOutBuffer[0] = 'O';
+            remcomOutBuffer[1] = 'K';
+            remcomOutBuffer[2] = 0;
+            
+            if (part_id != 1) break;
+            putpacket((unsigned char *)remcomOutBuffer);            
         case 'k':    /* kill the program, actually just continue */
         case 'c':    /* cAA..AA  Continue; address AA..AA optional */
             /* try to read optional parameter, pc unchanged if no parm */
@@ -1169,10 +1246,8 @@ handle_exception (int exceptionVector, struct regs * ea)
             pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = old_entryS;
        
             set_regs(ea);
-            printf("\nContinue\n\n");
             ptr = &remcomInBuffer[1];
             if (hexToInt(&ptr, &addr)) {
-                ////printf("\nIn if\n");
                 registers[pc]/*nip*/ = addr;
             }
         
@@ -1193,9 +1268,9 @@ handle_exception (int exceptionVector, struct regs * ea)
             pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = old_entryS;
             set_regs(ea);
             uint32_t inst = *((uint32_t *)registers[pc]);
-            printf("inst=0x%lx;\n",inst);
+            //~ printf("inst=0x%lx;\n",inst);
             uint32_t c_inst = registers[pc];
-            printf("c_inst=0x%lx;\n",c_inst);
+            //~ printf("c_inst=0x%lx;\n",c_inst);
 /*
  * if it's  unconditional branching, e.g. 'b' or 'bl'
  */
@@ -1205,7 +1280,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                     if (inst >> 25){
                         inst = inst | 0xFE000000;
                     }
-                    printf("%lx\n",(inst + c_inst));
+                    //~ printf("%lx\n",(inst + c_inst));
                     inst = inst + c_inst;
                     mem2hex((char *)(registers[pc]+4), instr,4);            
                     hex2mem(trap, (char *)(registers[pc]+4), 4);
@@ -1215,7 +1290,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                     addr_instr2 = inst;
                     return;
                 }else{
-                    printf("%lx\n",((inst << 6) >> 8) << 2);
+                    //~ printf("%lx\n",((inst << 6) >> 8) << 2);
                     inst = ((inst << 6) >> 8) << 2;
                     mem2hex((char *)(registers[pc]+4), instr,4);            
                     hex2mem(trap, (char *)(registers[pc]+4), 4);
@@ -1237,19 +1312,19 @@ handle_exception (int exceptionVector, struct regs * ea)
                     if (inst >> 15){
                         inst=inst | 0xFFFF8000;
                     }
-                    printf("%lx\n",(inst + c_inst));
+                    //~ printf("%lx\n",(inst + c_inst));
                     inst = inst + c_inst;
                     mem2hex((char *)(registers[pc]+4), instr,4);            
                     hex2mem(trap, (char *)(registers[pc]+4), 4);
                     addr_instr = registers[pc] + 4;
-                    printf("%lx\n",(inst + c_inst));
+                    //~ printf("%lx\n",(inst + c_inst));
                     mem2hex((char *)(inst), instr2,4);            
                     hex2mem(trap, (char *)(inst), 4);
                     addr_instr2 = inst;
                     return;
             
                 }else{
-                    printf("%lx\n",((inst << 16) >> 18) << 2);
+                    //~ printf("%lx\n",((inst << 16) >> 18) << 2);
                     inst = ((inst << 16) >> 18) << 2;
                     mem2hex((char *)(registers[pc]+4), instr,4);            
                     hex2mem(trap, (char *)(registers[pc]+4), 4);
@@ -1266,7 +1341,7 @@ handle_exception (int exceptionVector, struct regs * ea)
  *  If it's a 'brl' instruction
  */            
             if ((inst >> (6*4+2)) == 0x13){
-                printf("lr=%lx\n",registers[lr]);
+                //~ printf("lr=%lx\n",registers[lr]);
                 mem2hex((char *)(registers[lr]), instr,4);            
                 hex2mem(trap, (char *)(registers[lr]), 4);
                 addr_instr = registers[lr];                
