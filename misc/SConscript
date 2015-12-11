@@ -62,7 +62,7 @@ if env['ARCH'] == 'ppc':
     env['RANLIB'] = 'powerpc-elf-ranlib'
     env['GDB'] = 'powerpc-elf-gdb'
     env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
-    env['QEMU'] = '/home/kurban/workspace/POK/qemu-2.2.1/ppc-softmmu/qemu-system-ppc'
+    env['QEMU'] = 'qemu-system-ppc'
 
 elif env['ARCH'] == 'x86':
     # x86-specific flags
