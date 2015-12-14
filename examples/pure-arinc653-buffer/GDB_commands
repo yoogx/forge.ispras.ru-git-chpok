@@ -1,3 +1,24 @@
+define Push_to_breakpoints
+    set last_breakpoint = last_breakpoint + 1
+    set breakpoints[Head_of_breakpoints].T_num = $arg0
+    set breakpoints[Head_of_breakpoints].P_num = $arg1 
+    set breakpoints[Head_of_breakpoints].B_num = last_breakpoint 
+    set breakpoints[Head_of_breakpoints].Reason = $arg2
+    set breakpoints[Head_of_breakpoints].Instr = $arg3 
+    set Head_of_breakpoints = Head_of_breakpoints + 1    
+    end
+
+define Pop_to_breakpoints
+    set last_breakpoint = last_breakpoint - 1
+    set Head_of_breakpoints = Head_of_breakpoints - 1    
+    set breakpoints[Head_of_breakpoints].T_num = 0
+    set breakpoints[Head_of_breakpoints].P_num = 0
+    set breakpoints[Head_of_breakpoints].B_num = 0
+    set breakpoints[Head_of_breakpoints].Reason = 0 
+    set breakpoints[Head_of_breakpoints].Instr = 0 
+    end
+    
+
 define Thread_pid
     set $i = 0
     set $V = 0
@@ -49,6 +70,25 @@ define Thread_break
     eval "Switch_to %d",$V
     eval "thread %d",$arg1
     break $arg0 thread $arg1
+    eval "Push_to_breakpoints %d %d 2 0",$arg1,$PID
+    set $V = current_thread + 1
+    eval "Thread_pid %d",$V
+    set $V = $PID
+    eval "Switch_to %d",$V
+    eval "thread %d",current_thread + 1
+    end
+
+document Thread_break
+Set breakpoint on chosen thread
+Syntax: Thread_break ADDR THREAD_NUMBER
+    end
+
+define Thread_delete
+    eval "Thread_pid %d",$arg0
+    set $V = $PID
+    eval "Switch_to %d",$V
+    eval "thread %d",$arg0
+    delete $arg1
     set $V = current_thread + 1
     eval "Thread_pid %d",$V
     set $V = $PID
@@ -57,23 +97,40 @@ define Thread_break
       
     end
 
-document Thread_break
-Set breakpoint on chosen thread
-Syntax: Thread_break ADDR THREAD_NUMBER
+document Thread_delete
+Delete breakpoint on chosen thread
+Syntax: Thread_delete THREAD_NUMBER BREAKPOINT_NUMBER
     end
+
+define Clear_breakpoints
+    set Head_of_breakpoints = 0
+    set last_breakpoint = 0
+    end
+    
+document Clear_breakpoints
+Clear breakpoints array and set head_of_breakpoint to zero
+Syntax: Clear_breakpoints
+end
+
 
 define connect_to 
     set breakpoint always-inserted on
     set $OLD_PID = -1
     target remote$arg0
+    Clear_breakpoints
     end
 
 document connect_to
 Use a remote computer via a serial line, using a gdb-specific protocol.
 Specify the serial device it is connected to (e.g. /dev/ttyS0, /dev/ttya, COM1, etc.).
+Also clear breakpoints array.
 Use 'set breakpoint always-inserted on' option.
 Syntax: connect_to PORT_ADDR
     end
+
+
+
+
 
 define hook-stop
     eval "Thread_pid %d",current_thread + 1
@@ -90,21 +147,30 @@ define P_break
         loop_break
     else
         if $arg0 == 0
-            set $Part_break_i = pok_partitions[$Max_part].thread_index_high        
+            set $Part_break_i = pok_partitions[$Max_part - 1].thread_index_high        
             Switch_to $arg0
             while $Part_break_i < pok_config_nb_threads
                 eval "thread %d",$Part_break_i + 1
                 set $addr = $pc
                 if $addr != 0x0
-                    if $Part_break_i == pok_config_nb_threads - 3
+                    if $Part_break_i == pok_config_nb_threads - 3 
+                        eval "Push_to_breakpoints %d 0 1 %d",$Part_break_i + 1, 0
                         eval "b monitor thread %d", $Part_break_i + 1
                     else
-                        eval "b *0x%x thread %d",$addr, $Part_break_i + 1
+                        if $Part_break_i == pok_config_nb_threads - 4
+                            eval "Push_to_breakpoints %d 0 1 %d",$Part_break_i + 1, 0
+                            eval "b gdb thread %d", $Part_break_i + 1
+                        else
+                            eval "Push_to_breakpoints %d 0 1 %d",$Part_break_i + 1, $addr
+                            eval "b *0x%x thread %d",$addr, $Part_break_i + 1
+                            end
                         end
                     end
                 set $Part_break_i = $Part_break_i + 1
                 end
+            eval "Thread_pid %d",current_thread + 1
             eval "thread %d",current_thread + 1
+            eval "Switch_to %d",$PID
             print "Ok on zero part"
             loop_break
         else
@@ -114,10 +180,13 @@ define P_break
                 eval "thread %d",$Part_break_i + 1
                 set $addr = $pc
                 if $addr != 0x0
-                    eval "b *0x%x thread %d",$addr, $Part_break_i+1
+                    eval "set $V = *((int *) %d)",$pc
+                    eval "Push_to_breakpoints %d %d 1 %d",$Part_break_i + 1,$arg0, $V 
+                    eval "b *0x%x thread %d",$addr, $Part_break_i + 1
                     end
                 set $Part_break_i = $Part_break_i + 1
                 end
+            eval "Thread_pid %d",current_thread + 1
             eval "thread %d",current_thread + 1
             eval "Switch_to %d",$PID
              print "Ok on this part"
@@ -131,7 +200,33 @@ Set breakpoints on all partition's threads
 Syntax: P_break PID
     end
     
+define P_delete
+    set $Max_part = pok_config_nb_partitions
+    if $arg0 > $Max_part
+        print "Error, there is no such partition"
+        loop_break
+    else
+        if Head_of_breakpoints > 0
+            Switch_to $arg0
+            while (breakpoints[Head_of_breakpoints - 1].P_num == $arg0) && (Head_of_breakpoints > 0) && (breakpoints[Head_of_breakpoints - 1].P_num == 1)
+                eval "thread %d",breakpoints[Head_of_breakpoints - 1].T_num
+                eval "delete breakpoint %d",breakpoints[Head_of_breakpoints - 1].B_num
+                if breakpoints[Head_of_breakpoints - 1].Instr > 0
+                    eval "set *(%d) = %d", $pc, breakpoints[Head_of_breakpoints - 1].Instr
+                    end
+                Pop_to_breakpoints  
+                end
+            eval "Thread_pid %d",current_thread + 1
+            eval "thread %d",current_thread + 1
+            eval "Switch_to %d",$PID           
+            end
+        end
+    end
     
+document P_delete
+Delete breakpoints on all partition's threads. Use it only after break,before adding any breakpoints
+Syntax: P_delete PID 
+    end    
     
 define P_info
     set $P_info_old_pid = -1
@@ -154,6 +249,8 @@ define P_info
         eval "Thread_pid %d",$arg0
         eval "Switch_to %d",$PID
         eval "info thread %d",$arg0            
+        eval "Thread_pid %d",current_thread + 1
+        eval "Switch_to %d",$PID
         end
     end
     
@@ -161,4 +258,8 @@ document P_info
 Print information about all or chosen threads in system. Similar to "info thread", but it loads symbol files.
 Syntax: P_info THREAD_NUMBER
     end    
+
+define check
+    print "%d", *((uint32_t *) 0x8000000c)
+    end
 

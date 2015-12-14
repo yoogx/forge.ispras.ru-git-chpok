@@ -118,6 +118,38 @@ struct  regs{
 #endif  
 };
 
+struct T_breakpoint{
+    /*
+     *  Number of thread 
+     */
+    int T_num;
+    /*
+     *  Number of partition 
+     */
+    int P_num;
+    /*
+     *  Number of breakpoint 
+     */
+    int B_num;
+    /*
+     * Reason of breakpoint 
+     * if 1, it was Partition breakpoint
+     * if 2, it was simple breakpoint
+     */
+    int Reason;
+    /*
+     * Reason of breakpoint 
+     * if 1, it was Partition breakpoint
+     * if 2, it was simple breakpoint
+     */
+    uint32_t Instr;
+
+};
+
+struct T_breakpoint breakpoints[100];
+int Head_of_breakpoints;
+int last_breakpoint;
+
 void handle_exception (int exceptionVector, struct regs * ea);
 
 void pok_monitor_thread(void);

@@ -1181,17 +1181,22 @@ handle_exception (int exceptionVector, struct regs * ea)
                 ptr = &remcomInBuffer[1];
                 int old_pid = mfspr(SPRN_PID);
                 int new_pid = give_part_num_of_thread(using_thread + 1);
+                printf("New_pid = %d\n",new_pid);
+                printf("Old_pid = %d\n",old_pid);
                 if (hexToInt(&ptr, &addr)
                     && *ptr++ == ','
                     && hexToInt(&ptr, &length)) {
-                    if (addr > 0x80000000)
+                    if (addr >= 0x80000000)
+                    { 
+                        printf("Load new_pid\n");
                         mtspr(SPRN_PID, new_pid);
+                    }
                     if (mem2hex((char *)addr, remcomOutBuffer,length)){
                         mtspr(SPRN_PID, old_pid);
                         break;
                     }
                     strcpy (remcomOutBuffer, "E03");
-                    if (addr > 0x80000000)
+                    if (addr >= 0x80000000)
                         mtspr(SPRN_PID, old_pid);
                 } else {
                     strcpy(remcomOutBuffer,"E01");
@@ -1209,7 +1214,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                     && *ptr++ == ','
                     && hexToInt(&ptr, &length)
                     && *ptr++ == ':') {
-                    if (addr > 0x80000000)
+                    if (addr >= 0x80000000)
                         mtspr(SPRN_PID, new_pid);
                     if (strncmp(ptr, "7d821008", 8) == 0)
                         ptr = trap;
@@ -1218,7 +1223,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                     } else {
                         strcpy(remcomOutBuffer, "E03");
                     }
-                    if (addr > 0x80000000)
+                    if (addr >= 0x80000000)
                         mtspr(SPRN_PID, old_pid);
                 } else {
                     strcpy(remcomOutBuffer, "E02");
