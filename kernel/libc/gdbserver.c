@@ -661,7 +661,102 @@ struct regs  null_ea = {
     0,    0,    0,    0,    0,    0,    0
 #endif     
 };
-    
+
+int max_breakpoint = 100;
+int b_need_to_delete = -1;
+int b_need_to_set = -1;
+
+
+struct T_breakpoint breakpoints[100];
+int Head_of_breakpoints;
+int last_breakpoint;
+  
+pok_partition_id_t give_part_num_of_thread(int thread_num){
+
+    for (int i = 0; i < POK_CONFIG_NB_PARTITIONS; i++){
+        if (pok_partitions[i].thread_index_high > thread_num) return i + 1;
+    }
+    return 0;
+}    
+
+void add_0_breakpoint(int * addr,int * length,int * using_thread){
+    if (b_need_to_set == -1){
+        strcpy (remcomOutBuffer, "OK");
+        return;
+    }
+    b_need_to_set = -1;
+    int old_pid = mfspr(SPRN_PID);
+    int new_pid = give_part_num_of_thread(*using_thread + 1);
+    printf("New_pid = %d\n",new_pid);
+    printf("Old_pid = %d\n",old_pid);    
+    if (*addr >= 0x80000000)
+    { 
+        printf("Load new_pid\n");
+        mtspr(SPRN_PID, new_pid);
+    }
+    if (!mem2hex((char *)(*addr),&(breakpoints[Head_of_breakpoints].Instr),*length)){
+        strcpy (remcomOutBuffer, "E25");
+        mtspr(SPRN_PID, old_pid);    
+        return;
+    }
+    last_breakpoint++;
+    breakpoints[Head_of_breakpoints].T_num = *using_thread + 1;
+    breakpoints[Head_of_breakpoints].P_num = new_pid;
+    breakpoints[Head_of_breakpoints].B_num = last_breakpoint;
+    breakpoints[Head_of_breakpoints].Reason = 2;
+    Head_of_breakpoints++;
+    if (Head_of_breakpoints == max_breakpoint){
+        strcpy(remcomOutBuffer, "E25");
+        mtspr(SPRN_PID, old_pid);    
+        return;
+    }
+    if (hex2mem(trap, (char *)(*addr), *length)) {
+        strcpy(remcomOutBuffer, "OK");
+    } else {
+        strcpy(remcomOutBuffer, "E25");
+        mtspr(SPRN_PID, old_pid);    
+        return;
+    }
+    if (*addr >= 0x80000000)
+        mtspr(SPRN_PID, old_pid);    
+}
+
+void remove_0_breakpoint(int * addr,int * length,int * using_thread){
+    if (b_need_to_delete == -1){
+        strcpy (remcomOutBuffer, "OK");
+        return;
+    }
+    int old_pid = mfspr(SPRN_PID);
+    int new_pid = give_part_num_of_thread(*using_thread + 1);
+    printf("New_pid = %d\n",new_pid);
+    printf("Old_pid = %d\n",old_pid);    
+    if (*addr >= 0x80000000)
+    { 
+        printf("Load new_pid\n");
+        mtspr(SPRN_PID, new_pid);
+    }
+    int i = 0;
+    for (i = 0; i < max_breakpoint; i++){
+        if (breakpoints[i].B_num == b_need_to_delete)
+            break;
+    }
+    b_need_to_delete = -1;
+    if (i == (Head_of_breakpoints - 1)) 
+        Head_of_breakpoints--;
+    breakpoints[i].T_num = 0;
+    breakpoints[i].P_num = 0;
+    breakpoints[i].B_num = 0;
+    breakpoints[i].Reason = 0;
+    if (hex2mem(breakpoints[i].Instr, (char *)(*addr), *length)) {
+        strcpy(remcomOutBuffer, "OK");
+    } else {
+        strcpy (remcomOutBuffer, "E25");
+        mtspr(SPRN_PID, old_pid);    
+        return;
+    }
+    if (*addr >= 0x80000000)
+        mtspr(SPRN_PID, old_pid);    
+}
     
 
 void set_regs(struct regs *ea){
@@ -762,13 +857,7 @@ void set_regs(struct regs *ea){
 }
 
 
-pok_partition_id_t give_part_num_of_thread(int thread_num){
 
-    for (int i = 0; i < POK_CONFIG_NB_PARTITIONS; i++){
-        if (pok_partitions[i].thread_index_high > thread_num) return i + 1;
-    }
-    return 0;
-}
 
 
 /*
@@ -777,7 +866,7 @@ pok_partition_id_t give_part_num_of_thread(int thread_num){
 void
 handle_exception (int exceptionVector, struct regs * ea)
 {
-  /*Add regs*/
+    /*Add regs*/
     uint32_t old_entryS = pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp;
     pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = (uint32_t) ea;
     
@@ -909,6 +998,32 @@ handle_exception (int exceptionVector, struct regs * ea)
                 remcomOutBuffer[2] = 0;
             }
             break;
+            /*
+             * Insert (‘Z’) or remove (‘z’) a type breakpoint or watchpoint starting at address address of kind kind.
+             */
+        case 'Z':
+        case 'z':
+            {
+                ptr = &remcomInBuffer[1];
+                int type = -1;
+                hexToInt(&ptr, &type);
+                if (type == -1) break;
+                if (*ptr != ',') break;
+                ptr++;
+                hexToInt(&ptr, &addr);
+                if (*ptr != ',') break;
+                ptr++;
+                int kind = -1;
+                hexToInt(&ptr, &kind);
+                if (kind == -1) break;
+                if (type == 0){
+                    if (remcomInBuffer[0] == 'Z') 
+                            add_0_breakpoint(&addr,&kind,&using_thread);
+                        else
+                            remove_0_breakpoint(&addr,&kind,&using_thread);
+                }
+                break;
+            }
         case '?':               /* report most recent signal */
             remcomOutBuffer[0] = 'S';
             remcomOutBuffer[1] = hexchars[sigval >> 4];
@@ -1186,6 +1301,11 @@ handle_exception (int exceptionVector, struct regs * ea)
                 if (hexToInt(&ptr, &addr)
                     && *ptr++ == ','
                     && hexToInt(&ptr, &length)) {
+                    if (addr >= 0x80000000 && new_pid == 0){
+                        
+                        strcpy (remcomOutBuffer, "E03");
+                        break;
+                    }
                     if (addr >= 0x80000000)
                     { 
                         printf("Load new_pid\n");

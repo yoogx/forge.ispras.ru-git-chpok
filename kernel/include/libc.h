@@ -138,17 +138,18 @@ struct T_breakpoint{
      */
     int Reason;
     /*
-     * Reason of breakpoint 
-     * if 1, it was Partition breakpoint
-     * if 2, it was simple breakpoint
+     * Instruction which was on this adress
      */
-    uint32_t Instr;
+#ifdef __PPC__
+    char Instr[8];
+#endif
+#ifdef __i386__
+    char Instr[2];
+#endif
 
 };
 
-struct T_breakpoint breakpoints[100];
-int Head_of_breakpoints;
-int last_breakpoint;
+
 
 void handle_exception (int exceptionVector, struct regs * ea);
 
