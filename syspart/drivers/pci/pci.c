@@ -158,11 +158,7 @@ void pci_init()
                     printf("MATCH %s\n", pci_driver->name);
 #ifdef __PPC__
                     pci_write_word(&pci_dev, PCI_REG_BAR0, bar0_addr);
-
-                    pci_write_word(&pci_dev, PCI_REG_COMMAND,
-                        PCI_COMMAND_IO | PCI_COMMAND_MEMORY | PCI_COMMAND_BUSMASTER
-                        );
-
+                    pci_write_word(&pci_dev, PCI_REG_COMMAND, PCI_COMMAND_IO);
                     pci_dev.bar[0] = bridge.iorange + bar0_addr;
                     bar0_addr += BAR0_SIZE;
 #else
@@ -171,9 +167,10 @@ void pci_init()
                     /*
                     {
                     uint8_t mac[6];
+                    uint32_t addr = pci_dev.bar[0] &= ~0xFU;
 
                     for (int i = 0; i < 6; i++) {
-                        mac[i] = inb(pci_dev.bar[0] + 20 + i);
+                        mac[i] = inb(addr + 20 + i);
                     }
                     printf("virtio-net mac %02x:%02x:%02x:%02x:%02x:%02x\n",
                             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
