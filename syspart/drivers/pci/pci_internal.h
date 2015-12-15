@@ -4,6 +4,7 @@
 struct pci_bridge {
     uint32_t *cfg_addr;
     void     *cfg_data;
+    uint32_t iorange;
 };
 
 

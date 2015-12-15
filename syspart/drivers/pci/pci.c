@@ -8,10 +8,12 @@
 extern struct pci_driver ne2k_driver;
 extern struct pci_driver virtio_pci_driver;
 
+#define PCI_DRIVER_TABLE_SIZE sizeof(pci_driver_table)/sizeof(struct pci_driver *)
 struct pci_driver *pci_driver_table[] = {
-    //&ne2k_driver,
+    &ne2k_driver,
     &virtio_pci_driver,
 };
+
 
 struct pci_bridge bridge;
 
@@ -33,15 +35,15 @@ int pci_match_device(const struct pci_device_id *id, const struct pci_device *de
     return 0;
 }
 
-unsigned int pci_read(
-        unsigned int bus,
-        unsigned int dev,
-        unsigned int fun,
-        unsigned int reg)
+uint32_t pci_read(
+        uint32_t bus,
+        uint32_t dev,
+        uint32_t fun,
+        uint32_t reg)
 {
-    unsigned int addr = (1 << 31) | (bus << 16) | (dev << 11) | 
+    uint32_t addr = (1 << 31) | (bus << 16) | (dev << 11) | 
         (fun << 8) | (reg & 0xfc);
-    unsigned int val = -1;
+    uint32_t val = -1;
 
 #ifdef __PPC__
     out_be32((uint32_t *) bridge.cfg_addr, addr);
@@ -94,7 +96,7 @@ void pci_list()
                 uint32_t classcode = 0xFFFFFF & pci_read(bus, dev, fun, PCI_REG_PROGIFID);
                 printf("%02x:%02x:%02x ", bus, dev, fun);
                 printf("%s:\n", get_pci_class_name(classcode));
-                printf("\t PCI device %04x:%04x (header 0x%02x)\n",
+                printf("\t PCI device %04x:%04x (header 0x%02lx)\n",
                         vendor,
                         device,
                         0xFF & pci_read(bus, dev, fun, PCI_REG_HEADERTYPE));
@@ -123,15 +125,17 @@ void pci_init()
 //#ifdef __PPC__
     bridge.cfg_addr = (uint32_t*) 0xe0008000;
     bridge.cfg_data = (void *) 0xe0008004;
+
+    bridge.iorange = 0xe1000000;
+
+    static uint32_t bar0_addr = 0x1001;
+    const uint32_t BAR0_SIZE = 0x100; 
 //#endif
 
     printf("\n***********************************************\n");
     printf("PCI initializing\n");
     printf("bridge cfg_addr: %p cfg_data: %p\n",
             bridge.cfg_addr, bridge.cfg_data);
-    pci_list();
-    printf("\n***********************************************\n\n");
-
 
     for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
       for (unsigned int dev = 0; dev < PCI_DEV_MAX; dev++)
@@ -148,27 +152,37 @@ void pci_init()
             pci_dev.deviceid  = (uint16_t) pci_read(bus, dev, fun, PCI_REG_DEVICEID);
             //pci_dev.classcode = (uint16_t) pci_read(bus, dev, fun, PCI_REG_PROGIFID);
 
-            //for (pci_driver in pci_driver_table) {
-            //    if pci_match(&pci_driver, &pci_dev) {
-             {{
-                  struct pci_driver *pci_driver = pci_driver_table[0];
+            for (int i = 0; i < PCI_DRIVER_TABLE_SIZE; i++) {
+                struct pci_driver *pci_driver = pci_driver_table[i];
+                if (pci_match_device(pci_driver->id_table, &pci_dev)) {
+                    printf("MATCH %s\n", pci_driver->name);
 #ifdef __PPC__
-                    {
-                        //TODO call pci write word
-                        out_be32(bridge.cfg_addr, 0x80000810); //write something to BAR0
-                        out_le16(bridge.cfg_data, 0x1001);
+                    pci_write_word(&pci_dev, PCI_REG_BAR0, bar0_addr);
 
-                        out_be32(bridge.cfg_addr, 0x80000804);//write something to COMMAND register
-                        out_le16(bridge.cfg_data, 0x7);
-                    }
-                    pci_dev.bar[0] = 0xe1001000;
+                    pci_write_word(&pci_dev, PCI_REG_COMMAND,
+                        PCI_COMMAND_IO | PCI_COMMAND_MEMORY | PCI_COMMAND_BUSMASTER
+                        );
+
+                    pci_dev.bar[0] = bridge.iorange + bar0_addr;
+                    bar0_addr += BAR0_SIZE;
 #else
                     pci_dev.bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0);
 #endif
-                    //uint32_t bar0 = pci_read(bus, dev, fun, PCI_REG_BAR0);
-                    //dev init;
+                    /*
+                    {
+                    uint8_t mac[6];
+
+                    for (int i = 0; i < 6; i++) {
+                        mac[i] = inb(pci_dev.bar[0] + 20 + i);
+                    }
+                    printf("virtio-net mac %02x:%02x:%02x:%02x:%02x:%02x\n",
+                            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+                    }
+                    */
                     pci_driver->probe(&pci_dev);
                 }
             }
         }
+    pci_list();
+    printf("\n***********************************************\n\n");
 }

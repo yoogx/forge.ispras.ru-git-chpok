@@ -46,6 +46,7 @@
 #  define PCI_FUN_MAX		8
 #  define PCI_COMMAND_IO	0x1	/* Enable response in I/O space */
 #  define PCI_COMMAND_MEMORY	0x2	/* Enable response in Memory space */
+#  define PCI_COMMAND_BUSMASTER	0x4	/* The device can behave as a bus master */
 
 /*
  * Structure to holds some device information
@@ -67,11 +68,11 @@ typedef struct pci_device
 void pci_init(void);
 void pci_list(void);
 
-unsigned int pci_read(
-        unsigned bus,
-        unsigned dev,
-        unsigned fun,
-        unsigned reg);
+uint32_t pci_read(
+        uint32_t bus,
+        uint32_t dev,
+        uint32_t fun,
+        uint32_t reg);
 
 //stupid workaround. pci_write should be added in x86
 #ifdef __PPC__
@@ -91,7 +92,7 @@ void pok_pci_init();
 #endif
 
 /* These was got from Linux kernel */
-#define PCI_ANY_ID (~0)
+#define PCI_ANY_ID (uint16_t)(~0)
 
 struct pci_device_id {
     uint16_t vendor;

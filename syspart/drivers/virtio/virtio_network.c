@@ -201,19 +201,17 @@ static void process_received_buffer(
  * BEGIN "public" interface
  */
 
-static int open_device(struct pci_device *pci_dev)
+static int probe_device(struct pci_device *pci_dev)
 {
     printf("virtio-net pci probing device!\n");
     struct virtio_network_device *dev = &virtio_network_device;
 
-
     dev->pci_device = *pci_dev;
+    dev->pci_device.bar[0] &= ~0xFU;
 
-        //xxx XXX XXX XXX 
-        //subsystem = pci_read_reg(dev, PCI_REG_SUBSYSTEM) >> 16;
-        //if (subsystem != VIRTIO_ID_NET)
-        //    printf("WARNING: wrong subsystem in virtio net device");
-        //xxx XXX XXX XXX 
+    //subsystem = pci_read_reg(dev, PCI_REG_SUBSYSTEM) >> 16;
+    //if (subsystem != VIRTIO_ID_NET)
+    //    printf("WARNING: wrong subsystem in virtio net device");
 
 
     // 1. Reset the device
@@ -433,7 +431,7 @@ static const struct pci_device_id virtio_pci_devid_tbl[] = {
 
 struct pci_driver virtio_pci_driver = {
     .name     = DRV_NAME,
-    .probe    = open_device,
+    .probe    = probe_device,
     .id_table = virtio_pci_devid_tbl
 };
 
