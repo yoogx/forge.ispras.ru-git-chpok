@@ -315,6 +315,7 @@ void pok_sched()
 
         if (slot->type == POK_SLOT_PARTITION) {
                 pok_current_partition = slot->partition.id;
+                POK_CURRENT_PARTITION.activation = POK_GETTICK();
 #if defined(POK_NEEDS_PORTS_SAMPLING) || defined(POK_NEEDS_PORTS_QUEUEING)
                 // beginning of partition window would be reasonable time to do this kind of stuff
                 pok_port_flush_partition(POK_SCHED_CURRENT_PARTITION);
