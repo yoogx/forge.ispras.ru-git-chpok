@@ -109,6 +109,8 @@
 
 #include <core/debug.h>
 #include <config.h>
+ 
+
 
 
 /************************************************************************
@@ -662,6 +664,16 @@ struct regs  null_ea = {
 #endif     
 };
 
+
+int   POK_CHECK_ADDR_IN_PARTITION(int pid,int address){
+    if (pid > 0)
+        return ((POK_CHECK_VPTR_IN_PARTITION(pid - 1,address)) || (((uintptr_t)(address)) >= 0x0 && ((uintptr_t)(address)) <  pok_partitions[0].base_vaddr));
+    else
+        return ((uintptr_t)(address)) >= 0x0 && ((uintptr_t)(address)) <  pok_partitions[0].base_vaddr;
+}
+
+
+
 int max_breakpoint = 100;
 int b_need_to_delete = -1;
 int b_need_to_set = -1;
@@ -700,7 +712,7 @@ void add_0_breakpoint(int * addr,int * length,int * using_thread){
      */
         if (i < (max_breakpoint - 1)) {
 
-            if (*addr >= 0x80000000)
+            if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
             { 
                 printf("Load new_pid\n");
                 mtspr(SPRN_PID, new_pid);
@@ -708,29 +720,28 @@ void add_0_breakpoint(int * addr,int * length,int * using_thread){
             if (hex2mem(trap, (char *)(*addr), *length)) {
                 strcpy(remcomOutBuffer, "OK");
             } else {
-                strcpy(remcomOutBuffer, "E25");
+                strcpy(remcomOutBuffer, "E22");
                 mtspr(SPRN_PID, old_pid);    
                 return;
             }
-            if (*addr >= 0x80000000)
+            if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
                 mtspr(SPRN_PID, old_pid);    
 
             strcpy (remcomOutBuffer, "OK");
             return;
         }
-        strcpy (remcomOutBuffer, "E25");
+        strcpy (remcomOutBuffer, "E22");
         return;
     }
     b_need_to_set = -1;
 
-    if (*addr >= 0x80000000)
+    if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
     { 
         printf("Load new_pid\n");
         mtspr(SPRN_PID, new_pid);
     }
-
     if (!mem2hex((char *)(*addr),&(breakpoints[Head_of_breakpoints].Instr),*length)){
-        strcpy (remcomOutBuffer, "E25");
+        strcpy (remcomOutBuffer, "E22");
         mtspr(SPRN_PID, old_pid);    
         return;
     }
@@ -744,7 +755,7 @@ void add_0_breakpoint(int * addr,int * length,int * using_thread){
     breakpoints[Head_of_breakpoints].addr = *addr;
     Head_of_breakpoints++;
     if (Head_of_breakpoints == max_breakpoint){
-        strcpy(remcomOutBuffer, "E25");
+        strcpy(remcomOutBuffer, "E22");
         mtspr(SPRN_PID, old_pid);    
         return;
     }
@@ -752,11 +763,11 @@ void add_0_breakpoint(int * addr,int * length,int * using_thread){
     if (hex2mem(trap, (char *)(*addr), *length)) {
         strcpy(remcomOutBuffer, "OK");
     } else {
-        strcpy(remcomOutBuffer, "E25");
+        strcpy(remcomOutBuffer, "E22");
         mtspr(SPRN_PID, old_pid);    
         return;
     }
-    if (*addr >= 0x80000000)
+    if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
         mtspr(SPRN_PID, old_pid);    
 }
 
@@ -779,10 +790,10 @@ void remove_0_breakpoint(int * addr,int * length,int * using_thread){
         if (i == (max_breakpoint - 1)){ 
             //TODO: Check number of error
             printf("                Max of breakpoint\n");
-            strcpy (remcomOutBuffer, "E25");
+            strcpy (remcomOutBuffer, "E22");
             return;
         }
-        if (*addr >= 0x80000000)
+        if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
         { 
             printf("Load new_pid\n");
             mtspr(SPRN_PID, new_pid);
@@ -791,21 +802,22 @@ void remove_0_breakpoint(int * addr,int * length,int * using_thread){
             strcpy(remcomOutBuffer, "OK");
         } else {
             printf("                Error in add breakpoint\n");
-
-            strcpy (remcomOutBuffer, "E25");
+            strcpy (remcomOutBuffer, "E22");
             mtspr(SPRN_PID, old_pid);    
             return;
         }
+        if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
+            mtspr(SPRN_PID, old_pid);
         return;
     }
     
-    if (*addr >= 0x80000000)
+    if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
     { 
         printf("Load new_pid\n");
         mtspr(SPRN_PID, new_pid);
     }
     for (i = 0; i < max_breakpoint; i++){
-    if (breakpoints[i].addr == *addr)
+        if (breakpoints[i].addr == *addr)
             break;
     }
     b_need_to_delete = -1;
@@ -819,11 +831,11 @@ void remove_0_breakpoint(int * addr,int * length,int * using_thread){
     if (hex2mem(breakpoints[i].Instr, (char *)(*addr), *length)) {
         strcpy(remcomOutBuffer, "OK");
     } else {
-        strcpy (remcomOutBuffer, "E25");
+        strcpy (remcomOutBuffer, "E22");
         mtspr(SPRN_PID, old_pid);    
         return;
     }
-    if (*addr >= 0x80000000)
+    if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
         mtspr(SPRN_PID, old_pid);    
 }
     
@@ -1382,13 +1394,11 @@ handle_exception (int exceptionVector, struct regs * ea)
                 if (hexToInt(&ptr, &addr)
                     && *ptr++ == ','
                     && hexToInt(&ptr, &length)) {
-                    if (addr >= 0x80000000 && new_pid == 0){
+                    if (!POK_CHECK_ADDR_IN_PARTITION(new_pid,addr)){
                         
                         strcpy (remcomOutBuffer, "E03");
                         break;
-                    }
-                    if (addr >= 0x80000000)
-                    { 
+                    }else{ 
                         printf("Load new_pid\n");
                         mtspr(SPRN_PID, new_pid);
                     }
@@ -1397,7 +1407,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                         break;
                     }
                     strcpy (remcomOutBuffer, "E03");
-                    if (addr >= 0x80000000)
+                    if (POK_CHECK_ADDR_IN_PARTITION(new_pid,addr))
                         mtspr(SPRN_PID, old_pid);
                 } else {
                     strcpy(remcomOutBuffer,"E01");
@@ -1415,8 +1425,12 @@ handle_exception (int exceptionVector, struct regs * ea)
                     && *ptr++ == ','
                     && hexToInt(&ptr, &length)
                     && *ptr++ == ':') {
-                    if (addr >= 0x80000000)
+                    if (POK_CHECK_ADDR_IN_PARTITION(new_pid,addr))
                         mtspr(SPRN_PID, new_pid);
+                    else{
+                        strcpy (remcomOutBuffer, "E03");
+                        break;
+                    }
                     if (strncmp(ptr, "7d821008", 8) == 0)
                         ptr = trap;
                     if (hex2mem(ptr, (char *)addr, length)) {
@@ -1424,7 +1438,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                     } else {
                         strcpy(remcomOutBuffer, "E03");
                     }
-                    if (addr >= 0x80000000)
+                    if (POK_CHECK_ADDR_IN_PARTITION(new_pid,addr))
                         mtspr(SPRN_PID, old_pid);
                 } else {
                     strcpy(remcomOutBuffer, "E02");
