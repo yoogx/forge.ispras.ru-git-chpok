@@ -132,6 +132,10 @@ struct T_breakpoint{
      */
     int B_num;
     /*
+     *  Address of breakpoint 
+     */
+    int addr;
+    /*
      * Reason of breakpoint 
      * if 1, it was Partition breakpoint
      * if 2, it was simple breakpoint
@@ -146,7 +150,6 @@ struct T_breakpoint{
 #ifdef __i386__
     char Instr[2];
 #endif
-
 };
 
 

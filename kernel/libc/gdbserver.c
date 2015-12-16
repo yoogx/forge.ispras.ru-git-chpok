@@ -680,36 +680,75 @@ pok_partition_id_t give_part_num_of_thread(int thread_num){
 }    
 
 void add_0_breakpoint(int * addr,int * length,int * using_thread){
-    if (b_need_to_set == -1){
-        strcpy (remcomOutBuffer, "OK");
-        return;
-    }
-    b_need_to_set = -1;
     int old_pid = mfspr(SPRN_PID);
     int new_pid = give_part_num_of_thread(*using_thread + 1);
     printf("New_pid = %d\n",new_pid);
     printf("Old_pid = %d\n",old_pid);    
+
+    if (b_need_to_set == -1){
+
+    /*
+     * Check, is it the first use of this breakpoint or not.
+     */
+        int i = 0;
+        for (i = 0; i < max_breakpoint; i++){
+            if (breakpoints[i].addr == *addr)
+                break;
+        }
+    /*
+     * If there is breakpoint on this addr
+     */
+        if (i < (max_breakpoint - 1)) {
+
+            if (*addr >= 0x80000000)
+            { 
+                printf("Load new_pid\n");
+                mtspr(SPRN_PID, new_pid);
+            }
+            if (hex2mem(trap, (char *)(*addr), *length)) {
+                strcpy(remcomOutBuffer, "OK");
+            } else {
+                strcpy(remcomOutBuffer, "E25");
+                mtspr(SPRN_PID, old_pid);    
+                return;
+            }
+            if (*addr >= 0x80000000)
+                mtspr(SPRN_PID, old_pid);    
+
+            strcpy (remcomOutBuffer, "OK");
+            return;
+        }
+        strcpy (remcomOutBuffer, "E25");
+        return;
+    }
+    b_need_to_set = -1;
+
     if (*addr >= 0x80000000)
     { 
         printf("Load new_pid\n");
         mtspr(SPRN_PID, new_pid);
     }
+
     if (!mem2hex((char *)(*addr),&(breakpoints[Head_of_breakpoints].Instr),*length)){
         strcpy (remcomOutBuffer, "E25");
         mtspr(SPRN_PID, old_pid);    
         return;
     }
+
     last_breakpoint++;
+
     breakpoints[Head_of_breakpoints].T_num = *using_thread + 1;
     breakpoints[Head_of_breakpoints].P_num = new_pid;
     breakpoints[Head_of_breakpoints].B_num = last_breakpoint;
     breakpoints[Head_of_breakpoints].Reason = 2;
+    breakpoints[Head_of_breakpoints].addr = *addr;
     Head_of_breakpoints++;
     if (Head_of_breakpoints == max_breakpoint){
         strcpy(remcomOutBuffer, "E25");
         mtspr(SPRN_PID, old_pid);    
         return;
     }
+
     if (hex2mem(trap, (char *)(*addr), *length)) {
         strcpy(remcomOutBuffer, "OK");
     } else {
@@ -722,22 +761,51 @@ void add_0_breakpoint(int * addr,int * length,int * using_thread){
 }
 
 void remove_0_breakpoint(int * addr,int * length,int * using_thread){
-    if (b_need_to_delete == -1){
-        strcpy (remcomOutBuffer, "OK");
-        return;
-    }
+    printf("            Z0, breakpoint[0].addr = %d\n",breakpoints[0].addr);
+    int i = 0;
     int old_pid = mfspr(SPRN_PID);
     int new_pid = give_part_num_of_thread(*using_thread + 1);
     printf("New_pid = %d\n",new_pid);
     printf("Old_pid = %d\n",old_pid);    
+    /*
+     * If we don't want do delete breakpoint (just switch it off for single step)
+     */
+    
+    if (b_need_to_delete == -1){
+        for (i = 0; i < max_breakpoint; i++){
+            if (breakpoints[i].addr == *addr)
+                break;
+        }
+        if (i == (max_breakpoint - 1)){ 
+            //TODO: Check number of error
+            printf("                Max of breakpoint\n");
+            strcpy (remcomOutBuffer, "E25");
+            return;
+        }
+        if (*addr >= 0x80000000)
+        { 
+            printf("Load new_pid\n");
+            mtspr(SPRN_PID, new_pid);
+        }
+        if (hex2mem(breakpoints[i].Instr, (char *)(*addr), *length)) {
+            strcpy(remcomOutBuffer, "OK");
+        } else {
+            printf("                Error in add breakpoint\n");
+
+            strcpy (remcomOutBuffer, "E25");
+            mtspr(SPRN_PID, old_pid);    
+            return;
+        }
+        return;
+    }
+    
     if (*addr >= 0x80000000)
     { 
         printf("Load new_pid\n");
         mtspr(SPRN_PID, new_pid);
     }
-    int i = 0;
     for (i = 0; i < max_breakpoint; i++){
-        if (breakpoints[i].B_num == b_need_to_delete)
+    if (breakpoints[i].addr == *addr)
             break;
     }
     b_need_to_delete = -1;
@@ -747,6 +815,7 @@ void remove_0_breakpoint(int * addr,int * length,int * using_thread){
     breakpoints[i].P_num = 0;
     breakpoints[i].B_num = 0;
     breakpoints[i].Reason = 0;
+    breakpoints[Head_of_breakpoints].addr = 0;
     if (hex2mem(breakpoints[i].Instr, (char *)(*addr), *length)) {
         strcpy(remcomOutBuffer, "OK");
     } else {
@@ -857,8 +926,12 @@ void set_regs(struct regs *ea){
 }
 
 
+int new_start;
 
-
+void clear_breakpoints(){
+    for (int i = 0; i < max_breakpoint; i++)
+        breakpoints[i].addr = 0;
+}
 
 /*
  * This function does all command procesing for interfacing to gdb.
@@ -866,6 +939,7 @@ void set_regs(struct regs *ea){
 void
 handle_exception (int exceptionVector, struct regs * ea)
 {
+    
     /*Add regs*/
     uint32_t old_entryS = pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp;
     pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = (uint32_t) ea;
@@ -933,10 +1007,10 @@ handle_exception (int exceptionVector, struct regs * ea)
     *ptr++ = ':';
 
     int thread_num = POK_SCHED_CURRENT_THREAD + 1;
-    int part_of_this_thread = 1;////give_part_num_of_thread(thread_num);
-    *ptr++ = 'p';
-    ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
-    *ptr++ = '.';
+    //~ int part_of_this_thread = 1;////give_part_num_of_thread(thread_num);
+    //~ *ptr++ = 'p';
+    //~ ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
+    //~ *ptr++ = '.';
     ptr = mem2hex( (char *)(&(thread_num)), ptr, 4); 
     *ptr++ = ';';
 
@@ -987,10 +1061,10 @@ handle_exception (int exceptionVector, struct regs * ea)
         case 'T':               /*Find out if the thread thread-id is alive*/
             ptr = &remcomInBuffer[1];
             int thread_num = -1;
-            /*FIX IT*/
-            while (* ptr != '.')
-                ptr++;
-            ptr++;
+            //~ /*FIX IT*/
+            //~ while (* ptr != '.')
+                //~ ptr++;
+            //~ ptr++;
             hexToInt(&ptr, &thread_num);
             if ( thread_num > 0 && thread_num < POK_CONFIG_NB_THREADS + 1){
                 remcomOutBuffer[0] = 'O';
@@ -1004,6 +1078,12 @@ handle_exception (int exceptionVector, struct regs * ea)
         case 'Z':
         case 'z':
             {
+                if (new_start == 1) {
+                    printf("New_start = %d",new_start);
+                    new_start = 0;
+                    printf("New_start = %d",new_start);
+                    clear_breakpoints();
+                }         
                 ptr = &remcomInBuffer[1];
                 int type = -1;
                 hexToInt(&ptr, &type);
@@ -1040,10 +1120,10 @@ handle_exception (int exceptionVector, struct regs * ea)
                 *ptr++ = 'C';
                 uint32_t p = POK_SCHED_CURRENT_THREAD + 1;
                 ////TODO: Change number of process
-                int part_of_this_thread = 1;////give_part_num_of_thread(p);
-                *ptr++ = 'p';
-                ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
-                *ptr++ = '.';
+                //~ int part_of_this_thread = 1;////give_part_num_of_thread(p);
+                //~ *ptr++ = 'p';
+                //~ ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
+                //~ *ptr++ = '.';
                 ptr = mem2hex( (char *)(&p), ptr, 4); 
                 *ptr++ = 0;
                 break;
@@ -1092,22 +1172,23 @@ handle_exception (int exceptionVector, struct regs * ea)
                 remcomOutBuffer[1] = 'K';
                 remcomOutBuffer[2] = 0;
                 break;
-            }            if (strncmp(ptr, "Supported", 9) == 0){
-                ptr+= (9 + 1); //qSupported:
-                while  (strncmp(ptr, "multiprocess", 9) != 0){
-                    ptr++;
-                    if (*ptr == '+' && *(ptr+1) != ';'){
-                        break;
-                    }
-                }
-                if (strncmp(ptr, "multiprocess", 9) == 0){
-                    char * answer = "multiprocess+";
-                    ptr = remcomOutBuffer;
-                    for (int i = 0; i < 13; i++)
-                    *ptr++ = answer[i];
-                }
-                
-                *ptr++ = 0;
+            }
+            if (strncmp(ptr, "Supported", 9) == 0){
+                //~ ptr+= (9 + 1); //qSupported:
+                //~ while  (strncmp(ptr, "multiprocess", 9) != 0){
+                    //~ ptr++;
+                    //~ if (*ptr == '+' && *(ptr+1) != ';'){
+                        //~ break;
+                    //~ }
+                //~ }
+                //~ if (strncmp(ptr, "multiprocess", 9) == 0){
+                    //~ char * answer = "multiprocess+";
+                    //~ ptr = remcomOutBuffer;
+                    //~ for (int i = 0; i < 13; i++)
+                    //~ *ptr++ = answer[i];
+                //~ }
+                //~ 
+                //~ *ptr++ = 0;
                 break;
                 
             }
@@ -1117,10 +1198,10 @@ handle_exception (int exceptionVector, struct regs * ea)
                 *ptr++ = 'm';
                 int previous_thread = 1;
                 ////TODO: Change number of process
-                int part_of_this_thread = 1;////give_part_num_of_thread(previous_thread);
-                *ptr++ = 'p';
-                ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
-                *ptr++ = '.';
+                //~ int part_of_this_thread = 1;////give_part_num_of_thread(previous_thread);
+                //~ *ptr++ = 'p';
+                //~ ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
+                //~ *ptr++ = '.';
                 ptr = mem2hex( (char *)(&previous_thread), ptr, 4); 
                 *ptr++ = 0;
                 number_of_thread++;
@@ -1137,10 +1218,10 @@ handle_exception (int exceptionVector, struct regs * ea)
                 *ptr++ = 'm';
                 int previous_thread = number_of_thread;
                 ////TODO: Change number of process
-                int part_of_this_thread = 1;////give_part_num_of_thread(previous_thread);
-                *ptr++ = 'p';
-                ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
-                *ptr++ = '.';
+                //~ int part_of_this_thread = 1;////give_part_num_of_thread(previous_thread);
+                //~ *ptr++ = 'p';
+                //~ ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
+                //~ *ptr++ = '.';
                 ptr = mem2hex( (char *)(&previous_thread), ptr, 4); 
                 number_of_thread++;
                 *ptr++ = 0;
@@ -1149,10 +1230,10 @@ handle_exception (int exceptionVector, struct regs * ea)
              if (strncmp(ptr, "ThreadExtraInfo", 15) == 0){
                 ptr += 16;
                 int thread_num;
-                /*FIX IT*/
-                while (* ptr != '.')
-                    ptr++;
-                ptr++;
+                //~ /*FIX IT*/
+                //~ while (* ptr != '.')
+                    //~ ptr++;
+                //~ ptr++;
                 hexToInt(&ptr, &thread_num);
                 thread_num --;
 
@@ -1270,9 +1351,9 @@ handle_exception (int exceptionVector, struct regs * ea)
                 
             }else if (*ptr++ == 'g'){
                 /*FIX IT*/
-                while (*ptr != '.')
-                    ptr++;
-                ptr++;
+                //~ while (*ptr != '.')
+                    //~ ptr++;
+                //~ ptr++;
                 hexToInt(&ptr, &addr);
                 if (addr != -1 && addr != 0) 
                 {
@@ -1351,19 +1432,19 @@ handle_exception (int exceptionVector, struct regs * ea)
                 break;
             }
 
-        case 'D':               /*
-                                 * The first form of the packet is used to detach gdb from the remote system
-                                 * It is sent to the remote target before gdb disconnects via the detach command.
-                                 */
-            ptr = &remcomInBuffer[2];
-            int part_id;
-            hexToInt(&ptr, &part_id);
-            remcomOutBuffer[0] = 'O';
-            remcomOutBuffer[1] = 'K';
-            remcomOutBuffer[2] = 0;
-            
-            if (part_id != 1) break;
-            putpacket((unsigned char *)remcomOutBuffer);            
+        //~ case 'D':               /*
+                                 //~ * The first form of the packet is used to detach gdb from the remote system
+                                 //~ * It is sent to the remote target before gdb disconnects via the detach command.
+                                 //~ */
+            //~ ptr = &remcomInBuffer[2];
+            //~ int part_id;
+            //~ hexToInt(&ptr, &part_id);
+            //~ remcomOutBuffer[0] = 'O';
+            //~ remcomOutBuffer[1] = 'K';
+            //~ remcomOutBuffer[2] = 0;
+            //~ 
+            //~ if (part_id != 1) break;
+            //~ putpacket((unsigned char *)remcomOutBuffer);            
         case 'k':    /* kill the program, actually just continue */
         case 'c':    /* cAA..AA  Continue; address AA..AA optional */
             /* try to read optional parameter, pc unchanged if no parm */

@@ -91,6 +91,7 @@ Syntax: Thread_delete BREAKPOINT_NUMBER
 define Clear_breakpoints
     set Head_of_breakpoints = 0
     set last_breakpoint = 0
+    set new_start = 1
     end
     
 document Clear_breakpoints
