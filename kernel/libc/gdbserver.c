@@ -667,9 +667,9 @@ struct regs  null_ea = {
 
 int   POK_CHECK_ADDR_IN_PARTITION(int pid,int address){
     if (pid > 0)
-        return ((POK_CHECK_VPTR_IN_PARTITION(pid - 1,address)) || (((uintptr_t)(address)) >= 0x0 && ((uintptr_t)(address)) <  pok_partitions[0].base_vaddr));
+        return ((POK_CHECK_VPTR_IN_PARTITION(pid - 1,address)) || (((uintptr_t)(address)) >= 0x0 && ((uintptr_t)(address)) <  pok_partitions[0].base_addr));
     else
-        return ((uintptr_t)(address)) >= 0x0 && ((uintptr_t)(address)) <  pok_partitions[0].base_vaddr;
+        return ((uintptr_t)(address)) >= 0x0 && ((uintptr_t)(address)) <  pok_partitions[0].base_addr;
 }
 
 
@@ -1056,7 +1056,7 @@ handle_exception (int exceptionVector, struct regs * ea)
     *ptr++ = 'a';
     *ptr++ = 'd';
     *ptr++ = ':';
-    thread_num = POK_SCHED_CURRENT_THREAD + 1;
+    int thread_num = POK_SCHED_CURRENT_THREAD + 1;
     ptr = mem2hex( (char *)&thread_num, ptr, 1); 
     *ptr++ = ';';
   *ptr = '0';
