@@ -20,10 +20,10 @@
 #include <arch.h>
 #include <core/debug.h>
 #include "cons.h"
-#include "../space.h"
+#include "space.h"
 
 #include <pci.h>
-#include "../devtree.h"
+#include "devtree.h"
 
 
 int pok_bsp_init (void)

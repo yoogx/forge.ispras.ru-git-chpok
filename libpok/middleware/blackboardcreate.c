@@ -42,6 +42,7 @@
 #include <libc/string.h>
 #include <core/event.h>
 #include <middleware/blackboard.h>
+#include <utils.h>
 
 static pok_size_t pok_blackboards_data_index = 0;
 
@@ -52,6 +53,10 @@ pok_ret_t pok_blackboard_create (char*                             name,
    pok_ret_t   ret;
    uint8_t     n;
 
+   if ((int) msg_size <= 0) {
+       return POK_ERRNO_SIZE;
+   }
+   
    // XXX global blackboard create lock?
 
    // try to find existing blackboard

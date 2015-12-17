@@ -309,6 +309,7 @@ void pok_sched()
 
         if (slot->type == POK_SLOT_PARTITION) {
                 pok_current_partition = slot->partition.id;
+                POK_CURRENT_PARTITION.activation = POK_GETTICK();
 #if defined(POK_NEEDS_PORTS_SAMPLING) || defined(POK_NEEDS_PORTS_QUEUEING)
                 // beginning of partition window would be reasonable time to do this kind of stuff
                 pok_port_flush_partition(POK_SCHED_CURRENT_PARTITION);
@@ -451,6 +452,10 @@ pok_ret_t pok_sched_end_period(void)
     if (POK_CURRENT_PARTITION.lock_level > 0) {
         return POK_ERRNO_MODE;
     }
+    
+    if (pok_thread_is_error_handling(&POK_CURRENT_THREAD)) {
+        return POK_ERRNO_MODE;
+    }
 
     POK_CURRENT_THREAD.state = POK_STATE_WAIT_NEXT_ACTIVATION;
     POK_CURRENT_THREAD.next_activation += POK_CURRENT_THREAD.period;
@@ -470,6 +475,9 @@ pok_ret_t pok_sched_replenish(int64_t budget)
     }
     if (POK_CURRENT_PARTITION.mode != POK_PARTITION_MODE_NORMAL) {
         return POK_ERRNO_UNAVAILABLE;
+    }
+    if (budget > INT32_MAX) {
+        return POK_ERRNO_ERANGE;
     }
     
     int64_t calculated_deadline;

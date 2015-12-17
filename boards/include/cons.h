@@ -14,15 +14,19 @@
  * Created by julien on Thu Jan 15 23:34:13 2009 
  */
 
-#include <core/dependencies.h>
 
-#ifdef POK_NEEDS_MIDDLEWARE
-#include <middleware/blackboard.h>
-#include <middleware/buffer.h>
+#ifndef __POK_CONS_H__
+#define __POK_CONS_H__
 
-#ifdef POK_NEEDS_BLACKBOARDS
-pok_blackboard_t *pok_blackboards;
-char *pok_blackboards_data; 
-#endif
+typedef struct {
+    uint32_t ccsrbar_size;
+    uint64_t ccsrbar_base;
+    uint64_t ccsrbar_base_phys;
+    uint32_t serial0_regs_offset;
+} pok_bsp_t;
+
+extern pok_bsp_t pok_bsp;
+
+int pok_cons_init(void);
 
 #endif

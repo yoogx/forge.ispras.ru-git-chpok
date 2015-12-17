@@ -7,6 +7,7 @@
 #define POK_NEEDS_CONSOLE 1
 
 //#define POK_NEEDS_LIBMATH 1
+//#define POK_NEEDS_ZERO_DIVISION_EXCEPTION 1
 
 #define POK_NEEDS_LIBC_STDLIB 1
 #define POK_CONFIG_NEEDS_FUNC_MEMCPY         1
@@ -29,6 +30,8 @@
 #define POK_NEEDS_ARINC653_SAMPLING 1
 #define POK_NEEDS_ARINC653_QUEUEING 1
 #define POK_NEEDS_ARINC653_TIME 1
+
+#define POK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE 1
 
 #define POK_NEEDS_BUFFERS 1
 #define POK_NEEDS_ARINC653_BUFFER 1
@@ -57,5 +60,3 @@ extern unsigned pok_config_arinc653_nb_semaphores;
 extern unsigned pok_config_arinc653_nb_events;
 extern unsigned pok_config_nb_events;
 extern unsigned pok_config_nb_threads;
-
-void pok_libpok_config_init();

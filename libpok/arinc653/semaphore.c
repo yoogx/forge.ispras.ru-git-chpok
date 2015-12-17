@@ -51,21 +51,10 @@
 #include <core/error.h>
 #include <utils.h>
 
-// must be at least MAX_NAME_LENGTH of ARINC653
-#define POK_SEM_MAX_NAME_LENGTH 30
 #define POK_SEM_NAME_EQ(x, y) (strncmp((x), (y), POK_SEM_MAX_NAME_LENGTH) == 0)
 
 #define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
 #define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
-
-typedef struct
-{
-   pok_bool_t        ready;
-   pok_sem_id_t      core_id;
-   char              name[POK_SEM_MAX_NAME_LENGTH];
-} pok_arinc653_semaphore_layer_t;
-
-pok_arinc653_semaphore_layer_t *pok_arinc653_semaphores_layers;
 
 pok_bool_t           pok_arinc653_semaphores_initialized = 0;
 
@@ -87,6 +76,7 @@ void CREATE_SEMAPHORE (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
                        SEMAPHORE_ID_TYPE *SEMAPHORE_ID,
                        RETURN_CODE_TYPE *RETURN_CODE )
 {
+   strtoupper(SEMAPHORE_NAME);
    pok_sem_id_t      sem_id;
    pok_ret_t         core_ret;
 
@@ -253,17 +243,10 @@ void SIGNAL_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
 
    core_ret = pok_sem_signal (pok_arinc653_semaphores_layers[sem_layer_idx].core_id);
 
-   if (core_ret == POK_ERRNO_OK || core_ret == POK_ERRNO_FULL)
-   {
-      *RETURN_CODE = NO_ERROR;
-      if (core_ret == POK_ERRNO_FULL) {
-         // semaphore's value is already at max
-         *RETURN_CODE = NO_ACTION;
-      }
-   }
-   else
-   {
-      *RETURN_CODE = INVALID_PARAM;
+   switch (core_ret) {
+      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      MAP_ERROR(POK_ERRNO_FULL, NO_ACTION);
+      MAP_ERROR_DEFAULT(INVALID_PARAM);
    }
 }
 
@@ -271,6 +254,7 @@ void GET_SEMAPHORE_ID (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
                        SEMAPHORE_ID_TYPE *SEMAPHORE_ID,
                        RETURN_CODE_TYPE *RETURN_CODE )
 {
+   strtoupper(SEMAPHORE_NAME);
    size_t i;
 
    CHECK_SEM_INIT;

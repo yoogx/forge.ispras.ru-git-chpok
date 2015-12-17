@@ -91,7 +91,7 @@
 #define DEFAULT_STACK_SIZE	4096
 
 #ifndef POK_USER_STACK_SIZE
-#define POK_USER_STACK_SIZE 8096
+#define POK_USER_STACK_SIZE 8192
 #endif
 
 typedef enum {

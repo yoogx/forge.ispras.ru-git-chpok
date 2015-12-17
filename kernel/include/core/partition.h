@@ -117,6 +117,7 @@ typedef struct
 
    uint8_t                  priority;       /**< Priority of the partition (unused at this time */
    uint32_t                 period;         /**< Period of the partition, unused at this time */
+   uint32_t                 duration;       /**< Duration of the partition */
 
    const pok_scheduler_ops  *scheduler;     /**< The scheduler of this partition */
 

@@ -28,11 +28,6 @@
 #include <assert.h>
 #include <libc.h>
 
-/*
- * This should be defined in kernel's deployment.c
- */
-extern const pok_error_hm_partition_t * const pok_partition_hm_tables[];
-
 pok_ret_t pok_error_thread_create (uint32_t stack_size, void* entry)
 {
    pok_thread_id_t      tid;
@@ -48,6 +43,10 @@ pok_ret_t pok_error_thread_create (uint32_t stack_size, void* entry)
       // already created
       return POK_ERRNO_EXISTS;
    }
+   
+   if (stack_size > INT32_MAX) {
+      return POK_ERRNO_EINVAL;
+   }
 
    attr.priority = POK_THREAD_MAX_PRIORITY + 1; 
    attr.entry = entry;
@@ -57,7 +56,6 @@ pok_ret_t pok_error_thread_create (uint32_t stack_size, void* entry)
    attr.stack_size = stack_size;
    
    ret = pok_partition_thread_create (&tid, &attr, POK_SCHED_CURRENT_PARTITION);
-   
    if (ret == POK_ERRNO_OK) {
       POK_CURRENT_PARTITION.thread_error_created = TRUE;
       POK_CURRENT_PARTITION.thread_error = tid;

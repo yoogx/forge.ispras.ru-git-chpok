@@ -1,7 +1,0 @@
-# -*- Mode: Python -*-
-
-Import('arch_env')
-
-arch_env.Program(target = arch_env['BSP']+'.lo', source = Glob('*.[Sc]'))
-
-# EOF

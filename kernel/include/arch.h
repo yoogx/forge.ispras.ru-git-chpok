@@ -34,6 +34,8 @@ struct pok_space
   size_t        size;
 };
 
+extern struct pok_space spaces[];
+
 /**
  * Function that initializes architecture concerns.
  */
@@ -130,15 +132,18 @@ uint32_t    pok_thread_stack_addr   (const uint8_t    partition_id,
  */
 void pok_arch_load_partition(pok_partition_id_t part_id, uintptr_t *entry);
 
-#ifdef POK_ARCH_PPC
+//#ifdef POK_ARCH_PPC
+#ifdef __PPC__
 #include <arch/ppc/spinlock.h>
 #endif
 
-#ifdef POK_ARCH_X86
+//#ifdef POK_ARCH_X86
+#ifdef __i386__
 #include <arch/x86/spinlock.h>
 #endif
 
-#ifdef POK_ARCH_SPARC
+//#ifdef POK_ARCH_SPARC
+#ifdef __sparc__
 #include <arch/sparc/spinlock.h>
 #endif
 

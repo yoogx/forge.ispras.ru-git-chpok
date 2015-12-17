@@ -335,6 +335,9 @@ class Configuration:
         partitions_set = set(range(len(self.partitions)))
         partitions_without_periodic_processing = set(partitions_set) # copy
 
+        if not isinstance(self.slots[0], TimeSlotPartition):
+            raise ValueError("First time slot must be partition slot")
+
         for slot in self.slots:
             slot.validate()
 
@@ -865,6 +868,7 @@ def write_kernel_deployment_c_hm_tables(conf, f):
 
             p("  {%s, %s, %s, %s}," % (kind, level, action, target_error_code))
 
+        p("  {POK_ERROR_KIND_PARTITION_CONFIGURATION, POK_ERROR_LEVEL_PARTITION, POK_ERROR_ACTION_IDLE, POK_ERROR_KIND_PARTITION_CONFIGURATION},")
         p("  {POK_ERROR_KIND_INVALID, POK_ERROR_LEVEL_PROCESS, POK_ERROR_ACTION_IGNORE, POK_ERROR_KIND_INVALID} /* sentinel value */")
 
         p("};")
@@ -880,6 +884,13 @@ def write_partition_deployment_c(conf, partition_idx, f):
     
     part = conf.partitions[partition_idx]
     
+    p("#include <config.h>")
+    p("#include <middleware/buffer.h>")
+    p("#include <middleware/blackboard.h>")
+    p("#include <arinc653/arincutils.h>")
+    p("#include <arinc653/event.h>")
+    p("#include <arinc653/semaphore.h>")
+    
     p("unsigned pok_config_nb_buffers = %d;" % part.num_arinc653_buffers)
     p("unsigned pok_config_buffer_data_size = %d;" % part.buffer_data_size)
     
@@ -892,3 +903,25 @@ def write_partition_deployment_c(conf, partition_idx, f):
     p("unsigned pok_config_nb_events = %d;" % part.num_arinc653_events)
     
     p("unsigned pok_config_nb_threads = %d;" % part.get_needed_threads())
+    
+    p("enum {")
+    p("tmp_pok_config_nb_buffers = %d," % part.num_arinc653_buffers)
+    p("tmp_pok_config_buffer_data_size = %d," % part.buffer_data_size)
+    p("tmp_pok_config_nb_blackboards = %d," % part.num_arinc653_blackboards)
+    p("tmp_pok_config_blackboard_data_size = %d," % part.blackboard_data_size)
+    p("tmp_pok_config_arinc653_nb_semaphores = %d," % part.num_arinc653_semaphores)
+    p("tmp_pok_config_arinc653_nb_events = %d," % part.num_arinc653_events)
+    p("tmp_pok_config_nb_threads = %d," % part.get_needed_threads())
+    p("};")
+    
+    p("pok_buffer_t pok_buffers[tmp_pok_config_nb_buffers];")
+    p("char pok_buffers_data[tmp_pok_config_buffer_data_size];")
+    
+    p("pok_blackboard_t pok_blackboards[tmp_pok_config_nb_blackboards];")
+    p("char pok_blackboards_data[tmp_pok_config_blackboard_data_size];")
+    
+    p("pok_arinc653_semaphore_layer_t pok_arinc653_semaphores_layers[tmp_pok_config_arinc653_nb_semaphores];")
+    
+    p("pok_arinc653_event_layer_t pok_arinc653_events_layers[tmp_pok_config_arinc653_nb_events];")
+    
+    p("ARINC_ATTRIBUTE arinc_process_attribute[tmp_pok_config_nb_threads];")

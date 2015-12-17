@@ -218,6 +218,7 @@ pok_ret_t pok_partition_init ()
       part->thread_index_high = part->thread_index_low + POK_CONFIG_PARTITIONS_NTHREADS[i];
       part->activation        = 0; // FIXME that can't be right
       part->period            = POK_CONFIG_SCHEDULING_MAJOR_FRAME;
+      part->duration          = POK_CONFIG_SCHEDULING_MAJOR_FRAME;
       part->current_thread    = IDLE_THREAD;
       part->prev_thread       = IDLE_THREAD; // breaks the rule of prev_thread not being idle, but it's just for init
 
@@ -430,8 +431,7 @@ pok_ret_t pok_current_partition_get_period (uint64_t *period)
 
 pok_ret_t pok_current_partition_get_duration (uint64_t *duration)
 {
-  // FIXME
-  (void) duration;
+  *duration = POK_CURRENT_PARTITION.duration;
   return POK_ERRNO_OK;
 }
 

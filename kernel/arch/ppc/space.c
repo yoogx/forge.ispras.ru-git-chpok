@@ -30,9 +30,7 @@
 #include "reg.h"
 #include "mmu.h"
 #include "space.h"
-#include "bspconfig.h"
-
-extern struct pok_space spaces[];
+#include "cons.h"
 
 pok_ret_t pok_create_space (pok_partition_id_t partition_id,
                             uintptr_t addr,
@@ -40,7 +38,6 @@ pok_ret_t pok_create_space (pok_partition_id_t partition_id,
 {
 #ifdef POK_NEEDS_DEBUG
   printf ("pok_create_space partid=%d: phys=%x size=%x\n", partition_id, addr, size);
-  printf("CCSRBAR: %llu\n", CCSRBAR_BASE);
 #endif
   spaces[partition_id].phys_base = addr;
   spaces[partition_id].size = size;
@@ -206,7 +203,7 @@ int pok_get_next_tlb1_index(int is_resident)
  *      number to MAS0[ESEL] before executing a tlbwe instruction.
  */
 void pok_insert_tlb1(
-        uint32_t virtual, 
+        uint64_t virtual, 
         uint64_t physical, 
         unsigned pgsize_enum, 
         unsigned permissions,
@@ -316,7 +313,7 @@ void pok_arch_space_init (void)
      */
     unsigned limit = pok_ppc_tlb_get_nentry(1);
     pok_ppc_tlb_write(1, 
-		CCSRBAR_BASE, CCSRBAR_BASE, E500MC_PGSIZE_16M, 
+		pok_bsp.ccsrbar_base, pok_bsp.ccsrbar_base_phys, E500MC_PGSIZE_16M,
 		MAS3_SW | MAS3_SR | MAS3_SX,
 		MAS2_W | MAS2_I | MAS2_M | MAS2_G, 
 		0, 
@@ -346,16 +343,15 @@ void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
     (void) syndrome;
 
     unsigned pid = mfspr(SPRN_PID);
-	if (pok_ccsrbar_ready) {
-		printf("DEBUG: page fault: pid: %u, address %p, syndrome %u\n", 
-			pid,
-			(void*)faulting_address, 
-			(unsigned)syndrome);
-	}
-    if (faulting_address >= CCSRBAR_BASE && faulting_address < CCSRBAR_BASE + CCSRBAR_SIZE) {
+
+    if (pok_ccsrbar_ready) {
+        printf("DEBUG: page fault: pid: %u, address %p, syndrome %u\n", pid, (void*)faulting_address, (unsigned)syndrome);
+    }
+
+    if (faulting_address >= pok_bsp.ccsrbar_base && faulting_address < pok_bsp.ccsrbar_base + pok_bsp.ccsrbar_size) {
         pok_insert_tlb1(
-            CCSRBAR_BASE, 
-            CCSRBAR_BASE, 
+            pok_bsp.ccsrbar_base, 
+            pok_bsp.ccsrbar_base_phys, 
             E500MC_PGSIZE_16M, 
             MAS3_SW | MAS3_SR,
             MAS2_W | MAS2_I | MAS2_M | MAS2_G,
@@ -363,7 +359,7 @@ void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
             TRUE 
         );
     } else if (faulting_address >= MPC8544_PCI_IO && faulting_address < MPC8544_PCI_IO + MPC8544_PCI_IO_SIZE) {
-		pok_insert_tlb1(
+        pok_insert_tlb1(
             MPC8544_PCI_IO,
             MPC8544_PCI_IO,
             E500MC_PGSIZE_64K,
@@ -390,6 +386,7 @@ void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
         );
     } else {
         // TODO handle it correctly, distinguish kernel code / user code, etc.
+        printf("wrong address %p\n", (void*)faulting_address);
         pok_fatal("bad memory access");
     }
 }
