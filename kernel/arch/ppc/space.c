@@ -306,6 +306,7 @@ void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
         );
     } else {
         // TODO handle it correctly, distinguish kernel code / user code, etc.
+        printf("wrong address %p\n", (void*)faulting_address);
         pok_fatal("bad memory access");
     }
 }
