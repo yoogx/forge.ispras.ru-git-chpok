@@ -90,7 +90,7 @@ static inline int pok_arch_mmu_shift_by_size(unsigned size)
 #define MAS7_RPN                0xFFFFFFFF
 /**
  * Write address mapping into the specified TLB entry.
- * 
+ *
  * For the meaning of parameters please consult EREF_RM
  *   Section 4.12.10, "MMU Assist Registers (MASn)", and
  *   Section 7.5.3.6, "Writing TLB Entries".
@@ -120,17 +120,17 @@ void pok_ppc_tlb_clear_entry(
         unsigned tlbsel,
         unsigned entry
     );
-    
+
 /*
  * @ requires tlbsel < 2;
  */
 void pok_ppc_tlb_read_entry(
-	unsigned tlbsel,
-	unsigned entry,
-	unsigned *valid, 
-	unsigned *tsize, 
-	uint32_t *epn,
-	uint64_t *rpn);
+        unsigned tlbsel,
+        unsigned entry,
+        unsigned *valid, 
+        unsigned *tsize, 
+        uint32_t *epn,
+        uint64_t *rpn);
 
 /*
  * @ requires tlbsel < 5;
@@ -138,8 +138,8 @@ void pok_ppc_tlb_read_entry(
 // unsigned pok_ppc_get_tlb_nentry(
 //        unsigned tlbsel;
 //    );
-    
+
 #define pok_ppc_tlb_get_nentry(tlbsel)                       \
-	(mfspr((SPRN_TLB ## tlbsel ## CFG)) & TLBnCFG_N_ENTRY_MASK)
+    (mfspr((SPRN_TLB ## tlbsel ## CFG)) & TLBnCFG_N_ENTRY_MASK)
 
 #endif

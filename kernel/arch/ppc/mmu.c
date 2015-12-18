@@ -13,7 +13,7 @@
  * TODO: document parameters
  */
 void pok_ppc_tlb_write(
-		unsigned tlbsel,
+        unsigned tlbsel,
         uint32_t virtual, 
         uint64_t physical, 
         unsigned pgsize_enum, 
@@ -21,7 +21,7 @@ void pok_ppc_tlb_write(
         unsigned wimge,
         unsigned pid,
         unsigned entry,
-        bool_t	valid
+        bool_t   valid
         )
 {
     /*
@@ -31,9 +31,9 @@ void pok_ppc_tlb_write(
      * instruction is executed, the TLB entry information stored in MAS0–MAS3, MAS5, MAS7, and MAS8 is
      * written into the selected TLB entry in the TLB1 array.
      */
-    
+
     uint32_t mas0, mas1, mas2, mas3, mas7;
-    
+
     assert(tlbsel <= 1) ;
 
     mas0 = MAS0_TLBSEL(tlbsel) | MAS0_ESEL(entry);
@@ -55,14 +55,14 @@ void pok_ppc_tlb_clear_entry(
         unsigned tlbsel,
         unsigned entry
     ) {
-	//pok_ppc_tlb_write(tlbsel, 
-		//0, 0, 
-		//0,
-		//0, 0, 0,
-		//entry,
-		//FALSE);
-	uint32_t mas0, mas1, mas2, mas3, mas7;
-    
+    //pok_ppc_tlb_write(tlbsel,
+        //0, 0,
+        //0,
+        //0, 0, 0,
+        //entry,
+        //FALSE);
+    uint32_t mas0, mas1, mas2, mas3, mas7;
+
     assert(tlbsel <= 1) ;
 
     mas0 = MAS0_TLBSEL(tlbsel) | MAS0_ESEL(entry);
@@ -82,40 +82,40 @@ void pok_ppc_tlb_clear_entry(
 }
 /*
 unsigned pok_ppc_get_tlb_nentry(unsigned tlbsel) {
-	static unsigned regid[] =  { SPRN_TLB0CFG, 
-		SPRN_TLB1CFG, 
-		SPRN_TLB2CFG, 
-		SPRN_TLB3CFG 
-	};
-	
-	assert(tlbsel < 5);
-	unsigned sprn = regid[tlbsel];
-	return mfspr(sprn) & TLBnCFG_N_ENTRY_MASK;
+    static unsigned regid[] =  { SPRN_TLB0CFG,
+        SPRN_TLB1CFG, 
+        SPRN_TLB2CFG, 
+        SPRN_TLB3CFG 
+    };
+
+    assert(tlbsel < 5);
+    unsigned sprn = regid[tlbsel];
+    return mfspr(sprn) & TLBnCFG_N_ENTRY_MASK;
 }
 */
 
 void pok_ppc_tlb_read_entry(
-	unsigned tlbsel,
-	unsigned entry,
-	unsigned *valid, 
-	unsigned *tsize, 
-	uint32_t *epn,
-	uint64_t *rpn)
+        unsigned tlbsel,
+        unsigned entry,
+        unsigned *valid, 
+        unsigned *tsize, 
+        uint32_t *epn,
+        uint64_t *rpn)
 {
-	uint32_t mas0, mas1;
-    
+    uint32_t mas0, mas1;
+
     assert(tlbsel <= 1) ;
 
     mas0 = MAS0_TLBSEL(tlbsel) | MAS0_ESEL(entry);
-    
-	mtspr(SPRN_MAS0, mas0);
-	asm volatile("tlbre;isync");
-	mas1 = mfspr(SPRN_MAS1);
 
-	*valid = (mas1 & MAS1_VALID);
-	*tsize = (mas1 >> 7) & 0x1f;
-	*epn = mfspr(SPRN_MAS2) & MAS2_EPN;
-	*rpn = mfspr(SPRN_MAS3) & MAS3_RPN;
-	*rpn |= ((uint64_t)mfspr(SPRN_MAS7)) << 32;
+    mtspr(SPRN_MAS0, mas0);
+    asm volatile("tlbre;isync");
+    mas1 = mfspr(SPRN_MAS1);
+
+    *valid = (mas1 & MAS1_VALID);
+    *tsize = (mas1 >> 7) & 0x1f;
+    *epn = mfspr(SPRN_MAS2) & MAS2_EPN;
+    *rpn = mfspr(SPRN_MAS3) & MAS3_RPN;
+    *rpn |= ((uint64_t)mfspr(SPRN_MAS7)) << 32;
 }
 
