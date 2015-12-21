@@ -81,8 +81,8 @@ void  *pok_bsp_mem_alloc_aligned(size_t size, size_t alignment)
 
 void *pok_bsp_alloc_partition(size_t size)
 {
-    return pok_bsp_mem_alloc(size); 
-}   
+    return pok_bsp_mem_alloc_aligned(size, 0x1000);
+}
 
 /**
  * Init time. \a freq is the frequency
