@@ -74,17 +74,6 @@ void pci_write_word(s_pci_device *d, uint32_t reg, uint16_t val)
 
 void pci_list()
 {
-//#ifdef __PPC__
-//    {
-//        //TODO call pci write word
-//        out_be32(bridge.cfg_addr, 0x80000810); //write something to BAR0
-//        out_le16(bridge.cfg_data, 0x1001);
-//
-//        out_be32(bridge.cfg_addr, 0x80000804);//write something to COMMAND register
-//        out_le16(bridge.cfg_data, 0x7);
-//    }
-//#endif
-
     for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
       for (unsigned int dev = 0; dev < PCI_DEV_MAX; dev++)
         for (unsigned int fun = 0; fun < PCI_FUN_MAX; fun++)
@@ -103,7 +92,12 @@ void pci_list()
 
                 uint32_t bar0 = pci_read(bus, dev, fun, PCI_REG_BAR0);
                 if (bar0) {
-                    printf("\t BAR0: 0x%lx\n", bar0);
+                    printf("\t BAR0: 0x%lx", bar0);
+#ifdef __PPC__
+                    printf("(addr = %lx)\n", (bar0 & BAR_IOADDR_MASK) + bridge.iorange);
+#else
+                    printf("(addr = %lx)\n", bar0 & BAR_IOADDR_MASK);
+#endif
                 }
 
                 /*
@@ -161,8 +155,10 @@ void pci_init()
                     pci_write_word(&pci_dev, PCI_REG_COMMAND, PCI_COMMAND_IO);
                     pci_dev.bar[0] = bridge.iorange + bar0_addr;
                     bar0_addr += BAR0_SIZE;
+                    pci_dev.ioaddr = bar0_addr & BAR_IOADDR_MASK;
 #else
-                    pci_dev.bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0);
+                    pci_dev.bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0) & BAR_IOADDR_MASK; //TODO!!!!
+                    pci_dev.ioaddr = pci_dev.bar[0] & BAR_IOADDR_MASK;
 #endif
                     /*
                     {

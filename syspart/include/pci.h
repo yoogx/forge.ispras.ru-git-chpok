@@ -48,21 +48,24 @@
 #  define PCI_COMMAND_MEMORY	0x2	/* Enable response in Memory space */
 #  define PCI_COMMAND_BUSMASTER	0x4	/* The device can behave as a bus master */
 
+//This from wiki.osdev.org/Pci
+#define BAR_IOADDR_MASK 0xFFFFFFFC
+
 /*
  * Structure to holds some device information
  */
 typedef struct pci_device
 {
-  uint16_t	bus;
-  uint16_t	dev;
-  uint16_t	fun;
-  uint16_t	vendorid;
-  uint16_t	deviceid;
-  uint16_t	irq_line;
-  uint16_t	io_range;
-  uint32_t	bar[6];
-  uint32_t	addr;
-  void*		irq_handler;
+    uint16_t    bus;
+    uint16_t    dev;
+    uint16_t    fun;
+    uint16_t    vendorid;
+    uint16_t    deviceid;
+    uint16_t    irq_line;
+    uint16_t    io_range;
+    uint32_t    bar[6];
+    uint32_t    ioaddr;
+    void       *irq_handler;
 } s_pci_device;
 
 void pci_init(void);

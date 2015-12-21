@@ -458,12 +458,12 @@ pok_ret_t pci_register(s_pci_device*	dev)
  */
 static int rtl8029_init (struct pci_device *pci_dev)
 {
-    printf("rtl8029 init called\n");
+    printf("rtl8029 probe called\n");
  // dev.pci.vendorid = 0x10ec;
  // dev.pci.deviceid = 0x8029;
  // dev.pci.io_range = 0x10;
 
-  dev.addr = pci_dev->bar[0] & (~0x1F);
+  dev.addr = pci_dev->ioaddr;
   printf("bar0 addr = 0x%x\n", dev.addr);
 
   unsigned char	i = 0;
