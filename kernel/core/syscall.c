@@ -371,14 +371,15 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
       //TODO rewrite this! This two syscall needs to return pok_ret_t!
       case POK_SYSCALL_MEM_VIRT_TO_PHYS:
           if (POK_CHECK_PTR_IN_PARTITION(infos->partition, args->arg1 + infos->base_addr))
-              return pok_virt_to_phys(args->arg1 + infos->base_addr);
+              return pok_virt_to_phys(args->arg1);
           else 
               return 0;
 
       case POK_SYSCALL_MEM_PHYS_TO_VIRT:
       {
-          uintptr_t virt = pok_phys_to_virt(args->arg1 + infos->base_addr);
-          if (POK_CHECK_PTR_IN_PARTITION(infos->partition, virt))
+          uintptr_t virt = pok_phys_to_virt(args->arg1);
+          //This is very strange. But current memory structure forces doing this.
+          if (POK_CHECK_PTR_IN_PARTITION(infos->partition, virt + infos->base_addr))
               return virt;
           else
               return 0;
