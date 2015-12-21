@@ -110,7 +110,15 @@ static void setup_virtqueue(
     void *mem = virtio_virtqueue_setup(vq, queue_size, VIRTIO_PCI_VRING_ALIGN);
 
     // give device queue's physical address
-    outl(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_PFN, pok_virt_to_phys(mem) / VIRTIO_PCI_VRING_ALIGN);
+    uintptr_t phys_addr = pok_virt_to_phys(mem);
+
+    if (phys_addr == 0) {
+        printf("%s: kernel says that virtual address is wrong\n", __func__);
+        return;
+    }
+
+    outl(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_PFN, phys_addr / VIRTIO_PCI_VRING_ALIGN);
+
 }
 
 static void set_status_bit(s_pci_device *pcidev, uint8_t bit)
@@ -154,6 +162,10 @@ static void use_receive_buffer(struct virtio_network_device *dev, struct receive
     vq->free_index = desc->next;
 
     desc->addr = pok_virt_to_phys(buf);
+    if (desc->addr == 0) {
+        printf("%s: kernel says that virtual address is wrong\n", __func__);
+        return;
+    }
     desc->len = sizeof(*buf);
     desc->flags = VRING_DESC_F_WRITE;
 
@@ -230,7 +242,7 @@ static int probe_device(struct pci_device *pci_dev)
     virtio_virtqueue_allocate_callbacks(&dev->tx_vq);
 
     setup_receive_buffers(dev);
-    
+
     //pok_bsp_irq_register(virtio_network_device.pci_device.irq_line, virtio_interrupt_handler);
 
     // 5. Device feature bits
@@ -285,6 +297,10 @@ static pok_bool_t send_frame_gather(const pok_network_sg_list_t *sg_list,
             desc = &vq->vring.desc[desc->next];
         }
         desc->addr = pok_virt_to_phys(sg_list[i].buffer);
+        if (desc->addr == 0) {
+            printf("%s: kernel says that virtual address is wrong\n", __func__);
+            return FALSE;
+        }
         desc->len = sg_list[i].size;
         desc->flags = VRING_DESC_F_NEXT;
     }
@@ -329,7 +345,6 @@ static void reclaim_send_buffers(void)
     
     pok_bool_t saved_preemption;
     maybe_lock_preemption(&saved_preemption);
-
     while (vq->last_seen_used != vq->vring.used->idx) {
         uint16_t index = vq->last_seen_used & (vq->vring.num-1);
         struct vring_used_elem *e = &vq->vring.used->ring[index];
@@ -375,6 +390,10 @@ static void reclaim_receive_buffers(void)
         struct vring_desc *desc = &vq->vring.desc[e->id];
 
         struct receive_buffer *buf = pok_phys_to_virt(desc->addr);
+        if (buf == 0) {
+            printf("%s: kernel says that physical address is wrong\n", __func__);
+            return;
+        }
         
         process_received_buffer(buf, e->len);
 
