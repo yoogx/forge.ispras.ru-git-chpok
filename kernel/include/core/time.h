@@ -27,12 +27,7 @@
 /**
  * The rate of the clock in POK
  */
-// DIRTY HACK
-#ifdef POK_BSP_P3041
-#define POK_TIMER_FREQUENCY 24000
-#else
 #define POK_TIMER_FREQUENCY 1000
-#endif
 
 extern uint64_t pok_tick_counter;
 

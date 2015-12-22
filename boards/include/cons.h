@@ -23,6 +23,7 @@ typedef struct {
     uint64_t ccsrbar_base;
     uint64_t ccsrbar_base_phys;
     uint32_t serial0_regs_offset;
+    uint32_t timebase_freq;
 } pok_bsp_t;
 
 extern pok_bsp_t pok_bsp;

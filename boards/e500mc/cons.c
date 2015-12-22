@@ -35,7 +35,8 @@ pok_bsp_t pok_bsp = {
     .ccsrbar_size = 0x1000000ULL,
     .ccsrbar_base = 0xE0000000ULL,
     .ccsrbar_base_phys = 0xE0000000ULL,
-    .serial0_regs_offset = 0x4500ULL
+    .serial0_regs_offset = 0x4500ULL,
+    .timebase_freq = 400000000
 };
 
 static void ns16550_writeb(int offset, int value)
