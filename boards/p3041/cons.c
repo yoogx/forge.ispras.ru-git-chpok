@@ -53,6 +53,9 @@ static void write_serial(char a)
    while ((ns16550_readb(NS16550_REG_LSR) & UART_LSR_THRE) == 0)
      ;
 
+   if (a == '\n')
+       write_serial('\r');
+
    ns16550_writeb(NS16550_REG_THR, a);
 }
 
