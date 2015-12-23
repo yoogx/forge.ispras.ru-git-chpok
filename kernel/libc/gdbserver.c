@@ -57,11 +57,8 @@
  *  install it as an interrupt gate so that interrupts are masked
  *  while the handler runs.
  *
- *  Because gdb will sometimes write to the stack area to execute function
- *  calls, this program cannot rely on using the supervisor stack so it
- *  uses it's own stack area reserved in the int array remcomStack.
  *
- *************
+ ****************************************************************************
  *
  *    The following gdb commands are supported:
  *
@@ -82,8 +79,9 @@
  *    k             kill
  *
  *    ?             What was the last sigval ?             SNN   (signal NN)
- *
- * All commands and responses are sent with a packet which includes a
+ *    .... and others
+ *  
+ *  All commands and responses are sent with a packet which includes a
  * checksum.  A packet consists of
  *
  * $<packet info>#<checksum>.
@@ -148,8 +146,6 @@ int getDebugChar(){
 /* at least NUMREGBYTES*2 are needed for register packets */
 #define BUFMAX 1000
 
-static char initialized;  /* boolean flag. != 0 means we've been initialized */
-
 static const char hexchars[]="0123456789abcdef";
 
 /* Number of registers.  */
@@ -189,11 +185,6 @@ EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
  * these should not be static cuz they can be used outside this module
  */
 uint32_t registers[NUMREGS];
-
-#define STACKSIZE 10000
-int remcomStack[STACKSIZE/sizeof(int)];
-static int* stackPtr = &remcomStack[STACKSIZE/sizeof(int) - 1];
-
 
 int
 hex (ch)
@@ -996,10 +987,12 @@ handle_exception (int exceptionVector, struct regs * ea)
     *ptr++ = ':';
 
     int thread_num = POK_SCHED_CURRENT_THREAD + 1;
-    //~ int part_of_this_thread = 1;////give_part_num_of_thread(thread_num);
-    //~ *ptr++ = 'p';
-    //~ ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
-    //~ *ptr++ = '.';
+#ifdef MULTIPROCESS
+    int part_of_this_thread = 1;////give_part_num_of_thread(thread_num);
+    *ptr++ = 'p';
+    ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
+    *ptr++ = '.';
+#endif
     ptr = mem2hex( (char *)(&(thread_num)), ptr, 4); 
     *ptr++ = ';';
 
@@ -1050,10 +1043,12 @@ handle_exception (int exceptionVector, struct regs * ea)
         case 'T':               /*Find out if the thread thread-id is alive*/
             ptr = &remcomInBuffer[1];
             int thread_num = -1;
-            //~ /*FIX IT*/
-            //~ while (* ptr != '.')
-                //~ ptr++;
-            //~ ptr++;
+#ifdef MULTIPROCESS
+            /*FIX IT*/
+            while (* ptr != '.')
+                ptr++;
+            ptr++;
+#endif
             hexToInt(&ptr, &thread_num);
             if ( thread_num > 0 && thread_num < POK_CONFIG_NB_THREADS + 1){
                 remcomOutBuffer[0] = 'O';
@@ -1108,11 +1103,15 @@ handle_exception (int exceptionVector, struct regs * ea)
                 *ptr++ = 'Q';
                 *ptr++ = 'C';
                 uint32_t p = POK_SCHED_CURRENT_THREAD + 1;
+#ifdef MULTIPROCESS
+
                 ////TODO: Change number of process
-                //~ int part_of_this_thread = 1;////give_part_num_of_thread(p);
-                //~ *ptr++ = 'p';
-                //~ ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
-                //~ *ptr++ = '.';
+                int part_of_this_thread = 1;////give_part_num_of_thread(p);
+                *ptr++ = 'p';
+                ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
+                *ptr++ = '.';
+#endif 
+
                 ptr = mem2hex( (char *)(&p), ptr, 4); 
                 *ptr++ = 0;
                 break;
@@ -1148,7 +1147,9 @@ handle_exception (int exceptionVector, struct regs * ea)
                 int part_id;
                 hexToInt(&ptr, &part_id);
                 ptr = remcomOutBuffer;
-                //~ if (part_id <= POK_CONFIG_NB_PARTITIONS + 2 && part_id >= 1){
+#ifdef MULTIPROCESS
+                if (part_id <= POK_CONFIG_NB_PARTITIONS + 2 && part_id >= 1)
+#endif
                     *ptr++ = '1';
                 //~ }
                 *ptr = 0;
@@ -1163,21 +1164,23 @@ handle_exception (int exceptionVector, struct regs * ea)
                 break;
             }
             if (strncmp(ptr, "Supported", 9) == 0){
-                //~ ptr+= (9 + 1); //qSupported:
-                //~ while  (strncmp(ptr, "multiprocess", 9) != 0){
-                    //~ ptr++;
-                    //~ if (*ptr == '+' && *(ptr+1) != ';'){
-                        //~ break;
-                    //~ }
-                //~ }
-                //~ if (strncmp(ptr, "multiprocess", 9) == 0){
-                    //~ char * answer = "multiprocess+";
-                    //~ ptr = remcomOutBuffer;
-                    //~ for (int i = 0; i < 13; i++)
-                    //~ *ptr++ = answer[i];
-                //~ }
-                //~ 
-                //~ *ptr++ = 0;
+#ifdef MULTIPROCESS
+                ptr+= (9 + 1); //qSupported:
+                while  (strncmp(ptr, "multiprocess", 9) != 0){
+                    ptr++;
+                    if (*ptr == '+' && *(ptr+1) != ';'){
+                        break;
+                    }
+                }
+                if (strncmp(ptr, "multiprocess", 9) == 0){
+                    char * answer = "multiprocess+";
+                    ptr = remcomOutBuffer;
+                    for (int i = 0; i < 13; i++)
+                    *ptr++ = answer[i];
+                }
+                
+                *ptr++ = 0;
+#endif
                 break;
                 
             }
@@ -1186,11 +1189,13 @@ handle_exception (int exceptionVector, struct regs * ea)
                 ptr = remcomOutBuffer;  
                 *ptr++ = 'm';
                 int previous_thread = 1;
+#ifdef MULTIPROCESS
                 ////TODO: Change number of process
-                //~ int part_of_this_thread = 1;////give_part_num_of_thread(previous_thread);
-                //~ *ptr++ = 'p';
-                //~ ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
-                //~ *ptr++ = '.';
+                int part_of_this_thread = 1;////give_part_num_of_thread(previous_thread);
+                *ptr++ = 'p';
+                ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
+                *ptr++ = '.';
+#endif
                 ptr = mem2hex( (char *)(&previous_thread), ptr, 4); 
                 *ptr++ = 0;
                 number_of_thread++;
@@ -1206,11 +1211,13 @@ handle_exception (int exceptionVector, struct regs * ea)
                 ptr = remcomOutBuffer;
                 *ptr++ = 'm';
                 int previous_thread = number_of_thread;
+#ifdef MULTIPROCESS
                 ////TODO: Change number of process
-                //~ int part_of_this_thread = 1;////give_part_num_of_thread(previous_thread);
-                //~ *ptr++ = 'p';
-                //~ ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
-                //~ *ptr++ = '.';
+                int part_of_this_thread = 1;////give_part_num_of_thread(previous_thread);
+                *ptr++ = 'p';
+                ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
+                *ptr++ = '.';
+#endif
                 ptr = mem2hex( (char *)(&previous_thread), ptr, 4); 
                 number_of_thread++;
                 *ptr++ = 0;
@@ -1219,10 +1226,12 @@ handle_exception (int exceptionVector, struct regs * ea)
              if (strncmp(ptr, "ThreadExtraInfo", 15) == 0){
                 ptr += 16;
                 int thread_num;
-                //~ /*FIX IT*/
-                //~ while (* ptr != '.')
-                    //~ ptr++;
-                //~ ptr++;
+#ifdef MULTIPROCESS
+                /*FIX IT*/
+                while (* ptr != '.')
+                    ptr++;
+                ptr++;
+#endif
                 hexToInt(&ptr, &thread_num);
                 thread_num --;
 
@@ -1335,10 +1344,12 @@ handle_exception (int exceptionVector, struct regs * ea)
                 set_regs((struct regs *)pok_threads[using_thread].entry_sp);
                 
             }else if (*ptr++ == 'g'){
+#ifdef MULTIPROCESS
                 /*FIX IT*/
-                //~ while (*ptr != '.')
-                    //~ ptr++;
-                //~ ptr++;
+                while (*ptr != '.')
+                    ptr++;
+                ptr++;
+#endif
                 hexToInt(&ptr, &addr);
                 if (addr != -1 && addr != 0) 
                 {
@@ -1419,19 +1430,22 @@ handle_exception (int exceptionVector, struct regs * ea)
                 break;
             }
 
-        //~ case 'D':               /*
-                                 //~ * The first form of the packet is used to detach gdb from the remote system
-                                 //~ * It is sent to the remote target before gdb disconnects via the detach command.
-                                 //~ */
-            //~ ptr = &remcomInBuffer[2];
-            //~ int part_id;
-            //~ hexToInt(&ptr, &part_id);
-            //~ remcomOutBuffer[0] = 'O';
-            //~ remcomOutBuffer[1] = 'K';
-            //~ remcomOutBuffer[2] = 0;
-            //~ 
-            //~ if (part_id != 1) break;
-            //~ putpacket((unsigned char *)remcomOutBuffer);            
+#ifdef MULTIPROCESS
+
+        case 'D':               /*
+                                 * The first form of the packet is used to detach gdb from the remote system
+                                 * It is sent to the remote target before gdb disconnects via the detach command.
+                                 */
+            ptr = &remcomInBuffer[2];
+            int part_id;
+            hexToInt(&ptr, &part_id);
+            remcomOutBuffer[0] = 'O';
+            remcomOutBuffer[1] = 'K';
+            remcomOutBuffer[2] = 0;
+            
+            if (part_id != 1) break;
+            putpacket((unsigned char *)remcomOutBuffer);            
+#endif
         case 'k':    /* kill the program, actually just continue */
         case 'c':    /* cAA..AA  Continue; address AA..AA optional */
             /* try to read optional parameter, pc unchanged if no parm */
@@ -1837,42 +1851,4 @@ handle_exception (int exceptionVector, struct regs * ea)
 #endif
     } /* while(1) */
     ////printf("\n\n\n          End of handle_exeption\n\n");
-}
-
-/* this function is used to set up exception handlers for tracing and
-   breakpoints */
-void
-set_debug_traps (void)
-{
-  stackPtr = &remcomStack[STACKSIZE / sizeof (int) - 1];
-
- //// exceptionHandler (0, _catchException0);
- //// exceptionHandler (1, _catchException1);
- //// exceptionHandler (3, _catchException3);
- //// exceptionHandler (4, _catchException4);
- //// exceptionHandler (5, _catchException5);
- //// exceptionHandler (6, _catchException6);
- //// exceptionHandler (7, _catchException7);
- //// exceptionHandler (8, _catchException8);
- //// exceptionHandler (9, _catchException9);
- //// exceptionHandler (10, _catchException10);
- //// exceptionHandler (11, _catchException11);
- //// exceptionHandler (12, _catchException12);
- //// exceptionHandler (13, _catchException13);
- //// exceptionHandler (14, _catchException14);
- //// exceptionHandler (16, _catchException16);
-
-  initialized = 1;
-}
-
-/* This function will generate a breakpoint exception.  It is used at the
-   beginning of a program to sync up with a debugger and can be used
-   otherwise as a quick means to stop program execution and "break" into
-   the debugger. */
-
-void
-breakpoint (void)
-{
-  ////if (initialized)
-    ////BREAKPOINT ();
 }

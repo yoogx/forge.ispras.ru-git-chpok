@@ -119,9 +119,6 @@ int read_serial_from_port()
         printf("\n");
     } else     port = 0;
 
-    //~ }else{
-        //~ port = 0;
-    //~ }
     while (data_to_read_from_port() == 0){
     }
     data = ns16550_readb(NS16550_REG_THR,0);
