@@ -150,9 +150,6 @@ int getDebugChar(){
 
 static char initialized;  /* boolean flag. != 0 means we've been initialized */
 
-int     remote_debug;
-/*  debug >  0 prints ill-formed commands in valid packets & checksum errors */
-
 static const char hexchars[]="0123456789abcdef";
 
 /* Number of registers.  */
@@ -197,12 +194,6 @@ uint32_t registers[NUMREGS];
 int remcomStack[STACKSIZE/sizeof(int)];
 static int* stackPtr = &remcomStack[STACKSIZE/sizeof(int) - 1];
 
-
-void
-_returnFromException ()
-{
-  ////return_to_prog ();
-}
 
 int
 hex (ch)
@@ -384,15 +375,6 @@ putpacket (unsigned char *buffer)
         printf("\n");
 }
 
-void
-debug_error (format, parm)
-     char *format;
-     char *parm;
-{
-    if (remote_debug)
-        ;
-    ////fprintf (stderr, format, parm);
-}
 
 /* Address of a routine to RTE to if we get a memory fault.  */
 static void (*volatile mem_fault_routine) () = NULL;
@@ -969,11 +951,6 @@ handle_exception (int exceptionVector, struct regs * ea)
     int addr, length;
     char *ptr;
 
-    if (1 == 1)////remote_debug)
-    {
-      ////printf ("vector=%d, sr=0x%x, pc=0x%x\n",
-      ////    exceptionVector, registers[pc], registers[pc]);
-    }
 
     if (addr_instr != 0){
 #ifdef __PPC__    
@@ -1284,10 +1261,6 @@ handle_exception (int exceptionVector, struct regs * ea)
 
             break;
         }
-        case 'd':
-            /* toggle debug flag */
-            ////kdebug ^= 1;
-            break;
 
         case 'g':   /* return the value of the CPU registers.
                  * some of them are non-PowerPC names :(
@@ -1592,10 +1565,6 @@ handle_exception (int exceptionVector, struct regs * ea)
 ////            panic("kgdb reset.");
             break;
         }           /* switch */
-        if (remcomOutBuffer[0] && 0 /*kdebug*/) {
-            ////printf("remcomInBuffer: %s\n", remcomInBuffer);
-            ////printf("remcomOutBuffer: %s\n", remcomOutBuffer);
-        }
         /* reply to the request */
         putpacket((unsigned char *)remcomOutBuffer);
 #endif
@@ -1756,7 +1725,6 @@ handle_exception (int exceptionVector, struct regs * ea)
                         if (mem_err)
                         {
                             strcpy (remcomOutBuffer, "E03");
-                            debug_error ("memory fault");
                         }
                     }
 
@@ -1779,7 +1747,6 @@ handle_exception (int exceptionVector, struct regs * ea)
                             if (mem_err)
                             {
                                 strcpy (remcomOutBuffer, "E03");
-                                debug_error ("memory fault");
                             }else{
                                 strcpy (remcomOutBuffer, "OK");
                             }
