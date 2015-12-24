@@ -26,13 +26,13 @@
  * TODO This one comes from qemu's /hw/ppc/e500.c
  *      Ideally, we should query device tree for this.
  */
-#define TIMEBASE_FREQUENCY 400000000
+#define TIMEBASE_FREQUENCY 400000000ULL
 
 /* Last time when decr was set.  */
 static uint64_t time_last;
 
 /* Decrementer optimal value.  */
-static uint32_t time_inter;
+static uint64_t time_inter;
 
 static uint64_t get_timebase(void)
 {
