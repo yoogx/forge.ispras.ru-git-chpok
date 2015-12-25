@@ -43,14 +43,15 @@ static s_ne2000_dev dev;
  * Therefore, each time we need to switch to page 1,
  * the card is switched to page 0 again when we're done...
  */
-#define NE2000_SELECT_PAGE(dev, page)					\
-  outb_inverse((inb((dev)->addr + NE2000_CR) &				\
-	~(NE2000_CR_PS0 | NE2000_CR_PS1)) | ((page) << 6), (dev)->addr)
-static
-int ne2000_write(const s_ne2000_dev* dev,
-		     const void*	 buf,
-		     unsigned short	 count,
-		     unsigned short	 offset)
+#define NE2000_SELECT_PAGE(dev, page)                                   \
+  outb_inverse((inb((dev)->addr + NE2000_CR) &                          \
+        ~(NE2000_CR_PS0 | NE2000_CR_PS1)) | ((page) << 6), (dev)->addr)
+
+static int ne2000_write(
+        const s_ne2000_dev *dev,
+        const void         *buf,
+        unsigned short     count,
+        unsigned short     offset)
 {
   const char* p = NULL;
   int ret = count;
@@ -78,11 +79,11 @@ int ne2000_write(const s_ne2000_dev* dev,
   return (ret);
 }
 
-static
-int ne2000_read(const s_ne2000_dev*	dev,
-		    void*		buf,
-		    unsigned short	count,
-		    unsigned short	offset)
+static int ne2000_read(
+        const s_ne2000_dev *dev,
+        void               *buf,
+        unsigned short      count,
+        unsigned short      offset)
 {
   char* p = NULL;
   int ret = count;
@@ -508,8 +509,11 @@ static int rtl8029_init (struct pci_device *pci_dev)
      Therefore I read 2 * sizeof(mac) and select one of the two bytes
      corresponding to the MAC... Weird... Really... */
   ne2000_read(&dev, buf, 6 * 2, 0);
-  for (i = 0; i < 6; i++)
+  for (i = 0; i < 6; i++) {
     dev.mac[i] = buf[i * 2];
+    printf("%x:", dev.mac[i]);
+  }
+  printf("\n");
 
   /* These registers contain my Ethernet node address and are used to compare
     the destination address of incoming packets for acceptation or rejection.*/
@@ -542,88 +546,45 @@ static int rtl8029_init (struct pci_device *pci_dev)
   return TRUE;
 }
 
-void dummy() {
-}
-
 static pok_bool_t send_frame_gather(const pok_network_sg_list_t *sg_list,
                                     size_t sg_list_len,
                                     pok_network_buffer_callback_t callback,
                                     void *callback_arg)
 {
+    if (sg_list_len != 1) {
+        printf("In NE2k driver real gathering is not supported yet");
+        return FALSE;
+    }
     printf("send_frame_gather ... \n");
-#if 0
-    // now, send it to the virtqueue
-    struct virtio_virtqueue *vq = &dev->tx_vq;
-    if (vq->num_free < sg_list_len) {
-        PRINTF("no free TX descriptors\n");
-        return FALSE; 
-    }
 
-    vq->num_free -= sg_list_len;
+    char *buf = sg_list[0].buffer;
+    size_t buf_len = sg_list[0].size;
 
-    struct vring_desc *desc;
-    uint16_t head = vq->free_index;
-    
-    desc = &vq->vring.desc[head];
-    size_t i;
-    for (i = 0; i < sg_list_len; i++) {
-        if (i > 0) {
-            desc = &vq->vring.desc[desc->next];
-        }
-        desc->addr = pok_virt_to_phys(sg_list[i].buffer);
-        desc->len = sg_list[i].size;
-        desc->flags = VRING_DESC_F_NEXT;
-    }
+    unsigned char state; // ISR state
 
-    desc->flags = 0;
-    vq->free_index = desc->next;
+    ne2000_write(&dev, buf, buf_len, NE2000_TXBUF * 256);
 
-    vq->callbacks[head].callback = callback;
-    vq->callbacks[head].callback_arg = callback_arg;
+    do {
+        state = inb(dev.addr + NE2000_ISR);
+    } while ((state & NE2000_ISR_RDC) != NE2000_ISR_RDC);
 
-    int avail = vq->vring.avail->idx & (vq->vring.num-1); // wrap around
-    vq->vring.avail->ring[avail] = head; 
-    
-    __sync_synchronize();
-    
-    vq->vring.avail->idx++;
-#endif
+    /* This register sets the start page address of
+       the packet to the transmitted. */
+    outb_inverse(NE2000_TXBUF, dev.addr + NE2000_TPSR); //?
 
+    /* These two registers set the byte counts of
+       the packet to be transmitted. */
+    outb_inverse(buf_len, dev.addr + NE2000_TBCR0);
+    outb_inverse(buf_len >> 8, dev.addr + NE2000_TBCR1);
 
-    //for (i = 0; i < sg_list_len; i++) {
-    //    sg_list[i].buffer
-    //    sg_list[i].size
-    //}
-    
-     
-    unsigned char	state; // ISR state
-    int i = 0;
-    unsigned sndlen = sg_list[i].size;
-    {
+    /* This bit must be set to transmit a packet. */
+    outb_inverse(inb(dev.addr + NE2000_CR) | NE2000_CR_TXP,
+            dev.addr + NE2000_CR);
 
+    outb_inverse(NE2000_ISR_RDC, dev.addr + NE2000_ISR); // Clear RDC bit
 
-	ne2000_write(&dev, sg_list[i].buffer, sg_list[i].size, NE2000_TXBUF * 256);
-	do
-	{
-	  state = inb(dev.addr + NE2000_ISR);
-	}
-	while ((state & NE2000_ISR_RDC) != NE2000_ISR_RDC);
-
-	/* This register sets the start page address of
-	   the packet to the transmitted. */
-	outb_inverse(NE2000_TXBUF, dev.addr + NE2000_TPSR); //?
-
-	/* These two registers set the byte counts of
-	   the packet to be transmitted. */
-	outb_inverse(sndlen, dev.addr + NE2000_TBCR0);
-	outb_inverse(sndlen >> 8, dev.addr + NE2000_TBCR1);
-
-	/* This bit must be set to transmit a packet. */
-	outb_inverse(inb(dev.addr + NE2000_CR) | NE2000_CR_TXP,
-	     dev.addr + NE2000_CR);
-
-	outb_inverse(NE2000_ISR_RDC, dev.addr + NE2000_ISR); // Clear RDC bit
-    }
+    //XXX: Currently NE2K driver ignores reclaim_*
+    callback(callback_arg);
 
     return TRUE;
 }
@@ -640,50 +601,11 @@ static pok_bool_t send_frame(char *buffer,
 
 static void reclaim_send_buffers(void)
 {
-    printf("reclaim_send_buffers\n");
-#if 0
-    struct virtio_virtqueue *vq = &virtio_network_device.tx_vq;
-    
-    // this function can be called by any thread
-    // callbacks don't do much work, so we can run them all
-    // in single critical section without worrying too much
-    
-    pok_bool_t saved_preemption;
-    maybe_lock_preemption(&saved_preemption);
-
-    while (vq->last_seen_used != vq->vring.used->idx) {
-        uint16_t index = vq->last_seen_used & (vq->vring.num-1);
-        struct vring_used_elem *e = &vq->vring.used->ring[index];
-        struct vring_desc *head = &vq->vring.desc[e->id];
-        struct vring_desc *tail = head;
-
-        pok_network_buffer_callback_t cb = vq->callbacks[e->id].callback;
-        void *cb_arg = vq->callbacks[e->id].callback_arg;
-        cb(cb_arg);
-
-        // reclaim descriptor
-        uint16_t total_descriptors = 1;
-        while (tail->flags & VRING_DESC_F_NEXT) {
-            total_descriptors++;;
-            tail = &vq->vring.desc[tail->next];
-        }
-
-        vq->num_free += total_descriptors;
-        
-        // insert chain in the beginning of the free desc. list
-        tail->next = vq->free_index; 
-        vq->free_index = e->id; // id of head
-
-        vq->last_seen_used++;
-    }
-    
-    maybe_unlock_preemption(&saved_preemption);
-#endif
 }
 
 static void reclaim_receive_buffers(void)
 {
-    printf("reclaim_receive_buffer\n");
+    //printf("reclaim_receive_buffer\n");
 #if 0
     struct virtio_network_device *dev = &virtio_network_device;
     struct virtio_virtqueue *vq = &dev->rx_vq;
@@ -691,7 +613,7 @@ static void reclaim_receive_buffers(void)
     // network thread only
     // TODO also ensure we're not in timer interrupt
     //assert(POK_SCHED_CURRENT_THREAD == NETWORK_THREAD);
-        
+
     pok_bool_t saved_preemption;
     maybe_lock_preemption(&saved_preemption);
 
@@ -703,7 +625,7 @@ static void reclaim_receive_buffers(void)
         struct vring_desc *desc = &vq->vring.desc[e->id];
 
         struct receive_buffer *buf = pok_phys_to_virt(desc->addr);
-        
+
         process_received_buffer(buf, e->len);
 
         // reclaim descriptor
@@ -711,7 +633,7 @@ static void reclaim_receive_buffers(void)
         vq->num_free++;
         desc->next = vq->free_index;
         vq->free_index = e->id;
-       
+
         vq->last_seen_used++;
 
         // reclaim buffer
@@ -728,7 +650,7 @@ static void reclaim_receive_buffers(void)
         // used to avail ring
         notify_receive_buffers(dev);
     }
-        
+
     maybe_unlock_preemption(&saved_preemption);
 #endif
 }
@@ -736,11 +658,6 @@ static void reclaim_receive_buffers(void)
 static void flush_send(void)
 {
     printf("flush_send\n");
-#if 0
-    struct virtio_network_device *dev = &virtio_network_device;
-
-    outw(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_NOTIFY, (uint16_t) VIRTIO_NETWORK_TX_VIRTQUEUE);
-#endif
 }
 
 static const pok_network_driver_ops_t driver_ops = {

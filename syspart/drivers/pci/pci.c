@@ -154,8 +154,11 @@ void pci_init()
                     pci_write_word(&pci_dev, PCI_REG_BAR0, bar0_addr);
                     pci_write_word(&pci_dev, PCI_REG_COMMAND, PCI_COMMAND_IO);
                     pci_dev.bar[0] = bridge.iorange + bar0_addr;
+                    pci_dev.ioaddr = pci_dev.bar[0] & BAR_IOADDR_MASK;
                     bar0_addr += BAR0_SIZE;
-                    pci_dev.ioaddr = bar0_addr & BAR_IOADDR_MASK;
+                    printf("bar0: %lx\n", pci_dev.bar[0]);
+                    printf("ioaddr: %lx\n", pci_dev.ioaddr);
+                    printf("iorange: %lx\n", bridge.iorange);
 #else
                     pci_dev.bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0) & BAR_IOADDR_MASK; //TODO!!!!
                     pci_dev.ioaddr = pci_dev.bar[0] & BAR_IOADDR_MASK;
