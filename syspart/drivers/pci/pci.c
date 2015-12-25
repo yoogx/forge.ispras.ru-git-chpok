@@ -113,10 +113,11 @@ void pci_list()
 
 void pci_init()
 {
+    printf("\n***********************************************\n");
 
+#ifdef __PPC__
     //TODO make syscall
     //bridge = devtree_get_pci_props();
-//#ifdef __PPC__
     bridge.cfg_addr = (uint32_t*) 0xe0008000;
     bridge.cfg_data = (void *) 0xe0008004;
 
@@ -124,12 +125,11 @@ void pci_init()
 
     static uint32_t bar0_addr = 0x1001;
     const uint32_t BAR0_SIZE = 0x100; 
-//#endif
 
-    printf("\n***********************************************\n");
     printf("PCI initializing\n");
     printf("bridge cfg_addr: %p cfg_data: %p\n",
             bridge.cfg_addr, bridge.cfg_data);
+#endif
 
     for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
       for (unsigned int dev = 0; dev < PCI_DEV_MAX; dev++)

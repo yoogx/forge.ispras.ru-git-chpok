@@ -104,7 +104,7 @@ struct pci_device_id {
 
 struct pci_driver {
     const char *name;
-    int (*probe) (struct pci_device *dev);
+    pok_bool_t (*probe) (struct pci_device *dev);
     const struct pci_device_id *id_table;
 };
 

@@ -213,7 +213,7 @@ static void process_received_buffer(
  * BEGIN "public" interface
  */
 
-static int probe_device(struct pci_device *pci_dev)
+static pok_bool_t probe_device(struct pci_device *pci_dev)
 {
     printf("virtio-net pci probing device!\n");
     struct virtio_network_device *dev = &virtio_network_device;
