@@ -39,36 +39,31 @@ static void measure_sc(int mode)
 	unsigned int ticks_sq = 0;
 	
 	
-	for (i = 0; i < lim; i++) {
-		uint64_t base, base2;
-		if (mode == MEASURE_SC) {
-			base = __ppc_get_timebase();
-			asm volatile ("lis %r3, 2048; lis %r4, 0; sc");
-			base2 = __ppc_get_timebase();
-		} 
-		if (mode == MEASURE_FUNCALL) {
-			base = __ppc_get_timebase();
-			deadbeef(i, lim);
-			base2 = __ppc_get_timebase();
-		} 
-		if (mode == MEASURE_SYSCALL) {
-			base = __ppc_get_timebase();
-			pok_syscall2(2049, i, lim);
-			base2 = __ppc_get_timebase();
-		} 
-		if (mode == MEASURE_TB) {
-			base = __ppc_get_timebase();
-			base2 = __ppc_get_timebase();
-		}
+        uint64_t base, base2;
+        base = __ppc_get_timebase();
+        for (i = 0; i < lim; i++) {
+            if (mode == MEASURE_SC) {
+                asm volatile ("lis %r3, 2048; lis %r4, 0; sc");
+            } 
+            if (mode == MEASURE_FUNCALL) {
+                deadbeef(i, lim);
+            } 
+            if (mode == MEASURE_SYSCALL) {
+                pok_syscall2(2049, i, lim);
+            } 
+            if (mode == MEASURE_TB) {
+            }
+        }
+        base2 = __ppc_get_timebase();
 
-		uint64_t delta = base2 - base;
-		unsigned int tick = (unsigned int)delta;
-		if (tick > 3000) continue;
-		
-		ticks += tick;
-		ticks_sq += tick*tick;
-		cnt ++;
-	}
+        uint64_t delta = base2 - base;
+        unsigned int tick = (unsigned int)delta;
+        //if (tick > 3000) continue;
+
+        /*
+        ticks += tick;
+        ticks_sq += tick*tick;
+        cnt ++;
 	
 	unsigned int avg = ticks / cnt;
 	unsigned int disp = avg*avg - ticks_sq/cnt;
@@ -76,6 +71,8 @@ static void measure_sc(int mode)
 	
     printf("Average number of ticks per call: %u,\n dispersion square: %u\n", 
 		avg, disp);
+        */
+        printf("nubmer of ticks: %u for %d iterations\n", tick, lim);
 }
 
 void main(void) {
