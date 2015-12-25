@@ -56,8 +56,6 @@
 
 bool_t pok_arinc653_events_initialized = 0;
 
-pok_arinc653_event_layer_t *pok_arinc653_events_layers;
-
 static void init_events() 
 {
    size_t i;
@@ -73,6 +71,7 @@ void CREATE_EVENT (EVENT_NAME_TYPE EVENT_NAME,
                    EVENT_ID_TYPE *EVENT_ID,
                    RETURN_CODE_TYPE *RETURN_CODE)
 {
+   strtoupper(EVENT_NAME);
    pok_event_id_t    core_id;
    pok_ret_t         core_ret;
 
@@ -258,6 +257,7 @@ void GET_EVENT_ID (EVENT_NAME_TYPE EVENT_NAME,
                    EVENT_ID_TYPE *EVENT_ID,
                    RETURN_CODE_TYPE *RETURN_CODE)
 {
+   strtoupper(EVENT_NAME);
    size_t i;
 
    *RETURN_CODE = INVALID_CONFIG;

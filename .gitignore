@@ -10,6 +10,7 @@ libpok.a
 *.uboot
 *.map
 *.pyc
+build/
 .sconsign*
 *.log
 *.directory

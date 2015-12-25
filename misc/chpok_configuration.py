@@ -335,6 +335,9 @@ class Configuration:
         partitions_set = set(range(len(self.partitions)))
         partitions_without_periodic_processing = set(partitions_set) # copy
 
+        if not isinstance(self.slots[0], TimeSlotPartition):
+            raise ValueError("First time slot must be partition slot")
+
         for slot in self.slots:
             slot.validate()
 
@@ -865,6 +868,7 @@ def write_kernel_deployment_c_hm_tables(conf, f):
 
             p("  {%s, %s, %s, %s}," % (kind, level, action, target_error_code))
 
+        p("  {POK_ERROR_KIND_PARTITION_CONFIGURATION, POK_ERROR_LEVEL_PARTITION, POK_ERROR_ACTION_IDLE, POK_ERROR_KIND_PARTITION_CONFIGURATION},")
         p("  {POK_ERROR_KIND_INVALID, POK_ERROR_LEVEL_PROCESS, POK_ERROR_ACTION_IGNORE, POK_ERROR_KIND_INVALID} /* sentinel value */")
 
         p("};")
