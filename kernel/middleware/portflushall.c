@@ -396,9 +396,7 @@ void pok_port_flush_partition (pok_partition_id_t pid)
         if (port->header.partition != pid) continue;
 
 #if defined(POK_NEEDS_SIMULATION) && defined(POK_NEEDS_NETWORKING)
-        // TODO To implement this as soon as there will be enough information.
-        // Example of implementation:
-        //have_something_to_send |= port->freshness;
+        have_something_to_send |= port->header.must_be_flushed;
 #endif // POK_NEEDS_SIMULATION && POK_NEEDS_NETWORKING
 
         pok_sampling_channel_flush(chan);
