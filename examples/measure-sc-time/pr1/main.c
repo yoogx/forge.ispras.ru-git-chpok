@@ -34,7 +34,7 @@ static unsigned int deadbeef(unsigned int x, unsigned int y) {
 static void measure_sc(int mode)
 {
 	unsigned int i, cnt = 0;
-	unsigned int lim = 10000;
+	unsigned int lim = 1000000;
 	unsigned int ticks = 0;
 	unsigned int ticks_sq = 0;
 	
@@ -76,6 +76,7 @@ static void measure_sc(int mode)
 }
 
 void main(void) {
+    for (int i = 0; i<10; i++) {
 	printf("Measure time base access\n");
 	measure_sc(MEASURE_TB);
 	printf("Measure function call\n");
@@ -84,5 +85,7 @@ void main(void) {
 	measure_sc(MEASURE_SC);
 	printf("Measure system call\n");
 	measure_sc(MEASURE_SYSCALL);
-	STOP_SELF();
+        printf("-------------------------\n");
+    }
+    STOP_SELF();
 }  
