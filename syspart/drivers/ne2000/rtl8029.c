@@ -79,6 +79,34 @@ static int ne2000_write(
   return (ret);
 }
 
+static int ne2000_read_header(
+        const s_ne2000_dev *dev,
+        s_ne2000_header    *hdr,
+        unsigned short      offset)
+{
+    int count = sizeof(s_ne2000_header);
+    // Sets RD2 (abort/complete remote DMA)
+    outb_inverse((inb((dev)->addr + NE2000_CR) & ~(NE2000_CR_RD0 | NE2000_CR_RD1)) |
+            NE2000_CR_RD2, (dev)->addr);
+
+    /* These two registers set the start address of remote DMA. */
+    outb_inverse(offset, dev->addr + NE2000_RSAR0);
+    outb_inverse(offset >> 8, dev->addr + NE2000_RSAR1);
+
+    /* These two registers set the data byte counts of remote DMA. */
+    outb_inverse(count, dev->addr + NE2000_RBCR0);
+    outb_inverse(count >> 8, dev->addr + NE2000_RBCR1);
+
+    // Sets RD0 (remote read)
+    outb_inverse((inb((dev)->addr + NE2000_CR) & ~(NE2000_CR_RD1 | NE2000_CR_RD2)) |
+            NE2000_CR_RD0, (dev)->addr);
+    hdr->status = inb(dev->addr + NE2000_DMA_PORT);
+    hdr->next   = inb(dev->addr + NE2000_DMA_PORT);
+    hdr->size   = inb(dev->addr + NE2000_DMA_PORT);
+    hdr->size  |= inb(dev->addr + NE2000_DMA_PORT) << 8;
+
+    return count;
+}
 static int ne2000_read(
         const s_ne2000_dev *dev,
         void               *buf,
@@ -104,12 +132,11 @@ static int ne2000_read(
   outb_inverse((inb((dev)->addr + NE2000_CR) & ~(NE2000_CR_RD1 | NE2000_CR_RD2)) |
        NE2000_CR_RD0, (dev)->addr);
 
-  for (p = buf; count > 0; count--, p++)
-  {
+  for (p = buf; count > 0; count--, p++) {
     *p = inb(dev->addr + NE2000_DMA_PORT);
   }
 
-  return (ret);
+  return ret;
 }
 
 
@@ -118,171 +145,6 @@ static void set_packet_received_callback(void (*f)(const char *, size_t))
     dev.packet_received_callback = f;
 }
 
-#if 0
-/**
- *  @brief Enqueues a packet in the appropriate queue
- *
- */
-static inline
-void rtl8029_enqueue (pok_packet_t *packet)
-{
-  pok_queue_t*	queue = dev.recv_buf + packet->udp.dst;
-  uint32_t	off = 0;
-  uint32_t	i = 0;
-
-  /* overflow? */
-  if (queue->len + packet->udp.len > RECV_BUF_SZ)
-  {
-    printf("rtl8029_read: error: ring buffer %d overflow!\n", packet->udp.dst);
-    return;
-  }
-
-  /* at which offset should we start writing? */
-  off = (queue->off + queue->len) % RECV_BUF_SZ;
-
-  /* copying data from the packet to the circular buffer in the queue */
-  for (i = 0; i < packet->udp.len; i++)
-  {
-    queue->data[off] = packet->data[i];
-    off = (off + 1) % RECV_BUF_SZ;
-  }
-
-  /* updating data length in this queue */
-  queue->len += packet->udp.len;
-}
-
-/**
- *  @brief Reads data from the corresponding network stack
- *
- *  Reads enqueued data in the stack partition.
- */
-void rtl8029_read (pok_port_id_t port_id, void* data, uint32_t len)
-{
-  pok_port_id_t global;
-  pok_ret_t     ret;
-
-  ret = pok_port_virtual_get_global (port_id, &global);
-
-  if (ret == POK_ERRNO_OK)
-  {
-    char	*dest = data;
-    pok_queue_t* queue = dev.recv_buf + global;
-    uint32_t	size = len < queue->len ? len : queue->len;
-    uint32_t	copied = 0;
-
-    printf ("[RTL8029] READ DATA FROM LOCAL PORT %d "
-	    "GLOBAL_PORT=%d), size=%d\n", port_id, global, len);
-
-    /* is there something to read ? */
-    if (queue->len == 0)
-    {
-      printf("rtl8029_read: error: empty read ring buffer %d!\n", port_id);
-      return;
-    }
-
-    /* copy from the queue to the buffer */
-    for (copied = 0; copied < size; copied++)
-    {
-      dest[copied % RECV_BUF_SZ] = queue->data[queue->off];
-      queue->off = (queue->off + 1) % RECV_BUF_SZ;
-    }
-
-    /* updating data length in this queue */
-    queue->len -= size;
-  }
-}
-
-/**
- *  @brief Send data to the interface
- *
- *  Writes data to be sent to network.
- */
-void rtl8029_write (pok_port_id_t port_id, const void* data, uint32_t len)
-{
-  uint32_t        nbdest;
-  uint32_t        tmp;
-  uint32_t        dest;
-  pok_ret_t       ret;
-  char            node2[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-  pok_packet_t    packet;
-  const char*     d;
-  size_t          cpylen = 0;
-  size_t          sndlen = 0;
-  unsigned char	state; // ISR state
-
-  ret = pok_port_virtual_nb_destinations (port_id, &nbdest);
-  if (ret != POK_ERRNO_OK)
-  {
-    return;
-  }
-
-  for (tmp = 0 ; tmp < nbdest ; tmp++)
-  {
-    ret = pok_port_virtual_destination (port_id, tmp, &dest);
-    if (ret == POK_ERRNO_OK)
-    {
-      printf ("[RTL8029] SEND DATA THROUGH NETWORK FROM LOCAL PORT %d "
-	      "TO GLOBAL PORT %d, size=%d\n", port_id, dest, len);
-
-      memcpy(packet.eth.src, dev.mac, ETH_MAC_LEN);
-      memcpy(packet.eth.dst, node2, ETH_MAC_LEN);
-      packet.eth.ethertype = 0x4242;
-      packet.udp.src = port_id;
-      packet.udp.dst = dest;
-
-      for (d = data; len != 0; len -= cpylen, data += cpylen)
-      {
-	// too short; let's cut
-	if (len <= NET_DATA_MINLEN)
-	{
-	  cpylen = len;
-	  sndlen = ETH_DATA_MINLEN + sizeof(eth_hdr_t);
-	}
-	else
-	{
-	  // too big; let's pad
-	  if (len >= NET_DATA_MAXLEN)
-	  {
-	    cpylen = NET_DATA_MAXLEN;
-	    sndlen = ETH_DATA_MAXLEN + sizeof(eth_hdr_t);
-	  }
-	  // normal
-	  else
-	  {
-	    cpylen = len;
-	    sndlen = sizeof(eth_hdr_t) + sizeof(udp_hdr_t) + cpylen;
-	  }
-	}
-
-	packet.udp.len = cpylen;
-	memcpy(&(packet.data), data, cpylen);
-
-	ne2000_write(&dev, &packet, sndlen, NE2000_TXBUF * 256);
-
-	do
-	{
-	  state = inb(dev.addr + NE2000_ISR);
-	}
-	while ((state & NE2000_ISR_RDC) != NE2000_ISR_RDC);
-
-	/* This register sets the start page address of
-	   the packet to the transmitted. */
-	outb_inverse(NE2000_TXBUF, dev.addr + NE2000_TPSR); //?
-
-	/* These two registers set the byte counts of
-	   the packet to be transmitted. */
-	outb_inverse(sndlen, dev.addr + NE2000_TBCR0);
-	outb_inverse(sndlen >> 8, dev.addr + NE2000_TBCR1);
-
-	/* This bit must be set to transmit a packet. */
-	outb_inverse(inb(dev.addr + NE2000_CR) | NE2000_CR_TXP,
-	     dev.addr + NE2000_CR);
-
-	outb_inverse(NE2000_ISR_RDC, dev.addr + NE2000_ISR); // Clear RDC bit
-      }
-    }
-  }
-}
 
 /**
  *  @brief Polls rtl8029 device.
@@ -291,165 +153,66 @@ void rtl8029_write (pok_port_id_t port_id, const void* data, uint32_t len)
  */
 void rtl8029_polling ()
 {
-  unsigned char	state; // ISR state
+    unsigned char state; // ISR state
+    s_ne2000_header  ne2000_hdr;     // ne2000 packet header
+    unsigned short   offset;         // dma offset
+    unsigned char    start, end;     // pointers for the ring buffer
+    pok_packet_t     recv_packet;
 
-  NE2000_SELECT_PAGE(&dev, 0);
 
-  while (1)
-  {
+    NE2000_SELECT_PAGE(&dev, 0);
+
     // do we have an interrupt flag set?
     if ((state = inb(dev.addr + NE2000_ISR)) == 0)
-      continue;
+        goto POLL_END;
 
-    if (state & NE2000_ISR_PRX)
-    {
-      if ((inb(dev.addr + NE2000_RSR) & NE2000_RSR_PRX) == 0)
-      {
-	// error
-      }
+    if (!state & NE2000_ISR_PRX)
+        goto POLL_END;
 
-      printf("[*]\n");
+    if ((inb(dev.addr + NE2000_RSR) & NE2000_RSR_PRX) == 0)
+        goto POLL_END;
 
-      /* no errors */
-      s_ne2000_header	ne2000_hdr;	// ne2000 packet header
-      unsigned short	offset;		// dma offset
-      unsigned char	start, end;	// pointers for the ring buffer
-      pok_packet_t	recv_packet;
+    /* This register is used to prevent overwrite of the receive buffer ring.
+       It is typically used as a pointer indicating the last receive buffer
+       page the host has read.*/
+    unsigned tmp = inb(dev.addr + NE2000_BNRY);
+    start = tmp + 1;
 
-      while (1)
-      {
+    /* This register points to the page address of the first receive
+       buffer page to be used for a packet reception. */
+    NE2000_SELECT_PAGE(&dev, 1);
+    end = inb(dev.addr + NE2000_CURR);
+    NE2000_SELECT_PAGE(&dev, 0);
 
-	/* This register is used to prevent overwrite of the receive buffer ring.
-	   It is typically used as a pointer indicating the last receive buffer
-	   page the host has read.*/
-	start = inb(dev.addr + NE2000_BNRY) + 1;
+    if ((end % NE2000_MEMSZ) == (start % NE2000_MEMSZ))
+        goto POLL_END;
 
-	/* This register points to the page address of the first receive
-	   buffer page to be used for a packet reception. */
-	NE2000_SELECT_PAGE(&dev, 1);
-	end = inb(dev.addr + NE2000_CURR);
-	NE2000_SELECT_PAGE(&dev, 0);
+    /* et on decapsule! */
 
-	if ((end % NE2000_MEMSZ) == (start % NE2000_MEMSZ) + 1)
-	{
-	  break;
-	}
+    offset = start << 8;
+    offset += ne2000_read_header(&dev, &ne2000_hdr, offset);
 
-	/* et on decapsule! */
-	offset = start << 8;
-	// ne2000 header
-	offset += ne2000_read(&dev, &ne2000_hdr, sizeof(s_ne2000_header),
-			      offset);
+    ne2000_read(&dev, &recv_packet,
+            ne2000_hdr.size - sizeof(s_ne2000_header), offset);
 
-	ne2000_read(&dev, &recv_packet,
-		    ne2000_hdr.size - sizeof(s_ne2000_header), offset);
-	rtl8029_enqueue(&recv_packet);
+    // update the BNRY register... almost forgot that
+    outb_inverse(ne2000_hdr.next > NE2000_MEMSZ ?
+            NE2000_RXBUF - 1 : ne2000_hdr.next - 1, dev.addr + NE2000_BNRY);
 
-	// update the BNRY register... almost forgot that
-	outb_inverse(ne2000_hdr.next > NE2000_MEMSZ ?
-	     NE2000_RXBUF - 1 : ne2000_hdr.next - 1, dev.addr + NE2000_BNRY);
+    dev.packet_received_callback((const char *)&recv_packet, ne2000_hdr.size - sizeof(s_ne2000_header));
 
-      }
+    outb_inverse(NE2000_ISR_PRX, dev.addr + NE2000_ISR); // Clear PRX flag
 
-      outb_inverse(NE2000_ISR_PRX, dev.addr + NE2000_ISR); // Clear PRX flag
-    }
-
-    if (state & NE2000_ISR_PTX)
-    {
-      outb_inverse(NE2000_ISR_PTX, dev.addr + NE2000_ISR); // Clear PTX flag
-    }
-
-    if (state & NE2000_ISR_RXE)
-    {
-      outb_inverse(NE2000_ISR_RXE, dev.addr + NE2000_ISR); // Clear RXE flag
-    }
-
-    if (state & NE2000_ISR_TXE)
-    {
-      outb_inverse(NE2000_ISR_TXE, dev.addr + NE2000_ISR); // Clear TXE flag
-    }
-
-    if (state & NE2000_ISR_OVW)
-    {
-      outb_inverse(NE2000_ISR_OVW, dev.addr + NE2000_ISR); // Clear OVW flag
-    }
-
-    if (state & NE2000_ISR_CNT)
-    {
-      outb_inverse(NE2000_ISR_CNT, dev.addr + NE2000_ISR); // Clear CNT flag
-    }
-
-    if (state & NE2000_ISR_RST)
-    {
-      outb_inverse(NE2000_ISR_RST, dev.addr + NE2000_ISR); // Clear RST bit
-    }
-  }
+POLL_END:
+    //Clear flags
+    if (state & NE2000_ISR_PTX) outb_inverse(NE2000_ISR_PTX, dev.addr + NE2000_ISR);
+    if (state & NE2000_ISR_RXE) outb_inverse(NE2000_ISR_RXE, dev.addr + NE2000_ISR);
+    if (state & NE2000_ISR_TXE) outb_inverse(NE2000_ISR_TXE, dev.addr + NE2000_ISR);
+    if (state & NE2000_ISR_OVW) outb_inverse(NE2000_ISR_OVW, dev.addr + NE2000_ISR);
+    if (state & NE2000_ISR_CNT) outb_inverse(NE2000_ISR_CNT, dev.addr + NE2000_ISR);
+    if (state & NE2000_ISR_RST) outb_inverse(NE2000_ISR_RST, dev.addr + NE2000_ISR);
 }
 
-#endif
-
-static inline
-int pci_open(s_pci_device* d)
-{
-  unsigned int bus = 0;
-  unsigned int dev = 0;
-  unsigned int fun = 0;
-
-  for (bus = 0; bus < PCI_BUS_MAX; bus++)
-    for (dev = 0; dev < PCI_DEV_MAX; dev++)
-      for (fun = 0; fun < PCI_FUN_MAX; fun++)
-	if (((unsigned short) pci_read(bus, dev, fun, PCI_REG_VENDORID)) == d->vendorid &&
-	    ((unsigned short) pci_read(bus, dev, fun, PCI_REG_DEVICEID)) == d->deviceid)
-	{
-	  // we do not handle type 1 or 2 PCI configuration spaces
-	  if (pci_read(bus, dev, fun, PCI_REG_HEADERTYPE) != 0)
-	    continue;
-
-	  d->bus = bus;
-	  d->dev = dev;
-	  d->fun = fun;
-
-#ifdef __PPC__
-          d->bar[0] = 0xe1001000;
-          printf ("bar0 %lx\n", d->bar[0]);
-          {
-                uint32_t * cfg_addr = (uint32_t*) 0xe0008000;
-                void * cfg_data = (void *) 0xe0008004;
-
-                //TODO call pci write word
-                out_be32(cfg_addr, 0x80000810); //write something to BAR0
-                out_le16(cfg_data, 0x1001);
-
-                out_be32(cfg_addr, 0x80000804);//write something to COMMAND register
-                out_le16(cfg_data, 0x7);
-          }
-#else
-	  d->bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0);
-#endif
-          //XXX curently interrupts are unsupported
-          //d->irq_line = (unsigned char) pci_read_reg(d, PCI_REG_IRQLINE);
-
-	  return (0);
-	}
-
-  return (-1);
-}
-
-pok_ret_t pci_register(s_pci_device*	dev)
-{
-  if (pci_open(dev) != 0)
-    return (-1);
-
-  /*
-  pok_idt_set_gate(32 + dev->irq_line,
-		   GDT_CORE_CODE_SEGMENT,
-		   (uint32_t) pci_handler,
-		   IDTE_INTERRUPT,
-		   0);
-  */
-
-  return (0);
-}
 
 /**
  *  @brief Initializes rtl8029 device.
@@ -605,54 +368,7 @@ static void reclaim_send_buffers(void)
 
 static void reclaim_receive_buffers(void)
 {
-    //printf("reclaim_receive_buffer\n");
-#if 0
-    struct virtio_network_device *dev = &virtio_network_device;
-    struct virtio_virtqueue *vq = &dev->rx_vq;
-
-    // network thread only
-    // TODO also ensure we're not in timer interrupt
-    //assert(POK_SCHED_CURRENT_THREAD == NETWORK_THREAD);
-
-    pok_bool_t saved_preemption;
-    maybe_lock_preemption(&saved_preemption);
-
-    uint16_t old_last_seen_used = vq->last_seen_used;
-
-    while (vq->last_seen_used != vq->vring.used->idx) {
-        uint16_t index = vq->last_seen_used & (vq->vring.num-1);
-        struct vring_used_elem *e = &vq->vring.used->ring[index];
-        struct vring_desc *desc = &vq->vring.desc[e->id];
-
-        struct receive_buffer *buf = pok_phys_to_virt(desc->addr);
-
-        process_received_buffer(buf, e->len);
-
-        // reclaim descriptor
-        // FIXME support chained descriptors as well
-        vq->num_free++;
-        desc->next = vq->free_index;
-        vq->free_index = e->id;
-
-        vq->last_seen_used++;
-
-        // reclaim buffer
-        // i.e. push it back to avail. ring
-        use_receive_buffer(dev, buf);
-
-        // preemption point
-        maybe_unlock_preemption(&saved_preemption);
-        maybe_lock_preemption(&saved_preemption);
-    }
-
-    if (old_last_seen_used != vq->last_seen_used) {
-        // this means we moved at least one buffer from
-        // used to avail ring
-        notify_receive_buffers(dev);
-    }
-
-    maybe_unlock_preemption(&saved_preemption);
-#endif
+    rtl8029_polling();
 }
 
 static void flush_send(void)
