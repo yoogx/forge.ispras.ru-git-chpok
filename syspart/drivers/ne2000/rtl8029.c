@@ -44,8 +44,8 @@ static s_ne2000_dev dev;
  * the card is switched to page 0 again when we're done...
  */
 #define NE2000_SELECT_PAGE(dev, page)                                   \
-  outb_inverse((inb((dev)->addr + NE2000_CR) &                          \
-        ~(NE2000_CR_PS0 | NE2000_CR_PS1)) | ((page) << 6), (dev)->addr)
+    outb_inverse((inb((dev)->addr + NE2000_CR) &                          \
+                ~(NE2000_CR_PS0 | NE2000_CR_PS1)) | ((page) << 6), (dev)->addr)
 
 static int ne2000_write(
         const s_ne2000_dev *dev,
@@ -53,30 +53,30 @@ static int ne2000_write(
         unsigned short     count,
         unsigned short     offset)
 {
-  const char* p = NULL;
-  int ret = count;
+    const char* p = NULL;
+    int ret = count;
 
-  // Sets RD2 (abort/complete remote DMA)
-  outb_inverse((inb((dev)->addr + NE2000_CR) & ~(NE2000_CR_RD0 | NE2000_CR_RD1)) |
-       NE2000_CR_RD2, (dev)->addr);
+    // Sets RD2 (abort/complete remote DMA)
+    outb_inverse((inb((dev)->addr + NE2000_CR) & ~(NE2000_CR_RD0 | NE2000_CR_RD1)) |
+            NE2000_CR_RD2, (dev)->addr);
 
-  /* These two registers set the start address of remote DMA. */
-  outb_inverse(offset, dev->addr + NE2000_RSAR0);
-  outb_inverse(offset >> 8, dev->addr + NE2000_RSAR1);
+    /* These two registers set the start address of remote DMA. */
+    outb_inverse(offset, dev->addr + NE2000_RSAR0);
+    outb_inverse(offset >> 8, dev->addr + NE2000_RSAR1);
 
-  /* These two registers set the data byte counts of remote DMA. */
-  outb_inverse(count, dev->addr + NE2000_RBCR0);
-  outb_inverse(count >> 8, dev->addr + NE2000_RBCR1);
+    /* These two registers set the data byte counts of remote DMA. */
+    outb_inverse(count, dev->addr + NE2000_RBCR0);
+    outb_inverse(count >> 8, dev->addr + NE2000_RBCR1);
 
-  // Sets RD1 (remote write)
-  outb_inverse((inb((dev)->addr + NE2000_CR) & ~(NE2000_CR_RD0 | NE2000_CR_RD2)) |
-       NE2000_CR_RD1, (dev)->addr);
+    // Sets RD1 (remote write)
+    outb_inverse((inb((dev)->addr + NE2000_CR) & ~(NE2000_CR_RD0 | NE2000_CR_RD2)) |
+            NE2000_CR_RD1, (dev)->addr);
 
-  for (p = buf; count > 0; count--, p++) {
-    outb_inverse(*p, dev->addr + NE2000_DMA_PORT);
-  }
+    for (p = buf; count > 0; count--, p++) {
+        outb_inverse(*p, dev->addr + NE2000_DMA_PORT);
+    }
 
-  return (ret);
+    return (ret);
 }
 
 static int ne2000_read_header(
@@ -113,30 +113,30 @@ static int ne2000_read(
         unsigned short      count,
         unsigned short      offset)
 {
-  char* p = NULL;
-  int ret = count;
+    char* p = NULL;
+    int ret = count;
 
-  // Sets RD2 (abort/complete remote DMA)
-  outb_inverse((inb((dev)->addr + NE2000_CR) & ~(NE2000_CR_RD0 | NE2000_CR_RD1)) |
-       NE2000_CR_RD2, (dev)->addr);
+    // Sets RD2 (abort/complete remote DMA)
+    outb_inverse((inb((dev)->addr + NE2000_CR) & ~(NE2000_CR_RD0 | NE2000_CR_RD1)) |
+            NE2000_CR_RD2, (dev)->addr);
 
-  /* These two registers set the start address of remote DMA. */
-  outb_inverse(offset, dev->addr + NE2000_RSAR0);
-  outb_inverse(offset >> 8, dev->addr + NE2000_RSAR1);
+    /* These two registers set the start address of remote DMA. */
+    outb_inverse(offset, dev->addr + NE2000_RSAR0);
+    outb_inverse(offset >> 8, dev->addr + NE2000_RSAR1);
 
-  /* These two registers set the data byte counts of remote DMA. */
-  outb_inverse(count, dev->addr + NE2000_RBCR0);
-  outb_inverse(count >> 8, dev->addr + NE2000_RBCR1);
+    /* These two registers set the data byte counts of remote DMA. */
+    outb_inverse(count, dev->addr + NE2000_RBCR0);
+    outb_inverse(count >> 8, dev->addr + NE2000_RBCR1);
 
-  // Sets RD0 (remote read)
-  outb_inverse((inb((dev)->addr + NE2000_CR) & ~(NE2000_CR_RD1 | NE2000_CR_RD2)) |
-       NE2000_CR_RD0, (dev)->addr);
+    // Sets RD0 (remote read)
+    outb_inverse((inb((dev)->addr + NE2000_CR) & ~(NE2000_CR_RD1 | NE2000_CR_RD2)) |
+            NE2000_CR_RD0, (dev)->addr);
 
-  for (p = buf; count > 0; count--, p++) {
-    *p = inb(dev->addr + NE2000_DMA_PORT);
-  }
+    for (p = buf; count > 0; count--, p++) {
+        *p = inb(dev->addr + NE2000_DMA_PORT);
+    }
 
-  return ret;
+    return ret;
 }
 
 
@@ -222,103 +222,92 @@ POLL_END:
  */
 static int rtl8029_init (struct pci_device *pci_dev)
 {
-    printf("rtl8029 probe called\n");
- // dev.pci.vendorid = 0x10ec;
- // dev.pci.deviceid = 0x8029;
- // dev.pci.io_range = 0x10;
+    // dev.pci.vendorid = 0x10ec;
+    // dev.pci.deviceid = 0x8029;
+    // dev.pci.io_range = 0x10;
 
-  dev.addr = pci_dev->ioaddr;
-  printf("bar0 addr = 0x%x\n", dev.addr);
+    dev.addr = pci_dev->ioaddr;
 
-  unsigned char	i = 0;
-  unsigned char	buf[6 * 2]; // used for MAC address
+    unsigned char	i = 0;
+    unsigned char	buf[6 * 2]; // used for MAC address
 
-  NE2000_SELECT_PAGE(&dev, 0);
+    NE2000_SELECT_PAGE(&dev, 0);
 
-  /* This bit is the STOP command. When it is set, no packets will be
-     received or transmitted. POWER UP=1. */
-  outb_inverse(NE2000_CR_STP, dev.addr + NE2000_CR);
+    /* This bit is the STOP command. When it is set, no packets will be
+       received or transmitted. POWER UP=1. */
+    outb_inverse(NE2000_CR_STP, dev.addr + NE2000_CR);
 
-  // Sets several options... Read the datasheet!
-  outb_inverse(0x00, dev.addr + NE2000_TCR);
-  outb_inverse(NE2000_RCR_AB, dev.addr + NE2000_RCR);
-  outb_inverse(NE2000_DCR_LS | NE2000_DCR_FT1, dev.addr + NE2000_DCR);
+    // Sets several options... Read the datasheet!
+    outb_inverse(0x00, dev.addr + NE2000_TCR);
+    outb_inverse(NE2000_RCR_AB|NE2000_RCR_AR, dev.addr + NE2000_RCR);
+    outb_inverse(NE2000_DCR_LS | NE2000_DCR_FT1, dev.addr + NE2000_DCR);
 
-  /* The Page Start register sets the start page address
-     of the receive buffer ring. */
-  outb_inverse(NE2000_RXBUF, dev.addr + NE2000_PSTART);
-  /* The Page Stop register sets the stop page address
-     of the receive buffer ring. */
-  outb_inverse(NE2000_MEMSZ, dev.addr + NE2000_PSTOP);
-  /* This register is used to prevent overwrite of the receive buffer ring.
-     It is typically used as a pointer indicating the last receive buffer
-     page the host has read. */
-  outb_inverse(NE2000_RXBUF, dev.addr + NE2000_BNRY);
+    /* The Page Start register sets the start page address
+       of the receive buffer ring. */
+    outb_inverse(NE2000_RXBUF, dev.addr + NE2000_PSTART);
+    /* The Page Stop register sets the stop page address
+       of the receive buffer ring. */
+    outb_inverse(NE2000_MEMSZ, dev.addr + NE2000_PSTOP);
+    /* This register is used to prevent overwrite of the receive buffer ring.
+       It is typically used as a pointer indicating the last receive buffer
+       page the host has read. */
+    outb_inverse(NE2000_RXBUF, dev.addr + NE2000_BNRY);
 
-  /* These two registers set the data byte counts of remote DMA. */
-  outb_inverse(0, dev.addr + NE2000_RBCR0);
-  outb_inverse(0, dev.addr + NE2000_RBCR1);
+    /* These two registers set the data byte counts of remote DMA. */
+    outb_inverse(0, dev.addr + NE2000_RBCR0);
+    outb_inverse(0, dev.addr + NE2000_RBCR1);
 
-  NE2000_SELECT_PAGE(&dev, 1);
+    NE2000_SELECT_PAGE(&dev, 1);
 
-  /* This register points to the page address of the first receive buffer
-     page to be used for a packet reception. */
-  outb_inverse(NE2000_RXBUF + 1, dev.addr + NE2000_CURR);
+    /* This register points to the page address of the first receive buffer
+       page to be used for a packet reception. */
+    outb_inverse(NE2000_RXBUF + 1, dev.addr + NE2000_CURR);
 
-  // Init mac address
-  /* Here's something I do not understand... Section 6.2.2 of the datasheet
-     says bytes 00H-05H of the PROM corresponds to the Ethernet ID. But it
-     looks like each byte of the MAC address is written twice...
-     Therefore I read 2 * sizeof(mac) and select one of the two bytes
-     corresponding to the MAC... Weird... Really... */
-  ne2000_read(&dev, buf, 6 * 2, 0);
-  for (i = 0; i < 6; i++) {
-    dev.mac[i] = buf[i * 2];
-    printf("%x:", dev.mac[i]);
-  }
-  printf("\n");
+    // Init mac address
+    /* Here's something I do not understand... Section 6.2.2 of the datasheet
+       says bytes 00H-05H of the PROM corresponds to the Ethernet ID. But it
+       looks like each byte of the MAC address is written twice...
+       Therefore I read 2 * sizeof(mac) and select one of the two bytes
+       corresponding to the MAC... Weird... Really... */
+    ne2000_read(&dev, buf, 6 * 2, 0);
+    for (i = 0; i < 6; i++) {
+        dev.mac[i] = buf[i * 2];
+    }
 
-  /* These registers contain my Ethernet node address and are used to compare
-    the destination address of incoming packets for acceptation or rejection.*/
-  outb_inverse(dev.mac[0], dev.addr + NE2000_PAR0);
-  outb_inverse(dev.mac[1], dev.addr + NE2000_PAR1);
-  outb_inverse(dev.mac[2], dev.addr + NE2000_PAR2);
-  outb_inverse(dev.mac[3], dev.addr + NE2000_PAR3);
-  outb_inverse(dev.mac[4], dev.addr + NE2000_PAR4);
-  outb_inverse(dev.mac[5], dev.addr + NE2000_PAR5);
+    /* These registers contain my Ethernet node address and are used to compare
+       the destination address of incoming packets for acceptation or rejection.*/
+    outb_inverse(dev.mac[0], dev.addr + NE2000_PAR0);
+    outb_inverse(dev.mac[1], dev.addr + NE2000_PAR1);
+    outb_inverse(dev.mac[2], dev.addr + NE2000_PAR2);
+    outb_inverse(dev.mac[3], dev.addr + NE2000_PAR3);
+    outb_inverse(dev.mac[4], dev.addr + NE2000_PAR4);
+    outb_inverse(dev.mac[5], dev.addr + NE2000_PAR5);
 
-  NE2000_SELECT_PAGE(&dev, 0);
+    NE2000_SELECT_PAGE(&dev, 0);
 
-  // Start command
-  outb_inverse(NE2000_CR_STA, dev.addr + NE2000_CR);
+    // Start command
+    outb_inverse(NE2000_CR_STA, dev.addr + NE2000_CR);
 
-  // Reactivating interrupts
-  /* ISR register must be cleared after power up. */
-  outb_inverse(0xFF, dev.addr + NE2000_ISR);
-  /* All bits correspond to the bits in the ISR register. POWER UP=all 0s.
-     Setting individual bits will enable the corresponding interrupts. */
-  /* Since POK use polling, ALL interrupts are disabled */
-  outb_inverse(0x00, dev.addr + NE2000_IMR);
+    // Reactivating interrupts
+    /* ISR register must be cleared after power up. */
+    outb_inverse(0xFF, dev.addr + NE2000_ISR);
+    /* All bits correspond to the bits in the ISR register. POWER UP=all 0s.
+       Setting individual bits will enable the corresponding interrupts. */
+    /* Since POK use polling, ALL interrupts are disabled */
+    outb_inverse(0x00, dev.addr + NE2000_IMR);
 
-  for (i = 0; i < 20; i++) /* TODO: random constant */
-  {
-    dev.recv_buf[i].len = 0;
-    dev.recv_buf[i].off = 0;
-  }
-
-  return TRUE;
+    return TRUE;
 }
 
 static pok_bool_t send_frame_gather(const pok_network_sg_list_t *sg_list,
-                                    size_t sg_list_len,
-                                    pok_network_buffer_callback_t callback,
-                                    void *callback_arg)
+        size_t sg_list_len,
+        pok_network_buffer_callback_t callback,
+        void *callback_arg)
 {
     if (sg_list_len != 1) {
         printf("In NE2k driver real gathering is not supported yet");
         return FALSE;
     }
-    printf("send_frame_gather ... \n");
 
     char *buf = sg_list[0].buffer;
     size_t buf_len = sg_list[0].size;
@@ -353,11 +342,10 @@ static pok_bool_t send_frame_gather(const pok_network_sg_list_t *sg_list,
 }
 
 static pok_bool_t send_frame(char *buffer,
-                             size_t size,
-                             pok_network_buffer_callback_t callback,
-                             void *callback_arg)
+        size_t size,
+        pok_network_buffer_callback_t callback,
+        void *callback_arg)
 {
-    printf("send_frame\n");
     pok_network_sg_list_t sg_list[1] = {{.buffer=buffer, .size=size}};
     return send_frame_gather(sg_list, 1, callback, callback_arg);
 }
@@ -373,7 +361,6 @@ static void reclaim_receive_buffers(void)
 
 static void flush_send(void)
 {
-    printf("flush_send\n");
 }
 
 static const pok_network_driver_ops_t driver_ops = {
