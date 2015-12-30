@@ -383,7 +383,7 @@ static const struct pci_device_id ne2k_pci_tbl[] = {
     //Here may be others cards from ne2k family
 };
 
-struct pci_driver ne2k_driver = {
+struct pci_driver ne2k_pci_driver = {
     .name     = DRV_NAME,
     .probe    = rtl8029_init,
     .id_table = ne2k_pci_tbl

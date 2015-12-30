@@ -5,12 +5,12 @@
 
 #include "pci_internal.h"
 
-extern struct pci_driver ne2k_driver;
+extern struct pci_driver ne2k_pci_driver;
 extern struct pci_driver virtio_pci_driver;
 
 #define PCI_DRIVER_TABLE_SIZE sizeof(pci_driver_table)/sizeof(struct pci_driver *)
 struct pci_driver *pci_driver_table[] = {
-    &ne2k_driver,
+    &ne2k_pci_driver,
     &virtio_pci_driver,
 };
 
@@ -156,25 +156,10 @@ void pci_init()
                     pci_dev.bar[0] = bridge.iorange + bar0_addr;
                     pci_dev.ioaddr = pci_dev.bar[0] & BAR_IOADDR_MASK;
                     bar0_addr += BAR0_SIZE;
-                    printf("bar0: %lx\n", pci_dev.bar[0]);
-                    printf("ioaddr: %lx\n", pci_dev.ioaddr);
-                    printf("iorange: %lx\n", bridge.iorange);
 #else
                     pci_dev.bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0) & BAR_IOADDR_MASK; //TODO!!!!
                     pci_dev.ioaddr = pci_dev.bar[0] & BAR_IOADDR_MASK;
 #endif
-                    /*
-                    {
-                    uint8_t mac[6];
-                    uint32_t addr = pci_dev.bar[0] &= ~0xFU;
-
-                    for (int i = 0; i < 6; i++) {
-                        mac[i] = inb(addr + 20 + i);
-                    }
-                    printf("virtio-net mac %02x:%02x:%02x:%02x:%02x:%02x\n",
-                            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-                    }
-                    */
                     pci_driver->probe(&pci_dev);
                 }
             }

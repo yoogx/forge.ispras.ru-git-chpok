@@ -219,6 +219,7 @@ static pok_bool_t probe_device(struct pci_device *pci_dev)
     struct virtio_network_device *dev = &virtio_network_device;
 
     dev->pci_device = *pci_dev;
+    //TODO change to ioaddr everywhere
     dev->pci_device.bar[0] &= ~0xFU;
 
     //subsystem = pci_read_reg(dev, PCI_REG_SUBSYSTEM) >> 16;
