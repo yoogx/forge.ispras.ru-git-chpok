@@ -31,14 +31,14 @@ queue_t queues[] = {};
 //    },
 //}
 
-const uint32_t pok_network_ip_address = 0xa000002;
+const uint32_t pok_network_ip_address = 0xa000001;
 
 unsigned sysconfig_links_nb = 1;
 link_t links[] = {
     {
         .device_id = 0,
         .buffer_idx = 0,
-        
+
         .linked_port_info = {
             .kind = POK_PORT_KIND_SAMPLING,
             .direction = DESTINATION,
@@ -49,7 +49,7 @@ link_t links[] = {
         },
 
         .protocol = UDP,
-        .udp_data = { //destination (our) ip
+        .udp_data = { //destination module ip addr
             .ip = 0xa000002,
             .port = 10000,
         }
