@@ -31,6 +31,11 @@
 #include <ioports.h>
 #include <net/network.h>
 
+#include <net/ether.h>
+#include <net/ip.h>
+#include <net/udp.h>
+#include <net/byteorder.h>
+
 //TODO
 # define outb_inverse(a,b) outb((b), (a))
 
@@ -194,12 +199,22 @@ void rtl8029_polling ()
 
     ne2000_read(&dev, &recv_packet,
             ne2000_hdr.size - sizeof(s_ne2000_header), offset);
+    unsigned packet_len = ne2000_hdr.size - sizeof(s_ne2000_header);
+
+    if (ne2000_hdr.size == NE2000_ETH_DATA_MINLEN) {
+        // NIC add trailing zeros to packets shorter than 64 bytes. They should be ignored
+        const struct ip_hdr *ip_hdr = (const struct ip_hdr *)
+            (sizeof(struct ether_hdr) + (const char *)&recv_packet);
+
+        packet_len = ntoh16(ip_hdr->length) + sizeof(struct ether_hdr);
+    }
 
     // update the BNRY register... almost forgot that
     outb_inverse(ne2000_hdr.next > NE2000_MEMSZ ?
             NE2000_RXBUF - 1 : ne2000_hdr.next - 1, dev.addr + NE2000_BNRY);
 
-    dev.packet_received_callback((const char *)&recv_packet, ne2000_hdr.size - sizeof(s_ne2000_header));
+    //XXX callback should create copy of recv_packet
+    dev.packet_received_callback((const char *)&recv_packet, packet_len);
 
     outb_inverse(NE2000_ISR_PRX, dev.addr + NE2000_ISR); // Clear PRX flag
 

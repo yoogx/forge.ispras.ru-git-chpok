@@ -29,11 +29,13 @@
 #  include <middleware/port.h>
 
 //TODO: should be 2**16?
-#  define ETH_DATA_MAXLEN	1500
+#  define ETH_DATA_MAXLEN	65536
 #  define ETH_DATA_MINLEN	46
 #  define ETH_MAC_LEN		6
 
 #  define RECV_BUF_SZ		20
+
+#  define NE2000_ETH_DATA_MINLEN 64
 
 typedef struct
 {
@@ -195,6 +197,7 @@ This bit is set when the receive buffer */
 // in 256 bytes block
 #  define NE2000_RXBUFSZ (NE2000_MEMSZ - NE2000_TXBUFSZ) // rx buf size
 // in 256 bytes block
+//
 
 # endif /* !__POK_RTL8029_H__ */
 #endif /* POK_NEEDS_RTL8029 */
