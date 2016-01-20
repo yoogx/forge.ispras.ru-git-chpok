@@ -175,6 +175,7 @@ pok_ret_t pok_error_raise_thread(
         
         // reset it's stack and other stuff
         pok_error_enable();
+        pok_sched();
     }
 
     return POK_ERRNO_OK;
