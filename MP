@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+
+import socket
+import signal
+import sys
+
+
+TCP_IP = '127.0.0.1'
+TCP_PORT = 44444
+BUFFER_SIZE = 1024
+#MESSAGE = "Hello, World!"
+TCP_PORT_OUT_1 = 44449
+TCP_PORT_OUT_2 = 44448
+
+in_s = out_s1 = out_s2 = conn1 = conn2 = None
+def signal_handler(signal, frame):
+    if in_s != None:   in_s.close()
+    if conn1 != None: conn1.close()
+    if out_s1 != None: out_s1.close()
+    if conn2 != None: conn2.close()
+    if out_s2 != None: out_s2.close()
+    
+    
+signal.signal(signal.SIGINT, signal_handler)
+
+in_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+in_s.connect((TCP_IP, TCP_PORT))
+
+
+out_s1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+out_s1.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+out_s1.bind((TCP_IP, TCP_PORT_OUT_1))
+out_s1.listen(1)
+conn1, _ = out_s1.accept()
+
+
+
+out_s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+out_s2.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+out_s2.bind((TCP_IP, TCP_PORT_OUT_2))
+out_s2.listen(1)
+conn2, _ = out_s2.accept()
+
+
+#s.send(MESSAGE)
+port = 1
+try:
+    while 1:
+        try:
+            data = in_s.recv(BUFFER_SIZE, socket.MSG_DONTWAIT)
+            for sym in bytes(data):
+                if (sym >= 127):
+                    port = sym - 126
+                elif port == 1:
+                    conn1.send(bytes([sym]))
+                elif port == 2:
+                    conn2.send(bytes([sym]))
+                    print (sym, end="")
+        except BlockingIOError:
+            pass
+        
+        try:
+            data1 = conn1.recv(BUFFER_SIZE, socket.MSG_DONTWAIT)
+            for sym in bytes(data1):
+                in_s.send(bytes([127]))
+                in_s.send(bytes([sym]))
+                print(bytes([sym]))
+                
+        except BlockingIOError:
+            pass
+
+        try:
+            data2 = conn2.recv(BUFFER_SIZE, socket.MSG_DONTWAIT)
+            for sym in bytes(data2):
+                in_s.send(bytes([128]))
+                print(bytes([sym]))
+                in_s.send(bytes([sym]))
+                
+        except BlockingIOError:
+            pass
+
+finally:
+    in_s.close()
+    conn1.close()
+    out_s1.close()
+    conn2.close()
+    out_s2.close()
+    

@@ -103,7 +103,7 @@ end
 define connect_to 
     set breakpoint always-inserted on
     set $OLD_PID = -1
-    target remote$arg0
+    target remote $arg0
     symbol-file pok.elf
     Clear_breakpoints
     end

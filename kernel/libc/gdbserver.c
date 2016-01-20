@@ -1,3 +1,6 @@
+//~ #define MULTIPROCESS
+
+
 #define PC_REGNUM 64
 #define SP_REGNUM 1
 
@@ -131,11 +134,13 @@ extern int getDebugChar();  /* read and return a single char */
 extern void exceptionHandler(); /* assign an exception handler   */
 
 void putDebugChar(char c){
+    data_to_read_1();
     pok_cons_write_1(&c,1);
     pok_cons_write(&c,1);
 }
 
 int getDebugChar(){
+    data_to_read_1();
     int inf = getchar2();
     printf("%c",inf);
     return inf;
@@ -207,6 +212,7 @@ static char remcomOutBuffer[BUFMAX];
 static void
 getpacket(char *buffer)
 {
+    data_to_read_1();
     printf("Lets getpacket <---\n");
     unsigned char checksum;
     unsigned char xmitcsum;
@@ -242,10 +248,15 @@ getpacket(char *buffer)
         if (ch == '#') {
             xmitcsum = hex(getDebugChar() & 0x7f) << 4;
             xmitcsum |= hex(getDebugChar() & 0x7f);
-            if (checksum != xmitcsum)
+            if (checksum != xmitcsum){
+                //~ printf("------------ERROR: failed checksum!\n");
+
                 putDebugChar('-');  /* failed checksum */
-            else {
+            }else {
+                //~ printf("-----Before succsess\n");
+
                 putDebugChar('+'); /* successful transfer */
+                //~ printf("-----After succsess\n");
                 /* if a sequence char is present, reply the ID */
                 if (buffer[2] == ':') {
                     putDebugChar(buffer[0]);
@@ -338,6 +349,7 @@ getpacket (void)
 void
 putpacket (unsigned char *buffer)
 {
+    data_to_read_1();
     unsigned char checksum;
     int count;
     char ch;
@@ -924,7 +936,6 @@ void clear_breakpoints(){
 void
 handle_exception (int exceptionVector, struct regs * ea)
 {
-    
     /*Add regs*/
     uint32_t old_entryS = pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp;
     pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = (uint32_t) ea;
@@ -1031,14 +1042,25 @@ handle_exception (int exceptionVector, struct regs * ea)
     *ptr++ = ';';
   *ptr = '0';
 #endif      
+    data_to_read_1();
+    //~ int flag = 0;
     putpacket ( (unsigned char *) remcomOutBuffer);
+
     
     while (1) {
 #ifdef __PPC__
-        remcomOutBuffer[0] = 0;
+    data_to_read_1();
 
-        getpacket(remcomInBuffer);
-        switch (remcomInBuffer[0]) {
+    remcomOutBuffer[0] = 0;
+    
+    getpacket(remcomInBuffer);
+    //~ if (flag == 0){
+        //~ while (data_to_read_1()){
+            //~ getDebugChar();
+        //~ }
+        //~ flag = 1;
+    //~ }
+    switch (remcomInBuffer[0]) {
 
         case 'T':               /*Find out if the thread thread-id is alive*/
             ptr = &remcomInBuffer[1];
