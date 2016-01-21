@@ -231,6 +231,10 @@ pok_error_check_deadlines(void)
         }
         
         if (thread->end_time >= 0 && (uint64_t) thread->end_time < now) {
+			// Implementation dependent (ARINC-653 P.1-3 page 29)
+			// This is the second variant
+			thread->next_activation += thread->period;
+			thread->end_time = thread->next_activation;
             // deadline miss HM event
             pok_error_raise_thread(POK_ERROR_KIND_DEADLINE_MISSED, i, NULL, 0);
         }
