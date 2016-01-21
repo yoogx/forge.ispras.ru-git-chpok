@@ -485,7 +485,7 @@ pok_ret_t pok_sched_replenish(int64_t budget)
     }
     
     int64_t calculated_deadline;
-    if (budget < 0) {
+    if (budget < 0 || POK_CURRENT_THREAD.time_capacity < 0) {
         calculated_deadline = -1; // infinite
     } else {
         calculated_deadline = POK_GETTICK() + budget;
