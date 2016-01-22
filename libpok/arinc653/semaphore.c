@@ -243,17 +243,10 @@ void SIGNAL_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
 
    core_ret = pok_sem_signal (pok_arinc653_semaphores_layers[sem_layer_idx].core_id);
 
-   if (core_ret == POK_ERRNO_OK || core_ret == POK_ERRNO_FULL)
-   {
-      *RETURN_CODE = NO_ERROR;
-      if (core_ret == POK_ERRNO_FULL) {
-         // semaphore's value is already at max
-         *RETURN_CODE = NO_ACTION;
-      }
-   }
-   else
-   {
-      *RETURN_CODE = INVALID_PARAM;
+   switch (core_ret) {
+      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      MAP_ERROR(POK_ERRNO_FULL, NO_ACTION);
+      MAP_ERROR_DEFAULT(INVALID_PARAM);
    }
 }
 
