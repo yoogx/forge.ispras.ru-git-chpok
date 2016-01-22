@@ -35,6 +35,8 @@
 #include "tss.h"
 
 #include "space.h"
+#include "core/sched.h"
+#include "core/partition.h"
 
 #define KERNEL_STACK_SIZE 8192
 
@@ -185,4 +187,25 @@ void pok_space_context_restart(
         arg1,
         arg2
     );
+}
+
+//Double check here because these function are called not only in syscall
+//(where there is checking), but also inside kernel
+//TODO: maybe rename to pok_arch_?
+uintptr_t pok_virt_to_phys(uintptr_t virt) {
+    if (POK_CHECK_PTR_IN_PARTITION(pok_current_partition, virt)) {
+        printf("pok_virt_to_phys: wrong virtual address %p\n", (void*)virt);
+        pok_fatal("wrong pointer in pok_virt_to_phys\n");
+    }
+    return virt + pok_partitions[pok_current_partition].base_addr;
+}
+
+uintptr_t pok_phys_to_virt(uintptr_t phys) {
+    uintptr_t virt = phys - pok_partitions[pok_current_partition].base_addr;
+
+    if (POK_CHECK_PTR_IN_PARTITION(pok_current_partition, virt)) {
+        printf("pok_phys_to_virt: wrong virtual address %p\n", (void*)virt);
+        pok_fatal("wrong pointer in pok_phys_to_virt\n");
+    }
+    return virt;
 }
