@@ -235,7 +235,7 @@ pok_ret_t pok_port_queueing_receive(
 
         port_wait_list_append(port, &wait_list_entry);
 
-        pok_lockobj_eventwait(&port->header.lock, timeout>0 ? timeout : 0);
+        pok_lockobj_eventwait(&port->header.lock, timeout > 0 ? wait_list_entry.timeout : 0);
 
         // by now, we're either 
         // - timed out 
@@ -336,7 +336,7 @@ pok_ret_t pok_port_queueing_send(
 
         port_wait_list_append(port, &wait_list_entry);
 
-        pok_lockobj_eventwait(&port->header.lock, timeout>0 ? timeout : 0);
+        pok_lockobj_eventwait(&port->header.lock, timeout > 0 ? wait_list_entry.timeout : 0);
 
         // by now, we're either 
         // - timed out 

@@ -230,11 +230,7 @@ void pok_thread_start(void (*entry)(), unsigned int id)
 pok_ret_t pok_thread_sleep(int64_t time)
 {
     pok_thread_t *thread = &pok_threads[POK_SCHED_CURRENT_THREAD];
-    
-    if (pok_thread_is_periodic(thread)) {
-        return POK_ERRNO_MODE;
-    }
-    
+
     if (POK_CURRENT_PARTITION.lock_level > 0 || 
         pok_thread_is_error_handling(thread)) 
     {
