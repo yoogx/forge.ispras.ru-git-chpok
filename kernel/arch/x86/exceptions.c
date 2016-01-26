@@ -139,20 +139,21 @@ INTERRUPT_HANDLER (exception_divide_error)
 INTERRUPT_HANDLER (exception_debug)
 {
   (void)frame;
-#if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
-
-   #ifdef POK_NEEDS_DEBUG
-  printf ("[KERNEL] Raise debug fault\n");
-   #endif
-
-  pok_error_from_exception (POK_ERROR_KIND_ILLEGAL_REQUEST);
-#else
-
-   #ifdef POK_NEEDS_DEBUG
-  dump_registers(frame);
-  pok_fatal ("Debug fault");
-   #endif
-#endif
+//~ #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
+//~ 
+   //~ #ifdef POK_NEEDS_DEBUG
+  //~ printf ("[KERNEL] Raise debug fault\n");
+   //~ #endif
+//~ 
+  //~ pok_error_from_exception (POK_ERROR_KIND_ILLEGAL_REQUEST);
+//~ #else
+//~ 
+   //~ #ifdef POK_NEEDS_DEBUG
+  //~ dump_registers(frame);
+  //~ pok_fatal ("Debug fault");
+   //~ #endif
+//~ #endif
+    handle_exception(3,(struct regs *)frame);
 }
 
 INTERRUPT_HANDLER (exception_nmi)
@@ -174,22 +175,44 @@ INTERRUPT_HANDLER (exception_nmi)
 #endif
 }
 
+extern void * pok_trap_addr;
+pok_bool_t was_breakpoint=TRUE;
+
 INTERRUPT_HANDLER (exception_breakpoint)
 {
   (void)frame;
-#if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
-
-   #ifdef POK_NEEDS_DEBUG
-   printf ("[KERNEL] Raise exception breakpoint fault\n");
-   #endif
-
-  pok_error_from_exception (POK_ERROR_KIND_ILLEGAL_REQUEST);
-#else
-   #ifdef POK_NEEDS_DEBUG
+   printf("EXEPTION breakpoint\n");
    dump_registers(frame);
-   pok_fatal ("Breakpoint");
-   #endif
-#endif
+   frame->eip --;
+//// pok_trap_addr = address of pok_trap in entry.S
+   if (frame->eip == (unsigned) (&pok_trap_addr)){
+       was_breakpoint=FALSE;
+       handle_exception(17,(struct regs *) frame);
+   }else{
+        handle_exception(3,(struct regs *) frame);
+    }   
+    printf("es = 0x%lx\n",frame->es);
+    printf("ds = 0x%lx\n",frame->ds);
+    printf("edi = 0x%lx\n",frame->edi);
+    printf("esi = 0x%lx\n",frame->esi);
+    printf("ebp = 0x%lx\n",frame->ebp);
+    printf("__esp = 0x%lx\n",frame->__esp);
+    printf("ebx = 0x%lx\n",frame->ebx);
+    printf("edx = 0x%lx\n",frame->edx);
+    printf("ecx = 0x%lx\n",frame->ecx);
+    printf("eax = 0x%lx\n",frame->eax);
+    printf("error = 0x%lx\n",frame->error);
+    printf("eip = 0x%lx\n",frame->eip);
+    printf("cs = 0x%lx\n",frame->cs);
+    printf("eflags = 0x%lx\n",frame->eflags);
+    printf("esp = 0x%lx\n",frame->esp);
+    printf("ss = 0x%lx\n",frame->ss);
+    if (!was_breakpoint){
+        frame->eip++;
+    }
+    was_breakpoint=TRUE;
+    printf("Exit from GDBserver\n");
+    
 }
 
 INTERRUPT_HANDLER (exception_overflow)

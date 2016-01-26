@@ -158,6 +158,17 @@ void gdt_disable(uint16_t index)
    pok_gdt[index].present = 0;
 }
 
+int current_segment()
+{
+    if (pok_gdt[GDT_CORE_CODE_SEGMENT].present == 1)
+        return 0;
+    for(int i = 1; i < POK_CONFIG_NB_PARTITIONS; i++)
+        if (pok_gdt[GDT_PARTITION_CODE_SEGMENT(i - 1)].present == 1){
+            return i;
+        }
+    return -1;
+}
+
 /*
  * DEPRECATED
  *

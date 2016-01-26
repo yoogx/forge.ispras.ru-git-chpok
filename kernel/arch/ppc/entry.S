@@ -1,4 +1,5 @@
 #include "msr.h"
+#include "fpscr.h"
 #include "reg.h"
 
 /*
@@ -9,7 +10,7 @@
     SPRG2 - scratch register
     SPRG3 - scratch register
 */
-
+        
         .section ".start", "ax"
 
 base = .
@@ -17,6 +18,8 @@ base = .
 reserved_0000:
         /* fails */
 1:      b 1b 
+
+
 
 #define SAVE_FP(num) stfd %f##num,(80+8*num)(%r1)
 #define LOAD_FP(num) lfd %f##num,(80+8*num)(%r1)
@@ -53,7 +56,9 @@ reserved_0000:
         mfsrr0  %r3;                             \
         stw     %r3,72(%r1);  /* srr0 */         \
         mfsrr1  %r4;                             \
-        stw     %r4,76(%r1)  /* srr1 */
+        stw     %r4,76(%r1)  /* srr1 */         
+        
+        
         
         /* Restore registers */
         .globl pok_arch_rfi
@@ -111,12 +116,189 @@ pok_arch_rfi:
         mfsprg %r1, 1;                          \
         stwu %r4, -FRAME_SIZE(%r1);/*save it*/  \
 2:      SAVE_REGS;                              \
+        lis %r5, global_thread_stack@ha;      \
+        addi %r5, %r5, global_thread_stack@l; \
+        stw %r1, 0(r5);                         \
         mfsrr0 %r3; /* EA of exception */
+
+
+#define SAVE_FP_FOR_INT(num) stfd %f##num,(156+8*num)(%r1)
+#define LOAD_FP_FOR_INT(num) lfd %f##num,(156+8*num)(%r1)
+
+#define FRAME_SIZE_FOR_INT 172 /*96+76*/
+        /* r4 is available, r1 is set, r3 contains cr,
+           sprg3 contains r3 and sprg2 contains r2.  */
+#define SAVE_REGS_FOR_INT                               \
+        /* Establish new frame.  */                     \
+        mflr    %r4;                                    \
+        stw     %r4,FRAME_SIZE_FOR_INT+4(%r1); /* lr */ \
+        mfctr   %r4;                                    \
+        stw     %r4,64(%r1);  /* ctr */                 \
+        mfxer   %r4;                                    \
+        stw     %r4,68(%r1);  /* xer */                 \
+        stw     %r3,8(%r1);   /* cr */                  \
+        stw     %r0,12(%r1);  /* r0 */                  \
+        stw     %r2,16(%r1);  /* r2 */                  \
+        mfsprg  %r0,3;                                  \
+        stw     %r0,20(%r1);  /* r3 */                  \
+        mfsprg  %r0,2;                                  \
+        stw     %r0,24(%r1);  /* r4 */                  \
+        stw     %r5,28(%r1);  /* r5 */                  \
+        stw     %r6,32(%r1);  /* r6 */                  \
+        stw     %r7,36(%r1);  /* r7 */                  \
+        stw     %r8,40(%r1);  /* r8 */                  \
+        stw     %r9,44(%r1);  /* r9 */                  \
+        stw     %r10,48(%r1); /* r10 */                 \
+        stw     %r11,52(%r1); /* r11 */                 \
+        stw     %r12,56(%r1); /* r12 */                 \
+        stw     %r13,60(%r1); /* r13 */                 \
+        SAVE_FP_FOR_INT(0); /* f0 */                    \
+        mfsrr0  %r3;                                    \
+        stw     %r3,72(%r1);  /* srr0 */                \
+        mfsrr1  %r4;                                    \
+        stw     %r4,76(%r1);  /* srr1 */                \
+        stw     %r14,80(%r1); /* r14 */                 \
+        stw     %r15,84(%r1); /* r15 */                 \
+        stw     %r16,88(%r1); /* r16 */                 \
+        stw     %r17,92(%r1); /* r17 */                 \
+        stw     %r18,96(%r1); /* r18 */                 \
+        stw     %r19,100(%r1); /* r19 */                \
+        stw     %r20,104(%r1); /* r20 */                \
+        stw     %r21,108(%r1); /* r21 */                \
+        stw     %r22,112(%r1); /* r22 */                \
+        stw     %r23,116(%r1); /* r23 */                \
+        stw     %r24,120(%r1); /* r24 */                \
+        stw     %r25,124(%r1); /* r25 */                \
+        stw     %r26,128(%r1); /* r26 */                \
+        stw     %r27,132(%r1); /* r27 */                \
+        stw     %r28,136(%r1); /* r28 */                \
+        stw     %r29,140(%r1); /* r29 */                \
+        stw     %r30,144(%r1); /* r30 */                \
+        stw     %r31,148(%r1); /* r31 */				\
+        mffs	%f1;		   /* FPSCR */				\
+        SAVE_FP_FOR_INT(1);    /* f1 */					\
+        lwz		%r0,168(%r1);							\
+        stw     %r0,152(%r1);  /* FPSCR */				\
+        
+
+        
+        
+        /* Restore registers */
+        .globl pok_arch_rfi_for_int
+pok_arch_rfi_for_int:
+        LOAD_FP_FOR_INT(0)
+        lwz     %r31,148(%r1)         
+        lwz     %r30,144(%r1)          
+        lwz     %r29,140(%r1)          
+        lwz     %r28,136(%r1)
+        lwz     %r27,132(%r1)       
+        lwz     %r26,128(%r1)          
+        lwz     %r25,124(%r1)          
+        lwz     %r24,120(%r1)          
+        lwz     %r23,116(%r1)          
+        lwz     %r22,112(%r1)          
+        lwz     %r21,108(%r1)          
+        lwz     %r20,104(%r1)          
+        lwz     %r19,100(%r1)           
+        lwz     %r18,96(%r1)           
+        lwz     %r17,92(%r1)           
+        lwz     %r16,88(%r1)          
+        lwz     %r15,84(%r1)          
+        lwz     %r14,80(%r1)           
+        lwz     %r13,60(%r1)
+        lwz     %r12,56(%r1)
+        lwz     %r11,52(%r1)
+        lwz     %r10,48(%r1)
+        lwz     %r9,44(%r1)
+        lwz     %r8,40(%r1)
+        lwz     %r7,36(%r1)
+        lwz     %r6,32(%r1)
+        lwz     %r5,28(%r1)
+        lwz     %r4,24(%r1)
+        lwz     %r3,20(%r1)
+        lwz     %r2,16(%r1)
+        lwz     %r0,FRAME_SIZE_FOR_INT+4(%r1)
+        mtlr    %r0
+        lwz     %r0,64(%r1)
+        mtctr   %r0
+        lwz     %r0,68(%r1)
+        mtxer   %r0
+        lwz     %r0,72(%r1)
+        mtsrr0  %r0
+        lwz     %r0,76(%r1)
+        mtsrr1  %r0
+        andi.   %r0,%r0,MSR_PR
+        beq     1f
+        /* If user mode, restore kernel stack and save it to SPRG1 */
+        addi    %r0,%r1,FRAME_SIZE_FOR_INT
+        mtsprg  1,%r0
+1:      lwz     %r0,8(%r1)
+        mtcr    %r0
+        lwz     %r0,12(%r1)
+        lwz     %r1,0(%r1)
+        rfi
+
+#define EXCEPTION_PROLOGUE_FOR_INT                      \
+        mtsprg  3,%r3;                                  \
+        mtsprg  2,%r4;                                  \
+        mfcr    %r3;                                    \
+        /* Enable floating point bit in msr */          \
+        mfmsr %r4;                                      \
+        ori %r4,%r4,MSR_FP;                             \
+        mtmsr %r4;                                      \
+        mfsrr1  %r4;                                    \
+        andi.   %r4,%r4,MSR_PR;                         \
+        bne     1f;                                     \
+        /* Already on kernel stack */                   \
+        stwu %r1, -FRAME_SIZE_FOR_INT(%r1);             \
+        b       2f;                                     \
+1:      /* User stack right now          */             \
+        mr %r4, %r1;                                    \
+        mfsprg %r1, 1;                                  \
+        stwu %r4, -FRAME_SIZE_FOR_INT(%r1);/*save it*/  \
+2:      SAVE_REGS_FOR_INT;                              \
+        mfsrr0 %r3; /* EA of exception */               \
+        mr	%r3, %r1;
+
+#define EXCEPTION_PROLOGUE_FOR_GDB                      \
+        mtsprg  3,%r3;                                  \
+        mtsprg  2,%r4;                                  \
+        mfcr    %r3;                                    \
+        /* Enable floating point bit in msr */          \
+        mfmsr %r4;                                      \
+        ori %r4,%r4,MSR_FP;                             \
+        mtmsr %r4;                                      \
+        mfsrr1  %r4;                                    \
+        andi.   %r4,%r4,MSR_PR;                         \
+        bne     1f;                                     \
+        /* Already on kernel stack */                   \
+        stwu %r1, -FRAME_SIZE_FOR_INT(%r1);             \
+        b       2f;                                     \
+1:      /* User stack right now          */             \
+        mr %r4, %r1;                                    \
+        mfsprg %r1, 1;                                  \
+        stwu %r4, -FRAME_SIZE_FOR_INT(%r1);/*save it*/  \
+2:      SAVE_REGS_FOR_INT;                              \
+        lis %r5, global_thread_stack@ha;              \
+        addi %r5, %r5, global_thread_stack@l;         \
+        stw %r1, 0(r5);                                 \
+        mfsrr0 %r3; /* EA of exception */               
+
+        . = base + 0x200
+        .global pok_trap_addr
+pok_trap_addr:
+        .global pok_trap
+pok_trap:
+        trap
+        blr
+
+
 
 
 failed: b failed
 
-        . = base + 0x100
+
+        . = base + 0x250
         .globl _pok_reset
 system_reset_0100:
 _pok_reset:
@@ -152,6 +334,17 @@ _pok_reset:
         blt 1b
 2:
 */
+		/* Enable floating point bit in MSR */
+        mfmsr %r7
+        ori %r7,%r7,MSR_FP
+        mtmsr %r7
+		/* Enable floating point exceptions in FPSCR */
+        lis		%r7,FPSCR_AEE@h
+        ori		%r7,%r7,FPSCR_AEE@l
+        stw		%r7,12(%r1)
+        lfd		%f0,8(%r1)
+        mtfsf	0xFF,%f0
+
         /* Call C function */
         bl pok_boot
 1:      b  1b
@@ -172,59 +365,59 @@ label##_asm:
 // Handlers themselves:
 
     START_EXCEPTION(pok_int_critical_input)
-        EXCEPTION_PROLOGUE 
+        EXCEPTION_PROLOGUE_FOR_GDB
         bl pok_int_critical_input
-        b pok_arch_rfi
+        b pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_machine_check)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
         bl pok_int_machine_check
-        b pok_arch_rfi
+        b pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_data_storage)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
         
         mfspr %r4, SPRN_DEAR // DEAR - faulting address
         mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
         bl pok_int_data_storage
-        b  pok_arch_rfi
+        b  pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_inst_storage)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
         
         mfspr %r4, SPRN_DEAR // DEAR - faulting address
         mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
         bl pok_int_inst_storage
-        b  pok_arch_rfi
+        b  pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_ext_interrupt)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
 
         bl pok_int_ext_interrupt
-        b pok_arch_rfi
+        b pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_alignment)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
 
         bl pok_int_alignment
-        b pok_arch_rfi
+        b pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_program)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_INT
 
         bl pok_int_program
-        b pok_arch_rfi
+        b pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_fp_unavail)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
 
         bl pok_int_fp_unavail
-        b pok_arch_rfi
+        b pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_system_call)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
 
         /* load system call arguments back from the stack */
         lwz     %r4,20(%r1)
@@ -237,49 +430,49 @@ label##_asm:
         bl      pok_int_system_call 
         stw     %r3,20(%r1)
         
-        b       pok_arch_rfi       
+        b       pok_arch_rfi_for_int       
 
     START_EXCEPTION(pok_int_decrementer)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
 
         bl      pok_int_decrementer 
-        b       pok_arch_rfi
+        b       pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_interval_timer)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
 
         bl      pok_int_interval_timer
-        b       pok_arch_rfi
+        b       pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_watchdog)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
 
         bl      pok_int_watchdog
-        b       pok_arch_rfi
+        b       pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_data_tlb_miss)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
         
         mfspr %r4, SPRN_DEAR // DEAR - faulting address
         mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
         bl      pok_int_data_tlb_miss
-        b       pok_arch_rfi
+        b       pok_arch_rfi_for_int
 
     START_EXCEPTION(pok_int_inst_tlb_miss)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
 
         mfspr %r4, SPRN_DEAR // DEAR - faulting address
         mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
         bl      pok_int_inst_tlb_miss
-        b       pok_arch_rfi
+        b       pok_arch_rfi_for_int
         
     START_EXCEPTION(pok_int_debug)
-        EXCEPTION_PROLOGUE
+        EXCEPTION_PROLOGUE_FOR_GDB
 
         bl      pok_int_debug
-        b       pok_arch_rfi
+        b       pok_arch_rfi_for_int
 
 #define SET_IVOR(vector_number, vector_label)           \
                 li      r26,vector_label##_asm @ l;             \

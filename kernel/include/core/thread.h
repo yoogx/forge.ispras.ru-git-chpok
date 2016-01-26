@@ -57,17 +57,18 @@
 
 #ifdef POK_NEEDS_NETWORKING
 
-#define NETWORK_THREAD POK_CONFIG_NB_THREADS-4
-#define POK_KERNEL_THREADS 4
+#define NETWORK_THREAD POK_CONFIG_NB_THREADS-5
+#define POK_KERNEL_THREADS 5
 
 #else
 
-#define POK_KERNEL_THREADS 3
+#define POK_KERNEL_THREADS 4
 
 #endif
 
 
-#define MONITOR_THREAD POK_CONFIG_NB_THREADS-3
+#define GDB_THREAD POK_CONFIG_NB_THREADS -4
+#define MONITOR_THREAD POK_CONFIG_NB_THREADS -3
 #define KERNEL_THREAD		POK_CONFIG_NB_THREADS -2
 #define IDLE_THREAD        POK_CONFIG_NB_THREADS -1
 
@@ -256,6 +257,12 @@ typedef struct
      * state is the state before thread restart, and no longer valid).
      */
     pok_bool_t          force_restart;
+
+    /*
+     * Stack from entry.S for PPC and from interrupt.h for i386
+     * where all registers have been saved.
+     */
+    uint32_t            entry_sp;
 } pok_thread_t;
 
 /*

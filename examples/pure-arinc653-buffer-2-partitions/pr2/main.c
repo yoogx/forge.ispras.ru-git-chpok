@@ -5,12 +5,16 @@
 #include <arinc653/time.h>
 
 
-static void first_process(void)
+static void first_process_105(void)
 {
     while (1) {
-        RETURN_CODE_TYPE ret;
-        printf("Second partition\n" );
-        TIMED_WAIT(1000000000LL, &ret);
+        int a=0;
+        a++;
+        if (a < 1) printf("WAAAAAAT?");
+        //~ RETURN_CODE_TYPE ret;
+        //~ printf("Second partition\n" );
+        //~ asm("trap");
+        //~ TIMED_WAIT(1000000000LL, &ret);
     }
 }
 
@@ -29,7 +33,7 @@ static int real_main(void)
 
 
     // create process 1
-    process_attrs.ENTRY_POINT = first_process;
+    process_attrs.ENTRY_POINT = first_process_105;
     strncpy(process_attrs.NAME, "process 1", sizeof(PROCESS_NAME_TYPE));
 
     CREATE_PROCESS(&process_attrs, &pid, &ret);

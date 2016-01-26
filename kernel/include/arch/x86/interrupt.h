@@ -65,7 +65,7 @@ void name##_handler(interrupt_frame* frame);				\
       "mov $0x10, %ax			\n"				\
       "mov %ax, %ds			\n"				\
       "mov %ax, %es			\n"				\
-      "call " #name"_handler		\n"				\
+      "call " #name"_help		\n"				\
       "call update_tss			\n"				\
       "addl $4, %esp			\n"				\
       "pop %es				\n"				\
@@ -74,6 +74,7 @@ void name##_handler(interrupt_frame* frame);				\
       "addl $4, %esp			\n"				\
       "iret				\n"				\
       );								\
+void name##_help(interrupt_frame* frame){global_thread_stack = (uintptr_t) frame; return name##_handler(frame);}   \
 void name##_handler(interrupt_frame* frame)
 
 #define INTERRUPT_HANDLER_errorcode(name)				\
@@ -90,7 +91,7 @@ void name##_handler(interrupt_frame* frame);			\
       "mov $0x10, %ax			\n"				\
       "mov %ax, %ds			\n"				\
       "mov %ax, %es			\n"				\
-      "call " #name"_handler		\n"				\
+      "call " #name"_help		\n"				\
       "call update_tss			\n"				\
       "addl $4, %esp			\n"				\
       "pop %es				\n"				\
@@ -99,6 +100,7 @@ void name##_handler(interrupt_frame* frame);			\
       "addl $4, %esp			\n"				\
       "iret				\n"				\
       );								\
+void name##_help(interrupt_frame* frame){global_thread_stack = (uintptr_t) frame; return name##_handler(frame);}   \
 void name##_handler(interrupt_frame* frame)
 
 #define INTERRUPT_HANDLER_syscall(name)						\
@@ -116,7 +118,7 @@ void name##_handler(interrupt_frame* frame);				\
       "mov $0x10, %ax			\n"				\
       "mov %ax, %ds			\n"				\
       "mov %ax, %es			\n"				\
-      "call " #name"_handler		\n"				\
+      "call " #name"_help		\n"				\
       "movl %eax, 40(%esp)         \n" /* return value */  \
       "call update_tss			\n"				\
       "addl $4, %esp			\n"				\
@@ -126,6 +128,7 @@ void name##_handler(interrupt_frame* frame);				\
       "addl $4, %esp			\n"				\
       "iret				\n"				\
       );								\
+void name##_help(interrupt_frame* frame){global_thread_stack = (uintptr_t) frame; return name##_handler(frame);}   \
 void name##_handler(interrupt_frame* frame)
 
 

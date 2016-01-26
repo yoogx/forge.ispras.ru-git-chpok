@@ -37,6 +37,11 @@
  **\\brief  Function for partitions and kernel scheduling
  **\\author Julien Delange
  */
+ 
+
+
+
+ 
 
 #include <config.h>
 
@@ -44,6 +49,7 @@
 
 #include <types.h>
 #include <arch.h>
+#include <bsp.h>
 
 #include <core/time.h>
 #include <core/sched.h>
@@ -117,7 +123,7 @@ static pok_bool_t pok_elect_partition(void)
     if (pok_sched_next_deadline > now) {
         return FALSE;
     }
-
+    
     pok_sched_current_slot = (pok_sched_current_slot + 1) % POK_CONFIG_SCHEDULING_NBSLOTS;
     if (pok_module_sched[pok_sched_current_slot].type != POK_SLOT_PARTITION) {
         pok_sched_next_deadline += pok_module_sched[pok_sched_current_slot].duration; 
@@ -175,6 +181,8 @@ static void check_all_threads_stopped(void) {
     printf("POK: all threads have stopped\n");
 }
 #endif
+
+uintptr_t global_thread_stack = 0;
 
 
 static void pok_unlock_sleeping_threads(pok_partition_t *new_partition)
@@ -367,6 +375,14 @@ void pok_sched()
 
 #endif
 
+#if defined(POK_NEEDS_GDB)
+
+        case POK_SLOT_GDB:
+            elected_thread = GDB_THREAD;
+            break;
+
+#endif        
+
 
 
         default:
@@ -376,7 +392,6 @@ void pok_sched()
     if (current_partition_on_pause == FALSE){
         pok_sched_context_switch(elected_thread);
     }else{
-        /*Wait in the monitor*/
         pok_sched_context_switch(MONITOR_THREAD);
     }
 }
@@ -386,6 +401,7 @@ void pok_sched()
  * Context-switch function to switch from one thread to another
  * Rely on architecture-dependent functionnalities (must include arch.h)
  */
+ 
 void pok_sched_context_switch(pok_thread_id_t elected_id)
 {
    uint32_t *current_sp;
@@ -399,14 +415,13 @@ void pok_sched_context_switch(pok_thread_id_t elected_id)
 
    current_sp = &POK_CURRENT_THREAD.sp;
    new_sp = pok_threads[elected_id].sp;
-
+   POK_CURRENT_THREAD.entry_sp = global_thread_stack;
    pok_space_switch(POK_CURRENT_THREAD.partition,
 		    pok_threads[elected_id].partition);
 
    current_thread = elected_id;
    
    POK_CURRENT_THREAD.force_restart = FALSE;
-
    pok_context_switch(current_sp, new_sp);
 }
 
