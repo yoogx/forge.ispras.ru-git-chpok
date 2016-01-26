@@ -109,6 +109,12 @@ pok_ret_t   pok_space_switch (uint8_t old_partition_id,
                               uint8_t new_partition_id);
 
 /**
+ * Return current partition id
+ */
+int current_segment();
+
+
+/**
  * Returns the stack address for a the thread number N
  * in a partition.
  *

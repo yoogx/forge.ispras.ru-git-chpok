@@ -111,7 +111,11 @@
 #include <core/debug.h>
 #include <config.h>
  
-
+#ifdef __i386__
+#include <arch.h>
+#endif
+ 
+#define DEBUG_GDB
 
 
 /************************************************************************
@@ -136,13 +140,17 @@ extern void exceptionHandler(); /* assign an exception handler   */
 void putDebugChar(char c){
     data_to_read_1();
     pok_cons_write_1(&c,1);
+#ifdef DEBUG_GDB
     pok_cons_write(&c,1);
+#endif
 }
 
 int getDebugChar(){
     data_to_read_1();
     int inf = getchar2();
+#ifdef DEBUG_GDB
     printf("%c",inf);
+#endif
     return inf;
 }
 
@@ -213,7 +221,9 @@ static void
 getpacket(char *buffer)
 {
     data_to_read_1();
+#ifdef DEBUG_GDB
     printf("Lets getpacket <---\n");
+#endif
     unsigned char checksum;
     unsigned char xmitcsum;
     int i;
@@ -269,14 +279,18 @@ getpacket(char *buffer)
             }
         }
     } while (checksum != xmitcsum);
+#ifdef DEBUG_GDB
     printf("\n");
+#endif
 }
 #endif
 #ifdef __i386__
 unsigned char *
 getpacket (void)
 {
+#ifdef DEBUG_GDB
     printf("Lets getpacket <---\n");
+#endif
     unsigned char *buffer = (unsigned char *) (&remcomInBuffer[0]);
     unsigned char checksum;
     unsigned char xmitcsum;
@@ -339,7 +353,9 @@ getpacket (void)
             }
         }
     }
+#ifdef DEBUG_GDB
     printf("\n");
+#endif
 }
 #endif
 
@@ -353,7 +369,9 @@ putpacket (unsigned char *buffer)
     unsigned char checksum;
     int count;
     char ch;
+#ifdef DEBUG_GDB
     printf("\nLets putpacket --->\n");
+#endif
   /*  $<packet info>#<checksum>. */
     do
     {
@@ -375,7 +393,9 @@ putpacket (unsigned char *buffer)
         putDebugChar (hexchars[checksum % 16]);
     }
     while (getDebugChar () != '+');
+#ifdef DEBUG_GDB
         printf("\n");
+#endif
 }
 
 
@@ -581,6 +601,7 @@ static inline void set_msr(int msr)
     asm volatile("mtmsr %0" : : "r" (msr));
 }
 
+#ifdef __PPC__
 #define SPRN_PID        0x030   /* Process ID */
 
 #define __stringify_1(x)        #x
@@ -592,8 +613,27 @@ static inline void set_msr(int msr)
 #define mtspr(rn, v)    asm volatile("mtspr " __stringify(rn) ",%0" : \
                                              : "r" ((unsigned long)(v)) \
                                              : "memory")
+#endif
 
+int current_part_id(){
+#ifdef __PPC__
+    return  mfspr(SPRN_PID);
+#endif
+#ifdef __i386__
+    return current_segment();
+#endif
+}
 
+void switch_part_id(int old_pid, int new_pid){
+#ifdef __PPC__
+    (void) old_pid;
+    mtspr(SPRN_PID, new_pid);
+#endif
+
+#ifdef __i386__
+    pok_space_switch(old_pid, new_pid);
+#endif
+}
 
 static char info_thread[59] = "StoppedRunnableWaitingLockWait next activationDelayed start";
 
@@ -677,11 +717,12 @@ pok_partition_id_t give_part_num_of_thread(int thread_num){
 }    
 
 void add_0_breakpoint(int * addr,int * length,int * using_thread){
-    int old_pid = mfspr(SPRN_PID);
+    int old_pid = current_part_id();
     int new_pid = give_part_num_of_thread(*using_thread + 1);
+#ifdef DEBUG_GDB
     printf("New_pid = %d\n",new_pid);
     printf("Old_pid = %d\n",old_pid);    
-
+#endif
     if (b_need_to_set == -1){
 
     /*
@@ -699,18 +740,20 @@ void add_0_breakpoint(int * addr,int * length,int * using_thread){
 
             if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
             { 
+#ifdef DEBUG_GDB
                 printf("Load new_pid\n");
-                mtspr(SPRN_PID, new_pid);
+#endif
+                switch_part_id(old_pid, new_pid);
             }
             if (hex2mem(trap, (char *)(*addr), *length)) {
                 strcpy(remcomOutBuffer, "OK");
             } else {
                 strcpy(remcomOutBuffer, "E22");
-                mtspr(SPRN_PID, old_pid);    
+                switch_part_id(new_pid, old_pid);    
                 return;
             }
             if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
-                mtspr(SPRN_PID, old_pid);    
+                switch_part_id(new_pid, old_pid);    
 
             strcpy (remcomOutBuffer, "OK");
             return;
@@ -722,12 +765,14 @@ void add_0_breakpoint(int * addr,int * length,int * using_thread){
 
     if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
     { 
+#ifdef DEBUG_GDB
         printf("Load new_pid\n");
-        mtspr(SPRN_PID, new_pid);
+#endif
+        switch_part_id(old_pid, new_pid);
     }
     if (!mem2hex((char *)(*addr),&(breakpoints[Head_of_breakpoints].Instr),*length)){
         strcpy (remcomOutBuffer, "E22");
-        mtspr(SPRN_PID, old_pid);    
+        switch_part_id(new_pid, old_pid);    
         return;
     }
 
@@ -741,7 +786,7 @@ void add_0_breakpoint(int * addr,int * length,int * using_thread){
     Head_of_breakpoints++;
     if (Head_of_breakpoints == max_breakpoint){
         strcpy(remcomOutBuffer, "E22");
-        mtspr(SPRN_PID, old_pid);    
+        switch_part_id(new_pid, old_pid);    
         return;
     }
 
@@ -749,20 +794,24 @@ void add_0_breakpoint(int * addr,int * length,int * using_thread){
         strcpy(remcomOutBuffer, "OK");
     } else {
         strcpy(remcomOutBuffer, "E22");
-        mtspr(SPRN_PID, old_pid);    
+        switch_part_id(new_pid, old_pid);    
         return;
     }
     if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
-        mtspr(SPRN_PID, old_pid);    
+        switch_part_id(new_pid, old_pid);    
 }
 
 void remove_0_breakpoint(int * addr,int * length,int * using_thread){
+#ifdef DEBUG_GDB
     printf("            Z0, breakpoint[0].addr = %d\n",breakpoints[0].addr);
+#endif
     int i = 0;
-    int old_pid = mfspr(SPRN_PID);
+    int old_pid = current_part_id();
     int new_pid = give_part_num_of_thread(*using_thread + 1);
+#ifdef DEBUG_GDB
     printf("New_pid = %d\n",new_pid);
     printf("Old_pid = %d\n",old_pid);    
+#endif
     /*
      * If we don't want do delete breakpoint (just switch it off for single step)
      */
@@ -774,32 +823,40 @@ void remove_0_breakpoint(int * addr,int * length,int * using_thread){
         }
         if (i == (max_breakpoint - 1)){ 
             //TODO: Check number of error
+#ifdef DEBUG_GDB
             printf("                Max of breakpoint\n");
+#endif
             strcpy (remcomOutBuffer, "E22");
             return;
         }
         if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
         { 
+#ifdef DEBUG_GDB
             printf("Load new_pid\n");
-            mtspr(SPRN_PID, new_pid);
+#endif
+            switch_part_id(old_pid, new_pid);
         }
         if (hex2mem(breakpoints[i].Instr, (char *)(*addr), *length)) {
             strcpy(remcomOutBuffer, "OK");
         } else {
+#ifdef DEBUG_GDB
             printf("                Error in add breakpoint\n");
+#endif
             strcpy (remcomOutBuffer, "E22");
-            mtspr(SPRN_PID, old_pid);    
+            switch_part_id(new_pid, old_pid);    
             return;
         }
         if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
-            mtspr(SPRN_PID, old_pid);
+            switch_part_id(new_pid, old_pid);
         return;
     }
     
     if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
     { 
+#ifdef DEBUG_GDB
         printf("Load new_pid\n");
-        mtspr(SPRN_PID, new_pid);
+#endif
+        switch_part_id(old_pid, new_pid);
     }
     for (i = 0; i < max_breakpoint; i++){
         if (breakpoints[i].addr == *addr)
@@ -817,11 +874,11 @@ void remove_0_breakpoint(int * addr,int * length,int * using_thread){
         strcpy(remcomOutBuffer, "OK");
     } else {
         strcpy (remcomOutBuffer, "E22");
-        mtspr(SPRN_PID, old_pid);    
+        switch_part_id(new_pid, old_pid);    
         return;
     }
     if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
-        mtspr(SPRN_PID, old_pid);    
+        switch_part_id(new_pid, old_pid);    
 }
     
 
@@ -1040,7 +1097,7 @@ handle_exception (int exceptionVector, struct regs * ea)
     int thread_num = POK_SCHED_CURRENT_THREAD + 1;
     ptr = mem2hex( (char *)&thread_num, ptr, 1); 
     *ptr++ = ';';
-  *ptr = '0';
+  *ptr = 0;
 #endif      
     data_to_read_1();
     //~ int flag = 0;
@@ -1085,9 +1142,13 @@ handle_exception (int exceptionVector, struct regs * ea)
         case 'z':
             {
                 if (new_start == 1) {
+#ifdef DEBUG_GDB
                     printf("New_start = %d",new_start);
+#endif
                     new_start = 0;
+#ifdef DEBUG_GDB
                     printf("New_start = %d",new_start);
+#endif
                     clear_breakpoints();
                 }         
                 ptr = &remcomInBuffer[1];
@@ -1393,10 +1454,12 @@ handle_exception (int exceptionVector, struct regs * ea)
                 /* Try to read %x,%x.  */
             {
                 ptr = &remcomInBuffer[1];
-                int old_pid = mfspr(SPRN_PID);
+                int old_pid = current_part_id();
                 int new_pid = give_part_num_of_thread(using_thread + 1);
+#ifdef DEBUG_GDB
                 printf("New_pid = %d\n",new_pid);
                 printf("Old_pid = %d\n",old_pid);
+#endif
                 if (hexToInt(&ptr, &addr)
                     && *ptr++ == ','
                     && hexToInt(&ptr, &length)) {
@@ -1405,16 +1468,18 @@ handle_exception (int exceptionVector, struct regs * ea)
                         strcpy (remcomOutBuffer, "E03");
                         break;
                     }else{ 
+#ifdef DEBUG_GDB
                         printf("Load new_pid\n");
-                        mtspr(SPRN_PID, new_pid);
+#endif
+                        switch_part_id(old_pid, new_pid);
                     }
                     if (mem2hex((char *)addr, remcomOutBuffer,length)){
-                        mtspr(SPRN_PID, old_pid);
+                        switch_part_id(new_pid, old_pid);
                         break;
                     }
                     strcpy (remcomOutBuffer, "E03");
                     if (POK_CHECK_ADDR_IN_PARTITION(new_pid,addr))
-                        mtspr(SPRN_PID, old_pid);
+                        switch_part_id(new_pid, old_pid);
                 } else {
                     strcpy(remcomOutBuffer,"E01");
                 }
@@ -1425,14 +1490,14 @@ handle_exception (int exceptionVector, struct regs * ea)
             {
 
                 ptr = &remcomInBuffer[1];
-                int old_pid = mfspr(SPRN_PID);
+                int old_pid = current_part_id();
                 int new_pid = give_part_num_of_thread(using_thread + 1);
                 if (hexToInt(&ptr, &addr)
                     && *ptr++ == ','
                     && hexToInt(&ptr, &length)
                     && *ptr++ == ':') {
                     if (POK_CHECK_ADDR_IN_PARTITION(new_pid,addr))
-                        mtspr(SPRN_PID, new_pid);
+                        switch_part_id(old_pid, new_pid);
                     else{
                         strcpy (remcomOutBuffer, "E03");
                         break;
@@ -1445,7 +1510,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                         strcpy(remcomOutBuffer, "E03");
                     }
                     if (POK_CHECK_ADDR_IN_PARTITION(new_pid,addr))
-                        mtspr(SPRN_PID, old_pid);
+                        switch_part_id(new_pid, old_pid);
                 } else {
                     strcpy(remcomOutBuffer, "E02");
                 }
@@ -1610,6 +1675,42 @@ handle_exception (int exceptionVector, struct regs * ea)
 
     switch (*ptr++)
     {
+            /*
+             * Insert (‘Z’) or remove (‘z’) a type breakpoint or watchpoint starting at address address of kind kind.
+             */
+        case 'Z':
+        case 'z':
+            {
+                if (new_start == 1) {
+#ifdef DEBUG_GDB
+                    printf("New_start = %d",new_start);
+#endif
+                    new_start = 0;
+#ifdef DEBUG_GDB
+                    printf("New_start = %d",new_start);
+#endif
+                    clear_breakpoints();
+                }         
+                ptr = &remcomInBuffer[1];
+                int type = -1;
+                hexToInt(&ptr, &type);
+                if (type == -1) break;
+                if (*ptr != ',') break;
+                ptr++;
+                hexToInt(&ptr, &addr);
+                if (*ptr != ',') break;
+                ptr++;
+                int kind = -1;
+                hexToInt(&ptr, &kind);
+                if (kind == -1) break;
+                if (type == 0){
+                    if (remcomInBuffer[0] == 'Z') 
+                            add_0_breakpoint(&addr,&kind,&using_thread);
+                        else
+                            remove_0_breakpoint(&addr,&kind,&using_thread);
+                }
+                break;
+            }
         case 'T':               /*Find out if the thread thread-id is alive*/
             ptr = &remcomInBuffer[1];
             int thread_num = -1;
@@ -1722,11 +1823,8 @@ handle_exception (int exceptionVector, struct regs * ea)
             remcomOutBuffer[2] = hexchars[sigval % 16];
             remcomOutBuffer[3] = 0;
             break;
-        case 'd':
-            remote_debug = !(remote_debug); /* toggle debug flag */
-            break;
         case 'g':       /* return the value of the CPU registers */
-            mem2hex ((char *) registers, remcomOutBuffer, NUMREGBYTES, 0);
+            mem2hex ((char *) registers, remcomOutBuffer, NUMREGBYTES);
             break;
         case 'G':       /* set the value of the CPU registers - return OK */
             hex2mem (ptr, (char *) registers, NUMREGBYTES, 0);
@@ -1747,53 +1845,147 @@ handle_exception (int exceptionVector, struct regs * ea)
             strcpy (remcomOutBuffer, "E01");
             break;
         }
+        case 'p':       /* Read the value of register; Register is in hex. */
+        {
+            int regno;
 
+            if (hexToInt (&ptr, &regno))
+            {
+                //~ printf("Regno = %d\n",regno);
+                ///FIXME
+                //~ if (regno == 64){
+                    //~ mem2hex ((char *) &registers[PC], remcomOutBuffer, 4, 0);
+                    //~ break;
+                //~ }
+                //~ if (regno == 67){
+                    //~ mem2hex ((char *) &registers[Д], remcomOutBuffer, 4, 0);
+                    //~ break;
+                //~ }                
+                if (regno >= 0 && regno < NUMREGS)
+                {
+                    
+                    mem2hex ((char *) &registers[regno], remcomOutBuffer, 4, 0);
+                    strcpy (remcomOutBuffer, "OK");
+                    break;
+                }
+            }
+            strcpy (remcomOutBuffer, "E01");
+            break;
+        }
+
+        //~ case 'm':
+      //~ /* TRY TO READ %x,%x.  IF SUCCEED, SET PTR = 0 */
+            //~ if (hexToInt (&ptr, &addr))
+                //~ if (*(ptr++) == ',')
+                    //~ if (hexToInt (&ptr, &length))
+                    //~ {
+                        //~ ptr = 0;
+                        //~ mem_err = 0;
+                        //~ mem2hex ((char *) addr, remcomOutBuffer, length, 1);
+                        //~ if (mem_err)
+                        //~ {
+                            //~ strcpy (remcomOutBuffer, "E03");
+                        //~ }
+                    //~ }
+//~ 
+            //~ if (ptr)
+            //~ {
+                //~ strcpy (remcomOutBuffer, "E01");
+            //~ }
+            //~ break;
       /* mAA..AA,LLLL  Read LLLL bytes at address AA..AA */
-        case 'm':
-      /* TRY TO READ %x,%x.  IF SUCCEED, SET PTR = 0 */
-            if (hexToInt (&ptr, &addr))
-                if (*(ptr++) == ',')
-                    if (hexToInt (&ptr, &length))
-                    {
-                        ptr = 0;
-                        mem_err = 0;
-                        mem2hex ((char *) addr, remcomOutBuffer, length, 1);
-                        if (mem_err)
-                        {
-                            strcpy (remcomOutBuffer, "E03");
-                        }
+        case 'm':   /* mAA..AA,LLLL  Read LLLL bytes at address AA..AA */
+                /* Try to read %x,%x.  */
+            {
+                ptr = &remcomInBuffer[1];
+                int old_pid = current_part_id();
+                int new_pid = give_part_num_of_thread(using_thread + 1);
+#ifdef DEBUG_GDB
+                printf("New_pid = %d\n",new_pid);
+                printf("Old_pid = %d\n",old_pid);
+#endif
+                if (hexToInt(&ptr, &addr)
+                    && *ptr++ == ','
+                    && hexToInt(&ptr, &length)) {
+                    if (!POK_CHECK_ADDR_IN_PARTITION(new_pid,addr)){
+                        
+                        strcpy (remcomOutBuffer, "E03");
+                        break;
+                    }else{ 
+#ifdef DEBUG_GDB
+                        printf("Load new_pid\n");
+#endif
+                        switch_part_id(old_pid, new_pid);
                     }
-
-            if (ptr)
-            {
-                strcpy (remcomOutBuffer, "E01");
+                    if (mem2hex((char *)addr, remcomOutBuffer,length)){
+                        switch_part_id(new_pid, old_pid);
+                        break;
+                    }
+                    strcpy (remcomOutBuffer, "E03");
+                    if (POK_CHECK_ADDR_IN_PARTITION(new_pid,addr))
+                        switch_part_id(new_pid, old_pid);
+                } else {
+                    strcpy(remcomOutBuffer,"E01");
+                }
+                break;
             }
-            break;
 
-      /* MAA..AA,LLLL: Write LLLL bytes at address AA.AA return OK */
-        case 'M':
-      /* TRY TO READ '%x,%x:'.  IF SUCCEED, SET PTR = 0 */
-            if (hexToInt (&ptr, &addr))
-                if (*(ptr++) == ',')
-                    if (hexToInt (&ptr, &length))
-                        if (*(ptr++) == ':')
-                        {
-                            mem_err = 0;
-                            hex2mem (ptr, (char *) addr, length, 1);
-                            if (mem_err)
-                            {
-                                strcpy (remcomOutBuffer, "E03");
-                            }else{
-                                strcpy (remcomOutBuffer, "OK");
-                            }
-
-                            ptr = 0;
-                        }
-            if (ptr)
+      //~ /* MAA..AA,LLLL: Write LLLL bytes at address AA.AA return OK */
+        //~ case 'M':
+      //~ /* TRY TO READ '%x,%x:'.  IF SUCCEED, SET PTR = 0 */
+            //~ if (hexToInt (&ptr, &addr))
+                //~ if (*(ptr++) == ',')
+                    //~ if (hexToInt (&ptr, &length))
+                        //~ if (*(ptr++) == ':')
+                        //~ {
+                            //~ mem_err = 0;
+                            //~ hex2mem (ptr, (char *) addr, length, 1);
+                            //~ if (mem_err)
+                            //~ {
+                                //~ strcpy (remcomOutBuffer, "E03");
+                            //~ }else{
+                                //~ strcpy (remcomOutBuffer, "OK");
+                            //~ }
+//~ 
+                            //~ ptr = 0;
+                        //~ }
+            //~ if (ptr)
+            //~ {
+                //~ strcpy (remcomOutBuffer, "E02");
+            //~ }
+            //~ break;
+        case 'M': /* MAA..AA,LLLL: Write LLLL bytes at address AA.AA return OK */
+            /* Try to read '%x,%x:'.  */
             {
-                strcpy (remcomOutBuffer, "E02");
+
+                ptr = &remcomInBuffer[1];
+                int old_pid = current_part_id();
+                int new_pid = give_part_num_of_thread(using_thread + 1);
+                if (hexToInt(&ptr, &addr)
+                    && *ptr++ == ','
+                    && hexToInt(&ptr, &length)
+                    && *ptr++ == ':') {
+                    if (POK_CHECK_ADDR_IN_PARTITION(new_pid,addr))
+                        switch_part_id(old_pid, new_pid);
+                    else{
+                        strcpy (remcomOutBuffer, "E03");
+                        break;
+                    }
+                    if (strncmp(ptr, "7d821008", 8) == 0)
+                        ptr = trap;
+                    if (hex2mem(ptr, (char *)addr, length)) {
+                        strcpy(remcomOutBuffer, "OK");
+                    } else {
+                        strcpy(remcomOutBuffer, "E03");
+                    }
+                    if (POK_CHECK_ADDR_IN_PARTITION(new_pid,addr))
+                        switch_part_id(new_pid, old_pid);
+                } else {
+                    strcpy(remcomOutBuffer, "E02");
+                }
+                break;
             }
-            break;
+
 
         case 'H':                   /*Set thread for subsequent operations (‘m’, ‘M’, ‘g’, ‘G’, et.al.). */
         {

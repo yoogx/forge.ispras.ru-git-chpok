@@ -74,8 +74,6 @@ struct port_buf{
 };
 
 
-
-
 #ifdef POK_NEEDS_DEBUG
 void pok_bsp_debug();
 #endif
