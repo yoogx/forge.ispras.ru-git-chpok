@@ -129,15 +129,17 @@ void pok_int_program(struct regs * ea) {
     //~ printf("offset6 = 0x%lx\n",ea->offset6);
     //~ printf("lr = 0x%lx\n",ea->lr);
 
-    printf("\n          Exit from handle exception\n");
 
     if (k == 1){
 /*
  * it was a trap from gdb.c (in gdb.c function)
  */ 
         ea->srr0+=4;
-    }    
+        printf("Change SRR0");
+    }
     k=0;
+    printf("srr0 = 0x%lx\n", ea->srr0);
+    printf("\n          Exit from handle exception\n");
 
 ////    pok_fatal("Program interrupt");
 }

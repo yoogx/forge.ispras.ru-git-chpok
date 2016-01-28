@@ -67,8 +67,8 @@ void     read_all_from_port();
  void write_serial_1(char a)
 {
     //~ read_all_from_port();
-   //~ while ((ns16550_readb(NS16550_REG_LSR, 1) & UART_LSR_THRE) == 0)
-     //~ ;
+   while ((ns16550_readb(NS16550_REG_LSR, 0) & UART_LSR_THRE) == 0)
+     ;
     //~ printf("After While read_all\n");
 
 

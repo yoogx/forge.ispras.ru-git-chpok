@@ -66,8 +66,8 @@ void     read_all_from_port();
  void write_serial_1(char a)
 {
     //~ read_all_from_port();
-   //~ while ((ns16550_readb(NS16550_REG_LSR, 1) & UART_LSR_THRE) == 0)
-     //~ ;
+   while ((ns16550_readb(NS16550_REG_LSR, 0) & UART_LSR_THRE) == 0)
+     ;
     //~ printf("After While read_all\n");
 
 
@@ -156,6 +156,53 @@ void read_all_from_port()
         if (error != 0) printf("ERROR : in read from port\n");
     }
 }
+
+#define LCR 0x3
+
+void return_DLB(){
+    int old_LCR = ns16550_readb(LCR, 0);
+    int new_LCR = old_LCR | 0x80;
+    ns16550_writeb(LCR, new_LCR, 0);
+    int LB_1 = 0xa4;
+    int MB_1 = 0x00;
+    ns16550_writeb(NS16550_REG_THR, LB_1, 0);
+    ns16550_writeb(NS16550_REG_THR + 0x1, MB_1, 0);
+    
+
+    int LB = ns16550_readb(NS16550_REG_THR, 0);
+    int MB = ns16550_readb(NS16550_REG_THR + 0x1, 0);
+    ns16550_writeb(LCR, old_LCR, 0);
+
+    int j = 0;
+    int symbol = -1;
+    while (1){
+        while (!data_to_read_0()){
+            int l=0;
+            for (int k = 0; k < 1000000; k ++){
+                l++;
+            }
+        }
+        symbol = read_serial_0();
+        if (symbol != j){
+            printf("ERROR: j = %d, symbol = %d!!!\n", j, symbol);
+            while (1){
+            }
+        }
+        j = (j + 1) % 256;
+    }
+    
+    
+    printf("=====\n");
+    for (int i = 0; i<= 10000; i++){
+        printf("#");
+    }
+    printf("=====\n");
+    
+    printf("LB = %x , MB = %x, \n", LB, MB); 
+
+}
+
+
 
 int data_to_read_0() //return 0 if no data to read
 {
@@ -248,6 +295,7 @@ pok_bool_t pok_cons_write_1 (const char *s, size_t length)
 
 int pok_cons_init (void)
 {
+    //~ return_DLB();
     pok_print_init (write_serial_0, NULL);
     return 0;
 }

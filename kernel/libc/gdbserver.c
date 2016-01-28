@@ -108,6 +108,7 @@
 #include <core/thread.h>
 #include <core/partition.h>
 
+#include <core/time.h>
 #include <core/debug.h>
 #include <config.h>
  
@@ -115,7 +116,7 @@
 #include <arch.h>
 #endif
  
-#define DEBUG_GDB
+//~ #define DEBUG_GDB
 
 
 /************************************************************************
@@ -132,6 +133,8 @@ char        *strcpy(char *dest, const char *str)
     return dest;
 }
 
+//~ char string[1000];
+//~ int st_idx = 0;
 
 extern void putDebugChar( char );   /* write a single character      */
 extern int getDebugChar();  /* read and return a single char */
@@ -140,6 +143,10 @@ extern void exceptionHandler(); /* assign an exception handler   */
 void putDebugChar(char c){
     data_to_read_1();
     pok_cons_write_1(&c,1);
+    //~ int j = 0;
+    //~ for (int i = 0; i < 1000; i++){
+        //~ j = j + 1;
+    //~ }
 #ifdef DEBUG_GDB
     pok_cons_write(&c,1);
 #endif
@@ -149,6 +156,7 @@ int getDebugChar(){
     data_to_read_1();
     int inf = getchar2();
 #ifdef DEBUG_GDB
+    //~ string[st_idx++] = inf;
     printf("%c",inf);
 #endif
     return inf;
@@ -370,6 +378,9 @@ putpacket (unsigned char *buffer)
     int count;
     char ch;
 #ifdef DEBUG_GDB
+    //~ string[st_idx] = '\0';
+    //~ printf("Buffered string:\n  %s\n", string);
+    //~ st_idx = 0;
     printf("\nLets putpacket --->\n");
 #endif
   /*  $<packet info>#<checksum>. */

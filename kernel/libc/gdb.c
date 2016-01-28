@@ -27,14 +27,17 @@ void pok_gdb_thread(void)
     for (int i=0; i < POK_CONFIG_NB_PARTITIONS; i++){
         partiton_on_pause[i]=TRUE;
     }
+    //~ int j = 0;
     for (;;) {
+        //~ j++;
+        //~ if (j % 1000 == 0) printf("Waiting...\n");
         if (data_to_read_1() == 1) {
             printf("\n\nIt works!!!!!\n\n");
 
             pok_arch_preempt_disable();         
             gdb();
             pok_arch_preempt_enable();        
-           
+            //~ printf();
             
         }
     }

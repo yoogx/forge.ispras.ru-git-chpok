@@ -282,16 +282,16 @@ static void pok_ppc_tlb_print(unsigned tlbsel) {
                 &epn,
                 &rpn
                 );
-        if (valid) {
-            printf("DEBUG: tlb entry %d:%d:\r\n", tlbsel, i);
-            printf("DEBUG:   Valid\r\n");
-            printf("DEBUG:   Effective: %p\r\n", (void*)epn);
-            // FIXME This is wrong. We print only 32 bits out of 36
-            printf("DEBUG:   Physical: %x:%p\r\n", 
-                    (unsigned)(rpn>>32), (void*)(unsigned)rpn);
-            printf("DEBUG:   Size: %s\r\n", pok_ppc_tlb_size(tsize));
-
-        }
+        //~ if (valid) {
+            //~ printf("DEBUG: tlb entry %d:%d:\r\n", tlbsel, i);
+            //~ printf("DEBUG:   Valid\r\n");
+            //~ printf("DEBUG:   Effective: %p\r\n", (void*)epn);
+            //~ // FIXME This is wrong. We print only 32 bits out of 36
+            //~ printf("DEBUG:   Physical: %x:%p\r\n", 
+                    //~ (unsigned)(rpn>>32), (void*)(unsigned)rpn);
+            //~ printf("DEBUG:   Size: %s\r\n", pok_ppc_tlb_size(tsize));
+//~ 
+        //~ }
     }
 }
 

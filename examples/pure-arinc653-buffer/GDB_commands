@@ -103,6 +103,7 @@ end
 define connect_to 
     set breakpoint always-inserted on
     set $OLD_PID = -1
+    set remotetimeout unlimited
     target remote $arg0
     symbol-file pok.elf
     Clear_breakpoints
