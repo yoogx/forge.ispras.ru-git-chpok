@@ -319,7 +319,6 @@ void pok_sched()
 #endif
         }
     } else {
-        //XXX Hasn't slot already equal this?
         slot = &pok_module_sched[pok_sched_current_slot];
     }
 
