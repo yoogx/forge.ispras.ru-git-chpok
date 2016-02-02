@@ -73,6 +73,10 @@ elif env['ARCH'] == 'x86':
     env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
     env['QEMU'] = 'qemu-system-i386'
 
+env['LIBPATH'] = env['LIBGCC'].replace('libgcc.a', '')
+env.Append(LINKFLAGS = ' -L'+env['LIBPATH']+' -lgcov')
+
+env.Append(CFLAGS = ' --coverage')
 env['ASFLAGS'] = env['CFLAGS']
 
 bsp_cpu_dict = {

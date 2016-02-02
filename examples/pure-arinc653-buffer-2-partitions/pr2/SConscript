@@ -22,6 +22,7 @@ source = [],
 action = pr2_env['LINK']+pr2_env['LINKFLAGS']+' '+
 source_objs +
 ' -o pr2/pr2.elf -L'+build_path_libpok+' -lpok '+
+' -L'+env['LIBPATH']+' -lgcov '+
 pr2_env['LIBGCC'])
 pr2_env.Depends(pr2_command, [objs, build_path_libpok+'/libpok.a', ldscript])
 

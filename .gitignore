@@ -13,3 +13,5 @@ libpok.a
 .sconsign*
 *.log
 *.directory
+*.gcno
+*.gcda
