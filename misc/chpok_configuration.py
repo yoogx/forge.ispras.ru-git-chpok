@@ -328,8 +328,8 @@ class Configuration:
             if networking_time_slot_exists:
                 raise ValueError("Networking is disabled, but there's (unnecessary) network processing time slot in the schedule")
 
-            if any(chan.requires_network() for chan in self.channels):
-                raise ValueError("Network channel is present, but networking is not configured")
+            #if any(chan.requires_network() for chan in self.channels):
+            #    raise ValueError("Network channel is present, but networking is not configured")
             
         # validate schedule
         partitions_set = set(range(len(self.partitions)))
@@ -355,8 +355,7 @@ class Configuration:
 
     def get_all_channels(self):
         return self.channels
-"""
-"""
+
 TIMESLOT_SPARE_TEMPLATE = """\
     { .type = POK_SLOT_SPARE,
       .duration = %(duration)d,
@@ -430,22 +429,25 @@ static struct {
 """
 
 PORT_CONNECTION_NULL = """\
-    { .kind = POK_PORT_CONNECTION_NULL
-    }
+ {
+            .kind = POK_PORT_CONNECTION_NULL
+        }\
 """
 
 PORT_CONNECTION_LOCAL_TEMPLATE = """\
-    { .kind = POK_PORT_CONNECTION_LOCAL, 
-      .local =  {
-        .port_id = %(port_id)d, 
-      }
-    }
+ {
+            .kind = POK_PORT_CONNECTION_LOCAL,
+            .local =  {
+                .port_id = %(port_id)d,
+            }
+        }\
 """
 
-PORT_CONNECTION_UDP_TEMPLATE = """
-    { .kind = POK_PORT_CONNECTION_UDP,
-      .udp = {.ptr = %s }
-    }
+PORT_CONNECTION_UDP_TEMPLATE = """\
+ {
+            .kind = POK_PORT_CONNECTION_UDP,
+            .udp = {.ptr = %s }
+        }\
 """
 
 # this one is terrible
@@ -579,14 +581,18 @@ def write_kernel_deployment_c(conf, f):
     n_queueing_ports = len(conf.get_all_queueing_ports())
     
     p("unsigned pok_config_nb_sampling_ports = %d;" % n_sampling_ports)
-    
     p("unsigned pok_config_nb_queueing_ports = %d;" % n_queueing_ports)
+
+    n_queueing_channels = len([c for c in conf.channels if c.is_queueing()])
+    n_sampling_channels = len([c for c in conf.channels if c.is_sampling()])
+    p("unsigned pok_config_nb_queueing_channels = %d;"% n_queueing_channels)
+    p("unsigned pok_config_nb_sampling_channels = %d;"% n_sampling_channels)
     
     p("enum {")
-    p("tmp_pok_config_nb_threads = %d," % total_threads)
-    p("tmp_pok_config_nb_lockobjects = %d," % 
+    p("    tmp_pok_config_nb_threads = %d," % total_threads)
+    p("    tmp_pok_config_nb_lockobjects = %d," % 
         sum(part.get_needed_lock_objects() for part in conf.partitions))
-    p("tmp_pok_config_nb_partitions = %d," % len(conf.partitions))
+    p("    tmp_pok_config_nb_partitions = %d," % len(conf.partitions))
     p("};")
     
     p("#include <config.h>")
@@ -599,6 +605,8 @@ def write_kernel_deployment_c(conf, f):
     p("pok_partition_t pok_partitions[tmp_pok_config_nb_partitions];")
     p("struct pok_space spaces[tmp_pok_config_nb_partitions];")
 
+    p("")
+    p("")
     #if len(conf.get_all_ports()) > 0:
     write_kernel_deployment_c_ports(conf, f)
 
@@ -814,7 +822,6 @@ def write_kernel_deployment_c_ports(conf, f):
     #if all_queueing_ports:
     p("pok_port_queueing_t pok_queueing_ports[] = {")
     for i, port in enumerate(all_queueing_ports):
-
         p(QUEUEING_PORT_TEMPLATE % dict(
             name=_c_string(port.name),
             partition=get_partition(port),
@@ -831,16 +838,11 @@ def write_kernel_deployment_c_ports(conf, f):
         for channel in conf.channels:
             if not predicate(channel): continue
 
-            p("{")
-            p(".src = %s," % get_connection_string(channel.src))
-            p(".dst = %s," % get_connection_string(channel.dst))
-            p("},")
-
-        p("{")
-        p(".src = %s," % PORT_CONNECTION_NULL)
-        p(".dst = %s," % PORT_CONNECTION_NULL)
-        p("},")
-
+            p("    {")
+            p("        .src = %s," % get_connection_string(channel.src))
+            p("");
+            p("        .dst = %s," % get_connection_string(channel.dst))
+            p("    },")
         p("};")
 
     print_channels(lambda c: c.is_queueing(), "pok_queueing_port_channels")
