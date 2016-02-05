@@ -91,6 +91,20 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
     if (arp_packet.tpa != pok_network_ip_address) {
         return; // This ARP request is not for us.
     }
+
+    struct {
+        struct ether_hdr ether_hdr;
+        struct arp_packet_t arp_answer;
+    } __attribute((packed)) arp_answer_buffer;
+
+    int i;
+    for (i = 0; i < ETH_ALEN; i++) {
+        arp_anwer_buffer->arp_answer.sha[i] =
+        arp_anwer_buffer->ether_hdr.src[i] = NETWORK_DRIVER.mac[i];
+        arp_anwer_buffer->arp_answer.tha[i] =
+        arp_anwer_buffer->ether_hdr.dst[i] = arp_packet.sha[i];
+    }
+    arp_answer_buffer->ether_hdr.ethertype = hton16(ETH_P_ARP);
 }
 
 // ---- ARP support -  end  ----
