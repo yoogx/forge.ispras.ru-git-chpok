@@ -35,6 +35,7 @@ pok_bsp_t pok_bsp = {
     .ccsrbar_size = 0x1000000ULL,
     .ccsrbar_base = 0x0FE000000ULL,
     .ccsrbar_base_phys = 0x0FE000000ULL,
+    .dcfg_offset = 0xE0000ULL,
     .serial0_regs_offset = 0x11C500ULL
 };
 
