@@ -55,7 +55,7 @@ struct arp_packet_t {
     uint32_t tpa;
 } __attribute__((packed));
 
-static int ether_is_broadcast(const uint8_t addr[ETH_ALEN]) {
+static pok_bool_t ether_is_broadcast(const uint8_t addr[ETH_ALEN]) {
     for (int i = 0; i < ETH_ALEN; ++i) {
         if (addr[i] != 0xFF) {
             return 0;
