@@ -73,6 +73,24 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
     if (ether_hdr->ethertype != hton16(ETH_P_ARP)) {
         return; // This is not an ARP request.
     }
+
+    struct arp_packet_t *arp_packet = (void *) ether_hdr->payload;
+
+    if (arp_packet->htype != 1) {
+        return; // We support only Ethernet hardware type.
+    }
+    if (arp_packet->ptype != hton16(ETH_P_IP)) {
+        return; // We support only IPv4 protocol type.
+    }
+    if (arp_packet->hlen != ETH_ALEN || arp_packet->plen != 4) {
+        return; // We support Ethernet MAC and IPv4 addresses only.
+    }
+    if (arp_packet.oper != 1) {
+        return; // This is not an ARP request.
+    }
+    if (arp_packet.tpa != pok_network_ip_address) {
+        return; // This ARP request is not for us.
+    }
 }
 
 // ---- ARP support -  end  ----
