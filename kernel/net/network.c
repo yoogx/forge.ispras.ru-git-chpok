@@ -65,7 +65,9 @@ static pok_bool_t ether_is_broadcast(const uint8_t addr[ETH_ALEN]) {
     return 1;
 }
 
-static void stub_callback(void *arg) {}
+static void stub_callback(void *arg) {
+    printf("ARP: we have sent an answer.\n");
+}
 
 static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
     if (!ether_is_broadcast(ether_hdr->dst)) {
@@ -94,6 +96,8 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
         return; // This ARP request is not for us.
     }
 
+    printf("ARP: we have received a request for our MAC.\n");
+
     struct {
         struct ether_hdr ether_hdr;
         struct arp_packet_t arp_answer;
@@ -116,11 +120,15 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
     arp_answer_buffer.arp_answer.spa = hton32(pok_network_ip_address);
     arp_answer_buffer.arp_answer.tpa = arp_packet->spa;
 
+    pok_bool_t sent =
     NETWORK_DRIVER_OPS->send_frame(
         (char *) &arp_answer_buffer,
         sizeof(arp_answer_buffer),
         stub_callback,
         NULL);
+    if (!sent) {
+        printf("ARP: unable to send an answer.\n");
+    }
 }
 
 // ---- ARP support -  end  ----
