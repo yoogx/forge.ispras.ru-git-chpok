@@ -68,6 +68,14 @@ pok_bool_t pok_arch_preempt_enabled(void)
   return !!(flags & (1<<9));
 }
 
+void pok_arch_inf_loop()
+{
+   pok_arch_preempt_disable();
+   while (1) {
+      asm ("hlt");
+   }
+}
+
 pok_ret_t pok_arch_idle()
 {
    while (1)

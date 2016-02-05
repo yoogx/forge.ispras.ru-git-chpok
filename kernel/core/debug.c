@@ -77,17 +77,11 @@ void pok_debug_print_current_state ()
 
 void pok_fatal (const char* message)
 {
-  // it can be called from a kernel thread
-  // with preemption enabled
-  // also, some bugs somehow reenable preemption
-  // where it shouldn't be enabled
-  pok_arch_preempt_disable();
-
   pok_write ("FATAL ERROR: \n", 13);
   pok_write (message , debug_strlen(message));
 
   POK_DEBUG_PRINT_CURRENT_STATE
-  pok_arch_idle ();
+  pok_arch_inf_loop();
 
   __builtin_unreachable();
 }

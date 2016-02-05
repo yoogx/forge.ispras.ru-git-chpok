@@ -61,6 +61,14 @@ pok_bool_t pok_arch_preempt_enabled(void)
   return !!(mfmsr() & MSR_EE);
 }
 
+void pok_arch_inf_loop()
+{
+   pok_arch_preempt_disable();
+
+   while (1)
+   {}
+}
+
 pok_ret_t pok_arch_idle()
 {
    pok_arch_preempt_enable();
