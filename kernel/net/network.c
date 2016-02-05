@@ -43,7 +43,20 @@ static pok_network_udp_receive_callback_t *receive_callback_list = NULL;
 
 #define ETH_P_ARP 0x0806
 
+static int ether_is_broadcast(const uint8_t addr[ETH_ALEN]) {
+    for (int i = 0; i < ETH_ALEN; ++i) {
+        if (addr[i] != 0xFF) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
 static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
+    if (!ether_is_broadcast(ether_hdr->dst)) {
+        return; // This is not an ARP request.
+    }
 }
 
 // ---- ARP support -  end  ----
