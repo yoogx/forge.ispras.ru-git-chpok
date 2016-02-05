@@ -87,10 +87,10 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
     if (arp_packet->hlen != ETH_ALEN || arp_packet->plen != 4) {
         return; // We support Ethernet MAC and IPv4 addresses only.
     }
-    if (arp_packet.oper != 1) {
+    if (arp_packet->oper != 1) {
         return; // This is not an ARP request.
     }
-    if (arp_packet.tpa != pok_network_ip_address) {
+    if (arp_packet->tpa != pok_network_ip_address) {
         return; // This ARP request is not for us.
     }
 
@@ -101,23 +101,23 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
 
     int i;
     for (i = 0; i < ETH_ALEN; i++) {
-        arp_anwer_buffer->arp_answer.sha[i] =
-        arp_anwer_buffer->ether_hdr.src[i] = NETWORK_DRIVER.mac[i];
-        arp_anwer_buffer->arp_answer.tha[i] =
-        arp_anwer_buffer->ether_hdr.dst[i] = arp_packet.sha[i];
+        arp_answer_buffer.arp_answer.sha[i] =
+        arp_answer_buffer.ether_hdr.src[i] = NETWORK_DRIVER.mac[i];
+        arp_answer_buffer.arp_answer.tha[i] =
+        arp_answer_buffer.ether_hdr.dst[i] = arp_packet->sha[i];
     }
-    arp_answer_buffer->ether_hdr.ethertype = hton16(ETH_P_ARP);
+    arp_answer_buffer.ether_hdr.ethertype = hton16(ETH_P_ARP);
 
-    arp_answer_buffer->arp_answer.htype = arp_packet->htype;
-    arp_answer_buffer->arp_answer.ptype = arp_packet->ptype;
-    arp_answer_buffer->arp_answer.hlen = arp_packet->hlen;
-    arp_answer_buffer->arp_answer.plen = arp_packet->plen;
-    arp_answer_buffer->arp_answer.oper = 2; // This is an ARP answer.
-    arp_answer_buffer->arp_answer.spa = pok_network_ip_address;
-    arp_answer_buffer->arp_answer.tpa = arp_packet->spa;
+    arp_answer_buffer.arp_answer.htype = arp_packet->htype;
+    arp_answer_buffer.arp_answer.ptype = arp_packet->ptype;
+    arp_answer_buffer.arp_answer.hlen = arp_packet->hlen;
+    arp_answer_buffer.arp_answer.plen = arp_packet->plen;
+    arp_answer_buffer.arp_answer.oper = 2; // This is an ARP answer.
+    arp_answer_buffer.arp_answer.spa = pok_network_ip_address;
+    arp_answer_buffer.arp_answer.tpa = arp_packet->spa;
 
-    return NETWORK_DRIVER_OPS->send_frame(
-        arp_answer_buffer,
+    NETWORK_DRIVER_OPS->send_frame(
+        (char *) &arp_answer_buffer,
         sizeof(arp_answer_buffer),
         stub_callback,
         NULL);
