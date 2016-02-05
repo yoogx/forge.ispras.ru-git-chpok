@@ -105,6 +105,14 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
         arp_anwer_buffer->ether_hdr.dst[i] = arp_packet.sha[i];
     }
     arp_answer_buffer->ether_hdr.ethertype = hton16(ETH_P_ARP);
+
+    arp_answer_buffer->arp_answer.htype = arp_packet->htype;
+    arp_answer_buffer->arp_answer.ptype = arp_packet->ptype;
+    arp_answer_buffer->arp_answer.hlen = arp_packet->hlen;
+    arp_answer_buffer->arp_answer.plen = arp_packet->plen;
+    arp_answer_buffer->arp_answer.oper = 2; // This is an ARP answer.
+    arp_answer_buffer->arp_answer.spa = pok_network_ip_address;
+    arp_answer_buffer->arp_answer.tpa = arp_packet->spa;
 }
 
 // ---- ARP support -  end  ----
