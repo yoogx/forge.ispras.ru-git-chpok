@@ -43,6 +43,18 @@ static pok_network_udp_receive_callback_t *receive_callback_list = NULL;
 
 #define ETH_P_ARP 0x0806
 
+struct arp_packet_t {
+    uint16_t htype;
+    uint16_t ptype;
+    uint8_t hlen;
+    uint8_t plen;
+    uint16_t oper;
+    uint8_t sha[ETH_ALEN];
+    uint32_t spa;
+    uint8_t tha[ETH_ALEN];
+    uint32_t tpa;
+} __attribute__((packed));
+
 static int ether_is_broadcast(const uint8_t addr[ETH_ALEN]) {
     for (int i = 0; i < ETH_ALEN; ++i) {
         if (addr[i] != 0xFF) {
