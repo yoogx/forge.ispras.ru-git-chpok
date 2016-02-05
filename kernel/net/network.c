@@ -65,6 +65,8 @@ static int ether_is_broadcast(const uint8_t addr[ETH_ALEN]) {
     return 1;
 }
 
+static void stub_callback(void *arg) {}
+
 static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
     if (!ether_is_broadcast(ether_hdr->dst)) {
         return; // This is not an ARP request.
@@ -113,6 +115,12 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
     arp_answer_buffer->arp_answer.oper = 2; // This is an ARP answer.
     arp_answer_buffer->arp_answer.spa = pok_network_ip_address;
     arp_answer_buffer->arp_answer.tpa = arp_packet->spa;
+
+    return NETWORK_DRIVER_OPS->send_frame(
+        arp_answer_buffer,
+        sizeof(arp_answer_buffer),
+        stub_callback,
+        NULL);
 }
 
 // ---- ARP support -  end  ----
