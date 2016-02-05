@@ -78,7 +78,7 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
 
     struct arp_packet_t *arp_packet = (void *) ether_hdr->payload;
 
-    if (arp_packet->htype != 1) {
+    if (arp_packet->htype != hton16(1)) {
         return; // We support only Ethernet hardware type.
     }
     if (arp_packet->ptype != hton16(ETH_P_IP)) {
@@ -87,10 +87,10 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
     if (arp_packet->hlen != ETH_ALEN || arp_packet->plen != 4) {
         return; // We support Ethernet MAC and IPv4 addresses only.
     }
-    if (arp_packet->oper != 1) {
+    if (arp_packet->oper != hton16(1)) {
         return; // This is not an ARP request.
     }
-    if (arp_packet->tpa != pok_network_ip_address) {
+    if (arp_packet->tpa != hton32(pok_network_ip_address)) {
         return; // This ARP request is not for us.
     }
 
@@ -112,8 +112,8 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
     arp_answer_buffer.arp_answer.ptype = arp_packet->ptype;
     arp_answer_buffer.arp_answer.hlen = arp_packet->hlen;
     arp_answer_buffer.arp_answer.plen = arp_packet->plen;
-    arp_answer_buffer.arp_answer.oper = 2; // This is an ARP answer.
-    arp_answer_buffer.arp_answer.spa = pok_network_ip_address;
+    arp_answer_buffer.arp_answer.oper = hton16(2); // This is an ARP answer.
+    arp_answer_buffer.arp_answer.spa = hton32(pok_network_ip_address);
     arp_answer_buffer.arp_answer.tpa = arp_packet->spa;
 
     NETWORK_DRIVER_OPS->send_frame(
