@@ -99,6 +99,7 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
     printf("ARP: we have received a request for our MAC.\n");
 
     struct {
+        char driver_overhead[POK_NETWORK_OVERHEAD_DRIVER];
         struct ether_hdr ether_hdr;
         struct arp_packet_t arp_answer;
     } __attribute__((packed)) arp_answer_buffer;
