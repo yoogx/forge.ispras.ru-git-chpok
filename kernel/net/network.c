@@ -65,7 +65,10 @@ static pok_bool_t ether_is_broadcast(const uint8_t addr[ETH_ALEN]) {
     return 1;
 }
 
+static pok_bool_t arp_answer_buffer_is_busy = FALSE;
+
 static void stub_callback(void *arg) {
+    arp_answer_buffer_is_busy = FALSE;
     printf("ARP: we have sent an answer.\n");
 }
 
@@ -103,6 +106,13 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
     }
 
     printf("ARP: we have received a request for our MAC.\n");
+
+    if (arp_answer_buffer_is_busy) {
+        printf("ARP: answer buffer is yet busy! Unable to answer.");
+        // TODO to wait for freeing somehow.
+        return;
+    }
+    arp_answer_buffer_is_busy = TRUE;
 
     int i;
     for (i = 0; i < ETH_ALEN; i++) {
