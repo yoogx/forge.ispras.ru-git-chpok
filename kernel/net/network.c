@@ -39,6 +39,7 @@ static pok_bool_t initialized = FALSE;
 
 static pok_network_udp_receive_callback_t *receive_callback_list = NULL;
 
+#ifdef POK_NEEDS_ARP_ANSWER
 // ---- ARP support - begin ----
 
 #define ETH_P_ARP 0x0806
@@ -143,6 +144,7 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
 }
 
 // ---- ARP support -  end  ----
+#endif // POK_NEEDS_ARP_ANSWER
 
 static void packet_received_callback(const char *data, size_t len)
 {
@@ -165,7 +167,9 @@ static void packet_received_callback(const char *data, size_t len)
     }
 
     if (ether_hdr->ethertype != hton16(ETH_P_IP)) {
+        #ifdef POK_NEEDS_ARP_ANSWER
         try_arp(ether_hdr, len); // Manage if it is an ARP packet
+        #endif // POK_NEEDS_ARP_ANSWER
 
         // we don't know anything except IPv4
         return;
