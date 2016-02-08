@@ -133,8 +133,8 @@ char        *strcpy(char *dest, const char *str)
     return dest;
 }
 
-//~ char string[1000];
-//~ int st_idx = 0;
+char string[1000];
+int st_idx = 0;
 
 extern void putDebugChar( char );   /* write a single character      */
 extern int getDebugChar();  /* read and return a single char */
@@ -143,10 +143,6 @@ extern void exceptionHandler(); /* assign an exception handler   */
 void putDebugChar(char c){
     data_to_read_1();
     pok_cons_write_1(&c,1);
-    //~ int j = 0;
-    //~ for (int i = 0; i < 1000; i++){
-        //~ j = j + 1;
-    //~ }
 #ifdef DEBUG_GDB
     pok_cons_write(&c,1);
 #endif
@@ -156,8 +152,8 @@ int getDebugChar(){
     data_to_read_1();
     int inf = getchar2();
 #ifdef DEBUG_GDB
-    //~ string[st_idx++] = inf;
-    printf("%c",inf);
+    string[st_idx++] = inf;
+    //~ printf("%c",inf);
 #endif
     return inf;
 }
@@ -267,14 +263,9 @@ getpacket(char *buffer)
             xmitcsum = hex(getDebugChar() & 0x7f) << 4;
             xmitcsum |= hex(getDebugChar() & 0x7f);
             if (checksum != xmitcsum){
-                //~ printf("------------ERROR: failed checksum!\n");
-
                 putDebugChar('-');  /* failed checksum */
-            }else {
-                //~ printf("-----Before succsess\n");
-
+            }else {;
                 putDebugChar('+'); /* successful transfer */
-                //~ printf("-----After succsess\n");
                 /* if a sequence char is present, reply the ID */
                 if (buffer[2] == ':') {
                     putDebugChar(buffer[0]);
@@ -378,9 +369,9 @@ putpacket (unsigned char *buffer)
     int count;
     char ch;
 #ifdef DEBUG_GDB
-    //~ string[st_idx] = '\0';
-    //~ printf("Buffered string:\n  %s\n", string);
-    //~ st_idx = 0;
+    string[st_idx] = '\0';
+    printf("Buffered string:\n  %s\n", string);
+    st_idx = 0;
     printf("\nLets putpacket --->\n");
 #endif
   /*  $<packet info>#<checksum>. */
@@ -437,6 +428,7 @@ void
 set_char (char *addr, int val)
 {
     *addr = val;
+asm volatile("dcbst 0, %0; sync; icbi 0,%0; sync; isync" : : "r" (addr));
 }
 
 /* convert the memory pointed to by mem into hex, placing result in buf */
@@ -727,7 +719,7 @@ pok_partition_id_t give_part_num_of_thread(int thread_num){
     return 0;
 }    
 
-void add_0_breakpoint(int * addr,int * length,int * using_thread){
+void add_0_breakpoint(int addr,int length,int *using_thread){
     int old_pid = current_part_id();
     int new_pid = give_part_num_of_thread(*using_thread + 1);
 #ifdef DEBUG_GDB
@@ -741,7 +733,7 @@ void add_0_breakpoint(int * addr,int * length,int * using_thread){
      */
         int i = 0;
         for (i = 0; i < max_breakpoint; i++){
-            if (breakpoints[i].addr == *addr)
+            if (breakpoints[i].addr == addr)
                 break;
         }
     /*
@@ -749,22 +741,23 @@ void add_0_breakpoint(int * addr,int * length,int * using_thread){
      */
         if (i < (max_breakpoint - 1)) {
 
-            if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
+            if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
             { 
 #ifdef DEBUG_GDB
                 printf("Load new_pid\n");
 #endif
                 switch_part_id(old_pid, new_pid);
             }
-            if (hex2mem(trap, (char *)(*addr), *length)) {
+            if (hex2mem(trap, (char *)addr,  length)) {
                 strcpy(remcomOutBuffer, "OK");
+                printf("hex2mem: addr = 0x%x; instr = 0x%lx", addr, *(uint32_t *)addr);
             } else {
                 strcpy(remcomOutBuffer, "E22");
                 switch_part_id(new_pid, old_pid);    
                 return;
             }
-            if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
-                switch_part_id(new_pid, old_pid);    
+            if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
+                switch_part_id(new_pid, old_pid);
 
             strcpy (remcomOutBuffer, "OK");
             return;
@@ -774,14 +767,14 @@ void add_0_breakpoint(int * addr,int * length,int * using_thread){
     }
     b_need_to_set = -1;
 
-    if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
+    if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
     { 
 #ifdef DEBUG_GDB
         printf("Load new_pid\n");
 #endif
         switch_part_id(old_pid, new_pid);
     }
-    if (!mem2hex((char *)(*addr),&(breakpoints[Head_of_breakpoints].Instr),*length)){
+    if (!mem2hex((char *)addr, &(breakpoints[Head_of_breakpoints].Instr), length)){
         strcpy (remcomOutBuffer, "E22");
         switch_part_id(new_pid, old_pid);    
         return;
@@ -793,7 +786,7 @@ void add_0_breakpoint(int * addr,int * length,int * using_thread){
     breakpoints[Head_of_breakpoints].P_num = new_pid;
     breakpoints[Head_of_breakpoints].B_num = last_breakpoint;
     breakpoints[Head_of_breakpoints].Reason = 2;
-    breakpoints[Head_of_breakpoints].addr = *addr;
+    breakpoints[Head_of_breakpoints].addr = addr;
     Head_of_breakpoints++;
     if (Head_of_breakpoints == max_breakpoint){
         strcpy(remcomOutBuffer, "E22");
@@ -801,18 +794,19 @@ void add_0_breakpoint(int * addr,int * length,int * using_thread){
         return;
     }
 
-    if (hex2mem(trap, (char *)(*addr), *length)) {
+    if (hex2mem(trap, (char *)addr, length)) {
         strcpy(remcomOutBuffer, "OK");
+        printf("hex2mem: addr = 0x%x; instr = 0x%lx", addr, *(uint32_t *)addr);
     } else {
         strcpy(remcomOutBuffer, "E22");
         switch_part_id(new_pid, old_pid);    
         return;
     }
-    if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
-        switch_part_id(new_pid, old_pid);    
+    if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
+        switch_part_id(new_pid, old_pid);
 }
 
-void remove_0_breakpoint(int * addr,int * length,int * using_thread){
+void remove_0_breakpoint(int addr, int length, int *using_thread){
 #ifdef DEBUG_GDB
     printf("            Z0, breakpoint[0].addr = %d\n",breakpoints[0].addr);
 #endif
@@ -829,7 +823,7 @@ void remove_0_breakpoint(int * addr,int * length,int * using_thread){
     
     if (b_need_to_delete == -1){
         for (i = 0; i < max_breakpoint; i++){
-            if (breakpoints[i].addr == *addr)
+            if (breakpoints[i].addr == addr)
                 break;
         }
         if (i == (max_breakpoint - 1)){ 
@@ -840,15 +834,16 @@ void remove_0_breakpoint(int * addr,int * length,int * using_thread){
             strcpy (remcomOutBuffer, "E22");
             return;
         }
-        if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
+        if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
         { 
 #ifdef DEBUG_GDB
             printf("Load new_pid\n");
 #endif
             switch_part_id(old_pid, new_pid);
         }
-        if (hex2mem(breakpoints[i].Instr, (char *)(*addr), *length)) {
+        if (hex2mem(breakpoints[i].Instr, (char *)addr, length)) {
             strcpy(remcomOutBuffer, "OK");
+            printf("hex2mem: addr = 0x%x; instr = 0x%lx", addr, *(uint32_t *)addr);
         } else {
 #ifdef DEBUG_GDB
             printf("                Error in add breakpoint\n");
@@ -857,12 +852,12 @@ void remove_0_breakpoint(int * addr,int * length,int * using_thread){
             switch_part_id(new_pid, old_pid);    
             return;
         }
-        if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
+        if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
             switch_part_id(new_pid, old_pid);
         return;
     }
     
-    if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
+    if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
     { 
 #ifdef DEBUG_GDB
         printf("Load new_pid\n");
@@ -870,7 +865,7 @@ void remove_0_breakpoint(int * addr,int * length,int * using_thread){
         switch_part_id(old_pid, new_pid);
     }
     for (i = 0; i < max_breakpoint; i++){
-        if (breakpoints[i].addr == *addr)
+        if (breakpoints[i].addr == addr)
             break;
     }
     b_need_to_delete = -1;
@@ -881,14 +876,15 @@ void remove_0_breakpoint(int * addr,int * length,int * using_thread){
     breakpoints[i].B_num = 0;
     breakpoints[i].Reason = 0;
     breakpoints[Head_of_breakpoints].addr = 0;
-    if (hex2mem(breakpoints[i].Instr, (char *)(*addr), *length)) {
+    if (hex2mem(breakpoints[i].Instr, (char *)addr, length)) {
         strcpy(remcomOutBuffer, "OK");
+        printf("hex2mem: addr = 0x%x; instr = 0x%lx", addr, *(uint32_t *)addr);
     } else {
         strcpy (remcomOutBuffer, "E22");
         switch_part_id(new_pid, old_pid);    
         return;
     }
-    if (POK_CHECK_ADDR_IN_PARTITION(new_pid,*addr))
+    if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
         switch_part_id(new_pid, old_pid);    
 }
     
@@ -1176,9 +1172,9 @@ handle_exception (int exceptionVector, struct regs * ea)
                 if (kind == -1) break;
                 if (type == 0){
                     if (remcomInBuffer[0] == 'Z') 
-                            add_0_breakpoint(&addr,&kind,&using_thread);
+                            add_0_breakpoint(addr, kind, &using_thread);
                         else
-                            remove_0_breakpoint(&addr,&kind,&using_thread);
+                            remove_0_breakpoint(addr, kind, &using_thread);
                 }
                 break;
             }
@@ -1555,16 +1551,6 @@ handle_exception (int exceptionVector, struct regs * ea)
             if (hexToInt(&ptr, &addr)) {
                 registers[pc]/*nip*/ = addr;
             }
-        
-/* Need to flush the instruction cache here, as we may have deposited a
- * breakpoint, and the icache probably has no way of knowing that a data ref to
- * some location may have changed something that is in the instruction cache.
- */
-////            kgdb_flush_cache_all();
-////            set_msr(msr);
-////            kgdb_interruptible(1);
-////            unlock_kernel();
-////            kgdb_active = 0;
             return;
 
         case 's':
@@ -1658,19 +1644,6 @@ handle_exception (int exceptionVector, struct regs * ea)
             mem2hex((char *)(registers[pc]+4), instr,4);            
             hex2mem(trap, (char *)(registers[pc]+4), 4);
             addr_instr = registers[pc] + 4;
-           
-                ////flush_icache_range(addr, addr+length);
-
-                
-
-////            kgdb_flush_cache_all();
-////            registers[msr] |= MSR_SE;
-            
-////#if 0
-////            set_msr(registers[msr]);
-////#endif
-////            unlock_kernel();
-////            kgdb_active = 0;
             return;
         }
         case 'r':       /* Reset (if user process..exit ???)*/

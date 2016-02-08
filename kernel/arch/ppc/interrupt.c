@@ -26,12 +26,13 @@
 #include <core/debug.h>
 #include <libc.h>
 #include <bsp.h>
+#include "reg.h"
 
 #include "space.h"
 #include "timer.h"
 #include "syscalls.h"
 
-
+int L = 0;
 
 
 void pok_int_critical_input(uintptr_t ea) {
@@ -68,6 +69,7 @@ int k=0;
 
 extern void * pok_trap_addr;
 extern void * pok_trap;
+void write_on_screen();
 
 
 void pok_int_program(struct regs * ea) {
@@ -75,11 +77,14 @@ void pok_int_program(struct regs * ea) {
 ////printf("ea = 0x%lx\n", ea);
 
 //// pok_trap_addr = address of pok_trap in entry.S
-
+    printf("srr0 = 0x%lx\n", ea->srr0);
+    printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
     if (ea->srr0 == (unsigned) (& pok_trap_addr)){
         k++;
+        printf("Reason: SIGINT\n");
         handle_exception(17,ea); 
     }else{
+        printf("Reason: Breakpoint\n");
         handle_exception(3,ea); 
     }
     //~ printf("\n\n            In pok_int_programm:\n");
@@ -134,13 +139,19 @@ void pok_int_program(struct regs * ea) {
 /*
  * it was a trap from gdb.c (in gdb.c function)
  */ 
-        ea->srr0+=4;
+        ea->srr0 += 4;
         printf("Change SRR0");
     }
     k=0;
     printf("srr0 = 0x%lx\n", ea->srr0);
     printf("\n          Exit from handle exception\n");
+    printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
+    //~ asm volatile("isync");
+    printf("instr = 0x%lx\n", *(uint32_t *)(ea->srr0));
+   
 
+//~ asm volatile("acbi");  
+    
 ////    pok_fatal("Program interrupt");
 }
 
@@ -179,7 +190,17 @@ void pok_int_inst_tlb_miss(uintptr_t ea, uintptr_t dear, unsigned long esr) {
     pok_arch_handle_page_fault(dear, esr);
 }
 
-void pok_int_debug(uintptr_t ea) {
+void pok_int_debug(struct regs * ea) {
+    if (L < 50){
+        int DBCR0 = mfspr(SPRN_DBCR0);
+        printf("DBCR0 = 0x%x\n", DBCR0);
+        mtspr(SPRN_DBCR0, 0x01000000UL);
+        ea->srr1 &= (~ 0x200);
+        printf("srr0 = 0x%lx\n", ea->srr0);
+        printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
+        L++;
+    }        //~ printf("In int debug \n");
+    
     (void) ea;
-    pok_fatal("Debug interrupt");
+    //~ pok_fatal("Debug interrupt");
 }

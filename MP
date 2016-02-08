@@ -64,21 +64,37 @@ def read2(conn, mask):
         for sym in bytes(data2):
             in_s.send(bytes([128]))
             in_s.send(bytes([sym]))
-            time.sleep(0.01)
-            print(bytes([sym]))
+            print(chr(sym), end='')
+        print()
     else:
         print('closing', conn)
         sel.unregister(conn)
         conn.close()
         conn2 = None
+    #~ time.sleep(0.00001)
 
 def my_read():
-    for i in range(3):
-        for sym in range(256):
-            in_s.send(bytes([127]))
-            in_s.send(bytes([sym]))
-            #time.sleep(0.01)
-            print(sym)
+    in_s.send(bytes([128]))
+    in_s.send(b'a')
+    time.sleep(3)
+    #~ for i in range(2):
+        #~ in_s.send(bytes([128]))
+        #~ in_s.send(b'$')
+        #~ for i in range(1):
+            #~ for sym in range(127):
+                #~ if sym != 35:
+                    #~ in_s.send(bytes([128]))
+                    #~ in_s.send(bytes([sym]))
+                    #~ #time.sleep(0.01)
+                    #~ print(sym)
+        #~ in_s.send(bytes([128]))
+        #~ in_s.send(b'#')
+        #~ in_s.send(bytes([128]))
+        #~ in_s.send(b'a')
+        #~ in_s.send(bytes([128]))
+        #~ in_s.send(b'0')
+    
+    
                 
 def accept1(sock, mask):
     global conn1
@@ -94,7 +110,8 @@ def accept2(sock, mask):
     print('accepted', conn2, 'from', addr)
     conn2.setblocking(False)
     sel.register(conn2, selectors.EVENT_READ, read2)
-
+    my_read()
+    
 #~ finally:
     #~ in_s.close()
     #~ conn1.close()
