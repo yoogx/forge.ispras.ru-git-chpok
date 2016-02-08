@@ -69,6 +69,12 @@ static void stub_callback(void *arg) {
     printf("ARP: we have sent an answer.\n");
 }
 
+static struct {
+    char driver_overhead[POK_NETWORK_OVERHEAD_DRIVER];
+    struct ether_hdr ether_hdr;
+    struct arp_packet_t arp_answer;
+} __attribute__((packed)) arp_answer_buffer;
+
 static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
     if (!ether_is_broadcast(ether_hdr->dst)) {
         return; // This is not an ARP request.
@@ -97,13 +103,6 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
     }
 
     printf("ARP: we have received a request for our MAC.\n");
-
-    struct {
-        char driver_overhead[POK_NETWORK_OVERHEAD_DRIVER];
-        struct ether_hdr ether_hdr;
-        struct arp_packet_t arp_answer;
-    } __attribute__((packed)) arp_answer_buffer;
-
 
     int i;
     for (i = 0; i < ETH_ALEN; i++) {
