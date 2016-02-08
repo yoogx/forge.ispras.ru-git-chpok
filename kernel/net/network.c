@@ -101,7 +101,8 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
     struct {
         struct ether_hdr ether_hdr;
         struct arp_packet_t arp_answer;
-    } __attribute((packed)) arp_answer_buffer;
+    } __attribute__((packed)) arp_answer_buffer;
+
 
     int i;
     for (i = 0; i < ETH_ALEN; i++) {
