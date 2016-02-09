@@ -51,12 +51,19 @@ SECTIONS
     __data_start = .;
     *(.data .data.* .gnu.linkonce.d.*)
     KEEP (*(.gnu.linkonce.d.*personality*))
-    SORT(CONSTRUCTORS)
     *(.data1)
     PROVIDE (_SDA_BASE_ = 32768);
     *(.sdata .sdata.* .gnu.linkonce.s.*)
     . = ALIGN(4);
     __data_end = .;
+  }
+  .ctors :
+  {
+    __CTOR_START__ = .;
+    LONG((__CTOR_END__ - __CTOR_START__) / 4 - 2)
+    *(SORT(.ctors))
+    LONG(0)
+    __CTOR_END__ = .;
   }
   .sbss :
   {

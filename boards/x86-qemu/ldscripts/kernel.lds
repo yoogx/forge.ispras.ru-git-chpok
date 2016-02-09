@@ -31,5 +31,14 @@ SECTIONS
 		__archive2_end = .;
 	}
 
+	.ctors :
+    {
+	    __CTOR_START__ = .;
+	    LONG((__CTOR_END__ - __CTOR_START__) / 4 - 2)
+	    *(SORT(.ctors))
+	    LONG(0)
+	    __CTOR_END__ = .;
+    }
+
 	__pok_end = . ;
 }
