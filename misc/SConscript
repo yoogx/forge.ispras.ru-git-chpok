@@ -76,7 +76,7 @@ elif env['ARCH'] == 'x86':
 env['LIBPATH'] = env['LIBGCC'].replace('libgcc.a', '')
 env.Append(LINKFLAGS = ' -L'+env['LIBPATH']+' -lgcov')
 
-env.Append(CFLAGS = ' --coverage')
+env.Append(CFLAGS = ' -fprofile-arcs -ftest-coverage')
 env['ASFLAGS'] = env['CFLAGS']
 
 bsp_cpu_dict = {
