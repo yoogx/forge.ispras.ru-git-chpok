@@ -48,6 +48,8 @@ typedef struct
   uint32_t r30;
   uint32_t r31;
 
+//TODO add all floating point registers
+
   uint32_t pad;
 
   /* Previous frame.  */
@@ -55,6 +57,10 @@ typedef struct
   uint32_t lr;
 } context_t;
 
+/*
+ * NOTE: back_chain offset in this struct must be equal to entry.S FRAME_SIZE
+ * and must be
+ */
 typedef struct
 {
   uint32_t sp;
@@ -78,9 +84,14 @@ typedef struct
   uint32_t xer;
   uint32_t srr0;
   uint32_t srr1;
+  uint64_t fp0; /* 80 */
+
+  /* for back_chain alignment */
+  uint32_t b_pad0; /* 88 */
+  uint32_t b_pad1;
 
   /* Previous frame.  */
-  uint32_t back_chain;
+  uint32_t back_chain; /* 96 */
   uint32_t lr;
 
   /* For initial frame alignment.  */
