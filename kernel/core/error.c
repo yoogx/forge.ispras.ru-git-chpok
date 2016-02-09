@@ -174,9 +174,12 @@ pok_ret_t pok_error_raise_thread(
         }
         status->msg_size = msg_size;
         status->failed_addr = (uintptr_t) 0; // TODO somehow find interrupt frame and extract EIP from there
-        
+
         // reset it's stack and other stuff
         pok_error_enable();
+        // Needs to manualy call pok_sched because otherwise we will rfi to instruction, which causes
+        // exeption. and get here again and again ...
+        pok_sched();
     }
 
     return POK_ERRNO_OK;
