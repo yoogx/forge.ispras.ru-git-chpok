@@ -60,18 +60,24 @@ env.Clean('chpok', [env['POK_PATH']+'/build/'+bsp for bsp in boards])
 env.Clean('local', [
 'kernel/deployment.c',
 'kernel/deployment.o',
+'kernel/deployment.gcno',
 'kernel/kernel.lo',
 'pr1/main.o',
+'pr1/main.gcno',
 'pr1/deployment.c',
 'pr1/deployment.o',
+'pr1/deployment.gcno',
 'pr1/pr1.elf',
 'pr2/main.o',
+'pr2/main.gcno',
 'pr2/deployment.c',
 'pr2/deployment.o',
+'pr2/deployment.gcno',
 'pr2/pr2.elf',
 'partitions.bin',
 'sizes.c',
 'sizes.o',
+'sizes.gcno',
 'pok.elf'])
 
 # EOF
