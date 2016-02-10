@@ -34,6 +34,7 @@
 #include <middleware/port.h>
 #include <middleware/queue.h>
 #include <core/boot.h>
+#include <libc.h>
 
 #include <core/instrumentation.h>
 
@@ -41,6 +42,10 @@ void pok_boot ()
 {
    pok_arch_init();
    pok_bsp_init();
+
+#ifdef POK_NEEDS_GCOV
+   pok_static_init();
+#endif
 
 #ifdef POK_NEEDS_NETWORKING
    pok_network_init();
