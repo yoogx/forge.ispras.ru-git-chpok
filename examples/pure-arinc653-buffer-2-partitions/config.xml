@@ -4,7 +4,7 @@
         <Partition>
             <Definition Identifier="1" Name="P1" />
             <!-- Amount of ram allocated (code + stack + static variables) -->
-            <Memory Bytes="300K" />
+            <Memory Bytes="16M" />
 
             <!-- Number of threads that can be created in this partition.
                  Note that this number doesn't include main and error handler threads,
@@ -54,7 +54,7 @@
         <Partition>
             <Definition Identifier="2" Name="P2" />
             <!-- Amount of ram allocated (code + stack + static variables) -->
-            <Memory Bytes="300K" />
+            <Memory Bytes="16M" />
 
             <!-- Number of threads that can be created in this partition.
                  Note that this number doesn't include main and error handler threads,
