@@ -276,6 +276,7 @@ dump_gcov(int argc, char **argv)
 
     (void) argv;
     gcov_dump();
+    printf("You can now call 'gcov_dump' in gdb\n");
     return 0;
 }
 

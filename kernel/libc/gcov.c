@@ -157,7 +157,7 @@ static int counter_active(struct gcov_info *info, unsigned int type)
  *
  * Returns the number of bytes that were/would have been stored into the buffer.
  */
-static size_t convert_to_gcda(char *buffer, struct gcov_info *info)
+static size_t convert_to_gcda(unsigned char *buffer, struct gcov_info *info)
 {
     struct gcov_fn_info *fi_ptr;
     struct gcov_ctr_info *ci_ptr;
@@ -207,10 +207,22 @@ static size_t convert_to_gcda(char *buffer, struct gcov_info *info)
 #define DEFAULT_GCOV_ENTRY_COUNT 200
 #define GCOV_HEXDUMP_BUF_SIZE 10000
 
+#define GCOV_MAX_DATA_SIZE 50000
+
+unsigned char data[GCOV_MAX_DATA_SIZE];
+
+struct gcov_entry_t {
+    const char *filename;
+    uint32_t data_start;
+    uint32_t data_end;
+};
+
+struct gcov_entry_t entry[DEFAULT_GCOV_ENTRY_COUNT];
+
 static struct gcov_info *gcov_info_head[DEFAULT_GCOV_ENTRY_COUNT];
 static size_t num_used_gcov_entries = 0;
 
-static size_t dump_gcov_entry(char *to_buffer, struct gcov_info *info)
+static size_t dump_gcov_entry(unsigned char *to_buffer, struct gcov_info *info)
 {
     if (info == NULL) {
         return 0;
@@ -230,7 +242,6 @@ static size_t dump_gcov_entry(char *to_buffer, struct gcov_info *info)
 
 void gcov_dump(void)
 {
-    static char charbuf[GCOV_HEXDUMP_BUF_SIZE];
     size_t i, sz;
     size_t size = 0;
 
@@ -239,13 +250,19 @@ void gcov_dump(void)
     }
 
     for (i = 0; i < num_used_gcov_entries; i++) {
-        printf("%s: entry %zd\n", __func__, i);
-        memset(charbuf, 0, GCOV_HEXDUMP_BUF_SIZE);
+        //printf("%s: entry %zd\n", __func__, i);
         struct gcov_info *info = gcov_info_head[i];
-        sz = dump_gcov_entry(charbuf, info);
-        size += sz;
-        printf("dump binary memory %s 0x%lx 0x%lx\n", info->filename,
-                 (uint32_t)charbuf, (uint32_t)(charbuf+sz));
+        entry[i].filename = info->filename;
+
+        // offset in common buffer
+        entry[i].data_start = (uint32_t)data + size;
+
+        sz = dump_gcov_entry(data + size, info);
+        size += sz; // total size
+        entry[i].data_end = entry[i].data_start + sz;
+
+        //printf("dump binary memory %s 0x%lx 0x%lx\n", entry[i].filename,
+        //        entry[i].data_start, entry[i].data_end);
     }
     printf("total size: %zu\n", size);
 }
