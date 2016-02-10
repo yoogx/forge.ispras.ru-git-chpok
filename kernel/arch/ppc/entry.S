@@ -153,6 +153,9 @@ _pok_reset:
 2:
 */
         /* Call C function */
+        mfmsr %r7
+        ori %r7,%r7,MSR_FP
+        mtmsr %r7
         bl pok_boot
 1:      b  1b
 
