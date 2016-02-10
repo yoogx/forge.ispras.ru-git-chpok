@@ -1,0 +1,7 @@
+define gcov_dump
+    set $cnt = 0
+    while $cnt < num_used_gcov_entries
+        eval "dump binary memory %s 0x%x 0x%x", entry[$cnt].filename, entry[$cnt].data_start, entry[$cnt].data_end
+        set $cnt++
+    end
+end
