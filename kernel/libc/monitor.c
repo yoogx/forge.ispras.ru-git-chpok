@@ -6,7 +6,7 @@
 #include <core/partition.h>
 
 
-#define NCOMMANDS 8 //Number of commands, change it if you want to 
+#define NCOMMANDS 9 //Number of commands, change it if you want to
                     //add a new command.
 
 
@@ -50,6 +50,8 @@ int exit_from_monitor(int argc, char **argv); //exit from monitor
 
 int info_partition(int argc,char ** argv);
 
+int dump_gcov(int argc,char ** argv);
+
 struct Command {
     const char *name;
     const char *argc;
@@ -66,6 +68,7 @@ static struct Command commands[] = {
     {"resume", "/N/" ,"Continue partition N",resume_N},
     {"restart", "/N/" ,"Restart partition N",restart_N},
     {"exit", "" ,"Exit from console",exit_from_monitor},
+    {"dump", "", "Dump gcov data", dump_gcov}
 };
 
 /* 
@@ -263,6 +266,18 @@ exit_from_monitor(int argc, char **argv){
 
 }
 
+int
+dump_gcov(int argc, char **argv)
+{
+    if (argc > 1) {
+        printf("Too many arguments for dump_gcov!\n");
+        return 0;
+    }
+
+    (void) argv;
+    gcov_dump();
+    return 0;
+}
 
 
 
