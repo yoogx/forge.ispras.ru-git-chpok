@@ -207,9 +207,7 @@ static size_t convert_to_gcda(char *buffer, struct gcov_info *info)
 #define DEFAULT_GCOV_ENTRY_COUNT 200
 #define GCOV_HEXDUMP_BUF_SIZE 10000
 
-typedef struct gcov_info *p_gcov_info;
-
-static p_gcov_info gcov_info_head[DEFAULT_GCOV_ENTRY_COUNT];
+static struct gcov_info *gcov_info_head[DEFAULT_GCOV_ENTRY_COUNT];
 static size_t num_used_gcov_entries = 0;
 
 static size_t dump_gcov_entry(char *to_buffer, struct gcov_info *info)
