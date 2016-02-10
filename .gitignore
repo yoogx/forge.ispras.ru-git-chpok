@@ -2,6 +2,7 @@
 /old
 /examples/*/sizes.c
 /examples/*/*/deployment.c
+/examples/*/.gdb_history
 *.o
 *.lo
 libpok.a
@@ -15,3 +16,4 @@ libpok.a
 *.directory
 *.gcno
 *.gcda
+*.gcov
