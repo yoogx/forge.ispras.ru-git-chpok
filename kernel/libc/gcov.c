@@ -212,10 +212,10 @@ typedef struct gcov_info *p_gcov_info;
 static p_gcov_info gcov_info_head[DEFAULT_GCOV_ENTRY_COUNT];
 static size_t num_used_gcov_entries = 0;
 
-static void dump_gcov_entry(char *to_buffer, struct gcov_info *info)
+static size_t dump_gcov_entry(char *to_buffer, struct gcov_info *info)
 {
     if (info == NULL) {
-        return;
+        return 0;
     }
 
     size_t sz = convert_to_gcda(NULL, info);
@@ -223,16 +223,18 @@ static void dump_gcov_entry(char *to_buffer, struct gcov_info *info)
         printf("%s: size for '%s' is %zd, limit %d\n",
                 __func__, info->filename, sz,
                 GCOV_HEXDUMP_BUF_SIZE);
-        return;
+        return sz;
     }
 
     sz = convert_to_gcda(to_buffer, info);
+    return sz;
 }
 
 void gcov_dump(void)
 {
     static char charbuf[GCOV_HEXDUMP_BUF_SIZE];
-    size_t i;
+    size_t i, sz;
+    size_t size = 0;
 
     if (gcov_info_head == NULL) {
         return;
@@ -242,10 +244,12 @@ void gcov_dump(void)
         printf("%s: entry %zd\n", __func__, i);
         memset(charbuf, 0, GCOV_HEXDUMP_BUF_SIZE);
         struct gcov_info *info = gcov_info_head[i];
-        dump_gcov_entry(charbuf, info);
+        sz = dump_gcov_entry(charbuf, info);
+        size += sz;
         printf("dump binary memory %s 0x%lx 0x%lx\n", info->filename,
-                 (uint32_t)charbuf, (uint32_t)(charbuf+GCOV_HEXDUMP_BUF_SIZE));
+                 (uint32_t)charbuf, (uint32_t)(charbuf+sz));
     }
+    printf("total size: %zu\n", size);
 }
 
 /*
