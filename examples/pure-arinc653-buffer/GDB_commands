@@ -21,7 +21,43 @@ define Remove_symbol_file
         end
     end
 
+define Easy_break
+    set $old_Head = Head_of_breakpoints
+    Thread_pid $arg1
+    break $arg0 thread $arg1
+    if ($old_Head == Head_of_breakpoints)
+        set last_breakpoint = last_breakpoint + 1
+        set breakpoints[Head_of_breakpoints].T_num = $arg1
+        set breakpoints[Head_of_breakpoints].P_num = $PID
+        set breakpoints[Head_of_breakpoints].B_num = last_breakpoint
+        set breakpoints[Head_of_breakpoints].addr = (uintptr_t) &($arg0)
+        set $Thread_break_i = 0
+        while ((breakpoints[$Thread_break_i].C_addr != (uintptr_t) &($arg0)) || (breakpoints[$Thread_break_i].P_num != $PID)) && ($Thread_break_i < max_breakpoint)
+            set $Thread_break_i = $Thread_break_i + 1
+            end
+        set breakpoints[Head_of_breakpoints].Instr = breakpoints[$Thread_break_i].Instr        
+        set breakpoints[Head_of_breakpoints].C_addr = breakpoints[$Thread_break_i].C_addr        
+        set Head_of_breakpoints = Head_of_breakpoints + 1
+        end
+    if (breakpoints[Head_of_breakpoints - 1].addr - (uintptr_t) &($arg0) > 0) && (breakpoints[Head_of_breakpoints - 1].addr - (uintptr_t) &($arg0) < 128)
+        set breakpoints[Head_of_breakpoints - 1].C_addr = (uintptr_t) &($arg0)
+    else
+        set breakpoints[Head_of_breakpoints - 1].C_addr = breakpoints[Head_of_breakpoints - 1].addr
+        end
+    end
 
+define Easy_delete 
+    eval "set b_need_to_delete = %d",breakpoints[$arg0].B_num
+    eval "delete %d",breakpoints[$arg0].B_num
+    if (breakpoints[$arg0].T_num > 0)
+        set breakpoints[$arg0].T_num = 0
+        set breakpoints[$arg0].P_num = 0
+        set breakpoints[$arg0].B_num = 0
+        set breakpoints[$arg0].addr = 0
+        set breakpoints[$arg0].Reason = 0
+        end
+    set breakpoints[$arg0].C_addr = 0
+    end
 
 define Easy_switch
     set $G = $arg0 + 1
@@ -53,7 +89,7 @@ define Thread_break
     eval "thread %d",$arg1
     eval "Switch_to %d",$V
     eval "set b_need_to_set = 0"
-    break $arg0 thread $arg1
+    Easy_break $arg0 $arg1
     eval "Push_to_breakpoints_reason 2"
     set $V = current_thread + 1
     eval "Thread_pid %d",$V
@@ -75,8 +111,7 @@ define Thread_delete
     if ($Thread_delete_i < max_breakpoint)
         eval "thread %d",breakpoints[$Thread_delete_i].T_num
         eval "Switch_to %d",breakpoints[$Thread_delete_i].P_num
-        eval "set b_need_to_delete = %d",breakpoints[Head_of_breakpoints - 1].B_num
-        eval "delete %d",breakpoints[$Thread_delete_i].B_num
+        eval "Easy_delete %d", $Thread_delete_i
         eval "Thread_pid %d",current_thread + 1
         eval "Switch_to %d", $PID
         eval "thread %d",current_thread + 1
@@ -89,7 +124,7 @@ Syntax: Thread_delete BREAKPOINT_NUMBER
     end
 
 define Clear_breakpoints
-    set Head_of_breakpoints = 0
+    set Head_of_breakpoints = 1
     set last_breakpoint = 0
     set new_start = 1
     end
@@ -127,7 +162,6 @@ define hook-stop
 end
 
 
-
 define P_break
     set $Part_break_i = 0
     set $Max_part = pok_config_nb_partitions
@@ -144,16 +178,16 @@ define P_break
                 if $addr != 0x0
                     if $Part_break_i == pok_config_nb_threads - 3 
                         eval "set b_need_to_set = 0"
-                        eval "b monitor thread %d", $Part_break_i + 1
+                        eval "Easy_break monitor %d", $Part_break_i + 1
                         eval "Push_to_breakpoints_reason 1"
                     else
                         if $Part_break_i == pok_config_nb_threads - 4
                             eval "set b_need_to_set = 0"
-                            eval "b gdb thread %d", $Part_break_i + 1
+                            eval "Easy_break gdb %d", $Part_break_i + 1
                             eval "Push_to_breakpoints_reason 1"
                         else
                             eval "set b_need_to_set = 0"
-                            eval "b *0x%x thread %d",$addr, $Part_break_i + 1
+                            eval "Easy_break *0x%x %d",$addr, $Part_break_i + 1
                             eval "Push_to_breakpoints_reason 1"
                             end
                         end
@@ -174,7 +208,7 @@ define P_break
                 if $addr != 0x0
                     eval "set $V = *((int *) %d)",$pc
                     eval "set b_need_to_set = 0"
-                    eval "b *0x%x thread %d",$addr, $Part_break_i + 1
+                    eval "Easy_break *0x%x %d",$addr, $Part_break_i + 1
                     eval "Push_to_breakpoints_reason 1"
                     end
                 set $Part_break_i = $Part_break_i + 1
@@ -204,10 +238,11 @@ define P_delete
                 eval "thread %d",pok_partitions[$arg0 - 1].thread_index_low + 1
                 end
             Switch_to $arg0
-            while (breakpoints[Head_of_breakpoints - 1].P_num == $arg0) && (Head_of_breakpoints > 0) && (breakpoints[Head_of_breakpoints - 1].Reason == 1)
-                eval "set b_need_to_delete = %d",breakpoints[Head_of_breakpoints - 1].B_num
-                eval "thread %d",breakpoints[Head_of_breakpoints - 1].T_num
-                eval "delete breakpoint %d",breakpoints[Head_of_breakpoints - 1].B_num
+            set $P_delete_i = Head_of_breakpoints - 1
+            while (breakpoints[$P_delete_i].P_num == $arg0) && ($P_delete_i + 1 > 0) && (breakpoints[$P_delete_i].Reason == 1)
+                eval "thread %d",breakpoints[$P_delete_i].T_num
+                eval "Easy_delete %d",  $P_delete_i
+                set $P_delete_i = $P_delete_i - 1
                 end
             eval "Thread_pid %d",current_thread + 1
             eval "thread %d",current_thread + 1

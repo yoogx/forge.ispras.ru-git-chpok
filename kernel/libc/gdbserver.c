@@ -555,7 +555,7 @@ computeSignal (int exceptionVector)
 /* RETURN NUMBER OF CHARS PROCESSED           */
 /**********************************************/
 int
-hexToInt (char **ptr, int *intValue)
+hexToInt (char **ptr, uintptr_t *intValue)
 {
     int numChars = 0;
     int hexValue;
@@ -719,7 +719,7 @@ pok_partition_id_t give_part_num_of_thread(int thread_num){
     return 0;
 }    
 
-void add_0_breakpoint(int addr,int length,int *using_thread){
+void add_0_breakpoint(uintptr_t addr,int length,int *using_thread){
     int old_pid = current_part_id();
     int new_pid = give_part_num_of_thread(*using_thread + 1);
 #ifdef DEBUG_GDB
@@ -806,9 +806,9 @@ void add_0_breakpoint(int addr,int length,int *using_thread){
         switch_part_id(new_pid, old_pid);
 }
 
-void remove_0_breakpoint(int addr, int length, int *using_thread){
+void remove_0_breakpoint(uintptr_t addr, int length, int *using_thread){
 #ifdef DEBUG_GDB
-    printf("            Z0, breakpoint[0].addr = %d\n",breakpoints[0].addr);
+    printf("            Z0, breakpoint[0].addr = 0x%x\n",breakpoints[0].addr);
 #endif
     int i = 0;
     int old_pid = current_part_id();
@@ -1014,7 +1014,8 @@ handle_exception (int exceptionVector, struct regs * ea)
 #ifdef __i386__
     pok_bool_t stepping = FALSE;
 #endif
-    int addr, length;
+    uintptr_t addr;
+    int length;
     char *ptr;
 
 
@@ -1135,7 +1136,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                 ptr++;
             ptr++;
 #endif
-            hexToInt(&ptr, &thread_num);
+            hexToInt(&ptr, (uintptr_t *)(&thread_num));
             if ( thread_num > 0 && thread_num < POK_CONFIG_NB_THREADS + 1){
                 remcomOutBuffer[0] = 'O';
                 remcomOutBuffer[1] = 'K';
@@ -1160,7 +1161,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                 }         
                 ptr = &remcomInBuffer[1];
                 int type = -1;
-                hexToInt(&ptr, &type);
+                hexToInt(&ptr, (uintptr_t *)(&type));
                 if (type == -1) break;
                 if (*ptr != ',') break;
                 ptr++;
@@ -1168,7 +1169,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                 if (*ptr != ',') break;
                 ptr++;
                 int kind = -1;
-                hexToInt(&ptr, &kind);
+                hexToInt(&ptr, (uintptr_t *)(&kind));
                 if (kind == -1) break;
                 if (type == 0){
                     if (remcomInBuffer[0] == 'Z') 
@@ -1235,7 +1236,7 @@ handle_exception (int exceptionVector, struct regs * ea)
             if (strncmp(ptr, "Attached:", 9) == 0){
                 ptr += 9;
                 int part_id;
-                hexToInt(&ptr, &part_id);
+                hexToInt(&ptr, (uintptr_t *)(&part_id));
                 ptr = remcomOutBuffer;
 #ifdef MULTIPROCESS
                 if (part_id <= POK_CONFIG_NB_PARTITIONS + 2 && part_id >= 1)
@@ -1322,7 +1323,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                     ptr++;
                 ptr++;
 #endif
-                hexToInt(&ptr, &thread_num);
+                hexToInt(&ptr, (uintptr_t *)(&thread_num));
                 thread_num --;
 
 
@@ -1469,7 +1470,7 @@ handle_exception (int exceptionVector, struct regs * ea)
 #endif
                 if (hexToInt(&ptr, &addr)
                     && *ptr++ == ','
-                    && hexToInt(&ptr, &length)) {
+                    && hexToInt(&ptr, (uintptr_t *)(&length))) {
                     if (!POK_CHECK_ADDR_IN_PARTITION(new_pid,addr)){
                         
                         strcpy (remcomOutBuffer, "E03");
@@ -1501,7 +1502,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                 int new_pid = give_part_num_of_thread(using_thread + 1);
                 if (hexToInt(&ptr, &addr)
                     && *ptr++ == ','
-                    && hexToInt(&ptr, &length)
+                    && hexToInt(&ptr, (uintptr_t *)(&length))
                     && *ptr++ == ':') {
                     if (POK_CHECK_ADDR_IN_PARTITION(new_pid,addr))
                         switch_part_id(old_pid, new_pid);

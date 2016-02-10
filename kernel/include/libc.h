@@ -134,7 +134,11 @@ struct T_breakpoint{
     /*
      *  Address of breakpoint 
      */
-    int addr;
+    uintptr_t addr;
+    /*
+     *  Address of breakpoint (set and used only in GDB client) 
+     */
+    uintptr_t C_addr;
     /*
      * Reason of breakpoint 
      * if 1, it was Partition breakpoint
