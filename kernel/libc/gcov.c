@@ -7,23 +7,23 @@
 #if __GNUC__ == 5 && __GNUC_MINOR__ >= 1
 #define GCOV_COUNTERS           10
 #elif __GNUC__ == 4 && __GNUC_MINOR__ >= 9
-#define GCOV_COUNTERS			9
+#define GCOV_COUNTERS           9
 #else
-#define GCOV_COUNTERS			8
+#define GCOV_COUNTERS           8
 #endif
 
-#define GCOV_TAG_FUNCTION_LENGTH	3
+#define GCOV_TAG_FUNCTION_LENGTH    3
 
 /*
  * Profiling data types used for gcc 3.4 and above - these are defined by
  * gcc and need to be kept as close to the original definition as possible to
  * remain compatible.
  */
-#define GCOV_DATA_MAGIC		((unsigned int) 0x67636461)
-#define GCOV_TAG_FUNCTION	((unsigned int) 0x01000000)
-#define GCOV_TAG_COUNTER_BASE	((unsigned int) 0x01a10000)
-#define GCOV_TAG_FOR_COUNTER(count)					\
-	(GCOV_TAG_COUNTER_BASE + ((unsigned int) (count) << 17))
+#define GCOV_DATA_MAGIC     ((unsigned int) 0x67636461)
+#define GCOV_TAG_FUNCTION   ((unsigned int) 0x01000000)
+#define GCOV_TAG_COUNTER_BASE   ((unsigned int) 0x01a10000)
+#define GCOV_TAG_FOR_COUNTER(count)                 \
+    (GCOV_TAG_COUNTER_BASE + ((unsigned int) (count) << 17))
 
 #if BITS_PER_LONG >= 64
 typedef long gcov_type;
@@ -41,8 +41,8 @@ typedef long long gcov_type;
  * at run-time with the exception of the values array.
  */
 struct gcov_ctr_info {
-	unsigned int num;
-	gcov_type *values;
+    unsigned int num;
+    gcov_type *values;
 };
 
 /**
@@ -63,11 +63,11 @@ struct gcov_ctr_info {
  * of the object file containing the selected comdat function.
  */
 struct gcov_fn_info {
-	const struct gcov_info *key;
-	unsigned int ident;
-	unsigned int lineno_checksum;
-	unsigned int cfg_checksum;
-	struct gcov_ctr_info ctrs[0];
+    const struct gcov_info *key;
+    unsigned int ident;
+    unsigned int lineno_checksum;
+    unsigned int cfg_checksum;
+    struct gcov_ctr_info ctrs[0];
 };
 
 /**
@@ -84,13 +84,13 @@ struct gcov_fn_info {
  * at run-time with the exception of the next pointer.
  */
 struct gcov_info {
-	unsigned int version;
-	struct gcov_info *next;
-	unsigned int stamp;
-	const char *filename;
-	void (*merge[GCOV_COUNTERS])(gcov_type *, unsigned int);
-	unsigned int n_functions;
-	struct gcov_fn_info **functions;
+    unsigned int version;
+    struct gcov_info *next;
+    unsigned int stamp;
+    const char *filename;
+    void (*merge[GCOV_COUNTERS])(gcov_type *, unsigned int);
+    unsigned int n_functions;
+    struct gcov_fn_info **functions;
 };
 
 /**
