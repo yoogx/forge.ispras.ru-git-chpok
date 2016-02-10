@@ -44,7 +44,7 @@ void pok_boot ()
    pok_bsp_init();
 
 #ifdef POK_NEEDS_GCOV
-   pok_static_init();
+   pok_gcov_init();
 #endif
 
 #ifdef POK_NEEDS_NETWORKING

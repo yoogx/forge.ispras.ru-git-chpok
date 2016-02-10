@@ -53,7 +53,7 @@ void pok_monitor_thread_init();
 #endif /* NEEDS_CONSOLE or NEEDS_DEBUG */
 
 /* call the coverage initializers if not done by startup code */
-void pok_static_init(void);
+void pok_gcov_init(void);
 
 void gcov_dump(void);
 

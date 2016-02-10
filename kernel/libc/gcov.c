@@ -271,7 +271,7 @@ void __gcov_init(struct gcov_info *info)
 }
 
 /* Call the coverage initializers if not done by startup code */
-void pok_static_init(void) {
+void pok_gcov_init(void) {
     void (**p)(void);
 
     extern uint32_t __CTOR_START__, __CTOR_END__; // linker defined symbols
