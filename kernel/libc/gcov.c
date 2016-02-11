@@ -284,9 +284,8 @@ void __gcov_init(struct gcov_info *info)
                 __func__, num_used_gcov_entries);
         return;
     }
-    gcov_info_head[num_used_gcov_entries++] = info;
 
-    return;
+    gcov_info_head[num_used_gcov_entries++] = info;
 }
 
 /* Call the coverage initializers if not done by startup code */
