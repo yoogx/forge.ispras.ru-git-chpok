@@ -28,6 +28,10 @@
    pok_ret_t pok_buffer_init (void);
 #endif
 
+#ifdef POK_NEEDS_GCOV
+   #include <utils.h>
+#endif
+
 int main();
 
 int __pok_partition_start ()
@@ -43,6 +47,11 @@ int __pok_partition_start ()
 #endif
 
 #endif /* POK_NEEDS_MIDDLEWARE */
+
+#ifdef POK_NEEDS_GCOV
+   pok_gcov_init();
+#endif
+
    main(); /* main loop from user */
    return (0);
 }

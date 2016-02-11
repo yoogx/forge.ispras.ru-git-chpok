@@ -112,6 +112,9 @@ typedef enum
 #ifdef POK_NEEDS_PCI
    POK_SYSCALL_PCI_REGISTER                        = 601,
 #endif
+#ifdef POK_NEEDS_GCOV
+   POK_SYSCALL_GCOV_INIT                           = 701,
+#endif
 } pok_syscall_id_t;
 
 typedef struct

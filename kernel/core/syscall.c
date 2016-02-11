@@ -37,6 +37,7 @@
 #include <bsp.h>
 #include <types.h>
 #include <libc.h>
+#include <gcov.h>
 #include <ioports.h>
 
 #include <errno.h>
@@ -363,6 +364,13 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
          }
        break;
 #endif /* POK_NEEDS_IO */
+
+#ifdef POK_NEEDS_GCOV
+      case POK_SYSCALL_GCOV_INIT:
+         __gcov_init((struct gcov_info*) args->arg1);
+         return POK_ERRNO_OK;
+      break;
+#endif /* POK_NEEDS_GCOV */
 
       default:
        /*
