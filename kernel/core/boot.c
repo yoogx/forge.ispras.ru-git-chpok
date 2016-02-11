@@ -34,7 +34,7 @@
 #include <middleware/port.h>
 #include <middleware/queue.h>
 #include <core/boot.h>
-#include <libc.h>
+#include <gcov.h>
 
 #include <core/instrumentation.h>
 

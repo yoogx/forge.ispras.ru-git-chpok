@@ -52,11 +52,4 @@ void pok_monitor_thread(void);
 void pok_monitor_thread_init();
 #endif /* NEEDS_CONSOLE or NEEDS_DEBUG */
 
-#ifdef POK_NEEDS_GCOV
-/* call the coverage initializers if not done by startup code */
-void pok_gcov_init(void);
-
-void gcov_dump(void);
-#endif /* POK_NEEDS_GCOV */
-
 #endif

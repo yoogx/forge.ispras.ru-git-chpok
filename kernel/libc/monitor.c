@@ -1,6 +1,7 @@
 #include <config.h>
 
 #include <libc.h>
+#include <gcov.h>
 #include <bsp.h>
 #include <arch.h>
 #include <core/partition.h>
