@@ -22,6 +22,7 @@ reserved_0000:
 #define LOAD_FP(num) lfd %f##num,(80+8*num)(%r1)
 
 //96 = 0x60 = align_up(80 + 8(for f0 reg))
+//If you change FRAME_SIZE don't forget to change volatile_contex_t
 #define FRAME_SIZE 96
         /* r4 is available, r1 is set, r3 contains cr,
            sprg3 contains r3 and sprg2 contains r2.  */
@@ -183,7 +184,7 @@ label##_asm:
 
     START_EXCEPTION(pok_int_data_storage)
         EXCEPTION_PROLOGUE
-        
+        mr %r3, %r1
         mfspr %r4, SPRN_DEAR // DEAR - faulting address
         mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
@@ -192,7 +193,7 @@ label##_asm:
 
     START_EXCEPTION(pok_int_inst_storage)
         EXCEPTION_PROLOGUE
-        
+        mr %r3, %r1
         mfspr %r4, SPRN_DEAR // DEAR - faulting address
         mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
@@ -259,7 +260,7 @@ label##_asm:
 
     START_EXCEPTION(pok_int_data_tlb_miss)
         EXCEPTION_PROLOGUE
-        
+        mr %r3, %r1
         mfspr %r4, SPRN_DEAR // DEAR - faulting address
         mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
@@ -268,7 +269,7 @@ label##_asm:
 
     START_EXCEPTION(pok_int_inst_tlb_miss)
         EXCEPTION_PROLOGUE
-
+        mr %r3, %r1
         mfspr %r4, SPRN_DEAR // DEAR - faulting address
         mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
