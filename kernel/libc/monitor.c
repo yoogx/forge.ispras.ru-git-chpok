@@ -6,9 +6,7 @@
 #include <core/partition.h>
 
 
-#define NCOMMANDS 8 //Number of commands, change it if you want to 
-                    //add a new command.
-
+#define NCOMMANDS sizeof(commands)/sizeof(commands[0])
 
 
 /*
