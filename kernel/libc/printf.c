@@ -140,6 +140,7 @@ static void print_num(t_putc putc,
         putc(digit_str[size], out);
 }
 
+/* DON'T USE floating point register in kernel
 static void print_float(t_putc putc,
                         void *out,
                         long double value, 
@@ -160,6 +161,7 @@ static void print_float(t_putc putc,
         fractional *= 10;
     print_num(putc, out, fractional, 10, precision, 0, 1);
 }
+*/
 
 /*
  * finally, printf
@@ -265,6 +267,7 @@ const char * handle_fmt(t_putc putc, void * out, const char* format, va_list *ar
                     print_num(putc, out, value, 10, pad, 0, pad_with_zero);
                     return ++format;
                 }
+            /* DON'T USE floating point register in kernel
             case 'f':
                 {
                     long double value;
@@ -280,6 +283,7 @@ const char * handle_fmt(t_putc putc, void * out, const char* format, va_list *ar
                     print_float(putc, out, value, pad, precision, neg, pad_with_zero);
                     return ++format;
                 }
+            */
             case 'c':
                 //TODO implement l!=0 case
                 putc(va_arg(*args, unsigned ), out);
