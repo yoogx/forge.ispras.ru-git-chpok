@@ -111,6 +111,7 @@ void pok_sched_init (void)
  * Returns true if change has occured,
  *         false - if we're still in the same slot.
  */
+//TODO rename to elect_time_slot?
 static pok_bool_t pok_elect_partition(void)
 {
     int partition_id;
