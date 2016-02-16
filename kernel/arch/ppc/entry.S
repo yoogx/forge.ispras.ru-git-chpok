@@ -18,11 +18,12 @@ reserved_0000:
         /* fails */
 1:      b 1b 
 
-#define SAVE_FP(num) stfd %f##num,(80+8*num)(%r1)
-#define LOAD_FP(num) lfd %f##num,(80+8*num)(%r1)
+/* FP_START must be equal to offsetof(volatile_context_t, fp0) */
+#define FP_START 80
+#define SAVE_FP(num) stfd %f##num,(FP_START + 8*num)(%r1)
+#define LOAD_FP(num) lfd %f##num,(FP_START + 8*num)(%r1)
 
-//96 = 0x60 = align_up(80 + 8(for f0 reg))
-//If you change FRAME_SIZE don't forget to change volatile_contex_t
+/* FRAME_SIZE must be equal to offsetof(volatile_context_t, back_chain) */
 #define FRAME_SIZE 96
         /* r4 is available, r1 is set, r3 contains cr,
            sprg3 contains r3 and sprg2 contains r2.  */
