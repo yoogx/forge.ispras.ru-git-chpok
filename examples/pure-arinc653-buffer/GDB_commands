@@ -84,6 +84,7 @@ Syntax: Switch_to PID
     
     
 define Thread_break
+    dont-repeat
     eval "Thread_pid %d",$arg1
     set $V = $PID
     eval "thread %d",$arg1
@@ -104,6 +105,7 @@ Syntax: Thread_break ADDR THREAD_NUMBER
     end
 
 define Thread_delete
+    dont-repeat
     set $Thread_delete_i = 0
     while (breakpoints[$Thread_delete_i].B_num != $arg0) && ($Thread_delete_i < max_breakpoint)
         set $Thread_delete_i = $Thread_delete_i + 1
@@ -115,6 +117,8 @@ define Thread_delete
         eval "Thread_pid %d",current_thread + 1
         eval "Switch_to %d", $PID
         eval "thread %d",current_thread + 1
+    else
+        printf "There is no such breakpoint!"
         end
     end
 
@@ -136,12 +140,15 @@ end
 
 
 define connect_to 
+    dont-repeat
     set breakpoint always-inserted on
     set $OLD_PID = -1
+    set $P_break_on = -1
     set remotetimeout unlimited
     target remote $arg0
     symbol-file pok.elf
     Clear_breakpoints
+    set height 0
     end
 
 document connect_to
@@ -159,10 +166,15 @@ Syntax: connect_to PORT_ADDR
 define hook-stop
     eval "Thread_pid %d",current_thread + 1
     eval "Switch_to %d",$PID
+    if  $P_break_on > -1 
+        eval "P_delete %d", $P_break_on
+        set $P_break_on = -1
+        end
 end
 
 
 define P_break
+    dont-repeat
     set $Part_break_i = 0
     set $Max_part = pok_config_nb_partitions
     if $arg0 > $Max_part
@@ -219,15 +231,18 @@ define P_break
              print "Ok on this part"
             end
         end
+    set $P_break_on = 1
     end
     
 
 document P_break
 Set breakpoints on all partition's threads
+Delete all breakpoints after next break
 Syntax: P_break PID
     end
     
 define P_delete
+    dont-repeat
     set $Max_part = pok_config_nb_partitions
     if $arg0 > $Max_part
         print "Error, there is no such partition"
@@ -252,11 +267,13 @@ define P_delete
     end
     
 document P_delete
-Delete breakpoints on all partition's threads. Use it only after break,before adding any breakpoints
+Delete breakpoints were set by P_break. Use it only after break,before adding any breakpoints
 Syntax: P_delete PID 
     end    
     
 define P_info
+    dont-repeat
+    set verbose off
     set $P_info_old_pid = -1
     if $argc == 0
         set $P_info_i = pok_config_nb_threads
