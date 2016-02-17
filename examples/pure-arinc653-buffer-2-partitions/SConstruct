@@ -44,7 +44,7 @@ SConscript(env['POK_PATH']+'/misc/SConscript')
 env.Append(QEMU_FLAGS = ' -kernel pok.elf')
 
 # uncomment this line if you want to use gdb
-#env.Append(QEMU_FLAGS = ' -S -s')
+env.Append(QEMU_FLAGS = ' -S -s')
 
 #env.Append(QEMU_FLAGS = ' -display none')
 #env.Append(QEMU_FLAGS = ' -monitor tcp::4444,server,nowait')
@@ -55,6 +55,15 @@ env.Ignore('.', 'run')
 env.Command('debug', [], env['GDB']+' pok.elf -ex "target remote :1234" \
 -x '+env['POK_PATH']+'/misc/gdb_gcov_script')
 env.Ignore('.', 'debug')
+
+env.Command('coverage', [],
+[Delete('coverage/'+env['BSP']),
+Mkdir('coverage/'+env['BSP']),
+'lcov -q --gcov-tool '+env['GCOV']+' -c -d '+env['POK_PATH']+'/build/'+env['BSP']+
+' -d . -o coverage/'+env['BSP']+'/'+env['BSP']+'.info',
+'genhtml -q coverage/'+env['BSP']+'/'+env['BSP']+'.info -o coverage/'+env['BSP']])
+env.AlwaysBuild('coverage')
+env.Ignore('.', 'coverage')
 
 env.Clean('chpok', [env['POK_PATH']+'/build/'+bsp for bsp in boards])
 env.Clean('local', [
@@ -78,6 +87,7 @@ env.Clean('local', [
 'sizes.c',
 'sizes.o',
 'sizes.gcno',
-'pok.elf'])
+'pok.elf',
+'coverage/'])
 
 # EOF

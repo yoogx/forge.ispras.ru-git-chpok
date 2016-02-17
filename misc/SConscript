@@ -56,6 +56,7 @@ if env['ARCH'] == 'ppc':
     env['OBJDUMP'] = 'powerpc-elf-objdump'
     env['RANLIB'] = 'powerpc-elf-ranlib'
     env['GDB'] = 'powerpc-elf-gdb'
+    env['GCOV'] = 'powerpc-elf-gcov'
     env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
     env['QEMU'] = 'qemu-system-ppc'
 
@@ -70,6 +71,7 @@ elif env['ARCH'] == 'x86':
     env['OBJDUMP'] = 'i386-elf-objdump'
     env['RANLIB'] = 'i386-elf-ranlib'
     env['GDB'] = 'i386-elf-gdb'
+    env['GCOV'] = 'i386-elf-gcov'
     env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
     env['QEMU'] = 'qemu-system-i386'
 
