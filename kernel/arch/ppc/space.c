@@ -32,6 +32,7 @@
 #include "space.h"
 #include "cons.h"
 #include "core/partition.h"
+#include "core/error.h"
 
 pok_ret_t pok_create_space (pok_partition_id_t partition_id,
                             uintptr_t addr,
@@ -83,6 +84,8 @@ pok_space_context_init(
     vctx->sp     = stack_rel - 12;
     vctx->srr0   = entry_rel;
     vctx->srr1   = MSR_EE | MSR_IP | MSR_PR | MSR_FP;
+    // &ctx->back_chain == &vctx->sp
+    // &ctx->lr == &vctx->unused_lr
     ctx->lr      = (uintptr_t) pok_arch_rfi;
 
     ctx->sp      = (uintptr_t) &vctx->sp;
@@ -115,7 +118,7 @@ uint32_t pok_space_context_create (
           (unsigned long) stack_rel, 
           (unsigned long) arg1, 
           (unsigned long) arg2, 
-          &vctx->sp);
+          vctx);
 #endif
 
   return (uint32_t)ctx;
@@ -342,17 +345,16 @@ void pok_arch_space_init (void)
 #define MPC8544_PCI_IO_SIZE      0x10000ULL
 #define MPC8544_PCI_IO           0xE1000000ULL
 
-void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
+void pok_arch_handle_page_fault(
+        volatile_context_t *vctx,
+        uintptr_t faulting_address,
+        uint32_t syndrome,
+        pf_type_t type)
 {
-    (void) syndrome;
-
+    int tlb_miss = (type == PF_INST_TLB_MISS || type == PF_DATA_TLB_MISS);
     unsigned pid = mfspr(SPRN_PID);
 
-    if (pok_ccsrbar_ready) {
-        printf("DEBUG: page fault: pid: %u, address %p, syndrome %u\n", pid, (void*)faulting_address, (unsigned)syndrome);
-    }
-
-    if (faulting_address >= pok_bsp.ccsrbar_base && faulting_address < pok_bsp.ccsrbar_base + pok_bsp.ccsrbar_size) {
+    if (tlb_miss && faulting_address >= pok_bsp.ccsrbar_base && faulting_address < pok_bsp.ccsrbar_base + pok_bsp.ccsrbar_size) {
         pok_insert_tlb1(
             pok_bsp.ccsrbar_base, 
             pok_bsp.ccsrbar_base_phys, 
@@ -363,7 +365,7 @@ void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
             0, /* any pid */
             TRUE 
         );
-    } else if (faulting_address >= MPC8544_PCI_IO && faulting_address < MPC8544_PCI_IO + MPC8544_PCI_IO_SIZE) {
+    } else if (tlb_miss && faulting_address >= MPC8544_PCI_IO && faulting_address < MPC8544_PCI_IO + MPC8544_PCI_IO_SIZE) {
         pok_insert_tlb1(
             MPC8544_PCI_IO,
             MPC8544_PCI_IO,
@@ -375,6 +377,7 @@ void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
             TRUE
         );
     } else if (
+            tlb_miss &&
             pid != 0 &&
             faulting_address >= POK_PARTITION_MEMORY_BASE &&
             faulting_address < POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE)
@@ -391,9 +394,24 @@ void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
             FALSE
         );
     } else {
-        // TODO handle it correctly, distinguish kernel code / user code, etc.
-        printf("error accessing 0x%x address\n", faulting_address);
-        pok_fatal("bad memory access");
+        if (vctx->srr1&MSR_PR) {
+            printf("USER ");
+        } else {
+            printf("KERNEL ");
+        }
+
+        if (type == PF_DATA_TLB_MISS || type == PF_DATA_STORAGE) {
+            printf("code at %p address tried to access data on %p address\n", (void*)vctx->srr0, (void*)faulting_address);
+        } else {
+            printf("code at %p address tried to execute code at %p address\n", (void *)vctx->lr, (void*)vctx->srr0);
+        }
+#ifdef PARTITION_DEBUG_MODE
+        pok_fatal("page fault");
+#else
+        printf("raising error in pagefault addr %p  syndrome 0x%lx\n", (void*) faulting_address, syndrome);
+        POK_ERROR_CURRENT_THREAD(POK_ERROR_KIND_MEMORY_VIOLATION);
+#endif
+        //pok_fatal("bad memory access");
     }
 }
 
@@ -422,5 +440,3 @@ uintptr_t pok_phys_to_virt(uintptr_t phys)
     }
     return virt;
 }
-
-

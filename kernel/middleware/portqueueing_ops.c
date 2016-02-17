@@ -152,6 +152,8 @@ pok_ret_t pok_port_queueing_create(
     port->header.created = TRUE;
     port->wait_list = NULL;
     port->discipline = discipline;
+    port->nb_message = 0;
+    port->queue_head = 0;
 
     //printf("port %s (index=%d) created\n", name, index);
 

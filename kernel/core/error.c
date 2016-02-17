@@ -115,10 +115,12 @@ static void take_fixed_action(pok_error_action_t action)
             assert(FALSE && "this's supposed to be unreachable");
             break;
         case POK_ERROR_ACTION_COLD_START:
+            pok_partitions[POK_SCHED_CURRENT_PARTITION].start_condition = POK_START_CONDITION_HM_PARTITION_RESTART;
             pok_partition_set_mode_current(POK_PARTITION_MODE_INIT_COLD);
             assert(FALSE && "this's supposed to be unreachable");
             break;
         case POK_ERROR_ACTION_WARM_START:
+            pok_partitions[POK_SCHED_CURRENT_PARTITION].start_condition = POK_START_CONDITION_HM_PARTITION_RESTART;
             pok_partition_set_mode_current(POK_PARTITION_MODE_INIT_WARM);
             assert(FALSE && "this's supposed to be unreachable");
             break;
@@ -172,9 +174,12 @@ pok_ret_t pok_error_raise_thread(
         }
         status->msg_size = msg_size;
         status->failed_addr = (uintptr_t) 0; // TODO somehow find interrupt frame and extract EIP from there
-        
+
         // reset it's stack and other stuff
         pok_error_enable();
+        // Needs to manualy call pok_sched because otherwise we will rfi to instruction, which causes
+        // exeption. and get here again and again ...
+        pok_sched();
     }
 
     return POK_ERRNO_OK;

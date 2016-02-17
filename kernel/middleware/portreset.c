@@ -37,7 +37,7 @@ static void pok_port_queueing_reset(pok_partition_id_t partid)
 
 static void pok_port_sampling_reset(pok_partition_id_t partid)
 {
-#ifdef POK_NEEDS_PORTS_SAMPLING_
+#ifdef POK_NEEDS_PORTS_SAMPLING
     int i;
     for (i = 0; i < POK_CONFIG_NB_SAMPLING_PORTS; i++) {
         if (pok_sampling_ports[i].header.partition != partid) continue;

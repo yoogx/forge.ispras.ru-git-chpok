@@ -62,6 +62,12 @@ pok_bool_t pok_arch_preempt_enabled(void);
 pok_ret_t   pok_arch_idle ();
 
 /**
+ *  Disable interrupts and loop
+ */
+void pok_arch_inf_loop();
+
+
+/**
  * Register an event (for example, an interruption)
  */
 pok_ret_t   pok_arch_event_register (uint8_t vector, void (*handler)(void));
@@ -131,6 +137,13 @@ uint32_t    pok_thread_stack_addr   (const uint8_t    partition_id,
  *
  */
 void pok_arch_load_partition(pok_partition_id_t part_id, uintptr_t *entry);
+
+
+/*
+ * reset cpu
+ */
+void pok_arch_cpu_reset();
+
 
 //#ifdef POK_ARCH_PPC
 #ifdef __PPC__

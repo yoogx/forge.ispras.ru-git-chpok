@@ -40,6 +40,8 @@
 #define POK_CONFIG_NB_SAMPLING_CHANNELS pok_config_nb_sampling_channels
 #define POK_CONFIG_NB_QUEUEING_CHANNELS pok_config_nb_queueing_channels
 
+#define PARTITION_DEBUG_MODE 1
+
 extern uint8_t pok_config_nb_threads;
 extern uint32_t pok_config_partitions_nthreads[];
 extern unsigned pok_config_nb_partitions;

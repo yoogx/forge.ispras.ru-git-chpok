@@ -18,10 +18,12 @@ reserved_0000:
         /* fails */
 1:      b 1b 
 
-#define SAVE_FP(num) stfd %f##num,(80+8*num)(%r1)
-#define LOAD_FP(num) lfd %f##num,(80+8*num)(%r1)
+/* FP_START must be equal to offsetof(volatile_context_t, fp0) */
+#define FP_START 80
+#define SAVE_FP(num) stfd %f##num,(FP_START + 8*num)(%r1)
+#define LOAD_FP(num) lfd %f##num,(FP_START + 8*num)(%r1)
 
-//96 = 0x60 = align_up(80 + 8(for f0 reg))
+/* FRAME_SIZE must be equal to offsetof(volatile_context_t, back_chain) */
 #define FRAME_SIZE 96
         /* r4 is available, r1 is set, r3 contains cr,
            sprg3 contains r3 and sprg2 contains r2.  */
@@ -183,7 +185,7 @@ label##_asm:
 
     START_EXCEPTION(pok_int_data_storage)
         EXCEPTION_PROLOGUE
-        
+        mr %r3, %r1
         mfspr %r4, SPRN_DEAR // DEAR - faulting address
         mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
@@ -192,7 +194,7 @@ label##_asm:
 
     START_EXCEPTION(pok_int_inst_storage)
         EXCEPTION_PROLOGUE
-        
+        mr %r3, %r1
         mfspr %r4, SPRN_DEAR // DEAR - faulting address
         mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
@@ -259,7 +261,7 @@ label##_asm:
 
     START_EXCEPTION(pok_int_data_tlb_miss)
         EXCEPTION_PROLOGUE
-        
+        mr %r3, %r1
         mfspr %r4, SPRN_DEAR // DEAR - faulting address
         mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
@@ -268,7 +270,7 @@ label##_asm:
 
     START_EXCEPTION(pok_int_inst_tlb_miss)
         EXCEPTION_PROLOGUE
-
+        mr %r3, %r1
         mfspr %r4, SPRN_DEAR // DEAR - faulting address
         mfspr %r5, SPRN_ESR // ESR - exception syndrome
 

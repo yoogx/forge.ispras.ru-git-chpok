@@ -102,6 +102,9 @@ pok_ret_t pok_port_sampling_create(
     *id = index;
     port->header.created = TRUE;
     port->refresh = refresh;
+    port->last_receive = 0;
+    port->last_validity = FALSE;
+    port->not_empty = FALSE;
 
     return POK_ERRNO_OK;
 }

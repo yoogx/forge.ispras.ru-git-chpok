@@ -391,9 +391,18 @@ pok_ret_t pok_partition_set_mode(pok_partition_id_t pid, pok_partition_mode_t mo
          // TODO support for partition restart is likely broken
 
          pok_partitions[pid].mode = mode;  /* Here, we change the mode */
+
+         if (pok_partitions[pid].start_condition != POK_START_CONDITION_HM_MODULE_RESTART &&
+             pok_partitions[pid].start_condition != POK_START_CONDITION_HM_PARTITION_RESTART)
+         {
+             pok_partitions[pid].start_condition = POK_START_CONDITION_PARTITION_RESTART;
+		 }
+
          pok_partitions[pid].lock_level = 1; 
 
+         printf("Restarting partition...\n");
          pok_partition_reinit (pid);
+         POK_CURRENT_THREAD.force_restart = TRUE;
 
          pok_sched ();
 
