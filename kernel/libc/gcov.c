@@ -2,6 +2,8 @@
 
 #include <libc.h>
 #include <gcov.h>
+#include <arch.h>
+#include <core/partition.h>
 
 #ifdef POK_NEEDS_GCOV
 
@@ -117,14 +119,19 @@ static size_t convert_to_gcda(unsigned char *buffer, struct gcov_info *info)
 }
 
 #define DEFAULT_GCOV_ENTRY_COUNT 200
-#define GCOV_HEXDUMP_BUF_SIZE 10000
+#define GCOV_HEXDUMP_BUF_SIZE 5000
 
-#define GCOV_MAX_DATA_SIZE 50000
+#define GCOV_MAX_DATA_SIZE GCOV_HEXDUMP_BUF_SIZE * DEFAULT_GCOV_ENTRY_COUNT
 
 unsigned char data[GCOV_MAX_DATA_SIZE];
 
+#define GCOV_MAX_FILENAME_LENGTH 200
+char filenames[DEFAULT_GCOV_ENTRY_COUNT * GCOV_MAX_FILENAME_LENGTH];
+size_t name_offset = 0;
+
 struct gcov_entry_t {
-    const char *filename;
+    pok_partition_id_t part_id;
+    char *filename;
     uint32_t data_start;
     uint32_t data_end;
 };
@@ -152,6 +159,17 @@ static size_t dump_gcov_entry(unsigned char *to_buffer, struct gcov_info *info)
     return sz;
 }
 
+#define POK_MAX_NB_PARTITIONS 16
+
+struct gcov_partition {
+    pok_partition_id_t part_id;
+    size_t idx_start;
+    size_t idx_end;
+};
+
+struct gcov_partition part[POK_MAX_NB_PARTITIONS];
+static size_t num_used_partitions = 1;
+
 void gcov_dump(void)
 {
     size_t i, sz;
@@ -161,19 +179,30 @@ void gcov_dump(void)
         return;
     }
 
-    for (i = 0; i < num_used_gcov_entries; i++) {
-        struct gcov_info *info = gcov_info_head[i];
-        entry[i].filename = info->filename;
+    size_t j;
+    for (j = 0; j < num_used_partitions; j++) {
+#ifdef __PPC__
+        if (j > 0) {
+            asm volatile("mtspr 0x030,%0" :: "r"(part[j].part_id) : "memory");
+        }
+#endif
+        for (i = part[j].idx_start; i < part[j].idx_end; i++) {
+            struct gcov_info *info = gcov_info_head[i];
+            entry[i].part_id = part[j].part_id;
 
-        // offset in common buffer
-        entry[i].data_start = (uint32_t)data + size;
+            entry[i].filename = filenames + name_offset;
+            memcpy(entry[i].filename, info->filename, strlen(info->filename) + 1);
+            name_offset += strlen(info->filename) + 1;
 
-        sz = dump_gcov_entry(data + size, info);
-        size += sz; // total size
-        entry[i].data_end = entry[i].data_start + sz;
+            // offset in common buffer
+            entry[i].data_start = (uint32_t)data + size;
 
-        //printf("dump binary memory %s 0x%lx 0x%lx\n", entry[i].filename,
-        //        entry[i].data_start, entry[i].data_end);
+            sz = dump_gcov_entry(data + size, info);
+            size += sz; // total size
+            entry[i].data_end = entry[i].data_start + sz;
+
+            //printf("%s 0x%lx 0x%lx\n", entry[i].filename, entry[i].data_start, entry[i].data_end);
+        }
     }
     printf("total size:   %zu\n", size);
     printf("entries used: %zu\n", num_used_gcov_entries);
@@ -200,6 +229,38 @@ void __gcov_init(struct gcov_info *info)
     gcov_info_head[num_used_gcov_entries++] = info;
 }
 
+#define USER_TO_KERNEL(x) if (!!x) (x) = (typeof(x))((uint32_t)(x) + infos->base_addr)
+
+void gcov_init_libpok(struct gcov_info **data, size_t num_entries, const pok_syscall_info_t *infos) {
+#ifdef __PPC__
+    asm volatile("mfspr %0,0x030" : "=r"(part[num_used_partitions].part_id));
+#endif
+    part[num_used_partitions].idx_start = num_used_gcov_entries;
+    part[num_used_partitions].idx_end = part[num_used_partitions].idx_start + num_entries;
+    num_used_partitions++;
+
+    size_t i, j;
+    for (i = 0; i < num_entries; i++) {
+        struct gcov_info *info_ptr = data[i];
+        USER_TO_KERNEL(info_ptr);
+        USER_TO_KERNEL(info_ptr->next);
+        USER_TO_KERNEL(info_ptr->filename);
+
+        for (j = 0; j < GCOV_COUNTERS; j++) {
+            USER_TO_KERNEL(info_ptr->merge[j]);
+        }
+
+        USER_TO_KERNEL(info_ptr->functions);
+        for (j = 0; j < info_ptr->n_functions; j++) {
+            USER_TO_KERNEL(*(info_ptr->functions + j));
+            USER_TO_KERNEL((**(info_ptr->functions + j)).key);
+            USER_TO_KERNEL((**(info_ptr->functions + j)).ctrs[0].values);
+        }
+
+        __gcov_init(info_ptr);
+    }
+}
+
 /* Call the coverage initializers if not done by startup code */
 void pok_gcov_init(void) {
     extern uint32_t __CTOR_START__, __CTOR_END__; // linker defined symbols
@@ -213,6 +274,8 @@ void pok_gcov_init(void) {
         (*p)(); // call constructor
         start += sizeof(p);
     }
+    part[0].idx_start = 0;
+    part[0].idx_end = num_used_gcov_entries;
 }
 
 #endif /* POK_NEEDS_GCOV */

@@ -2,6 +2,7 @@
 #define __POK_KERNEL_GCOV_H__
 
 #include <config.h>
+#include <core/syscall.h>
 
 #ifdef POK_NEEDS_GCOV
 
@@ -99,6 +100,8 @@ void pok_gcov_init(void);
 
 // called by coverage initializers
 void __gcov_init(struct gcov_info *info);
+
+void gcov_init_libpok(struct gcov_info **data, size_t num_entries, const pok_syscall_info_t *infos);
 
 void gcov_dump(void);
 #endif /* POK_NEEDS_GCOV */

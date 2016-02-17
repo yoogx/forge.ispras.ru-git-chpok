@@ -367,7 +367,7 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
 
 #ifdef POK_NEEDS_GCOV
       case POK_SYSCALL_GCOV_INIT:
-         __gcov_init((struct gcov_info*) args->arg1);
+         gcov_init_libpok((struct gcov_info**) (args->arg1 + infos->base_addr), (size_t) args->arg2, infos);
          return POK_ERRNO_OK;
       break;
 #endif /* POK_NEEDS_GCOV */
