@@ -3,6 +3,7 @@
 /examples/*/sizes.c
 /examples/*/*/deployment.c
 /examples/*/.gdb_history
+/examples/*/coverage
 *.o
 *.lo
 libpok.a
