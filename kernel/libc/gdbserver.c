@@ -3,6 +3,9 @@
 
 #define PC_REGNUM 64
 #define SP_REGNUM 1
+ 
+//~ #define DEBUG_GDB
+//~ #define QEMU
 
 
 /*
@@ -115,9 +118,6 @@
 #ifdef __i386__
 #include <arch.h>
 #endif
- 
-//~ #define DEBUG_GDB
-
 
 /************************************************************************
  *
@@ -719,7 +719,45 @@ pok_partition_id_t give_part_num_of_thread(int thread_num){
     return 0;
 }    
 
-void add_0_breakpoint(uintptr_t addr,int length,int *using_thread){
+pok_bool_t watchpoint_is_set = FALSE;
+/*
+ *  Added watchpoint.
+ *  Kind:   2 -  Write watchpoint
+ *          3 -   Read watchpoint
+ *          4 - Access watchpoint
+ */
+void add_watchpoint(uintptr_t addr, int length, int *using_thread, int kind){
+#ifdef QEMU
+    /*do nothing*/
+    strcpy (remcomOutBuffer, "E22");
+    return;
+#else
+    if (!watchpoint_is_set){
+        
+    } else {
+        /*do nothing*/
+        strcpy (remcomOutBuffer, "E22");
+        return;
+    }
+#endif
+}
+
+void remove_watchpoint(uintptr_t addr, int length, int *using_thread, int kind){
+#ifdef QEMU
+    /*do nothing*/
+    strcpy (remcomOutBuffer, "E22");
+    return;
+#else
+    /*do nothing*/
+    strcpy (remcomOutBuffer, "E22");
+    return;    
+#endif    
+    
+}
+
+
+
+void add_0_breakpoint(uintptr_t addr, int length, int *using_thread){
     int old_pid = current_part_id();
     int new_pid = give_part_num_of_thread(*using_thread + 1);
 #ifdef DEBUG_GDB
@@ -1176,6 +1214,24 @@ handle_exception (int exceptionVector, struct regs * ea)
                             add_0_breakpoint(addr, kind, &using_thread);
                         else
                             remove_0_breakpoint(addr, kind, &using_thread);
+                }
+                if (type == 2){
+                    if (remcomInBuffer[0] == 'Z') 
+                            add_watchpoint(addr, kind, &using_thread, 2);
+                        else
+                            remove_watchpoint(addr, kind, &using_thread, 2);
+                }
+                if (type == 3){
+                    if (remcomInBuffer[0] == 'Z') 
+                            add_watchpoint(addr, kind, &using_thread, 3);
+                        else
+                            remove_watchpoint(addr, kind, &using_thread, 3);
+                }
+                if (type == 4){
+                    if (remcomInBuffer[0] == 'Z') 
+                            add_watchpoint(addr, kind, &using_thread, 4);
+                        else
+                            remove_watchpoint(addr, kind, &using_thread, 4);
                 }
                 break;
             }

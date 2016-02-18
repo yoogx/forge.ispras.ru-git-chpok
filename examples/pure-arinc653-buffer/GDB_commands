@@ -32,11 +32,17 @@ define Easy_break
         set breakpoints[Head_of_breakpoints].B_num = last_breakpoint
         set breakpoints[Head_of_breakpoints].addr = (uintptr_t) &($arg0)
         set $Thread_break_i = 0
-        while ((breakpoints[$Thread_break_i].C_addr != (uintptr_t) &($arg0)) || (breakpoints[$Thread_break_i].P_num != $PID)) && ($Thread_break_i < max_breakpoint)
-            set $Thread_break_i = $Thread_break_i + 1
+        if *(breakpoints[Head_of_breakpoints].addr) == 0x7fe00008
+            while ((breakpoints[$Thread_break_i].C_addr != (uintptr_t) &($arg0)) || (breakpoints[$Thread_break_i].P_num != $PID)) && ($Thread_break_i < max_breakpoint)
+                set $Thread_break_i = $Thread_break_i + 1
+                end
+            set breakpoints[Head_of_breakpoints].Instr = breakpoints[$Thread_break_i].Instr        
+            set breakpoints[Head_of_breakpoints].C_addr = breakpoints[$Thread_break_i].C_addr        
+        else
+            set breakpoints[Head_of_breakpoints].Instr = *(uintptr_t)(breakpoints[Head_of_breakpoints].addr)
+            set *(breakpoints[Head_of_breakpoints].addr) = 0x7fe00008
+            set breakpoints[Head_of_breakpoints].C_addr = breakpoints[Head_of_breakpoints].addr 
             end
-        set breakpoints[Head_of_breakpoints].Instr = breakpoints[$Thread_break_i].Instr        
-        set breakpoints[Head_of_breakpoints].C_addr = breakpoints[$Thread_break_i].C_addr        
         set Head_of_breakpoints = Head_of_breakpoints + 1
         end
     if (breakpoints[Head_of_breakpoints - 1].addr - (uintptr_t) &($arg0) > 0) && (breakpoints[Head_of_breakpoints - 1].addr - (uintptr_t) &($arg0) < 128)
