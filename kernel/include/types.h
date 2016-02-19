@@ -23,8 +23,8 @@
 
 #define FALSE  0
 #define TRUE   1
-#define bool_t int
-#define pok_bool_t int
+typedef int bool_t;
+typedef int pok_bool_t;
 
 typedef uint32_t pok_port_size_t;
 typedef uint8_t pok_port_direction_t;
@@ -41,9 +41,14 @@ typedef uint8_t pok_partition_id_t;
 typedef uint8_t pok_thread_id_t;
 typedef uint16_t pok_sem_value_t;
 
+typedef int64_t pok_time_t;
+#define POK_TIME_INFINITY ((int64_t)(-1))
+
 typedef enum {
     POK_QUEUEING_DISCIPLINE_FIFO,
     POK_QUEUEING_DISCIPLINE_PRIORITY,
 } pok_queueing_discipline_t;
+
+#define MAX_NAME_LENGTH 30
 
 #endif

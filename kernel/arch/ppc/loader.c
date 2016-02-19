@@ -11,22 +11,25 @@
 
 extern size_t pok_elf_sizes[];
 
-void pok_arch_load_partition(pok_partition_id_t part_id,  uintptr_t *entry)
+void pok_arch_load_partition(pok_partition_arinc_t* part,
+    uint8_t elf_id,
+    uint8_t space_id,
+    uintptr_t *entry)
 {
     extern char __archive2_begin;
     size_t elf_offset, elf_size;
 
     elf_offset = 0;
-    for (pok_partition_id_t i = 0; i < part_id; i++) {
+    for (uint8_t i = 0; i < elf_id; i++) {
         elf_offset += pok_elf_sizes[i];
     }
 
-    elf_size = pok_elf_sizes[part_id];
+    elf_size = pok_elf_sizes[elf_id];
     
-    if (elf_size > pok_partitions[part_id].size)
+    if (elf_size > partition->size)
     {
-		printf("Declared size for partition %d : %ld\n", part_id, pok_partitions[part_id].size);
-        printf("Real size for partition %d     : %d\n", part_id, elf_size);
+		printf("Declared size for partition %d : %ld\n", part->partition_id, part->size);
+        printf("Real size for partition %d     : %d\n", part->partition_id, elf_size);
 #ifdef POK_NEEDS_ERROR_HANDLING
         pok_error_raise_partition(part_id, POK_ERROR_KIND_PARTITION_CONFIGURATION);
 #else
@@ -51,7 +54,7 @@ void pok_arch_load_partition(pok_partition_id_t part_id,  uintptr_t *entry)
      * XXX maliciously linked ELF life may overwrite kernel data
      */
 
-    mtspr(SPRN_PID, part_id + 1);
+    mtspr(SPRN_PID, space_id + 1);
     pok_loader_elf_load((&__archive2_begin) + elf_offset, 0, entry);
     mtspr(SPRN_PID, 0); 
 }

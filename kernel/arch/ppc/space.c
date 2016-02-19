@@ -31,24 +31,22 @@
 #include "space.h"
 #include "cons.h"
 
-pok_ret_t pok_create_space (pok_partition_id_t partition_id,
+pok_ret_t pok_create_space (uint8_t space_id,
                             uintptr_t addr,
                             size_t size)
 {
 #ifdef POK_NEEDS_DEBUG
-  printf ("pok_create_space partid=%d: phys=%x size=%x\n", partition_id, addr, size);
+  printf ("pok_create_space space_id=%d: phys=%x size=%x\n", space_id, addr, size);
 #endif
-  spaces[partition_id].phys_base = addr;
-  spaces[partition_id].size = size;
+  spaces[space_id].phys_base = addr;
+  spaces[space_id].size = size;
 
   return (POK_ERRNO_OK);
 }
 
-pok_ret_t pok_space_switch (pok_partition_id_t old_partition_id,
-                            pok_partition_id_t new_partition_id)
+pok_ret_t pok_space_switch (uint8_t space_id)
 {
-    (void) old_partition_id;
-    mtspr(SPRN_PID, new_partition_id + 1);
+    mtspr(SPRN_PID, space_id + 1);
 
     return POK_ERRNO_OK;
 }
@@ -63,13 +61,13 @@ static void
 pok_space_context_init(
         volatile_context_t *vctx,
         context_t *ctx,
-        uint8_t partition_id,
+        uint8_t space_id,
         uintptr_t entry_rel,
         uintptr_t stack_rel,
         uint32_t arg1,
         uint32_t arg2)
 {
-    (void) partition_id;
+    (void) space_id;
 
     memset (ctx, 0, sizeof(*ctx));
     memset (vctx, 0, sizeof(*vctx));
@@ -87,7 +85,7 @@ pok_space_context_init(
 }
 
 uint32_t pok_space_context_create (
-        uint8_t partition_id,
+        uint8_t space_id,
         uint32_t entry_rel,
         uint32_t stack_rel,
         uint32_t arg1,
@@ -104,11 +102,11 @@ uint32_t pok_space_context_create (
   
   ctx = (context_t *)(((char*)vctx) - sizeof(context_t) + 8);
   
-  pok_space_context_init(vctx, ctx, partition_id, entry_rel, stack_rel, arg1, arg2);
+  pok_space_context_init(vctx, ctx, space_id, entry_rel, stack_rel, arg1, arg2);
 
 #ifdef POK_NEEDS_DEBUG
   printf ("space_context_create %lu: entry=%lx stack=%lx arg1=%lx arg2=%lx ksp=%p\n",
-          (unsigned long) partition_id, 
+          (unsigned long) space_id, 
           (unsigned long) entry_rel, 
           (unsigned long) stack_rel, 
           (unsigned long) arg1, 
@@ -121,7 +119,7 @@ uint32_t pok_space_context_create (
 
 void pok_space_context_restart(
         uint32_t sp, 
-        uint8_t  partition_id,
+        uint8_t  space_id,
         uint32_t entry_rel,
         uint32_t stack_rel,
         uint32_t arg1,
@@ -139,7 +137,7 @@ void pok_space_context_restart(
     pok_space_context_init(
         vctx,
         ctx, 
-        partition_id,
+        space_id,
         entry_rel,
         stack_rel,
         arg1,
@@ -293,11 +291,11 @@ void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
             faulting_address >= POK_PARTITION_MEMORY_BASE && 
             faulting_address < POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE) 
     {
-        pok_partition_id_t partid = pid - 1;
+        uint8_t space_id = pid - 1;
 
         pok_insert_tlb1( 
             POK_PARTITION_MEMORY_BASE,
-            spaces[partid].phys_base,
+            spaces[space_id].phys_base,
             E500MC_PGSIZE_16M,
             MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
             0,

@@ -38,12 +38,14 @@
 
 #define KERNEL_STACK_SIZE 8192
 
+uint8_t current_space_id = (uint8_t)(-1);
+
 /*
  * Arguments of this function must match the layout 
  * of space_context_t
  */
 static void pok_dispatch_space(
-         uint8_t partition_id,
+         uint8_t space_id,
          uint32_t user_pc,
          uint32_t user_sp,
          uint32_t kernel_sp,
@@ -55,10 +57,10 @@ static void pok_dispatch_space(
    uint32_t          data_sel;
    uint32_t          sp;
 
-   assert(partition_id < POK_CONFIG_NB_PARTITIONS);
+   assert(space_id < POK_CONFIG_NB_PARTITIONS); //TODO: fix comparision
 
-   code_sel = GDT_BUILD_SELECTOR (GDT_PARTITION_CODE_SEGMENT (partition_id), 0, 3);
-   data_sel = GDT_BUILD_SELECTOR (GDT_PARTITION_DATA_SEGMENT (partition_id), 0, 3);
+   code_sel = GDT_BUILD_SELECTOR (GDT_PARTITION_CODE_SEGMENT (space_id), 0, 3);
+   data_sel = GDT_BUILD_SELECTOR (GDT_PARTITION_DATA_SEGMENT (space_id), 0, 3);
 
    sp = (uint32_t) &ctx;
 
@@ -89,28 +91,31 @@ static void pok_dispatch_space(
        );
 }
 
-pok_ret_t pok_create_space (uint8_t partition_id,
+pok_ret_t pok_create_space (uint8_t space_id,
                             uint32_t addr,
                             uint32_t size)
 {
-   gdt_set_segment (GDT_PARTITION_CODE_SEGMENT (partition_id),
+   gdt_set_segment (GDT_PARTITION_CODE_SEGMENT (space_id),
          addr, size, GDTE_CODE, 3);
 
-   gdt_set_segment (GDT_PARTITION_DATA_SEGMENT (partition_id),
+   gdt_set_segment (GDT_PARTITION_DATA_SEGMENT (space_id),
          addr, size, GDTE_DATA, 3);
 
    return (POK_ERRNO_OK);
 }
 
-pok_ret_t pok_space_switch (uint8_t old_partition_id,
-                            uint8_t new_partition_id)
+pok_ret_t pok_space_switch (uint8_t space_id)
 {
-   gdt_disable (GDT_PARTITION_CODE_SEGMENT(old_partition_id));
-   gdt_disable (GDT_PARTITION_DATA_SEGMENT(old_partition_id));
-   gdt_enable (GDT_PARTITION_CODE_SEGMENT(new_partition_id));
-   gdt_enable (GDT_PARTITION_DATA_SEGMENT(new_partition_id));
+    if(current_space_id != (uint8_t)(-1)) {
+        gdt_disable (GDT_PARTITION_CODE_SEGMENT(current_space_id));
+        gdt_disable (GDT_PARTITION_DATA_SEGMENT(current_space_id));
+    }
+    gdt_enable (GDT_PARTITION_CODE_SEGMENT(space_id));
+    gdt_enable (GDT_PARTITION_DATA_SEGMENT(space_id));
 
-   return (POK_ERRNO_OK);
+    current_space_id = space_id;
+
+    return (POK_ERRNO_OK);
 }
 
 uint32_t	pok_space_base_vaddr (uint32_t addr)
@@ -121,13 +126,14 @@ uint32_t	pok_space_base_vaddr (uint32_t addr)
 
 static void 
 pok_space_context_init(
-        space_context_t *sp,
-        uint8_t partition_id,
+        uint32_t stack_addr, /*should be `sp`, but it alredy used in code. */
+        uint8_t space_id,
         uintptr_t entry_rel,
         uintptr_t stack_rel,
         uint32_t arg1,
         uint32_t arg2)
 {
+    space_context_t *sp = (space_context_t*)(stack_addr - sizeof(space_context_t) - 4);
     memset (sp, 0, sizeof(*sp));
     
     sp->ctx.__esp  = (uint32_t)(&sp->ctx.eip); /* for pusha */
@@ -140,11 +146,11 @@ pok_space_context_init(
     sp->kernel_sp     = (uint32_t)sp;
     sp->user_sp       = stack_rel;
     sp->user_pc       = entry_rel;
-    sp->partition_id  = partition_id;
+    sp->partition_id  = space_id;
 }
 
 uint32_t pok_space_context_create (
-        uint8_t  partition_id,
+        uint8_t  space_id,
         uint32_t entry_rel,
         uint32_t stack_rel,
         uint32_t arg1,
@@ -158,14 +164,14 @@ uint32_t pok_space_context_create (
    sp = (space_context_t *)
       (stack_addr + KERNEL_STACK_SIZE - 4 - sizeof (space_context_t));
 
-   pok_space_context_init(sp, partition_id, entry_rel, stack_rel, arg1, arg2);
+   pok_space_context_init(sp, space_id, entry_rel, stack_rel, arg1, arg2);
 
    return ((uint32_t) sp);
 }
 
 void pok_space_context_restart(
         uint32_t sp, 
-        uint8_t  partition_id,
+        uint8_t  space_id,
         uint32_t entry_rel,
         uint32_t stack_rel,
         uint32_t arg1,
@@ -179,7 +185,7 @@ void pok_space_context_restart(
 
     pok_space_context_init(
         (space_context_t*)sp, 
-        partition_id,
+        space_id,
         entry_rel,
         stack_rel,
         arg1,

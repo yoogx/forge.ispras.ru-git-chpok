@@ -39,12 +39,10 @@
  *
  * The definition of useful structures can be found in partition.h
  * header file. To enable partitioning services, you must set the
- * POK_NEEDS_PARTITIONS maccro.
+ * POK_NEEDS_PARTITIONS macro.
  */
 
 #include <config.h>
-
-#ifdef POK_NEEDS_PARTITIONS
 
 #include <arch.h>
 #include <bsp.h>
@@ -63,18 +61,12 @@
 #include <libc.h>
 #include <assert.h>
 
-uint8_t			 pok_partitions_index = 0;
-
-
-/**
- **\brief Setup the scheduler used in partition pid
- */
-void pok_partition_setup_scheduler (pok_partition_id_t pid)
+void pok_partition_reset(pok_partition_t* part)
 {
-    // TODO other schedulers?
-    pok_partitions[pid].scheduler = &pok_fps_scheduler_ops;
-    pok_partitions[pid].scheduler->initialize();
+    part->sp = 0;
 }
+
+
 
 /**
  * Reinitialize partition.
@@ -262,226 +254,3 @@ pok_ret_t pok_partition_init ()
 
    return POK_ERRNO_OK;
 }
-
-static uint64_t get_next_periodic_processing_start(void)
-{
-    int i;
-
-    uint64_t offset = pok_sched_next_deadline;
-    for (i = 0; i < POK_CONFIG_SCHEDULING_NBSLOTS; i++) {
-        // check all time slots
-        // note that we ignore current activation of _this_ slot
-        // e.g. if we're currently in periodic processing window,
-        // and it's the only one in schedule, we say that next one
-        // will be major frame time units later
-
-        int time_slot_index = (i + 1 + pok_sched_current_slot) % POK_CONFIG_SCHEDULING_NBSLOTS;
-        const pok_sched_slot_t *slot = &pok_module_sched[time_slot_index];
-
-        if (slot->type == POK_SLOT_PARTITION) {
-            if (slot->partition.id == POK_SCHED_CURRENT_PARTITION && 
-                slot->partition.periodic_processing_start) 
-            {
-                return offset;
-            }
-        }
-
-        offset += slot->duration;
-    }
-
-    assert(FALSE && "Couldn't find next periodic processing window (configurator shouldn't have allowed that)");
-}
-
-/**
- * Change the current mode of the partition. Possible mode
- * are describe in core/partition.h. Returns
- * POK_ERRNO_PARTITION_MODE when requested mode is invalid.
- * Else, returns POK_ERRNO_OK
- */
-
-static pok_ret_t pok_partition_set_normal_mode(pok_partition_id_t pid)
-{
-    pok_partition_t *part = &pok_partitions[pid];
-    if (part->mode == POK_PARTITION_MODE_IDLE) {
-        return POK_ERRNO_PARTITION_MODE; // XXX shouldn't happen anyway
-    }
-    if (part->mode == POK_PARTITION_MODE_NORMAL) {
-        return POK_ERRNO_UNAVAILABLE; // TODO revise error codes
-    }
-    
-    part->mode = POK_PARTITION_MODE_NORMAL;
-    part->lock_level = 0;
-
-    pok_thread_id_t thread_id;
-    for (thread_id = part->thread_index_low; thread_id < part->thread_index; thread_id++) {
-        pok_thread_t *thread = &pok_threads[thread_id];
-
-        if (thread->period < 0) {
-            // aperiodic process
-            if (thread->state == POK_STATE_DELAYED_START) {
-                if (thread->wakeup_time <= 0) {
-                    thread->state = POK_STATE_RUNNABLE;
-                    thread->wakeup_time = POK_GETTICK(); // XXX this smells, though
-                } else {
-                    thread->state = POK_STATE_WAITING;
-                    thread->wakeup_time += POK_GETTICK(); // XXX what does arinc say about this?
-                }
-
-                if (thread->time_capacity < 0) {
-                    // infinite time capacity
-                    thread->end_time = (uint64_t) -1; // XXX find a better way
-                } else {
-                    thread->end_time = thread->wakeup_time + thread->time_capacity;
-                }
-            }
-        } else {
-            // periodic process
-            if (thread->state == POK_STATE_DELAYED_START) {
-                thread->next_activation = get_next_periodic_processing_start() + thread->wakeup_time;
-                
-                if (thread->time_capacity < 0) {
-                    thread->end_time = (uint64_t) -1; // XXX
-                } else {
-                    thread->end_time = thread->next_activation + thread->time_capacity;
-                }
-
-                thread->state = POK_STATE_WAIT_NEXT_ACTIVATION;
-            }
-        }
-    }
-         
-    // stop master thread (ARINC permits it)
-    pok_thread_stop();
-
-    // note: it doesn't return
-    pok_sched();
-
-    return POK_ERRNO_OK;
-}
-
-pok_ret_t pok_partition_set_mode(pok_partition_id_t pid, pok_partition_mode_t mode)
-{
-   // TODO check all the conditions specified in ARINC
-
-   switch (mode)
-   {
-      case POK_PARTITION_MODE_NORMAL:
-        return pok_partition_set_normal_mode(pid);
-        break;
-
-      case POK_PARTITION_MODE_IDLE:
-         pok_partitions[pid].mode = POK_PARTITION_MODE_IDLE;  /* Here, we change the mode */
-         pok_sched ();
-         break;
-
-      case POK_PARTITION_MODE_INIT_WARM:
-      case POK_PARTITION_MODE_INIT_COLD:
-        // XXX the following might be incorrect for SET_PARTITION_MODE
-        //     but HM might take this action freely
-	if (pok_partitions[pid].mode == POK_PARTITION_MODE_INIT_COLD && mode == POK_PARTITION_MODE_INIT_WARM)
-          { 
-             return POK_ERRNO_PARTITION_MODE;
-          }
-
-         /*
-          * The partition fallback in the INIT_WARM mode when it
-          * was in the NORMAL mode. So, we check the previous mode
-          */
-
-         // TODO support for partition restart is likely broken
-
-         pok_partitions[pid].mode = mode;  /* Here, we change the mode */
-         pok_partitions[pid].lock_level = 1; 
-
-         pok_partition_reinit (pid);
-
-         pok_sched ();
-
-         break;
-
-      default:
-         return POK_ERRNO_EINVAL;
-         break;
-   }
-   return POK_ERRNO_OK;
-}
-
-/**
- * Change the mode of the current partition (the partition being executed)
- */
-pok_ret_t pok_partition_set_mode_current(pok_partition_mode_t mode)
-{
-   return (pok_partition_set_mode(POK_SCHED_CURRENT_PARTITION, mode));
-}
-
-/**
- * Get partition information. Used for ARINC GET_PARTITION_STATUS function.
- */
-pok_ret_t pok_current_partition_get_id(pok_partition_id_t *id)
-{
-  *id = POK_SCHED_CURRENT_PARTITION;
-  return POK_ERRNO_OK;
-}
-
-pok_ret_t pok_current_partition_get_period (uint64_t *period)
-{
-  *period = POK_CURRENT_PARTITION.period;
-  return POK_ERRNO_OK;
-}
-
-pok_ret_t pok_current_partition_get_duration (uint64_t *duration)
-{
-  *duration = POK_CURRENT_PARTITION.duration;
-  return POK_ERRNO_OK;
-}
-
-pok_ret_t pok_current_partition_get_operating_mode (pok_partition_mode_t *op_mode)
-{
-  *op_mode = POK_CURRENT_PARTITION.mode;
-  return POK_ERRNO_OK;
-}
-
-pok_ret_t pok_current_partition_get_lock_level (uint32_t *lock_level)
-{
-  *lock_level = POK_CURRENT_PARTITION.lock_level;
-  return POK_ERRNO_OK;
-}
-
-pok_ret_t pok_current_partition_get_start_condition (pok_start_condition_t *start_condition)
-{
-  *start_condition = POK_CURRENT_PARTITION.start_condition;
-  return POK_ERRNO_OK;
-}
-
-pok_ret_t pok_current_partition_inc_lock_level(uint32_t *lock_level)
-{
-  if (POK_CURRENT_PARTITION.mode != POK_PARTITION_MODE_NORMAL ||
-      pok_thread_is_error_handling(&POK_CURRENT_THREAD)) 
-  {
-    return POK_ERRNO_MODE;
-  }
-  if (POK_CURRENT_PARTITION.lock_level >= 16) { // XXX
-    return POK_ERRNO_EINVAL;
-  }
-  *lock_level = ++POK_CURRENT_PARTITION.lock_level;
-  return POK_ERRNO_OK;
-}
-
-pok_ret_t pok_current_partition_dec_lock_level(uint32_t *lock_level)
-{
-  if (POK_CURRENT_PARTITION.mode != POK_PARTITION_MODE_NORMAL ||
-      pok_thread_is_error_handling(&POK_CURRENT_THREAD)) 
-  {
-    return POK_ERRNO_MODE;
-  }
-  if (POK_CURRENT_PARTITION.lock_level == 0) {
-    return POK_ERRNO_EINVAL;
-  }
-  *lock_level = --POK_CURRENT_PARTITION.lock_level;
-  if (POK_CURRENT_PARTITION.lock_level == 0) {
-    pok_sched();
-  }
-  return POK_ERRNO_OK;
-}
-
-#endif

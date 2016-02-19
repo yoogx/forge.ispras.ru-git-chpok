@@ -90,9 +90,14 @@ pok_ret_t pok_arch_event_register  (uint8_t vector,
    return (POK_ERRNO_OK);
 }
 
-uint32_t    pok_thread_stack_addr   (const uint8_t    partition_id,
-                                     const uint32_t   local_thread_id)
+uint32_t    pok_thread_stack_addr   (uint8_t    space_id,
+                                     uint32_t stack_size,
+                                     uint32_t* state)
 {
-   return pok_partitions[partition_id].size - 4 - (local_thread_id * POK_USER_STACK_SIZE);
+   uint32_t result = spaces[space_id].size - 4 - (*state);
+   //TODO: Check boundaries
+   *state += stack_size;
+   
+   result;
 }
 

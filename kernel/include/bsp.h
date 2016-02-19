@@ -39,6 +39,23 @@ pok_ret_t pok_bsp_irq_register (uint8_t irq,
 
 void  *pok_bsp_mem_alloc (size_t size);
 
+/**
+ * Alloc (kernel) stack of specified size.
+ * 
+ * Return pointer to the head of the stack, that is when stack is assumed
+ * to be empty.
+ * 
+ * DEV: Because stacks are allocated from global pool, shared between
+ * partitions, all stack's allocation should be done at initialization
+ * stage. Such way partitions couldn't affect on each other during work.
+ */
+static inline uint32_t pok_stack_alloc(uint32_t stack_size)
+{
+    void* addr = pok_bsp_mem_alloc(stack_size);
+    return (uint32_t)addr + stack_size;
+}
+
+
 void  *pok_bsp_alloc_partition(size_t size);
 
 void  *pok_bsp_mem_alloc_aligned(size_t size, size_t alignment);

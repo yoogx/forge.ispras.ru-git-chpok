@@ -81,11 +81,15 @@ pok_ret_t pok_arch_event_register (uint8_t vector, void (*handler)(void))
 }
 
 
-uint32_t    pok_thread_stack_addr   (const uint8_t    partition_id,
-                                     const uint32_t   local_thread_id)
+uint32_t    pok_thread_stack_addr   (uint8_t    space_id,
+                                     uint32_t stack_size,
+                                     uint32_t* state)
 {
-   (void) partition_id; 
-   return POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE - 16 - (local_thread_id * POK_USER_STACK_SIZE);
+   uint32_t result = POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE - 16 - (*state);
+   // TODO: Check boundaries.
+   (void) space_id;
+   *state += stack_size;
+   return result;
 }
 
 

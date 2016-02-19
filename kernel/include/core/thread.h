@@ -32,6 +32,9 @@
  * Created by julien on Thu Jan 15 23:34:13 2009
  */
 
+/*
+ *  ARINC thread.
+ */
 
 #ifndef __POK_THREAD_H__
 #define __POK_THREAD_H__
@@ -44,6 +47,15 @@
 #include <errno.h>
 #include <core/sched.h>
 
+// must match libpok/include/core/thread.h
+typedef enum
+{
+  // comments describe to what states of ARINC653 these correspond to
+  POK_STATE_STOPPED = 0, // DORMANT (must be started first)
+  POK_STATE_RUNNABLE = 1, // READY or RUNNING
+  POK_STATE_WAITING = 2, // WAITING (any reason except suspended, from the first list)
+} pok_state_t;
+
 
 /*
  * In POK, we add a kernel thread and an idle thread. The kernel
@@ -54,22 +66,6 @@
  * there's another thread that polls the network card.
  */
 
-
-#ifdef POK_NEEDS_NETWORKING
-
-#define NETWORK_THREAD POK_CONFIG_NB_THREADS-4
-#define POK_KERNEL_THREADS 4
-
-#else
-
-#define POK_KERNEL_THREADS 3
-
-#endif
-
-
-#define MONITOR_THREAD POK_CONFIG_NB_THREADS-3
-#define KERNEL_THREAD		POK_CONFIG_NB_THREADS -2
-#define IDLE_THREAD        POK_CONFIG_NB_THREADS -1
 
 #define POK_THREAD_DEFAULT_TIME_CAPACITY 10
 
@@ -99,64 +95,105 @@ typedef enum {
     DEADLINE_HARD
 } pok_deadline_t;
 
-typedef struct
+#include "timer.h"
+
+typedef struct _pok_thread
 {
     /*
      * The priority given at process creation.
+     * 
+     * Final after create_process().
      */
-    uint8_t             base_priority; 
+    uint8_t             base_priority;
     
     /*
      * Current priority (can be adjusted with SET_PRIORITY).
      *
-     * Initialized to base_priority when process is created, reset, etc.
+     * Initialized to base_priority when process is started.
      */
     uint8_t             priority;
 
     /*
-     * Process period.
-     *
-     * Positive when process is periodic, negative - if aperiodic.
-     * Is never zero.
+     * If process is periodic, this is (positive) process's period.
+     * If process aperiodic, this is POK_TIME_INFINITY.
+     * 
+     * Final after create_process().
      */
-    int64_t             period;
+    pok_time_t          period;
 
     /*
-     * The time when process became ready.
-     *
-     * Is used by the scheduler to elect the process
-     * that has been in the ready state for the longest time.
-     *
-     * Undefined when process is not ready 
-     * (may contain stale value, or simply be unitialized at all).
-     */
-    uint64_t            ready_state_since;
-
-    /*
-     * Deadline type (soft or hard). As per ARINC-653, it's only used only by
-     * error handling process, and the interpretation is up to programmer.
+     * Deadline type (soft or hard).
+     * 
+     * As per ARINC-653, it's only used only by error handling process,
+     * and the interpretation is up to programmer.
      */
     pok_deadline_t      deadline; 
     
     /*
-     * Time capacity, as given at the process creation.
+     * If process has time is limited, this is (positive) time capacity.
+     * Otherwise this is POK_TIME_INFINITY.
      *
-     * If it's less than zero, time capacity is infinite.
-     *
-     * For periodic process, this's time capacity per each activation.
+     * Final after create_process().
      */
-    int64_t             time_capacity; 
+    pok_time_t          time_capacity; 
 
     /*
-     * Deadline time (called DEADLINE_TIME in ARINC-653).
+     * Deadline event (called DEADLINE_TIME in ARINC-653).
      *
      * When this time hits, HM event is generated (error handling),
      * and process becomes... TODO what it becomes?
      *
-     * Undefined if process time capacity is infinite.
+     * Empty list if the process (currently) has no deadline.
      */
-    int64_t             end_time;
+    struct delayed_event thread_deadline_event;
     
+    /* 
+     * Any other event delayed for a time.
+     * 
+     * Empty list if the process currently has no delayed event.
+     */
+    struct delayed_event thread_delayed_event;
+
+    /* When process is started in INIT_* mode, it sets this field
+     * to the delay.
+     * 
+     * TODO: This field can be combined(union) with @thread_delayed_event.
+     */
+    pok_time_t delayed_time;
+
+    
+    /* 
+     * Function, processing delayed event in @thread_deadline_event.
+     * 
+     * Used only in conjunction with that field.
+     */
+    void (*thread_delayed_func)(struct _pok_thread* t);
+    
+    /**
+     * Element in the wait queue on some object.
+     * 
+     * Empty list if the process currently doesn't wait on object.
+     */
+    struct list_head       wait_elem;
+
+    /**
+     * If wait queue uses priority/FIFO order, this field stores
+     * priority at the moment when thread has been added to the queue.
+     * 
+     * Used only in conjunction with @wait_elem.
+     */
+    uint8_t wait_priority;
+
+    /**
+     * Used by wait queue for some objects as input/output parameter.
+     * 
+     * Used only in conjunction with @wait_elem.
+     * 
+     * NOTE: If waiting on some object has been canceled because of
+     * timeout, this field is set to `ERR_PTR(POK_ERRNO_TIMEOUT)`.
+     */
+    void* wait_private;
+
     /*
      * Next activation for periodic process (called "release point" in ARINC-653).
      *
@@ -175,7 +212,7 @@ typedef struct
     uint64_t            next_activation; 
 
     /*
-     * Process state (see core/sched.h).
+     * Process state.
      */
     pok_state_t         state;
 
@@ -192,40 +229,19 @@ typedef struct
     pok_bool_t          suspended;
 
     /*
-     * Suspension timeout (absolute time).
-     *
-     * Set to (uint64_t)-1 when it's supposed to be infinite.
-     * This obviously assumes that uint64_t ms clock won't overflow
-     * in foreseeable feature.
-     *
-     * Undefined if process is not suspended.
-     */
-    uint64_t             suspend_timeout;
-
-    /*
-     * Wakeup time, in case process is in POK_STATE_WAITING.
-     *
-     * If process is not in that state, the value is undefined.
-     */
-    uint64_t            wakeup_time; 
-
-    /*
      * Process entry point.
+     * 
+     * Final after create_process().
      */
     void	        *entry;
 
     /*
-     * Corresponding parition id.
-     */
-    pok_partition_id_t  partition;
-
-    /*
-     * Kernel stack addres.
+     * Kernel stack address.
      *
      * It's used to implement context switch.
      *
      * It's initially set in pok_partition_thread_create,
-     * and updated by pok_context_switch. 
+     * and updated by pok_context_switch.
      *
      */
     uint32_t	        sp; 
@@ -234,8 +250,10 @@ typedef struct
      * Initial value of kernel stack (when it was allocated).
      *
      * Used for restarting thread.
+     * 
+     * Final after thread's initialization.
      */
-    uintptr_t           initial_sp;
+    struct dStack       initial_sp;
 
     /*
      * ???
@@ -243,19 +261,23 @@ typedef struct
      * Apparently, it's initial virtual address of user stack. 
      *
      * It's supposed to be used when thread is restarted (I think).
+     * 
+     * Final after create_process().
      */
-    uint32_t            init_stack_addr; 
+    uint32_t            init_stack_addr;
 
-    /*
-     * XXX
-     *
-     * Hack used by error handler, when it's essentially restarted by itself.
-     *
-     * This forces pok_context_switch to switch to "saved" sp
-     * instead of returning via interrupt handler (beceause saved interrupt
-     * state is the state before thread restart, and no longer valid).
+    /**
+     *  Linkage in the `eligible_threads` in partition.
+     * 
+     * If the process is not eligible, then empty list.
      */
-    pok_bool_t          force_restart;
+    list_head       eligible_elem;
+    /* 
+     * Name of the process.
+     * 
+     * Empty ("") name means that process is not created.
+     */
+    char 		    name [MAX_NAME_LENGTH];
 } pok_thread_t;
 
 /*
@@ -263,62 +285,91 @@ typedef struct
  */
 typedef struct
 {
-	 uint8_t      priority;         /* Priority is from 0 to 255 */
-	 void*        entry;            /* entrypoint of the thread  */
-	 int64_t      period;
-	 pok_deadline_t deadline;
-	 int64_t     time_capacity;
-	 uint32_t     stack_size;
+    uint8_t         priority;         /* Priority is from 0 to 255 */
+    void*           entry;            /* entrypoint of the thread  */
+    pok_time_t      period;
+    pok_deadline_t  deadline;
+    pok_time_t      time_capacity;
+    uint32_t        stack_size;
+    char 		    process_name [MAX_NAME_LENGTH];
 } pok_thread_attr_t;
 
 typedef struct 
 {
-        pok_thread_attr_t   attributes;
-        uint64_t            deadline_time;
+    pok_thread_attr_t   attributes;
+    uint64_t            deadline_time;
 	pok_state_t         state;
-        pok_bool_t          suspended;
-        uint8_t             current_priority;
+    pok_bool_t          suspended;
+    uint8_t             current_priority;
 } pok_thread_status_t;
 
+/**
+ * Queue of threads, waited for specific event.
+ * 
+ * All methods for the queue should be called with local preemption
+ * disabled.
+ */
+typedef struct {
+    /* Ordered list of wait threads (linkage it wait_elem). */
+    struct list_head waits;
+} pok_thread_wq_t;
 
-void            pok_thread_init(void);
-pok_ret_t       pok_thread_create (pok_thread_id_t* thread_id, const pok_thread_attr_t* attr);
-pok_ret_t       pok_thread_sleep(int64_t ms);
-pok_ret_t       pok_thread_sleep_until(uint64_t ms);
-void            pok_thread_start(void (*entry)(), unsigned int id);
-pok_ret_t       pok_thread_suspend(int64_t ms);
-pok_ret_t       pok_thread_suspend_target(pok_thread_id_t id);
-pok_ret_t       pok_thread_stop(void);
-pok_ret_t       pok_thread_stop_target(pok_thread_id_t);
-pok_ret_t       pok_thread_delayed_start (pok_thread_id_t id, int64_t ms);
-pok_ret_t       pok_thread_get_status(pok_thread_id_t id, pok_thread_status_t *attr);
-pok_ret_t       pok_thread_set_priority(pok_thread_id_t id, const uint32_t priority);
-pok_ret_t       pok_thread_resume(pok_thread_id_t id);
-pok_ret_t       pok_thread_yield(void);
+/** Initialize wait queue with empty list of threads. */
+void pok_thread_wq_init(pok_thread_wq_t* wq);
 
-#ifdef POK_NEEDS_PARTITIONS
-pok_ret_t       pok_partition_thread_create(
-        pok_thread_id_t         *thread_id,
-        const pok_thread_attr_t *attr,
-	pok_partition_id_t      partition_id);
-#endif
+/**
+ * Add thread into the queue with FIFO order.
+ */
+void pok_thread_wq_add(pok_thread_wq_t* wq, pok_thread_t* t);
 
-extern pok_thread_t              pok_threads[];
+/**
+ * Add thread into the queue with priority/FIFO order.
+ */
+void pok_thread_wq_add_prio(pok_thread_wq_t* wq, pok_thread_t* t);
+/**
+ * Remove thread from wait queue, if it was.
+ */
+void pok_thread_wq_remove(pok_thread_t* t);
 
-#define POK_CURRENT_THREAD pok_threads[POK_SCHED_CURRENT_THREAD]
+/**
+ * Wake up threads in the queue, one by one.
+ * 
+ * Each thread will be removed from the queue, awoken,
+ * and @wake_func will be called for it.
+ * 
+ * If the callback returns FALSE, the rest threads will not
+ * processed, and function return FALSE.
+ * 
+ * If all threads has been processed, function returns TRUE.
+ * 
+ * If queue is empty, do nothing and return TRUE.
+ */
+pok_bool_t pok_thread_wq_wake_up(pok_thread_wq_t* wq,
+    pok_bool_t (*wake_func)(pok_thread_wq_t* wq, pok_thread_t* t));
+
+
+/**
+ * Return number of threads in the wait queue.
+ * 
+ * NOTE: complexity is linear.
+ */
+int pok_thread_wq_get_nwaits(pok_thread_wq_t* wq);
+
+
+/**
+ * Return TRUE if wait queue is empty.
+ * 
+ * Return FALSE is not empty.
+ * 
+ * NOTE: complexity is constant.
+ */
+pok_bool_t pok_thread_wq_is_empty(pok_thread_wq_t* wq);
 
 // macro-like utitility functions
-
-static inline 
-pok_thread_id_t pok_thread_get_id(const pok_thread_t *thread)
-{
-    return (pok_thread_id_t) (thread - &pok_threads[0]);
-}   
-
 static inline 
 pok_bool_t pok_thread_is_periodic(const pok_thread_t *thread)
 {
-    return thread->period > 0;
+    return thread->period != POK_TIME_INFINITY;
 }
 
 static inline 

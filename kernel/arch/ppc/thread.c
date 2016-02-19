@@ -27,29 +27,24 @@
 
 extern void pok_arch_thread_start(void);
 
-uint32_t		pok_context_create (uint32_t id,
-                                uint32_t stack_size,
+uint32_t		pok_context_init (uint32_t sp,
                                 uint32_t entry)
 {
-  context_t* sp;
-  char*      stack_addr;
+  uint32_t id = 0; // Was: thread_id
+  context_t* ctx = (context_t*)(sp - sizeof(context_t));
 
-  stack_addr = pok_bsp_mem_alloc (stack_size);
+  memset (ctx, 0, sizeof (context_t));
 
-  sp = (context_t *) (stack_addr + stack_size - sizeof (context_t));
-
-  memset (sp, 0, sizeof (context_t));
-
-  sp->r14     = entry;
-  sp->r15     = id;
-  sp->lr      = (uint32_t) pok_arch_thread_start;
-  sp->sp      = (uint32_t) &sp->back_chain;
+  ctx->r14     = entry;
+  ctx->r15     = id;
+  ctx->lr      = (uint32_t) pok_arch_thread_start;
+  ctx->sp      = (uint32_t) &ctx->back_chain;
 
 #ifdef POK_NEEDS_DEBUG
-  printf ("ctxt_create %lu: sp=%p entry=%lx\n", (unsigned long) id, sp, (unsigned long) entry);
+  printf ("ctxt_create %lu: sp=%p entry=%lx\n", (unsigned long) id, ctx, (unsigned long) entry);
 #endif
 
-  return (uint32_t)sp;
+  return (uint32_t)ctx;
 }
 
 void pok_context_reset(uint32_t stack_size,
