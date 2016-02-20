@@ -702,12 +702,13 @@ int   POK_CHECK_ADDR_IN_PARTITION(int pid,int address){
 
 
 
-int max_breakpoint = 100;
+#define max_breakpoints  20
+int max_breakpoint = max_breakpoints;
 int b_need_to_delete = -1;
 int b_need_to_set = -1;
 
 
-struct T_breakpoint breakpoints[100];
+struct T_breakpoint breakpoints[max_breakpoints];
 int Head_of_breakpoints;
 int last_breakpoint;
   
