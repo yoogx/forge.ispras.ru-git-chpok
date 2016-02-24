@@ -13,3 +13,4 @@ libpok.a
 .sconsign*
 *.log
 *.directory
+*.gdb_history
