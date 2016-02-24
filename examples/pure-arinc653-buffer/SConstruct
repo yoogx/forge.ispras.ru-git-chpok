@@ -52,8 +52,9 @@ env.Append(QEMU_FLAGS = ' -S -s')
 env.Command('run', [], env['QEMU']+env['QEMU_FLAGS'])
 env.Ignore('.', 'run')
 
-env.Command('debug', [], env['GDB']+' pok.elf -ex "target remote :1234" \
--x '+env['POK_PATH']+'/misc/gdb_gcov_script')
+env.Command('debug', [], env['GDB']+" pok.elf -ex 'target remote :1234' \
+-ex 'set $$BSP=\""+env['BSP']+"\"' \
+-x "+env['POK_PATH']+"/misc/gdb_gcov_script")
 env.Ignore('.', 'debug')
 
 env.Command('coverage', [],

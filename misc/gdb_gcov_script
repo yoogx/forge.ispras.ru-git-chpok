@@ -1,7 +1,35 @@
 define gcov_dump
-    set $cnt = 0
-    while $cnt < num_used_gcov_entries
-        eval "dump binary memory %s 0x%x 0x%x", entry[$cnt].filename, entry[$cnt].data_start, entry[$cnt].data_end
-        set $cnt++
+    set $i = 0
+    while $i < num_used_partitions
+        set $j = part[$i].idx_start
+        while $j < part[$i].idx_end
+            eval "dump binary memory %s 0x%x 0x%x", entry[$j].filename, entry[$j].data_start, entry[$j].data_end
+            set $j++
+        end
+        if $i > 0 && $i < num_used_partitions - 1
+            python
+import os
+import shutil
+
+bsp = str(gdb.parse_and_eval("$BSP"))
+build_dir = os.path.join(os.environ["POK_PATH"], "build", bsp.replace("\"", ""))
+
+if os.path.isdir(build_dir):
+    libpok_dir = os.path.join(build_dir, "libpok")
+
+    i = 1
+    part_dir = os.path.join(build_dir, "pr" + str(i))
+    while os.path.exists(part_dir):
+        i += 1
+        part_dir = os.path.join(build_dir, "pr" + str(i))
+
+    print("Creating directory " + part_dir)
+
+    shutil.copytree(libpok_dir, part_dir, ignore=shutil.ignore_patterns("*.o", "*.lo", "*.a"))
+else:
+    print("No directory %s", build_dir)
+            end
+        end
+        set $i++
     end
 end
