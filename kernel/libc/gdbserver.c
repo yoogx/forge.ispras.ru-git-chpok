@@ -693,11 +693,11 @@ struct regs  null_ea = {
 };
 
 
-int   POK_CHECK_ADDR_IN_PARTITION(int pid,int address){
+int   POK_CHECK_ADDR_IN_PARTITION(int pid,uintptr_t address){
     if (pid > 0)
-        return ((POK_CHECK_VPTR_IN_PARTITION(pid - 1,address)) || (((uintptr_t)(address)) >= 0x0 && ((uintptr_t)(address)) <  pok_partitions[0].base_addr));
+        return ((POK_CHECK_VPTR_IN_PARTITION(pid - 1,address)) || (address >= 0x0 && address <  pok_partitions[0].base_addr));
     else
-        return ((uintptr_t)(address)) >= 0x0 && ((uintptr_t)(address)) <  pok_partitions[0].base_addr;
+        return address >= 0x0 && address <  pok_partitions[0].base_addr;
 }
 
 
@@ -789,7 +789,9 @@ void add_0_breakpoint(uintptr_t addr, int length, int *using_thread){
             }
             if (hex2mem(trap, (char *)addr,  length)) {
                 strcpy(remcomOutBuffer, "OK");
+#ifdef DEBUG_GDB
                 printf("hex2mem: addr = 0x%x; instr = 0x%lx", addr, *(uint32_t *)addr);
+#endif
             } else {
                 strcpy(remcomOutBuffer, "E22");
                 switch_part_id(new_pid, old_pid);    
@@ -835,14 +837,16 @@ void add_0_breakpoint(uintptr_t addr, int length, int *using_thread){
 
     if (hex2mem(trap, (char *)addr, length)) {
         strcpy(remcomOutBuffer, "OK");
+#ifdef DEBUG_GDB
         printf("hex2mem: addr = 0x%x; instr = 0x%lx", addr, *(uint32_t *)addr);
+#endif
     } else {
         strcpy(remcomOutBuffer, "E22");
         switch_part_id(new_pid, old_pid);    
         return;
     }
-    if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
-        switch_part_id(new_pid, old_pid);
+    printf("Switch to old PID\n");
+    switch_part_id(new_pid, old_pid);
 }
 
 void remove_0_breakpoint(uintptr_t addr, int length, int *using_thread){
@@ -882,7 +886,9 @@ void remove_0_breakpoint(uintptr_t addr, int length, int *using_thread){
         }
         if (hex2mem(breakpoints[i].Instr, (char *)addr, length)) {
             strcpy(remcomOutBuffer, "OK");
+#ifdef DEBUG_GDB
             printf("hex2mem: addr = 0x%x; instr = 0x%lx", addr, *(uint32_t *)addr);
+#endif
         } else {
 #ifdef DEBUG_GDB
             printf("                Error in add breakpoint\n");
@@ -907,24 +913,29 @@ void remove_0_breakpoint(uintptr_t addr, int length, int *using_thread){
         if (breakpoints[i].addr == addr)
             break;
     }
+    if (i == max_breakpoint){
+        strcpy (remcomOutBuffer, "E22");
+        switch_part_id(new_pid, old_pid);    
+        return;        
+    }
     b_need_to_delete = -1;
-    if (i == (Head_of_breakpoints - 1)) 
-        Head_of_breakpoints--;
     breakpoints[i].T_num = 0;
     breakpoints[i].P_num = 0;
     breakpoints[i].B_num = 0;
     breakpoints[i].Reason = 0;
-    breakpoints[Head_of_breakpoints].addr = 0;
+    breakpoints[i].addr = 0;
+
     if (hex2mem(breakpoints[i].Instr, (char *)addr, length)) {
         strcpy(remcomOutBuffer, "OK");
+#ifdef DEBUG_GDB
         printf("hex2mem: addr = 0x%x; instr = 0x%lx", addr, *(uint32_t *)addr);
+#endif
     } else {
         strcpy (remcomOutBuffer, "E22");
         switch_part_id(new_pid, old_pid);    
         return;
     }
-    if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
-        switch_part_id(new_pid, old_pid);    
+    switch_part_id(new_pid, old_pid);
 }
     
 
@@ -1529,7 +1540,6 @@ handle_exception (int exceptionVector, struct regs * ea)
                     && *ptr++ == ','
                     && hexToInt(&ptr, (uintptr_t *)(&length))) {
                     if (!POK_CHECK_ADDR_IN_PARTITION(new_pid,addr)){
-                        
                         strcpy (remcomOutBuffer, "E03");
                         break;
                     }else{ 
