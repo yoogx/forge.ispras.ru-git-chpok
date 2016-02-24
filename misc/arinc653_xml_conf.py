@@ -1,10 +1,7 @@
 #!/usr/bin/env python2
 
-#import os
-#import itertools
 import ipaddr
 import chpok_configuration
-#import xml.etree.ElementTree as ET
 
 def parse_bool(s):
     # this follows xsd:boolean
@@ -46,7 +43,7 @@ def parse_time(s):
 
 class ArincConfigParser:
 
-    def parse(self, root):
+    def parse(self, part_root, root):
         """
         Returns chpok_configuration.Configuration object.
         """
@@ -55,7 +52,7 @@ class ArincConfigParser:
 
         partname_to_index = {}
 
-        for i, part in enumerate(root.find("Partitions").findall("Partition")):
+        for i, part in enumerate(part_root.find("Partitions").findall("Partition")):
             conf.partitions.append(self.parse_partition(part))
 
             partname_to_index[part.find("Definition").attrib["Name"]] = i

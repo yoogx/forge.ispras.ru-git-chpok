@@ -2,7 +2,6 @@
 
 import sys
 import os
-import itertools
 
 sys.path.insert(1, os.path.join(os.environ["POK_PATH"], "misc"))
 import arinc653_xml_conf
@@ -25,10 +24,11 @@ Help(vars.GenerateHelpText(env))
 env['POK_PATH'] = os.path.join(os.environ['POK_PATH'], '')
 env['SCONSTRUCT_DIR'] = Dir('.').abspath
 
+part_root = ET.parse('part_config.xml')
 root = ET.parse(env['xml'])
 
 parser = arinc653_xml_conf.ArincConfigParser()
-conf = parser.parse(root)
+conf = parser.parse(part_root, root)
 
 env['PARTITION_DIRS'] = list(part.name for part in conf.partitions)
 env['PARTITIONS'] = list(os.path.join(part_dir, 'part.elf') for part_dir in env['PARTITION_DIRS'])
