@@ -1,0 +1,28 @@
+# -*- Mode: Python -*-
+
+Import('env')
+
+part_env = env.Clone()
+part_env['CPPPATH'] = part_env['POK_PATH']+'/libpok/include'
+part_env.Append(CFLAGS = ' -include '+part_env['POK_PATH']+'/libpok/include/config.h')
+
+build_path_libpok = part_env['POK_PATH']+'/build/'+part_env['BSP']+'/libpok'
+
+ldscript = part_env['POK_PATH']+'/boards/'+part_env['BSP']+'/ldscripts/partition.lds'
+part_env['LINKFLAGS'] = str(' -T '+ldscript+' -Map P1/part.elf.map')
+
+objs = part_env.StaticObject(source = Glob('*.c'))
+
+source_objs = ''
+for obj in objs:
+    source_objs += 'P1/' + str(obj) + ' '
+
+part_command = part_env.Command(target = 'part.elf',
+source = [],
+action = part_env['LINK']+part_env['LINKFLAGS']+' '+
+source_objs +
+' -o P1/part.elf -L'+build_path_libpok+' -lpok '+
+part_env['LIBGCC'])
+part_env.Depends(part_command, [objs, build_path_libpok+'/libpok.a', ldscript])
+
+# EOF

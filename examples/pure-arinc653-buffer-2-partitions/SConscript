@@ -55,7 +55,6 @@ pok_env['LIBGCC']])
 pok_env.Depends(pok_target, [compile_sizes, ldscript])
 
 SConscript('kernel/SConscript')
-SConscript('pr1/SConscript')
-SConscript('pr2/SConscript')
+SConscript([part+'/SConscript' for part in pok_env['PARTITION_DIRS']])
 
 # EOF

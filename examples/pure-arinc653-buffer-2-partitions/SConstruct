@@ -23,19 +23,19 @@ env = Environment(variables = vars, ENV = os.environ)
 Help(vars.GenerateHelpText(env))
 
 env['POK_PATH'] = os.path.join(os.environ['POK_PATH'], '')
-env['PARTITIONS'] = ['pr1/pr1.elf', 'pr2/pr2.elf']
 env['SCONSTRUCT_DIR'] = Dir('.').abspath
 
-# this prevents config parsing when we don't need to build
+root = ET.parse(env['xml'])
+
+parser = arinc653_xml_conf.ArincConfigParser()
+conf = parser.parse(root)
+
+env['PARTITION_DIRS'] = list(part.name for part in conf.partitions)
+env['PARTITIONS'] = list(os.path.join(part_dir, 'part.elf') for part_dir in env['PARTITION_DIRS'])
+
+# this prevents config writing when we don't need to build
 if not COMMAND_LINE_TARGETS and not env.GetOption('clean') and not env.GetOption('help'):
-    root = ET.parse(env['xml'])
-    
-    parser = arinc653_xml_conf.ArincConfigParser()
-    conf = parser.parse(root)
-    
-    partition_dirs = ("pr%d" % i for i in itertools.count(1))
-    partition_dirs = list(itertools.islice(partition_dirs, 255)) # XXX limited to 255 partitions right now
-    chpok_configuration.write_configuration(conf, 'kernel', partition_dirs)
+    chpok_configuration.write_configuration(conf, 'kernel', env['PARTITION_DIRS'])
 
 Export('env')
 
@@ -60,14 +60,14 @@ env.Clean('local', [
 'kernel/deployment.c',
 'kernel/deployment.o',
 'kernel/kernel.lo',
-'pr1/main.o',
-'pr1/deployment.c',
-'pr1/deployment.o',
-'pr1/pr1.elf',
-'pr2/main.o',
-'pr2/deployment.c',
-'pr2/deployment.o',
-'pr2/pr2.elf',
+'P1/main.o',
+'P1/deployment.c',
+'P1/deployment.o',
+'P1/part.elf',
+'P2/main.o',
+'P2/deployment.c',
+'P2/deployment.o',
+'P2/part.elf',
 'partitions.bin',
 'sizes.c',
 'sizes.o',
