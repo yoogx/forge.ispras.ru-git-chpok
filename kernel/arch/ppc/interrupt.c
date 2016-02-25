@@ -75,7 +75,7 @@ void write_on_screen();
 void pok_int_program(struct regs * ea) {
 
 ////printf("ea = 0x%lx\n", ea);
-
+    need_to_set_DE = FALSE;
 //// pok_trap_addr = address of pok_trap in entry.S
     printf("srr0 = 0x%lx\n", ea->srr0);
     printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
@@ -148,8 +148,12 @@ void pok_int_program(struct regs * ea) {
     printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
     //~ asm volatile("isync");
     printf("instr = 0x%lx\n", *(uint32_t *)(ea->srr0));
-   
-
+    if (need_to_set_DE){
+        printf("Set MSR\n");
+        ea->srr1 |= 0x200;
+        //~ mtmsr(mfmsr() | 0x200);
+    }
+    
 //~ asm volatile("acbi");  
     
 ////    pok_fatal("Program interrupt");

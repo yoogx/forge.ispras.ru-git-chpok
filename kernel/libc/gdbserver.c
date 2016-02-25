@@ -750,16 +750,17 @@ void add_watchpoint(uintptr_t addr, int length, int *using_thread, int type){
     mtspr(SPRN_DAC1, addr);
     mtspr(SPRN_DAC2, addr + length);
     uint32_t DBCR2 = mfspr(SPRN_DBCR2);
-    DBCR2 |= 0x200;
+    DBCR2 |= 0x800000;
     mtspr(SPRN_DBCR2, DBCR2);
     int DAC1;
-    if (type == 2) DAC1 = 0x5002;
-    if (type == 3) DAC1 = 0xA002;
-    if (type == 4) DAC1 = 0xF002;
+    if (type == 2) DAC1 = 0x40050000UL;
+    if (type == 3) DAC1 = 0x400A0000UL;
+    if (type == 4) DAC1 = 0x400F0000UL;
     uint32_t DBCR0 = mfspr(SPRN_DBCR0);
     DBCR0 |= DAC1;
     mtspr(SPRN_DBCR0, DBCR0);
     //~ ea->srr1 |= 0x400000;
+    need_to_set_DE = TRUE;
     watchpoint_is_set = TRUE;
     strcpy(remcomOutBuffer, "OK");
 #endif
@@ -778,11 +779,12 @@ void remove_watchpoint(uintptr_t addr, int length, int *using_thread, int type){
         strcpy (remcomOutBuffer, "E22");
         return;
     }
-    watchpoint_is_set = FALSE;
     uint32_t DBCR0 = mfspr(SPRN_DBCR0);
     DBCR0 &= (~0xF000);
     mtspr(SPRN_DBCR0, DBCR0);
     strcpy(remcomOutBuffer, "OK");
+    need_to_set_DE = FALSE;
+    watchpoint_is_set = FALSE;
     //~ ea->srr1 &= (~0x400000);
     
 #endif    

@@ -156,7 +156,7 @@ struct T_breakpoint{
 #endif
 };
 
-
+pok_bool_t need_to_set_DE;
 
 void handle_exception (int exceptionVector, struct regs * ea);
 
