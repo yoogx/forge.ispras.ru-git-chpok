@@ -1,0 +1,17 @@
+# -*- Mode: Python -*-
+
+Import('syspart_env')
+
+p3041_env = syspart_env.Clone()
+
+p3041_env.Append(CPPPATH = syspart_env['POK_PATH']+'/syspart/drivers/p3041/include')
+
+#syspart_env.Program(target = 'p3041.lo', source = Glob('fm/*.c'))
+p3041_env.Program(target = 'p3041.lo', source = ['init.c'])
+
+#Export('syspart_env')
+#
+#SConscript('net/SConscript')
+#SConscript('drivers/SConscript')
+
+# EOF

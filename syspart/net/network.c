@@ -29,12 +29,18 @@ static pok_bool_t initialized = FALSE;
 
 #include <drivers/virtio/virtio_network.h>
 #include <drivers/ne2000/ne2000.h>
-#if 1
+#include <drivers/p3041/p3041.h>
+#if 0
 #define NETWORK_DRIVER pok_network_virtio_device
 #define NETWORK_DRIVER_OPS (pok_network_virtio_device.ops)
-#else
+#elif 0
 #define NETWORK_DRIVER pok_network_ne2000_device
 #define NETWORK_DRIVER_OPS (pok_network_ne2000_device.ops)
+#undef POK_NETWORK_OVERHEAD_DRIVER
+#define POK_NETWORK_OVERHEAD_DRIVER 0
+#elif 1
+#define NETWORK_DRIVER pok_network_p3041_device
+#define NETWORK_DRIVER_OPS (pok_network_p3041_device.ops)
 #undef POK_NETWORK_OVERHEAD_DRIVER
 #define POK_NETWORK_OVERHEAD_DRIVER 0
 #endif
@@ -127,9 +133,14 @@ static void packet_received_callback(const char *data, size_t len)
     }
 }
 
+void p3041_init(void);
+pok_bool_t p3041_send_frame( char *buffer, size_t size, pok_network_buffer_callback_t callback, void *callback_arg);
+
 void pok_network_init(void)
 {
-    pci_init();
+    //pci_init();
+
+    p3041_init();
 
     NETWORK_DRIVER_OPS->set_packet_received_callback(packet_received_callback);
     initialized = TRUE;

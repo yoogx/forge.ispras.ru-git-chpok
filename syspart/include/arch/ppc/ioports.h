@@ -20,6 +20,14 @@
 #include <stdint.h>
 #include "linux_io.h"
 
+#define mb()  sync()
+#define isb() isync()
+
+static inline void sync(void)
+{
+    __asm__ __volatile__ ("sync" : : : "memory");
+}
+
 static inline void outb(unsigned int port, uint8_t value)
 {
     out_8((uint8_t *) port, value);
