@@ -25,6 +25,7 @@ define Thread_watch
         set $V = $PID
         eval "thread %d",$arg1
         eval "Switch_to %d",$V
+        set $addr = (uintptr_t) &($arg0)
         set last_breakpoint = last_breakpoint + 1
         set Head_of_breakpoints = Head_of_breakpoints + 1
         watch $arg0
