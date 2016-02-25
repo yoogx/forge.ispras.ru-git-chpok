@@ -21,19 +21,23 @@ define Thread_watch
         printf "Error, there is no such thread\n"
         loop_break
     else
-        eval "Thread_pid %d",$arg1
-        set $V = $PID
-        eval "thread %d",$arg1
-        eval "Switch_to %d",$V
-        set $addr = (uintptr_t) &($arg0)
-        set last_breakpoint = last_breakpoint + 1
-        set Head_of_breakpoints = Head_of_breakpoints + 1
-        watch $arg0
-        set $V = current_thread + 1
-        eval "Thread_pid %d",$V
-        set $V = $PID
-        eval "Switch_to %d",$V
-        eval "thread %d",current_thread + 1
+        if (watchpoint_is_set == 0)
+            eval "Thread_pid %d",$arg1
+            set $V = $PID
+            eval "thread %d",$arg1
+            eval "Switch_to %d",$V
+            set $addr = (uintptr_t) &($arg0)
+            set last_breakpoint = last_breakpoint + 1
+            set Head_of_breakpoints = Head_of_breakpoints + 1
+            watch $arg0
+            set $V = current_thread + 1
+            eval "Thread_pid %d",$V
+            set $V = $PID
+            eval "Switch_to %d",$V
+            eval "thread %d",current_thread + 1
+        else
+            printf "ERROR, Too many hardware watchpoints!\n"
+            end
         end
     end
 
