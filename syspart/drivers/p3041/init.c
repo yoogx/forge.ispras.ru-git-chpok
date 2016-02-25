@@ -1,10 +1,21 @@
+/*
+ * This file is based on u-boot driver. In new versions of u-boot they have added support 
+ * of different endianess and 64-bit platforms. This file older version of u-boot. Be aware.
+ *
+ * Also this code expected to be running after u-boot correctly initialize all devices
+ *
+ *
+ * Copyright 2009-2012 Freescale Semiconductor, Inc.
+ *	Dave Liu <daveliu@freescale.com>
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
 
 #include <stdio.h>
 #include <ioports.h>
 #include <string.h>
 #include <net/network.h>
 #include <memory.h>
-
 
 /* Rx/Tx queue descriptor */
 struct fm_port_qd {
@@ -492,43 +503,11 @@ struct fm_port_bd {
 
 #define FM_MURAM_RES_SIZE 0x01000
 
-static uint16_t muram_readw(uint16_t *addr)
+struct fm_muram muram;
+
+uint32_t fm_muram_base()
 {
-    uint32_t base = (uint32_t)addr & ~0x3;
-    uint32_t val32 = *(uint32_t *)base;
-    int byte_pos;
-    uint16_t ret;
-
-    byte_pos = (uint32_t)addr & 0x3;
-    if (byte_pos)
-        ret = (uint16_t)(val32 & 0x0000ffff);
-    else
-        ret = (uint16_t)((val32 & 0xffff0000) >> 16);
-
-    return ret;
-}
-
-static void muram_writew(uint16_t *addr, uint16_t val)
-{
-    uint32_t base = (uint32_t)addr & ~0x3;
-    uint32_t org32 = *(uint32_t *)base;
-    uint32_t val32;
-    int byte_pos;
-
-    byte_pos = (uint32_t)addr & 0x3;
-    if (byte_pos)
-        val32 = (org32 & 0xffff0000) | val;
-    else
-        val32 = (org32 & 0x0000ffff) | ((uint32_t)val << 16);
-
-    *(uint32_t *)base = val32;
-}
-
-struct fm_muram muram[1];
-
-uint32_t fm_muram_base(int fm_idx)
-{
-    return muram[fm_idx].base;
+    return muram.base;
 }
 
 uint32_t fm_muram_alloc(int fm_idx, uint32_t size, uint32_t align)
@@ -538,21 +517,21 @@ uint32_t fm_muram_alloc(int fm_idx, uint32_t size, uint32_t align)
     uint32_t save;
 
     align_mask = align - 1;
-    save = muram[fm_idx].alloc;
+    save = muram.alloc;
 
     off = save & align_mask;
     if (off != 0)
-        muram[fm_idx].alloc += (align - off);
+        muram.alloc += (align - off);
     off = size & align_mask;
     if (off != 0)
         size += (align - off);
-    if ((muram[fm_idx].alloc + size) >= muram[fm_idx].top) {
-        muram[fm_idx].alloc = save;
+    if ((muram.alloc + size) >= muram.top) {
+        muram.alloc = save;
         printf("%s: run out of ram.\n", __func__);
     }
 
-    ret = muram[fm_idx].alloc;
-    muram[fm_idx].alloc += size;
+    ret = muram.alloc;
+    muram.alloc += size;
     memset((void *)ret, 0, size);
 
     return ret;
@@ -563,10 +542,10 @@ static void fm_init_muram(int fm_idx, void *reg)
     uint32_t base = (uint32_t)reg;
     printf("MURAM base = %p\n", reg);
 
-    muram[fm_idx].base = base;
-    muram[fm_idx].size = CONFIG_SYS_FM_MURAM_SIZE;
-    muram[fm_idx].alloc = base + FM_MURAM_RES_SIZE;
-    muram[fm_idx].top = base + CONFIG_SYS_FM_MURAM_SIZE;
+    muram.base = base;
+    muram.size = CONFIG_SYS_FM_MURAM_SIZE;
+    muram.alloc = base + FM_MURAM_RES_SIZE;
+    muram.top = base + CONFIG_SYS_FM_MURAM_SIZE;
 }
 
 
@@ -608,11 +587,11 @@ static int fm_eth_send(struct fm_eth *fm_eth, void *buf, int len)
     sync();
 
     /* update TxQD, let RISC to send the packet */
-    offset_in = muram_readw(&pram->txqd.offset_in);
+    offset_in = in_be16(&pram->txqd.offset_in);
     offset_in += sizeof(struct fm_port_bd);
-    if (offset_in >= muram_readw(&pram->txqd.bd_ring_size))
+    if (offset_in >= in_be16(&pram->txqd.bd_ring_size))
         offset_in = 0;
-    muram_writew(&pram->txqd.offset_in, offset_in);
+    out_be16(&pram->txqd.offset_in, offset_in);
     sync();
 
     /* wait for buffer to be transmitted */
@@ -688,11 +667,11 @@ static int fm_eth_recv(struct fm_eth *fm_eth)
         status = rxbd->status;
 
         /* update RxQD */
-        offset_out = muram_readw(&pram->rxqd.offset_out);
+        offset_out = in_be16(&pram->rxqd.offset_out);
         offset_out += sizeof(struct fm_port_bd);
-        if (offset_out >= muram_readw(&pram->rxqd.bd_ring_size))
+        if (offset_out >= in_be16(&pram->rxqd.bd_ring_size))
             offset_out = 0;
-        muram_writew(&pram->rxqd.offset_out, offset_out);
+        out_be16(&pram->rxqd.offset_out, offset_out);
         sync();
     }
     fm_eth->cur_rxbd = (void *)rxbd;
@@ -746,9 +725,9 @@ static int fm_eth_tx_port_parameter_init(struct fm_eth *fm_eth)
     /* init Tx BDs ring */
     txbd = (struct fm_port_bd *)tx_bd_ring_base;
     for (i = 0; i < TX_BD_RING_SIZE; i++) {
-        muram_writew(&txbd->status, TxBD_LAST);
-        muram_writew(&txbd->len, 0);
-        muram_writew(&txbd->buf_ptr_hi, 0);
+        out_be16(&txbd->status, TxBD_LAST);
+        out_be16(&txbd->len, 0);
+        out_be16(&txbd->buf_ptr_hi, 0);
         out_be32(&txbd->buf_ptr_lo, 0);
         txbd++;
     }
@@ -756,12 +735,12 @@ static int fm_eth_tx_port_parameter_init(struct fm_eth *fm_eth)
 
     /* set the Tx queue decriptor */
     txqd = &pram->txqd;
-    muram_writew(&txqd->bd_ring_base_hi, 0);
+    out_be16(&txqd->bd_ring_base_hi, 0);
     txqd->bd_ring_base_lo = pok_virt_to_phys(tx_bd_ring_base);
-    muram_writew(&txqd->bd_ring_size, sizeof(struct fm_port_bd)
+    out_be16(&txqd->bd_ring_size, sizeof(struct fm_port_bd)
             * TX_BD_RING_SIZE);
-    muram_writew(&txqd->offset_in, 0);
-    muram_writew(&txqd->offset_out, 0);
+    out_be16(&txqd->offset_in, 0);
+    out_be16(&txqd->offset_out, 0);
 
     /* set IM parameter ram pointer to Tx Confirmation Frame Queue ID */
     out_be32(&bmi_tx_port->fmbm_tcfqid, pram_page_offset);
@@ -795,7 +774,7 @@ static int fm_eth_rx_port_parameter_init(struct fm_eth *fm_eth)
     pram->rxqd_ptr = pram_page_offset + 0x20;
 
     /* set the max receive buffer length, power of 2 */
-    muram_writew(&pram->mrblr, MAX_RXBUF_LOG2);
+    out_be16(&pram->mrblr, MAX_RXBUF_LOG2);
 
     /* alloc Rx buffer descriptors from main memory */
     rx_bd_ring_base = rx_ring_pseudo_malloc;
@@ -829,28 +808,18 @@ static int fm_eth_rx_port_parameter_init(struct fm_eth *fm_eth)
 
     /* set the Rx queue descriptor */
     rxqd = &pram->rxqd;
-    muram_writew(&rxqd->gen, 0);
-    muram_writew(&rxqd->bd_ring_base_hi, 0);
+    out_be16(&rxqd->gen, 0);
+    out_be16(&rxqd->bd_ring_base_hi, 0);
     rxqd->bd_ring_base_lo = pok_virt_to_phys(rx_bd_ring_base);
-    muram_writew(&rxqd->bd_ring_size, sizeof(struct fm_port_bd)
+    out_be16(&rxqd->bd_ring_size, sizeof(struct fm_port_bd)
             * RX_BD_RING_SIZE);
-    muram_writew(&rxqd->offset_in, 0);
-    muram_writew(&rxqd->offset_out, 0);
+    out_be16(&rxqd->offset_in, 0);
+    out_be16(&rxqd->offset_out, 0);
 
     /* set IM parameter ram pointer to Rx Frame Queue ID */
     out_be32(&bmi_rx_port->fmbm_rfqid, pram_page_offset);
 
     return 1;
-}
-
-static void fmc_tx_port_graceful_stop_enable(struct fm_eth *fm_eth)
-{
-    struct fm_port_global_pram *pram;
-
-    pram = fm_eth->tx_pram;
-    /* graceful stop transmission of frames */
-    setbits_be32(&pram->mode, PRAM_MODE_GRACEFUL_STOP);
-    sync();
 }
 
 static void fmc_tx_port_graceful_stop_disable(struct fm_eth *fm_eth)
@@ -944,8 +913,9 @@ void p3041_init(void)
     //fm_init_qmi(&reg->fm_qmi_common);
     //fm_init_bmi(0, &reg->fm_bmi_common);
 
-    struct fm_port_global_pram *dtsec3_rx_pram = (void *) muram[0].base + 0x21000;
-    struct fm_port_global_pram *dtsec3_tx_pram = (void *) muram[0].base + 0x21100;
+    struct fm_port_global_pram *dtsec3_rx_pram = (void *) muram.base + 0x21000;
+    struct fm_port_global_pram *dtsec3_tx_pram = (void *) muram.base + 0x21100;
+
     printf("UBOOT rx offset_in:  [%p]= 0x%x\n",
             &dtsec3_rx_pram->rxqd.offset_in,
             dtsec3_rx_pram->rxqd.offset_in
@@ -967,7 +937,7 @@ void p3041_init(void)
 
 
     //fm_muram_alloc(0, 0x20100, 256);
-    muram[0].alloc = muram[0].base + 0x21000;
+    muram.alloc = muram.base + 0x21000;
     fm_eth_rx_port_parameter_init(current);
     fm_eth_tx_port_parameter_init(current);
 
