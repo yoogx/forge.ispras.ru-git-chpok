@@ -15,6 +15,48 @@ define Thread_pid
     set $PID = $V
     end
 
+define Thread_watch
+    dont-repeat
+    if ($arg1 > pok_config_nb_threads) || ($arg1 < 1)
+        printf "Error, there is no such thread\n"
+        loop_break
+    else
+        eval "Thread_pid %d",$arg1
+        set $V = $PID
+        eval "thread %d",$arg1
+        eval "Switch_to %d",$V
+        set last_breakpoint = last_breakpoint + 1
+        set Head_of_breakpoints = Head_of_breakpoints + 1
+        watch $arg0
+        set $V = current_thread + 1
+        eval "Thread_pid %d",$V
+        set $V = $PID
+        eval "Switch_to %d",$V
+        eval "thread %d",current_thread + 1
+        end
+    end
+
+document Thread_watch
+Set watchpoint on chosen thread
+Syntax: thread_watch ADDR THREAD_NUMBER
+    end
+
+define Thread_delete_w
+    dont-repeat
+    if (breakpoints[$arg0].B_num != 0)
+        printf "Error, there is no such watchpoint\n"
+        loop_break
+    else
+        delete $arg0
+        end
+    end
+
+document Thread_delete_w
+Delete watchpoint
+Syntax: thread_delete_w BREAKPOINT_NUMBER
+    end
+
+
 define Remove_symbol_file
     if $arg0 > 1
         eval "remove-symbol-file -a 0x%x", pok_partitions[$arg0 - 2].base_vaddr
@@ -27,12 +69,12 @@ define Easy_break
     break $arg0 thread $arg1
     if ($old_Head == Head_of_breakpoints)
         printf "fix it plz for wrong breakpoint's addr\n"
+        set breakpoints[Head_of_breakpoints].addr = (uintptr_t) &($arg0)
+        set $Addr = (uintptr_t) breakpoints[Head_of_breakpoints].addr
         set last_breakpoint = last_breakpoint + 1
         set breakpoints[Head_of_breakpoints].T_num = $arg1
         set breakpoints[Head_of_breakpoints].P_num = $PID
         set breakpoints[Head_of_breakpoints].B_num = last_breakpoint
-        set breakpoints[Head_of_breakpoints].addr = (uintptr_t) &($arg0)
-        set $Addr = (uintptr_t) breakpoints[Head_of_breakpoints].addr
         set $Thread_break_i = 0
         while ((breakpoints[$Thread_break_i].C_addr != $Addr) || (breakpoints[$Thread_break_i].P_num != $PID)) && ($Thread_break_i < max_breakpoint)
             set $Thread_break_i = $Thread_break_i + 1
@@ -85,7 +127,7 @@ define Switch_to
 
 document Switch_to
 Switch to the partition (load symbol-file if it needs)
-Syntax: Switch_to PID 
+Syntax: switch_to PID 
     end
 
 define hook-continue
@@ -120,7 +162,7 @@ define Thread_break
 
 document Thread_break
 Set breakpoint on chosen thread
-Syntax: Thread_break ADDR THREAD_NUMBER
+Syntax: thread_break ADDR THREAD_NUMBER
     end
 
 define Thread_delete
@@ -139,7 +181,7 @@ define Thread_delete
 
 document Thread_delete
 Delete breakpoint
-Syntax: Thread_delete BREAKPOINT_NUMBER
+Syntax: thread_delete BREAKPOINT_NUMBER
     end
 
 define Clear_breakpoints
@@ -150,7 +192,7 @@ define Clear_breakpoints
     
 document Clear_breakpoints
 Clear breakpoints array and set head_of_breakpoint to zero
-Syntax: Clear_breakpoints
+Syntax: clear_breakpoints
 end
 
 
@@ -251,7 +293,7 @@ define P_break
 document P_break
 Set breakpoints on all partition's threads
 Delete all breakpoints after next break
-Syntax: P_break PID
+Syntax: p_break PID
     end
     
 define P_delete
@@ -288,7 +330,7 @@ define P_delete
     
 document P_delete
 Delete breakpoints were set by P_break. Use it only after break,before adding any breakpoints
-Syntax: P_delete PID 
+Syntax: p_delete PID 
     end    
     
 define P_info
@@ -321,7 +363,7 @@ define P_info
     
 document P_info
 Print information about all or chosen threads in system. Similar to "info thread", but it loads symbol files.
-Syntax: P_info THREAD_NUMBER
+Syntax: p_info THREAD_NUMBER
     end    
 
 define P_mem
@@ -353,7 +395,7 @@ define P_mem
 
 document P_mem
 All simple operations. (read/write in memory, info registers, etc.)
-Syntax: P_mem THREAD_NUM OPERATIONS ARG1 ARG2 ...
+Syntax: p_mem THREAD_NUM OPERATIONS ARG1 ARG2 ...
     end
     
 

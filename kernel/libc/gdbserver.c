@@ -723,35 +723,68 @@ pok_partition_id_t give_part_num_of_thread(int thread_num){
 pok_bool_t watchpoint_is_set = FALSE;
 /*
  *  Added watchpoint.
- *  Kind:   2 -  Write watchpoint
- *          3 -   Read watchpoint
- *          4 - Access watchpoint
+ *  Types:   2 -  Write watchpoint
+ *           3 -   Read watchpoint
+ *           4 - Access watchpoint
  */
-void add_watchpoint(uintptr_t addr, int length, int *using_thread, int kind){
+
+#define SPRN_DBCR0      0x134   /* Debug Control Register 0 */
+#define SPRN_DBCR2       0x136   /* Debug Control Register 2 */
+#define SPRN_DAC1       0x13C   /* Data Address Compare 1 */
+#define SPRN_DAC2       0x13D   /* Data Address Compare 2 */
+
+
+void add_watchpoint(uintptr_t addr, int length, int *using_thread, int type){
 #ifdef QEMU
     /*do nothing*/
     strcpy (remcomOutBuffer, "E22");
     return;
+ 
+    strcpy(remcomOutBuffer, "OK");
 #else
-    if (!watchpoint_is_set){
-        
-    } else {
-        /*do nothing*/
+    /*If 1 watchpoint was already set*/
+    if ((watchpoint_is_set) || (type > 4) || (type < 2)){
         strcpy (remcomOutBuffer, "E22");
         return;
     }
+    mtspr(SPRN_DAC1, addr);
+    mtspr(SPRN_DAC2, addr + length);
+    uint32_t DBCR2 = mfspr(SPRN_DBCR2);
+    DBCR2 |= 0x200;
+    mtspr(SPRN_DBCR2, DBCR2);
+    int DAC1;
+    if (type == 2) DAC1 = 0x5002;
+    if (type == 3) DAC1 = 0xA002;
+    if (type == 4) DAC1 = 0xF002;
+    uint32_t DBCR0 = mfspr(SPRN_DBCR0);
+    DBCR0 |= DAC1;
+    mtspr(SPRN_DBCR0, DBCR0);
+    //~ ea->srr1 |= 0x400000;
+    watchpoint_is_set = TRUE;
+    strcpy(remcomOutBuffer, "OK");
 #endif
 }
 
-void remove_watchpoint(uintptr_t addr, int length, int *using_thread, int kind){
+void remove_watchpoint(uintptr_t addr, int length, int *using_thread, int type){
 #ifdef QEMU
     /*do nothing*/
     strcpy (remcomOutBuffer, "E22");
     return;
+    
+    strcpy(remcomOutBuffer, "OK");
 #else
     /*do nothing*/
-    strcpy (remcomOutBuffer, "E22");
-    return;    
+    if ((!watchpoint_is_set) || (type > 4) || (type < 2) || (mfspr(SPRN_DAC1) != addr)){
+        strcpy (remcomOutBuffer, "E22");
+        return;
+    }
+    watchpoint_is_set = FALSE;
+    uint32_t DBCR0 = mfspr(SPRN_DBCR0);
+    DBCR0 &= (~0xF000);
+    mtspr(SPRN_DBCR0, DBCR0);
+    strcpy(remcomOutBuffer, "OK");
+    //~ ea->srr1 &= (~0x400000);
+    
 #endif    
     
 }
@@ -845,7 +878,6 @@ void add_0_breakpoint(uintptr_t addr, int length, int *using_thread){
         switch_part_id(new_pid, old_pid);    
         return;
     }
-    printf("Switch to old PID\n");
     switch_part_id(new_pid, old_pid);
 }
 
