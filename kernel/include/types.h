@@ -42,7 +42,18 @@ typedef uint8_t pok_thread_id_t;
 typedef uint16_t pok_sem_value_t;
 
 typedef int64_t pok_time_t;
+
+/* This constant should be used for *set* time as infinity(special). */
 #define POK_TIME_INFINITY ((int64_t)(-1))
+
+/* 
+ * This function should be used for check (untrusted) time whether
+ * it is infinity(special) or not.
+ */
+static inline pok_bool_t pok_time_is_infinity(pok_time_t t)
+{
+    return (t<0);
+}
 
 typedef enum {
     POK_QUEUEING_DISCIPLINE_FIFO,
@@ -50,5 +61,10 @@ typedef enum {
 } pok_queueing_discipline_t;
 
 #define MAX_NAME_LENGTH 30
+
+static inline int pok_compare_names(const char* name1, const char* name2)
+{
+    return strncmp(name1, name2, MAX_NAME_LENGTH);
+}
 
 #endif

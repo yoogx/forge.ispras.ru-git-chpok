@@ -17,9 +17,52 @@ static void thread_delayed_event(struct delayed_event* event)
 }
 
 
+/* Notification is received for given queuing port. */
+static void port_queuing_fired(pok_port_queuing_t* port_queuing)
+{
+    if(port_queuing->direction == POK_PORT_DIRECTION_IN)
+    {
+        while(!pok_thread_wq_is_empty(&port_queuing->waiters))
+        {
+            pok_thread_t* t;
+            int n;
+            
+            if(!pok_channel_queuing_receive(port_queuing->channel, TRUE))
+                break; // wait again
+            
+            n = pok_channel_queuing_r_n_messages(port_queuing->channel);
+            
+            for(; n > 0; n--)
+            {
+                t = pok_thread_wq_wake_up(&port_queuing->waiters);
+                if(!t) break;
+                
+                port_queuing_receive(port_queuing, t);
+            }
+        }
+    }
+    else // if(port_queuing->direction == POK_PORT_DIRECTION_OUT)
+    {
+        while(!pok_thread_wq_is_empty(&port_queuing->waiters))
+        {
+            pok_message_t* m;
+            pok_thread_t* t;
+            
+            m = pok_channel_queuing_s_get_message(port_queuing->channel, TRUE);
+            if(!m) break; // wait again
+            
+            t = pok_thread_wq_wake_up(&port_queuing->waiters);
+            assert(t);
+            
+            port_queuing_send(port_queuing, t);
+        }
+    }
+
+}
+
 static void pok_sched_arinc(void)
 {
-    pok_partition_arinc_t* part = currentPartitionARINC;
+    pok_partition_arinc_t* part = current_partition_arinc;
     pok_time_t now;
     
     pok_thread_t* oldThread = currentThread;
@@ -31,13 +74,24 @@ static void pok_sched_arinc(void)
 
     if(pok_sched_local_check_slot_started())
     {
+        pok_port_queuing_t* port_queuing = part->ports_queuing;
+        pok_port_queuing_t* port_queuing_end = port_queuing + part->nports_queuing;
+        
         // Switch user space
         pok_preemption_disable();
         pok_space_switch(pok_partition_get_space(part);
         pok_preemption_enable();
         
-        // TODO: process ports here.
-        
+        for(;port_queueing < port_queuing_end; port_queuing++)
+        {
+            if(!port_queuing->is_notified) continue;
+            
+            port_queuing->is_notified = FALSE; // Acquire semantic
+            barrier();
+            
+            port_queuing_fired(port_queuing);
+        }
+        // TODO: Sample ports
 
     }
     

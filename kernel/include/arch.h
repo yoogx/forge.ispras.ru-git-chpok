@@ -30,8 +30,8 @@
 
 struct pok_space
 {
-  uintptr_t     phys_base;
-  size_t        size;
+    uintptr_t     phys_base;
+    size_t        size;
 };
 
 extern struct pok_space spaces[];
@@ -82,10 +82,10 @@ uint32_t pok_context_create (uint32_t thread_id,
                                 uint32_t stack_size,
                                 uint32_t entry)
 {
-        uint32_t sp = pok_stack_alloc(stack_size);
-        (void)thread_id;
-        
-        return pok_context_init(sp, entry);
+    uint32_t sp = pok_stack_alloc(stack_size);
+    (void)thread_id;
+    
+    return pok_context_init(sp, entry);
 }
 
 /**
@@ -105,22 +105,22 @@ void pok_context_switch (uint32_t* old_sp, uint32_t new_sp);
  */
 struct dStack
 {
-        uint32_t staks[2];
-        int index;
+    uint32_t staks[2];
+    int index;
 };
 
 // => pok_stack_alloc
 static inline void pok_dstack_alloc(struct dStack* d, uint32_t stack_size)
 {
-        d->stacks[0] = pok_stack_alloc(stack_size);
-        d->stacks[1] = pok_stack_alloc(stack_size);
-        d->index = 0;
+    d->stacks[0] = pok_stack_alloc(stack_size);
+    d->stacks[1] = pok_stack_alloc(stack_size);
+    d->index = 0;
 }
 
 /* Extract "normal" stack. */
 static inline uint32_t pok_dstack_get_stack(struct dStack* d)
 {
-        return d->stacks[d->index];
+    return d->stacks[d->index];
 }
 
 /**
@@ -130,8 +130,8 @@ static inline uint32_t pok_dstack_get_stack(struct dStack* d)
  */
 static inline void pok_context_jump(uint32_t new_sp)
 {
-        uint32_t fake_sp;
-        pok_context_switch(&fake_sp, new_sp);
+    uint32_t fake_sp;
+    pok_context_switch(&fake_sp, new_sp);
 }
 
 /**
@@ -141,11 +141,11 @@ static inline void pok_context_jump(uint32_t new_sp)
  */
 static inline void pok_context_restart(struct dStack* d, uint32_t entry)
 {
-        int index = d->index;
-        int index_other = index ^ 1;
-        d->index = index_other;
-        pok_context_init(d->stacks[index_other], entry);
-        pok_context_jump(d->stacks[index_other]);
+    int index = d->index;
+    int index_other = index ^ 1;
+    d->index = index_other;
+    pok_context_init(d->stacks[index_other], entry);
+    pok_context_jump(d->stacks[index_other]);
 }
 
 // Unused

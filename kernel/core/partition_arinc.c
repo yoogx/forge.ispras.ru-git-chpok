@@ -387,13 +387,14 @@ static void partition_arinc_start(void)
 
 void pok_partition_arinc_init(pok_partition_arinc_t* part)
 {
+	int i;
 	size_t size = part->size;
 
 	pok_dstack_alloc(&part->base_part.initial_sp, DEFAULT_STACK_SIZE);
 
 	uintptr_t base_addr = (uintptr_t) pok_bsp_alloc_partition(part->size);
 	uintptr_t base_vaddr = pok_space_base_vaddr(base_addr);
-
+	
     /* 
 	 * Memory.
 	 */
@@ -421,6 +422,16 @@ void pok_partition_arinc_init(pok_partition_arinc_t* part)
 	#endif
 
 	part->start = &partition_arinc_start;
+	
+	for(i = 0; i < part->nports_queuing; i++)
+	{
+		pok_port_queuing_init(&part->ports_queuing[i]);
+	}
+
+	for(i = 0; i < part->nports_sampling; i++)
+	{
+		pok_port_sampling_init(&part->ports_sampling[i]);
+	}
 
 	pok_partition_arinc_reset(part, POK_PARTITION_MODE_INIT_COLD);
 }
@@ -457,7 +468,7 @@ static void partition_set_mode_normal(void)
 		 * NORMAL mode switch.
 		 */
 		
-		if(t->period == POK_TIME_INFINITY)
+		if(pok_time_is_infinity(t->period))
 		{
 			// Aperiodic process.
 			thread_start_time = current_time + t->delayed_time;
@@ -465,7 +476,7 @@ static void partition_set_mode_normal(void)
 		else
 		{
 			// Periodic process
-			if(periodic_release_point == POK_TIME_INFINITY)
+			if(pok_time_is_infinity(periodic_release_point))
 				periodic_release_point = get_next_periodic_processing_start();
 			thread_start_time = periodic_release_point + t->delayed_time;
 		}
@@ -475,7 +486,7 @@ static void partition_set_mode_normal(void)
 		else
 			thread_delay_event(t, thread_start_time, &thread_wake_up);
 		
-		if(t->time_capacity != POK_TIME_INFINITY)
+		if(!pok_time_is_infinity(t->time_capacity))
 		{
 			thread_set_deadline(t, thread_start_time + t->time_capacity);
 		}
@@ -662,14 +673,14 @@ pok_ret_t pok_thread_create (pok_thread_id_t* thread_id,
         return POK_ERRNO_PARAM;
     }
    
-    if(attr->period != POK_TIME_INFINITY)
+    if(!pok_time_is_infinity(attr->period))
     {
-        if(attr->time_capacity != POK_TIME_INFINITY) {
+        if(pok_time_is_infinity(attr->time_capacity)) {
             // periodic process must have definite time capacity
             return POK_ERRNO_PARAM;
         }
        
-        if(attr->time_capacity != POK_TIME_INFINITY
+        if(!pok_time_is_infinity(attr->time_capacity)
             && attr->time_capacity > attr->period) {
             // for periodic process, time capacity <= period
             return POK_ERRNO_PARAM;
@@ -751,7 +762,7 @@ static void thread_wait_timed(pok_thread_t *thread, pok_time_t time)
     
     thread_wait(thread);
     
-    if(time != POK_TIME_INFINITY)
+    if(!pok_time_is_infinity(time))
     {
 		thread_delay_event(thread, POK_GETTICK() + time, &thread_wake_up);
 	}
@@ -776,7 +787,7 @@ pok_ret_t pok_thread_sleep(pok_time_t time)
 	{
 		thread_move_eligible(current_thread);
 	}
-	else if(time != POK_TIME_INFINITY)
+	else if(!pok_time_is_infinity(time))
 	{
 		ret = thread_wait_timed(current_thread, POK_GETTICK() + time);
 	}
@@ -839,7 +850,7 @@ static pok_ret_t thread_delayed_start_internal (pok_thread_id_t id,
         return POK_ERRNO_UNAVAILABLE;
     }
 
-    if (thread->period != POK_TIME_INFINITY && ms >= thread->period) {
+    if (!pok_time_is_infinity(thread->period) && ms >= thread->period) {
         return POK_ERRNO_EINVAL;
     }
     
@@ -856,7 +867,7 @@ static pok_ret_t thread_delayed_start_internal (pok_thread_id_t id,
 	}
 
     // Normal mode.
-    if (thread->period == POK_TIME_INFINITY) {
+    if (pok_time_is_infinity(thread->period)) {
         // aperiodic process
         thread_start_time = POK_GETTICK() + ms;
     }
@@ -867,7 +878,7 @@ static pok_ret_t thread_delayed_start_internal (pok_thread_id_t id,
 	}
 	
 	/* Only non-delayed aperiodic process starts immediately */
-	if(ms == 0 && thread->period == POK_TIME_INFINITY) {
+	if(ms == 0 && pok_time_is_infinity(thread->period)) {
 		thread->state = POK_STATE_RUNNABLE;
 		// Thread cannot be suspended before the start.
 		thread_set_eligible(thread);
@@ -876,7 +887,7 @@ static pok_ret_t thread_delayed_start_internal (pok_thread_id_t id,
 		thread_wait_timed(thread, thread_start_time);
 	}
 	
-	if(thread->time_capacity != POK_TIME_INFINITY)
+	if(!pok_time_is_infinity(thread->time_capacity))
 	{
 		thread_set_deadline(thread_start_time + thread->time_capacity);
 	}
@@ -932,7 +943,7 @@ pok_ret_t pok_thread_get_status (pok_thread_id_t id, pok_thread_status_t *status
 	else
 		status->state = t->state;
 	
-	if(t->time_capacity == POK_TIME_INFINITY)
+	if(pok_time_is_infinity(t->time_capacity))
 		status->deadline_time = POK_TIME_INFINITY;
 	else
 		status->deadline_time = t->thread_deadline_event.timepoint;
@@ -1061,7 +1072,7 @@ pok_ret_t pok_thread_suspend(int64_t ms) // Time should be converted?
     t->suspended = TRUE;
     thread_set_uneligible(t);
     
-	if(ms != POK_TIME_INFINITY)
+	if(!pok_time_is_infinity(ms))
 		thread_delay_event(thread, POK_GETTICK() + ms, &thread_resume);
 
 	ret = POK_ERRNO_OK;
@@ -1178,11 +1189,11 @@ static pok_ret_t sched_replenish_internal(pok_time_t budget)
     
     if (budget > INT32_MAX) return POK_ERRNO_ERANGE;
     
-    if(t->time_capacity == POK_TIME_INFINITY) return POK_ERRNO_OK; //nothing to do
+    if(pok_time_is_infinity(t->time_capacity)) return POK_ERRNO_OK; //nothing to do
     
     calculated_deadline = POK_GETTICK() + budget;
     
-    if(t->period != POK_TIME_INFINITY
+    if(!pok_time_is_infinity(t->period)
 		&& calculated_deadline >= t->next_activation)
 		return POK_ERRNO_MODE;
 	

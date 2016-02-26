@@ -61,6 +61,13 @@ typedef struct
     pok_thread_t*          thread_current; // Normal thread or special thread. NULL if doing nothing.
 
 
+    pok_port_queuing_t*    ports_queuing; /* List of queuing ports. Set in deployment.c. */
+    size_t                 nports_queuing;
+
+    pok_port_sampling_t*   ports_sampling; /* List of sampling ports. Set in deployment.c. */
+    size_t                 nports_sampling;
+
+
 #if defined(POK_NEEDS_LOCKOBJECTS) || defined(POK_NEEDS_ERROR_HANDLING)
     uint8_t                lockobj_index_low;   /**< The low bound in the lockobject array. */
     uint8_t                lockobj_index_high;  /**< The high bound in the lockobject array */

@@ -332,20 +332,13 @@ void pok_thread_wq_add_prio(pok_thread_wq_t* wq, pok_thread_t* t);
 void pok_thread_wq_remove(pok_thread_t* t);
 
 /**
- * Wake up threads in the queue, one by one.
+ * Wake up thread in the queue.
  * 
- * Each thread will be removed from the queue, awoken,
- * and @wake_func will be called for it.
+ * Thread will be removed from the queue.
  * 
- * If the callback returns FALSE, the rest threads will not
- * processed, and function return FALSE.
- * 
- * If all threads has been processed, function returns TRUE.
- * 
- * If queue is empty, do nothing and return TRUE.
+ * Return thread awoken or NULL is queue is empty.
  */
-pok_bool_t pok_thread_wq_wake_up(pok_thread_wq_t* wq,
-    pok_bool_t (*wake_func)(pok_thread_wq_t* wq, pok_thread_t* t));
+pok_thread_t* pok_thread_wq_wake_up(pok_thread_wq_t* wq);
 
 
 /**
@@ -369,7 +362,7 @@ pok_bool_t pok_thread_wq_is_empty(pok_thread_wq_t* wq);
 static inline 
 pok_bool_t pok_thread_is_periodic(const pok_thread_t *thread)
 {
-    return thread->period != POK_TIME_INFINITY;
+    return !pok_time_is_infinity(thread->period);
 }
 
 static inline 

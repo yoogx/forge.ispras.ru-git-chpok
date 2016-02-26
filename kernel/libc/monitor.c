@@ -6,6 +6,15 @@
 #include <core/partition.h>
 
 
+#ifdef POK_NEEDS_NETWORKING
+static void pok_network_thread_init(void)
+{
+    pok_threads[NETWORK_THREAD].entry = pok_network_thread;
+    pok_threads[NETWORK_THREAD].sp = pok_context_create(NETWORK_THREAD, 4096, (uintptr_t) pok_network_thread);
+}
+#endif
+
+
 #define NCOMMANDS 8 //Number of commands, change it if you want to 
                     //add a new command.
 

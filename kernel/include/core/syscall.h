@@ -171,4 +171,20 @@ pok_ret_t pok_syscall_init();
    return POK_ERRNO_EINVAL;					\
 }
 
+#include <core/port.h>
+
+/* 
+ * Packaging for arguments passed to syscall
+ * POK_SYSCALL_MIDDLEWARE_QUEUEING_CREATE.
+ */
+typedef struct
+{
+    const char * __user name;
+    pok_port_size_t message_size;
+    pok_port_size_t max_nb_message;
+    pok_port_direction_t direction;
+    pok_port_queuing_discipline_t discipline;
+} pok_port_queueing_create_arg_t;
+
+
 #endif /* __POK_SYSCALL_H__ */
