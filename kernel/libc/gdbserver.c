@@ -501,7 +501,7 @@ computeSignal (int exceptionVector)
             break;            /* divide by zero */
         case 1:
             sigval = 5;
-            break;            /* debug exception */
+            break;            /* debug exception (watchpoint)*/
         case 3:
             sigval = 5;
             break;            /* breakpoint */
@@ -760,7 +760,7 @@ void add_watchpoint(uintptr_t addr, int length, int *using_thread, int type){
     DBCR0 |= DAC1;
     mtspr(SPRN_DBCR0, DBCR0);
     //~ ea->srr1 |= 0x400000;
-    need_to_set_DE = TRUE;
+    ((struct regs *)pok_threads[*using_thread].entry_sp)->srr1 |= 0x200;
     watchpoint_is_set = TRUE;
     strcpy(remcomOutBuffer, "OK");
 #endif
@@ -783,8 +783,9 @@ void remove_watchpoint(uintptr_t addr, int length, int *using_thread, int type){
     DBCR0 &= (~0xF000);
     mtspr(SPRN_DBCR0, DBCR0);
     strcpy(remcomOutBuffer, "OK");
-    need_to_set_DE = FALSE;
     watchpoint_is_set = FALSE;
+    struct regs * MSR = (struct regs *)pok_threads[*using_thread].entry_sp;
+    MSR->srr1 &= (~0x200);    
     //~ ea->srr1 &= (~0x400000);
     
 #endif    
@@ -1155,7 +1156,21 @@ handle_exception (int exceptionVector, struct regs * ea)
 #endif
     ptr = mem2hex( (char *)(&(thread_num)), ptr, 4); 
     *ptr++ = ';';
+#ifdef QEMU
 
+#else
+    if (exceptionVector == 1){
+        *ptr++ = 'w';
+        *ptr++ = 'a';
+        *ptr++ = 't';
+        *ptr++ = 'c';
+        *ptr++ = 'h';
+        *ptr++ = ':';
+        addr =  mfspr(SPRN_DAC1);
+        ptr = mem2hex( (char *)&addr, ptr, 4, 0); 
+        *ptr++ = ';';
+    }        
+#endif
 
     ptr = 0;
 #endif

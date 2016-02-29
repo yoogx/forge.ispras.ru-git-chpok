@@ -32,7 +32,6 @@
 #include "timer.h"
 #include "syscalls.h"
 
-int L = 0;
 
 
 void pok_int_critical_input(uintptr_t ea) {
@@ -75,7 +74,6 @@ void write_on_screen();
 void pok_int_program(struct regs * ea) {
 
 ////printf("ea = 0x%lx\n", ea);
-    need_to_set_DE = FALSE;
 //// pok_trap_addr = address of pok_trap in entry.S
     printf("srr0 = 0x%lx\n", ea->srr0);
     printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
@@ -148,11 +146,6 @@ void pok_int_program(struct regs * ea) {
     printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
     //~ asm volatile("isync");
     printf("instr = 0x%lx\n", *(uint32_t *)(ea->srr0));
-    if (need_to_set_DE){
-        printf("Set MSR\n");
-        ea->srr1 |= 0x200;
-        //~ mtmsr(mfmsr() | 0x200);
-    }
     
 //~ asm volatile("acbi");  
     
@@ -195,16 +188,14 @@ void pok_int_inst_tlb_miss(uintptr_t ea, uintptr_t dear, unsigned long esr) {
 }
 
 void pok_int_debug(struct regs * ea) {
-    if (L < 50){
-        int DBCR0 = mfspr(SPRN_DBCR0);
-        printf("DBCR0 = 0x%x\n", DBCR0);
-        mtspr(SPRN_DBCR0, 0x01000000UL);
-        ea->srr1 &= (~ 0x200);
-        printf("srr0 = 0x%lx\n", ea->srr0);
-        printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
-        L++;
-    }        //~ printf("In int debug \n");
-    
-    (void) ea;
+    printf("DBSR = %lx\n", mfspr(SPRN_DBSR));
+    printf("ea = 0x%lx\n", (uint32_t) ea);
+    int DBCR0 = mfspr(SPRN_DBCR0);
+    printf("DBCR0 = 0x%x\n", DBCR0);
+    mtspr(SPRN_DBCR0, 0x01000000UL);
+    printf("srr0 = 0x%lx\n", ea->srr0);
+    printf("srr1 = 0x%lx\n", ea->srr1);
+    handle_exception(1, ea); 
+    printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
     //~ pok_fatal("Debug interrupt");
 }
