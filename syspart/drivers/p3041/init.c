@@ -18,59 +18,26 @@
 #include <memory.h>
 #include "fm.h"
 
-#define FM_PRAM_SIZE  sizeof(struct fm_port_global_pram)
-#define FM_PRAM_ALIGN 256
-#define PRAM_MODE_GLOBAL	0x20000000
-#define PRAM_MODE_GRACEFUL_STOP	0x00800000
+#define DRV_NAME "P3041-NET"
 
+struct {
+    unsigned send_last_seen; //Truly points to first nonseen element
+    unsigned receive__last_seen;
+    struct send_callback send_callbacks[TX_BD_RING_SIZE];
+} current_state;
 
-#define TCTRL_GTS       0x00000020 /* Graceful transmit stop */
-#define RCTRL_GRS       0x00000020 /* graceful receive stop */
-#define MACCFG1_RX_EN   0x00000004 /* Rx enable */
-#define MACCFG1_TX_EN   0x00000001 /* Tx enable */
-#define MACCFG1_RXTX_EN (MACCFG1_RX_EN | MACCFG1_TX_EN)
+char tx_buffer_pseudo_malloc[sizeof(struct fm_port_bd) * TX_BD_RING_SIZE];
+char rx_ring_pseudo_malloc  [sizeof(struct fm_port_bd) * RX_BD_RING_SIZE];
+char rx_pool_pseudo_malloc  [MAX_RXBUF_LEN * RX_BD_RING_SIZE];
 
+struct fm_eth dtsec3;
+struct fm_eth dtsec4;
+struct fm_eth *current;
 
-#define RX_BD_RING_SIZE  8
-#define TX_BD_RING_SIZE  8
-#define MAX_RXBUF_LOG2		11
-#define MAX_RXBUF_LEN		(1 << MAX_RXBUF_LOG2)
-
-/* Common BD flags */
-#define BD_LAST			0x0800
-
-/* Rx BD status flags */
-#define RxBD_EMPTY		0x8000
-#define RxBD_LAST		BD_LAST
-#define RxBD_FIRST		0x0400
-#define RxBD_PHYS_ERR		0x0008
-#define RxBD_SIZE_ERR		0x0004
-#define RxBD_ERROR		(RxBD_PHYS_ERR | RxBD_SIZE_ERR)
-
-/* Tx BD status flags */
-#define TxBD_READY		0x8000
-#define TxBD_LAST		BD_LAST
-
-
-#define FMBM_RCFG_EN            0x80000000 /* port is enabled to receive data */
-#define FMBM_TCFG_EN            0x80000000 /* port is enabled to transmit data */
-
-
-#define CONFIG_SYS_FM_MURAM_SIZE 0x28000
-
-#define CONFIG_SYS_FSL_FM1_OFFSET 0x400000
-#define CONFIG_SYS_IMMR 0xfe000000
-#define CONFIG_SYS_FSL_FM1_ADDR (CONFIG_SYS_IMMR + CONFIG_SYS_FSL_FM1_OFFSET)
-#define CONFIG_SYS_FSL_FM1_MURAM_ADDR CONFIG_SYS_FSL_FM1_ADDR
-#define CONFIG_SYS_FM1_DTSEC1_ADDR (CONFIG_SYS_FSL_FM1_ADDR + 0xe0000)
-#define CONFIG_SYS_FM1_EMI1_MDIO_ADDR (CONFIG_SYS_FSL_FM1_ADDR + 0xe1120)
-
-#define CONFIG_SYS_FM1_DTSEC3_ADDR (CONFIG_SYS_FSL_FM1_ADDR + 0xe4000)
-
-
-#define FM_MURAM_RES_SIZE 0x01000
+uint8_t macaddr[6];
 
 struct fm_muram muram;
+
 
 uint32_t fm_muram_base()
 {
@@ -107,7 +74,6 @@ uint32_t fm_muram_alloc(uint32_t size, uint32_t align)
 static void fm_init_muram(int fm_idx, void *reg)
 {
     uint32_t base = (uint32_t)reg;
-    printf("MURAM base = %p\n", reg);
 
     muram.base = base;
     muram.size = CONFIG_SYS_FM_MURAM_SIZE;
@@ -117,34 +83,27 @@ static void fm_init_muram(int fm_idx, void *reg)
 
 
 
-char *name = "FM1_DTSEC3";
-
-void udelay(unsigned long usec) {
-    (void) usec;
-    //TODO
-    for (int i; i<0x1000000; i++) {
-        usec ++;
-    }
-}
-
-static int fm_eth_send(struct fm_eth *fm_eth, void *buf, int len)
+static int fm_eth_send(struct fm_eth *fm_eth,
+                       void *buf,
+                       int len,
+                       pok_network_buffer_callback_t callback,
+                       void *callback_arg
+                      )
 {
     struct fm_port_global_pram *pram;
     struct fm_port_bd *txbd, *txbd_base;
     uint16_t offset_in;
-    int i;
+    int c_idx;
 
     pram = fm_eth->tx_pram;
     txbd = fm_eth->cur_txbd;
 
-    /* find one empty TxBD */
-    for (i = 0; txbd->status & TxBD_READY; i++) {
-        udelay(100);
-        if (i > 0x1000) {
-            printf("%s: Tx buffer not ready\n", name);
-            return 0;
-        }
+    if (txbd->status & TxBD_READY) {
+        //This is not a typo. If status[READY] = 1, then we can't use this buffer now
+        printf("%s: Tx buffer not ready\n", DRV_NAME);
+        return 0;
     }
+
     /* setup TxBD */
     txbd->buf_ptr_hi = 0;
     txbd->buf_ptr_lo = pok_virt_to_phys(buf);
@@ -153,30 +112,23 @@ static int fm_eth_send(struct fm_eth *fm_eth, void *buf, int len)
     txbd->status = TxBD_READY | TxBD_LAST;
     sync();
 
+
     /* update TxQD, let RISC to send the packet */
     offset_in = in_be16(&pram->txqd.offset_in);
+
+    c_idx = offset_in / sizeof(struct fm_port_bd);
+    printf("send: c_idx = %d func %p, arg %p\n", c_idx, callback, callback_arg);
+    current_state.send_callbacks[c_idx].func = callback;
+    current_state.send_callbacks[c_idx].argument = callback_arg;
+
     offset_in += sizeof(struct fm_port_bd);
     if (offset_in >= in_be16(&pram->txqd.bd_ring_size))
         offset_in = 0;
+
+    // XXX This is "flushing"
     out_be16(&pram->txqd.offset_in, offset_in);
     sync();
 
-    /* wait for buffer to be transmitted */
-    for (i = 0; txbd->status & TxBD_READY; i++) {
-        udelay(100);
-        /*
-        if (i > 0x10000) {
-            printf("%s: Tx error\n", name);
-            return 0;
-
-        }*/
-        if (i % 10000000 == 0) {
-            printf("offset_out = 0x%x\n", pram->txqd.offset_out);
-            printf("offset_in = 0x%x\n", pram->txqd.offset_in);
-        }
-    }
-
-    printf("NO error\n");
     /* advance the TxBD */
     txbd++;
     txbd_base = (struct fm_port_bd *)fm_eth->tx_bd_ring;
@@ -188,7 +140,28 @@ static int fm_eth_send(struct fm_eth *fm_eth, void *buf, int len)
     return 1;
 }
 
-int net_process_received_packet(void *data, int len) {
+static void reclaim_send_buffers(void)
+{
+    //send_last_seen is initialized by zero as member of static global structure
+
+    struct fm_eth *fm_eth = current;
+    size_t bd_size = sizeof(struct fm_port_bd);
+    size_t bd_ring_size = bd_size * TX_BD_RING_SIZE;
+
+    // Sets by NIC
+    uint16_t offset_out = in_be16(&fm_eth->tx_pram->txqd.offset_out);
+
+    while ((offset_out + bd_ring_size - current_state.send_last_seen * bd_size)%bd_ring_size >= bd_size) {
+        uint16_t idx = current_state.send_last_seen;
+        struct send_callback cb = current_state.send_callbacks[idx];
+        cb.func(cb.argument);
+        current_state.send_last_seen = (current_state.send_last_seen + 1) % TX_BD_RING_SIZE;
+    }
+
+}
+
+int net_process_received_packet(void *data, int len)
+{
     printf("====================\n");
     hexdump(data, len);
     printf("====================\n");
@@ -216,7 +189,7 @@ static int fm_eth_recv(struct fm_eth *fm_eth)
             len = rxbd->len;
             net_process_received_packet(data, len);
         } else {
-            printf("%s: Rx error\n", name);
+            printf("%s: Rx error\n", DRV_NAME);
             ret = 0;
         }
 
@@ -245,10 +218,6 @@ static int fm_eth_recv(struct fm_eth *fm_eth)
 
     return ret;
 }
-
-char tx_buffer_pseudo_malloc[sizeof(struct fm_port_bd) * TX_BD_RING_SIZE];
-char rx_ring_pseudo_malloc  [sizeof(struct fm_port_bd) * RX_BD_RING_SIZE];
-char rx_pool_pseudo_malloc  [MAX_RXBUF_LEN * RX_BD_RING_SIZE];
 
 static int fm_eth_tx_port_parameter_init(struct fm_eth *fm_eth)
 {
@@ -369,8 +338,6 @@ static int fm_eth_rx_port_parameter_init(struct fm_eth *fm_eth)
         rxbd->buf_ptr_lo = pok_virt_to_phys(rx_buf_pool + i * MAX_RXBUF_LEN);
         rxbd++;
     }
-    printf("rx offset_in  addr %p\n", &pram->rxqd.offset_out);
-    printf("rx offset_out addr %p\n", &pram->rxqd.offset_out);
 
     /* set the Rx queue descriptor */
     rxqd = &pram->rxqd;
@@ -439,17 +406,6 @@ static void fm_eth_open(struct fm_eth *fm_eth, void *regs)
 
 
 
-#define FM_HARDWARE_PORTS 0x80000
-#define DTSEC3_RX_PORT    0x0a
-#define DTSEC3_TX_PORT    0x2a
-#define DTSEC4_RX_PORT    0x0b
-#define DTSEC4_TX_PORT    0x2b
-
-struct fm_eth dtsec3;
-struct fm_eth dtsec4;
-struct fm_eth *current;
-uint8_t macaddr[6];
-
 void p3041_init(void)
 {
     dtsec3.rx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC3_RX_PORT*0x1000);
@@ -469,7 +425,6 @@ void p3041_init(void)
 
     {
         struct fm_port_global_pram *dtsec3_rx_pram = (void *) muram.base + 0x21000;
-        struct fm_port_global_pram *dtsec3_tx_pram = (void *) muram.base + 0x21100;
 
         printf("UBOOT rx offset_in:  [%p]= 0x%x\n",
                 &dtsec3_rx_pram->rxqd.offset_in,
@@ -480,18 +435,9 @@ void p3041_init(void)
                 dtsec3_rx_pram->rxqd.offset_out
                 );
 
-        printf("UBOOT tx offset_in:  [%p]= 0x%x\n",
-                &dtsec3_tx_pram->txqd.offset_in,
-                dtsec3_tx_pram->txqd.offset_in
-                );
-        printf("UBOOT tx offset_out: [%p]= 0x%x\n",
-                &dtsec3_tx_pram->txqd.offset_out,
-                dtsec3_tx_pram->txqd.offset_out
-                );
     }
 
     fm_eth_open(current, (void *)CONFIG_SYS_FM1_DTSEC3_ADDR);
-    printf("dtsec3 bmi[tcfqid] %lx\n", in_be32(&dtsec3.tx_port->fmbm_tcfqid));
 
 #if 0
     while (1) {
@@ -500,7 +446,7 @@ void p3041_init(void)
             udelay(100);
             /*
             if (i > 0x10000) {
-                printf("%s: Tx error\n", name);
+                printf("%s: Tx error\n", DRV_NAME);
                 return 0;
 
             }*/
@@ -519,7 +465,7 @@ static pok_bool_t send_frame(
 {
     //pok_network_sg_list_t sg_list[1] = {{.buffer=buffer, .size=size}};
     //return send_frame_gather(sg_list, 1, callback, callback_arg);
-    fm_eth_send(current, buffer, size);
+    fm_eth_send(current, buffer, size, callback, callback_arg);
 
     return 1;
 }
@@ -537,9 +483,7 @@ pok_bool_t dummy_send_frame_gather(const pok_network_sg_list_t *sg_list,
 void dummy_set_packet_received_callback(void (*f)(const char *, size_t)) {
     //printf("%s\n", __func__);
 }
-void dummy_reclaim_send_buffers(void) {
-    //printf("%s\n", __func__);
-}
+
 void dummy_reclaim_receive_buffers(void) {
     //printf("%s\n", __func__);
 }
@@ -551,7 +495,7 @@ static const pok_network_driver_ops_t driver_ops = {
     .send_frame = send_frame,
     .send_frame_gather =            dummy_send_frame_gather,
     .set_packet_received_callback = dummy_set_packet_received_callback,
-    .reclaim_send_buffers =         dummy_reclaim_send_buffers,
+    .reclaim_send_buffers =         reclaim_send_buffers,
     .reclaim_receive_buffers =      dummy_reclaim_receive_buffers,
     .flush_send =                   dummy_flush_send,
 };
