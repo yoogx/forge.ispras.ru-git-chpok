@@ -56,7 +56,6 @@ if env['ARCH'] == 'ppc':
     env['OBJDUMP'] = 'powerpc-elf-objdump'
     env['RANLIB'] = 'powerpc-elf-ranlib'
     env['GDB'] = 'powerpc-elf-gdb'
-    env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
     env['QEMU'] = 'qemu-system-ppc'
 
 elif env['ARCH'] == 'x86':
@@ -70,10 +69,10 @@ elif env['ARCH'] == 'x86':
     env['OBJDUMP'] = 'i386-elf-objdump'
     env['RANLIB'] = 'i386-elf-ranlib'
     env['GDB'] = 'i386-elf-gdb'
-    env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
     env['QEMU'] = 'qemu-system-i386'
 
 env['ASFLAGS'] = env['CFLAGS']
+env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
 
 bsp_cpu_dict = {
     'e500mc':          ' -mcpu=e500mc',
@@ -92,8 +91,6 @@ bsp_qemu_dict = {
 env.Append(QEMU_FLAGS = bsp_qemu_dict[env['BSP']])
 
 Export('env')
-
-SConscript(env['SCONSTRUCT_DIR']+'/SConscript')
 
 SConscript('../boards/SConscript', variant_dir = '../build/'+env['BSP']+'/boards', duplicate = 0)
 SConscript('../kernel/SConscript', variant_dir = '../build/'+env['BSP']+'/kernel', duplicate = 0)
