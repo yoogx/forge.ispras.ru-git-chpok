@@ -20,18 +20,33 @@
 
 #include <types.h>
 
-//#ifdef POK_NEEDS_NETWORKING_VIRTIO 
-    // virtio header 
-    #define POK_NETWORK_OVERHEAD_DRIVER 10    
-//#else
-//    #error "no suitable network driver available"
-//#endif
+#if 0
+#define POK_NETWORK_OVERHEAD_DRIVER 10
+#define NETWORK_DRIVER pok_network_virtio_device
+#define NETWORK_DRIVER_OPS (pok_network_virtio_device.ops)
+#elif 0
+#define NETWORK_DRIVER pok_network_ne2000_device
+#define NETWORK_DRIVER_OPS (pok_network_ne2000_device.ops)
+#undef POK_NETWORK_OVERHEAD_DRIVER
+#define POK_NETWORK_OVERHEAD_DRIVER 0
+#elif 1
+#define NETWORK_DRIVER pok_network_p3041_device
+#define NETWORK_DRIVER_OPS (pok_network_p3041_device.ops)
+#undef POK_NETWORK_OVERHEAD_DRIVER
+#define POK_NETWORK_OVERHEAD_DRIVER 0
+#endif
 
 // ethernet + ip + udp
 #define POK_NETWORK_OVERHEAD_PROTO (14+20+8)
 #define POK_NETWORK_OVERHEAD (POK_NETWORK_OVERHEAD_DRIVER + POK_NETWORK_OVERHEAD_PROTO)
 
 typedef void (*pok_network_buffer_callback_t)(void*);
+
+struct send_callback {
+    pok_network_buffer_callback_t func;
+    void *argument;
+};
+
 
 // a linked list of callbacks, actually
 typedef struct pok_network_udp_receive_callback_t {

@@ -1,3 +1,58 @@
+#ifndef __SYSPART_P3041_FM_H
+#define __SYSPART_P3041_FM_H
+
+#define FM_PRAM_SIZE  sizeof(struct fm_port_global_pram)
+#define FM_PRAM_ALIGN 256
+#define PRAM_MODE_GLOBAL	0x20000000
+#define PRAM_MODE_GRACEFUL_STOP	0x00800000
+
+#define TCTRL_GTS       0x00000020 /* Graceful transmit stop */
+#define RCTRL_GRS       0x00000020 /* graceful receive stop */
+#define MACCFG1_RX_EN   0x00000004 /* Rx enable */
+#define MACCFG1_TX_EN   0x00000001 /* Tx enable */
+#define MACCFG1_RXTX_EN (MACCFG1_RX_EN | MACCFG1_TX_EN)
+
+#define RX_BD_RING_SIZE  8
+#define TX_BD_RING_SIZE  8
+#define MAX_RXBUF_LOG2		11
+#define MAX_RXBUF_LEN		(1 << MAX_RXBUF_LOG2)
+
+/* Common BD flags */
+#define BD_LAST			0x0800
+
+/* Rx BD status flags */
+#define RxBD_EMPTY		0x8000
+#define RxBD_LAST		BD_LAST
+#define RxBD_FIRST		0x0400
+#define RxBD_PHYS_ERR		0x0008
+#define RxBD_SIZE_ERR		0x0004
+#define RxBD_ERROR		(RxBD_PHYS_ERR | RxBD_SIZE_ERR)
+
+/* Tx BD status flags */
+#define TxBD_READY		0x8000
+#define TxBD_LAST		BD_LAST
+
+#define FMBM_RCFG_EN            0x80000000 /* port is enabled to receive data */
+#define FMBM_TCFG_EN            0x80000000 /* port is enabled to transmit data */
+
+#define CONFIG_SYS_FSL_FM1_OFFSET 0x400000
+#define CONFIG_SYS_IMMR 0xfe000000
+#define CONFIG_SYS_FSL_FM1_ADDR (CONFIG_SYS_IMMR + CONFIG_SYS_FSL_FM1_OFFSET)
+#define CONFIG_SYS_FSL_FM1_MURAM_ADDR CONFIG_SYS_FSL_FM1_ADDR
+#define CONFIG_SYS_FM1_DTSEC1_ADDR (CONFIG_SYS_FSL_FM1_ADDR + 0xe0000)
+#define CONFIG_SYS_FM1_EMI1_MDIO_ADDR (CONFIG_SYS_FSL_FM1_ADDR + 0xe1120)
+
+#define CONFIG_SYS_FM1_DTSEC3_ADDR (CONFIG_SYS_FSL_FM1_ADDR + 0xe4000)
+
+#define CONFIG_SYS_FM_MURAM_SIZE 0x28000
+#define FM_MURAM_RES_SIZE 0x01000
+
+#define FM_HARDWARE_PORTS 0x80000
+#define DTSEC3_RX_PORT    0x0a
+#define DTSEC3_TX_PORT    0x2a
+#define DTSEC4_RX_PORT    0x0b
+#define DTSEC4_TX_PORT    0x2b
+
 /* Rx/Tx queue descriptor */
 struct fm_port_qd {
     uint16_t gen;
@@ -235,3 +290,4 @@ struct fm_port_bd {
     uint32_t buf_ptr_lo;
 };
 
+#endif
