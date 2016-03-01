@@ -12,6 +12,10 @@ static struct {
     char data[overhead_virtio + overhead_udp + 64];
 } qp_0_data[10];
 
+
+unsigned sysconfig_samples_nb = 0;
+sample_t samples[] = {};
+
 unsigned sysconfig_queues_nb = 1;
 queue_t queues[] = {
     {
