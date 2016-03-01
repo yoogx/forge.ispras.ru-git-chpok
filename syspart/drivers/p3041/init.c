@@ -117,7 +117,6 @@ static int fm_eth_send(struct fm_eth *fm_eth,
     offset_in = in_be16(&pram->txqd.offset_in);
 
     c_idx = offset_in / sizeof(struct fm_port_bd);
-    printf("send: c_idx = %d func %p, arg %p\n", c_idx, callback, callback_arg);
     current_state.send_callbacks[c_idx].func = callback;
     current_state.send_callbacks[c_idx].argument = callback_arg;
 

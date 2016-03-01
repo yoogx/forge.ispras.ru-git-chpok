@@ -13,22 +13,19 @@ static void first_process(void)
 {
     RETURN_CODE_TYPE ret;
 
-    struct {
-        char message[64];
-    } __attribute__((packed)) msg;
+    /* Wait a little until second partition is initialized */
+    TIMED_WAIT(SECOND/5, &ret);
+
+    char msg[64];
 
     int i = 0;
     while (1) {
         i++;
-        snprintf(msg.message, 64, "test sp message %d\n", i);
-        //printf("PR1: sending message ... \n");
+        snprintf(msg, 64, "test sp message %d\n", i);
         WRITE_SAMPLING_MESSAGE(SP1, (MESSAGE_ADDR_TYPE) &msg, sizeof(msg), &ret);
         if (ret != NO_ERROR) {
             printf("error: %u\n", ret);
         }
-
-        //TIMED_WAIT(1LL * 1000 * 1000 * 1000 / 20, &ret);
-        //TIMED_WAIT(10*SECOND, &ret);
         TIMED_WAIT(3*SECOND, &ret);
     }
 }
