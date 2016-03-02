@@ -10,27 +10,6 @@ SAMPLING_PORT_ID_TYPE SP1;
 SAMPLING_PORT_ID_TYPE SP2;
 #define SECOND 1000000000LL
 
-static void __first_process(void)
-{
-    RETURN_CODE_TYPE ret;
-
-    /* Wait a little until second partition is initialized */
-    TIMED_WAIT(SECOND/5, &ret);
-
-    char msg[64];
-
-    int i = 0;
-    while (1) {
-        i++;
-        snprintf(msg, 64, "test sp message %d\n", i);
-        WRITE_SAMPLING_MESSAGE(SP1, (MESSAGE_ADDR_TYPE) &msg, sizeof(msg), &ret);
-        if (ret != NO_ERROR) {
-            printf("error: %u\n", ret);
-        }
-        TIMED_WAIT(3*SECOND, &ret);
-    }
-}
-
 static void first_process(void)
 {
     RETURN_CODE_TYPE ret;
