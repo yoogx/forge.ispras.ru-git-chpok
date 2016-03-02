@@ -65,7 +65,7 @@ struct fm_port_qd {
     uint32_t res1[0x4];
 };
 
-/* IM global parameter RAM */
+/* Independent mode global parameter RAM (Table 8-401) */
 struct fm_port_global_pram {
     uint32_t mode;      /* independent mode register */
     uint32_t rxqd_ptr;  /* Rx queue descriptor pointer */

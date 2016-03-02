@@ -7,9 +7,10 @@
 #include <arinc653/sampling.h>
 
 SAMPLING_PORT_ID_TYPE SP1;
+SAMPLING_PORT_ID_TYPE SP2;
 #define SECOND 1000000000LL
 
-static void first_process(void)
+static void __first_process(void)
 {
     RETURN_CODE_TYPE ret;
 
@@ -30,46 +31,35 @@ static void first_process(void)
     }
 }
 
-/*
 static void first_process(void)
 {
-    struct {
-        unsigned x;
-        char message[32];
-        unsigned y;
-    } __attribute__((packed)) msg;
+    RETURN_CODE_TYPE ret;
+    char msg[64];
 
-    unsigned last_x = 0;
+    /* Wait a little until second partition is initialized */
+    TIMED_WAIT(SECOND/5, &ret);
+
+    snprintf(msg, 64, "Hello \n");
+    WRITE_SAMPLING_MESSAGE(SP1, (MESSAGE_ADDR_TYPE) &msg, sizeof(msg), &ret);
 
     while (1) {
-        RETURN_CODE_TYPE ret;
         MESSAGE_SIZE_TYPE len;
         VALIDITY_TYPE validity;
 
-        READ_SAMPLING_MESSAGE(SP1, (MESSAGE_ADDR_TYPE) &msg, &len, &validity, &ret);
+        READ_SAMPLING_MESSAGE(SP2, (MESSAGE_ADDR_TYPE) &msg, &len, &validity, &ret);
 
         if (ret == NO_ERROR) {
-            printf("PR1: {%u, \"%s\", %u}\n", msg.x, msg.message, msg.y);
+            msg[len] = '\0';
+            printf("%s", msg);
         } else if (ret == NO_ACTION) {
-            printf("waiting for packet\n");
+        //    printf("waiting for packet\n");
         } else {
             printf("PR1: sp error: %u\n", ret);
         }
 
-        if (msg.x < last_x) {
-            printf("PR1: warning: received SP message out of order\n");
-        } else if (msg.x > last_x + 1) {
-            printf("PR1: warning: possible SP packet loss\n");
-        } else if (msg.x == last_x && last_x != 0) {
-            printf("PR1: warning: possible SP duplicate message\n");
-        }
-        last_x = msg.x;
-
         TIMED_WAIT(SECOND, &ret);
     }
 }
-
-*/
 
 
 static int real_main(void)
@@ -106,8 +96,8 @@ static int real_main(void)
 
 
     // create ports
-    //CREATE_QUEUING_PORT("QP1", 64, 10, DESTINATION, FIFO, &QP1, &ret);
     CREATE_SAMPLING_PORT("SP1", 64, SOURCE, 5*SECOND, &SP1, &ret);
+    CREATE_SAMPLING_PORT("SP2", 64, DESTINATION, 5*SECOND, &SP2, &ret);
 
 
     // transition to NORMAL operating mode

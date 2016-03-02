@@ -34,7 +34,10 @@ struct fm_eth dtsec3;
 struct fm_eth dtsec4;
 struct fm_eth *current;
 
-uint8_t macaddr[6];
+struct {
+    uint8_t macaddr[6];
+    void (*packet_received_callback)(const char *, size_t);
+}internal_device_struct;
 
 struct fm_muram muram;
 
@@ -159,34 +162,25 @@ static void reclaim_send_buffers(void)
 
 }
 
-int net_process_received_packet(void *data, int len)
-{
-    printf("====================\n");
-    hexdump(data, len);
-    printf("====================\n");
-    return 0;
-}
-
 static int fm_eth_recv(struct fm_eth *fm_eth)
 {
     struct fm_port_global_pram *pram;
     struct fm_port_bd *rxbd, *rxbd_base;
-    u16 status, len;
-    u8 *data;
-    u16 offset_out;
+    uint16_t status, len;
+    char *data;
+    uint16_t offset_out;
     int ret = 1;
 
     pram = fm_eth->rx_pram;
     rxbd = fm_eth->cur_rxbd;
     status = rxbd->status;
 
-    printf("%s: status 0x%x\n", __func__, status);
     while (!(status & RxBD_EMPTY)) {
         if (!(status & RxBD_ERROR)) {
             //XXX phys_to_virt?
-            data = (u8 *)pok_phys_to_virt(rxbd->buf_ptr_lo);
+            data = (void *)pok_phys_to_virt(rxbd->buf_ptr_lo);
             len = rxbd->len;
-            net_process_received_packet(data, len);
+            internal_device_struct.packet_received_callback(data, len);
         } else {
             printf("%s: Rx error\n", DRV_NAME);
             ret = 0;
@@ -216,6 +210,11 @@ static int fm_eth_recv(struct fm_eth *fm_eth)
     fm_eth->cur_rxbd = (void *)rxbd;
 
     return ret;
+}
+
+static void reclaim_receive_buffers(void)
+{
+    fm_eth_recv(current);
 }
 
 static int fm_eth_tx_port_parameter_init(struct fm_eth *fm_eth)
@@ -326,7 +325,7 @@ static int fm_eth_rx_port_parameter_init(struct fm_eth *fm_eth)
     /* save them to fm_eth */
     fm_eth->rx_bd_ring = rx_bd_ring_base;
     fm_eth->cur_rxbd = rx_bd_ring_base;
-    fm_eth->rx_buf = rx_buf_pool;
+    //fm_eth->rx_buf = rx_buf_pool;
 
     /* init Rx BDs ring */
     rxbd = (struct fm_port_bd *)rx_bd_ring_base;
@@ -413,7 +412,7 @@ void p3041_init(void)
     dtsec4.tx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC4_TX_PORT*0x1000);
     current = &dtsec3;
 
-    dtsec_get_mac_addr((void *)CONFIG_SYS_FM1_DTSEC3_ADDR, macaddr);
+    dtsec_get_mac_addr((void *)CONFIG_SYS_FM1_DTSEC3_ADDR, internal_device_struct.macaddr);
     fm_init_muram(0, (void *)CONFIG_SYS_FSL_FM1_MURAM_ADDR);
 
     /* qmi_common and bmi_common are initialized in this memory by u-boot */
@@ -422,37 +421,7 @@ void p3041_init(void)
     fm_eth_rx_port_parameter_init(current);
     fm_eth_tx_port_parameter_init(current);
 
-    {
-        struct fm_port_global_pram *dtsec3_rx_pram = (void *) muram.base + 0x21000;
-
-        printf("UBOOT rx offset_in:  [%p]= 0x%x\n",
-                &dtsec3_rx_pram->rxqd.offset_in,
-                dtsec3_rx_pram->rxqd.offset_in
-                );
-        printf("UBOOT rx offset_out: [%p]= 0x%x\n",
-                &dtsec3_rx_pram->rxqd.offset_out,
-                dtsec3_rx_pram->rxqd.offset_out
-                );
-
-    }
-
     fm_eth_open(current, (void *)CONFIG_SYS_FM1_DTSEC3_ADDR);
-
-#if 0
-    while (1) {
-        fm_eth_recv(current);
-        for (int i = 0; i<10000000; i++) {
-            udelay(100);
-            /*
-            if (i > 0x10000) {
-                printf("%s: Tx error\n", DRV_NAME);
-                return 0;
-
-            }*/
-        }
-        printf("A\n");
-    }
-#endif
 }
 
 
@@ -479,28 +448,24 @@ pok_bool_t dummy_send_frame_gather(const pok_network_sg_list_t *sg_list,
     return 0;
 }
 
-void dummy_set_packet_received_callback(void (*f)(const char *, size_t)) {
-    //printf("%s\n", __func__);
+void set_packet_received_callback(void (*f)(const char *, size_t)) {
+    internal_device_struct.packet_received_callback = f;
 }
 
-void dummy_reclaim_receive_buffers(void) {
-    //printf("%s\n", __func__);
-}
 void dummy_flush_send(void) {
-    //printf("%s\n", __func__);
 }
 
 static const pok_network_driver_ops_t driver_ops = {
     .send_frame = send_frame,
     .send_frame_gather =            dummy_send_frame_gather,
-    .set_packet_received_callback = dummy_set_packet_received_callback,
+    .set_packet_received_callback = set_packet_received_callback,
     .reclaim_send_buffers =         reclaim_send_buffers,
-    .reclaim_receive_buffers =      dummy_reclaim_receive_buffers,
+    .reclaim_receive_buffers =      reclaim_receive_buffers,
     .flush_send =                   dummy_flush_send,
 };
 
 pok_network_driver_device_t pok_network_p3041_device = {
     .ops = &driver_ops,
-    .mac = macaddr
+    .mac = internal_device_struct.macaddr
 };
 

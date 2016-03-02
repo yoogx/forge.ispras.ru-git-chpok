@@ -27,6 +27,7 @@
                      defined in the standard
                 -->
                 <Sampling_Port Name="SP1" MaxMessageSize="64" Direction="SOURCE" Refresh="1s" />
+                <Sampling_Port Name="SP2" MaxMessageSize="64" Direction="DESTINATION" Refresh="1s" />
             </ARINC653_Ports>
             <HM_Table>
                 <!-- 
@@ -74,7 +75,8 @@
                      A653_SamplingPortType and A653_QueueingPortType
                      defined in the standard
                 -->
-                <Sampling_Port Name="SP2" MaxMessageSize="64" Direction="DESTINATION" Refresh="1s" />
+                <Sampling_Port Name="UIN" MaxMessageSize="64" Direction="SOURCE" Refresh="1s" />
+                <Sampling_Port Name="UOUT" MaxMessageSize="64" Direction="DESTINATION" Refresh="1s" />
             </ARINC653_Ports>
 
             <HM_Table>
@@ -126,13 +128,16 @@
                 <Standard_Partition PartitionName="P1" PortName="SP1" />
             </Source>
             <Destination>
-                <Standard_Partition PartitionName="P2" PortName="SP2" />
+                <Standard_Partition PartitionName="P2" PortName="UOUT" />
             </Destination>
-            <!--
+        </Channel>
+        <Channel>
+            <Source>
+                <Standard_Partition PartitionName="P2" PortName="UIN" />
+            </Source>
             <Destination>
-                <UDP IP="10.0.0.2" Port="10000" />
+                <Standard_Partition PartitionName="P1" PortName="SP2" />
             </Destination>
-            -->
         </Channel>
     </Connection_Table>
 </chpok-configuration>
