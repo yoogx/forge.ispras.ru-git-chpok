@@ -39,8 +39,9 @@ Export('env')
 
 SConscript(env['POK_PATH']+'/misc/SConscript')
 
-part_build_dir = env['BUILD_DIR']
-SConscript('SConscript', variant_dir = env['BUILD_DIR'], duplicate = 0, exports = 'part_build_dir')
+part_dir = os.path.join(env['SCONSTRUCT_DIR'], '')
+part_build_dir = os.path.join(env['SCONSTRUCT_DIR'], env['BUILD_DIR'])
+SConscript(env['POK_PATH']+'/misc/SConscript_partition', exports = ['part_dir', 'part_build_dir'])
 
 env.Clean('chpok', [env['POK_PATH']+'/build/'+bsp for bsp in boards])
 env.Clean('local', 'build')
