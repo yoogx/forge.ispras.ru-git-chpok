@@ -80,8 +80,12 @@ static void packet_received_callback(const char *data, size_t len)
     }
 
     if (len != ntoh16(ip_hdr->length)) {
-        printf("Packet length mismatch (received buffer size vs. specified in IP header).\n");
-        return;
+        if (len > ntoh16(ip_hdr->length)) {
+            len = ntoh16(ip_hdr->length);
+        } else {
+            printf("Packet length mismatch (received buffer size vs. specified in IP header).\n");
+            return;
+        }
     }
 
     data += (ip_hdr->version_len & 0xf) * 4;
