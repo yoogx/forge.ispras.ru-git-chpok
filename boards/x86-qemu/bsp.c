@@ -25,12 +25,12 @@
 
 #include <assert.h>
 
-#include <bsp.h>
+#include <bsp_common.h>
 
 #define ALIGN_UP(boundary, val) \
 	(val + (boundary - 1)) & (~(boundary - 1))
 
-pok_ret_t pok_bsp_init (void)
+int pok_bsp_init (void)
 {
    pok_cons_init ();
    pok_pm_init ();

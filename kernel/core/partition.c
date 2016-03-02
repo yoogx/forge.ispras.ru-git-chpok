@@ -47,7 +47,7 @@
 #ifdef POK_NEEDS_PARTITIONS
 
 #include <arch.h>
-#include <bsp.h>
+#include <bsp_common.h>
 #include <errno.h>
 #include <dependencies.h>
 #include <core/sched.h>

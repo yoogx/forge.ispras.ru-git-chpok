@@ -20,6 +20,7 @@
 #include <arch.h>
 #include <core/debug.h>
 #include "cons.h"
+#include <bsp_common.h>
 #include "space.h"
 
 #include "devtree.h"
@@ -30,7 +31,12 @@ pok_bsp_t pok_bsp = {
     .ccsrbar_base_phys = 0xFE0000000ULL,
     .dcfg_offset = 0xE0000UL,
     .serial0_regs_offset = 0x4500ULL,
-    .timebase_freq = 400000000
+    .timebase_freq = 400000000,
+    .pci_bridge = {
+        .cfg_addr = 0xe0008000,
+        .cfg_data = 0xe0008004,
+        .iorange =  0xe1000000
+    }
 };
 
 extern char _end[];

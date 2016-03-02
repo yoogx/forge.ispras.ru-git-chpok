@@ -45,7 +45,7 @@
 
 #if defined (POK_NEEDS_PORTS_QUEUEING) || defined (POK_NEEDS_PORTS_SAMPLING)
 
-#include <bsp.h>
+#include <bsp_common.h>
 #include <types.h>
 #include <libc.h>
 

@@ -21,7 +21,7 @@
 #include <types.h>
 #include <libc.h>
 #include <stdarg.h>
-#include <bsp.h>
+#include <bsp_common.h>
 
 static const char digits[] = "0123456789abcdef";
 

@@ -24,7 +24,7 @@
 #include <config.h>
 
 #include <arch.h>
-#include <bsp.h>
+#include <bsp_common.h>
 #include <core/time.h>
 #include <core/thread.h>
 #include <core/sched.h>

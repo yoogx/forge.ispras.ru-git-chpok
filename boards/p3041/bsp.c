@@ -19,8 +19,9 @@
 #include <errno.h>
 #include <arch.h>
 #include <core/debug.h>
-#include "cons.h"
+#include <bsp_common.h>
 #include "space.h"
+#include <cons.h>
 
 #include "devtree.h"
 
@@ -30,7 +31,12 @@ pok_bsp_t pok_bsp = {
     .ccsrbar_base_phys = 0x0FE000000ULL,
     .dcfg_offset = 0xE0000ULL,
     .serial0_regs_offset = 0x11C500ULL,
-    .timebase_freq = 17000000
+    .timebase_freq = 17000000,
+    .pci_bridge = {
+        .cfg_addr = 0xfe200000,
+        .cfg_data = 0xfe200004,
+        .iorange =  0xf8000000
+    }
 };
 
 int pok_bsp_init (void)

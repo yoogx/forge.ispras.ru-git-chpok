@@ -21,8 +21,8 @@
  * \date    2008-2009
  */
 
-#ifndef __POK_BSP_H__
-#define __POK_BSP_H__
+#ifndef __POK_BSP_COMMON_H__
+#define __POK_BSP_COMMON_H__
 
 #include <config.h>
 
@@ -30,7 +30,7 @@
 #include <errno.h>
 
 
-pok_ret_t pok_bsp_init();
+int pok_bsp_init();
 
 pok_ret_t pok_bsp_irq_acknowledge (uint8_t irq);
 
@@ -55,6 +55,15 @@ int read_serial();
 
 #ifdef POK_NEEDS_DEBUG
 void pok_bsp_debug();
+#endif
+
+
+#ifdef __PPC__
+#include <arch/ppc/bsp.h>
+#endif
+
+#ifdef __i386__
+//#include <arch/x86/bsp.h>
 #endif
 
 #endif /* !BSP_H_ */

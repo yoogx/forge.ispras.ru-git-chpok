@@ -34,7 +34,7 @@
 
 #include <config.h>
 
-#include <bsp.h>
+#include <bsp_common.h>
 #include <types.h>
 #include <libc.h>
 #include <ioports.h>
