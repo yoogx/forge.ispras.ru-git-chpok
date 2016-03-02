@@ -31,15 +31,6 @@
 
 #define UART_LSR_THRE   0x20
 
-pok_bsp_t pok_bsp = {
-    .ccsrbar_size = 0x1000000ULL,
-    .ccsrbar_base = 0xE0000000ULL,
-    .ccsrbar_base_phys = 0xFE0000000ULL,
-    .dcfg_offset = 0xE0000UL,
-    .serial0_regs_offset = 0x4500ULL,
-    .timebase_freq = 400000000
-};
-
 static void ns16550_writeb(int offset, int value)
 {
     outb(pok_bsp.ccsrbar_base + pok_bsp.serial0_regs_offset + offset, value);
