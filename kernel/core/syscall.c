@@ -385,6 +385,14 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
               return 0;
       }
 
+      case POK_SYSCALL_GET_BSP_INFO:
+      {
+         POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg1 + infos->base_addr)
+         //TODO add check that current partition is system
+         pok_bsp_get_info((void *)(args->arg1 + infos->base_addr));
+         return 0;
+      }
+
       default:
        /*
         * Unrecognized system call ID.

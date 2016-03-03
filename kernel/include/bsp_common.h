@@ -45,6 +45,9 @@ void  *pok_bsp_mem_alloc_aligned(size_t size, size_t alignment);
 
 pok_ret_t pok_bsp_time_init ();
 
+void pok_bsp_get_info(void *addr);
+
+
 bool_t pok_cons_write (const char* s,
                        size_t length);
 

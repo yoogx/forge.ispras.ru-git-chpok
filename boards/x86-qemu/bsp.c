@@ -93,3 +93,8 @@ pok_ret_t pok_bsp_time_init ()
    return (pok_x86_qemu_timer_init ());
 }
 
+void pok_bsp_get_info(void *addr) {
+    pok_fatal("pok_bsp_get_info unimplemented on x86");
+}
+
+

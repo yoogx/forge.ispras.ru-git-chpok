@@ -95,3 +95,9 @@ void *pok_bsp_mem_alloc_aligned(size_t mem_size, size_t alignment)
     pok_fatal("unimplemented!");
 }
 
+void pok_bsp_get_info(void *addr) {
+    pok_bsp_t *data = addr;
+    *data = pok_bsp;
+}
+
+

@@ -3,6 +3,7 @@
 #include <ioports.h>
 #include <stdio.h>
 
+#include <bsp.h>
 #include "pci_internal.h"
 
 extern struct pci_driver ne2k_pci_driver;
@@ -15,7 +16,9 @@ struct pci_driver *pci_driver_table[] = {
 };
 
 
+#ifdef __PPC__
 struct pci_bridge bridge;
+#endif
 
 static char *get_pci_class_name(int classcode) {
     int i = 0;
@@ -113,22 +116,19 @@ void pci_list()
 
 void pci_init()
 {
-    printf("\n***********************************************\n");
+    printf("\nPCI initializing\n");
 
 #ifdef __PPC__
-    //TODO make syscall
-    //bridge = devtree_get_pci_props();
-    bridge.cfg_addr = (uint32_t*) 0xe0008000;
-    bridge.cfg_data = (void *) 0xe0008004;
+    pok_bsp_t pok_bsp;
+    pok_bsp_get_info(&pok_bsp);
+    bridge = pok_bsp.pci_bridge;
 
-    bridge.iorange = 0xe1000000;
-
+    //TODO add pci_bridge too?
     static uint32_t bar0_addr = 0x1001;
-    const uint32_t BAR0_SIZE = 0x100; 
+    const uint32_t BAR0_SIZE = 0x100;
 
-    printf("PCI initializing\n");
     printf("bridge cfg_addr: %p cfg_data: %p\n",
-            bridge.cfg_addr, bridge.cfg_data);
+            (void *)bridge.cfg_addr, (void *)bridge.cfg_data);
 #endif
 
     for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
@@ -165,5 +165,5 @@ void pci_init()
             }
         }
     pci_list();
-    printf("\n***********************************************\n\n");
+    printf("\n");
 }

@@ -1,12 +1,6 @@
 # ifndef __POK__PCI_INTERNAL_H__
 # define __POK__PCI_INTERNAL_H__
 
-struct pci_bridge {
-    uint32_t *cfg_addr;
-    void     *cfg_data;
-    uint32_t iorange;
-};
-
 
 /* 
  * These struct was got from http://www.jbox.dk/sanos/source/sys/krnl/pci.c.html 
@@ -104,5 +98,6 @@ const struct {
     {0x118000, "Signal processing controller"},
     {0x000000, NULL}
 };
+
 
 #endif

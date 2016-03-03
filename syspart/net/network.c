@@ -128,9 +128,9 @@ pok_bool_t p3041_send_frame( char *buffer, size_t size, pok_network_buffer_callb
 
 void pok_network_init(void)
 {
-    //pci_init();
+    pci_init();
 
-    p3041_init();
+    //p3041_init();
 
     NETWORK_DRIVER_OPS->set_packet_received_callback(packet_received_callback);
     initialized = TRUE;
