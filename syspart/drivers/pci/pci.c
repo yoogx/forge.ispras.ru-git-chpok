@@ -74,6 +74,21 @@ void pci_write_word(s_pci_device *d, uint32_t reg, uint16_t val)
 #endif
 
 }
+void pci_write_dword(s_pci_device *d, uint32_t reg, uint32_t val)
+{
+    uint32_t addr = (1 << 31) | (d->bus << 16) | (d->dev << 11) | 
+        (d->fun << 8) | (reg & 0xfc);
+
+#ifdef __PPC__
+    out_be32((uint32_t *) bridge.cfg_addr, addr);
+    out_le32((uint32_t *) bridge.cfg_data, val);
+#else
+    outl(PCI_CONFIG_ADDRESS, addr);
+    outw(PCI_CONFIG_DATA, val);
+#endif
+
+}
+
 
 void pci_list()
 {
@@ -113,7 +128,12 @@ void pci_list()
         }
 }
 
-
+#define PEX1_PEXOWBAR1 0xc28
+#define PEX1_PEXOWAR1  0xc30
+#define WAR_EN         0x80000000
+#define WAR_RTT_IO     0x00080000
+#define WAR_WTT_IO     0x00008000
+#define WAR_OWS_8K     0xC
 void pci_init()
 {
     printf("\nPCI initializing\n");
@@ -129,6 +149,10 @@ void pci_init()
 
     printf("bridge cfg_addr: %p cfg_data: %p\n",
             (void *)bridge.cfg_addr, (void *)bridge.cfg_data);
+
+    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWBAR1), bridge.iorange>>12);
+    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR1), WAR_EN|WAR_RTT_IO|WAR_WTT_IO|WAR_OWS_8K);
+
 #endif
 
     for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
@@ -151,7 +175,7 @@ void pci_init()
                 if (pci_match_device(pci_driver->id_table, &pci_dev)) {
                     printf("MATCH %s\n", pci_driver->name);
 #ifdef __PPC__
-                    pci_write_word(&pci_dev, PCI_REG_BAR0, bar0_addr);
+                    pci_write_dword(&pci_dev, PCI_REG_BAR0, bar0_addr);
                     pci_write_word(&pci_dev, PCI_REG_COMMAND, PCI_COMMAND_IO);
                     pci_dev.bar[0] = bridge.iorange + bar0_addr;
                     pci_dev.ioaddr = pci_dev.bar[0] & BAR_IOADDR_MASK;
