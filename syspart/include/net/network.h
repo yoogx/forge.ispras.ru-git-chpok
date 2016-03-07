@@ -20,20 +20,16 @@
 
 #include <types.h>
 
-#if 0
-#define POK_NETWORK_OVERHEAD_DRIVER 10
+#define POK_NETWORK_OVERHEAD_DRIVER 0
+#if 1
 #define NETWORK_DRIVER pok_network_virtio_device
 #define NETWORK_DRIVER_OPS (pok_network_virtio_device.ops)
 #elif 0
 #define NETWORK_DRIVER pok_network_ne2000_device
 #define NETWORK_DRIVER_OPS (pok_network_ne2000_device.ops)
-#undef POK_NETWORK_OVERHEAD_DRIVER
-#define POK_NETWORK_OVERHEAD_DRIVER 0
 #elif 1
 #define NETWORK_DRIVER pok_network_p3041_device
 #define NETWORK_DRIVER_OPS (pok_network_p3041_device.ops)
-#undef POK_NETWORK_OVERHEAD_DRIVER
-#define POK_NETWORK_OVERHEAD_DRIVER 0
 #endif
 
 // ethernet + ip + udp

@@ -277,8 +277,9 @@ static pok_bool_t send_frame_gather(const pok_network_sg_list_t *sg_list,
                                     pok_network_buffer_callback_t callback,
                                     void *callback_arg)
 {
+    static struct virtio_net_hdr net_hdr;
     struct virtio_network_device *dev = &virtio_network_device;
-    
+
     // now, send it to the virtqueue
     struct virtio_virtqueue *vq = &dev->tx_vq;
     if (vq->num_free < sg_list_len) {
@@ -286,17 +287,24 @@ static pok_bool_t send_frame_gather(const pok_network_sg_list_t *sg_list,
         return FALSE; 
     }
 
+    memset(&net_hdr, 0, sizeof(net_hdr));
+
     vq->num_free -= sg_list_len;
 
     struct vring_desc *desc;
     uint16_t head = vq->free_index;
-    
+
+
+    /* Setup first descriptor as virtio_net_hdr */
     desc = &vq->vring.desc[head];
+    desc->addr = pok_virt_to_phys(&net_hdr);
+    desc->len = sizeof(net_hdr);
+    desc->flags = VRING_DESC_F_NEXT;
+
+    /* Setup next descriptors as data*/
     size_t i;
     for (i = 0; i < sg_list_len; i++) {
-        if (i > 0) {
-            desc = &vq->vring.desc[desc->next];
-        }
+        desc = &vq->vring.desc[desc->next];
         desc->addr = pok_virt_to_phys(sg_list[i].buffer);
         if (desc->addr == 0) {
             printf("%s: kernel says that virtual address is wrong\n", __func__);
