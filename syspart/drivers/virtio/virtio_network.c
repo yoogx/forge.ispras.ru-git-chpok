@@ -135,13 +135,6 @@ static void read_mac_address(struct virtio_network_device *dev)
     for (i = 0; i < ETH_ALEN; i++) {
         mac[i] = inb(dev->pci_device.bar[0] + VIRTIO_PCI_CONFIG_OFF(FALSE) + i);
     }
-    printf("!!!!!!!!!!%x:%x:%x:%x:%x:%x\n",
-            mac[0],
-            mac[1],
-            mac[2],
-            mac[3],
-            mac[4],
-            mac[5]);
 }
 
 static void use_receive_buffer(struct virtio_network_device *dev, struct receive_buffer *buf)
@@ -215,7 +208,6 @@ static void process_received_buffer(
 
 static pok_bool_t probe_device(struct pci_device *pci_dev)
 {
-    printf("virtio-net pci probing device!\n");
     struct virtio_network_device *dev = &virtio_network_device;
 
     dev->pci_device = *pci_dev;
@@ -265,7 +257,7 @@ static pok_bool_t probe_device(struct pci_device *pci_dev)
     // 6. DRIVER_OK status bit
     set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_DRIVER_OK);
 
-    PRINTF("the device has been successfully initialized\n");
+    //PRINTF("the device has been successfully initialized\n");
 
     return TRUE;
 }
