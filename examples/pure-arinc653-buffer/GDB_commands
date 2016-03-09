@@ -2,6 +2,11 @@ define Push_to_breakpoints_reason
     set breakpoints[Head_of_breakpoints - 1].Reason = $arg0
     end
 
+document Push_to_breakpoints_reason
+Change Reason of last breakpoint
+Syntax: push_to_breakpoints_reason REASON
+    end
+
 define Thread_pid
     set $i = 0
     set $V = 0
@@ -15,6 +20,11 @@ define Thread_pid
     set $PID = $V
     end
 
+document Thread_pid
+Return thread PID
+Syntax: thread_pid THREAD_NUM
+    end
+
 define Thread_watch
     dont-repeat
     if ($arg1 > pok_config_nb_threads) || ($arg1 < 1)
@@ -24,17 +34,18 @@ define Thread_watch
         if (watchpoint_is_set == 0)
             eval "Thread_pid %d",$arg1
             set $V = $PID
-            eval "thread %d",$arg1
             eval "Switch_to %d",$V
+            eval "Easy_t_switch %d",$arg1
             set $addr = (uintptr_t) &($arg0)
             set last_breakpoint = last_breakpoint + 1
+            set breakpoints[last_breakpoint].Reason = 999
             set Head_of_breakpoints = Head_of_breakpoints + 1
             watch $arg0
             set $V = current_thread + 1
             eval "Thread_pid %d",$V
             set $V = $PID
             eval "Switch_to %d",$V
-            eval "thread %d",current_thread + 1
+            eval "Easy_t_switch %d",current_thread + 1
         else
             printf "ERROR, Too many hardware watchpoints!\n"
             end
@@ -48,7 +59,7 @@ Syntax: thread_watch ADDR THREAD_NUMBER
 
 define Thread_delete_w
     dont-repeat
-    if (breakpoints[$arg0].B_num != 0)
+    if (breakpoints[$arg0].B_num != 0) || (breakpoints[$arg0].Reason != 999)
         printf "Error, there is no such watchpoint\n"
         loop_break
     else
@@ -61,12 +72,6 @@ Delete watchpoint
 Syntax: thread_delete_w BREAKPOINT_NUMBER
     end
 
-
-define Remove_symbol_file
-    if $arg0 > 1
-        eval "remove-symbol-file -a 0x%x", pok_partitions[$arg0 - 2].base_vaddr
-        end
-    end
 
 define Easy_break
     set $old_Head = Head_of_breakpoints
@@ -100,6 +105,12 @@ define Easy_break
         end
     end
 
+document Easy_break
+Just add new breakpoint on addr
+Syntax: easy_break ADDR THREAD_NUM
+    end
+
+
 define Easy_delete 
     eval "set b_need_to_delete = %d",breakpoints[$arg0].B_num
     eval "delete %d",$arg0
@@ -113,20 +124,47 @@ define Easy_delete
     set breakpoints[$arg0].C_addr = 0
     end
 
-define Easy_switch
-    set $G = $arg0 + 1
-    if $OLD_PID != -1
-        eval "remove-symbol-file -a 0x%x", pok_partitions[$OLD_PID - 1].base_vaddr
-        end
-    eval "add-symbol-file pr%d/pr%d.elf 0x%x", $G,$G,pok_partitions[$arg0].base_vaddr
+document Easy_delete
+Just delete breakpoint
+Syntax: easy_delete BREAKPOINT_NUM
     end
 
+define Easy_t_switch
+    if $OLD_THREAD != $arg0
+        printf "SWITCH!"
+        printf "OLD_THREAD = %d, NEW_THREAD = %d \n", $OLD_THREAD, $arg0
+        eval "thread %d", $arg0
+        set $OLD_THREAD = $arg0
+        end
+    end
+
+document Easy_t_switch
+Switch to thread
+Syntax: easy_t_switch THREAD_NUM
+    end
+
+define Easy_switch
+    set $G = $arg0 + 1
+    if $OLD_PID != $arg0
+        printf "SWITCH!!!\n"
+        printf "OLD_PID = %d; NEW_PID = %d\n", $OLD_PID, $arg0
+        if $OLD_PID != -1
+            eval "remove-symbol-file -a 0x%x", pok_partitions[$OLD_PID - 1].base_vaddr
+            end
+        eval "add-symbol-file pr%d/pr%d.elf 0x%x", $G,$G,pok_partitions[$arg0].base_vaddr
+        end
+    end
+
+document Easy_switch
+Switch to PID by adding a symbol file
+Syntax: easy_switch PID
+    end
 
 define Switch_to 
     if $arg0 > 0
         set $K = $arg0 - 1
         eval "Easy_switch %d",$K
-        set $OLD_PID = $arg0
+        set $OLD_PID = $K
         end
     end
 
@@ -140,7 +178,7 @@ define hook-continue
     eval "Thread_pid %d",$V
     set $V = $PID
     eval "Switch_to %d",$V
-    eval "thread %d",current_thread + 1
+    eval "Easy_t_switch %d",current_thread + 1
     end
     
     
@@ -152,7 +190,7 @@ define Thread_break
     else
         eval "Thread_pid %d",$arg1
         set $V = $PID
-        eval "thread %d",$arg1
+        eval "Easy_t_switch %d",$arg1
         eval "Switch_to %d",$V
         eval "set b_need_to_set = 0"
         Easy_break $arg0 $arg1
@@ -161,7 +199,7 @@ define Thread_break
         eval "Thread_pid %d",$V
         set $V = $PID
         eval "Switch_to %d",$V
-        eval "thread %d",current_thread + 1
+        eval "Easy_t_switch %d",current_thread + 1
         end
     end
 
@@ -173,12 +211,12 @@ Syntax: thread_break ADDR THREAD_NUMBER
 define Thread_delete
     dont-repeat
     if ($arg0 < max_breakpoint) && (breakpoints[$arg0].T_num > 0)
-        eval "thread %d",breakpoints[$arg0].T_num
+        eval "Easy_t_switch %d",breakpoints[$arg0].T_num
         eval "Switch_to %d",breakpoints[$arg0].P_num
         eval "Easy_delete %d", $arg0
         eval "Thread_pid %d",current_thread + 1
         eval "Switch_to %d", $PID
-        eval "thread %d",current_thread + 1
+        eval "Easy_t_switch %d",current_thread + 1
     else
         printf "There is no such breakpoint!\n"
         end
@@ -205,6 +243,7 @@ define connect_to
     dont-repeat
     set breakpoint always-inserted on
     set $OLD_PID = -1
+    set $OLD_THREAD = -1
     set $P_break_on = -1
     set remotetimeout unlimited
     target remote $arg0
@@ -228,6 +267,7 @@ Syntax: connect_to PORT_ADDR
 define hook-stop
     eval "Thread_pid %d",current_thread + 1
     eval "Switch_to %d",$PID
+    set $OLD_THREAD = current_thread + 1
     if  $P_break_on > -1 
         eval "P_delete %d", $P_break_on
         set $P_break_on = -1
@@ -247,7 +287,7 @@ define P_break
             set $Part_break_i = pok_partitions[$Max_part - 1].thread_index_high        
             Switch_to $arg0
             while $Part_break_i < pok_config_nb_threads
-                eval "thread %d",$Part_break_i + 1
+                eval "Easy_t_switch %d",$Part_break_i + 1
                 set $addr = $pc
                 if $addr != 0x0
                     if $Part_break_i == pok_config_nb_threads - 3 
@@ -269,14 +309,14 @@ define P_break
                 set $Part_break_i = $Part_break_i + 1
                 end
             eval "Thread_pid %d",current_thread + 1
-            eval "thread %d",current_thread + 1
+            eval "Easy_t_switch %d",current_thread + 1
             eval "Switch_to %d",$PID
             loop_break
         else
             set $Part_break_i = pok_partitions[$arg0 - 1].thread_index_low        
             Switch_to $arg0
             while $Part_break_i < pok_partitions[$arg0 - 1].thread_index_high
-                eval "thread %d",$Part_break_i + 1
+                eval "Easy_t_switch %d",$Part_break_i + 1
                 set $addr = $pc
                 if $addr != 0x0
                     eval "set $V = *((int *) %d)",$pc
@@ -287,7 +327,7 @@ define P_break
                 set $Part_break_i = $Part_break_i + 1
                 end
             eval "Thread_pid %d",current_thread + 1
-            eval "thread %d",current_thread + 1
+            eval "Easy_t_switch %d",current_thread + 1
             eval "Switch_to %d",$PID
             end
         end
@@ -310,7 +350,7 @@ define P_delete
     else
         if Head_of_breakpoints > 0
             if $arg0 > 0
-                eval "thread %d",pok_partitions[$arg0 - 1].thread_index_low + 1
+                eval "Easy_t_switch %d",pok_partitions[$arg0 - 1].thread_index_low + 1
                 end
             Switch_to $arg0
             set $P_delete_i = Head_of_breakpoints - 1
@@ -319,12 +359,12 @@ define P_delete
                 end
             if $P_delete_i + 1 > 0
                 while (breakpoints[$P_delete_i].P_num == $arg0) && ($P_delete_i + 1 > 0) && (breakpoints[$P_delete_i].Reason == 1)
-                    eval "thread %d",breakpoints[$P_delete_i].T_num
+                    eval "Easy_t_switch %d",breakpoints[$P_delete_i].T_num
                     eval "Easy_delete %d",  $P_delete_i
                     set $P_delete_i = $P_delete_i - 1
                     end
                 eval "Thread_pid %d",current_thread + 1
-                eval "thread %d",current_thread + 1
+                eval "Easy_t_switch %d",current_thread + 1
                 eval "Switch_to %d",$PID           
             else
                 printf "ERROR, there was't p_break for this partition\n"
@@ -378,7 +418,7 @@ define P_mem
         loop_break
     else
         eval "Thread_pid %d",$arg0
-        eval "Thread %d",$arg0
+        eval "Easy_t_switch %d",$arg0
         eval "Switch_to %d",$PID
         if $argc == 2
             $arg1
@@ -393,7 +433,7 @@ define P_mem
             $arg1 $arg2 $arg3 $arg4
             end
         eval "Thread_pid %d",current_thread + 1
-        eval "Thread %d",current_thread + 1
+        eval "Easy_t_switch %d",current_thread + 1
         eval "Switch_to %d",$PID
         end
     end    
@@ -403,4 +443,8 @@ All simple operations. (read/write in memory, info registers, etc.)
 Syntax: p_mem THREAD_NUM OPERATIONS ARG1 ARG2 ...
     end
     
+define test
+    connect_to  127.0.0.1:8002
+    thread_watch GLOBAL_THING 3
+    end
 
