@@ -1,71 +1,13 @@
 # -*- Mode: Python -*-
 
-import sys
 import os
 
-sys.path.insert(1, os.path.join(os.environ["POK_PATH"], "misc"))
-import arinc653_xml_conf
-import chpok_configuration
-from lxml import etree
+SConscript(os.environ['POK_PATH']+'/misc/SConscript')
 
-boards = ['e500mc', 'e500_highmem', 'p3041', 'x86-qemu']
+Import('env')
+SConscript(env['POK_PATH']+'/misc/SConscript_base')
 
-vars = Variables()
-vars.AddVariables(
-	('xml', 'xml config to be passed to parser', 'config.xml'),
-    EnumVariable('bsp', 'bsp', 'e500_highmem', allowed_values = boards)
-)
-
-env = Environment(variables = vars, ENV = os.environ)
-
-Help(vars.GenerateHelpText(env))
-
-env['POK_PATH'] = os.path.join(os.environ['POK_PATH'], '')
-env['SCONSTRUCT_DIR'] = Dir('.').abspath
-env['BUILD_DIR'] = os.path.join('build', env['bsp'], '')
-
-root = etree.parse(env['xml'])
-parser = arinc653_xml_conf.ArincConfigParser()
-conf = parser.parse(root)
-
-env['PARTITION_DIRS'] = list(part.name for part in conf.partitions)
-env['PARTITIONS'] = list(os.path.join(part_dir, 'build', env['bsp'], 'part.elf') for part_dir in env['PARTITION_DIRS'])
-
-env['PARTITION_BUILD_DIRS'] = []
-for i in range(len(env['PARTITION_DIRS'])):
-	env['PARTITION_BUILD_DIRS'].append(os.path.join(env['PARTITION_DIRS'][i], 'build', env['bsp'], ''))
-
-# this prevents config writing when we don't need to build
-if not COMMAND_LINE_TARGETS and not env.GetOption('clean') and not env.GetOption('help'):
-	if not os.path.exists(env['BUILD_DIR']):
-		os.makedirs(env['BUILD_DIR'])
-	for pdir in env['PARTITION_BUILD_DIRS']:
-		if not os.path.exists(pdir):
-			os.makedirs(pdir)
-	chpok_configuration.write_configuration(conf, env['BUILD_DIR'], env['PARTITION_BUILD_DIRS'])
-
-Export('env')
-
-SConscript(env['POK_PATH']+'/misc/SConscript')
-SConscript('SConscript')
-
-env.Append(QEMU_FLAGS = ' -kernel '+env['BUILD_DIR']+'pok.elf')
-
-# uncomment this line if you want to use gdb
-#env.Append(QEMU_FLAGS = ' -S -s')
-
-#env.Append(QEMU_FLAGS = ' -display none')
-#env.Append(QEMU_FLAGS = ' -monitor tcp::4444,server,nowait')
-
-env.Command('run', [], env['QEMU']+env['QEMU_FLAGS'])
-env.Ignore('.', 'run')
-
-env.Command('debug', [], env['GDB']+' '+env['BUILD_DIR']+'pok.elf -ex "target remote :1234"')
-env.Ignore('.', 'debug')
-
-env.Clean('chpok', [env['POK_PATH']+'/build/'+bsp for bsp in boards])
-env.Clean('local', [
-'build',
-[pdir+'/build' for pdir in env['PARTITION_DIRS']]])
+env.Clean('chpok', env['POK_PATH']+'/build/')
+env.Clean('local', ['build/', [pdir+'/build' for pdir in env['PARTITION_DIRS']]])
 
 # EOF

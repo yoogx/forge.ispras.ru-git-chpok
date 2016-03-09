@@ -1,49 +1,13 @@
 # -*- Mode: Python -*-
 
-import sys
 import os
 
-sys.path.insert(1, os.path.join(os.environ["POK_PATH"], "misc"))
-import arinc653_xml_conf
-import chpok_configuration
-from lxml import etree
+SConscript(os.environ['POK_PATH']+'/misc/SConscript')
 
-boards = ['e500mc', 'e500_highmem', 'p3041', 'x86-qemu']
+Import('env')
+SConscript(env['POK_PATH']+'/misc/SConscript_partition_base')
 
-vars = Variables()
-vars.AddVariables(
-	('xml', 'xml config to be passed to parser', 'config.xml'),
-    EnumVariable('bsp', 'bsp', 'e500_highmem', allowed_values = boards)
-)
-
-env = Environment(variables = vars, ENV = os.environ)
-
-Help(vars.GenerateHelpText(env))
-
-env['POK_PATH'] = os.path.join(os.environ['POK_PATH'], '')
-env['SCONSTRUCT_DIR'] = Dir('.').abspath
-env['BUILD_DIR'] = os.path.join('build', env['bsp'], '')
-
-root = etree.parse(env['xml'])
-parser = arinc653_xml_conf.ArincConfigParser()
-conf = chpok_configuration.Configuration()
-conf.partitions.append(parser.parse_partition(root))
-
-# this prevents config writing when we don't need to build
-if not COMMAND_LINE_TARGETS and not env.GetOption('clean') and not env.GetOption('help'):
-	if not os.path.exists(env['BUILD_DIR']):
-		os.makedirs(env['BUILD_DIR'])
-	chpok_configuration.write_partition_configuration(conf, env['BUILD_DIR'], 0)
-
-Export('env')
-
-SConscript(env['POK_PATH']+'/misc/SConscript')
-
-part_dir = os.path.join(env['SCONSTRUCT_DIR'], '')
-part_build_dir = os.path.join(env['SCONSTRUCT_DIR'], env['BUILD_DIR'])
-SConscript(env['POK_PATH']+'/misc/SConscript_partition', exports = ['part_dir', 'part_build_dir'])
-
-env.Clean('chpok', [env['POK_PATH']+'/build/'+bsp for bsp in boards])
+env.Clean('chpok', env['POK_PATH']+'/build/')
 env.Clean('local', 'build')
 
 # EOF

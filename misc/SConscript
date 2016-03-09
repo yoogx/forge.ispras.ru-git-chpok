@@ -17,7 +17,20 @@ def print_cmd_line(s, target, src, env):
     else:
         sys.stdout.write("Making %s...\n" %(' and '.join([str(x) for x in target])))
 
-Import('env')
+boards = ['e500mc', 'e500_highmem', 'p3041', 'x86-qemu']
+
+vars = Variables()
+vars.AddVariables(
+	('xml', 'xml config to be passed to parser', 'config.xml'),
+	EnumVariable('bsp', 'bsp', 'e500_highmem', allowed_values = boards)
+)
+
+env = Environment(variables = vars, ENV = os.environ)
+
+Help(vars.GenerateHelpText(env))
+
+env['POK_PATH'] = os.path.join(os.environ['POK_PATH'], '')
+env['SCONSTRUCT_DIR'] = GetLaunchDir()
 
 open(env['SCONSTRUCT_DIR']+'/scons_build.log', 'w')
 
@@ -89,6 +102,18 @@ bsp_qemu_dict = {
     'x86-qemu':        ''
 }
 env.Append(QEMU_FLAGS = bsp_qemu_dict[env['BSP']])
+
+env['BUILD_DIR'] = os.path.join(env['SCONSTRUCT_DIR'], 'build', env['bsp'], '')
+env.Append(QEMU_FLAGS = ' -kernel '+env['BUILD_DIR']+'pok.elf')
+
+#env.Append(QEMU_FLAGS = ' -display none')
+#env.Append(QEMU_FLAGS = ' -monitor tcp::4444,server,nowait')
+
+env.Command('run_cmd', [], env['QEMU']+env['QEMU_FLAGS'])
+env.Alias('run', 'run_cmd')
+
+env.Command('debug_cmd', [], env['GDB']+' '+env['BUILD_DIR']+'pok.elf -ex "target remote :1234"')
+env.Alias('debug', 'debug_cmd')
 
 Export('env')
 

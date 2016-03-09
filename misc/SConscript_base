@@ -3,7 +3,32 @@
 import os
 import shutil
 
+from lxml import etree
+import arinc653_xml_conf
+import chpok_configuration
+
 Import('env')
+
+root = etree.parse(os.path.join(env['SCONSTRUCT_DIR'], env['xml']))
+parser = arinc653_xml_conf.ArincConfigParser()
+conf = parser.parse(root)
+
+env['PARTITION_DIRS'] = list(part.name for part in conf.partitions)
+env['PARTITIONS'] = list(os.path.join(env['SCONSTRUCT_DIR'], part_dir, 'build',
+					env['bsp'], 'part.elf') for part_dir in env['PARTITION_DIRS'])
+
+env['PARTITION_BUILD_DIRS'] = []
+for i in range(len(env['PARTITION_DIRS'])):
+	env['PARTITION_BUILD_DIRS'].append(os.path.join(env['SCONSTRUCT_DIR'], env['PARTITION_DIRS'][i], 'build', env['bsp'], ''))
+
+# this prevents config writing when we don't need to build
+if not COMMAND_LINE_TARGETS and not env.GetOption('clean') and not env.GetOption('help'):
+	if not os.path.exists(env['BUILD_DIR']):
+		os.makedirs(env['BUILD_DIR'])
+	for pdir in env['PARTITION_BUILD_DIRS']:
+		if not os.path.exists(pdir):
+			os.makedirs(pdir)
+	chpok_configuration.write_configuration(conf, env['BUILD_DIR'], env['PARTITION_BUILD_DIRS'])
 
 env.Program(target = env['BUILD_DIR']+'kernel.lo', source = [
 env['POK_PATH']+'/build/'+env['BSP']+'/kernel/core.lo',
@@ -40,7 +65,7 @@ for i in range(len(pok_env['PARTITION_BUILD_DIRS'])):
 	part_dir = os.path.join(pok_env['SCONSTRUCT_DIR'], pok_env['PARTITION_DIRS'][i])
 	part_build_dir = os.path.join(pok_env['SCONSTRUCT_DIR'], pok_env['PARTITION_BUILD_DIRS'][i])
 	if not os.path.exists(part_build_dir+'part.elf'):
-		SConscript(env['POK_PATH']+'/misc/SConscript_partition', exports = ['part_dir', 'part_build_dir'])
+		SConscript('SConscript_partition', exports = ['part_dir', 'part_build_dir'])
 
 merge_command = pok_env.Command(target = pok_env['BUILD_DIR']+'partitions.bin',
 source = pok_env['PARTITIONS'],
