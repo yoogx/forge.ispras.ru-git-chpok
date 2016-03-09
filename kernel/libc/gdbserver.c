@@ -727,12 +727,27 @@ pok_bool_t watchpoint_is_set = FALSE;
  *           3 -   Read watchpoint
  *           4 - Access watchpoint
  */
+ 
+ uintptr_t pok_virt_to_phys(uintptr_t virt, int pid)
+{
+    if (pid > 0)
+        return virt - pok_partitions[pid - 1].base_vaddr + pok_partitions[pid - 1].base_addr;
+    return virt;
+}
+uintptr_t pok_phys_to_virt(uintptr_t phys, int pid)
+{
+    if (pid > 0)
+        return phys - pok_partitions[pid - 1].base_addr + pok_partitions[pid - 1].base_vaddr;
+    return phys;
+}
+ 
 
 #define SPRN_DBCR0      0x134   /* Debug Control Register 0 */
 #define SPRN_DBCR2       0x136   /* Debug Control Register 2 */
 #define SPRN_DAC1       0x13C   /* Data Address Compare 1 */
 #define SPRN_DAC2       0x13D   /* Data Address Compare 2 */
-
+#define SPRN_DBSR       0x130   /* Debug Status Register */
+#define SPRN_DBSRWR       0x132   /* Debug Status Register Write Register*/
 
 void add_watchpoint(uintptr_t addr, int length, int *using_thread, int type){
 #ifdef QEMU
@@ -747,17 +762,26 @@ void add_watchpoint(uintptr_t addr, int length, int *using_thread, int type){
         strcpy (remcomOutBuffer, "E22");
         return;
     }
+    if (!POK_CHECK_ADDR_IN_PARTITION(give_part_num_of_thread(*using_thread + 1), addr)){
+        strcpy (remcomOutBuffer, "E03");
+        return;
+    }
+    //~ addr = pok_virt_to_phys(addr, give_part_num_of_thread(*using_thread + 1));
+    
     mtspr(SPRN_DAC1, addr);
     mtspr(SPRN_DAC2, addr + length);
     uint32_t DBCR2 = mfspr(SPRN_DBCR2);
-    DBCR2 |= 0x800000;
+    DBCR2 |= 0x22800000UL;
     mtspr(SPRN_DBCR2, DBCR2);
-    int DAC1;
-    if (type == 2) DAC1 = 0x40050000UL;
-    if (type == 3) DAC1 = 0x400A0000UL;
-    if (type == 4) DAC1 = 0x400F0000UL;
+    int DAC;
+    if (type == 2) DAC = 0x40050000UL;
+    if (type == 3) DAC = 0x400A0000UL;
+    if (type == 4) DAC = 0x400F0000UL;
     uint32_t DBCR0 = mfspr(SPRN_DBCR0);
-    DBCR0 |= DAC1;
+
+    printf("\nBefore DBCR0 = 0x%lx\n", DBCR0);
+    DBCR0 |= DAC;
+    printf("After DBCR0 = 0x%lx\n", DBCR0);
     mtspr(SPRN_DBCR0, DBCR0);
     //~ ea->srr1 |= 0x400000;
     ((struct regs *)pok_threads[*using_thread].entry_sp)->srr1 |= 0x200;
@@ -775,17 +799,33 @@ void remove_watchpoint(uintptr_t addr, int length, int *using_thread, int type){
     strcpy(remcomOutBuffer, "OK");
 #else
     /*do nothing*/
-    if ((!watchpoint_is_set) || (type > 4) || (type < 2) || (mfspr(SPRN_DAC1) != addr)){
+    if ((!watchpoint_is_set) || (type > 4) || (type < 2)){
+        
         strcpy (remcomOutBuffer, "E22");
         return;
     }
-    uint32_t DBCR0 = mfspr(SPRN_DBCR0);
-    DBCR0 &= (~0xF000);
-    mtspr(SPRN_DBCR0, DBCR0);
     strcpy(remcomOutBuffer, "OK");
     watchpoint_is_set = FALSE;
+    printf("\nWatchpoint_is_set = %d \n",watchpoint_is_set);
+    uint32_t DBCR0 = mfspr(SPRN_DBCR0);
+    printf("Before set MSR DBCR0 = 0x%lx\n", DBCR0);
     struct regs * MSR = (struct regs *)pok_threads[*using_thread].entry_sp;
-    MSR->srr1 &= (~0x200);    
+    MSR->srr1 &= (~0x200);
+    DBCR0 = mfspr(SPRN_DBCR0);    
+    printf("Before DBCR0 = 0x%lx\n", DBCR0);
+    DBCR0 &= (~0x400F0000UL);
+    printf("After DBCR0 = 0x%lx\n", DBCR0);
+    mtspr(SPRN_DBCR0, DBCR0);
+    uint32_t DBSR = mfspr(SPRN_DBSR);
+    printf("Before DBSR = 0x%lx\n", DBSR);
+    DBSR &= (~0xF0000);
+    mtspr(SPRN_DBSRWR, DBSR);
+    DBSR = mfspr(SPRN_DBSR);
+    printf("After DBSR = 0x%lx\n", DBSR);
+    uint32_t DBCR2 = mfspr(SPRN_DBCR2);
+    DBCR2 &= (~0x800000);
+    mtspr(SPRN_DBCR2, DBCR2);
+    
     //~ ea->srr1 &= (~0x400000);
     
 #endif    

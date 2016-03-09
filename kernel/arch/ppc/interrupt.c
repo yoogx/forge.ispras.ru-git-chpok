@@ -75,6 +75,12 @@ void pok_int_program(struct regs * ea) {
 
 ////printf("ea = 0x%lx\n", ea);
 //// pok_trap_addr = address of pok_trap in entry.S
+    printf("    Pok_int_program interrupt\n");
+    int DBCR0 = mfspr(SPRN_DBCR0);
+    printf("DBCR0 = 0x%x\n", DBCR0);
+    printf("DBSR = %lx\n", mfspr(SPRN_DBSR));
+    printf("DAC1 = %lx\n", mfspr(SPRN_DAC1));
+    printf("DAC2 = %lx\n", mfspr(SPRN_DAC1));
     printf("srr0 = 0x%lx\n", ea->srr0);
     printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
     if (ea->srr0 == (unsigned) (& pok_trap_addr)){
@@ -142,10 +148,12 @@ void pok_int_program(struct regs * ea) {
     }
     k=0;
     printf("srr0 = 0x%lx\n", ea->srr0);
-    printf("\n          Exit from handle exception\n");
     printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
     //~ asm volatile("isync");
     printf("instr = 0x%lx\n", *(uint32_t *)(ea->srr0));
+    DBCR0 = mfspr(SPRN_DBCR0);
+    printf("DBCR0 = 0x%x\n", DBCR0);
+    printf("\n          Exit from handle exception\n");
     
 //~ asm volatile("acbi");  
     
@@ -188,14 +196,21 @@ void pok_int_inst_tlb_miss(uintptr_t ea, uintptr_t dear, unsigned long esr) {
 }
 
 void pok_int_debug(struct regs * ea) {
+    printf("    DEBUG EVENT!\n");
     printf("DBSR = %lx\n", mfspr(SPRN_DBSR));
     printf("ea = 0x%lx\n", (uint32_t) ea);
     int DBCR0 = mfspr(SPRN_DBCR0);
     printf("DBCR0 = 0x%x\n", DBCR0);
-    mtspr(SPRN_DBCR0, 0x01000000UL);
+    printf("DAC1 = %lx\n", mfspr(SPRN_DAC1));
+    printf("DAC2 = %lx\n", mfspr(SPRN_DAC2));
     printf("srr0 = 0x%lx\n", ea->srr0);
     printf("srr1 = 0x%lx\n", ea->srr1);
     handle_exception(1, ea); 
     printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
+    DBCR0 = mfspr(SPRN_DBCR0);
+    printf("DBCR0 = 0x%x\n", DBCR0);
+    asm volatile("dcbst 0, %0; sync; icbi 0,%0; sync; isync" : : "r" ((char *) ea->srr0));
+    printf("Exit from debug event\n");    
+    //~ k = 1;
     //~ pok_fatal("Debug interrupt");
 }
