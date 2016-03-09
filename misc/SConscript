@@ -112,6 +112,11 @@ env.Append(QEMU_FLAGS = ' -kernel '+env['BUILD_DIR']+'pok.elf')
 env.Command('run_cmd', [], env['QEMU']+env['QEMU_FLAGS'])
 env.Alias('run', 'run_cmd')
 
+env.Command('run_debug_cmd', [], [
+env.Append(QEMU_FLAGS = ' -S -s'),
+env['QEMU']+env['QEMU_FLAGS']])
+env.Alias('rundbg', 'run_debug_cmd')
+
 env.Command('debug_cmd', [], env['GDB']+' '+env['BUILD_DIR']+'pok.elf -ex "target remote :1234"')
 env.Alias('debug', 'debug_cmd')
 
