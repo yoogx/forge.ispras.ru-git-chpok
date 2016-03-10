@@ -21,8 +21,8 @@ boards = ['e500mc', 'e500_highmem', 'p3041', 'x86-qemu']
 
 vars = Variables()
 vars.AddVariables(
-	('xml', 'xml config to be passed to parser', 'config.xml'),
-	EnumVariable('bsp', 'bsp', 'e500_highmem', allowed_values = boards)
+    ('xml', 'xml config to be passed to parser', 'config.xml'),
+    EnumVariable('bsp', 'bsp', 'e500_highmem', allowed_values = boards)
 )
 
 env = Environment(variables = vars, ENV = os.environ)
@@ -58,30 +58,40 @@ bsp_arch_dict = {
 }
 env['ARCH'] = bsp_arch_dict[env['BSP']]
 
+arch_prefix_dict = {
+    'ppc':    'powerpc-elf-',
+    'x86':    'i386-elf-'
+}
+env['PREFIX'] = arch_prefix_dict[env['ARCH']]
+
+tools = ['AR', 'CC', 'LINK', 'OBJCOPY', 'OBJDUMP', 'RANLIB', 'GDB']
+
+tools_dict = {
+    'AR':         'ar',
+    'CC':         'gcc',
+    'LINK':       'ld',
+    'OBJCOPY':    'objcopy',
+    'OBJDUMP':    'objdump',
+    'RANLIB':     'ranlib',
+    'GDB':        'gdb',
+}
+
+for tool in tools:
+    try:
+        env[tool] = os.environ[tool]
+    except:
+        env[tool] = env['PREFIX'] + tools_dict[tool]
+
 if env['ARCH'] == 'ppc':
     # ppc-specific flags
     env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -g -O0 -Wuninitialized \
         -ffreestanding -nostdlib -nostdinc -mregnames'
-    env['AR'] = 'powerpc-elf-ar'
-    env['CC'] = 'powerpc-elf-gcc'
-    env['LINK'] = 'powerpc-elf-ld'
-    env['OBJCOPY'] = 'powerpc-elf-objcopy'
-    env['OBJDUMP'] = 'powerpc-elf-objdump'
-    env['RANLIB'] = 'powerpc-elf-ranlib'
-    env['GDB'] = 'powerpc-elf-gdb'
     env['QEMU'] = 'qemu-system-ppc'
 
 elif env['ARCH'] == 'x86':
     # x86-specific flags
     env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -g -Og -Wuninitialized \
         -ffreestanding -nostdlib -nostdinc'
-    env['AR'] = 'i386-elf-ar'
-    env['CC'] = 'i386-elf-gcc'
-    env['LINK'] = 'i386-elf-ld'
-    env['OBJCOPY'] = 'i386-elf-objcopy'
-    env['OBJDUMP'] = 'i386-elf-objdump'
-    env['RANLIB'] = 'i386-elf-ranlib'
-    env['GDB'] = 'i386-elf-gdb'
     env['QEMU'] = 'qemu-system-i386'
 
 env['ASFLAGS'] = env['CFLAGS']
