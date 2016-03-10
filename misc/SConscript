@@ -50,6 +50,7 @@ env['BSP'] = env['bsp']
 # 16 MBytes
 env['MAX_PART_SIZE'] = 16 * 2**20
 
+# Architecture-dependent parameters
 bsp_arch_dict = {
     'e500mc':          'ppc',
     'e500_highmem':    'ppc',
@@ -62,40 +63,52 @@ arch_prefix_dict = {
     'ppc':    'powerpc-elf-',
     'x86':    'i386-elf-'
 }
-env['PREFIX'] = arch_prefix_dict[env['ARCH']]
 
-tools = ['AR', 'CC', 'LINK', 'OBJCOPY', 'OBJDUMP', 'RANLIB', 'GDB']
+arch_gdb_dict = {
+    'ppc':    'powerpc-elf-gdb',
+    'x86':    'i386-elf-gdb'
+}
+
+arch_qemu_dict = {
+    'ppc':    'qemu-system-ppc',
+    'x86':    'qemu-system-i386'
+}
 
 tools_dict = {
-    'AR':         'ar',
-    'CC':         'gcc',
-    'LINK':       'ld',
-    'OBJCOPY':    'objcopy',
-    'OBJDUMP':    'objdump',
-    'RANLIB':     'ranlib',
-    'GDB':        'gdb',
+    'PREFIX':    arch_prefix_dict,
+    'GDB':       arch_gdb_dict,
+    'QEMU':      arch_qemu_dict
 }
+
+# These might be specified as Linux environment variables
+tools = ['PREFIX', 'GDB', 'QEMU']
 
 for tool in tools:
     try:
         env[tool] = os.environ[tool]
     except:
-        env[tool] = env['PREFIX'] + tools_dict[tool]
+        env[tool] = tools_dict[tool][env['ARCH']]
 
-if env['ARCH'] == 'ppc':
-    # ppc-specific flags
-    env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -g -O0 -Wuninitialized \
-        -ffreestanding -nostdlib -nostdinc -mregnames'
-    env['QEMU'] = 'qemu-system-ppc'
+# These depend only on prefix
+env['AR']      = env['PREFIX'] + 'ar'
+env['CC']      = env['PREFIX'] + 'gcc'
+env['LINK']    = env['PREFIX'] + 'ld'
+env['OBJCOPY'] = env['PREFIX'] + 'objcopy'
+env['OBJDUMP'] = env['PREFIX'] + 'objdump'
+env['RANLIB']  = env['PREFIX'] + 'ranlib'
 
-elif env['ARCH'] == 'x86':
-    # x86-specific flags
-    env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -g -Og -Wuninitialized \
-        -ffreestanding -nostdlib -nostdinc'
-    env['QEMU'] = 'qemu-system-i386'
+env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
+
+env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -Wuninitialized \
+    -ffreestanding -nostdlib -nostdinc -g'
+
+cflags_arch_dict = {
+    'ppc':    ' -O0 -mregnames',
+    'x86':    ' -Og'
+}
+env.Append(CFLAGS = cflags_arch_dict[env['ARCH']])
 
 env['ASFLAGS'] = env['CFLAGS']
-env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
 
 bsp_cpu_dict = {
     'e500mc':          ' -mcpu=e500mc',
@@ -117,7 +130,6 @@ env['BUILD_DIR'] = os.path.join(env['SCONSTRUCT_DIR'], 'build', env['bsp'], '')
 env.Append(QEMU_FLAGS = ' -kernel '+env['BUILD_DIR']+'pok.elf')
 
 #env.Append(QEMU_FLAGS = ' -display none')
-#env.Append(QEMU_FLAGS = ' -monitor tcp::4444,server,nowait')
 
 env.Command('run_cmd', [], env['QEMU']+env['QEMU_FLAGS'])
 env.Alias('run', 'run_cmd')
