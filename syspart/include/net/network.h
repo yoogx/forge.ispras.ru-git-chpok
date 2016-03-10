@@ -20,7 +20,6 @@
 
 #include <types.h>
 
-#define POK_NETWORK_OVERHEAD_DRIVER 0
 #if 1
 #define NETWORK_DRIVER pok_network_virtio_device
 #define NETWORK_DRIVER_OPS (pok_network_virtio_device.ops)
@@ -34,7 +33,7 @@
 
 // ethernet + ip + udp
 #define POK_NETWORK_OVERHEAD_PROTO (14+20+8)
-#define POK_NETWORK_OVERHEAD (POK_NETWORK_OVERHEAD_DRIVER + POK_NETWORK_OVERHEAD_PROTO)
+#define POK_NETWORK_OVERHEAD (POK_NETWORK_OVERHEAD_PROTO)
 
 typedef void (*pok_network_buffer_callback_t)(void*);
 

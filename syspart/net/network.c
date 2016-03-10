@@ -67,7 +67,6 @@ static void stub_callback(void *arg) {
 }
 
 static struct {
-    //char driver_overhead[POK_NETWORK_OVERHEAD_DRIVER];
     struct ether_hdr ether_hdr;
     struct arp_packet_t arp_answer;
 } __attribute__((packed)) arp_answer_buffer;
@@ -299,7 +298,7 @@ pok_bool_t pok_network_send_udp(
         return FALSE;
 
     fill_in_udp_header(
-        buffer + POK_NETWORK_OVERHEAD_DRIVER,
+        buffer,
         size,
         dst_ip,
         dst_port
@@ -341,7 +340,7 @@ pok_bool_t pok_network_send_udp_gather(
     }
 
     fill_in_udp_header(
-        sg_list[0].buffer + POK_NETWORK_OVERHEAD_DRIVER, 
+        sg_list[0].buffer, 
         payload_length, 
         dst_ip, 
         dst_port
