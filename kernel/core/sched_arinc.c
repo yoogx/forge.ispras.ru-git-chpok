@@ -1,19 +1,24 @@
 #include <core/sched_arinc.h>
+#include <core/delayed_event.h>
+#include <core/thread.h>
+#include "thread_internal.h"
 
-pok_thread_t* current_thread;
+//pok_thread_t* current_thread;
 
-uint8_t current_space_id;
+//uint8_t current_space_id;
 
 static void thread_deadline_occured(struct delayed_event* event)
 {
     pok_thread_t* thread = container_of(event, typeof(*thread), thread_deadline_event);
-    // TODO: fire deadline
+    pok_thread_emit_deadline_missed(thread);
+    
+    // TODO: if error was ignored, what to do?
 }
 
-static void thread_delayed_event(struct delayed_event* event)
+static void thread_delayed_event_func(struct delayed_event* event)
 {
-    pok_thread_t* thread = container_of(event, typeof(*thread), thread_delayed_event.base_event);
-    thread->thread_delayed_event.process_thread_event(thread);
+    pok_thread_t* thread = container_of(event, typeof(*thread), thread_delayed_event);
+    thread_wake_up(thread);
 }
 
 
@@ -60,29 +65,22 @@ static void port_queuing_fired(pok_port_queuing_t* port_queuing)
 
 }
 
-static void pok_sched_arinc(void)
+// Called with local preemption disabled.
+static void sched_arinc(void)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
-    pok_time_t now;
     
-    pok_thread_t* oldThread = currentThread;
+    pok_thread_t* oldThread = part->thread_current;
     
     uint32_t* sp_old = oldThread? &oldThread->sp : &part->base_part.sp;
     uint32_t* sp_new;
     
-    if(!pok_sched_local_check_invalidated()) return;
-
-    if(pok_sched_local_check_slot_started())
+    if(flag_test_and_reset(part->base_part.state.bytes.control_returned))
     {
         pok_port_queuing_t* port_queuing = part->ports_queuing;
         pok_port_queuing_t* port_queuing_end = port_queuing + part->nports_queuing;
         
-        // Switch user space
-        pok_preemption_disable();
-        pok_space_switch(pok_partition_get_space(part);
-        pok_preemption_enable();
-        
-        for(;port_queueing < port_queuing_end; port_queuing++)
+        for(;port_queuing < port_queuing_end; port_queuing++)
         {
             if(!port_queuing->is_notified) continue;
             
@@ -91,166 +89,110 @@ static void pok_sched_arinc(void)
             
             port_queuing_fired(port_queuing);
         }
-        // TODO: Sample ports
-
+        
+        // As if time has been changed too.
+        flag_set(part->base_part.state.bytes.time_changed);
+    }
+    if(flag_test_and_reset(part->base_part.state.bytes.time_changed))
+    {
+        pok_time_t now = POK_GETTICK();
+        
+        delayed_event_queue_check(&part->queue_deadline, now, &thread_deadline_occured);
+        
+        delayed_event_queue_check(&part->queue_delayed, now, &thread_delayed_event_func);
     }
     
-    now = POK_GETTICK();
+    if(!flag_test_and_reset(part->sched_local_recheck_needed)) return;
+
+    assert(part->mode != POK_PARTITION_MODE_IDLE);
     
-    timer_check(&part->timer_deadline, now, &thread_deadline_occured);
-    
-    timer_check(&part->timer_delayed, now, &thread_delyed_event);
-    
-    if(0)
+    if(part->mode != POK_PARTITION_MODE_NORMAL)
     {
+        part->thread_current = &part->threads[POK_PARTITION_ARINC_MAIN_THREAD_ID];
+        assert(part->thread_current->state == POK_STATE_RUNNABLE);
     }
 #ifdef POK_NEEDS_ERROR_HANDLING
     else if(part->thread_error->state != POK_STATE_STOPPED)
     {
-        currentThread = part->thread_error;
+        part->thread_current = part->thread_error;
+    }
+    else if(!list_empty(&part->error_list))
+    {
+        // Start error handler (aperiodic, no timeout).
+        pok_thread_t* thread = part->thread_error;
+        
+        thread->priority = thread->base_priority;
+        thread->sp = 0;
+      
+        thread->state = POK_STATE_RUNNABLE;
+        
+        part->thread_current = thread;
     }
 #endif
     else if(part->lock_level)
     {
-        currentThread = part->thread_locked;
+        part->thread_current = part->thread_locked;
     }
     else if(!list_empty(&part->eligible_threads))
     {
-        currentThread = list_first_entry(&part->eligible_threads,
+        part->thread_current = list_first_entry(&part->eligible_threads,
             pok_thread_t, eligible_elem);
     }
     else
     {
-        currentThread = NULL;
+        part->thread_current = NULL;
     }
 
-    if(oldThread == currentThread) return; // TODO: Process thread restarting.
+    if(oldThread == part->thread_current) return; // TODO: Process thread restarting. Is it needed?
     
     sp_new = oldThread? &oldThread->sp : &part->base_part.sp;
     
-    pok_context_switch(old_sp, *new_sp);
+    pok_context_switch(sp_old, *sp_new);
 }
 
-static void pok_unlock_sleeping_threads(pok_partition_t *new_partition)
+void pok_preemption_local_disable(void)
 {
-   pok_thread_id_t i;
-   uint64_t now = POK_GETTICK();
-   for (i = 0; i < new_partition->nthreads; i++)
-   {
-     pok_thread_t *thread = &pok_threads[new_partition->thread_index_low + i];
-
-#if defined (POK_NEEDS_LOCKOBJECTS) || defined (POK_NEEDS_PORTS_QUEUEING) || defined (POK_NEEDS_PORTS_SAMPLING)
-     if ((thread->state == POK_STATE_WAITING) && (thread->wakeup_time <= now))
-     {
-       thread->state = POK_STATE_RUNNABLE;
-     }
-#endif
-
-     if ((thread->state == POK_STATE_WAIT_NEXT_ACTIVATION) && (thread->next_activation <= now))
-     {
-       thread->state = POK_STATE_RUNNABLE;
-       thread->next_activation = thread->next_activation + thread->period; 
-     }
-
-     if (thread->suspended && thread->suspend_timeout <= now) {
-       thread->suspended = FALSE;
-     }
-   }
+    assert(!current_partition_arinc->base_part.preempt_local_disabled);
+    
+    flag_set(current_partition_arinc->base_part.preempt_local_disabled);
 }
 
-#ifdef POK_NEEDS_ERROR_HANDLING
-static void
-pok_error_check_deadlines(void)
+void pok_preemption_local_enable(void)
 {
-    pok_thread_id_t i;
-    uint64_t now = POK_GETTICK();
+    assert(current_partition_arinc->base_part.preempt_local_disabled);
+    
+    sched_arinc();
+    
+    barrier();
+    
+    flag_reset(current_partition_arinc->base_part.preempt_local_disabled);
+    
+    // Check that we do not miss events since sched_arinc() starts.
+    
+    while(ACCESS_ONCE(current_partition_arinc->base_part.state.bytes_all))
+    {
+        flag_set(current_partition_arinc->base_part.preempt_local_disabled);
 
-    pok_thread_id_t low = POK_CURRENT_PARTITION.thread_index_low,
-                    high = POK_CURRENT_PARTITION.thread_index;
-
-    for (i = low; i < high; i++) {
-        pok_thread_t *thread = &pok_threads[i];
-
-        if (POK_CURRENT_PARTITION.thread_error_created &&
-            pok_threads[POK_CURRENT_PARTITION.thread_error].state != POK_STATE_STOPPED)
-        {
-            // we're already handling an HM event
-            // (be it another deadline or something else)
-            // postpone reporting more deadline misses
-            break;
-        }
-
-        if (thread->state == POK_STATE_STOPPED) {
-            continue;
-        }
+        sched_arinc();
         
-        if (thread->end_time >= 0 && (uint64_t) thread->end_time < now) {
-			// Implementation dependent (ARINC-653 P.1-3 page 29)
-			// This is the second variant
-			thread->next_activation += thread->period;
-			thread->end_time = thread->next_activation;
-            // deadline miss HM event
-            pok_error_raise_thread(POK_ERROR_KIND_DEADLINE_MISSED, i, NULL, 0);
-        }
+        barrier();
+        
+        flag_reset(current_partition_arinc->base_part.preempt_local_disabled);
     }
 }
-#endif
 
-static pok_thread_id_t pok_elect_thread(void)
+void pok_sched_arinc_on_time_changed(void)
 {
-   pok_partition_t* new_partition = &POK_CURRENT_PARTITION;
+    // Just set corresponded flag and let generic mechanism to work.
+    flag_set(current_partition_arinc->base_part.state.bytes.time_changed);
     
-   pok_unlock_sleeping_threads(new_partition);
-
-   /*
-    * We elect the thread to be executed.
-    */
-   pok_thread_id_t elected;
-   switch (new_partition->mode)
-   {
-      case POK_PARTITION_MODE_INIT_COLD:
-      case POK_PARTITION_MODE_INIT_WARM:
-#ifdef POK_NEEDS_ERROR_HANDLING
-         // error handler is active in NORMAL mode only
-#endif
-         elected = new_partition->thread_main;
-
-         if (pok_threads[elected].state != POK_STATE_RUNNABLE) {
-            // if main thread is stopped, don't schedule it
-            elected = IDLE_THREAD;
-         }
-
-         break;
-
-      case POK_PARTITION_MODE_NORMAL:
-#ifdef POK_NEEDS_ERROR_HANDLING
-         if (new_partition->thread_error_created &&
-             pok_threads[new_partition->thread_error].state == POK_STATE_RUNNABLE)
-         {
-
-            elected = new_partition->thread_error;
-            break;
-         }
-#endif
-         if (new_partition->lock_level > 0 && pok_threads[new_partition->current_thread].state == POK_STATE_RUNNABLE) {
-            elected = new_partition->current_thread;
-            break;
-         }
-      
-          elected = new_partition->scheduler->elect_thread();
-         break;
-
-      default:
-         elected = IDLE_THREAD;
-         break;
-   }
-
-#ifdef POK_TEST_SUPPORT_PRINT_WHEN_ALL_THREADS_STOPPED
-   if (elected == IDLE_THREAD) {
-      check_all_threads_stopped();
-   }
-#endif
-
-   return elected;
+    pok_preemption_local_enable();
 }
+void pok_sched_arinc_on_control_returned(void)
+{
+    // Just set corresponded flag and let generic mechanism to work.
+    flag_set(current_partition_arinc->base_part.state.bytes.control_returned);
+    
+    pok_preemption_local_enable();
 
+}

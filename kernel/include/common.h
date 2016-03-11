@@ -1,6 +1,8 @@
 #ifndef __POK_COMMON_H__
 #define __POK_COMMON_H__
 
+#include <compiler.h>
+
 /*
  * Mark pointer as pointer to user space.
  * 
@@ -38,6 +40,16 @@
 static inline unsigned long ALIGN_SIZE(unsigned long size, unsigned long align)
 {
     return (size + align - 1) & (~(align - 1));
+}
+
+/*
+ * Infinite loop using some CPU relaxing features.
+ */
+// TODO: This should be arch-specific asm code.
+static inline void wait_infinitely(void)
+{
+    while(1) 
+        barrier();
 }
 
 #endif /* !__POK_COMMON_H__ */

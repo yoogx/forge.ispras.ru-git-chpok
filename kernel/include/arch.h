@@ -27,6 +27,10 @@
 
 #include <types.h>
 #include <errno.h>
+#include <bsp.h>
+
+// TODO: Where should be that definition?
+#define KERNEL_STACK_SIZE_DEFAULT 8192
 
 struct pok_space
 {
@@ -72,21 +76,21 @@ pok_ret_t   pok_arch_event_register (uint8_t vector, void (*handler)(void));
  * Return stack pointer, which can be used by pok_context_switch() to
  * jump into given entry with given stack.
  */
-uint32_t pok_context_init(uint32_t sp, uint32_t entry);
+uint32_t pok_context_init(uint32_t sp, void (*entry)(void));
 
 
 /**
  * pok_stack_alloc + pok_context_init.
  */
-uint32_t pok_context_create (uint32_t thread_id,
+/*uint32_t pok_context_create (uint32_t thread_id,
                                 uint32_t stack_size,
-                                uint32_t entry)
+                                void (*entry)(void))
 {
     uint32_t sp = pok_stack_alloc(stack_size);
     (void)thread_id;
     
     return pok_context_init(sp, entry);
-}
+}*/
 
 /**
  * Switch to context, stored in @new_sp.
@@ -105,7 +109,7 @@ void pok_context_switch (uint32_t* old_sp, uint32_t new_sp);
  */
 struct dStack
 {
-    uint32_t staks[2];
+    uint32_t stacks[2];
     int index;
 };
 
@@ -139,7 +143,8 @@ static inline void pok_context_jump(uint32_t new_sp)
  * 
  * Mainly used for restart current context.
  */
-static inline void pok_context_restart(struct dStack* d, uint32_t entry)
+static inline void pok_context_restart(struct dStack* d,
+        void (*entry)(void))
 {
     int index = d->index;
     int index_other = index ^ 1;
@@ -219,7 +224,6 @@ static inline void pok_context_user_jump (
         uint32_t arg1,
         uint32_t arg2)
 {
-        int index = d->index;
         int index_other = d->index ^ 1;
         d->index = index_other;
         
@@ -255,14 +259,15 @@ static inline void pok_context_user_jump (
  */
 uint32_t    pok_thread_stack_addr   (uint8_t    space_id,
                                      uint32_t stack_size,
-                                     uint32_t& state);
+                                     uint32_t* state);
 
 /*
  * Load given elf into given user space to given ARINC partition.
  * 
  * After the call @entry will be filled with address of start function.
  */
-void pok_arch_load_partition(pok_partition_arinc_t* part,
+struct _pok_patition_arinc;
+void pok_arch_load_partition(struct _pok_patition_arinc* part,
         uint8_t elf_id,
         uint8_t space_id,
         uintptr_t *entry);

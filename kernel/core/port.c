@@ -1,9 +1,13 @@
 #include <core/port.h>
+#include <core/partition_arinc.h>
+#include <core/thread.h>
+#include "thread_internal.h"
+#include <uaccess.h>
+#include <core/sched_arinc.h>
+#include <message.h>
 
 /* 
  * Find *configured* queuing port by name, which comes from user space.
- * 
- * Should be called with local preemption disabled.
  * 
  * NOTE: Name should be checked before!
  */
@@ -15,7 +19,7 @@ static pok_port_queuing_t* find_port_queuing(const char* __user name)
         current_partition_arinc->ports_queuing;
         
     pok_port_queuing_t* ports_queuing_end =
-        ports_queuing + current_partition_arinc->nports_queuing;
+        port_queuing + current_partition_arinc->nports_queuing;
         
     __copy_from_user(name, name_kernel, MAX_NAME_LENGTH);
     
@@ -31,8 +35,6 @@ static pok_port_queuing_t* find_port_queuing(const char* __user name)
 
 /* 
  * Get *created* queuing port by id.
- * 
- * Should be called with local preemption disabled.
  */
 static pok_port_queuing_t* get_port_queuing(pok_port_id_t id)
 {
@@ -62,7 +64,7 @@ void port_queuing_send(pok_port_queuing_t* port, pok_thread_t* t)
     pok_message_send_t* m_send = t->wait_private;
     pok_message_t* m = pok_channel_queuing_s_get_message(port->channel, FALSE);
     
-    __copy_from_user(m_send->data, m->content, m_send->len);
+    __copy_from_user(m_send->data, m->content, m_send->size);
     t->wait_private = (void*)(unsigned long)m->size;
     
     pok_channel_queuing_s_produce_message(port->channel);
@@ -80,7 +82,7 @@ static void port_on_message_sent(pok_channel_queuing_reciever_t* receiver)
     pok_sched_local_invalidate();
 }
 
-static void port_on_message_sent(pok_channel_queuing_sender_t* sender)
+static void port_on_message_received(pok_channel_queuing_sender_t* sender)
 {
     pok_port_queuing_t* port_queuing
         = container_of(sender, pok_port_queuing_t, sender);
@@ -111,13 +113,12 @@ void pok_port_queuing_init(pok_port_queuing_t* port_queuing)
 pok_ret_t pok_port_queuing_create(
     const char* __user              name,
     pok_port_size_t                 message_size,
-    pok_port_size_t                 max_nb_messages,
+    pok_port_size_t                 max_nb_message,
     pok_port_direction_t            direction,
-    pok_port_queueing_discipline_t  discipline,
+    pok_queuing_discipline_t        discipline,
     pok_port_id_t* __user           id)
 {
     pok_port_queuing_t* port_queuing;
-    pok_ret_t ret;
     
     if(!check_access_read(name, MAX_NAME_LENGTH))
         return POK_ERRNO_EFAULT;
@@ -125,29 +126,26 @@ pok_ret_t pok_port_queuing_create(
     if(!check_user_write(id))
         return POK_ERRNO_EFAULT;
     
-    pok_preemption_local_disable();
-    
     port_queuing = find_port_queuing(name);
     
-    ret = POK_ERRNO_UNAVAILABLE;
-    if(!port_queuing) goto out;
+    if(!port_queuing) return POK_ERRNO_UNAVAILABLE;
     
-    ret = POK_ERRNO_EXISTS;
-    if(port_queuing->is_created) goto out;
+    if(port_queuing->is_created) return POK_ERRNO_EXISTS;
     
-    ret = POK_ERRNO_EINVAL;
+    if(message_size != port_queuing->channel->max_message_size)
+        return POK_ERRNO_EINVAL;
+    if(max_nb_message != port_queuing->channel->max_nb_message)
+        return POK_ERRNO_EINVAL;
+    if(direction != port_queuing->direction)
+        return POK_ERRNO_EINVAL;
     
-    if(message_size != port_queuing->channel->max_message_size) goto out;
-    if(max_nb_messages != port_queuing->channel->max_nb_messages) goto out;
-    if(direction != port_queuing->direction) goto out;
-    if(discipline != port_queuing->discipline) goto out;
-    
-    ret = POK_ERRNO_MODE;
-    if(current_partition_arinc->mode == POK_PARTITION_MODE_NORMAL) goto out;
+    if(current_partition_arinc->mode == POK_PARTITION_MODE_NORMAL)
+        return POK_ERRNO_MODE;
 
     port_queuing->is_created = TRUE;
     port_queuing->is_notified = FALSE;
     port_queuing->partition = current_partition_arinc;
+    port_queuing->discipline = discipline;
     
     if(direction == POK_PORT_DIRECTION_IN) {
         pok_channel_queuing_set_receiver(
@@ -161,12 +159,7 @@ pok_ret_t pok_port_queuing_create(
     
     __put_user(id, port_queuing - current_partition_arinc->ports_queuing);
     
-    ret = POK_ERRNO_OK;
-    
-out:
-    pok_preemption_local_enable();
-
-    return ret;
+    return POK_ERRNO_OK;
 }
 
 pok_ret_t pok_port_queuing_receive(
@@ -181,21 +174,20 @@ pok_ret_t pok_port_queuing_receive(
     pok_thread_t* t;
 
     long wait_result;
-    pok_message_t* message;
-    
-    pok_preemption_local_disable();
     
     port_queuing = get_port_queuing(id);
-    
-    ret = POK_ERRNO_PORT;
-    if(!port_queuing) goto err;
-    
-    ret = POK_ERRNO_EFAULT;
-    if(!check_access_write(data, port_queuing->channel->max_message_size)) goto err;
-    if(!check_user_write(len)) goto err;
-    
-    ret = POK_ERRNO_MODE;
-    if(port_queuing->direction != POK_PORT_DIRECTION_IN) goto err;
+    if(!port_queuing) return POK_ERRNO_PORT;
+
+    if(!check_access_write(data, port_queuing->channel->max_message_size))
+        return POK_ERRNO_EFAULT;
+    if(!check_user_write(len))
+        return POK_ERRNO_EFAULT;
+
+    if(port_queuing->direction != POK_PORT_DIRECTION_IN)
+        return POK_ERRNO_MODE;
+
+
+    pok_preemption_local_disable();
 
     t = current_thread;
     
@@ -216,7 +208,7 @@ pok_ret_t pok_port_queuing_receive(
 
         if(timeout == 0)
             ret = POK_ERRNO_EMPTY;
-        else if(!is_waiting_allowed())
+        else if(!thread_is_waiting_allowed())
             ret = POK_ERRNO_MODE;
         else
             ret = POK_ERRNO_OK;
@@ -235,15 +227,10 @@ pok_ret_t pok_port_queuing_receive(
             // Prepare to wait.
             t->wait_private = data;
             
-            if(port_queuing->discipline == POK_QUEUEING_DISCIPLINE_FIFO)
-                pok_thread_wq_add(port_queuing->waiters, t);
-            else
-                pok_thread_wq_add_prio(port_queuing->waiters, t);
+            pok_thread_wq_add_common(&port_queuing->waiters, t,
+                port_queuing->discipline);
             
-            if(!pok_time_is_infinity(timeout))
-                thread_wait_timed(t, POK_GETTICK() + timeout);
-            else
-                thread_wait(t);
+            thread_wait_common(t, timeout);
             
             goto out;
         }
@@ -256,7 +243,7 @@ out:
     pok_preemption_local_enable(); // Possible wait here
 
     // Decode result in t->wait_private.
-    wait_result = t->wait_private;
+    wait_result = (unsigned long)t->wait_private;
     
     if(wait_result > 0)
     {
@@ -287,31 +274,27 @@ pok_ret_t pok_port_queuing_send(
 {
     pok_port_queuing_t* port_queuing;
     pok_ret_t ret;
-    pok_thread_t* t;
+    pok_thread_t* t = current_thread;
 
     long wait_result;
-    struct pok_message_send_t message_send;
-    
-    pok_preemption_local_disable();
+    pok_message_send_t message_send;
     
     port_queuing = get_port_queuing(id);
     
-    ret = POK_ERRNO_PORT;
-    if(!port_queuing) goto err;
-    
-    ret = POK_ERRNO_EINVAL;
-    if(len == 0) goto out;
+    if(!port_queuing) return POK_ERRNO_PORT;
+
+    if(port_queuing->direction != POK_PORT_DIRECTION_OUT)
+        return POK_ERRNO_MODE;
+
+    if(len == 0) return POK_ERRNO_EINVAL;
     
     // error should be INVALID_CONFIG
-    if(len > port_queuing->channel->max_message_size) goto err;
+    if(len > port_queuing->channel->max_message_size)
+        return POK_ERRNO_EINVAL;
     
-    ret = POK_ERRNO_EFAULT;
-    if(!check_access_read(data, len)) goto err;
+    if(!check_access_read(data, len)) return POK_ERRNO_EFAULT;
     
-    ret = POK_ERRNO_MODE;
-    if(port_queuing->direction != POK_PORT_DIRECTION_OUT) goto err;
-    
-    t = current_thread;
+    pok_preemption_local_disable();
     
     /*
      * We need to specify notification flag when trying to send message
@@ -328,18 +311,17 @@ pok_ret_t pok_port_queuing_send(
 
     if(timeout == 0)
         ret = POK_ERRNO_EMPTY;
-    else if(!is_waiting_allowed())
+    else if(!thread_is_waiting_allowed())
         ret = POK_ERRNO_MODE;
     else
         ret = POK_ERRNO_OK;
 
     if(!pok_thread_wq_is_empty(&port_queuing->waiters)
-        || !pok_channel_queuing_s_get_message(port_queuing->channel))
+        || !pok_channel_queuing_s_get_message(port_queuing->channel, ret == POK_ERRNO_OK))
     {
         if(ret)
         {
             // Waiting is not allowed, but it is needed.
-            __put_user(len, 0);
             goto err;
         }
         
@@ -349,15 +331,10 @@ pok_ret_t pok_port_queuing_send(
         
         t->wait_private = &message_send;
         
-        if(port_queuing->discipline == POK_QUEUEING_DISCIPLINE_FIFO)
-            pok_thread_wq_add(port_queuing->waiters, t);
-        else
-            pok_thread_wq_add_prio(port_queuing->waiters, t);
+        pok_thread_wq_add_common(&port_queuing->waiters, t,
+            port_queuing->discipline);
         
-        if(!pok_time_is_infinity(timeout))
-            thread_wait_timed(t, POK_GETTICK() + timeout);
-        else
-            thread_wait(t);
+        thread_wait_common(t, timeout);
         
         goto out;
     }
@@ -373,7 +350,7 @@ out:
     pok_preemption_local_enable(); // Possible wait here
 
     // Decode result in t->wait_private.
-    wait_result = t->wait_private;
+    wait_result = (unsigned long)t->wait_private;
     
     if(wait_result == 0)
     {
@@ -395,45 +372,40 @@ err:
 
 pok_ret_t pok_port_queuing_status(
     pok_port_id_t               id,
-    pok_port_queueing_status_t * __user status)
+    pok_port_queuing_status_t * __user status)
 {
     pok_port_queuing_t* port_queuing;
-    pok_ret_t ret;
     pok_channel_queuing_t* channel;
     
     if(!check_access_write(status, sizeof(status)))
         return POK_ERRNO_EFAULT;
     
-    pok_preemption_local_disable();
-    
     port_queuing = get_port_queuing(id);
     
-    ret = POK_ERRNO_PORT;
-    if(!port_queuing) goto out;
-    
+    if(!port_queuing) return POK_ERRNO_PORT;
+
     channel = port_queuing->channel;
     
     __put_user_f(status, max_message_size, channel->max_message_size);
     __put_user_f(status, direction, port_queuing->direction);
+
+    pok_preemption_local_disable();
+
     __put_user_f(status, waiting_processes, pok_thread_wq_get_nwaits(&port_queuing->waiters));
     
-    
     if(port_queuing->direction == POK_PORT_DIRECTION_IN) {
-        __put_user_f(status, max_nb_message, channel->max_nb_messages_receive);
+        __put_user_f(status, max_nb_message, channel->max_nb_message_receive);
         __put_user_f(status, nb_message, pok_channel_queuing_r_n_messages(channel));
     }
     else {
         /* port_queuing->direction == POK_PORT_DIRECTION_OUT */
-        __put_user_f(status, max_nb_message, channel->max_nb_messages_send);
+        __put_user_f(status, max_nb_message, channel->max_nb_message_send);
         __put_user_f(status, nb_message, pok_channel_queuing_s_n_messages(channel));
     }
     
-    ret = POK_ERRNO_OK;
-    
-out:
     pok_preemption_local_enable();
 
-    return ret;
+    return POK_ERRNO_OK;
 }
 
 pok_ret_t pok_port_queuing_id(
@@ -441,32 +413,23 @@ pok_ret_t pok_port_queuing_id(
     pok_port_id_t* __user id)
 {
     pok_port_queuing_t* port_queuing;
-    pok_ret_t ret;
     
     if(!check_user_write(id))
         return POK_ERRNO_EFAULT;
 
-    pok_preemption_local_disable();
-    
     port_queuing = find_port_queuing(name);
     
-    ret = POK_ERRNO_UNAVAILABLE;
-    if(!port_queuing) goto out;
-    if(!port_queuing->is_created) goto out;
+    if(!port_queuing) return POK_ERRNO_UNAVAILABLE;
+    if(!port_queuing->is_created) return POK_ERRNO_UNAVAILABLE;
     
     __put_user(id, port_queuing - current_partition_arinc->ports_queuing);
-    ret = POK_ERRNO_OK;
-out:
-    pok_preemption_local_enable();
     
-    return ret;
+    return POK_ERRNO_OK;
 }
 
 /**********************************************************************/
 /* 
  * Find *configured* sampling port by name, which comes from user space.
- * 
- * Should be called with local preemption disabled.
  * 
  * NOTE: Name should be checked before!
  */
@@ -478,7 +441,7 @@ static pok_port_sampling_t* find_port_sampling(const char* __user name)
         current_partition_arinc->ports_sampling;
         
     pok_port_sampling_t* ports_sampling_end =
-        ports_sampling + current_partition_arinc->nports_sampling;
+        port_sampling + current_partition_arinc->nports_sampling;
         
     __copy_from_user(name, name_kernel, MAX_NAME_LENGTH);
     
@@ -494,8 +457,6 @@ static pok_port_sampling_t* find_port_sampling(const char* __user name)
 
 /* 
  * Get *created* sampling port by id.
- * 
- * Should be called with local preemption disabled.
  */
 static pok_port_sampling_t* get_port_sampling(pok_port_id_t id)
 {
@@ -523,33 +484,30 @@ pok_ret_t pok_port_sampling_create(
 )
 {
     pok_port_sampling_t* port_sampling;
-    pok_ret_t ret;
-    
+
+    if(current_partition_arinc->mode == POK_PARTITION_MODE_NORMAL)
+        return POK_ERRNO_MODE;
+
     if(!check_access_read(name, MAX_NAME_LENGTH))
         return POK_ERRNO_EFAULT;
     
     if(!check_user_write(id))
         return POK_ERRNO_EFAULT;
     
-    pok_preemption_local_disable();
-    
     port_sampling = find_port_sampling(name);
     
-    ret = POK_ERRNO_UNAVAILABLE;
-    if(!port_sampling) goto out;
+    if(!port_sampling) return POK_ERRNO_UNAVAILABLE;
     
-    ret = POK_ERRNO_EXISTS;
-    if(port_sampling->is_created) goto out;
+    if(port_sampling->is_created) return POK_ERRNO_EXISTS;
     
-    ret = POK_ERRNO_EINVAL;
-    
-    if(message_size != port_sampling->channel->max_message_size) goto out;
-    if(direction != port_sampling->direction) goto out;
+    if(size != port_sampling->channel->max_message_size)
+        return POK_ERRNO_EINVAL;
+    if(direction != port_sampling->direction)
+        return POK_ERRNO_EINVAL;
     // ARINC specifies to check refresh period for any direction.
-    if(pok_time_is_infinity(refresh) || refresh == 0) goto out;
+    if(pok_time_is_infinity(refresh) || refresh == 0)
+        return POK_ERRNO_EINVAL;
 
-    ret = POK_ERRNO_MODE;
-    if(current_partition_arinc->mode == POK_PARTITION_MODE_NORMAL) goto out;
 
     port_sampling->is_created = TRUE;
     
@@ -559,12 +517,7 @@ pok_ret_t pok_port_sampling_create(
     
     __put_user(id, port_sampling - current_partition_arinc->ports_sampling);
     
-    ret = POK_ERRNO_OK;
-    
-out:
-    pok_preemption_local_enable();
-
-    return ret;
+    return POK_ERRNO_OK;
 }
 
 pok_ret_t pok_port_sampling_write(
@@ -574,25 +527,23 @@ pok_ret_t pok_port_sampling_write(
 )
 {
     pok_port_sampling_t* port_sampling;
-    pok_ret_t ret;
 
     pok_message_t* message;
     
-    pok_preemption_local_disable();
-    
     port_sampling = get_port_sampling(id);
     
-    ret = POK_ERRNO_PORT;
-    if(!port_sampling) goto out;
+    if(!port_sampling) return POK_ERRNO_PORT;
     
-    ret = POK_ERRNO_EINVAL;
-    if(len == 0 || len > port_sampling->channel->max_message_size) goto out;
+    if(len == 0 || len > port_sampling->channel->max_message_size)
+        return POK_ERRNO_EINVAL;
 
-    ret = POK_ERRNO_MODE;
-    if(port_sampling->direction != POK_PORT_DIRECTION_OUT) goto err;
+    if(port_sampling->direction != POK_PORT_DIRECTION_OUT)
+        return POK_ERRNO_MODE;
     
-    ret = POK_ERRNO_EFAULT;
-    if(!check_access_read(data, len)) goto out;
+    if(!check_access_read(data, len))
+        return POK_ERRNO_EFAULT;
+
+    pok_preemption_local_disable();
 
     message = pok_channel_sampling_s_get_message(port_sampling->channel);
 
@@ -600,13 +551,10 @@ pok_ret_t pok_port_sampling_write(
     __copy_from_user(data, message->content, len);
     
     pok_channel_sampling_send_message(port_sampling->channel);
-    
-    ret = POK_ERRNO_OK;
 
-out:
     pok_preemption_local_enable();
     
-    return ret;
+    return POK_ERRNO_OK;
 }
 
 pok_ret_t pok_port_sampling_read(
@@ -622,21 +570,22 @@ pok_ret_t pok_port_sampling_read(
 
     pok_message_t* message;
     
-    pok_preemption_local_disable();
-    
     port_sampling = get_port_sampling(id);
     
-    ret = POK_ERRNO_PORT;
-    if(!port_sampling) goto out;
+    if(!port_sampling) return POK_ERRNO_PORT;
     
-    ret = POK_ERRNO_MODE;
-    if(port_sampling->direction != POK_PORT_DIRECTION_IN) goto err;
+    if(port_sampling->direction != POK_PORT_DIRECTION_IN)
+        return POK_ERRNO_MODE;
 
-    ret = POK_ERRNO_EFAULT;
-    if(!check_access_write(data, port_sampling->channel->max_message_size)) goto out;
-    if(!check_user_write(len)) goto out;
-    if(!check_user_write(valid)) goto out;
+    if(!check_access_write(data, port_sampling->channel->max_message_size))
+        return POK_ERRNO_EFAULT;
+    if(!check_user_write(len))
+        return POK_ERRNO_EFAULT;
+    if(!check_user_write(valid))
+        return POK_ERRNO_EFAULT;
     
+    pok_preemption_local_disable();
+
     message = pok_channel_sampling_r_get_message(port_sampling->channel, &ts);
     
     if(message)
@@ -658,7 +607,6 @@ pok_ret_t pok_port_sampling_read(
 
     __put_user(valid, port_sampling->last_message_validity);
 
-out:
     pok_preemption_local_enable();
     
     return ret;
@@ -670,25 +618,18 @@ pok_ret_t pok_port_sampling_id(
 )
 {
     pok_port_sampling_t* port_sampling;
-    pok_ret_t ret;
     
     if(!check_user_write(id))
         return POK_ERRNO_EFAULT;
-
-    pok_preemption_local_disable();
     
     port_sampling = find_port_sampling(name);
     
-    ret = POK_ERRNO_UNAVAILABLE;
-    if(!port_sampling) goto out;
-    if(!port_sampling->is_created) goto out;
+    if(!port_sampling) return POK_ERRNO_UNAVAILABLE;
+    if(!port_sampling->is_created) return POK_ERRNO_UNAVAILABLE;
     
     __put_user(id, port_sampling - current_partition_arinc->ports_sampling);
-    ret = POK_ERRNO_OK;
-out:
-    pok_preemption_local_enable();
     
-    return ret;
+    return POK_ERRNO_OK;
 }
 
 pok_ret_t pok_port_sampling_status (
@@ -697,27 +638,22 @@ pok_ret_t pok_port_sampling_status (
 )
 {
     pok_port_sampling_t* port_sampling;
-    pok_ret_t ret;
     
+    port_sampling = get_port_sampling(id);
+    
+    if(!port_sampling) return POK_ERRNO_PORT;
+
     if(!check_access_write(status, sizeof(status)))
         return POK_ERRNO_EFAULT;
     
     pok_preemption_local_disable();
     
-    port_sampling = get_port_sampling(id);
-    
-    ret = POK_ERRNO_PORT;
-    if(!port_sampling) goto out;
-    
-    __put_user_f(status, max_message_size, port_sampling->channel->max_message_size);
+    __put_user_f(status, size, port_sampling->channel->max_message_size);
     __put_user_f(status, direction, port_sampling->direction);
     __put_user_f(status, refresh, port_sampling->refresh_period);
     __put_user_f(status, validity, port_sampling->last_message_validity);
     
-    ret = POK_ERRNO_OK;
-
-out:
     pok_preemption_local_enable();
 
-    return ret;
+    return POK_ERRNO_OK;
 }

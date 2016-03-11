@@ -35,7 +35,8 @@ if not COMMAND_LINE_TARGETS and not env.GetOption('clean') and not env.GetOption
     
     partition_dirs = ("pr%d" % i for i in itertools.count(1))
     partition_dirs = list(itertools.islice(partition_dirs, 255)) # XXX limited to 255 partitions right now
-    chpok_configuration.write_configuration(conf, 'kernel', partition_dirs)
+    # chpok_configuration.write_configuration(conf, 'kernel', partition_dirs)
+    Command("kernel/deployment.c", "kernel/deployment_new.c", Copy("$TARGET", "$SOURCE"))
 
 Export('env')
 

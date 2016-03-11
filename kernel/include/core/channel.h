@@ -5,6 +5,9 @@
 #ifndef __POK_KERNEL_CHANNEL_H__
 #define __POK_KERNEL_CHANNEL_H__
 
+#include <types.h>
+#include <message.h>
+
 /*********************** Queuing channel ******************************/
 
 struct _pok_channel_queuing;
@@ -52,33 +55,33 @@ typedef struct _pok_channel_queuing_sender {
  * Sender has buffer of messages ready to send.
  */
 typedef struct _pok_channel_queuing {
-    size_t max_message_size; // Maximum size of single message.
-    size_t message_stride; //Size of single message structure.
+    pok_message_size_t max_message_size; // Maximum size of single message.
+    pok_message_size_t message_stride; //Size of single message structure.
     
-    uint16_t max_nb_messages_receive; // Buffer limit for receiver
-    uint16_t max_nb_messages_send; // Buffer limit for sender
+    pok_message_range_t max_nb_message_receive; // Buffer limit for receiver
+    pok_message_range_t max_nb_message_send; // Buffer limit for sender
     
-    uint16_t max_nb_messages; // Total buffer capasity.
-    char* buffer; // Array of messages, max_nb_messages * message_stride
+    pok_message_range_t max_nb_message; // Total buffer capasity.
+    char* buffer; // Array of messages, max_nb_message * message_stride
 
     /*
      * Beginning of receiver buffer.
      * 
      * Advanced when messages is consumed (on receiver side).
      */
-    uint16_t r_start;
+    pok_message_range_t r_start;
     /*
      * Border between receiver and sender buffers.
      * 
      * Advanced when message is transmitted from sender to receiver.
      */
-    uint16_t border;
+    pok_message_range_t border;
     /*
      * End of sender buffer.
      * 
      * Advanced when messages is produced (on sender side).
      */
-    uint16_t s_end;
+    pok_message_range_t s_end;
 
     /* Whether it is needed to notify receiver */
     pok_bool_t notify_receiver;
@@ -120,12 +123,12 @@ size_t pok_channel_queuing_r_n_messages(pok_channel_queuing_t* channel);
 /* Return message at given index at receiver side. */
 pok_message_t* pok_channel_queuing_r_get_message(
     pok_channel_queuing_t* channel,
-    size_t index);
+    pok_message_range_t index);
 
 /* Consume n messages at receiver side. */
 void pok_channel_queuing_r_consume_messages(
     pok_channel_queuing_t* channel,
-    size_t n);
+    pok_message_range_t n);
 
 /* 
  * Receive messages.
@@ -144,7 +147,8 @@ void pok_channel_queuing_r_consume_messages(
  * NOTE: Current implementation *requires* receive buffer to be empty
  * at the function's call.
  */
-size_t pok_channel_queuing_receive(pok_channel_queuing_t* channel,
+pok_message_range_t pok_channel_queuing_receive(
+    pok_channel_queuing_t* channel,
     pok_bool_t subscribe);
 
 /***** Operations for sender. Should be serialized wrt themselves *****/
@@ -179,11 +183,7 @@ void pok_channel_queuing_s_produce_message(
 /*
  * Return number of messages on the receiver side.
  */
-size_t pok_channel_queuing_s_n_messages(pok_channel_queuing_t* channel)
-{
-    return pok_channel_queuing_cyclic_sub(channel,
-        channel->s_end, ACCESS_ONCE(channel->border));
-}
+pok_message_range_t pok_channel_queuing_s_n_messages(pok_channel_queuing_t* channel);
 
 
 /*********************** Sampling channel *****************************/
@@ -199,11 +199,12 @@ size_t pok_channel_queuing_s_n_messages(pok_channel_queuing_t* channel)
  * Sender has one message slot for currently formed message.
  */
 typedef struct {
-    size_t max_message_size;
+    pok_message_size_t max_message_size;
     
-    size_t message_stride; //Size of of one message structure.
+    pok_message_size_t message_stride; //Size of of one message structure.
     char* buffer; // Buffer of messages, 3 * message_stride
     
+    // Positions in range 0..2
     uint8_t read_pos;
     uint8_t read_pos_next;
     uint8_t write_pos;
@@ -252,5 +253,35 @@ pok_message_t* pok_channel_sampling_s_get_message(
 void pok_channel_sampling_send_message(
     pok_channel_sampling_t* channel);
 
+/**********************************************************************/
+/* 
+ * Array of queuing channels.
+ * 
+ * Should be set in deployment.c.
+ */
+extern pok_channel_queuing_t pok_channels_queuing[];
+
+/*
+ * Number of queuing channels.
+ * 
+ * Should be set in deployment.c.
+ */
+extern uint8_t pok_channels_queuing_n;
+
+/* 
+ * Array of sampling channels.
+ * 
+ * Should be set in deployment.c.
+ */
+extern pok_channel_sampling_t pok_channels_sampling[];
+
+/*
+ * Number of sampling channels.
+ * 
+ * Should be set in deployment.c.
+ */
+extern uint8_t pok_channels_sampling_n;
+
+void pok_channels_init_all(void);
 
 #endif /* __POK_KERNEL_CHANNEL_H__ */

@@ -28,14 +28,14 @@
 extern void pok_arch_thread_start(void);
 
 uint32_t		pok_context_init (uint32_t sp,
-                                uint32_t entry)
+                                void (*entry)(void))
 {
   uint32_t id = 0; // Was: thread_id
   context_t* ctx = (context_t*)(sp - sizeof(context_t));
 
   memset (ctx, 0, sizeof (context_t));
 
-  ctx->r14     = entry;
+  ctx->r14     = (unsigned long)entry;
   ctx->r15     = id;
   ctx->lr      = (uint32_t) pok_arch_thread_start;
   ctx->sp      = (uint32_t) &ctx->back_chain;

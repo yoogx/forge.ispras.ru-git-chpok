@@ -46,6 +46,9 @@
 #include <types.h>
 #include <errno.h>
 #include <core/sched.h>
+#include <core/delayed_event.h>
+#include <arch.h>
+#include <list.h>
 
 // must match libpok/include/core/thread.h
 typedef enum
@@ -95,7 +98,62 @@ typedef enum {
     DEADLINE_HARD
 } pok_deadline_t;
 
-#include "timer.h"
+#ifdef POK_NEEDS_ERROR_HANDLING
+
+/* 
+ * Bits signalled about different *sources* of error.
+ * 
+ * NOTE: Different bits may be mapped to the same error id.
+ * This is needed, because errors may be set async, while error handler
+ * is executed.
+ */
+typedef uint8_t pok_thread_error_bits_t;
+
+/* 
+ * Synchronous error has been generated for thread.
+ * 
+ * Because synchronous errors cannot be generated while thread is
+ * inactive, and after each of them error handler will be launched,
+ * at most one error can be active for given thread.
+ * 
+ * Moreover, as error handler preempts all other threads, at most
+ * one syncrhonouse error can be active for *whole partition*.
+ * 
+ * Because of that, sync error id is stored in `partition.sync_error`.
+ * 
+ * Fault address is stored in partition.sync_error_fault_address.
+ *
+ * In case of application error thread.wait_private points to
+ * `message_send_t` structure with error message. 
+ * 
+ * NOTE: Neither thread's kernel stack nor value of `message_send_t`
+ * is destroyed on `thread_stop`/`thread_start` calls.
+ * So, information about error remains while error handler is executed.
+ */
+#define POK_THREAD_ERROR_BIT_SYNC 1
+/*
+ * Deadline triggered.
+ * 
+ * Error id is POK_ERROR_ID_DEADLINE_MISSED.
+ * 
+ * Fault address is NULL.
+ */
+#define POK_THREAD_ERROR_BIT_DEADLINE 2
+
+/*
+ * While calculating next deadline, resulted time is out-of-range.
+ * 
+ * Error id is POK_ERROR_ID_ILLEGAL_REQUEST.
+ * 
+ * Fault address is NULL.
+ * 
+ * Note: While this event is incompatible with previous one
+ * (Deadline missed), we need different bits for distinguish them.
+ */
+#define POK_THREAD_ERROR_BIT_DEADLINE_OOR 4
+
+
+#endif /* POK_NEEDS_ERROR_HANDLING */
 
 typedef struct _pok_thread
 {
@@ -233,7 +291,7 @@ typedef struct _pok_thread
      * 
      * Final after create_process().
      */
-    void	        *entry;
+    void* __user        entry;
 
     /*
      * Kernel stack address.
@@ -265,13 +323,27 @@ typedef struct _pok_thread
      * Final after create_process().
      */
     uint32_t            init_stack_addr;
+    
+    /*
+     * Size of the user space stack.
+     */
+    uint32_t            user_stack_size;
 
     /**
      *  Linkage in the `eligible_threads` in partition.
      * 
      * If the process is not eligible, then empty list.
      */
-    list_head       eligible_elem;
+    struct list_head       eligible_elem;
+    
+#ifdef POK_NEEDS_ERROR_HANDLING
+    struct list_head       error_elem;       /** Linkage for partition's `.error_list`. */
+    pok_thread_error_bits_t error_bits;
+#endif
+
+    // Whether thread is in unrecoverable error state.
+    pok_bool_t is_unrecoverable;
+
     /* 
      * Name of the process.
      * 
@@ -326,6 +398,19 @@ void pok_thread_wq_add(pok_thread_wq_t* wq, pok_thread_t* t);
  * Add thread into the queue with priority/FIFO order.
  */
 void pok_thread_wq_add_prio(pok_thread_wq_t* wq, pok_thread_t* t);
+
+/**
+ * Add thread into the queue with queuing order given as `discipline` parameter.
+ */
+static inline void pok_thread_wq_add_common(pok_thread_wq_t* wq,
+    pok_thread_t* t, pok_queuing_discipline_t discipline)
+{
+    if(discipline == POK_QUEUEING_DISCIPLINE_FIFO)
+        pok_thread_wq_add(wq, t);
+    else
+        pok_thread_wq_add_prio(wq, t);
+}
+
 /**
  * Remove thread from wait queue, if it was.
  */
@@ -370,6 +455,45 @@ pok_bool_t pok_thread_is_runnable(const pok_thread_t *thread)
 {
     return thread->state == POK_STATE_RUNNABLE && !thread->suspended;
 }
+
+
+/**
+ * Create a thread inside a partition
+ * Return POK_ERRNO_OK if no error.
+ * Return POK_ERRNO_TOOMANY if the partition cannot contain
+ * more threads.
+ */
+pok_ret_t pok_thread_create (pok_thread_id_t* __user thread_id, const pok_thread_attr_t* __user attr);
+
+pok_ret_t pok_thread_start(pok_thread_id_t thread_id);
+pok_ret_t pok_thread_suspend_self(int64_t ms);
+pok_ret_t pok_thread_suspend(pok_thread_id_t id);
+pok_ret_t pok_thread_yield (void);
+pok_ret_t pok_thread_stop_self(void);
+pok_ret_t pok_thread_stop(pok_thread_id_t thread_id);
+pok_ret_t pok_thread_delayed_start (pok_thread_id_t id, int64_t ms);
+pok_ret_t pok_thread_get_id_self(pok_thread_id_t* __user thread_id);
+pok_ret_t pok_thread_get_id(const char* __user name, pok_thread_id_t* __user thread_id);
+pok_ret_t pok_thread_get_status(pok_thread_id_t id, pok_thread_status_t* __user attr);
+pok_ret_t pok_thread_set_priority(pok_thread_id_t id, const uint32_t priority);
+pok_ret_t pok_thread_resume(pok_thread_id_t id);
+
+#ifdef POK_NEEDS_THREAD_SLEEP
+pok_ret_t pok_thread_sleep(pok_time_t time);
+#endif
+
+#ifdef POK_NEEDS_THREAD_SLEEP_UNTIL
+pok_ret_t pok_thread_sleep_until(pok_time_t time);
+#endif
+
+/* Find thread by its name. GET_PROCESS_ID in ARINC. */
+pok_ret_t pok_thread_find(const char* __user name, pok_thread_id_t* id);
+
+pok_ret_t pok_sched_end_period(void);
+pok_ret_t pok_sched_replenish(int64_t budget);
+
+pok_ret_t pok_sched_get_current(pok_thread_id_t* __user thread_id);
+
 
 #endif /* __POK_NEEDS_THREADS */
 

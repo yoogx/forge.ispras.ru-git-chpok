@@ -183,7 +183,7 @@ typedef struct
     pok_port_size_t message_size;
     pok_port_size_t max_nb_message;
     pok_port_direction_t direction;
-    pok_port_queuing_discipline_t discipline;
+    pok_queuing_discipline_t discipline;
 } pok_port_queueing_create_arg_t;
 
 

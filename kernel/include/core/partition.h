@@ -46,8 +46,7 @@
 #include <types.h>
 #include <errno.h>
 #include <core/error.h>
-#include <core/thread.h>
-#include <core/sched.h>
+#include <arch.h>
 
 
 typedef enum
@@ -59,6 +58,50 @@ typedef enum
 }pok_start_condition_t;
 
 
+/* Operations specific for given partition. */
+struct pok_partition_operations
+{
+    /* 
+     * Called when partition is (re)started.
+     * 
+     * Local preemption is disabled.
+     */
+    void (*start)(void);  /**< The entry-point for the partition's thread. */
+
+    /*
+     * Called when time counter has been changed within current time slot.
+     * 
+     * Local preemption is disabled.
+     * 
+     * If local preemption is already disabled, corresponded state
+     * byte is set instead of calling this function.
+     */
+    void (*on_time_changed)(void);
+    
+    /*
+     * Called when partition acquire CPU because time slot have been
+     * changed from other partition to given one..
+     * 
+     * Local preemption is disabled.
+     * 
+     * If local preemption is already disabled, corresponded state
+     * byte is set instead of calling this function.
+     */
+    void (*on_control_returned)(void);
+    
+    /* 
+     * Process sync error related to given partition.
+     * 
+     * Local preemption is disabled.
+     * 
+     * Previous local preemption state is passed as parameter.
+     */
+    void (*process_partition_error)(pok_system_state_t partition_state,
+        pok_error_id_t error_id,
+        uint8_t state_byte_preempt_local,
+        void* failed_address);
+};
+
 /*!
  * \struct pok_partition_t
  * \brief This structure contains all needed information for partition management
@@ -69,15 +112,70 @@ typedef struct
     pok_bool_t               is_paused;      /*Partition paused or not*/
 #endif
 
-    void (sched*)(void);     /**< Local scheduler for the partition */
+    const struct pok_partition_operations* part_ops;
+    
+    /* 
+     * State of the partition.
+     * 
+     * This is like "state register" notion used for architectures.
+     */
+    union {
+        /* 
+         * State flags (bytes). Can be 0 or 1.
+         * 
+         * Because flags are bytes (not bits), they can be set atomically
+         * without locked operations.
+         */
+        struct {
+            /*
+             * Flag is set by global scheduler, when time is changed but
+             * local preemption was disabled at that moment.
+             */
+            uint8_t time_changed;
+            /*
+             * Flag is set by global scheduler, after time slot is changed
+             * from other partition to given one.
+             */
+            uint8_t control_returned;
+
+            uint8_t unused1;
+            uint8_t unused2;
+        } bytes;
+        /* 
+         * All flags at once.
+         * 
+         * This value may be checked by partition after enabling preemption
+         * for ensure, that it hasn't miss other flags.
+         */
+        uint32_t bytes_all;
+    } state;
+
+    /*
+     * Whether local preemption is disabled.
+     * 
+     * Flag can be read, modified or cleared by the partition itself.
+     * 
+     * Flag is set and checked by the global scheduler,
+     * when it need to call partition's callbacks.
+     */
+    uint8_t preempt_local_disabled;
+
+    
+    /* 
+     * Whether currently executed *user space* process is error handler.
+     * 
+     * This field is used for determine system level in case when
+     * error is catched via interrupt.
+     * 
+     * After partition initialization, this field is FALSE.
+     */
+    pok_bool_t               is_error_handler;
 
     const char               *name;          /**< Name of the partition */
 
     uint8_t                  priority;       /**< Priority of the partition (unused at this time */
     uint32_t                 period;         /**< Period of the partition, unused at this time */
     uint32_t                 duration;       /**< Duration of the partition */
-
-    void (start*)(void);  /**< The entry-point to the partition's thread. */
 
     /*
      * Kernel stack address which is used for enter into the partition.
@@ -93,6 +191,16 @@ typedef struct
      * Used for restarting partition.
      */
     struct dStack            initial_sp;
+    
+    /* 
+     * Identificator of (user) space, corresponded to given partition.
+     * Special value 0xff means that no user space is used by this partition.
+     * 
+     * Set in deployment.c
+     * 
+     * Used by scheduler when it switch into partition.
+     */
+    uint8_t                  space_id;
 
 
 #ifdef POK_NEEDS_IO
@@ -102,8 +210,16 @@ typedef struct
 
   pok_start_condition_t	    start_condition;
   
-  pok_bool_t is_slot_started;
-  pok_bool_t sched_local_recheck_needed;
+  /* 
+   * Pointer to Multi partition HM selector.
+   * 
+   * Bit's value 0 means module level error, 1 - partition level error.
+   */
+  const pok_error_level_selector_t* multi_partition_hm_selector;
+  /*
+   *  Pointer to Multi partition HM table.
+   */
+  const pok_error_module_action_table_t* multi_partition_hm_table;
 } pok_partition_t;
 
 /**
@@ -113,12 +229,20 @@ typedef struct
  */
 extern pok_partition_t* current_partition;
 
-/**
- * Current partition structure.
+/*
+ * Raise error from partition.
  * 
- * For convenience.
+ * partition_state should be above POK_SYSTEM_STATE_MAX_MODULE.
+ * 
+ * Module HM table won't be used when process given error, but
+ * Multi-partition HM table will.
  */
-#define POK_CURRENT_PARTITION (*currentPartition)
+void raise_partition_error(pok_system_state_t partition_state,
+    pok_error_id_t error_id, void* failed_address);
+
+/* See description of raise_error_fatal about meaning of `_fatal` suffix. */
+void raise_partition_error_fatal(pok_system_state_t partition_state,
+    pok_error_id_t error_id, void* failed_address);
 
 
 /**

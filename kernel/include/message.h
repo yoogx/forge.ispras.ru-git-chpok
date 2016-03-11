@@ -1,6 +1,9 @@
 #ifndef __POK_MESSAGE_H__
 #define __POK_MESSAGE_H__
 
+#include <types.h>
+#include <common.h>
+
 typedef struct {
     /*
      * Size of the message.
@@ -20,7 +23,7 @@ typedef struct {
  * 
  */
 #define POK_MESSAGE_STRUCT_SIZE(max_size) \
-    ALIGN_SIZE(offsetof(pok_message_t, content) + max_length, sizeof(unsigned long))
+    ALIGN_SIZE(offsetof(pok_message_t, content) + max_size, sizeof(unsigned long))
 
 /* 
  * Pair of [ptr,size] for store message into user space.
@@ -31,7 +34,7 @@ typedef struct {
 typedef struct
 {
     const void* __user data;
-    size_t len;
+    pok_message_size_t size;
 } pok_message_send_t;
 
 

@@ -40,7 +40,8 @@ int debug_strlen (const char* str)
 
 void pok_debug_print_current_state ()
 {
-   uint32_t i;
+   // TODO: What to output here?
+   /* uint32_t i;
    printf ("\nCurrent state\n");
    printf ("-------------\n");
    printf ("Kernel thread        : %d\n", KERNEL_THREAD);
@@ -72,7 +73,7 @@ void pok_debug_print_current_state ()
    printf ("Partition         : %d\n", POK_CURRENT_THREAD.partition);
    printf ("sp                : 0x%lx\n", (unsigned long) POK_CURRENT_THREAD.sp);
    printf ("init_stack_addr   : 0x%lx\n", (unsigned long) POK_CURRENT_THREAD.init_stack_addr);
-   printf ("entry             : 0x%p\n", POK_CURRENT_THREAD.entry);
+   printf ("entry             : 0x%p\n", POK_CURRENT_THREAD.entry);*/
 }
 
 void pok_fatal (const char* message)

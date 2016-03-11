@@ -57,11 +57,11 @@
 
 #include <assert.h>
 
-pok_time_t first_frame_starts; // Time when first major frame is started.
+static pok_time_t first_frame_starts; // Time when first major frame is started.
 
-pok_time_t            pok_sched_next_deadline;
-pok_time_t            pok_sched_next_major_frame;
-uint8_t             pok_sched_current_slot = 0; /* Which slot are we executing at this time ?*/
+static pok_time_t            pok_sched_next_deadline;
+static pok_time_t            pok_sched_next_major_frame;
+static uint8_t               pok_sched_current_slot = 0; /* Which slot are we executing at this time ?*/
 
 #ifdef POK_NEEDS_MONITOR
 /* 
@@ -80,22 +80,30 @@ static void idle_function(void)
 {
     pok_preemption_enable();
     
-    while(true)
-        yield();
+    wait_infinitely();
 }
 
 #endif
 
 static pok_bool_t sched_need_recheck;
-static int preempt_counter;
-
 
 static void start_partition(void)
 {
-    /* It is safe to enable preemtion on new stack. */
+    // Initialize state for started partition.
+    current_partition->state.bytes.time_changed = 0;
+    current_partition->state.bytes.control_returned = 0;
+    current_partition->state.bytes.unused1 = 0;
+    current_partition->state.bytes.unused2 = 0;
+    
+    current_partition->preempt_local_disabled = 1;
+    
+    /* It is safe to enable preemption on new stack. */
     pok_preemption_enable();
     
-    current_partition->start();
+    if(current_partition->part_ops && current_partition->part_ops->start)
+        current_partition->part_ops->start();
+        
+    wait_infinitely();
 }
 
 /* Switch within current partition, if needed. */
@@ -133,7 +141,7 @@ static void intra_partition_switch(void)
              * Need to initialize new context before switch.
              */ 
             *new_sp = pok_context_init(
-                pok_dstack_get_stack(&currentPartition->initial_sp),
+                pok_dstack_get_stack(&current_partition->initial_sp),
                 &start_partition);
         }
         pok_context_switch(old_sp, *new_sp);
@@ -144,7 +152,7 @@ static void intra_partition_switch(void)
     // old_sp == new_sp
     if(*old_sp == 0) /* Same context, restart requested. */
     {
-        pok_context_restart(&currentPartition->initial_sp,
+        pok_context_restart(&current_partition->initial_sp,
             &start_partition);
     }
 }
@@ -156,6 +164,11 @@ static void inter_partition_switch(pok_partition_t* part)
     uint32_t* new_sp = &part->sp;
     
     current_partition = part;
+
+    if(part->space_id != 0xff)
+        pok_space_switch(part->space_id);
+    else
+        pok_space_switch(0xff); // TODO: This should disable all user space tables
 
 #ifdef POK_NEEDS_MONITOR
     if(current_partition_is_paused) old_sp = &idle_sp;
@@ -179,11 +192,11 @@ static void inter_partition_switch(pok_partition_t* part)
          * 
          * Need to initialize new context before switch.
          */ 
-        pok_contex_init(
+        pok_context_init(
             pok_dstack_get_stack(&part->initial_sp),
             &start_partition);
     }
-
+    
     if(*old_sp == 0)
     {
         pok_context_jump(*new_sp);
@@ -212,9 +225,6 @@ void pok_sched_restart (void)
     pok_sched_next_deadline = pok_module_sched[0].duration + first_frame_starts;
     
     current_partition = pok_module_sched[0].partition;
-    current_partition->is_slot_started = TRUE;
-    current_partition->sched_local_recheck_needed = TRUE;
-    
     
     new_sp = &current_partition->sp;
 #ifdef POK_NEEDS_MONITOR
@@ -224,27 +234,23 @@ void pok_sched_restart (void)
     if(*new_sp == 0)
     {
         *new_sp = pok_context_init(
-            pok_dstack_get_stack(&currentPartition->initial_sp),
+            pok_dstack_get_stack(&current_partition->initial_sp),
             &start_partition);
     }
+
+    if(current_partition->space_id != 0xff)
+        pok_space_switch(current_partition->space_id);
+    else
+        pok_space_switch(0xff); // TODO: This should disable all user space tables
+
+    
     pok_context_jump(*new_sp);
-   
-   
-   
-   current_thread = KERNEL_THREAD;
-   pok_sched_next_major_frame    = POK_CONFIG_SCHEDULING_MAJOR_FRAME;
-   pok_sched_next_deadline       = pok_module_sched[0].duration;
-   if (pok_module_sched[0].type == POK_SLOT_PARTITION) {
-      pok_current_partition      = pok_module_sched[0].partition.id;
-   } else {
-      // otherwise, we simply don't care
-   }
 }
 
 void pok_sched_start (void)
 {
 #ifdef POK_NEEDS_MONITOR
-    idle_stack = pok_stack_alloc(KERNEL_STACK_SIZE);
+    idle_stack = pok_stack_alloc(KERNEL_STACK_SIZE_DEFAULT);
 #endif /*POK_NEEDS_MONITOR */
     pok_sched_restart();
 }
@@ -252,28 +258,25 @@ void pok_sched_start (void)
 void pok_sched(void)
 {
     pok_partition_t* new_partition;
-    uint64_t now;
+    pok_time_t now;
     
-    uint32_t* old_sp;
-    uint32_t* new_sp;
-
-    if(!sched_need_recheck) return;
-    sched_need_recheck = FALSE; // Acquire semantic
-    barrier();
+    if(!flag_test_and_reset(sched_need_recheck)) return;
     
     now = POK_GETTICK();
     if(pok_sched_next_deadline > now) goto same_partition;
     
-    pok_sched_current_slot = (pok_sched_current_slot + 1) % POK_CONFIG_SCHEDULING_NBSLOTS;
+    pok_sched_current_slot = (pok_sched_current_slot + 1);
+    if(pok_sched_current_slot == pok_module_sched_n)
+        pok_sched_current_slot = 0;
 
-    new_partition = pok_module_sched[pok_sched_current_slot];
+    new_partition = pok_module_sched[pok_sched_current_slot].partition;
     
-    new_partition->is_slot_started = TRUE;
-    new_partition->sched_local_recheck_needed = TRUE;
-
     if(new_partition == current_partition) goto same_partition;
     
     inter_partition_switch(new_partition);
+    
+    // After interpartition switch we return back.
+    flag_set(current_partition->state.bytes.control_returned);
     
     return;
 
@@ -283,66 +286,59 @@ same_partition:
 
 void pok_preemption_disable(void)
 {
-    if(preempt_counter) {
-        /* Preemption is already disabled. Not need special sync.*/
-        preempt_counter++;
-        return;
-    }
-    preempt_counter = 1; // Acquire semantic
-    barrier();
+    assert(pok_arch_preempt_enabled());
+
+    pok_arch_preempt_disable();
 }
 
 void pok_preemption_enable(void)
 {
-    if(preempt_counter != 1) {
-        /* Preemption remains disabled. Not need special sync.*/
-        preempt_counter--;
-        return;
-    }
+    uint8_t preempt_local_disabled_old;
+    pok_bool_t need_call_time_changed = FALSE;
+    pok_bool_t need_call_control_returned = FALSE;
+    
+    assert(pok_arch_preempt_enabled());
     
     pok_sched();
-    barrier();
-    preempt_counter = 0; // Release semantic
     
-    while(sched_need_recheck) { // Possibly miss event affecting on scheduler.
-        preempt_counter = 1; // Acquire semantic
-        barrier();
-        
-        pok_sched();
-        
-        barrier();
-        preempt_counter = 0; // Release semantic
+    preempt_local_disabled_old = current_partition
+        ? current_partition->preempt_local_disabled
+        : 1; // Idle thread has no preemption mechanism.
+    
+    if(preempt_local_disabled_old)
+    {
+        // Do nothing in case of disabled local preemption.
+    }
+    else if(current_partition->state.bytes.time_changed
+        && current_partition->part_ops
+        && current_partition->part_ops->on_time_changed)
+    {
+        // Time has been changed and partition has operation for process that.
+        current_partition->preempt_local_disabled = 1;
+        current_partition->state.bytes.time_changed = 0;
+        need_call_time_changed = TRUE;
+    }
+    else if(current_partition->state.bytes.control_returned
+        && current_partition->part_ops
+        && current_partition->part_ops->on_time_changed)
+    {
+        // Control has been returned and partition has operation for process that.
+        current_partition->preempt_local_disabled = 1;
+        current_partition->state.bytes.control_returned = 0;
+        need_call_control_returned = TRUE;
     }
     
-    if(currentPartition && !currentPartition->is_paused)
-        currentPartition->sched();
+    pok_arch_preempt_enable();
+    
+    if(need_call_time_changed)
+    {
+        current_partition->part_ops->on_time_changed();
+    }
+    else if(need_call_control_returned)
+    {
+        current_partition->part_ops->on_control_returned();
+    }
 }
-
-void pok_sched_invalidate(void)
-{
-    barrier();
-    sched_need_recheck = TRUE; // Release semantic
-}
-
-pok_bool_t pok_sched_local_check_invalidated(void)
-{
-    if(!currentPartition->sched_local_recheck_needed) return FALSE;
-
-    currentPartition->sched_local_recheck_needed = FALSE; // Acquire semantic
-    barrier();
-    return TRUE;
-}
-
-
-pok_bool_t pok_sched_local_check_slot_started(void)
-{
-    if(!currentPartition->is_slot_started) return FALSE;
-
-    currentPartition->is_slot_started = FALSE; // Acquire semantic
-    barrier();
-    return TRUE;
-}
-
 
 /*
  * Forward implementation, which iterates over all slots.
@@ -354,14 +350,19 @@ pok_time_t get_next_periodic_processing_start(void)
     int i;
 
     pok_time_t offset = pok_sched_next_deadline;
-    for (i = 0; i < POK_CONFIG_SCHEDULING_NBSLOTS; i++) {
-        // check all time slots
-        // note that we ignore current activation of _this_ slot
-        // e.g. if we're currently in periodic processing window,
-        // and it's the only one in schedule, we say that next one
-        // will be major frame time units later
 
-        int time_slot_index = (i + 1 + pok_sched_current_slot) % POK_CONFIG_SCHEDULING_NBSLOTS;
+    // check all time slots
+    // note that we ignore current activation of _this_ slot
+    // e.g. if we're currently in periodic processing window,
+    // and it's the only one in schedule, we say that next one
+    // will be major frame time units later
+    int time_slot_index = pok_sched_current_slot;
+
+    for (i = 0; i < pok_module_sched_n; i++) {
+
+        time_slot_index++;
+        if(time_slot_index == pok_module_sched_n) time_slot_index = 0;
+
         const pok_sched_slot_t *slot = &pok_module_sched[time_slot_index];
 
         if (slot->periodic_processing_start && slot->partition == current_partition) {
@@ -374,34 +375,11 @@ pok_time_t get_next_periodic_processing_start(void)
     assert(FALSE && "Couldn't find next periodic processing window (configurator shouldn't have allowed that)");
 }
 
-
-
-/*
- * Context-switch function to switch from one thread to another
- * Rely on architecture-dependent functionnalities (must include arch.h)
- */
-void pok_sched_context_switch(pok_thread_id_t elected_id)
+void pok_sched_on_time_changed(void)
 {
-   uint32_t *current_sp;
-   uint32_t new_sp;
-   
-
-   if (POK_SCHED_CURRENT_THREAD == elected_id && !POK_CURRENT_THREAD.force_restart)
-   {
-      return;
-   }
-
-   current_sp = &POK_CURRENT_THREAD.sp;
-   new_sp = pok_threads[elected_id].sp;
-
-   pok_space_switch(POK_CURRENT_THREAD.partition,
-		    pok_threads[elected_id].partition);
-
-   current_thread = elected_id;
-   
-   POK_CURRENT_THREAD.force_restart = FALSE;
-
-   pok_context_switch(current_sp, new_sp);
+    if(current_partition)
+        current_partition->state.bytes.time_changed = 1;
+    
+    sched_need_recheck = TRUE;
+    pok_preemption_enable();
 }
-
-#endif /* __POK_NEEDS_SCHED */

@@ -30,6 +30,9 @@ int memcmp(const void *, const void *, size_t n);
 void  *memset(void *dest, unsigned char val, size_t count);
 
 int   strlen (const char* str);
+int   strnlen (const char* str, size_t n);
+
+char* strncpy(char* dest, const char* src, size_t n);
 
 int   strcmp (const char *s1, const char *s2);
 int   strncmp(const char *s1, const char *s2, size_t size);

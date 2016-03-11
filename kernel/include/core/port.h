@@ -3,7 +3,9 @@
 
 /* ARINC ports. */
 
-#include <middleware/channel.h>
+#include <core/channel.h>
+#include <core/thread.h>
+struct _pok_patition_arinc;
 
 typedef enum
 {
@@ -18,12 +20,6 @@ typedef enum
 	 POK_PORT_KIND_INVALID   = 10
 } pok_port_kinds_t;
 
-
-typedef enum
-{
-	 POK_PORT_QUEUEING_DISCIPLINE_FIFO      = 1,
-	 POK_PORT_QUEUEING_DISCIPLINE_PRIORITY  = 2
-} pok_port_queuing_discipline_t;
 
 /* 
  * Queuing port. 
@@ -51,7 +47,7 @@ typedef struct
      * 
      * Note, that reverse link (channel->port) is set on CREATE_QUEUING_PORT.
      */
-    pok_channel_queuing_t         *channel;
+    pok_channel_queuing_t       *channel;
 
     /*
      * Direction (IN or OUT).
@@ -59,6 +55,13 @@ typedef struct
      * Should be set initially.
      */
     pok_port_directions_t       direction;
+    
+    /*
+     * Queuing discipline.
+     * 
+     * Set on port creation.
+     */
+    pok_queuing_discipline_t    discipline;
 
     /* 
      * Partition to which port belongs to.
@@ -67,7 +70,7 @@ typedef struct
      * 
      * Should be set initially.
      */
-    pok_partition_arinc_t      *partition;
+    struct _pok_patition_arinc *partition;
 
     /* Whether port has been created (with CREATE_QUEUING_PORT)*/
     pok_bool_t                  is_created;
@@ -104,9 +107,9 @@ void pok_port_queuing_init(pok_port_queuing_t* port_queuing);
 pok_ret_t pok_port_queuing_create(
     const char* __user              name,
     pok_port_size_t                 message_size,
-    pok_port_size_t                 max_nb_messages,
+    pok_port_size_t                 max_nb_message,
     pok_port_direction_t            direction,
-    pok_port_queueing_discipline_t  discipline,
+    pok_queuing_discipline_t        discipline,
     pok_port_id_t* __user           id);
 
 pok_ret_t pok_port_queuing_receive(
@@ -179,7 +182,7 @@ typedef struct
      * 
      * Should be set initially.
      */
-    pok_channel_queuing_t       *channel;
+    pok_channel_sampling_t       *channel;
 
     /*
      * Direction (IN or OUT).
@@ -208,7 +211,7 @@ typedef struct
 } pok_port_sampling_status_t;
 
 // Initialize sampling port
-void pok_port_sampling_init(pok_port_sampling_t* port_sampling)
+void pok_port_sampling_init(pok_port_sampling_t* port_sampling);
 
 
 pok_ret_t pok_port_sampling_create(

@@ -22,16 +22,18 @@
 #include <arch/sparc/uaccess.h>
 #endif
 
+#include <libc.h>
+
 /* Check that user space can read area specified. */
 static inline pok_bool_t check_access_read(const void* __user addr, size_t size)
 {
-    arch_check_access_read(addr, size);
+    return arch_check_access_read(addr, size);
 }
 
 /* Check that user space can write area specified. */
 static inline pok_bool_t check_access_write(void* __user addr, size_t size)
 {
-    arch_check_access_write(addr, size);
+    return arch_check_access_write(addr, size);
 }
 
 /* 
@@ -107,7 +109,7 @@ static inline pok_bool_t copy_to_user(const void* from, void* __user to, size_t 
  * 
  * NOTE: Access check should be performed before.
  */
-#define __get_user(ptr) ({typeof(*(ptr)) __val = *(ptr); val; })
+#define __get_user(ptr) ({typeof(*(ptr)) __val = *(ptr); __val; })
 
 
 /* 
@@ -115,7 +117,7 @@ static inline pok_bool_t copy_to_user(const void* from, void* __user to, size_t 
  * 
  * NOTE: Access check should be performed before.
  */
-#define __get_user_f(ptr, field) ({typeof((ptr)->field) __val = (ptr)->field; val; })
+#define __get_user_f(ptr, field) ({typeof((ptr)->field) __val = (ptr)->field; __val; })
 
 
 /* 
@@ -123,15 +125,25 @@ static inline pok_bool_t copy_to_user(const void* from, void* __user to, size_t 
  * 
  * NOTE: Access check should be performed before.
  */
-#define __put_user(ptr, val) do {*ptr = (typeof(*ptr))val; } while(0)
+#define __put_user(ptr, val) do {*ptr = (typeof(*ptr))(val); } while(0)
 
 /* 
  * Set field of user-space structure.
  * 
  * NOTE: Access check should be performed before.
  */
-#define __put_user_f(ptr, field, value) do {(ptr)->field = (typeof((ptr)->field))val; } while(0)
+#define __put_user_f(ptr, field, val) do {(ptr)->field = (typeof((ptr)->field))(val); } while(0)
 
+
+/*
+ * Copy between areas in user space.
+ * 
+ * Both areas should be checked before.
+ */
+static inline void __copy_user(const void* __user from, void* __user to, size_t n)
+{
+    memcpy(to, from, n);
+}
 
 /* 
  * Copy name to the user space.
@@ -147,5 +159,18 @@ static inline void pok_copy_name_to_user(const char* name, void* __user to)
     __copy_to_user(name, to, n);
 }
 
+/*
+ * Check whether given address may be executed.
+ * 
+ * TODO: Currently this is just replacement for POK_CHECK_VPTR_IN_PARTITION.
+ * Probably, this check is completely unnesessary, because access to
+ * given address is performed only from user space.
+ * (Unlike to read/write access to user buffers, performed from kernel space).
+ */
+static inline pok_bool_t check_access_exec(void* addr)
+{
+    return check_access_read(addr, sizeof(void*));
+}
 
-#endif __POK_UACCESS_H__
+
+#endif /* __POK_UACCESS_H__ */

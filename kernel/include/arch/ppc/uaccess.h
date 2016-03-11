@@ -6,7 +6,7 @@ static inline pok_bool_t arch_check_access(const void* __user addr, size_t size)
 {
     unsigned long p = (unsigned long)addr;
     
-    return (p >= 0x80000000) && ((p + size) < (0x80000000 + 0x1000000ULL))
+    return (p >= 0x80000000) && ((p + size) < (0x80000000 + 0x1000000ULL));
 }
 
 static inline pok_bool_t arch_check_access_read(const void* __user addr, size_t size)

@@ -1,11 +1,15 @@
-#include <channel.h>
+#include <core/channel.h>
+#include <types.h>
+#include <arch.h>
+#include <assert.h>
+#include <core/time.h>
 
 /*********************** Queuing channel ******************************/
 
 void pok_channel_queuing_init(pok_channel_queuing_t* channel)
 {
     channel->max_nb_message =
-        channel->max_nb_messages_receive + channel->max_nb_messages_send;
+        channel->max_nb_message_receive + channel->max_nb_message_send;
     
     channel->r_start = 0;
     channel->border = 0;
@@ -14,7 +18,7 @@ void pok_channel_queuing_init(pok_channel_queuing_t* channel)
     channel->message_stride = POK_MESSAGE_STRUCT_SIZE(channel->max_message_size);
     
     channel->buffer = pok_bsp_mem_alloc(
-        channel->message_stride * channel->max_nb_messages);
+        channel->message_stride * channel->max_nb_message);
     
     channel->notify_receiver = FALSE;
     channel->notify_sender = FALSE;
@@ -33,7 +37,7 @@ uint16_t channel_queuing_cyclic_add(pok_channel_queuing_t* channel,
     uint16_t pos, uint16_t index)
 {
     uint16_t sum = pos + index;
-    if(sum >= channel->max_nb_messages) sum -= channel->max_nb_messages;
+    if(sum >= channel->max_nb_message) sum -= channel->max_nb_message;
     
     return sum;
 }
@@ -44,19 +48,19 @@ uint16_t channel_queuing_cyclic_add(pok_channel_queuing_t* channel,
  * Take into account cyclic nature of the channel's buffer.
  */
 static inline
-uint16_t channel_queuing_cyclic_sub(pok_channel_queuing_t* channel,
-    uint16_t pos_end, uint16_t pos_start)
+pok_message_range_t channel_queuing_cyclic_sub(pok_channel_queuing_t* channel,
+    pok_message_range_t pos_end, pok_message_range_t pos_start)
 {
     return pos_end >= pos_start
         ? pos_end - pos_start
-        : pos_end + channel->max_nb_messages - pos_start;
+        : pos_end + channel->max_nb_message - pos_start;
 }
 
 /* Helper: Return message in the buffer at given index. */
 static inline pok_message_t* channel_queuing_message_at(
-    pok_channel_queuing_t* channel, uint16_t pos)
+    pok_channel_queuing_t* channel, pok_message_range_t pos)
 {
-    assert(pos < channel->max_nb_messages);
+    assert(pos < channel->max_nb_message);
     
     return (pok_message_t*)&channel->buffer[channel->message_stride * pos];
 }
@@ -73,15 +77,15 @@ size_t pok_channel_queuing_r_n_messages(pok_channel_queuing_t* channel)
 {
     // Both boundaries are modified by receiver itself. No need ACCESS_ONCE().
     return channel_queuing_cyclic_sub(channel,
-        channel->border
+        channel->border,
         channel->r_start);
 }
 
 pok_message_t* pok_channel_queuing_r_get_message(
     pok_channel_queuing_t* channel,
-    size_t index)
+    pok_message_range_t index)
 {
-    uint16_t pos;
+    pok_message_range_t pos;
     assert(index < pok_channel_queuing_r_n_messages(channel));
     
     pos = channel_queuing_cyclic_add(channel, channel->r_start, index);
@@ -92,7 +96,7 @@ pok_message_t* pok_channel_queuing_r_get_message(
 
 void pok_channel_queuing_r_consume_messages(
     pok_channel_queuing_t* channel,
-    size_t n)
+    pok_message_range_t n)
 {
     assert(n < pok_channel_queuing_r_n_messages(channel));
     
@@ -101,10 +105,11 @@ void pok_channel_queuing_r_consume_messages(
         channel->r_start, n); //Release semantic
 }
 
-size_t pok_channel_queuing_receive(pok_channel_queuing_t* channel,
+pok_message_range_t pok_channel_queuing_receive(
+    pok_channel_queuing_t* channel,
     pok_bool_t subscribe)
 {
-    uint16_t n, n_available;
+    pok_message_range_t n, n_available;
     
     /* 
      * Because temporal subscription may be needed, we need
@@ -119,7 +124,7 @@ size_t pok_channel_queuing_receive(pok_channel_queuing_t* channel,
      * Because s_produce() is asyncronous, we need to subscribe before
      * cheking emptiness.
      */
-    if(subscribe && !ACCESS_ONCE(channel->notify_receiver) {
+    if(subscribe && !ACCESS_ONCE(channel->notify_receiver)) {
         channel->notify_receiver = TRUE;
         barrier();
         unsubscribe_on_success = TRUE;
@@ -133,8 +138,8 @@ size_t pok_channel_queuing_receive(pok_channel_queuing_t* channel,
         // Reverting temporal subscription doesn't require barriers.
         if(unsubscribe_on_success) channel->notify_receiver = FALSE;
         
-        n = n_available > channel->max_nb_messages_receive
-            ? channel->max_nb_messages_receive
+        n = n_available > channel->max_nb_message_receive
+            ? channel->max_nb_message_receive
             : n_available;
         
         channel->border = channel_queuing_cyclic_add(channel,
@@ -156,7 +161,8 @@ size_t pok_channel_queuing_receive(pok_channel_queuing_t* channel,
     return n;
 }
 
-void pok_channel_queuing_set_sender(pok_channel_queuing_sender_t* sender)
+void pok_channel_queuing_set_sender(pok_channel_queuing_t* channel,
+    pok_channel_queuing_sender_t* sender)
 {
     barrier();
     channel->sender = sender;
@@ -174,7 +180,7 @@ pok_message_t* pok_channel_queuing_s_get_message(
     pok_channel_queuing_t* channel,
     pok_bool_t subscribe)
 {
-    uint16_t n_used;
+    pok_message_range_t n_used;
     /* 
      * Because temporal subscription may be needed, we need
      * to rollback it on success, but only when subscription
@@ -186,7 +192,7 @@ pok_message_t* pok_channel_queuing_s_get_message(
      * Because s_produce() is asyncronous, we need to subscribe before
      * cheking emptiness.
      */
-    if(subscribe && !ACCESS_ONCE(channel->notify_sender) {
+    if(subscribe && !ACCESS_ONCE(channel->notify_sender)) {
         channel->notify_sender = TRUE;
         barrier();
         unsubscribe_on_success = TRUE;
@@ -195,12 +201,12 @@ pok_message_t* pok_channel_queuing_s_get_message(
     n_used = channel_queuing_cyclic_sub(channel,
         channel->s_end, ACCESS_ONCE(channel->border));
     
-    if(n_used < channel->max_nb_messages_send)
+    if(n_used < channel->max_nb_message_send)
     {
         // Reverting temporal subscription doesn't require barriers.
         if(unsubscribe_on_success) channel->notify_sender = FALSE;
         
-        return channel_queuing_message_at(channel, s_end);
+        return channel_queuing_message_at(channel, channel->s_end);
     }
     
     return NULL;
@@ -210,7 +216,7 @@ void pok_channel_queuing_s_produce_message(
     pok_channel_queuing_t* channel)
 {
     assert(channel_queuing_cyclic_sub(channel, channel->s_end,
-        ACCESS_ONCE(channel->border)) < channel->max_nb_messages_send);
+        ACCESS_ONCE(channel->border)) < channel->max_nb_message_send);
     
     assert(channel_queuing_message_at(channel, channel->s_end)->size
         <= channel->max_message_size);
@@ -227,7 +233,7 @@ void pok_channel_queuing_s_produce_message(
     }
 }
 
-size_t pok_channel_queuing_s_n_messages(pok_channel_queuing_t* channel)
+pok_message_range_t pok_channel_queuing_s_n_messages(pok_channel_queuing_t* channel)
 {
     return channel_queuing_cyclic_sub(channel, channel->s_end,
         ACCESS_ONCE(channel->border));
@@ -311,7 +317,7 @@ pok_message_t* pok_channel_sampling_r_get_message(
     
     if(m->size)
     {
-        timestamp = timestamps[read_pos];
+        *timestamp = channel->timestamps[read_pos];
         return m;
     }
     
@@ -368,6 +374,23 @@ void pok_channel_sampling_send_message(
          * 1 -> 0
          * 2 -> 1
          */
-        channel>write_pos = (read_pos_next & 1) ^ 1;
+        channel->write_pos = (read_pos_next & 1) ^ 1;
     }
+}
+
+/**********************************************************************/
+void pok_channels_init_all(void)
+{
+    int i;
+    
+    for(i = 0; i < pok_channels_queuing_n; i++)
+    {
+        pok_channel_queuing_init(&pok_channels_queuing[i]);
+    }
+
+    for(i = 0; i < pok_channels_sampling_n; i++)
+    {
+        pok_channel_sampling_init(&pok_channels_sampling[i]);
+    }
+
 }

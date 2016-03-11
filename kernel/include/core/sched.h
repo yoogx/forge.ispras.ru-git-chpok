@@ -22,25 +22,40 @@
 #include <types.h>
 #include <errno.h>
 #include <core/schedvalues.h>
-
-extern uint8_t pok_sched_current_slot;
+#include <core/partition.h>
 
 typedef struct
 {
-    //pok_sched_slot_type_t type;
+    uint64_t duration; // Set in deployment.c
+    uint64_t offset; // Set in deployment.c
 
-    uint64_t duration;
-    uint64_t offset;
+    pok_partition_t* partition; // Set in deployment.c
 
-    pok_partition_t* partition;
+    pok_bool_t periodic_processing_start; // Set in deployment.c
 
-    pok_bool_t periodic_processing_start;
-
-    char name[128];
+    uint32_t id; // Set in deployment.c
 } pok_sched_slot_t;
 
-// as usual, defined in deployment.c
+/*
+ * Array of schedule slots.
+ * 
+ * Set in deployment.c.
+ */
 extern const pok_sched_slot_t pok_module_sched[];
+
+/*
+ * Number of schedule slots.
+ * 
+ * Set in deployment.c.
+ */
+extern const uint8_t pok_module_sched_n;
+
+/*
+ * Major time frame.
+ * 
+ * Set in deployment.c.
+ */
+extern const pok_time_t pok_config_scheduling_major_frame;
 
 void pok_sched_init(void); /* Initialize scheduling stuff */
 
@@ -51,9 +66,7 @@ void pok_sched_init(void); /* Initialize scheduling stuff */
  * Shouldn't be called from interrupt handler
  * (see pok_preemption_disable_from_interrupt below).
  * 
- * DEV: Currently critical sections are reentrant (pok_premption_disable,
- * can be called within critical section) but use feature this feature
- * only if it is really needed.
+ * NOTE: Critical sections are NOT reentrant.
  */
 void pok_preemption_disable(void);
 
@@ -62,13 +75,11 @@ void pok_preemption_disable(void);
  * 
  * Should be paired with pok_preemption_disable or
  * pok_preemption_disable_from_interrupt.
- * 
- * DEV: If ends *inner* critical section, scheduler is not run.
  */
 void pok_preemption_enable(void);
 
 /** 
- * Mark scheduler state as needed to rechecked.
+ * Mark scheduler state as needed to be rechecked.
  * 
  * If called outside of critical section, action will be taken at next
  * scheduler run.
@@ -94,38 +105,7 @@ pok_bool_t pok_preemption_disable_from_interrupt(void);
  * Can be called outside of critical section. So scheduler will found
  * the flag set on the next call.
  */
-void pok_sched_invalidate(void)
-
-/**
- * Set `invalidate` flag for local scheduler.
- * 
- * This flag can be checked with pok_sched_local_check_invalidated().
- * 
- * The flag is set automatically when time goes and when new time slot
- * for partition is started.
- */
-void pok_sched_local_invalidate(void);
-
-/**
- * Return true if data for local scheduler has changed.
- * 
- * Clear `invalidate` flag for local scheduler.
- * 
- * DEV: Intended to be used only within local scheduler.
- */
-pok_bool_t pok_sched_local_check_invalidated(void);
-
-
-/**
- *  Return true if new time slot is started.
- * 
- * Clear corresponded flag.
- * 
- * DEV: Intended to be used only within local scheduler.
- */
-pok_bool_t pok_sched_local_check_slot_started(void);
-
-
+void pok_sched_invalidate(void);
 
 /**
  * Disable preemption before scheduler (re)start.
@@ -157,6 +137,13 @@ void pok_sched_start(void);
  * Note, that partitions are not cleared here. You need to clear them before.
  */
 void pok_sched_restart(void);
+
+/**
+ * Should be called from interrupt handler after time is changed.
+ * 
+ * Called with disabled interrupts.
+ */
+void pok_sched_on_time_changed(void);
 
 /**
  * Return next release point for periodic process in current partition.

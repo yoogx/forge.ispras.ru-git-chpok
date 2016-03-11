@@ -8,40 +8,44 @@
  */
 
 /**
+ * Set `invalidate` flag for local scheduler.
+ * 
+ * This flag can be checked with pok_sched_local_check_invalidated().
+ */
+void pok_sched_local_invalidate(void);
+
+/**
+ * Return true if data for local scheduler has changed.
+ * 
+ * Clear `invalidate` flag for local scheduler.
+ */
+pok_bool_t pok_sched_local_check_invalidated(void);
+
+
+/**
+ *  Return true if new time slot is started.
+ * 
+ * Clear corresponded flag.
+ * 
+ * DEV: Intended to be used only within local scheduler.
+ */
+pok_bool_t pok_sched_local_check_slot_started(void);
+
+
+/**
  * Begins critical section, local to given ARINC partition.
  * 
  * Only preemption between current partition's threads is disabled.
  * 
  * Preemption between partitions and between threads on other partitions
  * is still enabled.
- * 
- * Shouldn't be called from interrupt handler.
  */
 void pok_preemption_local_disable(void);
 
 void pok_preemption_local_enable(void);
 
 
-/**
- * Disable local preemption, may be called from interrupt handler.
- * 
- * If local preemption is enabled, disable it and return TRUE.
- * Otherwise return FALSE.
- * 
- * DEV: This function MAY be called from normal context. But if normal
- * context disables preemption, it will return FALSE. That is, this
- * function is not reentrant.
- * 
- * The main intention for the function to be automatically called after
- * global scheduler, when enable global preemption.
- */
-pok_bool_t pok_preemption_local_disable_from_interrupt(void);
-
-
-pok_ret_t pok_sched_end_period(void);
-pok_ret_t pok_sched_replenish(int64_t budget);
-
-uint32_t pok_sched_get_current(pok_thread_id_t *thread_id);
-
+void pok_sched_arinc_on_time_changed(void);
+void pok_sched_arinc_on_control_returned(void);
 
 #endif /* ! __POK_SCHED_ARINC_H__ */

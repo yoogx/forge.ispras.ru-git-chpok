@@ -32,7 +32,7 @@ void delayed_event_queue_init(struct delayed_event_queue* q);
  * from the queue.
  */
 void delayed_event_queue_check(struct delayed_event_queue* q, pok_time_t time,
-	process_event_t process_event;)
+	process_event_t process_event);
 
 /**
  *  Initialize delayed event.
