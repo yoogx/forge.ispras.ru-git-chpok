@@ -9,6 +9,7 @@ typedef struct
     pok_port_kinds_t            kind;
     NAME_TYPE                   name;
     PORT_DIRECTION_TYPE         direction;
+    unsigned                    overhead;
 } sys_port_header_t;
 
 typedef struct

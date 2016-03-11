@@ -139,11 +139,11 @@ static void queueing_send_outside(unsigned link_idx)
             printf("SYSNET error: status is not NONE\n");
             STOP_SELF();
         }
-        //TODO fix OVERHEAD
+
         RECEIVE_QUEUING_MESSAGE(
                 port->id,
                 0,
-                (MESSAGE_ADDR_TYPE ) (dst_place->data + POK_NETWORK_OVERHEAD),
+                (MESSAGE_ADDR_TYPE ) (dst_place->data + port->header.overhead),
                 &dst_place->message_size,
                 &ret
                 );
@@ -194,10 +194,9 @@ static void sampling_send_outside(unsigned link_idx)
         return;
     }
 
-    //TODO fix OVERHEAD!!!
     READ_SAMPLING_MESSAGE(
             port->id,
-            (MESSAGE_ADDR_TYPE ) (dst_place->data + POK_NETWORK_OVERHEAD),
+            (MESSAGE_ADDR_TYPE ) (dst_place->data + port->header.overhead),
             &dst_place->message_size,
             &validity,
             &ret

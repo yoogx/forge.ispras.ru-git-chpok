@@ -955,6 +955,7 @@ SYS_SAMPLING_PORT_TEMPLATE = """\
             .kind = POK_PORT_KIND_SAMPLING,
             .name = %(name)s,
             .direction = %(direction)s,
+            .overhead = POK_NETWORK_%(protocol)s,
         },
         .max_message_size = %(max_message_size)s,
         .data = (void *) %(data)s,
@@ -967,6 +968,7 @@ SYS_QUEUING_PORT_TEMPLATE = """\
             .kind = POK_PORT_KIND_QUEUEING,
             .name = %(name)s,
             .direction = %(direction)s,
+            .overhead = POK_NETWORK_%(protocol)s,
         },
         .max_message_size = %(max_message_size)d,
         .max_nb_messages = %(max_nb_messages)d,
@@ -1024,7 +1026,8 @@ def write_system_partition_deployment_c(part, f):
             name=_c_string(port.name),
             direction=port.direction,
             max_message_size=port.max_message_size,
-            data="&" + get_internal_port_name(port, "data")
+            data="&" + get_internal_port_name(port, "data"),
+            protocol=port.protocol,
         ))
     p("};")
     p("unsigned sys_sampling_ports_nb = ARRAY_SIZE(sys_sampling_ports);")
@@ -1037,7 +1040,8 @@ def write_system_partition_deployment_c(part, f):
             max_message_size=port.max_message_size,
             max_nb_messages=port.max_nb_messages,
             data="&" + get_internal_port_name(port, "data"),
-            data_stride="sizeof(%s[0])" % get_internal_port_name(port, "data")
+            data_stride="sizeof(%s[0])" % get_internal_port_name(port, "data"),
+            protocol=port.protocol,
         ))
     p("};")
     p("unsigned sys_queuing_ports_nb = ARRAY_SIZE(sys_queuing_ports);")
