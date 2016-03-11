@@ -19,13 +19,6 @@ typedef struct
     char                        data[];
 } sys_port_data_t;
 
-typedef struct
-{
-    MESSAGE_SIZE_TYPE           message_size;
-    pok_bool_t                  busy;
-    char                        data[];
-} sys_queuing_port_data_t;
-
 enum QUEUING_STATUS {
     QUEUING_STATUS_NONE, // message hasn't been touched by network code at all
     QUEUING_STATUS_PENDING, // message has been sent to the driver, and its buffer is still in use by that driver

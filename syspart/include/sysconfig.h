@@ -37,8 +37,15 @@ typedef struct
 } sys_link_t;
 
 
+struct mac_ip {
+    uint32_t ip;
+    uint8_t mac[6];
+};
+
 extern unsigned sys_sampling_links_nb;
 extern sys_link_t sys_sampling_links[];
 extern unsigned sys_queuing_links_nb;
 extern sys_link_t sys_queuing_links[];
+extern struct mac_ip mac_addr_mapping[];
+extern unsigned mac_addr_mapping_nb;
 #endif

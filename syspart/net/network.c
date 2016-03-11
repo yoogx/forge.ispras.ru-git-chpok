@@ -21,6 +21,7 @@
 #include <net/ip.h>
 #include <net/udp.h>
 #include <pci.h>
+#include <sysconfig.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -226,8 +227,19 @@ static void packet_received_callback(const char *data, size_t len)
     }
 }
 
+uint8_t default_mac[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
+extern struct mac_ip mac_addr_mapping[];
+uint8_t* find_mac_by_ip(uint32_t dst_ip)
+{
+    for (int i=0; i < mac_addr_mapping_nb; i++) {
+        if (mac_addr_mapping[i].ip == dst_ip)
+            return mac_addr_mapping[i].mac;
+    }
+    return default_mac;
+}
+
 void p3041_init(void);
-pok_bool_t p3041_send_frame( char *buffer, size_t size, pok_network_buffer_callback_t callback, void *callback_arg);
 
 void pok_network_init(void)
 {
@@ -254,11 +266,10 @@ static void fill_in_udp_header(
 
     // fill in Ethernet header
     int i;
-    int dst_mac[6] = {0x00, 0x80, 0x48, 0x6B, 0x53, 0xA9};
+    uint8_t *dst_mac = find_mac_by_ip(dst_ip);
     for (i = 0; i < ETH_ALEN; i++) {
         real_buffer->ether_hdr.src[i] = NETWORK_DRIVER.mac[i];
-        //real_buffer->ether_hdr.dst[i] = dst_mac[i];
-        real_buffer->ether_hdr.dst[i] = 0xff;
+        real_buffer->ether_hdr.dst[i] = dst_mac[i];
     }
     real_buffer->ether_hdr.ethertype = hton16(ETH_P_IP);
 
