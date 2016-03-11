@@ -76,6 +76,10 @@ class ArincConfigParser:
         # FIXME identifier is currently ignored
         res.name = root.find("Definition").attrib["Name"]
 
+        res.is_system = False
+        if "System" in root.find("Definition").attrib: 
+            res.is_system = parse_bool(root.find("Definition").attrib["System"])
+
         # FIXME support partition period, which is simply a fixed attribute
         #       with no real meaning (except it can be introspected)
 
@@ -93,6 +97,7 @@ class ArincConfigParser:
         res.ports = self.parse_ports(root.find("ARINC653_Ports"))
 
         res.hm_table = self.parse_hm(root.find("HM_Table"))
+
 
         return res
 
@@ -133,6 +138,10 @@ class ArincConfigParser:
             p.max_nb_messages = int(qp.attrib["MaxNbMessage"])
             p.max_message_size = int(qp.attrib["MaxMessageSize"])
 
+            p.protocol = None
+            if "Protocol" in qp.attrib:
+                p.protocol = qp.attrib["Protocol"]
+
             res.append(p)
 
         for sp in root.findall("Sampling_Port"):
@@ -142,6 +151,10 @@ class ArincConfigParser:
             p.direction = sp.attrib["Direction"]
             p.max_message_size = int(sp.attrib["MaxMessageSize"])
             p.refresh = parse_time(sp.attrib["Refresh"])
+
+            p.protocol = None
+            if "Protocol" in sp.attrib:
+                p.protocol = sp.attrib["Protocol"]
 
             res.append(p)
 

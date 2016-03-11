@@ -1,90 +1,56 @@
 #include <sysconfig.h>
 
 enum {
- overhead_p3041 = 0,
- overhead_virtio = 10,
- overhead_udp = 42,
+    overhead_udp = 42,
 };
-
-static struct {
-    MESSAGE_SIZE_TYPE message_size;
-    pok_bool_t busy;
-    char data[overhead_p3041 + overhead_udp + 64];
-} sp_0_data;
-
-static struct {
-    MESSAGE_SIZE_TYPE message_size;
-    pok_bool_t busy;
-    char data[overhead_p3041 + overhead_udp + 64];
-} sp_1_data;
 
 unsigned sysconfig_samples_nb = 2;
-sample_t samples[] = {
-    {
-        .max_message_size = 64,
-        .data = (void *) &sp_0_data,
-    },
-    {
-        .max_message_size = 64,
-        .data = (void *) &sp_1_data,
-    },
-};
+sample_t samples[] = {};
 unsigned sysconfig_queues_nb = 0;
 queue_t queues[] = {};
 
-//pok_device_t devices[] = {
-//    {
-//        .driver = DRIVER_VIRTIO,
-//        .kind = ETHERNET,
-//        .ethernet_data = {
-//            .ip = 0xa0000001
-//        }
-//    },
-//}
+#define MY_IP IP_ADDR(10, 0, 2, 15)
+const uint32_t pok_network_ip_address = MY_IP;
 
-#define IP_ADDR(a,b,c,d) ((uint32_t)((a) & 0xff) << 24) | \
-                         ((uint32_t)((b) & 0xff) << 16) | \
-                         ((uint32_t)((c) & 0xff) << 8)  | \
-                          (uint32_t)((d) & 0xff)
+unsigned sysconfig_links_nb = 0;
+link_t links[] = {};
 
-const uint32_t pok_network_ip_address = IP_ADDR(192, 168, 160, 200);
+sys_link_t sys_queuing_links[] = {};
+unsigned sys_queuing_links_nb = ARRAY_SIZE(sys_queuing_links);
 
-unsigned sysconfig_links_nb = 2;
-link_t links[] = {
+sys_link_t sys_sampling_links[] = {
     {
-        .device_id = 0,
-        .buffer_idx = 0,
-        .linked_port_info = {
-            .kind = POK_PORT_KIND_SAMPLING,
-            .direction = DESTINATION,
-            .name = "UOUT",
-            .sampling_data = {
-                .max_message_size = 64,
-            },
-        },
-
+        .port_id = 1,
         .protocol = UDP,
         .udp_data = { //destination module ip
-            .ip = IP_ADDR(192, 168, 160, 99),
+            .ip = IP_ADDR(10, 0, 2, 2),
             .port = 10000,
         }
     },
     {
-        .device_id = 0,
-        .buffer_idx = 1,
-        .linked_port_info = {
-            .kind = POK_PORT_KIND_SAMPLING,
-            .direction = SOURCE,
-            .name = "UIN",
-            .sampling_data = {
-                .max_message_size = 64,
-            },
-        },
-
+        .port_id = 0,
         .protocol = UDP,
-        .udp_data = { //destination module ip
-            .ip = IP_ADDR(192, 168, 160, 200),
+        .udp_data = {
+            .ip = MY_IP,
             .port = 10000,
         }
+    },
+};
+unsigned sys_sampling_links_nb = ARRAY_SIZE(sys_sampling_links);
+
+
+struct mac_ip {
+    uint32_t ip;
+    uint8_t mac[6];
+};
+
+struct mac_ip mac_addr_mapping[] = {
+    {
+        .ip  = MY_IP,
+        .mac = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+    },
+    {
+        .ip = IP_ADDR(10, 0, 2, 2),
+        .mac = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
     },
 };

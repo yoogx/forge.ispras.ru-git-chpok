@@ -3,6 +3,19 @@
 
 #include <arinc653/types.h>
 #include <middleware/port.h>
+#include <port_info.h>
+
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+#define IP_ADDR(a,b,c,d) ((uint32_t)((a) & 0xff) << 24) | \
+                         ((uint32_t)((b) & 0xff) << 16) | \
+                         ((uint32_t)((c) & 0xff) << 8)  | \
+                          (uint32_t)((d) & 0xff)
+
+extern sys_sampling_port_t sys_sampling_ports[];
+extern sys_queuing_port_t  sys_queuing_ports[];
+extern unsigned sys_sampling_ports_nb;
+extern unsigned sys_queuing_ports_nb;
+
 typedef struct
 {
     uint32_t max_message_size;
@@ -72,18 +85,27 @@ typedef struct
 
 typedef struct
 {
+    uint32_t port_id; //in queues or samples arrays
+
+    enum protocol_kind protocol;
+    union {
+        udp_data_t udp_data; //destination data!
+    };
+} sys_link_t;
+
+
+typedef struct
+{
     MESSAGE_SIZE_TYPE message_size;
     enum q_status status;
     uint32_t queue_idx;
     char     data[];
 } q_data_t;
 
-typedef struct
-{
-    MESSAGE_SIZE_TYPE message_size;
-    pok_bool_t busy;
-    char     data[];
-} s_data_t;
+extern unsigned sys_sampling_links_nb;
+extern sys_link_t sys_sampling_links[];
+extern unsigned sys_queuing_links_nb;
+extern sys_link_t sys_queuing_links[];
 
 extern unsigned sysconfig_queues_nb;
 extern queue_t queues[];

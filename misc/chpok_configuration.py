@@ -81,6 +81,7 @@ class TimeSlotMonitor(TimeSlot):
 class Partition:
     __slots__ = [
         "name", 
+        "is_system",
 
         "size", # allocated RAM size in bytes (code + static storage)
         "num_threads", # number of user threads, _not_ counting init thread and error handler
@@ -155,6 +156,7 @@ class SamplingPort:
         "direction",
         "max_message_size",
         "refresh",
+        "protocol",
     ]
 
     def validate(self):
@@ -168,6 +170,7 @@ class QueueingPort:
         "direction",
         "max_nb_messages",
         "max_message_size",
+        "protocol",
     ]
 
     def validate(self):
@@ -927,3 +930,117 @@ def write_partition_deployment_c(conf, partition_idx, f):
     p("pok_arinc653_event_layer_t pok_arinc653_events_layers[tmp_pok_config_arinc653_nb_events];")
     
     p("ARINC_ATTRIBUTE arinc_process_attribute[tmp_pok_config_nb_threads];")
+
+    if part.is_system:
+        write_system_partition_deployment_c(part, f)
+
+SAMPLING_PORT_NETWORK_DATA_TEMPLATE = """\
+static struct {
+    pok_port_size_t message_size;
+    pok_bool_t busy;
+    char data[POK_NETWORK_%(protocol)s + %(max_message_size)d];
+} %(varname)s;
+"""
+
+QUEUEING_PORT_NETWORK_DATA_TEMPLATE = """\
+static struct {
+    pok_port_size_t message_size;
+    char data[POK_NETWORK_%(protocol)s + %(max_message_size)d];
+} %(varname)s[%(max_nb_messages)d];
+"""
+
+SYS_SAMPLING_PORT_TEMPLATE = """\
+    {
+        .header = {
+            .kind = POK_PORT_KIND_SAMPLING,
+            .name = %(name)s,
+            .direction = %(direction)s,
+        },
+        .max_message_size = %(max_message_size)s,
+        .data = (void *) %(data)s,
+    },
+"""
+
+SYS_QUEUING_PORT_TEMPLATE = """\
+    {
+        .header = {
+            .kind = POK_PORT_KIND_QUEUEING,
+            .name = %(name)s,
+            .partition = %(partition)s,
+            .direction = %(direction)s,
+        },
+        .max_message_size = %(max_message_size)d,
+        .max_nb_messages = %(max_nb_messages)d,
+        
+        .data = (void *) %(data)s,
+        .data_stride = %(data_stride)s,
+    },
+"""
+
+def write_system_partition_deployment_c(part, f):
+    p = functools.partial(print, file=f)
+
+    p()
+    p()
+    p("/* System partition specific */")
+    p("#include <net/network.h>")
+    p("#include <port_info.h>")
+    p("#include <sysconfig.h>")
+
+    p()
+
+    # we interested only in ports, which protocol is not None
+    sampling_ports = [ port for port in part.ports if isinstance(port, SamplingPort) and port.protocol]
+    queuing_ports = [ port for port in part.ports if isinstance(port, QueueingPort) and port.protocol]
+
+    def get_internal_port_name(port, suffix=""):
+        # the name that is used for static variables
+        # including port data, channels, etc.
+        if isinstance(port, SamplingPort):
+            return "sp_%d_%s_%s" % (sampling_ports.index(port), port.protocol, suffix)
+        if isinstance(port, QueueingPort):
+            return "qp_%d_%s_%s" % (queuing_ports.index(port), port.protocol, suffix)
+
+        assert False
+
+    # print static data storage
+    for i, port in enumerate(sampling_ports):
+        p(SAMPLING_PORT_NETWORK_DATA_TEMPLATE % dict(
+            varname=get_internal_port_name(port, "data"),
+            max_message_size=port.max_message_size,
+            protocol=port.protocol,
+        ))
+
+    for i, port in enumerate(queuing_ports):
+        p(QUEUEING_PORT_NETWORK_DATA_TEMPLATE % dict(
+            varname=get_internal_port_name(port, "data"),
+            max_message_size=port.max_message_size,
+            max_nb_messages=port.max_nb_messages,
+            protocol=port.protocol,
+        ))
+    p("sys_sampling_port_t sys_sampling_ports[] = {")
+    for i, port in enumerate(sampling_ports):
+
+        p(SYS_SAMPLING_PORT_TEMPLATE % dict(
+            name=_c_string(port.name),
+            direction=port.direction,
+            max_message_size=port.max_message_size,
+            data="&" + get_internal_port_name(port, "data")
+        ))
+    p("};")
+    p("unsigned sys_sampling_ports_nb = ARRAY_SIZE(sys_sampling_ports);")
+
+    p("sys_queuing_port_t sys_queuing_ports[] = {")
+    for i, port in enumerate(queuing_ports):
+        p(SYS_QUEUING_PORT_TEMPLATE % dict(
+            name=_c_string(port.name),
+            partition=get_partition(port),
+            direction=_get_port_direction(port),
+            max_message_size=port.max_message_size,
+            max_nb_messages=port.max_nb_messages,
+            data="&" + get_internal_port_name(port, "data"),
+            data_stride="sizeof(%s[0])" % get_internal_port_name(port, "data")
+        ))
+    p("};")
+    p("unsigned sys_queuing_ports_nb = ARRAY_SIZE(sys_queuing_ports);")
+

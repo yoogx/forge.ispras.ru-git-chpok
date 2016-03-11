@@ -106,10 +106,15 @@ static void udp_sent_sampling_callback(void *arg) {
 
 static void queueing_send_outside(unsigned link_idx)
 {
-    link_t link = links[link_idx];
-    unsigned queue_idx = link.buffer_idx;
+    /*
+    sys_link_t link = sys_queuing_links[link_idx];
+    //unsigned queue_idx = link.buffer_idx;
     RETURN_CODE_TYPE ret;
-    queue_t *queue = &queues[queue_idx];
+    //queue_t *queue = &queues[queue_idx];
+
+    sys_queuing_port_t *port = &sys_queuing_ports[link.port_id];
+    sys_port_data_t *dst_place = port->data;
+
 
     while (!utils_queue_full(queue)) {
 
@@ -159,17 +164,19 @@ static void queueing_send_outside(unsigned link_idx)
         dst_place->queue_idx = queue_idx;
         pok_network_flush_send();
     }
+    */
 }
 
 static void sampling_send_outside(unsigned link_idx)
 {
-    link_t link = links[link_idx];
     RETURN_CODE_TYPE ret;
     VALIDITY_TYPE validity;
-    sample_t *sample = &samples[link.buffer_idx];
-    s_data_t *dst_place = sample->data;
 
-    if (!SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(link.linked_port_info.id))
+    sys_link_t link = sys_sampling_links[link_idx];
+    sys_sampling_port_t *port = &sys_sampling_ports[link.port_id];
+    sys_port_data_t *dst_place = port->data;
+
+    if (!SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(port->id))
         return;
 
     if (dst_place->busy) {
@@ -178,9 +185,9 @@ static void sampling_send_outside(unsigned link_idx)
         return;
     }
 
-    //TODO fix OVERHEAD
+    //TODO fix OVERHEAD!!!
     READ_SAMPLING_MESSAGE(
-            link.linked_port_info.id,
+            port->id,
             (MESSAGE_ADDR_TYPE ) (dst_place->data + POK_NETWORK_OVERHEAD),
             &dst_place->message_size,
             &validity,
@@ -190,10 +197,11 @@ static void sampling_send_outside(unsigned link_idx)
     if (ret != NO_ERROR) {
         if (ret != NOT_AVAILABLE)
             printf("SYSNET: %s port error: %u\n", 
-                    link.linked_port_info.name, ret);
+                    port->header.name, ret);
 
         return;
     }
+    printf("GOT MSG\n");
 
     dst_place->busy = TRUE;
 
@@ -216,19 +224,32 @@ static void sampling_send_outside(unsigned link_idx)
 
 static void first_process(void)
 {
-    while (1) {
-        for (int i = 0; i<sysconfig_links_nb; i++) {
-            port_info_t port_info = links[i].linked_port_info;
+    while(1) {
+        for (int i = 0; i<sys_sampling_links_nb; i++) {
+            sys_link_t *link = &sys_sampling_links[i];
+            sys_sampling_port_t *port = &sys_sampling_ports[link->port_id];
 
-            if (port_info.direction != DESTINATION)
+            if (port->header.direction != DESTINATION)
                 break;
-            if (port_info.kind == POK_PORT_KIND_QUEUEING)
-                queueing_send_outside(i);
-            else 
-                sampling_send_outside(i);
 
+            sampling_send_outside(i);
             pok_network_reclaim_send_buffers();
         }
+
+        for (int i = 0; i<sys_queuing_links_nb; i++) {
+            sys_link_t *link = &sys_queuing_links[i];
+            sys_queuing_port_t *port = &sys_queuing_ports[link->port_id];
+
+            if (port->header.direction != DESTINATION)
+                break;
+
+            queueing_send_outside(i);
+            pok_network_reclaim_send_buffers();
+        }
+
+        /* TODO QUEUING
+
+        */
         pok_network_reclaim_receive_buffers();
     }
 }
@@ -265,30 +286,33 @@ static int real_main(void)
         printf("process 1 \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
     }
 
-    for (int i = 0; i<sysconfig_links_nb; i++) {
-        port_info_t *port_info = &links[i].linked_port_info;
-        // create ports
-        if (port_info->kind == POK_PORT_KIND_QUEUEING) {
-            CREATE_QUEUING_PORT(
-                    port_info->name, 
-                    port_info->queueing_data.max_message_size, 
-                    port_info->queueing_data.max_nb_messages, 
-                    port_info->direction,
-                    FIFO, 
-                    &port_info->id, 
-                    &ret);
-        } else { 
-            CREATE_SAMPLING_PORT(
-                    port_info->name, 
-                    port_info->sampling_data.max_message_size, 
-                    port_info->direction,
-                    0,
-                    &port_info->id, 
-                    &ret);
-        }
-       
+    for (int i = 0; i<sys_sampling_ports_nb; i++) {
+        sys_sampling_port_t *port = &sys_sampling_ports[i];
+        CREATE_SAMPLING_PORT(
+                port->header.name,
+                port->max_message_size,
+                port->header.direction,
+                0,
+                &port->id,
+                &ret);
+
         if (ret != NO_ERROR)
-            printf("error %d creating %s port\n", ret, port_info->name);
+            printf("error %d creating %s port\n", ret, port->header.name);
+    }
+
+    for (int i = 0; i<sys_queuing_ports_nb; i++) {
+        sys_queuing_port_t *port = &sys_queuing_ports[i];
+        CREATE_QUEUING_PORT(
+                port->header.name,
+                port->max_message_size,
+                port->max_nb_messages,
+                port->header.direction,
+                FIFO,
+                &port->id,
+                &ret);
+        if (ret != NO_ERROR)
+            printf("error %d creating %s port\n", ret, port->header.name);
+
     }
 
     // network init

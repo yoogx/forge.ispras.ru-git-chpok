@@ -32,8 +32,8 @@
 #endif
 
 // ethernet + ip + udp
-#define POK_NETWORK_OVERHEAD_PROTO (14+20+8)
-#define POK_NETWORK_OVERHEAD (POK_NETWORK_OVERHEAD_PROTO)
+#define POK_NETWORK_UDP (14+20+8)
+#define POK_NETWORK_OVERHEAD (POK_NETWORK_UDP)
 
 typedef void (*pok_network_buffer_callback_t)(void*);
 

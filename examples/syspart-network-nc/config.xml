@@ -2,7 +2,7 @@
 <chpok-configuration>
     <Partitions>
         <Partition>
-            <Definition Identifier="1" Name="P1" />
+            <Definition Name="P1" />
             <!-- Amount of ram allocated (code + stack + static variables) -->
             <Memory Bytes="300K" />
 
@@ -51,7 +51,7 @@
 
         </Partition>
         <Partition>
-            <Definition Identifier="1" Name="P2" />
+            <Definition Name="P2" System="true"/>
             <!-- Amount of ram allocated (code + stack + static variables) -->
             <Memory Bytes="1000K" />
 
@@ -75,8 +75,8 @@
                      A653_SamplingPortType and A653_QueueingPortType
                      defined in the standard
                 -->
-                <Sampling_Port Name="UIN" MaxMessageSize="64" Direction="SOURCE" Refresh="1s" />
-                <Sampling_Port Name="UOUT" MaxMessageSize="64" Direction="DESTINATION" Refresh="1s" />
+                <Sampling_Port Name="UIN"  Protocol="UDP" MaxMessageSize="64" Direction="SOURCE" Refresh="1s" />
+                <Sampling_Port Name="UOUT" Protocol="UDP" MaxMessageSize="64" Direction="DESTINATION" Refresh="1s" />
             </ARINC653_Ports>
 
             <HM_Table>
