@@ -32,12 +32,6 @@ typedef struct
     void    *data;
 } sample_t;
 
-enum q_status{
-    QUEUEING_STATUS_NONE, // message hasn't been touched by network code at all
-    QUEUEING_STATUS_PENDING, // message has been sent to the driver, and its buffer is still in use by that driver
-    QUEUEING_STATUS_SENT, // message sent, buffer is free to use, but place is still occupied (it will be reclaimed soon)
-};
-
 
 typedef struct
 {
@@ -94,14 +88,6 @@ typedef struct
 } sys_link_t;
 
 
-typedef struct
-{
-    MESSAGE_SIZE_TYPE message_size;
-    enum q_status status;
-    uint32_t queue_idx;
-    char     data[];
-} q_data_t;
-
 extern unsigned sys_sampling_links_nb;
 extern sys_link_t sys_sampling_links[];
 extern unsigned sys_queuing_links_nb;
@@ -115,28 +101,5 @@ extern sample_t samples[];
 
 extern unsigned sysconfig_links_nb;
 extern link_t links[];
-
-//TODO move to another .h file
-static inline q_data_t * utils_queue_tail(queue_t *queue)
-{
-    uint32_t index = (queue->head + queue->nb_message) % queue->max_nb_messages;
-    return (q_data_t*) (queue->data + queue->data_stride * index);
-}
-
-static inline q_data_t * utils_queue_head(queue_t *queue)
-{
-    uint32_t index = queue->head;
-    return (q_data_t *) (queue->data + queue->data_stride * index);
-}
-
-static inline pok_bool_t utils_queue_empty(queue_t *queue)
-{
-    return queue->nb_message == 0;
-}
-
-static inline pok_bool_t utils_queue_full(queue_t *queue) 
-{
-    return queue->nb_message == queue->max_nb_messages;
-}
 
 #endif

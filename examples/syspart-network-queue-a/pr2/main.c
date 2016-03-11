@@ -8,6 +8,7 @@
 
 #include <net/network.h>
 #include <sysconfig.h>
+#include <port_info.h>
 
 #define SECOND 1000000000LL
 
@@ -76,18 +77,18 @@ static pok_bool_t udp_received_callback(
 
 static void udp_sent_queueing_callback(void *arg)
 {
-    q_data_t *qdata = arg;
-    qdata->status = QUEUEING_STATUS_SENT;
-    queue_t *queue = &queues[qdata->queue_idx];
+    sys_queuing_data_t *qdata = arg;
+    qdata->status = QUEUING_STATUS_SENT;
+    sys_queuing_port_t *port = &sys_queuing_ports[qdata->port_id];
 
-    for (int i = 0; i < queue->nb_message; i++) {
-        q_data_t *cur_data = utils_queue_head(queue);
+    for (int i = 0; i < port->nb_message; i++) {
+        sys_queuing_data_t *cur_data = utils_queue_head(port);
 
-        if (cur_data->status == QUEUEING_STATUS_SENT) {
-            queue->head = (queue->head + 1) % queue->max_nb_messages;
-            queue->nb_message--;
+        if (cur_data->status == QUEUING_STATUS_SENT) {
+            port->queue_head = (port->queue_head + 1) % port->max_nb_messages;
+            port->nb_message--;
 
-            cur_data->status = QUEUEING_STATUS_NONE;
+            cur_data->status = QUEUING_STATUS_NONE;
 
         } else {
             // ignore messages not at the head of the queue
@@ -106,30 +107,25 @@ static void udp_sent_sampling_callback(void *arg) {
 
 static void queueing_send_outside(unsigned link_idx)
 {
-    /*
     sys_link_t link = sys_queuing_links[link_idx];
-    //unsigned queue_idx = link.buffer_idx;
     RETURN_CODE_TYPE ret;
-    //queue_t *queue = &queues[queue_idx];
 
     sys_queuing_port_t *port = &sys_queuing_ports[link.port_id];
-    sys_port_data_t *dst_place = port->data;
 
+    while (!utils_queue_full(port)) {
 
-    while (!utils_queue_full(queue)) {
-
-        if (queue->nb_message > queue->max_nb_messages/2) {
+        if (port->nb_message > port->max_nb_messages/2) {
             pok_network_reclaim_send_buffers();
         }
 
-        q_data_t *dst_place = utils_queue_tail(queue);
-        if (dst_place->status != QUEUEING_STATUS_NONE) {
+        sys_queuing_data_t *dst_place = utils_queue_tail(port);
+        if (dst_place->status != QUEUING_STATUS_NONE) {
             printf("SYSNET error: status is not NONE\n");
             STOP_SELF();
         }
         //TODO fix OVERHEAD
         RECEIVE_QUEUING_MESSAGE(
-                link.linked_port_info.id,
+                port->id,
                 0,
                 (MESSAGE_ADDR_TYPE ) (dst_place->data + POK_NETWORK_OVERHEAD),
                 &dst_place->message_size,
@@ -139,12 +135,12 @@ static void queueing_send_outside(unsigned link_idx)
         if (ret != NO_ERROR) {
             if (ret != NOT_AVAILABLE)
                 printf("SYSNET: %s port error: %u\n", 
-                        link.linked_port_info.name, ret);
+                        port->header.name, ret);
 
             break;
-        } 
+        }
 
-        queue->nb_message++;
+        port->nb_message++;
 
         if (link.protocol == UDP) {
             pok_bool_t res = pok_network_send_udp(
@@ -160,11 +156,10 @@ static void queueing_send_outside(unsigned link_idx)
                 printf("SYSNET: Error in send_udp\n");
         }
 
-        dst_place->status = QUEUEING_STATUS_PENDING;
-        dst_place->queue_idx = queue_idx;
+        dst_place->status = QUEUING_STATUS_PENDING;
+        dst_place->port_id = link.port_id;
         pok_network_flush_send();
     }
-    */
 }
 
 static void sampling_send_outside(unsigned link_idx)

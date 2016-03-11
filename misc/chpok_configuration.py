@@ -966,7 +966,6 @@ SYS_QUEUING_PORT_TEMPLATE = """\
         .header = {
             .kind = POK_PORT_KIND_QUEUEING,
             .name = %(name)s,
-            .partition = %(partition)s,
             .direction = %(direction)s,
         },
         .max_message_size = %(max_message_size)d,
@@ -1034,7 +1033,6 @@ def write_system_partition_deployment_c(part, f):
     for i, port in enumerate(queuing_ports):
         p(SYS_QUEUING_PORT_TEMPLATE % dict(
             name=_c_string(port.name),
-            partition=get_partition(port),
             direction=_get_port_direction(port),
             max_message_size=port.max_message_size,
             max_nb_messages=port.max_nb_messages,
