@@ -257,7 +257,8 @@ static void fill_in_udp_header(
     int dst_mac[6] = {0x00, 0x80, 0x48, 0x6B, 0x53, 0xA9};
     for (i = 0; i < ETH_ALEN; i++) {
         real_buffer->ether_hdr.src[i] = NETWORK_DRIVER.mac[i];
-        real_buffer->ether_hdr.dst[i] = dst_mac[i];
+        //real_buffer->ether_hdr.dst[i] = dst_mac[i];
+        real_buffer->ether_hdr.dst[i] = 0xff;
     }
     real_buffer->ether_hdr.ethertype = hton16(ETH_P_IP);
 

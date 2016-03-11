@@ -12,9 +12,6 @@ queue_t queues[] = {};
 #define MY_IP IP_ADDR(10, 0, 2, 15)
 const uint32_t pok_network_ip_address = MY_IP;
 
-unsigned sysconfig_links_nb = 0;
-link_t links[] = {};
-
 sys_link_t sys_queuing_links[] = {};
 unsigned sys_queuing_links_nb = ARRAY_SIZE(sys_queuing_links);
 

@@ -1033,7 +1033,7 @@ def write_system_partition_deployment_c(part, f):
     for i, port in enumerate(queuing_ports):
         p(SYS_QUEUING_PORT_TEMPLATE % dict(
             name=_c_string(port.name),
-            direction=_get_port_direction(port),
+            direction=port.direction,
             max_message_size=port.max_message_size,
             max_nb_messages=port.max_nb_messages,
             data="&" + get_internal_port_name(port, "data"),

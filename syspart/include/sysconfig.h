@@ -93,13 +93,4 @@ extern sys_link_t sys_sampling_links[];
 extern unsigned sys_queuing_links_nb;
 extern sys_link_t sys_queuing_links[];
 
-extern unsigned sysconfig_queues_nb;
-extern queue_t queues[];
-
-extern unsigned sysconfig_samples_nb;
-extern sample_t samples[];
-
-extern unsigned sysconfig_links_nb;
-extern link_t links[];
-
 #endif

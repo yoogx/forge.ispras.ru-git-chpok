@@ -2,10 +2,7 @@
 
 const uint32_t pok_network_ip_address = 0xa000001;
 
-unsigned sysconfig_links_nb = 0;
-link_t links[] = {};
-
-unsigned sys_sampling_links_nb = 0;
+unsigned sys_sampling_links_nb = 1;
 sys_link_t sys_sampling_links[] = {};
 
 unsigned sys_queuing_links_nb = 1;

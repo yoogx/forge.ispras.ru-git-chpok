@@ -12,13 +12,14 @@
 
 #define SECOND 1000000000LL
 
-static void queueing_send_to_partition(unsigned link_idx, MESSAGE_ADDR_TYPE payload, size_t length)
+static void queuing_send_to_partition(unsigned link_idx, MESSAGE_ADDR_TYPE payload, size_t length)
 {
-    port_info_t *port_info = &links[link_idx].linked_port_info;
     RETURN_CODE_TYPE ret;
+    sys_link_t link = sys_queuing_links[link_idx];
+    sys_queuing_port_t *port = &sys_queuing_ports[link.port_id];
 
     SEND_QUEUING_MESSAGE(
-            port_info->id,
+            port->id,
             payload,
             length,
             0,
@@ -27,17 +28,18 @@ static void queueing_send_to_partition(unsigned link_idx, MESSAGE_ADDR_TYPE payl
     if (ret == NOT_AVAILABLE) {
         printf("Buffer is full, drop packet\n");
     } else if (ret != NO_ERROR) {
-        printf("SYSNET %ld port error: %u\n", port_info->id, ret);
+        printf("SYSNET %s port error: %u\n", port->header.name, ret);
     }
 }
 
 static void sampling_send_to_partition(unsigned link_idx, MESSAGE_ADDR_TYPE payload, size_t length)
 {
-    port_info_t *port_info = &links[link_idx].linked_port_info;
+    sys_link_t link = sys_sampling_links[link_idx];
+    sys_sampling_port_t *port = &sys_sampling_ports[link.port_id];
     RETURN_CODE_TYPE ret;
 
     WRITE_SAMPLING_MESSAGE(
-            port_info->id,
+            port->id,
             payload, 
             length, 
             &ret);
@@ -45,31 +47,45 @@ static void sampling_send_to_partition(unsigned link_idx, MESSAGE_ADDR_TYPE payl
     if (ret != NO_ERROR) {
         printf("error: %u\n", ret);
     }
-        
+
 }
+
 static pok_bool_t udp_received_callback(
         uint32_t ip, 
-        uint16_t port, 
+        uint16_t udp_port, 
         const char *payload, 
         size_t length) 
 {
-    for (int i = 0; i<sysconfig_links_nb; i++) {
-        if (links[i].protocol != UDP)
+    for (int i = 0; i<sys_sampling_links_nb; i++) {
+        sys_link_t *s_link = &sys_sampling_links[i];
+        if (s_link->protocol != UDP)
             continue;
 
-        port_info_t port_info = links[i].linked_port_info;
-        udp_data_t udp_data = links[i].udp_data;
+        sys_sampling_port_t *port = &sys_sampling_ports[s_link->port_id];
+        udp_data_t udp_data = s_link->udp_data;
 
-        if (port_info.direction != SOURCE)
+        if (port->header.direction != SOURCE)
             continue;
-        if (udp_data.ip != ip || udp_data.port != port) {
+        if (udp_data.ip != ip || udp_data.port != udp_port)
             continue;
-        }
 
-        if (port_info.kind == POK_PORT_KIND_QUEUEING)
-            queueing_send_to_partition(i, (MESSAGE_ADDR_TYPE) payload, length);
-        else 
-            sampling_send_to_partition(i, (MESSAGE_ADDR_TYPE) payload, length);
+        sampling_send_to_partition(i, (MESSAGE_ADDR_TYPE) payload, length);
+    }
+
+    for (int i = 0; i<sys_queuing_links_nb; i++) {
+        sys_link_t *q_link = &sys_queuing_links[i];
+        if (q_link->protocol != UDP)
+            continue;
+
+        sys_queuing_port_t *port = &sys_queuing_ports[q_link->port_id];
+        udp_data_t udp_data = q_link->udp_data;
+
+        if (port->header.direction != SOURCE)
+            continue;
+        if (udp_data.ip != ip || udp_data.port != udp_port)
+            continue;
+
+        queuing_send_to_partition(i, (MESSAGE_ADDR_TYPE) payload, length);
     }
 
     return FALSE;
@@ -134,9 +150,7 @@ static void queueing_send_outside(unsigned link_idx)
 
         if (ret != NO_ERROR) {
             if (ret != NOT_AVAILABLE)
-                printf("SYSNET: %s port error: %u\n", 
-                        port->header.name, ret);
-
+                printf("SYSNET: %s port error: %u\n", port->header.name, ret);
             break;
         }
 
@@ -191,12 +205,9 @@ static void sampling_send_outside(unsigned link_idx)
 
     if (ret != NO_ERROR) {
         if (ret != NOT_AVAILABLE)
-            printf("SYSNET: %s port error: %u\n", 
-                    port->header.name, ret);
-
+            printf("SYSNET: %s port error: %u\n", port->header.name, ret);
         return;
     }
-    printf("GOT MSG\n");
 
     dst_place->busy = TRUE;
 
