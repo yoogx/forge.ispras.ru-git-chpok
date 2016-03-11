@@ -1,14 +1,5 @@
 #include <sysconfig.h>
 
-enum {
-    overhead_udp = 42,
-};
-
-unsigned sysconfig_samples_nb = 2;
-sample_t samples[] = {};
-unsigned sysconfig_queues_nb = 0;
-queue_t queues[] = {};
-
 #define MY_IP IP_ADDR(10, 0, 2, 15)
 const uint32_t pok_network_ip_address = MY_IP;
 
@@ -34,7 +25,6 @@ sys_link_t sys_sampling_links[] = {
     },
 };
 unsigned sys_sampling_links_nb = ARRAY_SIZE(sys_sampling_links);
-
 
 struct mac_ip {
     uint32_t ip;
