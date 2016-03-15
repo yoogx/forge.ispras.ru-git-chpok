@@ -2,7 +2,8 @@
 
 import os
 
-SConscript(os.environ['POK_PATH']+'/misc/SConscript')
+cflags = ''
+SConscript(os.environ['POK_PATH']+'/misc/SConscript', exports = 'cflags')
 
 Import('env')
 SConscript(env['POK_PATH']+'/misc/SConscript_base')
