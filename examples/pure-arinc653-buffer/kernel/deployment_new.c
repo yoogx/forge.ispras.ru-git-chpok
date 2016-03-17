@@ -273,6 +273,8 @@ pok_partition_arinc_t pok_partitions_arinc[1] =
 {
     {
         .base_part = {
+            .name = "P1",
+            
             .period = 15000,
             
             .space_id = 0,
@@ -322,6 +324,19 @@ pok_partition_arinc_t pok_partitions_arinc[1] =
 
 const uint8_t pok_partitions_arinc_n = 1;
 
+/**************************** Monitor *********************************/
+pok_partition_t partition_monitor =
+{
+    .name = "Monitor",
+    
+    .period = 15000,
+    
+    .space_id = 0xff,
+    
+    .multi_partition_hm_selector = &hm_multi_partition_selector_default,
+    .multi_partition_hm_table = &hm_multi_partition_table_default,
+};
+
 /************************* Setup time slots ***************************/
 const pok_sched_slot_t pok_module_sched[1] = {
     {
@@ -336,3 +351,6 @@ const pok_sched_slot_t pok_module_sched[1] = {
 const uint8_t pok_module_sched_n = 1;
 
 const pok_time_t pok_config_scheduling_major_frame = 15000;
+
+/************************ Setup address spaces ************************/
+struct pok_space spaces[1]; // As many as partitions

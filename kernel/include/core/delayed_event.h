@@ -6,6 +6,7 @@
  */
 
 #include <list.h>
+#include <types.h>
 
 /** Event which should occure at a specific time point. */
 struct delayed_event {
@@ -49,7 +50,7 @@ void delayed_event_init(struct delayed_event* event);
  * 
  * In the last case event will (possibly) be reordered in the queue.
  */
-void delayed_event_add(struct delayed_event* event, uint64_t pok_time_t,
+void delayed_event_add(struct delayed_event* event, pok_time_t timepoint,
 	struct delayed_event_queue* q);
 
 /** Delete event from the queue. */

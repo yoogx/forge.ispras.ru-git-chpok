@@ -64,6 +64,7 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
    {
 #if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG)
       case POK_SYSCALL_CONSWRITE:
+         // TODO: It should be a call protected with global preemption disabled.
          POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg1 + infos->base_addr)
          if (pok_cons_write ((const char*)args->arg1 + infos->base_addr, args->arg2))
          {
@@ -102,8 +103,7 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
 
 #if defined POK_NEEDS_GETTICK
       case POK_SYSCALL_GETTICK:
-         POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg1 + infos->base_addr)
-         return pok_gettick_by_pointer ((uint64_t*) (args->arg1 + infos->base_addr));
+         return pok_gettick_by_pointer ((pok_time_t* __user) args->arg1);
          break;
 #endif
 
@@ -114,13 +114,13 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
 
 #ifdef POK_NEEDS_THREAD_SLEEP
       case POK_SYSCALL_THREAD_SLEEP:
-         return pok_thread_sleep((pok_time_t)args->arg1);
+         return pok_thread_sleep((const pok_time_t* __user)args->arg1);
          break;
 #endif
 
 #ifdef POK_NEEDS_THREAD_SLEEP_UNTIL
       case POK_SYSCALL_THREAD_SLEEP_UNTIL:
-         return pok_thread_sleep_until ((pok_time_t)args->arg1);
+         return pok_thread_sleep_until ((const pok_time_t* __user)args->arg1);
          break;
 #endif
 
@@ -136,7 +136,7 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
 
 #ifdef POK_NEEDS_THREAD_ID
       case POK_SYSCALL_THREAD_ID:
-         return pok_sched_get_current((pok_thread_id_t*) (args->arg1 + infos->base_addr));
+         return pok_sched_get_current((pok_thread_id_t* __user) (args->arg1));
          break;
 #endif
    case POK_SYSCALL_THREAD_STATUS:
@@ -144,7 +144,7 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
          break;
 
    case POK_SYSCALL_THREAD_DELAYED_START:
-     return pok_thread_delayed_start ((pok_thread_id_t) args->arg1, (int32_t) args->arg2);
+     return pok_thread_delayed_start ((pok_thread_id_t) args->arg1, (const pok_time_t* __user) args->arg2);
      break;
    case POK_SYSCALL_THREAD_SET_PRIORITY:
 	   return pok_thread_set_priority (args->arg1, args->arg2);
@@ -160,7 +160,7 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
       return pok_thread_yield();
       break;
    case POK_SYSCALL_THREAD_REPLENISH:
-           return pok_sched_replenish((int32_t) args->arg1);
+           return pok_sched_replenish((const pok_time_t* __user) args->arg1);
 
    case POK_SYSCALL_THREAD_STOP:
            return pok_thread_stop((pok_thread_id_t) args->arg1);
@@ -281,7 +281,6 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
          break;
 
       case POK_SYSCALL_MIDDLEWARE_QUEUEING_SEND:
-         // POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg2 + infos->base_addr)
          return pok_port_queuing_send ((pok_port_id_t)                     args->arg1,
                                        (const void* __user)                args->arg2,
                                        (uint16_t)                          args->arg3,
@@ -289,10 +288,8 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
          break;
 
       case POK_SYSCALL_MIDDLEWARE_QUEUEING_RECEIVE:
-         //POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg4 + infos->base_addr)
-         //POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg5 + infos->base_addr)
          return pok_port_queuing_receive ((pok_port_id_t)           args->arg1, 
-                                          (int64_t)                  args->arg2,
+                                          (const pok_time_t* __user) args->arg2,
                                           (pok_port_size_t)          args->arg3,
                                           (void* __user)             args->arg4, 
                                           (pok_port_size_t* __user)  args->arg5);

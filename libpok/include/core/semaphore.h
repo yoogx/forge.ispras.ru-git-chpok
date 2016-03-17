@@ -33,9 +33,9 @@
 // in kernel it's called pok_lockobj_status_t
 // layout is the same
 typedef struct {
-    uint32_t current_value;
-    uint32_t maximum_value;
-    uint32_t waiting_processes; 
+    pok_sem_value_t current_value;
+    pok_sem_value_t maximum_value;
+    pok_range_t waiting_processes; 
 } pok_sem_status_t;
 
 

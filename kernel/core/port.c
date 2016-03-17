@@ -13,7 +13,7 @@
  */
 static pok_port_queuing_t* find_port_queuing(const char* __user name)
 {
-    char name_kernel[MAX_NAME_LENGTH];
+    char kernel_name[MAX_NAME_LENGTH];
     
     pok_port_queuing_t* port_queuing =
         current_partition_arinc->ports_queuing;
@@ -21,11 +21,11 @@ static pok_port_queuing_t* find_port_queuing(const char* __user name)
     pok_port_queuing_t* ports_queuing_end =
         port_queuing + current_partition_arinc->nports_queuing;
         
-    __copy_from_user(name, name_kernel, MAX_NAME_LENGTH);
+    __copy_from_user(kernel_name, name, MAX_NAME_LENGTH);
     
     for(; port_queuing < ports_queuing_end; port_queuing++)
     {
-        if(!pok_compare_names(port_queuing->name, name_kernel))
+        if(!pok_compare_names(port_queuing->name, kernel_name))
             return port_queuing;
     }
     
@@ -53,7 +53,7 @@ void port_queuing_receive(pok_port_queuing_t* port, pok_thread_t* t)
     void* __user data = t->wait_private;
     pok_message_t* m = pok_channel_queuing_r_get_message(port->channel, 0);
     
-    __copy_to_user(m->content, data, m->size);
+    __copy_to_user(data, m->content, m->size);
     t->wait_private = (void*)(unsigned long)m->size;
     
     pok_channel_queuing_r_consume_messages(port->channel, 1);
@@ -64,7 +64,7 @@ void port_queuing_send(pok_port_queuing_t* port, pok_thread_t* t)
     pok_message_send_t* m_send = t->wait_private;
     pok_message_t* m = pok_channel_queuing_s_get_message(port->channel, FALSE);
     
-    __copy_from_user(m_send->data, m->content, m_send->size);
+    __copy_from_user(m->content, m_send->data, m_send->size);
     t->wait_private = (void*)(unsigned long)m->size;
     
     pok_channel_queuing_s_produce_message(port->channel);
@@ -163,25 +163,27 @@ pok_ret_t pok_port_queuing_create(
 }
 
 pok_ret_t pok_port_queuing_receive(
-    pok_port_id_t           id, 
-    pok_time_t              timeout, 
-    pok_port_size_t         maxlen, 
-    void* __user            data, 
-    pok_port_size_t* __user len)
+    pok_port_id_t               id, 
+    const pok_time_t* __user    timeout, 
+    pok_port_size_t             maxlen, 
+    void* __user                data, 
+    pok_port_size_t* __user     len)
 {
     pok_port_queuing_t* port_queuing;
     pok_ret_t ret;
     pok_thread_t* t;
 
     long wait_result;
-    
+        
     port_queuing = get_port_queuing(id);
     if(!port_queuing) return POK_ERRNO_PORT;
 
     if(!check_access_write(data, port_queuing->channel->max_message_size))
         return POK_ERRNO_EFAULT;
-    if(!check_user_write(len))
-        return POK_ERRNO_EFAULT;
+    if(!check_user_write(len)) return POK_ERRNO_EFAULT;
+
+    if(!check_user_read(timeout)) return POK_ERRNO_EFAULT;
+    pok_time_t kernel_timeout = __get_user(timeout);
 
     if(port_queuing->direction != POK_PORT_DIRECTION_IN)
         return POK_ERRNO_MODE;
@@ -206,7 +208,7 @@ pok_ret_t pok_port_queuing_receive(
          * if channel is currently empty. Otherwise waiting is allowed.
          */
 
-        if(timeout == 0)
+        if(kernel_timeout == 0)
             ret = POK_ERRNO_EMPTY;
         else if(!thread_is_waiting_allowed())
             ret = POK_ERRNO_MODE;
@@ -230,7 +232,7 @@ pok_ret_t pok_port_queuing_receive(
             pok_thread_wq_add_common(&port_queuing->waiters, t,
                 port_queuing->discipline);
             
-            thread_wait_common(t, timeout);
+            thread_wait_common(t, kernel_timeout);
             
             goto out;
         }
@@ -435,7 +437,7 @@ pok_ret_t pok_port_queuing_id(
  */
 static pok_port_sampling_t* find_port_sampling(const char* __user name)
 {
-    char name_kernel[MAX_NAME_LENGTH];
+    char kernel_name[MAX_NAME_LENGTH];
     
     pok_port_sampling_t* port_sampling =
         current_partition_arinc->ports_sampling;
@@ -443,11 +445,11 @@ static pok_port_sampling_t* find_port_sampling(const char* __user name)
     pok_port_sampling_t* ports_sampling_end =
         port_sampling + current_partition_arinc->nports_sampling;
         
-    __copy_from_user(name, name_kernel, MAX_NAME_LENGTH);
+    __copy_from_user(kernel_name, name, MAX_NAME_LENGTH);
     
     for(; port_sampling < ports_sampling_end; port_sampling++)
     {
-        if(!pok_compare_names(port_sampling->name, name_kernel))
+        if(!pok_compare_names(port_sampling->name, kernel_name))
             return port_sampling;
     }
     
@@ -548,7 +550,7 @@ pok_ret_t pok_port_sampling_write(
     message = pok_channel_sampling_s_get_message(port_sampling->channel);
 
     message->size = len;
-    __copy_from_user(data, message->content, len);
+    __copy_from_user(message->content, data, len);
     
     pok_channel_sampling_send_message(port_sampling->channel);
 
@@ -590,7 +592,7 @@ pok_ret_t pok_port_sampling_read(
     
     if(message)
     {
-        __copy_to_user(message->content, data, message->size);
+        __copy_to_user(data, message->content, message->size);
         __put_user(len, (pok_port_size_t)message->size);
         
         port_sampling->last_message_validity =

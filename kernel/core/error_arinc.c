@@ -102,21 +102,22 @@ static void take_fixed_action(pok_error_action_t action)
             // TODO not all kinds of errors can be ignored just like that
             return;
         case POK_ERROR_ACTION_IDLE:
-            pok_partition_set_mode_current(POK_PARTITION_MODE_IDLE);
-            assert(FALSE && "this's supposed to be unreachable");
+            pok_partition_arinc_idle();
+            unreachable();
             break;
         case POK_ERROR_ACTION_COLD_START:
-            pok_partition_arinc_reset(current_partition_arinc,
-                POK_PARTITION_MODE_INIT_COLD);
+            pok_partition_arinc_reset(POK_PARTITION_MODE_INIT_WARM);
             assert(FALSE && "this's supposed to be unreachable");
             break;
         case POK_ERROR_ACTION_WARM_START:
-            pok_partition_arinc_reset(current_partition_arinc,
-                POK_PARTITION_MODE_INIT_WARM);
-            assert(FALSE && "this's supposed to be unreachable");
+            // TODO: Instead of assert() this should be another error or other actions.
+            assert(current_partition_arinc->mode != POK_PARTITION_MODE_INIT_COLD);
+            
+            pok_partition_arinc_reset(POK_PARTITION_MODE_INIT_WARM);
+            unreachable();
             break;
         default:
-            assert(FALSE && "invalid HM action");
+            unreachable();
     }
 }
 
@@ -360,7 +361,7 @@ static void copy_error_to_user(pok_error_id_t error_id,
      msg_size = strnlen(msg, POK_ERROR_MAX_MSG_SIZE);
      if(msg_size != POK_ERROR_MAX_MSG_SIZE) msg_size++;
 
-     __copy_to_user(msg, status->msg, msg_size);
+     __copy_to_user(status->msg, msg, msg_size);
      __put_user_f(status, msg_size, msg_size);
 
     __put_user_f(status, error_kind, get_error_kind(error_id));
@@ -395,7 +396,7 @@ pok_ret_t pok_error_get (pok_error_status_t* __user status)
          {
              pok_message_send_t* message_send = thread->wait_private;
            
-             __copy_user(message_send->data, &status->msg, message_send->size);
+             __copy_user(&status->msg, message_send->data, message_send->size);
              __put_user_f(status, msg_size, message_send->size);
              __put_user_f(status, error_kind, get_error_kind(POK_ERROR_ID_APPLICATION_ERROR));
          }

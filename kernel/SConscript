@@ -7,7 +7,7 @@ kernel_env.Append(CFLAGS = ' -Werror')
 
 kernel_env.Program(target = 'pok.lo', source = [
 'core/core.lo',
-'middleware/middleware.lo',
+# 'middleware/middleware.lo',
 'libc/libc.lo',
 'arch/arch.lo',
 'drivers/drivers.lo',
@@ -16,7 +16,7 @@ kernel_env.Program(target = 'pok.lo', source = [
 Export('kernel_env')
 
 SConscript('core/SConscript')
-SConscript('middleware/SConscript')
+# SConscript('middleware/SConscript')
 SConscript('libc/SConscript')
 SConscript('arch/SConscript')
 SConscript('drivers/SConscript')

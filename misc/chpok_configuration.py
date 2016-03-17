@@ -520,8 +520,8 @@ def _c_string(b):
     return json.dumps(b)
 
 def write_configuration(conf, kernel_dir, partition_dirs):
-    with open(os.path.join(kernel_dir, "deployment.c"), "w") as f:
-        write_kernel_deployment_c(conf, f)
+    # with open(os.path.join(kernel_dir, "deployment.c"), "w") as f:
+    #    write_kernel_deployment_c(conf, f)
 
     # caller may pass more directories than required
     # we just ignore them

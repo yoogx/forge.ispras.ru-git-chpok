@@ -65,12 +65,4 @@ typedef enum
 		POK_ERRNO_PARTITION            =  401
 } pok_ret_t;
 
-/** Get error indicator as a pointer. */
-#define ERR_PTR(err) ((void*)(unsigned long)(err))
-/** Return true if given pointer is a error indicator. */
-#define IS_ERR(ptr) ((unsigned long)(ptr) < 1024)
-
-/** Convert pointer back to the error code. */
-#define PTR_ERR(ptr) ((pok_ret_t)(unsigned long)(ptr))
-
 #endif

@@ -1,25 +1,21 @@
 #include "thread_internal.h"
 #include <core/sched_arinc.h>
 
-static void thread_start_func(void)
-{
-    //TODO
-}
-
 pok_bool_t thread_create(pok_thread_t* t)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
     
-    t->init_stack_addr = pok_thread_stack_addr(
+    t->init_stack_addr = (void*)pok_thread_stack_addr(
         part->base_part.space_id,
         t->user_stack_size,
         &part->user_stack_state);
     
     if(t->init_stack_addr == 0) return FALSE;
     
-    t->sp = pok_context_init(
-        pok_dstack_get_stack(&t->initial_sp),
-        &thread_start_func);
+    /* 
+     * Do not modify stack here: it will be filled when thread will run.
+     */
+    t->sp = 0;
     
     t->priority = t->base_priority;
     t->state = POK_STATE_STOPPED;
@@ -186,7 +182,7 @@ void thread_wake_up(pok_thread_t* t)
 		// Cancel wait on object.
 		list_del_init(&t->wait_elem);
 		// Set flag that we has been interrupted by timeout.
-		t->wait_private = ERR_PTR(POK_ERRNO_TIMEOUT);
+		t->wait_private = (void*)(-(unsigned long)POK_ERRNO_TIMEOUT);
 	}
 	
 	if(!t->suspended)

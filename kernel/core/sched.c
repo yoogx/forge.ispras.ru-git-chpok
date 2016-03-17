@@ -63,6 +63,8 @@ static pok_time_t            pok_sched_next_deadline;
 static pok_time_t            pok_sched_next_major_frame;
 static uint8_t               pok_sched_current_slot = 0; /* Which slot are we executing at this time ?*/
 
+pok_partition_t* current_partition = NULL;
+
 #ifdef POK_NEEDS_MONITOR
 /* 
  * Whether current partition has `.is_paused` flag set.
@@ -90,10 +92,7 @@ static pok_bool_t sched_need_recheck;
 static void start_partition(void)
 {
     // Initialize state for started partition.
-    current_partition->state.bytes.time_changed = 0;
-    current_partition->state.bytes.control_returned = 0;
-    current_partition->state.bytes.unused1 = 0;
-    current_partition->state.bytes.unused2 = 0;
+    current_partition->state.bytes_all = 0;
     
     current_partition->preempt_local_disabled = 1;
     
@@ -110,9 +109,9 @@ static void start_partition(void)
 static void intra_partition_switch(void)
 {
     uint32_t* old_sp = &current_partition->sp;
-    uint32_t* new_sp = old_sp;
     
 #ifdef POK_NEEDS_MONITOR
+    uint32_t* new_sp = old_sp;
     if(current_partition_is_paused) old_sp = &idle_sp;
     if(current_partition->is_paused) new_sp = &idle_sp;
     
@@ -153,7 +152,8 @@ static void intra_partition_switch(void)
     if(*old_sp == 0) /* Same context, restart requested. */
     {
         pok_context_restart(&current_partition->initial_sp,
-            &start_partition);
+            &start_partition,
+            old_sp);
     }
 }
 
@@ -255,7 +255,12 @@ void pok_sched_start (void)
     pok_sched_restart();
 }
 
-void pok_sched(void)
+/* 
+ * Perform scheduling.
+ * 
+ * Should be called with preemption disabled.
+ */
+static void pok_sched(void)
 {
     pok_partition_t* new_partition;
     pok_time_t now;
@@ -291,53 +296,36 @@ void pok_preemption_disable(void)
     pok_arch_preempt_disable();
 }
 
+
 void pok_preemption_enable(void)
 {
-    uint8_t preempt_local_disabled_old;
-    pok_bool_t need_call_time_changed = FALSE;
-    pok_bool_t need_call_control_returned = FALSE;
-    
     assert(pok_arch_preempt_enabled());
     
     pok_sched();
     
-    preempt_local_disabled_old = current_partition
-        ? current_partition->preempt_local_disabled
-        : 1; // Idle thread has no preemption mechanism.
+    if(current_partition->preempt_local_disabled
+        || !current_partition->state.bytes_all)
+    {
+        // Partition doesn't require notifications. Common case.
+        pok_arch_preempt_enable();
+        return;
+    }
+
+    current_partition->preempt_local_disabled = 1;
     
-    if(preempt_local_disabled_old)
+    // Until partition "consume" all state bits or enables preemption.
+    do    
     {
-        // Do nothing in case of disabled local preemption.
-    }
-    else if(current_partition->state.bytes.time_changed
-        && current_partition->part_ops
-        && current_partition->part_ops->on_time_changed)
-    {
-        // Time has been changed and partition has operation for process that.
-        current_partition->preempt_local_disabled = 1;
-        current_partition->state.bytes.time_changed = 0;
-        need_call_time_changed = TRUE;
-    }
-    else if(current_partition->state.bytes.control_returned
-        && current_partition->part_ops
-        && current_partition->part_ops->on_time_changed)
-    {
-        // Control has been returned and partition has operation for process that.
-        current_partition->preempt_local_disabled = 1;
-        current_partition->state.bytes.control_returned = 0;
-        need_call_control_returned = TRUE;
-    }
+        pok_arch_preempt_enable();
     
+        current_partition->part_ops->on_event();
+        
+        pok_arch_preempt_disable();
+    } while(current_partition->preempt_local_disabled
+        && current_partition->state.bytes_all);
+    
+    current_partition->preempt_local_disabled = 0;
     pok_arch_preempt_enable();
-    
-    if(need_call_time_changed)
-    {
-        current_partition->part_ops->on_time_changed();
-    }
-    else if(need_call_control_returned)
-    {
-        current_partition->part_ops->on_control_returned();
-    }
 }
 
 /*
@@ -377,9 +365,62 @@ pok_time_t get_next_periodic_processing_start(void)
 
 void pok_sched_on_time_changed(void)
 {
-    if(current_partition)
-        current_partition->state.bytes.time_changed = 1;
-    
+    pok_partition_t* part = current_partition;
     sched_need_recheck = TRUE;
-    pok_preemption_enable();
+    pok_sched();
+    
+    if(!part) return; // TODO: correctly check in case of paused partition.
+    
+    pok_bool_t preempt_local_disabled_old = current_partition->preempt_local_disabled;
+    
+    part->state.bytes.time_changed = 1;
+    
+    if(preempt_local_disabled_old) return;
+    
+    // Emit events for partition.
+    do
+    {
+        part->preempt_local_disabled = 1;
+        pok_arch_preempt_enable();
+        part->part_ops->on_event();
+        pok_arch_preempt_disable();
+    } while(part->preempt_local_disabled && part->state.bytes_all);
+    
+    part->preempt_local_disabled = 0;
+    
+    // Still with disabled preemption. It is needed for returning from interrupt.
+}
+
+void pok_partition_jump_user(void* __user entry,
+    void* __user stack_addr,
+    struct dStack* stack_kernel)
+{
+    pok_partition_t* part = current_partition;
+
+    pok_preemption_disable();
+
+    // Emit events for partition.
+    while(part->preempt_local_disabled
+        && part->state.bytes_all)
+    {
+        part->preempt_local_disabled = 1;
+        pok_arch_preempt_enable();
+        part->part_ops->on_event();
+        pok_arch_preempt_disable();
+    }
+
+    part->preempt_local_disabled = 0;
+    
+    pok_context_user_jump(
+        stack_kernel,
+        part->space_id,
+        (unsigned long)entry,
+        (unsigned long)stack_addr,
+        0xdead,
+        0xbeaf);
+}
+
+void pok_sched_init(void)
+{
+    // TODO: It looks like nothing should be done there.
 }

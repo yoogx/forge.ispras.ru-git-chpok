@@ -5,6 +5,7 @@
 
 #include <core/channel.h>
 #include <core/thread.h>
+#include <common.h>
 struct _pok_patition_arinc;
 
 typedef enum
@@ -113,18 +114,18 @@ pok_ret_t pok_port_queuing_create(
     pok_port_id_t* __user           id);
 
 pok_ret_t pok_port_queuing_receive(
-    pok_port_id_t           id, 
-    pok_time_t              timeout, 
-    pok_port_size_t         maxlen, 
-    void* __user            data, 
-    pok_port_size_t* __user len);
+    pok_port_id_t               id, 
+    const pok_time_t* __user    timeout, 
+    pok_port_size_t             maxlen, 
+    void* __user                data, 
+    pok_port_size_t* __user     len);
 
 
 pok_ret_t pok_port_queuing_send(
-    pok_port_id_t       id, 
-    const void* __user  data,
-    pok_port_size_t     len,
-    pok_time_t          timeout);
+    pok_port_id_t               id, 
+    const void* __user          data,
+    pok_port_size_t             len,
+    const pok_time_t __user    timeout);
 
 
 pok_ret_t pok_port_queuing_status(

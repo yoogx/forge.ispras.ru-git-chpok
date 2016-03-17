@@ -7,6 +7,35 @@
 #include <arch.h>
 #include <uaccess.h>
 
+
+/*
+ * Function which is executed in kernel-only partition's context when
+ * partition's mode is IDLE.
+ * 
+ * Note, that we do not enable local preemption here.
+ * This has nice effect in case when partition has moved into this mode
+ * because of errors: even if some partition's data are corrupted,
+ * idle have high chance to work.
+ */
+static void idle_func(void)
+{
+    wait_infinitely();
+}
+
+void pok_partition_arinc_idle(void)
+{
+	pok_partition_arinc_t* part = current_partition_arinc;
+	uint32_t fake_sp;
+	
+	// Unconditionally off preemption.
+	part->base_part.preempt_local_disabled = 1;
+	
+	pok_context_restart(
+		&part->base_part.initial_sp,
+		&idle_func,
+		&fake_sp);
+}
+
 /* Helpers */
 
 /*
@@ -29,24 +58,13 @@ static void thread_init(pok_thread_t* t)
     pok_dstack_alloc(&t->initial_sp, KERNEL_STACK_SIZE_DEFAULT);
 }
 
-void pok_partition_arinc_reset(pok_partition_arinc_t* part,
-	pok_partition_mode_t mode)
-{
-	part->mode = mode;
-	
-	part->intra_memory_size_used = 0;
-
-	pok_partition_reset(&part->base_part);
-}
-
 // This name is not accessible for user space
 static char main_thread_name[MAX_NAME_LENGTH] = "main";
 
-static void partition_arinc_start(void)
+/* Common start function for partition. Do not change mode. */
+static void partition_arinc_start_common(void)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
-
-	part->preempt_local_counter = 1;
 	
 	INIT_LIST_HEAD(&part->eligible_threads);
 	delayed_event_queue_init(&part->queue_deadline);
@@ -59,6 +77,12 @@ static void partition_arinc_start(void)
 	
 	part->nthreads_used = 0;
 	part->user_stack_state = 0;
+	
+	part->intra_memory_size_used = 0;
+	part->nbuffers_used = 0;
+	part->nblackboards_used = 0;
+	part->nsemaphores_used = 0;
+	part->nevents_used = 0;
 
 	part->thread_current = NULL;
 #ifdef POK_NEEDS_ERROR_HANDLING
@@ -80,23 +104,61 @@ static void partition_arinc_start(void)
 	
 	part->nthreads_used = POK_PARTITION_ARINC_MAIN_THREAD_ID;
 	
-	part->lock_level = 1;
-	part->thread_locked = thread_main;
-	
-	thread_main->state = POK_STATE_RUNNABLE;
+	sched_arinc_start();
 
-	pok_sched_local_invalidate();
-
-	pok_preemption_local_enable();
-	// Idle thread now.
-	wait_infinitely();
+	/* Current context is lost and may be reused for "do_nothing" thread
+	 * or for IDLE partition's mode.
+	 */
 }
+
+/* 
+ * Start function called from outside (as partition's .start callback).
+ * 
+ * Mode is set to INIT_COLD.
+ */
+static void partition_arinc_start(void)
+{
+	current_partition_arinc->mode = POK_PARTITION_MODE_INIT_COLD;
+	partition_arinc_start_common();
+}
+
+/* 
+ * Start function called by partition itself.
+ * 
+ * Mode should be set before.
+ */
+static void partition_arinc_restart(void)
+{
+	partition_arinc_start_common();
+}
+
+void pok_partition_arinc_reset(pok_partition_mode_t mode)
+{
+	pok_partition_arinc_t* part = current_partition_arinc;
+	
+	part->base_part.preempt_local_disabled = 1;
+	part->base_part.state.bytes_all = 0; // Just for the case.
+	
+	assert(mode == POK_PARTITION_MODE_INIT_WARM
+		|| mode == POK_PARTITION_MODE_INIT_COLD);
+	
+	assert(mode == POK_PARTITION_MODE_INIT_COLD ||
+		part->mode != POK_PARTITION_MODE_INIT_COLD);
+
+	part->mode = mode;
+
+	// Do not change partition's sp - it is only for global scheduler.
+	uint32_t fake_sp;
+	
+	pok_context_restart(&part->base_part.initial_sp,
+		&partition_arinc_restart, &fake_sp);
+}
+
 
 
 static const struct pok_partition_operations arinc_ops = {
 	.start = &partition_arinc_start,
-	.on_time_changed = &pok_sched_arinc_on_time_changed,
-	.on_control_returned = &pok_sched_arinc_on_control_returned,
+	.on_event = &pok_sched_arinc_on_event,
 	.process_partition_error = &pok_partition_arinc_process_error,
 };
 
@@ -118,6 +180,7 @@ void pok_partition_arinc_init(pok_partition_arinc_t* part)
 
 	pok_create_space (part->base_part.space_id, base_addr, size);
 
+	// TODO: this should be performed on restart too.
 	pok_arch_load_partition(part,
 		part->partition_id, /* elf_id*/
 		part->base_part.space_id,
@@ -143,8 +206,6 @@ void pok_partition_arinc_init(pok_partition_arinc_t* part)
 	{
 		pok_port_sampling_init(&part->ports_sampling[i]);
 	}
-
-	pok_partition_arinc_reset(part, POK_PARTITION_MODE_INIT_COLD);
 }
 
 void* partition_arinc_im_get(size_t size, size_t alignment)
@@ -247,9 +308,9 @@ static void partition_set_mode_normal(void)
 		}
 	}
 	
-	pok_sched_local_invalidate();
-
 	part->mode = POK_PARTITION_MODE_NORMAL;
+	
+	pok_sched_local_invalidate();
 }
 
 
@@ -265,10 +326,10 @@ static pok_ret_t partition_set_mode_internal (const pok_partition_mode_t mode)
 			return POK_ERRNO_PARTITION_MODE;
 	// Walkthrough
 	case POK_PARTITION_MODE_INIT_COLD:
-		pok_partition_arinc_reset(part, mode);
+		pok_partition_arinc_reset(mode); // Never return.
 	break;
 	case POK_PARTITION_MODE_IDLE:
-		part->mode = POK_PARTITION_MODE_IDLE;
+		pok_partition_arinc_idle(); // Never return.
 	break;
 	case POK_PARTITION_MODE_NORMAL:
 		if(part->mode == POK_PARTITION_MODE_NORMAL)
@@ -349,7 +410,7 @@ pok_ret_t pok_current_partition_get_start_condition (pok_start_condition_t *star
  * 
  * NOTE: Doesn't require disabled local preemption.
  */
-pok_bool_t is_lock_level_blocked(void)
+static pok_bool_t is_lock_level_blocked(void)
 {
 	pok_partition_arinc_t* part = current_partition_arinc;
 	return part->mode != POK_PARTITION_MODE_NORMAL ||

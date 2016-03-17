@@ -40,7 +40,15 @@ typedef uint16_t pok_sem_id_t;
 typedef uint16_t pok_event_id_t;
 typedef uint8_t pok_partition_id_t;
 typedef uint8_t pok_thread_id_t;
+typedef enum {
+    POK_BLACKBOARD_EMPTY,
+    POK_BLACKBOARD_OCCUPIED
+} pok_blackboard_empty_t;
 typedef uint16_t pok_sem_value_t;
+typedef enum {
+    POK_EVENT_UP,
+    POK_EVENT_DOWN
+} pok_event_state_t;
 
 typedef uint16_t pok_message_size_t; // 0....8192
 typedef uint16_t pok_message_range_t; // 0...512
@@ -73,6 +81,7 @@ typedef enum {
  * without null-bytes, or have null-byte in the first MAX_NAME_LENGTH
  * bytes.
  */
+int   strncmp(const char *s1, const char *s2, size_t size);
 static inline int pok_compare_names(const char* name1, const char* name2)
 {
     return strncmp(name1, name2, MAX_NAME_LENGTH);

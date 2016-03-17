@@ -131,7 +131,7 @@ pok_ret_t pok_thread_create (pok_thread_id_t* __user thread_id,
 
     t = &part->threads[part->nthreads_used];
     
-    __copy_from_user(&attr->process_name, t->name, MAX_NAME_LENGTH);
+    __copy_from_user(t->name, &attr->process_name, MAX_NAME_LENGTH);
     t->entry = __get_user_f(attr, entry);
     t->base_priority = __get_user_f(attr, priority);
     t->period = __get_user_f(attr, period);
@@ -184,16 +184,19 @@ pok_ret_t pok_thread_create (pok_thread_id_t* __user thread_id,
  * 
  * NOTE: It is possible to sleep forever(ARINC prohibits that).
  */
-pok_ret_t pok_thread_sleep(pok_time_t time)
+pok_ret_t pok_thread_sleep(const pok_time_t* __user time)
 {
     if(!thread_is_waiting_allowed()) return POK_ERRNO_MODE;
+    
+    if(!check_user_read(time)) return POK_ERRNO_EFAULT;
+    pok_time_t kernel_time = __get_user(time);
 
 	pok_preemption_local_disable();
 
-	if(time == 0)
+	if(kernel_time == 0)
 		thread_yield(current_thread);
     else
-        thread_wait_common(current_thread, time);
+        thread_wait_common(current_thread, kernel_time);
 
 	pok_preemption_local_enable();
 	
@@ -202,13 +205,16 @@ pok_ret_t pok_thread_sleep(pok_time_t time)
 #endif
 
 #ifdef POK_NEEDS_THREAD_SLEEP_UNTIL
-pok_ret_t pok_thread_sleep_until(pok_time_t time)
+pok_ret_t pok_thread_sleep_until(const pok_time_t* __user time)
 {
-	if(!is_waiting_allowed()) return POK_ERRNO_MODE;
+	if(!thread_is_waiting_allowed()) return POK_ERRNO_MODE;
     
+    if(!check_user_read(time))) return POK_ERRNO_EFAULT;
+    pok_time_t kernel_time = __get_user(time);
+
 	pok_preemption_local_disable();
 
-	ret = thread_wait_timed(current_thread, time);
+	ret = thread_wait_timed(current_thread, kernel_time);
 out:
 	pok_preemption_local_enable();
 	
@@ -227,21 +233,19 @@ pok_ret_t pok_thread_yield (void)
 
 // Called with local preemption disabled
 static pok_ret_t thread_delayed_start_internal (pok_thread_t* thread,
-												pok_time_t ms)
+												pok_time_t delay)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
     
     pok_time_t thread_start_time;
     
-    if (pok_time_is_infinity(ms)) {
-        return POK_ERRNO_EINVAL;
-    }
+    assert(!pok_time_is_infinity(delay));
     
     if (thread->state != POK_STATE_STOPPED) {
         return POK_ERRNO_UNAVAILABLE;
     }
 
-    if (!pok_time_is_infinity(thread->period) && ms >= thread->period) {
+    if (!pok_time_is_infinity(thread->period) && delay >= thread->period) {
         return POK_ERRNO_EINVAL;
     }
     
@@ -251,7 +255,7 @@ static pok_ret_t thread_delayed_start_internal (pok_thread_t* thread,
 	if(part->mode != POK_PARTITION_MODE_NORMAL)
 	{
 		/* Delay thread's starting until normal mode. */
-		thread->delayed_time = ms;
+		thread->delayed_time = delay;
 		thread_wait(thread);
 		
 		return POK_ERRNO_OK;
@@ -260,11 +264,11 @@ static pok_ret_t thread_delayed_start_internal (pok_thread_t* thread,
     // Normal mode.
     if (pok_time_is_infinity(thread->period)) {
         // aperiodic process
-        thread_start_time = POK_GETTICK() + ms;
+        thread_start_time = POK_GETTICK() + delay;
     }
     else {
 		// periodic process
-		thread_start_time = get_next_periodic_processing_start() + ms;
+		thread_start_time = get_next_periodic_processing_start() + delay;
 		thread->next_activation = thread_start_time + thread->period;
 	}
 	
@@ -272,7 +276,7 @@ static pok_ret_t thread_delayed_start_internal (pok_thread_t* thread,
 		thread_set_deadline(thread, thread_start_time + thread->time_capacity);
 
 	/* Only non-delayed aperiodic process starts immediately */
-	if(ms == 0 && pok_time_is_infinity(thread->period))
+	if(delay == 0 && pok_time_is_infinity(thread->period))
         thread_start(thread);
 	else 
 		thread_wait_timed(thread, thread_start_time);
@@ -280,15 +284,23 @@ static pok_ret_t thread_delayed_start_internal (pok_thread_t* thread,
     return POK_ERRNO_OK;
 }
 
-pok_ret_t pok_thread_delayed_start (pok_thread_id_t id, pok_time_t ms)
+pok_ret_t pok_thread_delayed_start (pok_thread_id_t id,
+    const pok_time_t* __user delay_time)
 {
 	pok_ret_t ret;
     
     pok_thread_t *thread = get_thread_by_id(id);
     if(!thread) return POK_ERRNO_PARAM;
     
+    if(!check_user_read(delay_time)) return POK_ERRNO_EFAULT;
+    pok_time_t kernel_delay_time = __get_user(delay_time);
+
+    if (pok_time_is_infinity(kernel_delay_time)) {
+        return POK_ERRNO_EINVAL;
+    }
+
 	pok_preemption_local_disable();
-	ret = thread_delayed_start_internal(thread, ms);
+	ret = thread_delayed_start_internal(thread, kernel_delay_time);
 	pok_preemption_local_enable();
 	
 	return ret;
@@ -510,7 +522,7 @@ pok_ret_t pok_thread_find(const char* __user name, pok_thread_id_t* __user id)
     if(!check_access_read(name, MAX_NAME_LENGTH)) return POK_ERRNO_EFAULT;
     if(!check_user_write(id)) return POK_ERRNO_EFAULT;
     
-    __copy_from_user(name, kernel_name, MAX_NAME_LENGTH);
+    __copy_from_user(kernel_name, name, MAX_NAME_LENGTH);
     
     t = find_thread(kernel_name);
     
@@ -542,10 +554,13 @@ pok_ret_t pok_sched_end_period(void)
     return POK_ERRNO_OK;
 }
 
-pok_ret_t pok_sched_replenish(pok_time_t budget)
+pok_ret_t pok_sched_replenish(const pok_time_t* __user budget)
 {
     pok_ret_t ret;
 
+    if(!check_user_read(budget)) return POK_ERRNO_EFAULT;
+    pok_time_t kernel_budget = __get_user(budget);
+    
     pok_thread_t* t = current_thread;
     pok_time_t calculated_deadline;
 
@@ -556,13 +571,11 @@ pok_ret_t pok_sched_replenish(pok_time_t budget)
     if(current_partition_arinc->mode != POK_PARTITION_MODE_NORMAL)
 		return POK_ERRNO_UNAVAILABLE;
     
-    if (budget > INT32_MAX) return POK_ERRNO_ERANGE;
-    
     if(pok_time_is_infinity(t->time_capacity)) return POK_ERRNO_OK; //nothing to do
     
     pok_preemption_local_disable();
     
-    calculated_deadline = POK_GETTICK() + budget;
+    calculated_deadline = POK_GETTICK() + kernel_budget;
     
     if(!pok_time_is_infinity(t->period)
 		&& calculated_deadline >= t->next_activation)
@@ -597,4 +610,74 @@ pok_ret_t pok_sched_get_current(pok_thread_id_t* __user thread_id)
 	__put_user(thread_id, part->thread_current - part->threads);
 
     return POK_ERRNO_OK;
+}
+
+/*********************** Wait queues **********************************/
+void pok_thread_wq_init(pok_thread_wq_t* wq)
+{
+    INIT_LIST_HEAD(&wq->waits);
+}
+
+void pok_thread_wq_add(pok_thread_wq_t* wq, pok_thread_t* t)
+{
+    list_add_tail(&t->wait_elem, &wq->waits);
+}
+
+void pok_thread_wq_add_prio(pok_thread_wq_t* wq, pok_thread_t* t)
+{
+    pok_thread_t* other_thread;
+    t->wait_priority = t->priority;
+    list_for_each_entry(other_thread, &wq->waits, wait_elem)
+    {
+        if(other_thread->wait_priority < t->wait_priority)
+        {
+            list_add_tail(&t->wait_elem, &other_thread->wait_elem);
+            return;
+        }
+    }
+    
+    list_add_tail(&t->wait_elem, &wq->waits);
+}
+
+void pok_thread_wq_remove(pok_thread_t* t)
+{
+    list_del_init(&t->wait_elem);
+}
+
+pok_thread_t* pok_thread_wq_wake_up(pok_thread_wq_t* wq)
+{
+    if(!list_empty(&wq->waits))
+    {
+        pok_thread_t* t = list_first_entry(&wq->waits, pok_thread_t, wait_elem);
+        /*
+         * First, remove thread from the waiters list.
+         * 
+         * So futher thread_wake_up() will not interpret it as timeouted.
+         */
+        list_del_init(&t->wait_elem);
+        thread_wake_up(t);
+        
+        return t;
+    }
+    
+    return NULL;
+}
+
+
+int pok_thread_wq_get_nwaits(pok_thread_wq_t* wq)
+{
+    int count = 0;
+    struct list_head* elem;
+    list_for_each(elem, &wq->waits)
+    {
+        count++;
+    }
+    
+    return count;
+}
+
+
+pok_bool_t pok_thread_wq_is_empty(pok_thread_wq_t* wq)
+{
+    return list_empty(&wq->waits);
 }

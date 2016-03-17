@@ -52,7 +52,7 @@ static inline pok_bool_t check_access_rw(void* __user addr, size_t size)
  * 
  * NOTE: Access check should be performed before.
  */
-static inline void __copy_from_user(const void* __user from, void* to, size_t n)
+static inline void __copy_from_user(void* to, const void* __user from, size_t n)
 {
     assert(check_access_read(from, n));
 
@@ -64,7 +64,7 @@ static inline void __copy_from_user(const void* __user from, void* to, size_t n)
  * 
  * NOTE: Access check should be performed before.
  */
-static inline void __copy_to_user(const void* from, void* __user to, size_t n)
+static inline void __copy_to_user(void* __user to, const void* from, size_t n)
 {
     assert(check_access_write(to, n));
     
@@ -76,7 +76,7 @@ static inline void __copy_to_user(const void* from, void* __user to, size_t n)
  * 
  * Return TRUE on success, FALSE if user memory is invalid.
  */
-static inline pok_bool_t copy_from_user(const void* __user from, void* to, size_t n)
+static inline pok_bool_t copy_from_user(void* to, const void* __user from, size_t n)
 {
     if(!check_access_read(from, n)) return FALSE;
     
@@ -90,7 +90,7 @@ static inline pok_bool_t copy_from_user(const void* __user from, void* to, size_
  * 
  * Return TRUE on success, FALSE if user memory is invalid.
  */
-static inline pok_bool_t copy_to_user(const void* from, void* __user to, size_t n)
+static inline pok_bool_t copy_to_user(void* __user to, const void* from, size_t n)
 {
     if(!check_access_write(to, n)) return FALSE;
     
@@ -125,7 +125,7 @@ static inline pok_bool_t copy_to_user(const void* from, void* __user to, size_t 
  * 
  * NOTE: Access check should be performed before.
  */
-#define __put_user(ptr, val) do {*ptr = (typeof(*ptr))(val); } while(0)
+#define __put_user(ptr, val) do {*(ptr) = (typeof(*ptr))(val); } while(0)
 
 /* 
  * Set field of user-space structure.
@@ -140,7 +140,7 @@ static inline pok_bool_t copy_to_user(const void* from, void* __user to, size_t 
  * 
  * Both areas should be checked before.
  */
-static inline void __copy_user(const void* __user from, void* __user to, size_t n)
+static inline void __copy_user(void* __user to, const void* __user from, size_t n)
 {
     memcpy(to, from, n);
 }
@@ -150,13 +150,13 @@ static inline void __copy_user(const void* __user from, void* __user to, size_t 
  * 
  * Destination buffer should be checked before.
  */
-static inline void pok_copy_name_to_user(const char* name, void* __user to)
+static inline void pok_copy_name_to_user(void* __user to, const char* name)
 {
     // How many bytes to copy.
     size_t n = strnlen(name, MAX_NAME_LENGTH);
     if(n != MAX_NAME_LENGTH) n++; // null-byte should be copied too.
     
-    __copy_to_user(name, to, n);
+    __copy_to_user(to, name, n);
 }
 
 /*

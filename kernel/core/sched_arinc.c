@@ -3,9 +3,32 @@
 #include <core/thread.h>
 #include "thread_internal.h"
 
-//pok_thread_t* current_thread;
+static void thread_start_func(void)
+{
+    pok_thread_t* thread_current = current_thread;
+    
+    pok_partition_jump_user(
+        thread_current->init_stack_addr,
+        thread_current->entry,
+        &thread_current->initial_sp);
+}
 
-//uint8_t current_space_id;
+void sched_arinc_start(void)
+{
+	pok_partition_arinc_t* part = current_partition_arinc;
+    
+    pok_thread_t* thread_main
+        = &part->threads[POK_PARTITION_ARINC_MAIN_THREAD_ID];
+    
+    part->lock_level = 1;
+	part->thread_locked = thread_main;
+	
+	thread_main->state = POK_STATE_RUNNABLE;
+	
+	// Direct jump into main thread.
+	pok_context_restart(&thread_main->initial_sp, &thread_start_func,
+        &thread_main->sp);
+}
 
 static void thread_deadline_occured(struct delayed_event* event)
 {
@@ -65,15 +88,22 @@ static void port_queuing_fired(pok_port_queuing_t* port_queuing)
 
 }
 
+/*
+ * Function which is executed in kernel-only partition's context when
+ * no threads can be executed at this moment.
+ */
+static void do_nothing_func(void)
+{
+    pok_preemption_local_enable();
+    
+    wait_infinitely();
+}
+
+
 // Called with local preemption disabled.
 static void sched_arinc(void)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
-    
-    pok_thread_t* oldThread = part->thread_current;
-    
-    uint32_t* sp_old = oldThread? &oldThread->sp : &part->base_part.sp;
-    uint32_t* sp_new;
     
     if(flag_test_and_reset(part->base_part.state.bytes.control_returned))
     {
@@ -104,50 +134,130 @@ static void sched_arinc(void)
     
     if(!flag_test_and_reset(part->sched_local_recheck_needed)) return;
 
-    assert(part->mode != POK_PARTITION_MODE_IDLE);
+    part->base_part.is_error_handler = FALSE; // Will be set if needed.
+
+    pok_thread_t* old_thread = part->thread_current;
+    pok_thread_t* new_thread;
+
+
+    assert(part->mode != POK_PARTITION_MODE_IDLE); // Idle mode is implemented via function with preemption disabled.
     
     if(part->mode != POK_PARTITION_MODE_NORMAL)
     {
-        part->thread_current = &part->threads[POK_PARTITION_ARINC_MAIN_THREAD_ID];
-        assert(part->thread_current->state == POK_STATE_RUNNABLE);
+        new_thread = &part->threads[POK_PARTITION_ARINC_MAIN_THREAD_ID];
+        if(new_thread->state != POK_STATE_STOPPED)
+        {
+            assert(new_thread->state == POK_STATE_STOPPED);
+            /*
+             * Stopped main thread means that partition can do nothing.
+             * 
+             * But ARINC doesn't specify this state as IDLE.
+             * 
+             * So we treat this case as general "none of the threads are ready now".
+             */
+            new_thread = NULL;
+        }
     }
 #ifdef POK_NEEDS_ERROR_HANDLING
     else if(part->thread_error->state != POK_STATE_STOPPED)
     {
-        part->thread_current = part->thread_error;
+        // Continue error handler
+        new_thread = part->thread_error;
+        part->base_part.is_error_handler = TRUE;
     }
     else if(!list_empty(&part->error_list))
     {
         // Start error handler (aperiodic, no timeout).
-        pok_thread_t* thread = part->thread_error;
+        pok_thread_t* new_thread = part->thread_error;
         
-        thread->priority = thread->base_priority;
-        thread->sp = 0;
+        new_thread->priority = new_thread->base_priority;
+        new_thread->sp = 0;
       
-        thread->state = POK_STATE_RUNNABLE;
+        new_thread->state = POK_STATE_RUNNABLE;
         
-        part->thread_current = thread;
+        part->base_part.is_error_handler = TRUE;
     }
 #endif
     else if(part->lock_level)
     {
-        part->thread_current = part->thread_locked;
+        new_thread = part->thread_locked;
     }
     else if(!list_empty(&part->eligible_threads))
     {
-        part->thread_current = list_first_entry(&part->eligible_threads,
+        new_thread = list_first_entry(&part->eligible_threads,
             pok_thread_t, eligible_elem);
     }
     else
     {
-        part->thread_current = NULL;
+        new_thread = NULL;
     }
 
-    if(oldThread == part->thread_current) return; // TODO: Process thread restarting. Is it needed?
+    if(new_thread == old_thread)
+    {
+        if(new_thread == NULL) return; // "do_nothing" continues
+
+        if(new_thread->sp != 0) return; // Thread continues its execution.
+        
+        /* 
+         * None common thread can restart itself: someone *other* should
+         * call START function for it.
+         * 
+         * The only exception is error handler: If it calls STOP and
+         * error list is not empty, error handler is automatically restarted.
+         */
+        assert(new_thread == part->thread_error);
+        
+        pok_context_restart(&new_thread->initial_sp, &thread_start_func,
+            &new_thread->sp);
+    }
+
+    // Switch between different threads
+    part->thread_current = new_thread;
     
-    sp_new = oldThread? &oldThread->sp : &part->base_part.sp;
+    uint32_t* old_sp;
+    uint32_t new_sp;
     
-    pok_context_switch(sp_old, *sp_new);
+    if(new_thread)
+    {
+        new_sp = new_thread->sp;
+        if(new_sp == 0)
+        {
+            new_sp = pok_context_init(
+                pok_dstack_get_stack(&new_thread->initial_sp),
+                &thread_start_func);
+            new_thread->sp = new_sp;
+        }
+    }
+    else
+    {
+        // New thread is "do_nothing"
+        new_sp = pok_context_init(
+                pok_dstack_get_stack(&part->base_part.initial_sp),
+                &do_nothing_func);
+    }
+
+    if(old_thread)
+    {
+        old_sp = &old_thread->sp;
+        /*
+         * If old_thread->sp is 0, this should be processed upon
+         * returning to given thread, not now.
+         */
+        if(*old_sp == 0) old_sp = NULL;
+    }
+    else
+    {
+        old_sp = NULL;
+    }
+    
+    if(old_sp)
+    {
+        pok_context_switch(old_sp, new_sp);
+    }
+    else
+    {
+        pok_context_jump(new_sp);
+    }
 }
 
 void pok_preemption_local_disable(void)
@@ -181,18 +291,12 @@ void pok_preemption_local_enable(void)
     }
 }
 
-void pok_sched_arinc_on_time_changed(void)
+void pok_sched_arinc_on_event(void)
 {
-    // Just set corresponded flag and let generic mechanism to work.
-    flag_set(current_partition_arinc->base_part.state.bytes.time_changed);
-    
-    pok_preemption_local_enable();
+    sched_arinc();
 }
-void pok_sched_arinc_on_control_returned(void)
-{
-    // Just set corresponded flag and let generic mechanism to work.
-    flag_set(current_partition_arinc->base_part.state.bytes.control_returned);
-    
-    pok_preemption_local_enable();
 
+void pok_sched_local_invalidate(void)
+{
+    flag_set(current_partition_arinc->sched_local_recheck_needed);
 }

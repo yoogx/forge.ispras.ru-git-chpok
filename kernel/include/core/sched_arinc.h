@@ -45,7 +45,13 @@ void pok_preemption_local_disable(void);
 void pok_preemption_local_enable(void);
 
 
-void pok_sched_arinc_on_time_changed(void);
-void pok_sched_arinc_on_control_returned(void);
+/* 
+ * Starts main thread and jumps into it.
+ * 
+ * Used only in partition_arinc.c.
+ */
+void sched_arinc_start(void);
+
+void pok_sched_arinc_on_event(void);
 
 #endif /* ! __POK_SCHED_ARINC_H__ */

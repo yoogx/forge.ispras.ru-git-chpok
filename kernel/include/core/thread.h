@@ -298,7 +298,7 @@ typedef struct _pok_thread
      *
      * It's used to implement context switch.
      *
-     * It's initially set in pok_partition_thread_create,
+     * It's initially set in pok_thread_create,
      * and updated by pok_context_switch.
      *
      */
@@ -322,7 +322,7 @@ typedef struct _pok_thread
      * 
      * Final after create_process().
      */
-    uint32_t            init_stack_addr;
+    void* __user        init_stack_addr;
     
     /*
      * Size of the user space stack.
@@ -471,7 +471,7 @@ pok_ret_t pok_thread_suspend(pok_thread_id_t id);
 pok_ret_t pok_thread_yield (void);
 pok_ret_t pok_thread_stop_self(void);
 pok_ret_t pok_thread_stop(pok_thread_id_t thread_id);
-pok_ret_t pok_thread_delayed_start (pok_thread_id_t id, int64_t ms);
+pok_ret_t pok_thread_delayed_start (pok_thread_id_t id, const pok_time_t* __user delay_time);
 pok_ret_t pok_thread_get_id_self(pok_thread_id_t* __user thread_id);
 pok_ret_t pok_thread_get_id(const char* __user name, pok_thread_id_t* __user thread_id);
 pok_ret_t pok_thread_get_status(pok_thread_id_t id, pok_thread_status_t* __user attr);
@@ -479,18 +479,18 @@ pok_ret_t pok_thread_set_priority(pok_thread_id_t id, const uint32_t priority);
 pok_ret_t pok_thread_resume(pok_thread_id_t id);
 
 #ifdef POK_NEEDS_THREAD_SLEEP
-pok_ret_t pok_thread_sleep(pok_time_t time);
+pok_ret_t pok_thread_sleep(const pok_time_t* __user time);
 #endif
 
 #ifdef POK_NEEDS_THREAD_SLEEP_UNTIL
-pok_ret_t pok_thread_sleep_until(pok_time_t time);
+pok_ret_t pok_thread_sleep_until(const pok_time_t* __user time);
 #endif
 
 /* Find thread by its name. GET_PROCESS_ID in ARINC. */
 pok_ret_t pok_thread_find(const char* __user name, pok_thread_id_t* id);
 
 pok_ret_t pok_sched_end_period(void);
-pok_ret_t pok_sched_replenish(int64_t budget);
+pok_ret_t pok_sched_replenish(const pok_time_t* __user budget);
 
 pok_ret_t pok_sched_get_current(pok_thread_id_t* __user thread_id);
 

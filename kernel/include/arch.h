@@ -142,15 +142,22 @@ static inline void pok_context_jump(uint32_t new_sp)
  * Jump to given entry with given stack.
  * 
  * Mainly used for restart current context.
+ * 
+ * Value, pointed by `new_sp_p` will be set to the stack pointer,
+ * "as if" pok_context_switch() has been called.
+ * This is for prevent caller from forgetting to change value pointed
+ * by `new_sp_p` from 0, which means "restart requires", to something else.
+ * 
  */
 static inline void pok_context_restart(struct dStack* d,
-        void (*entry)(void))
+        void (*entry)(void),
+        uint32_t* new_sp_p)
 {
     int index = d->index;
     int index_other = index ^ 1;
     d->index = index_other;
-    pok_context_init(d->stacks[index_other], entry);
-    pok_context_jump(d->stacks[index_other]);
+    *new_sp_p = pok_context_init(d->stacks[index_other], entry);
+    pok_context_jump(*new_sp_p);
 }
 
 // Unused

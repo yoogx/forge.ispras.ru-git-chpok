@@ -86,7 +86,7 @@ void pok_arch_decr_int (void)
   } while (err != POK_ERRNO_OK);
 
 
-  pok_sched ();
+  pok_sched_on_time_changed ();
 }
 
 pok_ret_t pok_bsp_time_init ()

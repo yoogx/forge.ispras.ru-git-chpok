@@ -23,6 +23,19 @@
 #include <errno.h>
 #include <core/schedvalues.h>
 #include <core/partition.h>
+#include <common.h>
+
+#ifdef POK_NEEDS_MONITOR
+/*
+ * Monitor partition.
+ * 
+ * It should be defined in core/libc/monitor.c.
+ * 
+ * For take effect, this partition should be assigned to a slot
+ * in deployment.c.
+ */
+extern pok_partition_t partition_monitor;
+#endif /* POK_NEEDS_MONITOR */
 
 typedef struct
 {
@@ -147,7 +160,32 @@ void pok_sched_on_time_changed(void);
 
 /**
  * Return next release point for periodic process in current partition.
+ * 
+ * May be used by partition-specific code.
  */
 pok_time_t get_next_periodic_processing_start(void);
+
+
+/*
+ * Jump into user code from partition.
+ * 
+ * `entry` and `stack_addr` denotes pointers to initial user-space
+ * entries and stack values correspondingly.
+ * 
+ * `stack_kernel` is kernel stack which will be used for interrupts
+ * occured while user-space code is executed.
+ * 
+ * Some part of this functions is executed with global(!) preemption
+ * disabled, because its architecture-specific code uses registers
+ * which are not stored on common context switch.
+ * 
+ * Also, just before jumping into user space local preemption is
+ * enabled. It is assumed that partition never trust to user in
+ * preemption-related things. Because of enabled local preemption
+ * all pending callbacks for partition are triggered.
+ */
+void pok_partition_jump_user(void* __user entry,
+    void* __user stack_addr,
+    struct dStack* stack_kernel);
 
 #endif /* !__POK_SCHED_H__ */

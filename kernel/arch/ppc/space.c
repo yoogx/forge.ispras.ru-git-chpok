@@ -58,7 +58,7 @@ uintptr_t pok_space_base_vaddr(uintptr_t addr)
 }
     
 static void
-pok_space_context_init(
+pok_space_context_init0(
         volatile_context_t *vctx,
         context_t *ctx,
         uint8_t space_id,
@@ -84,6 +84,23 @@ pok_space_context_init(
     ctx->sp      = (uintptr_t) &vctx->sp;
 }
 
+uint32_t pok_space_context_init(
+        uint32_t sp,
+        uint8_t space_id,
+        uint32_t entry_rel,
+        uint32_t stack_rel,
+        uint32_t arg1,
+        uint32_t arg2)
+{
+    volatile_context_t *vctx = (volatile_context_t*) (sp - sizeof (volatile_context_t));
+    context_t *ctx = (context_t*)((char*)vctx - sizeof(context_t) + 8);
+    
+    pok_space_context_init0(vctx, ctx, space_id, entry_rel, stack_rel, arg1, arg2);
+    
+    return (uint32_t)ctx;
+}
+
+
 uint32_t pok_space_context_create (
         uint8_t space_id,
         uint32_t entry_rel,
@@ -102,7 +119,7 @@ uint32_t pok_space_context_create (
   
   ctx = (context_t *)(((char*)vctx) - sizeof(context_t) + 8);
   
-  pok_space_context_init(vctx, ctx, space_id, entry_rel, stack_rel, arg1, arg2);
+  pok_space_context_init0(vctx, ctx, space_id, entry_rel, stack_rel, arg1, arg2);
 
 #ifdef POK_NEEDS_DEBUG
   printf ("space_context_create %lu: entry=%lx stack=%lx arg1=%lx arg2=%lx ksp=%p\n",
@@ -134,7 +151,7 @@ void pok_space_context_restart(
     volatile_context_t *vctx = (volatile_context_t*)(sp + sizeof(context_t) - 8);
     context_t *ctx = (context_t*) sp;
 
-    pok_space_context_init(
+    pok_space_context_init0(
         vctx,
         ctx, 
         space_id,

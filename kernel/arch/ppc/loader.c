@@ -4,10 +4,12 @@
 #include <types.h>
 #include <libc.h>
 #include <core/loader.h>
-#include <core/partition.h>
+#include <core/partition_arinc.h>
+#include <core/error_arinc.h>
 
 #include "mmu.h"
 #include "reg.h"
+
 
 extern size_t pok_elf_sizes[];
 
@@ -26,13 +28,14 @@ void pok_arch_load_partition(pok_partition_arinc_t* part,
 
     elf_size = pok_elf_sizes[elf_id];
     
-    if (elf_size > partition->size)
+    if (elf_size > part->size)
     {
 		printf("Declared size for partition %d : %ld\n", part->partition_id, part->size);
         printf("Real size for partition %d     : %d\n", part->partition_id, elf_size);
-#ifdef POK_NEEDS_ERROR_HANDLING
-        pok_error_raise_partition(part_id, POK_ERROR_KIND_PARTITION_CONFIGURATION);
-#else
+//TODO: How to emit partition's error?
+//#ifdef POK_NEEDS_ERROR_HANDLING
+//        pok_error_raise_partition(part_id, POK_ERROR_KIND_PARTITION_CONFIGURATION);
+//#else
 #ifdef POK_NEEDS_DEBUG
       /* We consider that even if errors are not raised, we must print an error
        * for such error
@@ -40,7 +43,7 @@ void pok_arch_load_partition(pok_partition_arinc_t* part,
        */
         pok_fatal ("Partition size is not correct\n");
 #endif
-#endif
+//#endif
     }    
     /*
      * In order to load partition, we basically pretend that 

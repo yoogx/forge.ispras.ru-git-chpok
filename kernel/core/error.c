@@ -1,6 +1,9 @@
 #include <core/error.h>
 #include <core/sched.h>
 
+// TODO: this should be modified somewhere
+pok_system_state_t kernel_state = POK_SYSTEM_STATE_INIT_PARTOS;
+
 static pok_error_module_action_t get_module_action(
     const pok_error_module_action_table_t* table,
     pok_system_state_t system_state,
@@ -13,11 +16,12 @@ static void perform_module_action(pok_error_module_action_t action)
 {
     if(action == POK_ERROR_MODULE_ACTION_IGNORE) return;
     
-    pok_preemption_off();
+    pok_arch_preempt_disable();
     
     switch(action) {
     
     case POK_ERROR_MODULE_ACTION_RESET:
+        pok_sched_restart();
         // TODO: Reset module
         break;
 

@@ -183,8 +183,6 @@ typedef struct _pok_patition_arinc
    
     pok_partition_id_t		partition_id; // Set in deployment.c
     
-    int                    preempt_local_counter;
-    
     /**
      * Priority/FIFO ordered queue of eligible threads.
      * 
@@ -264,9 +262,22 @@ void pok_partition_arinc_init_all(void);
 /** Initialize arinc partition. */
 void pok_partition_arinc_init(pok_partition_arinc_t* part);
 
-/** Reset arinc partition. */
-void pok_partition_arinc_reset(pok_partition_arinc_t* part,
-	pok_partition_mode_t mode);
+/**
+ * Reset current arinc partition.
+ * 
+ * May be called as reaction for partition-level error
+ * or by the use space via SET_PARTITION_MODE.
+ * 
+ * Switch between COLD_START and WARM_START generates error.
+ */
+void pok_partition_arinc_reset(pok_partition_mode_t mode);
+
+/* 
+ * Move current partition into IDLE state.
+ * 
+ * May be called at any time of partition's execution.
+ */
+void pok_partition_arinc_idle(void);
 
 pok_ret_t pok_partition_set_mode_current (const pok_partition_mode_t mode);
 

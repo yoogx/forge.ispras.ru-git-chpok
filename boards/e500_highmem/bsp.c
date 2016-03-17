@@ -26,7 +26,7 @@
 #include "devtree.h"
 
 
-int pok_bsp_init (void)
+pok_ret_t pok_bsp_init (void)
 {
    pok_cons_init ();
 

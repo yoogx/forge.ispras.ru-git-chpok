@@ -65,29 +65,24 @@ struct pok_partition_operations
      * Called when partition is (re)started.
      * 
      * Local preemption is disabled.
+     * 
+     * Cannot be NULL.
      */
     void (*start)(void);  /**< The entry-point for the partition's thread. */
 
     /*
-     * Called when time counter has been changed within current time slot.
+     * Called when some async event about partition occures.
+     * Event is encoded into partition's `.state` bits(bytes).
      * 
-     * Local preemption is disabled.
+     * During call to this handler, local preemption is disabled.
      * 
-     * If local preemption is already disabled, corresponded state
-     * byte is set instead of calling this function.
+     * The handler should either clear `.state` bytes, or enable local
+     * preemption. Otherwise the handler will be called again.
+     * 
+     * If local preemption is already disabled, handler is not called.
+     * But corresponded `.state` bytes are set nevetheless.
      */
-    void (*on_time_changed)(void);
-    
-    /*
-     * Called when partition acquire CPU because time slot have been
-     * changed from other partition to given one..
-     * 
-     * Local preemption is disabled.
-     * 
-     * If local preemption is already disabled, corresponded state
-     * byte is set instead of calling this function.
-     */
-    void (*on_control_returned)(void);
+    void (*on_event)(void);
     
     /* 
      * Process sync error related to given partition.
@@ -95,6 +90,8 @@ struct pok_partition_operations
      * Local preemption is disabled.
      * 
      * Previous local preemption state is passed as parameter.
+     * 
+     * Cannot be NULL.
      */
     void (*process_partition_error)(pok_system_state_t partition_state,
         pok_error_id_t error_id,
@@ -128,13 +125,11 @@ typedef struct
          */
         struct {
             /*
-             * Flag is set by global scheduler, when time is changed but
-             * local preemption was disabled at that moment.
+             * Set when time is changed.
              */
             uint8_t time_changed;
             /*
-             * Flag is set by global scheduler, after time slot is changed
-             * from other partition to given one.
+             * Set after time slot is changed from other partition to given one.
              */
             uint8_t control_returned;
 
@@ -167,7 +162,7 @@ typedef struct
      * This field is used for determine system level in case when
      * error is catched via interrupt.
      * 
-     * After partition initialization, this field is FALSE.
+     * Reseted to false when partition starts.
      */
     pok_bool_t               is_error_handler;
 
@@ -189,6 +184,8 @@ typedef struct
      * Initial value of kernel stack (when it was allocated).
      *
      * Used for restarting partition.
+     * 
+     * Set by particular partition's implementation.
      */
     struct dStack            initial_sp;
     
@@ -214,10 +211,14 @@ typedef struct
    * Pointer to Multi partition HM selector.
    * 
    * Bit's value 0 means module level error, 1 - partition level error.
+   * 
+   * Set in deployment.c
    */
   const pok_error_level_selector_t* multi_partition_hm_selector;
   /*
-   *  Pointer to Multi partition HM table.
+   * Pointer to Multi partition HM table.
+   * 
+   * Set in deployment.c
    */
   const pok_error_module_action_table_t* multi_partition_hm_table;
 } pok_partition_t;
@@ -228,22 +229,6 @@ typedef struct
  * DEV: Readonly for all except scheduler-related stuff.
  */
 extern pok_partition_t* current_partition;
-
-/*
- * Raise error from partition.
- * 
- * partition_state should be above POK_SYSTEM_STATE_MAX_MODULE.
- * 
- * Module HM table won't be used when process given error, but
- * Multi-partition HM table will.
- */
-void raise_partition_error(pok_system_state_t partition_state,
-    pok_error_id_t error_id, void* failed_address);
-
-/* See description of raise_error_fatal about meaning of `_fatal` suffix. */
-void raise_partition_error_fatal(pok_system_state_t partition_state,
-    pok_error_id_t error_id, void* failed_address);
-
 
 /**
  * Reset partition state, so scheduler will be able to start it.
