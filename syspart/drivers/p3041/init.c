@@ -389,14 +389,21 @@ static void dtsec_get_mac_addr(struct dtsec *regs, uint8_t *mac_addr)
     mac_addr[3] = mac1>>8  & 0xff;
     mac_addr[4] = mac1>>16 & 0xff;
     mac_addr[5] = mac1>>24 & 0xff;
+
+
+    printf("mac_addr ");
+    for (int i=0; i<6; i++) {
+        printf("%02x ", mac_addr[i]);
+    }
+    printf("\n");
 }
 
-static void fm_eth_open(struct fm_eth *fm_eth, void *regs)
+static void fm_eth_open(struct fm_eth *fm_eth)
 {
     /* enable bmi Rx port */
     setbits_be32(&fm_eth->rx_port->fmbm_rcfg, FMBM_RCFG_EN);
     /* enable MAC rx/tx port */
-    dtsec_enable_mac(regs);
+    dtsec_enable_mac(fm_eth->reg_addr);
     /* enable bmi Tx port */
     setbits_be32(&fm_eth->tx_port->fmbm_tcfg, FMBM_TCFG_EN);
     /* re-enable transmission of frame */
@@ -407,13 +414,18 @@ static void fm_eth_open(struct fm_eth *fm_eth, void *regs)
 
 void p3041_init(void)
 {
+    //TODO move constants to .h file
     dtsec3.rx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC3_RX_PORT*0x1000);
     dtsec3.tx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC3_TX_PORT*0x1000);
+    dtsec3.reg_addr = (void *)CONFIG_SYS_FM1_DTSEC3_ADDR;
+
     dtsec4.rx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC4_RX_PORT*0x1000);
     dtsec4.tx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC4_TX_PORT*0x1000);
+    dtsec4.reg_addr = (void *)CONFIG_SYS_FM1_DTSEC4_ADDR;
+
     current = &dtsec3;
 
-    dtsec_get_mac_addr((void *)CONFIG_SYS_FM1_DTSEC3_ADDR, internal_device_struct.macaddr);
+    dtsec_get_mac_addr(current->reg_addr, internal_device_struct.macaddr);
     fm_init_muram(0, (void *)CONFIG_SYS_FSL_FM1_MURAM_ADDR);
 
     /* qmi_common and bmi_common are initialized in this memory by u-boot */
@@ -422,7 +434,7 @@ void p3041_init(void)
     fm_eth_rx_port_parameter_init(current);
     fm_eth_tx_port_parameter_init(current);
 
-    fm_eth_open(current, (void *)CONFIG_SYS_FM1_DTSEC3_ADDR);
+    fm_eth_open(current);
 }
 
 

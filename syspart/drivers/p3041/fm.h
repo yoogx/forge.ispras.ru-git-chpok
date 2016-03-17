@@ -43,6 +43,7 @@
 #define CONFIG_SYS_FM1_EMI1_MDIO_ADDR (CONFIG_SYS_FSL_FM1_ADDR + 0xe1120)
 
 #define CONFIG_SYS_FM1_DTSEC3_ADDR (CONFIG_SYS_FSL_FM1_ADDR + 0xe4000)
+#define CONFIG_SYS_FM1_DTSEC4_ADDR (CONFIG_SYS_FSL_FM1_ADDR + 0xe6000)
 
 #define CONFIG_SYS_FM_MURAM_SIZE 0x28000
 #define FM_MURAM_RES_SIZE 0x01000
@@ -96,9 +97,11 @@ struct fm_eth {
     struct fm_port_global_pram *tx_pram; /* Tx parameter table */
     void *rx_bd_ring;         /* Rx BD ring base */
     void *cur_rxbd;                   /* current Rx BD */
-    void *rx_buf;                     /* Rx buffer base */
+    //void *rx_buf;                     /* Rx buffer base */
     void *tx_bd_ring;           /* Tx BD ring base */
     void *cur_txbd;                     /* current Tx BD */
+
+    void *reg_addr; /* dtsec registers address */
 };
 
 struct fm_bmi_rx_port {
