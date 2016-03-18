@@ -29,7 +29,7 @@ unsigned sys_sampling_links_nb = ARRAY_SIZE(sys_sampling_links);
 struct mac_ip mac_addr_mapping[] = {
     {
         .ip  = MY_IP,
-        .mac = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+        .mac = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff} //NOT USED FOR NOW
     },
     {
         .ip = IP_ADDR(10, 0, 2, 2),

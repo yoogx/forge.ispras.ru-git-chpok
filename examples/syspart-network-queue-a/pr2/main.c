@@ -252,9 +252,6 @@ static void first_process(void)
             pok_network_reclaim_send_buffers();
         }
 
-        /* TODO QUEUING
-
-        */
         pok_network_reclaim_receive_buffers();
     }
 }
