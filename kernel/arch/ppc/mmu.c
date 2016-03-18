@@ -14,9 +14,9 @@
  */
 void pok_ppc_tlb_write(
         unsigned tlbsel,
-        uint32_t virtual, 
-        uint64_t physical, 
-        unsigned pgsize_enum, 
+        uint32_t virtual,
+        uint64_t physical,
+        unsigned pgsize_enum,
         unsigned permissions,
         unsigned wimge,
         unsigned pid,
@@ -39,16 +39,98 @@ void pok_ppc_tlb_write(
     mas0 = MAS0_TLBSEL(tlbsel) | MAS0_ESEL(entry);
     mas1 = ((valid != 0)? MAS1_VALID : 0) | MAS1_TID(pid) | MAS1_TSIZE(pgsize_enum);
     mas2 = (virtual & MAS2_EPN) | wimge;
-    mas3 = (physical & MAS3_RPN) | permissions; 
+    mas3 = (physical & MAS3_RPN) | permissions;
     mas7 = physical >> 32;
 
-    mtspr(SPRN_MAS0, mas0); 
-    mtspr(SPRN_MAS1, mas1); 
+    mtspr(SPRN_MAS0, mas0);
+    mtspr(SPRN_MAS1, mas1);
     mtspr(SPRN_MAS2, mas2);
     mtspr(SPRN_MAS3, mas3);
     mtspr(SPRN_MAS7, mas7);
 
     asm volatile("isync; tlbwe; isync":::"memory");
+}
+
+void pok_ppc_tlb_write_empty(
+        unsigned tlbsel,
+        uint32_t virtual,
+        uint64_t physical,
+        unsigned pgsize_enum,
+        unsigned permissions,
+        unsigned wimge,
+        unsigned pid,
+        unsigned entry,
+        bool_t   valid
+        )
+{
+}
+
+void pok_ppc_tlb_only_write_reg(
+        unsigned tlbsel,
+        uint32_t virtual,
+        uint64_t physical,
+        unsigned pgsize_enum,
+        unsigned permissions,
+        unsigned wimge,
+        unsigned pid,
+        unsigned entry,
+        bool_t   valid
+        )
+{
+    uint32_t mas0, mas1, mas2, mas3, mas7;
+
+    assert(tlbsel <= 1) ;
+
+    mas0 = MAS0_TLBSEL(tlbsel) | MAS0_ESEL(entry);
+    mas1 = ((valid != 0)? MAS1_VALID : 0) | MAS1_TID(pid) | MAS1_TSIZE(pgsize_enum);
+    mas2 = (virtual & MAS2_EPN) | wimge;
+    mas3 = (physical & MAS3_RPN) | permissions;
+    mas7 = physical >> 32;
+
+    mtspr(SPRN_MAS0, mas0);
+    mtspr(SPRN_MAS1, mas1);
+    mtspr(SPRN_MAS2, mas2);
+    mtspr(SPRN_MAS3, mas3);
+    mtspr(SPRN_MAS7, mas7);
+}
+
+void pok_ppc_tlb_write_nosync(
+        unsigned tlbsel,
+        uint32_t virtual,
+        uint64_t physical,
+        unsigned pgsize_enum,
+        unsigned permissions,
+        unsigned wimge,
+        unsigned pid,
+        unsigned entry,
+        bool_t   valid
+        )
+{
+    /*
+     * TLB1 can be written by first writing the necessary information into MAS0–MAS3, MAS5, MAS7, and
+     * MAS8 using mtspr and then executing the tlbwe instruction. To write an entry into TLB1,
+     * MAS0[TLBSEL] must be equal to 1, and MAS0[ESEL] must point to the desired entry. When the tlbwe
+     * instruction is executed, the TLB entry information stored in MAS0–MAS3, MAS5, MAS7, and MAS8 is
+     * written into the selected TLB entry in the TLB1 array.
+     */
+
+    uint32_t mas0, mas1, mas2, mas3, mas7;
+
+    assert(tlbsel <= 1) ;
+
+    mas0 = MAS0_TLBSEL(tlbsel) | MAS0_ESEL(entry);
+    mas1 = ((valid != 0)? MAS1_VALID : 0) | MAS1_TID(pid) | MAS1_TSIZE(pgsize_enum);
+    mas2 = (virtual & MAS2_EPN) | wimge;
+    mas3 = (physical & MAS3_RPN) | permissions;
+    mas7 = physical >> 32;
+
+    mtspr(SPRN_MAS0, mas0);
+    mtspr(SPRN_MAS1, mas1);
+    mtspr(SPRN_MAS2, mas2);
+    mtspr(SPRN_MAS3, mas3);
+    mtspr(SPRN_MAS7, mas7);
+
+    asm volatile("tlbwe;");
 }
 
 void pok_ppc_tlb_clear_entry(
@@ -71,8 +153,8 @@ void pok_ppc_tlb_clear_entry(
     mas3 = 0;
     mas7 = 0;
 
-    mtspr(SPRN_MAS0, mas0); 
-    mtspr(SPRN_MAS1, mas1); 
+    mtspr(SPRN_MAS0, mas0);
+    mtspr(SPRN_MAS1, mas1);
     mtspr(SPRN_MAS2, mas2);
     mtspr(SPRN_MAS3, mas3);
     mtspr(SPRN_MAS7, mas7);
@@ -97,8 +179,8 @@ unsigned pok_ppc_get_tlb_nentry(unsigned tlbsel) {
 void pok_ppc_tlb_read_entry(
         unsigned tlbsel,
         unsigned entry,
-        unsigned *valid, 
-        unsigned *tsize, 
+        unsigned *valid,
+        unsigned *tsize,
         uint32_t *epn,
         uint64_t *rpn)
 {

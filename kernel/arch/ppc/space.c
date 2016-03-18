@@ -272,7 +272,7 @@ void pok_insert_tlb0();
 
 static int pok_ccsrbar_ready = 0;
 
-static void pok_ppc_tlb_print(unsigned tlbsel) {
+void pok_ppc_tlb_print(unsigned tlbsel) {
     unsigned limit = pok_ppc_tlb_get_nentry(1);
 
     for (unsigned i = 0; i < limit; i++) {

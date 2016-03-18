@@ -52,7 +52,7 @@ env['ARCH'] = bsp_arch_dict[env['BSP']]
 
 if env['ARCH'] == 'ppc':
     # ppc-specific flags
-    env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -g -O0 -Wuninitialized \
+    env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -g -O2 -Wuninitialized \
         -ffreestanding -nostdlib -nostdinc -mregnames'
     env['AR'] = 'powerpc-elf-ar'
     env['CC'] = 'powerpc-elf-gcc'
