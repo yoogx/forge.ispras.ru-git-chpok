@@ -14,16 +14,15 @@
  * Created by julien on Thu Jan 15 23:34:13 2009 
  */
 
+#ifndef __POK_LIBPOK_PORTS_H__
+#define __POK_LIBPOK_PORTS_H__
+
 #include <config.h>
 
 #include <core/dependencies.h>
 
-#ifndef __POK_LIBPOK_PORTS_H__
-#define __POK_LIBPOK_PORTS_H__
-
 #include <types.h>
 #include <errno.h>
-#include <core/syscall.h>
 
 typedef enum
 {
@@ -71,19 +70,19 @@ typedef struct
 pok_ret_t pok_port_queueing_create (const pok_port_queueing_create_arg_t *    arg,
                                     pok_port_id_t*                            id);
 
-pok_ret_t pok_port_queueing_receive (const pok_port_id_t                      id, 
+/*pok_ret_t pok_port_queueing_receive (const pok_port_id_t                      id, 
                                      const int64_t                            timeout, 
                                      const pok_port_size_t                    maxlen, 
                                      void*                                    data, 
-                                     pok_port_size_t*                         len);
+                                     pok_port_size_t*                         len);*/
 
-pok_ret_t pok_port_queueing_send (const pok_port_id_t                         id, 
+/*pok_ret_t pok_port_queueing_send (const pok_port_id_t                         id, 
                                   const void*                                 data, 
                                   const pok_port_size_t                       len, 
-                                  const int64_t                               timeout);
+                                  const int64_t                               timeout);*/
 
-#define pok_port_queueing_status(id,status) \
-        pok_syscall2(POK_SYSCALL_MIDDLEWARE_QUEUEING_STATUS,(uint32_t)id,(uint32_t)status)
+/*#define pok_port_queueing_status(id,status) \
+        pok_syscall2(POK_SYSCALL_MIDDLEWARE_QUEUEING_STATUS,(uint32_t)id,(uint32_t)status)*/
 /*
  * Similar to:
  * pok_ret_t pok_port_queueing_status (const pok_port_id_t                    id,
@@ -91,8 +90,8 @@ pok_ret_t pok_port_queueing_send (const pok_port_id_t                         id
  */
 
 
-#define pok_port_queueing_id(name,id) \
-        pok_syscall2(POK_SYSCALL_MIDDLEWARE_QUEUEING_ID,(uint32_t)name,(uint32_t)id)
+/*#define pok_port_queueing_id(name,id) \
+        pok_syscall2(POK_SYSCALL_MIDDLEWARE_QUEUEING_ID,(uint32_t)name,(uint32_t)id)*/
 /*
  * Similar to:
  * pok_ret_t pok_port_queueing_id     (char*                                     name,
@@ -112,36 +111,38 @@ typedef struct
 }pok_port_sampling_status_t;
 
 
-pok_ret_t pok_port_sampling_create (char*                                     name,
+/*pok_ret_t pok_port_sampling_create (char*                                     name,
                                     const pok_port_size_t                     size,
                                     const pok_port_direction_t                direction, 
                                     const uint64_t                            refresh,
-                                    pok_port_id_t*                            id);
+                                    pok_port_id_t*                            id);*/
 
-pok_ret_t pok_port_sampling_write (const pok_port_id_t                        id,
+/*pok_ret_t pok_port_sampling_write (const pok_port_id_t                        id,
                                    const void*                                data,
-                                   const pok_port_size_t                      len);
+                                   const pok_port_size_t                      len);*/
 
-pok_ret_t pok_port_sampling_read (const pok_port_id_t                      id,
+/*pok_ret_t pok_port_sampling_read (const pok_port_id_t                      id,
                                   void*                                    message,
                                   pok_port_size_t*                         len,
-                                  bool_t*                                  valid);
+                                  bool_t*                                  valid);*/
 
-#define pok_port_sampling_id(name,id) \
-        pok_syscall2(POK_SYSCALL_MIDDLEWARE_SAMPLING_ID,(uint32_t)name,(uint32_t)id)
+/*#define pok_port_sampling_id(name,id) \
+        pok_syscall2(POK_SYSCALL_MIDDLEWARE_SAMPLING_ID,(uint32_t)name,(uint32_t)id)*/
 /*
  *    Similar to
  *  pok_ret_t pok_port_sampling_id     (char*                                     name,
  *                                      pok_port_id_t*                            id);
  */
 
-#define pok_port_sampling_status(id,status) \
-        pok_syscall2(POK_SYSCALL_MIDDLEWARE_SAMPLING_STATUS,(uint32_t)id,(uint32_t)status)
+/*#define pok_port_sampling_status(id,status) \
+        pok_syscall2(POK_SYSCALL_MIDDLEWARE_SAMPLING_STATUS,(uint32_t)id,(uint32_t)status)*/
 /*
  * Similar to:
  * pok_ret_t pok_port_sampling_status (const pok_port_id_t                       id,
  *                                     const pok_port_sampling_status_t*               status);
  */
 #endif
+
+#include <core/syscall.h>
 
 #endif

@@ -32,7 +32,7 @@
 void GET_PARTITION_STATUS (PARTITION_STATUS_TYPE *partition_status,
                            RETURN_CODE_TYPE      *return_code)
 {
-  uint64_t period, duration;
+  SYSTEM_TIME_TYPE period, duration;
   pok_partition_id_t identifier;
   pok_partition_mode_t mode;
 
@@ -45,7 +45,7 @@ void GET_PARTITION_STATUS (PARTITION_STATUS_TYPE *partition_status,
   pok_current_partition_get_duration(&duration);
   partition_status->DURATION = ms_to_arinc_time(duration);
 
-  uint32_t lock_level;
+  int32_t lock_level;
   pok_current_partition_get_lock_level(&lock_level);
   partition_status->LOCK_LEVEL = lock_level;
 

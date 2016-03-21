@@ -199,7 +199,7 @@ void CREATE_PROCESS (
 
 void STOP_SELF ()
 {
-    pok_thread_stop_self ();
+    pok_thread_stop ();
 }
 
 
@@ -227,7 +227,7 @@ void SUSPEND_SELF (
     SYSTEM_TIME_TYPE time_out,
     RETURN_CODE_TYPE *return_code)
 {
-    pok_ret_t core_ret = pok_thread_suspend(arinc_time_to_ms(time_out));
+    pok_ret_t core_ret = pok_thread_suspend(&time_out);
 
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
@@ -281,7 +281,7 @@ void STOP(
 {
     CHECK_PROCESS_ID();
 
-    pok_ret_t core_ret = pok_thread_stop(process_id - 1);
+    pok_ret_t core_ret = pok_thread_stop_target(process_id - 1);
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
         MAP_ERROR(POK_ERRNO_UNAVAILABLE, NO_ACTION);
@@ -296,7 +296,7 @@ void DELAYED_START(
 {
     CHECK_PROCESS_ID();
 
-    pok_ret_t core_ret = pok_thread_delayed_start(process_id - 1, arinc_time_to_ms(delay_time));
+    pok_ret_t core_ret = pok_thread_delayed_start(process_id - 1, &delay_time);
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
         MAP_ERROR(POK_ERRNO_UNAVAILABLE, NO_ACTION);

@@ -19,6 +19,8 @@
 
 #include <config.h>
 
+#include <core/dependencies.h>
+
 #include <types.h>
 #include <errno.h>
 
@@ -132,6 +134,8 @@ typedef struct
 					 pok_do_syscall(sid,&((pok_syscall_args_t){2,arg1,arg2,arg3,arg4,arg5}))
 #else
 
+pok_ret_t pok_syscall0  (pok_syscall_id_t syscall_id);
+
 pok_ret_t pok_syscall1  (pok_syscall_id_t syscall_id,
 												 uint32_t arg1);
 
@@ -157,4 +161,11 @@ pok_ret_t pok_syscall5 (pok_syscall_id_t  syscall_id,
 												uint32_t arg4,
 												uint32_t arg5);
 #endif
+
+#include <core/thread.h>
+#include <core/partition.h>
+#include <middleware/port.h>
+#include <core/error.h>
+#include <pok/syscall_map_arinc.h>
+
 #endif /* __LIBPOK_SYSCALL_H__ */

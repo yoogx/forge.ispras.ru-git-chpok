@@ -43,7 +43,7 @@
 
 #include <types.h>
 #include <errno.h>
-#include <core/syscall.h>
+//#include <core/syscall.h>
 
 #define POK_THREAD_DEFAULT_PRIORITY 42
 
@@ -87,26 +87,28 @@ typedef struct
 
 
 pok_ret_t       pok_thread_create (pok_thread_id_t *thread_id, const pok_thread_attr_t* attr);
-pok_ret_t       pok_thread_sleep(int64_t ms);
-pok_ret_t       pok_thread_sleep_until(pok_time_t ms);
+//pok_ret_t       pok_thread_sleep(int64_t ms);
+//pok_ret_t       pok_thread_sleep_until(pok_time_t ms);
 pok_ret_t       pok_thread_lock(void);
 pok_ret_t       pok_thread_unlock(pok_thread_id_t thread_id);
-pok_ret_t       pok_thread_yield();
+//pok_ret_t       pok_thread_yield();
 pok_thread_id_t pok_thread_current (void);
 pok_ret_t       pok_thread_wait_infinite ();
 pok_ret_t       pok_thread_attr_init (pok_thread_attr_t* attr);
-pok_ret_t       pok_thread_period(void);
-pok_ret_t       pok_thread_id (pok_thread_id_t* thread_id);
-pok_ret_t       pok_thread_status(pok_thread_id_t thread_id, pok_thread_status_t* attr);
-pok_ret_t       pok_thread_delayed_start(pok_thread_id_t thread_id, int64_t ms);
-pok_ret_t       pok_thread_set_priority(pok_thread_id_t thread_id,  uint32_t priority);
-pok_ret_t       pok_thread_resume(pok_thread_id_t thread_id);
 
-#define pok_thread_sleep_until(time) pok_syscall2(POK_SYSCALL_THREAD_SLEEP_UNTIL,(uint32_t)time,0)
+#define pok_thread_period pok_sched_end_period
+
+#define pok_thread_id pok_sched_get_current
+#define pok_thread_status pok_thread_get_status
+//pok_ret_t       pok_thread_delayed_start(pok_thread_id_t thread_id, int64_t ms);
+//pok_ret_t       pok_thread_set_priority(pok_thread_id_t thread_id,  uint32_t priority);
+//pok_ret_t       pok_thread_resume(pok_thread_id_t thread_id);
+
+//#define pok_thread_sleep_until(time) pok_syscall2(POK_SYSCALL_THREAD_SLEEP_UNTIL,(uint32_t)time,0)
 
 #define pok_thread_wait_infinite() pok_thread_suspend()
 
-static inline
+/*static inline
 pok_ret_t pok_thread_suspend(int64_t timeout)
 {
     if (timeout > INT32_MAX) {
@@ -116,36 +118,36 @@ pok_ret_t pok_thread_suspend(int64_t timeout)
         timeout = -1;
     }
     return pok_syscall2(POK_SYSCALL_THREAD_SUSPEND, (int32_t) timeout, 0);
-}
+}*/
 
-static inline 
+/*static inline 
 pok_ret_t pok_thread_suspend_target(pok_thread_id_t thread_id)
 {
     return pok_syscall2(POK_SYSCALL_THREAD_SUSPEND_TARGET, (uint32_t) thread_id, 0);
-}
+}*/
 
-#define pok_thread_restart(thread_id) pok_syscall2(POK_SYSCALL_THREAD_RESTART,thread_id,0)
+//#define pok_thread_restart(thread_id) pok_syscall2(POK_SYSCALL_THREAD_RESTART,thread_id,0)
 /*
  * similar to:
  * pok_ret_t      pok_thread_restart (uint32_t thread_id);
  */
 
-#define pok_thread_stop_self() pok_syscall2(POK_SYSCALL_THREAD_STOPSELF, 0, 0)
+//#define pok_thread_stop_self() pok_syscall2(POK_SYSCALL_THREAD_STOPSELF, 0, 0)
 /*
  * similar to:
  * pok_ret_t      pok_thread_stop_self ();
  */
 
-#define pok_thread_stop(id) pok_syscall2(POK_SYSCALL_THREAD_STOP,id,0)
+//#define pok_thread_stop(id) pok_syscall2(POK_SYSCALL_THREAD_STOP,id,0)
 /*
  * similar to: pok_ret_t      pok_thread_stop (const uint32_t tid);
  */
 
-#define pok_partition_inc_lock_level(lock_level) pok_syscall2(POK_SYSCALL_PARTITION_INC_LOCK_LEVEL,(uint32_t)lock_level,0)
+//#define pok_partition_inc_lock_level(lock_level) pok_syscall2(POK_SYSCALL_PARTITION_INC_LOCK_LEVEL,(uint32_t)lock_level,0)
 
-#define pok_partition_dec_lock_level(lock_level) pok_syscall2(POK_SYSCALL_PARTITION_DEC_LOCK_LEVEL,(uint32_t)lock_level,0)
+//#define pok_partition_dec_lock_level(lock_level) pok_syscall2(POK_SYSCALL_PARTITION_DEC_LOCK_LEVEL,(uint32_t)lock_level,0)
 
-#define pok_thread_yield() pok_syscall2(POK_SYSCALL_THREAD_YIELD, 0, 0)
+//#define pok_thread_yield() pok_syscall2(POK_SYSCALL_THREAD_YIELD, 0, 0)
 
 #endif /* __POK_NEEDS_THREADS */
 #endif /* __POK_THREAD_H__ */

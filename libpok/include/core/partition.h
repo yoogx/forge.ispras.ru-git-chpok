@@ -14,6 +14,9 @@
  * Created by julien on Mon Jan 19 14:18:51 2009 
  */
 
+#ifndef __POK_PARTITION_H__
+#define __POK_PARTITION_H__
+
 #include <config.h>
 
 #include <core/dependencies.h>
@@ -22,7 +25,6 @@
 
 #include <types.h>
 #include <errno.h>
-#include <core/syscall.h>
 
 typedef enum
 {
@@ -40,7 +42,10 @@ typedef enum
   POK_START_CONDITION_HM_PARTITION_RESTART  = 3
 }pok_start_condition_t;
 
-static inline 
+#include <core/syscall.h>
+
+#define pok_partition_set_mode pok_partition_set_mode_current
+/*static inline 
 pok_ret_t pok_partition_set_mode(pok_partition_mode_t mode) 
 {
     return pok_syscall2(POK_SYSCALL_PARTITION_SET_MODE, (uint32_t)mode, 0);
@@ -68,17 +73,15 @@ static inline
 pok_ret_t pok_current_partition_get_lock_level(uint32_t *lock_level) 
 {
     return pok_syscall2(POK_SYSCALL_PARTITION_GET_LOCK_LEVEL, (uint32_t)lock_level, 0);
-}
+}*/
 
-static inline
-pok_bool_t pok_current_partition_preemption_disabled(void)
-{
-    uint32_t lock_level;
-    pok_current_partition_get_lock_level(&lock_level);
-    return lock_level > 0;
-}
+#define pok_current_partition_preemption_disabled() \
+    ({int32_t lock_level; pok_current_partition_get_lock_level(&lock_level); lock_level > 0;})
 
-static inline
+#define pok_partition_inc_lock_level pok_current_partition_inc_lock_level
+#define pok_partition_dec_lock_level pok_current_partition_dec_lock_level
+
+/*static inline
 pok_ret_t pok_current_partition_get_operating_mode(pok_partition_mode_t *op_mode)
 {
     return pok_syscall2(POK_SYSCALL_PARTITION_GET_OPERATING_MODE, (uint32_t)op_mode, 0);
@@ -88,6 +91,8 @@ static inline
 pok_ret_t pok_current_partition_get_start_condition(pok_start_condition_t *start_condition)
 {
     return pok_syscall2(POK_SYSCALL_PARTITION_GET_START_CONDITION, (uint32_t)start_condition, 0);
-}
+}*/
 
 #endif
+
+#endif /* __POK_PARTITION_H__ */
