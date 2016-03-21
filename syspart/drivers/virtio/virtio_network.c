@@ -43,6 +43,12 @@
 #define DRV_NAME "virtio-net"
 #define PRINTF(fmt, ...) printf("virtio_network: " fmt, ##__VA_ARGS__)
 
+struct receive_buffer {
+    struct virtio_net_hdr virtio_net_hdr;
+    struct ether_hdr ether_hdr;
+    char payload[ETH_DATA_LENGTH];
+} __attribute__((packed));
+
 struct virtio_network_device {
     s_pci_device pci_device;
 
@@ -51,15 +57,10 @@ struct virtio_network_device {
     uint8_t mac[ETH_ALEN];
 
     void (*packet_received_callback)(const char *, size_t);
+
+    struct receive_buffer receive_buffers[POK_MAX_RECEIVE_BUFFERS];
 };
 
-struct receive_buffer {
-    struct virtio_net_hdr virtio_net_hdr;
-    struct ether_hdr ether_hdr;
-    char payload[ETH_DATA_LENGTH];
-} __attribute__((packed));
-
-static struct receive_buffer receive_buffers[POK_MAX_RECEIVE_BUFFERS];
 
 
 // the device (statically allocated)
@@ -181,7 +182,7 @@ static void setup_receive_buffers(struct virtio_network_device *dev)
     int i;
     for (i = 0; i < POK_MAX_RECEIVE_BUFFERS; i++) {
         // this pushes buffer to avail ring
-        use_receive_buffer(dev, &receive_buffers[i]);
+        use_receive_buffer(dev, &dev->receive_buffers[i]);
     }
     notify_receive_buffers(dev);
 }
