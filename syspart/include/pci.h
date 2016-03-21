@@ -109,5 +109,6 @@ struct pci_driver {
 };
 
 
+void register_pci_driver(struct pci_driver *driver);
 
 # endif /* __POK_PCI_H__ */

@@ -239,14 +239,8 @@ uint8_t* find_mac_by_ip(uint32_t dst_ip)
     return default_mac;
 }
 
-void p3041_init(void);
-
 void pok_network_init(void)
 {
-    pci_init();
-
-    //p3041_init();
-
     NETWORK_DRIVER_OPS->set_packet_received_callback(packet_received_callback);
     initialized = TRUE;
 }

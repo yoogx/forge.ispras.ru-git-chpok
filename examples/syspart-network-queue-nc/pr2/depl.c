@@ -44,3 +44,11 @@ struct mac_ip mac_addr_mapping[] = {
 };
 
 unsigned mac_addr_mapping_nb = ARRAY_SIZE(sys_sampling_links);
+
+
+void drivers_init()
+{
+    virtio_net_init();
+    pci_init();
+    pok_network_init();
+}

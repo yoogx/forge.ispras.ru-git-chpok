@@ -4,6 +4,7 @@
 #include <arinc653/types.h>
 #include <middleware/port.h>
 #include <port_info.h>
+#include <pci.h>
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 #define IP_ADDR(a,b,c,d) ((uint32_t)((a) & 0xff) << 24) | \
@@ -48,4 +49,10 @@ extern unsigned sys_queuing_links_nb;
 extern sys_link_t sys_queuing_links[];
 extern struct mac_ip mac_addr_mapping[];
 extern unsigned mac_addr_mapping_nb;
+void drivers_init(void);
+
+
+extern struct pci_driver pci_driver_table[];
+extern unsigned pci_driver_table_size;
+
 #endif

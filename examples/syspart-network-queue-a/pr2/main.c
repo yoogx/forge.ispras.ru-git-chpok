@@ -317,8 +317,7 @@ static int real_main(void)
 
     }
 
-    // network init
-    pok_network_init();
+    drivers_init();
 
     static pok_network_udp_receive_callback_t udp_callback = {udp_received_callback, NULL};
     pok_network_register_udp_receive_callback(&udp_callback);

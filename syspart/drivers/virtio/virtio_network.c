@@ -445,13 +445,18 @@ pok_network_driver_device_t pok_network_virtio_device = {
     .mac = virtio_network_device.mac
 };
 
-static const struct pci_device_id virtio_pci_devid_tbl[] = {
-    { VIRTIO_PCI_VENDORID, PCI_ANY_ID},
-};
 
-struct pci_driver virtio_pci_driver = {
-    .name     = DRV_NAME,
-    .probe    = probe_device,
-    .id_table = virtio_pci_devid_tbl
-};
+void virtio_net_init()
+{
+    const struct pci_device_id virtio_pci_devid_tbl[] = {
+        { VIRTIO_PCI_VENDORID, PCI_ANY_ID},
+    };
 
+    struct pci_driver virtio_pci_driver = {
+        .name     = DRV_NAME,
+        .probe    = probe_device,
+        .id_table = virtio_pci_devid_tbl
+    };
+
+    register_pci_driver(&virtio_pci_driver);
+}

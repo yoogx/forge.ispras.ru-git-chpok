@@ -5,16 +5,9 @@
 
 #include <bsp.h>
 #include "pci_internal.h"
+#include <sysconfig.h>
 
-extern struct pci_driver ne2k_pci_driver;
-extern struct pci_driver virtio_pci_driver;
-
-#define PCI_DRIVER_TABLE_SIZE sizeof(pci_driver_table)/sizeof(struct pci_driver *)
-struct pci_driver *pci_driver_table[] = {
-    &ne2k_pci_driver,
-    &virtio_pci_driver,
-};
-
+unsigned pci_driver_table_used_cnt = 0;
 
 #ifdef __PPC__
 struct pci_bridge bridge;
@@ -36,6 +29,11 @@ int pci_match_device(const struct pci_device_id *id, const struct pci_device *de
             (id->device == PCI_ANY_ID || id->device == dev->deviceid))
         return 1;
     return 0;
+}
+
+void register_pci_driver(struct pci_driver *driver)
+{
+    pci_driver_table[pci_driver_table_used_cnt++] = *driver;
 }
 
 uint32_t pci_read(
@@ -170,8 +168,8 @@ void pci_init()
             pci_dev.deviceid  = (uint16_t) pci_read(bus, dev, fun, PCI_REG_DEVICEID);
             //pci_dev.classcode = (uint16_t) pci_read(bus, dev, fun, PCI_REG_PROGIFID);
 
-            for (int i = 0; i < PCI_DRIVER_TABLE_SIZE; i++) {
-                struct pci_driver *pci_driver = pci_driver_table[i];
+            for (int i = 0; i < pci_driver_table_used_cnt; i++) {
+                struct pci_driver *pci_driver = &pci_driver_table[i];
                 if (pci_match_device(pci_driver->id_table, &pci_dev)) {
                     printf("MATCH %s\n", pci_driver->name);
 #ifdef __PPC__
