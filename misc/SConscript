@@ -17,20 +17,24 @@ def print_cmd_line(s, target, src, env):
     else:
         sys.stdout.write("Making %s...\n" %(' and '.join([str(x) for x in target])))
 
-boards = ['e500mc', 'e500_highmem', 'p3041', 'x86-qemu']
+try:
+    Import('env')
+except:
+    boards = ['e500mc', 'e500_highmem', 'p3041', 'x86-qemu']
 
-vars = Variables()
-vars.AddVariables(
-    ('xml', 'xml config to be passed to parser', 'config.xml'),
-    EnumVariable('bsp', 'bsp', 'e500_highmem', allowed_values = boards)
-)
+    vars = Variables()
+    vars.AddVariables(
+        ('xml', 'xml config to be passed to parser', 'config.xml'),
+        EnumVariable('bsp', 'bsp', 'e500_highmem', allowed_values = boards)
+    )
 
-env = Environment(variables = vars, ENV = os.environ)
+    env = Environment(variables = vars, ENV = os.environ)
 
-Help(vars.GenerateHelpText(env))
+    Help(vars.GenerateHelpText(env))
 
-env['POK_PATH'] = os.path.join(os.environ['POK_PATH'], '')
-env['SCONSTRUCT_DIR'] = GetLaunchDir()
+    env['POK_PATH'] = os.path.join(os.environ['POK_PATH'], '')
+    env['SCONSTRUCT_DIR'] = GetLaunchDir()
+    env['BUILD_DIR'] = os.path.join(env['SCONSTRUCT_DIR'], 'build', env['bsp'], '')
 
 open(env['SCONSTRUCT_DIR']+'/scons_build.log', 'w')
 
@@ -127,7 +131,6 @@ bsp_qemu_dict = {
 }
 env.Append(QEMU_FLAGS = bsp_qemu_dict[env['BSP']])
 
-env['BUILD_DIR'] = os.path.join(env['SCONSTRUCT_DIR'], 'build', env['bsp'], '')
 env.Append(QEMU_FLAGS = ' -kernel '+env['BUILD_DIR']+'pok.elf')
 
 #env.Append(QEMU_FLAGS = ' -display none')
