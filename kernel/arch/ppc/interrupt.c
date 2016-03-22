@@ -205,6 +205,7 @@ void pok_int_debug(struct regs * ea) {
     printf("DAC2 = %lx\n", mfspr(SPRN_DAC2));
     printf("srr0 = 0x%lx\n", ea->srr0);
     printf("srr1 = 0x%lx\n", ea->srr1);
+    printf("Reason: Watchpoint\n");   
     handle_exception(1, ea); 
     printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
     DBCR0 = mfspr(SPRN_DBCR0);

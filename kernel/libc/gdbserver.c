@@ -1,12 +1,9 @@
-//~ #define MULTIPROCESS
-
-
 #define PC_REGNUM 64
 #define SP_REGNUM 1
  
-//~ #define DEBUG_GDB
+#define DEBUG_GDB
 //~ #define QEMU
-
+#define MULTIPROCESS
 
 /*
  * For e500mc: ~/qemu/ppc-softmmu/qemu-system-ppc -serial stdio -serial pty -M ppce500 -cpu e500mc -kernel pok.elf
@@ -705,7 +702,7 @@ int   POK_CHECK_ADDR_IN_PARTITION(int pid,uintptr_t address){
 #define max_breakpoints  20
 int max_breakpoint = max_breakpoints;
 int b_need_to_delete = -1;
-int b_need_to_set = -1;
+int Connect_to_new_inferior = -1;
 
 
 struct T_breakpoint breakpoints[max_breakpoints];
@@ -754,8 +751,6 @@ void add_watchpoint(uintptr_t addr, int length, int *using_thread, int type){
     /*do nothing*/
     strcpy (remcomOutBuffer, "E22");
     return;
- 
-    strcpy(remcomOutBuffer, "OK");
 #else
     /*If 1 watchpoint was already set*/
     if ((watchpoint_is_set) || (type > 4) || (type < 2)){
@@ -771,7 +766,7 @@ void add_watchpoint(uintptr_t addr, int length, int *using_thread, int type){
     mtspr(SPRN_DAC1, addr);
     mtspr(SPRN_DAC2, addr + length);
     uint32_t DBCR2 = mfspr(SPRN_DBCR2);
-    DBCR2 |= 0x22800000UL;
+    DBCR2 |= 0x800000UL;
     mtspr(SPRN_DBCR2, DBCR2);
     int DAC;
     if (type == 2) DAC = 0x40050000UL;
@@ -795,8 +790,6 @@ void remove_watchpoint(uintptr_t addr, int length, int *using_thread, int type){
     /*do nothing*/
     strcpy (remcomOutBuffer, "E22");
     return;
-    
-    strcpy(remcomOutBuffer, "OK");
 #else
     /*do nothing*/
     if ((!watchpoint_is_set) || (type > 4) || (type < 2)){
@@ -841,48 +834,48 @@ void add_0_breakpoint(uintptr_t addr, int length, int *using_thread){
     printf("New_pid = %d\n",new_pid);
     printf("Old_pid = %d\n",old_pid);    
 #endif
-    if (b_need_to_set == -1){
-
-    /*
-     * Check, is it the first use of this breakpoint or not.
-     */
-        int i = 0;
-        for (i = 0; i < max_breakpoint; i++){
-            if (breakpoints[i].addr == addr)
-                break;
-        }
-    /*
-     * If there is breakpoint on this addr
-     */
-        if (i < (max_breakpoint - 1)) {
-
-            if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
-            { 
-#ifdef DEBUG_GDB
-                printf("Load new_pid\n");
-#endif
-                switch_part_id(old_pid, new_pid);
-            }
-            if (hex2mem(trap, (char *)addr,  length)) {
-                strcpy(remcomOutBuffer, "OK");
-#ifdef DEBUG_GDB
-                printf("hex2mem: addr = 0x%x; instr = 0x%lx", addr, *(uint32_t *)addr);
-#endif
-            } else {
-                strcpy(remcomOutBuffer, "E22");
-                switch_part_id(new_pid, old_pid);    
-                return;
-            }
-            if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
-                switch_part_id(new_pid, old_pid);
-
-            strcpy (remcomOutBuffer, "OK");
-            return;
-        }
-        strcpy (remcomOutBuffer, "E22");
-        return;
-    }
-    b_need_to_set = -1;
+    //~ if (b_need_to_set == -1){
+//~ 
+    //~ /*
+     //~ * Check, is it the first use of this breakpoint or not.
+     //~ */
+        //~ int i = 0;
+        //~ for (i = 0; i < max_breakpoint; i++){
+            //~ if ((breakpoints[i].addr == addr) && (breakpoints[i].P_num == new_pid))
+                //~ break;
+        //~ }
+    //~ /*
+     //~ * If there is breakpoint on this addr
+     //~ */
+        //~ if (i < (max_breakpoint - 1)) {
+//~ 
+            //~ if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
+            //~ { 
+//~ #ifdef DEBUG_GDB
+                //~ printf("Load new_pid\n");
+//~ #endif
+                //~ switch_part_id(old_pid, new_pid);
+            //~ }
+            //~ if (hex2mem(trap, (char *)addr,  length)) {
+                //~ strcpy(remcomOutBuffer, "OK");
+//~ #ifdef DEBUG_GDB
+                //~ printf("hex2mem: addr = 0x%x; instr = 0x%lx", addr, *(uint32_t *)addr);
+//~ #endif
+            //~ } else {
+                //~ strcpy(remcomOutBuffer, "E22");
+                //~ switch_part_id(new_pid, old_pid);    
+                //~ return;
+            //~ }
+            //~ if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
+                //~ switch_part_id(new_pid, old_pid);
+//~ 
+            //~ strcpy (remcomOutBuffer, "OK");
+            //~ return;
+        //~ }
+        //~ strcpy (remcomOutBuffer, "E22");
+        //~ return;
+    //~ }
+    //~ b_need_to_set = -1;
 
     if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
     { 
@@ -939,43 +932,43 @@ void remove_0_breakpoint(uintptr_t addr, int length, int *using_thread){
      * If we don't want do delete breakpoint (just switch it off for single step)
      */
     
-    if (b_need_to_delete == -1){
-        for (i = 0; i < max_breakpoint; i++){
-            if (breakpoints[i].addr == addr)
-                break;
-        }
-        if (i == (max_breakpoint - 1)){ 
-            //TODO: Check number of error
-#ifdef DEBUG_GDB
-            printf("                Max of breakpoint\n");
-#endif
-            strcpy (remcomOutBuffer, "E22");
-            return;
-        }
-        if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
-        { 
-#ifdef DEBUG_GDB
-            printf("Load new_pid\n");
-#endif
-            switch_part_id(old_pid, new_pid);
-        }
-        if (hex2mem(breakpoints[i].Instr, (char *)addr, length)) {
-            strcpy(remcomOutBuffer, "OK");
-#ifdef DEBUG_GDB
-            printf("hex2mem: addr = 0x%x; instr = 0x%lx", addr, *(uint32_t *)addr);
-#endif
-        } else {
-#ifdef DEBUG_GDB
-            printf("                Error in add breakpoint\n");
-#endif
-            strcpy (remcomOutBuffer, "E22");
-            switch_part_id(new_pid, old_pid);    
-            return;
-        }
-        if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
-            switch_part_id(new_pid, old_pid);
-        return;
-    }
+    //~ if (b_need_to_delete == -1){
+        //~ for (i = 0; i < max_breakpoint; i++){
+            //~ if (breakpoints[i].addr == addr)
+                //~ break;
+        //~ }
+        //~ if (i == (max_breakpoint - 1)){ 
+            //~ //TODO: Check number of error
+//~ #ifdef DEBUG_GDB
+            //~ printf("                Max of breakpoint\n");
+//~ #endif
+            //~ strcpy (remcomOutBuffer, "E22");
+            //~ return;
+        //~ }
+        //~ if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
+        //~ { 
+//~ #ifdef DEBUG_GDB
+            //~ printf("Load new_pid\n");
+//~ #endif
+            //~ switch_part_id(old_pid, new_pid);
+        //~ }
+        //~ if (hex2mem(breakpoints[i].Instr, (char *)addr, length)) {
+            //~ strcpy(remcomOutBuffer, "OK");
+//~ #ifdef DEBUG_GDB
+            //~ printf("hex2mem: addr = 0x%x; instr = 0x%lx", addr, *(uint32_t *)addr);
+//~ #endif
+        //~ } else {
+//~ #ifdef DEBUG_GDB
+            //~ printf("                Error in add breakpoint\n");
+//~ #endif
+            //~ strcpy (remcomOutBuffer, "E22");
+            //~ switch_part_id(new_pid, old_pid);    
+            //~ return;
+        //~ }
+        //~ if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
+            //~ switch_part_id(new_pid, old_pid);
+        //~ return;
+    //~ }
     
     if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
     { 
@@ -985,7 +978,7 @@ void remove_0_breakpoint(uintptr_t addr, int length, int *using_thread){
         switch_part_id(old_pid, new_pid);
     }
     for (i = 0; i < max_breakpoint; i++){
-        if (breakpoints[i].addr == addr)
+        if ((breakpoints[i].addr == addr) && (breakpoints[i].P_num == new_pid))
             break;
     }
     if (i == max_breakpoint){
@@ -1189,13 +1182,15 @@ handle_exception (int exceptionVector, struct regs * ea)
 
     int thread_num = POK_SCHED_CURRENT_THREAD + 1;
 #ifdef MULTIPROCESS
-    int part_of_this_thread = 1;////give_part_num_of_thread(thread_num);
+    int part_of_this_thread = give_part_num_of_thread(thread_num) + 1;////give_part_num_of_thread(thread_num);
     *ptr++ = 'p';
     ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
     *ptr++ = '.';
 #endif
     ptr = mem2hex( (char *)(&(thread_num)), ptr, 4); 
     *ptr++ = ';';
+
+
 #ifdef QEMU
 
 #else
@@ -1350,11 +1345,38 @@ handle_exception (int exceptionVector, struct regs * ea)
                 ptr = remcomOutBuffer;
                 *ptr++ = 'Q';
                 *ptr++ = 'C';
-                uint32_t p = POK_SCHED_CURRENT_THREAD + 1;
+                uint32_t p;
+                if (Connect_to_new_inferior == 1){
+                    p = POK_SCHED_CURRENT_THREAD + 1;
+#ifdef MULTIPROCESS
+                ////TODO: Change number of process
+                    int part_of_this_thread = give_part_num_of_thread(p) + 1;
+                    *ptr++ = 'p';
+                    ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
+                    *ptr++ = '.';
+#endif 
+
+                    ptr = mem2hex( (char *)(&p), ptr, 4); 
+                    *ptr++ = 0;
+                    Connect_to_new_inferior = -1;
+                    putpacket ( (unsigned char *) remcomOutBuffer);
+                    pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = old_entryS;
+               
+                    set_regs(ea);
+                    ptr = &remcomInBuffer[1];
+                    if (hexToInt(&ptr, &addr)) {
+                        registers[pc]/*nip*/ = addr;
+                    }
+                    ea->srr0 = ea->srr0 - 4;
+                    return;                    
+                    
+                }else{
+                    p = POK_SCHED_CURRENT_THREAD + 1;
+                }
 #ifdef MULTIPROCESS
 
                 ////TODO: Change number of process
-                int part_of_this_thread = 1;////give_part_num_of_thread(p);
+                int part_of_this_thread = give_part_num_of_thread(p) + 1;
                 *ptr++ = 'p';
                 ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
                 *ptr++ = '.';
@@ -1395,11 +1417,10 @@ handle_exception (int exceptionVector, struct regs * ea)
                 int part_id;
                 hexToInt(&ptr, (uintptr_t *)(&part_id));
                 ptr = remcomOutBuffer;
-#ifdef MULTIPROCESS
-                if (part_id <= POK_CONFIG_NB_PARTITIONS + 2 && part_id >= 1)
-#endif
+//~ #ifdef MULTIPROCESS
+                //~ if (part_id <= POK_CONFIG_NB_PARTITIONS + 2 && part_id >= 1)
+//~ #endif
                     *ptr++ = '1';
-                //~ }
                 *ptr = 0;
                 break;
             }
@@ -1439,7 +1460,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                 int previous_thread = 1;
 #ifdef MULTIPROCESS
                 ////TODO: Change number of process
-                int part_of_this_thread = 1;////give_part_num_of_thread(previous_thread);
+                int part_of_this_thread = give_part_num_of_thread(previous_thread) + 1;
                 *ptr++ = 'p';
                 ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
                 *ptr++ = '.';
@@ -1461,7 +1482,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                 int previous_thread = number_of_thread;
 #ifdef MULTIPROCESS
                 ////TODO: Change number of process
-                int part_of_this_thread = 1;////give_part_num_of_thread(previous_thread);
+                int part_of_this_thread = give_part_num_of_thread(previous_thread) + 1;
                 *ptr++ = 'p';
                 ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
                 *ptr++ = '.';
@@ -1594,9 +1615,12 @@ handle_exception (int exceptionVector, struct regs * ea)
             }else if (*ptr++ == 'g'){
 #ifdef MULTIPROCESS
                 /*FIX IT*/
-                while (*ptr != '.')
-                    ptr++;
+                /*Read 'p'*/
                 ptr++;
+                uintptr_t pid = -1;
+                hexToInt(&ptr, &pid);
+                ptr++;
+                printf("PID = %d\n", pid);
 #endif
                 hexToInt(&ptr, &addr);
                 if (addr != -1 && addr != 0) 
@@ -1607,7 +1631,11 @@ handle_exception (int exceptionVector, struct regs * ea)
                     //~ printf("\nH-1 break\n");
                     //~ break;
                 
-                }else using_thread = POK_SCHED_CURRENT_THREAD;
+                }else{
+                    printf("ADDR = 0\n");
+                    if (pid == 1) using_thread = IDLE_THREAD;
+                    else using_thread = pok_partitions[pid - 2].thread_index_low + 1;
+                }
                 set_regs((struct regs *)pok_threads[using_thread].entry_sp);
             }
             //~ printf("\nH\n");
@@ -1682,20 +1710,50 @@ handle_exception (int exceptionVector, struct regs * ea)
             }
 
 #ifdef MULTIPROCESS
-
+        case 'v':               /*
+                                 * Packets starting with ‘v’ are identified by a multi-letter name, up to the first ‘;’ or ‘?’ (or the end of the packet). 
+                                 */
+            {
+            printf("IN V\n");
+            printf("String = %s, %d\n", remcomOutBuffer, remcomOutBuffer[0]);
+            ptr = &remcomInBuffer[1];
+            if (strncmp(ptr, "Attach;", 7) == 0)   {
+                printf("Added reply\n");
+                strcpy(remcomOutBuffer, "Any stop packet");
+            }
+            if (strncmp(ptr, "Cont;c", 6) == 0) {
+                pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = old_entryS;
+           
+                set_regs(ea);
+                ptr = &remcomInBuffer[1];
+                if (hexToInt(&ptr, &addr)) {
+                    registers[pc]/*nip*/ = addr;
+                }
+                return;
+            }         
+            Connect_to_new_inferior = 1;
+            break;
+            //~ putpacket((unsigned char *)remcomOutBuffer);            
+            //~ return;
+        }
+        
         case 'D':               /*
                                  * The first form of the packet is used to detach gdb from the remote system
                                  * It is sent to the remote target before gdb disconnects via the detach command.
                                  */
+            {
+            printf("HERE\n");
             ptr = &remcomInBuffer[2];
             int part_id;
-            hexToInt(&ptr, &part_id);
+            hexToInt(&ptr, (uintptr_t *)(&part_id));
             remcomOutBuffer[0] = 'O';
             remcomOutBuffer[1] = 'K';
             remcomOutBuffer[2] = 0;
             
+            /*If it is last detaching process - continue*/
             if (part_id != 1) break;
             putpacket((unsigned char *)remcomOutBuffer);            
+        }
 #endif
         case 'k':    /* kill the program, actually just continue */
         case 'c':    /* cAA..AA  Continue; address AA..AA optional */
