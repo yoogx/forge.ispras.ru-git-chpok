@@ -115,10 +115,12 @@ static void take_fixed_action(pok_error_action_t action)
             assert(FALSE && "this's supposed to be unreachable");
             break;
         case POK_ERROR_ACTION_COLD_START:
+            pok_partitions[POK_SCHED_CURRENT_PARTITION].start_condition = POK_START_CONDITION_HM_PARTITION_RESTART;
             pok_partition_set_mode_current(POK_PARTITION_MODE_INIT_COLD);
             assert(FALSE && "this's supposed to be unreachable");
             break;
         case POK_ERROR_ACTION_WARM_START:
+            pok_partitions[POK_SCHED_CURRENT_PARTITION].start_condition = POK_START_CONDITION_HM_PARTITION_RESTART;
             pok_partition_set_mode_current(POK_PARTITION_MODE_INIT_WARM);
             assert(FALSE && "this's supposed to be unreachable");
             break;

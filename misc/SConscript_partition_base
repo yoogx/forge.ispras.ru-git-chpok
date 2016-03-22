@@ -1,0 +1,27 @@
+# -*- Mode: Python -*-
+
+import sys
+import os
+
+from lxml import etree
+import arinc653_xml_conf
+import chpok_configuration
+
+Import('env')
+
+root = etree.parse(os.path.join(env['SCONSTRUCT_DIR'], env['xml']))
+parser = arinc653_xml_conf.ArincConfigParser()
+conf = chpok_configuration.Configuration()
+conf.partitions.append(parser.parse_partition(root))
+
+# this prevents config writing when we don't need to build
+if not COMMAND_LINE_TARGETS and not env.GetOption('clean') and not env.GetOption('help'):
+	if not os.path.exists(env['BUILD_DIR']):
+		os.makedirs(env['BUILD_DIR'])
+	chpok_configuration.write_partition_configuration(conf, env['BUILD_DIR'], 0)
+
+part_dir = os.path.join(env['SCONSTRUCT_DIR'], '')
+part_build_dir = os.path.join(env['SCONSTRUCT_DIR'], env['BUILD_DIR'])
+SConscript('SConscript_partition', exports = ['part_dir', 'part_build_dir'])
+
+# EOF

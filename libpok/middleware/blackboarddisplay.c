@@ -42,6 +42,7 @@
 #include <libc/string.h>
 #include <core/thread.h>
 #include <middleware/blackboard.h>
+#include <core/syscall.h>
 
 pok_ret_t pok_blackboard_display (const pok_blackboard_id_t   id, 
                                   const void*                 message, 
@@ -63,12 +64,12 @@ pok_ret_t pok_blackboard_display (const pok_blackboard_id_t   id,
       return POK_ERRNO_SIZE;
    }
 
-   if (pok_blackboards[id].ready != TRUE)
+   if (len <= 0)
    {
-      return POK_ERRNO_EINVAL;
+      return POK_ERRNO_SIZE;
    }
 
-   if (pok_blackboards[id].size < len)
+   if (pok_blackboards[id].ready != TRUE)
    {
       return POK_ERRNO_EINVAL;
    }
@@ -77,8 +78,6 @@ pok_ret_t pok_blackboard_display (const pok_blackboard_id_t   id,
         return POK_ERRNO_EINVAL;
    }
 
-
-
    memcpy (&pok_blackboards_data[pok_blackboards[id].index], message, len);
    pok_blackboards[id].current_message_size = len;
    pok_blackboards[id].empty = FALSE;
@@ -86,7 +85,6 @@ pok_ret_t pok_blackboard_display (const pok_blackboard_id_t   id,
    if (pok_event_unlock(pok_blackboards[id].lock) != POK_ERRNO_OK) {
         return POK_ERRNO_EINVAL;
    }
-
 
    pok_event_broadcast (pok_blackboards[id].lock);
 

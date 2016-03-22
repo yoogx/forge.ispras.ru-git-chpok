@@ -42,7 +42,7 @@ typedef uint8_t   pok_partition_id_t;
 typedef uint8_t   pok_thread_id_t;
 typedef uint16_t  pok_sem_value_t;
 
-typedef uint64_t  pok_time_t;
+typedef int64_t  pok_time_t;
 
 typedef enum {
     POK_QUEUEING_DISCIPLINE_FIFO,

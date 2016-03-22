@@ -1,5 +1,8 @@
+/build
 /cache
 /old
+/examples/*/build
+/examples/*/*/build
 /examples/*/sizes.c
 /examples/*/*/deployment.c
 *.o
@@ -14,3 +17,4 @@ build/
 .sconsign*
 *.log
 *.directory
+*.gdb_history

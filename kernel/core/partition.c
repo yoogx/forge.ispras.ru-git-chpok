@@ -391,9 +391,17 @@ pok_ret_t pok_partition_set_mode(pok_partition_id_t pid, pok_partition_mode_t mo
          // TODO support for partition restart is likely broken
 
          pok_partitions[pid].mode = mode;  /* Here, we change the mode */
+
+         if (pok_partitions[pid].start_condition != POK_START_CONDITION_HM_MODULE_RESTART &&
+             pok_partitions[pid].start_condition != POK_START_CONDITION_HM_PARTITION_RESTART)
+         {
+             pok_partitions[pid].start_condition = POK_START_CONDITION_PARTITION_RESTART;
+		 }
+
          pok_partitions[pid].lock_level = 1; 
 
          pok_partition_reinit (pid);
+         POK_CURRENT_THREAD.force_restart = TRUE;
 
          pok_sched ();
 
@@ -423,13 +431,13 @@ pok_ret_t pok_current_partition_get_id(pok_partition_id_t *id)
   return POK_ERRNO_OK;
 }
 
-pok_ret_t pok_current_partition_get_period (uint64_t *period)
+pok_ret_t pok_current_partition_get_period (pok_time_t *period)
 {
   *period = POK_CURRENT_PARTITION.period;
   return POK_ERRNO_OK;
 }
 
-pok_ret_t pok_current_partition_get_duration (uint64_t *duration)
+pok_ret_t pok_current_partition_get_duration (pok_time_t *duration)
 {
   *duration = POK_CURRENT_PARTITION.duration;
   return POK_ERRNO_OK;
@@ -441,7 +449,7 @@ pok_ret_t pok_current_partition_get_operating_mode (pok_partition_mode_t *op_mod
   return POK_ERRNO_OK;
 }
 
-pok_ret_t pok_current_partition_get_lock_level (uint32_t *lock_level)
+pok_ret_t pok_current_partition_get_lock_level (int32_t *lock_level)
 {
   *lock_level = POK_CURRENT_PARTITION.lock_level;
   return POK_ERRNO_OK;
@@ -453,7 +461,7 @@ pok_ret_t pok_current_partition_get_start_condition (pok_start_condition_t *star
   return POK_ERRNO_OK;
 }
 
-pok_ret_t pok_current_partition_inc_lock_level(uint32_t *lock_level)
+pok_ret_t pok_current_partition_inc_lock_level(int32_t *lock_level)
 {
   if (POK_CURRENT_PARTITION.mode != POK_PARTITION_MODE_NORMAL ||
       pok_thread_is_error_handling(&POK_CURRENT_THREAD)) 
@@ -467,7 +475,7 @@ pok_ret_t pok_current_partition_inc_lock_level(uint32_t *lock_level)
   return POK_ERRNO_OK;
 }
 
-pok_ret_t pok_current_partition_dec_lock_level(uint32_t *lock_level)
+pok_ret_t pok_current_partition_dec_lock_level(int32_t *lock_level)
 {
   if (POK_CURRENT_PARTITION.mode != POK_PARTITION_MODE_NORMAL ||
       pok_thread_is_error_handling(&POK_CURRENT_THREAD)) 
