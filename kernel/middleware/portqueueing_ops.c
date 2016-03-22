@@ -167,12 +167,10 @@ pok_ret_t pok_port_queueing_create(
 
 pok_ret_t pok_port_queueing_receive(
     pok_port_id_t           id, 
-    int64_t                 timeout, 
-    const pok_port_size_t   maxlen, 
+    const pok_time_t*       timeout, 
     void                    *data, 
     pok_port_size_t         *len)
 {
-    (void) maxlen; // XXX
     pok_ret_t ret;
 
     if (id >= POK_CONFIG_NB_QUEUEING_PORTS) {
@@ -208,7 +206,7 @@ pok_ret_t pok_port_queueing_receive(
 
     // queue is empty...
 
-    if (timeout == 0) {
+    if (*timeout == 0) {
         DEBUG_PRINT("port is empty (non-blocking read)\n");
         ret = POK_ERRNO_EMPTY;
         goto end;
@@ -229,10 +227,10 @@ pok_ret_t pok_port_queueing_receive(
     {
         pok_port_queueing_wait_list_t wait_list_entry;
 
-        if (timeout < 0) {
+        if (*timeout < 0) {
             wait_list_entry.timeout = -1;
         } else {
-            wait_list_entry.timeout = POK_GETTICK() + timeout;
+            wait_list_entry.timeout = POK_GETTICK() + *timeout;
             wait_list_entry.result = POK_ERRNO_TIMEOUT;
         }
         wait_list_entry.thread = POK_SCHED_CURRENT_THREAD;
@@ -242,7 +240,7 @@ pok_ret_t pok_port_queueing_receive(
 
         port_wait_list_append(port, &wait_list_entry);
 
-        pok_lockobj_eventwait(&port->header.lock, timeout > 0 ? wait_list_entry.timeout : 0);
+        pok_lockobj_eventwait(&port->header.lock, *timeout > 0 ? wait_list_entry.timeout : 0);
 
         // by now, we're either 
         // - timed out 
@@ -263,7 +261,7 @@ pok_ret_t pok_port_queueing_send(
     pok_port_id_t       id, 
     const void          *data,
     pok_port_size_t     len,
-    int64_t             timeout)
+    const pok_time_t*   timeout)
 {
     pok_ret_t ret;
 
@@ -309,7 +307,7 @@ pok_ret_t pok_port_queueing_send(
     
     // queue is full...
 
-    if (timeout == 0) {
+    if (*timeout == 0) {
         DEBUG_PRINT("port is full (non-blocking write)\n");
         ret = POK_ERRNO_FULL;
         goto end;
@@ -330,10 +328,10 @@ pok_ret_t pok_port_queueing_send(
     {
         pok_port_queueing_wait_list_t wait_list_entry;
 
-        if (timeout < 0) {
+        if (*timeout < 0) {
             wait_list_entry.timeout = -1;
         } else {
-            wait_list_entry.timeout = POK_GETTICK() + timeout;
+            wait_list_entry.timeout = POK_GETTICK() + *timeout;
             wait_list_entry.result = POK_ERRNO_TIMEOUT;
         }
         wait_list_entry.thread = POK_SCHED_CURRENT_THREAD;
@@ -343,7 +341,7 @@ pok_ret_t pok_port_queueing_send(
 
         port_wait_list_append(port, &wait_list_entry);
 
-        pok_lockobj_eventwait(&port->header.lock, timeout > 0 ? wait_list_entry.timeout : 0);
+        pok_lockobj_eventwait(&port->header.lock, *timeout > 0 ? wait_list_entry.timeout : 0);
 
         // by now, we're either 
         // - timed out 

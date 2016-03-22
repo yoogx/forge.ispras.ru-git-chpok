@@ -14,6 +14,9 @@
  * Created by julien on Mon Jan 19 10:51:40 2009 
  */
 
+#ifndef __POK_ERROR_H
+#define __POK_ERROR_H
+
 #include <config.h>
 
 #include <core/dependencies.h>
@@ -53,22 +56,13 @@ typedef struct
    char                 msg[POK_ERROR_MAX_MSG_SIZE];
 } pok_error_status_t;
 
+#include <core/syscall.h>
+
 pok_ret_t pok_error_handler_create ();
 void pok_error_ignore  (const uint32_t error_id, const uint32_t thread_id);
 void pok_error_confirm (const uint32_t error_id, const uint32_t thread_id);
 pok_ret_t pok_error_handler_set_ready (const pok_error_status_t*);
 
-void pok_error_raise_application_error (const char* msg, size_t msg_size);
-
-/**
- * pok_error_get returns POK_ERRNO_OK if the error pointer
- * was registered and an error was registered.
- * It also returns POK_ERRNO_UNAVAILABLE if the pointer
- * was not registered or if nothing was detected
- */
-pok_ret_t pok_error_get (pok_error_status_t* status);
-
-pok_ret_t pok_error_is_handler(void);
-
 #endif
 
+#endif /* __POK_ERROR_H */
