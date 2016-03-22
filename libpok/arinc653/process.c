@@ -177,7 +177,6 @@ void CREATE_PROCESS (
     }
     core_attr.time_capacity   = arinc_time_to_ms(attributes->TIME_CAPACITY);
     core_attr.stack_size      = attributes->STACK_SIZE;
-
     core_ret = pok_thread_create (&core_process_id, &core_attr);
     if (core_ret == POK_ERRNO_OK) {
         arinc_process_attribute[core_process_id].BASE_PRIORITY = attributes->BASE_PRIORITY;
@@ -185,7 +184,7 @@ void CREATE_PROCESS (
         
         *process_id = core_process_id + 1;
         // ARINC specifies that threads shall be created in the DORMANT state
-        pok_thread_stop(core_process_id);
+        pok_thread_stop_target(core_process_id);
     }
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
@@ -227,7 +226,8 @@ void SUSPEND_SELF (
     SYSTEM_TIME_TYPE time_out,
     RETURN_CODE_TYPE *return_code)
 {
-    pok_ret_t core_ret = pok_thread_suspend(&time_out);
+    pok_time_t ms = arinc_time_to_ms(time_out);
+    pok_ret_t core_ret = pok_thread_suspend(&ms);
 
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
@@ -296,7 +296,8 @@ void DELAYED_START(
 {
     CHECK_PROCESS_ID();
 
-    pok_ret_t core_ret = pok_thread_delayed_start(process_id - 1, &delay_time);
+    pok_time_t ms = arinc_time_to_ms(delay_time);
+    pok_ret_t core_ret = pok_thread_delayed_start(process_id - 1, &ms);
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
         MAP_ERROR(POK_ERRNO_UNAVAILABLE, NO_ACTION);

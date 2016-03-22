@@ -18,7 +18,7 @@
 //!    Every syscall definition is transformed in some manner.
 //!
 
-//! Do not process `pok_partition_thread_create` as it accepts parameters about syscall,
+//! Do not process `pok_partition_thread_create` as it accepts parameters about syscall.
 
 //! User function accepts int64_t arg, checks that it fits into int32_t and transforms it.
 #ifdef POK_NEEDS_THREAD_SLEEP

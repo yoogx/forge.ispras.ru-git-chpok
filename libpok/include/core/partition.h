@@ -44,54 +44,15 @@ typedef enum
 
 #include <core/syscall.h>
 
+// Rename syscall
 #define pok_partition_set_mode pok_partition_set_mode_current
-/*static inline 
-pok_ret_t pok_partition_set_mode(pok_partition_mode_t mode) 
-{
-    return pok_syscall2(POK_SYSCALL_PARTITION_SET_MODE, (uint32_t)mode, 0);
-}
-
-static inline
-pok_ret_t pok_current_partition_get_id(pok_partition_id_t *idptr)
-{
-    return pok_syscall2(POK_SYSCALL_PARTITION_GET_ID, (uint32_t)idptr, 0);
-}
-
-static inline
-pok_ret_t pok_current_partition_get_period(uint64_t *period) 
-{
-    return pok_syscall2(POK_SYSCALL_PARTITION_GET_PERIOD, (uint32_t)period, 0);
-}
-
-static inline
-pok_ret_t pok_current_partition_get_duration(uint64_t *duration) 
-{
-    return pok_syscall2(POK_SYSCALL_PARTITION_GET_DURATION, (uint32_t)duration, 0);
-}
-
-static inline
-pok_ret_t pok_current_partition_get_lock_level(uint32_t *lock_level) 
-{
-    return pok_syscall2(POK_SYSCALL_PARTITION_GET_LOCK_LEVEL, (uint32_t)lock_level, 0);
-}*/
-
-#define pok_current_partition_preemption_disabled() \
-    ({int32_t lock_level; pok_current_partition_get_lock_level(&lock_level); lock_level > 0;})
-
 #define pok_partition_inc_lock_level pok_current_partition_inc_lock_level
 #define pok_partition_dec_lock_level pok_current_partition_dec_lock_level
 
-/*static inline
-pok_ret_t pok_current_partition_get_operating_mode(pok_partition_mode_t *op_mode)
-{
-    return pok_syscall2(POK_SYSCALL_PARTITION_GET_OPERATING_MODE, (uint32_t)op_mode, 0);
-}
+// Wrapper around corresponded syscall. Returns whether preemption is disabled.
+#define pok_current_partition_preemption_disabled() \
+    ({int32_t lock_level; pok_current_partition_get_lock_level(&lock_level); lock_level > 0;})
 
-static inline
-pok_ret_t pok_current_partition_get_start_condition(pok_start_condition_t *start_condition)
-{
-    return pok_syscall2(POK_SYSCALL_PARTITION_GET_START_CONDITION, (uint32_t)start_condition, 0);
-}*/
 
 #endif
 

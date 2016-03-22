@@ -94,6 +94,10 @@ def user_output(of, sd):
         of.write(",\n        (uint32_t)" + arg.name)
     
     of.write(");\n}\n")
+    
+    # Selfcheck: remove syscall id definition after we assign function for it.
+    of.write("// Syscall should be accessed only by function\n")
+    of.write("#undef " + sd.syscall_id + "\n")
 
 
 def generate_syscalls_declaration_kernel(target, source, env):

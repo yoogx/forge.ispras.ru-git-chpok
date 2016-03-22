@@ -82,17 +82,16 @@ void CREATE_SAMPLING_PORT (
 	 }
 
      if (REFRESH_PERIOD < 0) {
-         *RETURN_CODE = INVALID_CONFIG;
-         return;
-     }
-
-
-     if (REFRESH_PERIOD < 0) {
         *RETURN_CODE = INVALID_CONFIG;
         return;
      }
 
-	 core_ret = pok_port_sampling_create (SAMPLING_PORT_NAME, MAX_MESSAGE_SIZE, core_direction, &REFRESH_PERIOD, &core_id);
+     pok_time_t refresh_ms = arinc_time_to_ms(REFRESH_PERIOD);
+     if (refresh_ms < 0 || refresh_ms > UINT32_MAX) {
+         *RETURN_CODE = INVALID_CONFIG;
+         return;
+     }
+     core_ret = pok_port_sampling_create (SAMPLING_PORT_NAME, MAX_MESSAGE_SIZE, core_direction, &refresh_ms, &core_id);
 
 	 *SAMPLING_PORT_ID = core_id + 1;
 

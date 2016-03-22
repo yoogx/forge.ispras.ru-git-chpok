@@ -63,18 +63,6 @@ void pok_error_ignore  (const uint32_t error_id, const uint32_t thread_id);
 void pok_error_confirm (const uint32_t error_id, const uint32_t thread_id);
 pok_ret_t pok_error_handler_set_ready (const pok_error_status_t*);
 
-//void pok_error_raise_application_error (const char* msg, size_t msg_size);
-
-/**
- * pok_error_get returns POK_ERRNO_OK if the error pointer
- * was registered and an error was registered.
- * It also returns POK_ERRNO_UNAVAILABLE if the pointer
- * was not registered or if nothing was detected
- */
-//pok_ret_t pok_error_get (pok_error_status_t* status);
-
-//pok_ret_t pok_error_is_handler(void);
-
 #endif
 
 #endif /* __POK_ERROR_H */

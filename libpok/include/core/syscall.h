@@ -31,7 +31,9 @@ typedef enum
 	 POK_SYSCALL_INT_NUMBER                          =  42,
 	 POK_SYSCALL_THREAD_CREATE                       =  50,
 	 POK_SYSCALL_THREAD_SLEEP_UNTIL                  =  51,
+#ifdef POK_NEEDS_THREAD_SLEEP
 	 POK_SYSCALL_THREAD_SLEEP                        =  52,
+#endif /*POK_NEEDS_THREAD_SLEEP*/
 	 POK_SYSCALL_THREAD_SUSPEND                      =  53,
 //	 POK_SYSCALL_THREAD_RESTART                      =  54,
 	 POK_SYSCALL_THREAD_STOP                         =  55,

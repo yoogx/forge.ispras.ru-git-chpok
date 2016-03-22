@@ -121,7 +121,13 @@ void SEND_QUEUING_MESSAGE (
         return;
     }
 
-    core_ret = pok_port_queueing_send (QUEUING_PORT_ID - 1, MESSAGE_ADDR, LENGTH, &TIME_OUT);
+    pok_time_t delay_ms = arinc_time_to_ms(TIME_OUT);
+    if (delay_ms > INT32_MAX) {
+        *RETURN_CODE = INVALID_PARAM;
+        return;
+    }
+
+    core_ret = pok_port_queueing_send (QUEUING_PORT_ID - 1, MESSAGE_ADDR, LENGTH, &delay_ms);
 
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
@@ -148,7 +154,13 @@ void RECEIVE_QUEUING_MESSAGE (
        return;
    }
    
-   core_ret = pok_port_queueing_receive (QUEUING_PORT_ID - 1, &TIME_OUT, MESSAGE_ADDR, (pok_port_size_t*)LENGTH);
+   pok_time_t delay_ms = arinc_time_to_ms(TIME_OUT);
+   if (delay_ms > INT32_MAX) {
+       *RETURN_CODE = INVALID_PARAM;
+       return;
+   }
+
+   core_ret = pok_port_queueing_receive (QUEUING_PORT_ID - 1, &delay_ms, MESSAGE_ADDR, (pok_port_size_t*)LENGTH);
 
    switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);

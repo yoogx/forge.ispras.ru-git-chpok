@@ -49,13 +49,6 @@ bool_t pok_cons_write (const char* s,
                        size_t length);
 
 
-/* Wrapper for system call (appropriate return type).*/
-static inline pok_ret_t pok_console_write (const char* s, size_t length)
-{
-    return pok_cons_write(s, length) ? POK_ERRNO_OK : POK_ERRNO_EINVAL;
-}
-
-
 int data_to_read();
 int read_serial();
 

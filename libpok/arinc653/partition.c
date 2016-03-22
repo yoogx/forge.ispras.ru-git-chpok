@@ -32,7 +32,7 @@
 void GET_PARTITION_STATUS (PARTITION_STATUS_TYPE *partition_status,
                            RETURN_CODE_TYPE      *return_code)
 {
-  SYSTEM_TIME_TYPE period, duration;
+  pok_time_t period, duration;
   pok_partition_id_t identifier;
   pok_partition_mode_t mode;
 

@@ -49,7 +49,7 @@
 
 void TIMED_WAIT (SYSTEM_TIME_TYPE delay_time, RETURN_CODE_TYPE *return_code)
 {
-   int64_t delay_ms = arinc_time_to_ms(delay_time);
+   pok_time_t delay_ms = arinc_time_to_ms(delay_time);
    if (delay_ms > INT32_MAX) {
        *return_code = INVALID_PARAM;
        return;
@@ -61,7 +61,7 @@ void TIMED_WAIT (SYSTEM_TIME_TYPE delay_time, RETURN_CODE_TYPE *return_code)
    }
 
    pok_ret_t core_ret;
-   core_ret = pok_syscall2(POK_SYSCALL_THREAD_SLEEP, (int32_t) delay_ms, 0);
+   core_ret = pok_thread_sleep(&delay_ms);
     
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
@@ -91,7 +91,8 @@ void GET_TIME (SYSTEM_TIME_TYPE *system_time, RETURN_CODE_TYPE *return_code)
 
 void REPLENISH (SYSTEM_TIME_TYPE budget_time, RETURN_CODE_TYPE *return_code)
 {
-    pok_ret_t core_ret = pok_thread_replenish(arinc_time_to_ms(budget_time));
+    pok_time_t ms = arinc_time_to_ms(budget_time);
+    pok_ret_t core_ret = pok_thread_replenish(&ms);
 
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);

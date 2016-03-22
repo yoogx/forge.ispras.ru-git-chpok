@@ -457,7 +457,6 @@ pok_ret_t pok_buffer_send (
     if (pok_event_lock(buffer->lock) != POK_ERRNO_OK) {
         return POK_ERRNO_EINVAL;
     }
-
     if (buffer_is_full(buffer)) {
         if (delay_ms == 0) {
             pok_event_unlock(buffer->lock);
