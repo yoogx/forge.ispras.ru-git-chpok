@@ -712,7 +712,7 @@ int last_breakpoint;
 pok_partition_id_t give_part_num_of_thread(int thread_num){
 
     for (int i = 0; i < POK_CONFIG_NB_PARTITIONS; i++){
-        if (pok_partitions[i].thread_index_high > thread_num) return i + 1;
+        if (pok_partitions[i].thread_index_high + 1 > thread_num) return i + 1;
     }
     return 0;
 }    
@@ -834,49 +834,6 @@ void add_0_breakpoint(uintptr_t addr, int length, int *using_thread){
     printf("New_pid = %d\n",new_pid);
     printf("Old_pid = %d\n",old_pid);    
 #endif
-    //~ if (b_need_to_set == -1){
-//~ 
-    //~ /*
-     //~ * Check, is it the first use of this breakpoint or not.
-     //~ */
-        //~ int i = 0;
-        //~ for (i = 0; i < max_breakpoint; i++){
-            //~ if ((breakpoints[i].addr == addr) && (breakpoints[i].P_num == new_pid))
-                //~ break;
-        //~ }
-    //~ /*
-     //~ * If there is breakpoint on this addr
-     //~ */
-        //~ if (i < (max_breakpoint - 1)) {
-//~ 
-            //~ if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
-            //~ { 
-//~ #ifdef DEBUG_GDB
-                //~ printf("Load new_pid\n");
-//~ #endif
-                //~ switch_part_id(old_pid, new_pid);
-            //~ }
-            //~ if (hex2mem(trap, (char *)addr,  length)) {
-                //~ strcpy(remcomOutBuffer, "OK");
-//~ #ifdef DEBUG_GDB
-                //~ printf("hex2mem: addr = 0x%x; instr = 0x%lx", addr, *(uint32_t *)addr);
-//~ #endif
-            //~ } else {
-                //~ strcpy(remcomOutBuffer, "E22");
-                //~ switch_part_id(new_pid, old_pid);    
-                //~ return;
-            //~ }
-            //~ if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
-                //~ switch_part_id(new_pid, old_pid);
-//~ 
-            //~ strcpy (remcomOutBuffer, "OK");
-            //~ return;
-        //~ }
-        //~ strcpy (remcomOutBuffer, "E22");
-        //~ return;
-    //~ }
-    //~ b_need_to_set = -1;
-
     if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
     { 
 #ifdef DEBUG_GDB
@@ -928,48 +885,6 @@ void remove_0_breakpoint(uintptr_t addr, int length, int *using_thread){
     printf("New_pid = %d\n",new_pid);
     printf("Old_pid = %d\n",old_pid);    
 #endif
-    /*
-     * If we don't want do delete breakpoint (just switch it off for single step)
-     */
-    
-    //~ if (b_need_to_delete == -1){
-        //~ for (i = 0; i < max_breakpoint; i++){
-            //~ if (breakpoints[i].addr == addr)
-                //~ break;
-        //~ }
-        //~ if (i == (max_breakpoint - 1)){ 
-            //~ //TODO: Check number of error
-//~ #ifdef DEBUG_GDB
-            //~ printf("                Max of breakpoint\n");
-//~ #endif
-            //~ strcpy (remcomOutBuffer, "E22");
-            //~ return;
-        //~ }
-        //~ if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
-        //~ { 
-//~ #ifdef DEBUG_GDB
-            //~ printf("Load new_pid\n");
-//~ #endif
-            //~ switch_part_id(old_pid, new_pid);
-        //~ }
-        //~ if (hex2mem(breakpoints[i].Instr, (char *)addr, length)) {
-            //~ strcpy(remcomOutBuffer, "OK");
-//~ #ifdef DEBUG_GDB
-            //~ printf("hex2mem: addr = 0x%x; instr = 0x%lx", addr, *(uint32_t *)addr);
-//~ #endif
-        //~ } else {
-//~ #ifdef DEBUG_GDB
-            //~ printf("                Error in add breakpoint\n");
-//~ #endif
-            //~ strcpy (remcomOutBuffer, "E22");
-            //~ switch_part_id(new_pid, old_pid);    
-            //~ return;
-        //~ }
-        //~ if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
-            //~ switch_part_id(new_pid, old_pid);
-        //~ return;
-    //~ }
-    
     if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
     { 
 #ifdef DEBUG_GDB
@@ -1118,6 +1033,7 @@ void clear_breakpoints(){
 void
 handle_exception (int exceptionVector, struct regs * ea)
 {
+    Connect_to_new_inferior = -1;
     /*Add regs*/
     uint32_t old_entryS = pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp;
     pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = (uint32_t) ea;
@@ -1481,7 +1397,6 @@ handle_exception (int exceptionVector, struct regs * ea)
                 *ptr++ = 'm';
                 int previous_thread = number_of_thread;
 #ifdef MULTIPROCESS
-                ////TODO: Change number of process
                 int part_of_this_thread = give_part_num_of_thread(previous_thread) + 1;
                 *ptr++ = 'p';
                 ptr = mem2hex( (char *)(&part_of_this_thread), ptr, 4); 
@@ -1514,7 +1429,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                 
                 //FIXME
                 ptr = mem2hex( (char *) &("P"), ptr, 1);
-                int pid = give_part_num_of_thread(thread_num);
+                int pid = give_part_num_of_thread(thread_num + 1);
                 if (pid == 0) ptr = mem2hex( (char *) &("0 "), ptr, 2);
                 if (pid == 1) ptr = mem2hex( (char *) &("1 "), ptr, 2);
                 if (pid == 2) ptr = mem2hex( (char *) &("2 "), ptr, 2);
