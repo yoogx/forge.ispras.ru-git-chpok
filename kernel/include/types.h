@@ -67,6 +67,8 @@ static inline pok_bool_t pok_time_is_infinity(pok_time_t t)
     return (t<0);
 }
 
+typedef int64_t pok_time_t;
+
 typedef enum {
     POK_QUEUEING_DISCIPLINE_FIFO,
     POK_QUEUEING_DISCIPLINE_PRIORITY,

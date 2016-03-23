@@ -39,6 +39,7 @@
 
 #include <types.h>
 #include <errno.h>
+#include <common.h>
 
 typedef enum
 {
@@ -55,7 +56,7 @@ typedef enum
    POK_SYSCALL_THREAD_STOPSELF                     =  57,
    POK_SYSCALL_THREAD_ID                           =  58,
    POK_SYSCALL_THREAD_STATUS                       =  59,
-   POK_SYSCALL_THREAD_SET_PRIORITY								 =  60,
+   POK_SYSCALL_THREAD_SET_PRIORITY					   =  60,
    POK_SYSCALL_THREAD_RESUME                       =  61,
    POK_SYSCALL_THREAD_SUSPEND_TARGET               =  62,
    //POK_SYSCALL_THREAD_DEADLINE                     =  63,
@@ -63,6 +64,7 @@ typedef enum
    POK_SYSCALL_THREAD_DELAYED_START                =  65,
    POK_SYSCALL_THREAD_YIELD                        =  66,
    POK_SYSCALL_THREAD_REPLENISH                    =  67,
+   POK_SYSCALL_THREAD_FIND                         =  68,
 #ifdef POK_NEEDS_PORTS_SAMPLING
    POK_SYSCALL_MIDDLEWARE_SAMPLING_ID              = 101,
    POK_SYSCALL_MIDDLEWARE_SAMPLING_READ            = 102,
@@ -199,18 +201,11 @@ pok_ret_t pok_syscall_init();
 
 #include <core/port.h>
 
-/* 
- * Packaging for arguments passed to syscall
- * POK_SYSCALL_MIDDLEWARE_QUEUEING_CREATE.
- */
-typedef struct
-{
-    const char * __user name;
-    pok_port_size_t message_size;
-    pok_port_size_t max_nb_message;
-    pok_port_direction_t direction;
-    pok_queuing_discipline_t discipline;
-} pok_port_queueing_create_arg_t;
+#include <core/thread.h>
+#include <core/partition_arinc.h>
+#include <core/error_arinc.h>
+#include <core/intra_arinc.h>
 
+#include <syscall_map_arinc.h>
 
 #endif /* __POK_SYSCALL_H__ */

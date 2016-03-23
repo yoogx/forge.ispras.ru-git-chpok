@@ -525,11 +525,12 @@ def write_configuration(conf, kernel_dir, partition_dirs):
 
     # caller may pass more directories than required
     # we just ignore them
-    assert len(partition_dirs) >= len(conf.partitions)
-
-    for i in range(len(conf.partitions)):
-        with open(os.path.join(partition_dirs[i], "deployment.c"), "w") as f:
-            write_partition_deployment_c(conf, i, f)
+    #assert len(partition_dirs) >= len(conf.partitions)
+    #
+    #for i in range(len(conf.partitions)):
+    #    with open(os.path.join(partition_dirs[i], "deployment.c"), "w") as f:
+    #        write_partition_deployment_c(conf, i, f)
+    pass
 
 def write_kernel_deployment_c(conf, f):
     p = functools.partial(print, file=f)

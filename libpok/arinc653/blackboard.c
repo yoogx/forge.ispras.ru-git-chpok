@@ -99,14 +99,15 @@ void READ_BLACKBOARD (
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
    pok_ret_t core_ret;
-   pok_port_size_t len = 0;
+   pok_message_size_t len = 0;
+   pok_time_t ms = TIME_OUT < 0 ? INFINITE_TIME_VALUE : arinc_time_to_ms(TIME_OUT);
 
    if (BLACKBOARD_ID == 0) {
       core_ret = POK_ERRNO_EINVAL;
    } else {
-       core_ret = pok_blackboard_read (BLACKBOARD_ID - 1, TIME_OUT, MESSAGE_ADDR, &len);
+       core_ret = pok_blackboard_read (BLACKBOARD_ID - 1, &ms, MESSAGE_ADDR, &len);
    }
-    
+
    *LENGTH = len;
 
    switch (core_ret) {

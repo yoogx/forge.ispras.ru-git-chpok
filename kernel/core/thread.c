@@ -231,6 +231,7 @@ pok_ret_t pok_thread_yield (void)
     return POK_ERRNO_OK;
 }
 
+
 // Called with local preemption disabled
 static pok_ret_t thread_delayed_start_internal (pok_thread_t* thread,
 												pok_time_t delay)
@@ -338,14 +339,20 @@ pok_ret_t pok_thread_get_status (pok_thread_id_t id, pok_thread_status_t* __user
 
     pok_preemption_local_disable();
 
-	__put_user_f(status, suspended, t->suspended);
 	__put_user_f(status, current_priority, t->priority);
 
-	if(t->state == POK_STATE_RUNNABLE && t->suspended)
-		__put_user_f(status, state, POK_STATE_WAITING);
-	else
-		__put_user_f(status, state, t->state);
-	
+	if(t->state == POK_STATE_RUNNABLE)
+    {
+        if(t->suspended)
+            __put_user_f(status, state, POK_STATE_WAITING);
+        else if(current_partition_arinc->thread_current == t)
+            __put_user_f(status, state, POK_STATE_RUNNING);
+        else
+            __put_user_f(status, state, t->state);
+	}
+    else
+        __put_user_f(status, state, t->state);
+    
 	if(pok_time_is_infinity(t->time_capacity))
 		__put_user_f(status, deadline_time, POK_TIME_INFINITY);
 	else
@@ -410,7 +417,7 @@ out:
     return ret;
 }
 
-pok_ret_t pok_thread_suspend(pok_thread_id_t id)
+pok_ret_t pok_thread_suspend_target(pok_thread_id_t id)
 {
     pok_ret_t ret;
 
@@ -448,11 +455,15 @@ out:
     return ret;
 }
 
-pok_ret_t pok_thread_suspend_self(int64_t ms) // Time should be converted? How to pass 64bit through system call?
+pok_ret_t pok_thread_suspend(const pok_time_t* __user time)
 {
     pok_thread_t *t = current_thread;
     
-	// although periodic process can never be suspended anyway,
+	if(!check_user_read(time)) return POK_ERRNO_EFAULT;
+    
+    pok_time_t kernel_time = __get_user(time);
+    
+    // although periodic process can never be suspended anyway,
 	// ARINC-653 requires different error code
     if (pok_thread_is_periodic(t)) return POK_ERRNO_MODE;
 
@@ -460,12 +471,12 @@ pok_ret_t pok_thread_suspend_self(int64_t ms) // Time should be converted? How t
     
     pok_preemption_local_disable();
 
-	if(ms == 0) goto out; // Nothing to do with 0 timeout.
+	if(kernel_time == 0) goto out; // Nothing to do with 0 timeout.
 
     thread_suspend(t);
     
-	if(!pok_time_is_infinity(ms))
-		thread_delay_event(t, POK_GETTICK() + ms, &thread_resume);
+	if(!pok_time_is_infinity(kernel_time))
+		thread_delay_event(t, POK_GETTICK() + kernel_time, &thread_resume);
 
 out:
 	pok_preemption_local_enable();
@@ -473,7 +484,7 @@ out:
     return POK_ERRNO_OK;
 }
 
-pok_ret_t pok_thread_stop(pok_thread_id_t id)
+pok_ret_t pok_thread_stop_target(pok_thread_id_t id)
 {
     pok_ret_t ret = POK_ERRNO_PARAM;
 
@@ -498,7 +509,7 @@ out:
     return ret;
 }
 
-pok_ret_t pok_thread_stop_self(void)
+pok_ret_t pok_thread_stop(void)
 {
     pok_preemption_local_disable();
 	thread_stop(current_thread);

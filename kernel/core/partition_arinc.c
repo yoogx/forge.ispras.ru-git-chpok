@@ -363,45 +363,48 @@ pok_ret_t pok_current_partition_get_id(pok_partition_id_t *id)
     return POK_ERRNO_OK;
 }
 
-pok_ret_t pok_current_partition_get_period (uint64_t *period)
+pok_ret_t pok_current_partition_get_period (pok_time_t* __user period)
 {
-    *period = current_partition_arinc->period;
+    if(!check_user_write(period)) return POK_ERRNO_EFAULT;
+    
+    __put_user(period, current_partition_arinc->period);
     return POK_ERRNO_OK;
 }
 
-pok_ret_t pok_current_partition_get_duration (uint64_t *duration)
+pok_ret_t pok_current_partition_get_duration (pok_time_t* __user duration)
 {
-    *duration = current_partition_arinc->duration;
-    return POK_ERRNO_OK;
-}
-
-pok_ret_t pok_current_partition_get_operating_mode (pok_partition_mode_t *op_mode)
-{
-	// Looks like disabling preemption is not needed here. But do that for safety.
-	pok_preemption_local_disable();
-    *op_mode = current_partition_arinc->mode;
-    pok_preemption_local_enable();
+	if(!check_user_write(duration)) return POK_ERRNO_EFAULT;
+    
+    __put_user(duration, current_partition_arinc->duration);
 
     return POK_ERRNO_OK;
 }
 
-pok_ret_t pok_current_partition_get_lock_level (uint32_t *lock_level)
+pok_ret_t pok_current_partition_get_operating_mode (pok_partition_mode_t* __user op_mode)
 {
-	// Looks like disabling preemption is not needed here. But do that for safety.
-	pok_preemption_local_disable();
-    *lock_level = current_partition_arinc->lock_level;
-    pok_preemption_local_enable();
+    if(!check_user_write(op_mode)) return POK_ERRNO_EFAULT;
+    
+    __put_user(op_mode, current_partition_arinc->mode);
+
+    return POK_ERRNO_OK;
+}
+
+pok_ret_t pok_current_partition_get_lock_level (int32_t* __user lock_level)
+{
+	if(!check_user_write(lock_level)) return POK_ERRNO_EFAULT;
+
+    __put_user(lock_level, current_partition_arinc->lock_level);
     
     return POK_ERRNO_OK;
 }
 
 pok_ret_t pok_current_partition_get_start_condition (pok_start_condition_t *start_condition)
 {
-	// Looks like disabling preemption is not needed here. But do that for safety.
-	pok_preemption_local_disable();
-    *start_condition = current_partition_arinc->base_part.start_condition;
-    pok_preemption_local_enable();
+    if(!check_user_write(start_condition)) return POK_ERRNO_EFAULT;
     
+    __put_user(start_condition,
+		current_partition_arinc->base_part.start_condition);
+
     return POK_ERRNO_OK;
 }
 
@@ -417,7 +420,7 @@ static pok_bool_t is_lock_level_blocked(void)
       part->thread_current == part->thread_error;
 }
 
-pok_ret_t pok_current_partition_inc_lock_level(uint32_t * __user lock_level)
+pok_ret_t pok_current_partition_inc_lock_level(int32_t * __user lock_level)
 {
     if(!is_lock_level_blocked())
 		return POK_ERRNO_PARTITION_MODE;
@@ -437,7 +440,7 @@ pok_ret_t pok_current_partition_inc_lock_level(uint32_t * __user lock_level)
 	return POK_ERRNO_OK;
 }
 
-pok_ret_t pok_current_partition_dec_lock_level(uint32_t * __user lock_level)
+pok_ret_t pok_current_partition_dec_lock_level(int32_t * __user lock_level)
 {
     if(is_lock_level_blocked())
 		return POK_ERRNO_PARTITION_MODE;

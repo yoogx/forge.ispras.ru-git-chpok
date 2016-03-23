@@ -283,19 +283,19 @@ pok_ret_t pok_partition_set_mode_current (const pok_partition_mode_t mode);
 
 pok_ret_t pok_current_partition_get_id (pok_partition_id_t *id);
 
-pok_ret_t pok_current_partition_get_period (uint64_t *period);
+pok_ret_t pok_current_partition_get_period (pok_time_t* __user period);
 
-pok_ret_t pok_current_partition_get_duration (uint64_t *duration);
+pok_ret_t pok_current_partition_get_duration (pok_time_t* __user duration);
 
 pok_ret_t pok_current_partition_get_operating_mode (pok_partition_mode_t *op_mode);
 
-pok_ret_t pok_current_partition_get_lock_level (uint32_t *lock_level);
+pok_ret_t pok_current_partition_get_lock_level (int32_t *lock_level);
 
 pok_ret_t pok_current_partition_get_start_condition (pok_start_condition_t *start_condition);
 
-pok_ret_t pok_current_partition_inc_lock_level(uint32_t *lock_level);
+pok_ret_t pok_current_partition_inc_lock_level(int32_t *lock_level);
 
-pok_ret_t pok_current_partition_dec_lock_level(uint32_t *lock_level);
+pok_ret_t pok_current_partition_dec_lock_level(int32_t *lock_level);
 
 // utility macro-like functions
 

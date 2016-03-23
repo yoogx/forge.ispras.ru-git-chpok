@@ -101,6 +101,19 @@ typedef struct
    uint8_t              waiting_processes;
 } pok_port_queuing_status_t;
 
+/* 
+ * Packaging for arguments passed to syscall
+ * POK_SYSCALL_MIDDLEWARE_QUEUEING_CREATE.
+ */
+typedef struct
+{
+    pok_port_size_t message_size;
+    pok_port_size_t max_nb_message;
+    pok_port_direction_t direction;
+    pok_queuing_discipline_t discipline;
+} pok_port_queuing_create_arg_t;
+
+
 // Initialize queuing port.
 void pok_port_queuing_init(pok_port_queuing_t* port_queuing);
 
@@ -113,10 +126,16 @@ pok_ret_t pok_port_queuing_create(
     pok_queuing_discipline_t        discipline,
     pok_port_id_t* __user           id);
 
+
+pok_ret_t pok_port_queuing_create_packed(
+    const char* __user              name,
+    const pok_port_queuing_create_arg_t* __user arg,
+    pok_port_id_t* __user           id);
+    
+
 pok_ret_t pok_port_queuing_receive(
     pok_port_id_t               id, 
     const pok_time_t* __user    timeout, 
-    pok_port_size_t             maxlen, 
     void* __user                data, 
     pok_port_size_t* __user     len);
 
@@ -125,7 +144,7 @@ pok_ret_t pok_port_queuing_send(
     pok_port_id_t               id, 
     const void* __user          data,
     pok_port_size_t             len,
-    const pok_time_t __user    timeout);
+    const pok_time_t* __user    timeout);
 
 
 pok_ret_t pok_port_queuing_status(
@@ -207,7 +226,7 @@ typedef struct
 {
     pok_port_size_t         size;
     pok_port_direction_t    direction;
-    uint64_t                refresh;
+    pok_time_t              refresh;
     bool_t                  validity;
 } pok_port_sampling_status_t;
 
@@ -216,34 +235,34 @@ void pok_port_sampling_init(pok_port_sampling_t* port_sampling);
 
 
 pok_ret_t pok_port_sampling_create(
-    const char*             name,
-    pok_port_size_t         size,
-    pok_port_direction_t    direction,
-    uint64_t                refresh,
-    pok_port_id_t           *id
+    const char* __user          name,
+    pok_port_size_t             size,
+    pok_port_direction_t        direction,
+    const pok_time_t* __user    refresh,
+    pok_port_id_t               *id
 );
 
 pok_ret_t pok_port_sampling_write(
     pok_port_id_t           id,
-    const void              *data,
+    const void __user       *data,
     pok_port_size_t         len
 );
 
 pok_ret_t pok_port_sampling_read(
     pok_port_id_t           id,
-    void                    *data,
-    pok_port_size_t         *len,
-    bool_t                  *valid
+    void __user             *data,
+    pok_port_size_t __user  *len,
+    bool_t __user           *valid
 );
 
 pok_ret_t pok_port_sampling_id(
-    const char              *name,
+    const char __user       *name,
     pok_port_id_t           *id
 );
 
 pok_ret_t pok_port_sampling_status (
-    const pok_port_id_t         id,
-    pok_port_sampling_status_t  *status
+    pok_port_id_t                      id,
+    pok_port_sampling_status_t __user   *status
 );
 
 

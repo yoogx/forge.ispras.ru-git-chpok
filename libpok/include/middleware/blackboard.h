@@ -38,7 +38,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_MIDDLEWARE
 #ifdef POK_NEEDS_BLACKBOARDS
 
 // must be at least MAX_NAME_LENGTH of ARINC653
@@ -50,49 +49,16 @@
 
 typedef struct
 {
-   pok_size_t          size;
-   pok_size_t          current_message_size;
-   pok_bool_t          empty;
-   pok_range_t         waiting_processes;
-   pok_size_t          index;
-   pok_bool_t          ready;
-   pok_event_id_t      lock;
-   char                name[POK_BLACKBOARD_MAX_NAME_LENGTH];
-}pok_blackboard_t;
-
-typedef struct
-{
    pok_port_size_t      msg_size;
    pok_bool_t           empty;
    pok_range_t          waiting_processes;
 }pok_blackboard_status_t;
 
 
-pok_ret_t pok_blackboard_create (char*                   name,
-                                 const pok_size_t        msg_size,
-                                 pok_blackboard_id_t*    id);
-
-pok_ret_t pok_blackboard_read (const pok_blackboard_id_t      id,
-                               const int64_t                  timeout,
-                               void*                          data,
-                               pok_port_size_t*               len);
-
-pok_ret_t pok_blackboard_display (const pok_blackboard_id_t       id,
-                                  const void*                     message,
-                                  const pok_port_size_t           len);
-
-pok_ret_t pok_blackboard_clear (const pok_blackboard_id_t               id);
-
-pok_ret_t pok_blackboard_id     (char*                            name,
-                                 pok_blackboard_id_t*             id);
-
-pok_ret_t pok_blackboard_status (const pok_blackboard_id_t        id,
-                                 pok_blackboard_status_t*         status);
-
-extern pok_blackboard_t pok_blackboards[];
-extern char pok_blackboards_data[]; 
+// All blackboard-related functions are already defined as syscalls.
+#include <core/syscall.h>
 
 #endif
-#endif
+
 #endif
 

@@ -50,6 +50,8 @@
 #include <core/port.h>
 #include <uaccess.h>
 
+#define SYSCALL_ENTRY(id) case id: return pok_syscall_wrapper_ ## id(args); break;
+
 /**
  * \file kernel/core/syscalls.c
  * \brief This file implement generic system calls
@@ -107,206 +109,72 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
          break;
 #endif
 
-      case POK_SYSCALL_THREAD_CREATE:
-         return pok_thread_create(  (pok_thread_id_t* __user)args->arg1,
-                                    (const pok_thread_attr_t* __user)args->arg2);
-         break;
-
+      SYSCALL_ENTRY(POK_SYSCALL_THREAD_CREATE)
+      
 #ifdef POK_NEEDS_THREAD_SLEEP
-      case POK_SYSCALL_THREAD_SLEEP:
-         return pok_thread_sleep((const pok_time_t* __user)args->arg1);
-         break;
+      SYSCALL_ENTRY(POK_SYSCALL_THREAD_SLEEP)
 #endif
 
 #ifdef POK_NEEDS_THREAD_SLEEP_UNTIL
-      case POK_SYSCALL_THREAD_SLEEP_UNTIL:
-         return pok_thread_sleep_until ((const pok_time_t* __user)args->arg1);
-         break;
+      SYSCALL_ENTRY(POK_SYSCALL_THREAD_SLEEP_UNTIL)
 #endif
 
-      case POK_SYSCALL_THREAD_PERIOD:
-         return pok_sched_end_period ();
-         break;
+      SYSCALL_ENTRY(POK_SYSCALL_THREAD_PERIOD)
 
 #if defined (POK_NEEDS_THREAD_SUSPEND) || defined (POK_NEEDS_ERROR_HANDLING)
-      case POK_SYSCALL_THREAD_SUSPEND:
-         return pok_thread_suspend_self((int32_t) args->arg1);
-         break;
+      SYSCALL_ENTRY(POK_SYSCALL_THREAD_SUSPEND)
 #endif
 
 #ifdef POK_NEEDS_THREAD_ID
-      case POK_SYSCALL_THREAD_ID:
-         return pok_sched_get_current((pok_thread_id_t* __user) (args->arg1));
-         break;
+      SYSCALL_ENTRY(POK_SYSCALL_THREAD_ID)
 #endif
-   case POK_SYSCALL_THREAD_STATUS:
-	      return pok_thread_get_status (args->arg1, (pok_thread_status_t*) (args->arg2 + infos->base_addr));
-         break;
-
-   case POK_SYSCALL_THREAD_DELAYED_START:
-     return pok_thread_delayed_start ((pok_thread_id_t) args->arg1, (const pok_time_t* __user) args->arg2);
-     break;
-   case POK_SYSCALL_THREAD_SET_PRIORITY:
-	   return pok_thread_set_priority (args->arg1, args->arg2);
-	   break;
-
-   case POK_SYSCALL_THREAD_RESUME:
-	   return pok_thread_resume (args->arg1);
-	   break;
-   case POK_SYSCALL_THREAD_SUSPEND_TARGET:
-	   return pok_thread_suspend ((pok_thread_id_t) args->arg1);
-	   break;
-   case POK_SYSCALL_THREAD_YIELD:
-      return pok_thread_yield();
-      break;
-   case POK_SYSCALL_THREAD_REPLENISH:
-           return pok_sched_replenish((const pok_time_t* __user) args->arg1);
-
-   case POK_SYSCALL_THREAD_STOP:
-           return pok_thread_stop((pok_thread_id_t) args->arg1);
-
-   case POK_SYSCALL_THREAD_STOPSELF:
-           return pok_thread_stop_self();
+   SYSCALL_ENTRY(POK_SYSCALL_THREAD_STATUS)
+   SYSCALL_ENTRY(POK_SYSCALL_THREAD_DELAYED_START)
+   SYSCALL_ENTRY(POK_SYSCALL_THREAD_SET_PRIORITY)
+   SYSCALL_ENTRY(POK_SYSCALL_THREAD_RESUME)
+   SYSCALL_ENTRY(POK_SYSCALL_THREAD_SUSPEND_TARGET)
+   SYSCALL_ENTRY(POK_SYSCALL_THREAD_YIELD)
+   SYSCALL_ENTRY(POK_SYSCALL_THREAD_REPLENISH)
+   SYSCALL_ENTRY(POK_SYSCALL_THREAD_STOP)
+   SYSCALL_ENTRY(POK_SYSCALL_THREAD_STOPSELF)
+   
+   SYSCALL_ENTRY(POK_SYSCALL_THREAD_FIND)
 
 #ifdef POK_NEEDS_PARTITIONS
-      case POK_SYSCALL_PARTITION_SET_MODE:
-         return pok_partition_set_mode_current ((pok_partition_mode_t)args->arg1);
-         break;
-      case POK_SYSCALL_PARTITION_GET_ID:
-	return pok_current_partition_get_id ((pok_partition_id_t *)(args->arg1 + infos->base_addr));
-         break;
-      case POK_SYSCALL_PARTITION_GET_PERIOD:
-	return pok_current_partition_get_period ((uint64_t*)(args->arg1 + infos->base_addr));
-	 break;
-      case POK_SYSCALL_PARTITION_GET_DURATION:
-	return pok_current_partition_get_duration ((uint64_t*)(args->arg1 + infos->base_addr));
-	 break;
-      case POK_SYSCALL_PARTITION_GET_LOCK_LEVEL:
-	return pok_current_partition_get_lock_level ((uint32_t*)(args->arg1 + infos->base_addr));
-         break;
-      case POK_SYSCALL_PARTITION_GET_OPERATING_MODE:
-	return pok_current_partition_get_operating_mode ((pok_partition_mode_t*)(args->arg1 + infos->base_addr));
-         break;
-      case POK_SYSCALL_PARTITION_GET_START_CONDITION:
-	return pok_current_partition_get_start_condition ((pok_start_condition_t*)(args->arg1 + infos->base_addr));
-         break;
-      case POK_SYSCALL_PARTITION_INC_LOCK_LEVEL:
-        return pok_current_partition_inc_lock_level((uint32_t*)(args->arg1 + infos->base_addr));
-         break;
-      case POK_SYSCALL_PARTITION_DEC_LOCK_LEVEL:
-        return pok_current_partition_dec_lock_level((uint32_t*)(args->arg1 + infos->base_addr));
-         break;
+   SYSCALL_ENTRY(POK_SYSCALL_PARTITION_SET_MODE)
+   SYSCALL_ENTRY(POK_SYSCALL_PARTITION_GET_ID)
+   SYSCALL_ENTRY(POK_SYSCALL_PARTITION_GET_PERIOD)
+   SYSCALL_ENTRY(POK_SYSCALL_PARTITION_GET_DURATION)
+   SYSCALL_ENTRY(POK_SYSCALL_PARTITION_GET_LOCK_LEVEL)
+	SYSCALL_ENTRY(POK_SYSCALL_PARTITION_GET_OPERATING_MODE)
+   SYSCALL_ENTRY(POK_SYSCALL_PARTITION_GET_START_CONDITION)
+   SYSCALL_ENTRY(POK_SYSCALL_PARTITION_INC_LOCK_LEVEL)
+   SYSCALL_ENTRY(POK_SYSCALL_PARTITION_DEC_LOCK_LEVEL)
 #endif
 
 #ifdef POK_NEEDS_ERROR_HANDLING
-      case POK_SYSCALL_ERROR_HANDLER_CREATE:
-         return pok_error_thread_create (args->arg1 , (void*) (args->arg2));
-         break;
-
-      case POK_SYSCALL_ERROR_RAISE_APPLICATION_ERROR:
-         //POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg1 + infos->base_addr)
-         return pok_error_raise_application_error ((const char* __user) args->arg1 , args->arg2);
-         break;
-
-      case POK_SYSCALL_ERROR_GET:
-         return pok_error_get ((pok_error_status_t* __user)args->arg1);
-         break;
-
+   SYSCALL_ENTRY(POK_SYSCALL_ERROR_HANDLER_CREATE)
+   SYSCALL_ENTRY(POK_SYSCALL_ERROR_RAISE_APPLICATION_ERROR)
+   SYSCALL_ENTRY(POK_SYSCALL_ERROR_GET)
+//   SYSCALL_ENTRY(POK_SYSCALL_ERROR_IS_HANDLER)
 #endif
 
-         /* Middleware syscalls */
+   /* Middleware syscalls */
 #ifdef POK_NEEDS_PORTS_SAMPLING
-      case POK_SYSCALL_MIDDLEWARE_SAMPLING_CREATE: 
-         //POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg5 + infos->base_addr)
-         //POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg1 + infos->base_addr)
-         return pok_port_sampling_create  ((const char* __user) args->arg1,
-                                          (pok_port_size_t) args->arg2,
-                                          (pok_port_direction_t) args->arg3,
-                                          (uint64_t) args->arg4,
-                                          (pok_port_id_t* __user) args->arg5);
-         break;
-
-      case POK_SYSCALL_MIDDLEWARE_SAMPLING_WRITE:
-         //POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg2 + infos->base_addr)
-
-         return pok_port_sampling_write   ((pok_port_id_t) args->arg1,
-                                          (const void* __user) args->arg2,
-                                          (uint16_t) args->arg3);
-         break;
-
-      case POK_SYSCALL_MIDDLEWARE_SAMPLING_READ:
-         //POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg2 + infos->base_addr)
-         //POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg4 + infos->base_addr)
-         return pok_port_sampling_read ((const pok_port_id_t) args->arg1,
-                                       (void* __user) args->arg2,
-                                       (pok_port_size_t* __user) args->arg3,
-                                       (bool_t* __user) args->arg4);
-         break;
-
-      case POK_SYSCALL_MIDDLEWARE_SAMPLING_ID:
-         //POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg1 + infos->base_addr)
-         //POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg2 + infos->base_addr)
-         return pok_port_sampling_id   ((const char* __user) args->arg1,
-                                       (pok_port_id_t* __user) args->arg2);
-         break;
-          
-      case POK_SYSCALL_MIDDLEWARE_SAMPLING_STATUS:
-         //POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg2+infos->base_addr)
-         return pok_port_sampling_status ((pok_port_id_t) args->arg1,
-                                          (pok_port_sampling_status_t*) args->arg2);
-         break;
+   SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_SAMPLING_CREATE)
+   SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_SAMPLING_WRITE)
+   SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_SAMPLING_READ)
+   SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_SAMPLING_ID)
+   SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_SAMPLING_STATUS)
 #endif /* POK_NEEDS_PORTS_SAMPLING */
 
 
 #ifdef POK_NEEDS_PORTS_QUEUEING
-      case POK_SYSCALL_MIDDLEWARE_QUEUEING_CREATE: 
-         //POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg1 + infos->base_addr)
-         //POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg2 + infos->base_addr)
-         {
-            const pok_port_queueing_create_arg_t * __user pack = (const pok_port_queueing_create_arg_t* __user) args->arg1;
-            if(!check_access_read(pack, sizeof(*pack)))
-            {
-               return POK_ERRNO_EFAULT;
-            }
-
-            return pok_port_queuing_create(
-               __get_user_f(pack, name),
-               __get_user_f(pack, message_size),
-               __get_user_f(pack, max_nb_message),
-               __get_user_f(pack, direction),
-               __get_user_f(pack, discipline),
-               (pok_port_id_t*) args->arg2
-            );
-         }
-         break;
-
-      case POK_SYSCALL_MIDDLEWARE_QUEUEING_SEND:
-         return pok_port_queuing_send ((pok_port_id_t)                     args->arg1,
-                                       (const void* __user)                args->arg2,
-                                       (uint16_t)                          args->arg3,
-                                       (int64_t)                           args->arg4);
-         break;
-
-      case POK_SYSCALL_MIDDLEWARE_QUEUEING_RECEIVE:
-         return pok_port_queuing_receive ((pok_port_id_t)           args->arg1, 
-                                          (const pok_time_t* __user) args->arg2,
-                                          (pok_port_size_t)          args->arg3,
-                                          (void* __user)             args->arg4, 
-                                          (pok_port_size_t* __user)  args->arg5);
-         break;
-
-      case POK_SYSCALL_MIDDLEWARE_QUEUEING_ID:
-         //POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg1 + infos->base_addr)
-         //POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg2 + infos->base_addr)
-         return pok_port_queuing_id ((char*)          args->arg1,
-                                    (pok_port_id_t*)   args->arg2);
-         break;
-
-      case POK_SYSCALL_MIDDLEWARE_QUEUEING_STATUS:
-         //POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg2 + infos->base_addr)
-         return pok_port_queuing_status     ((pok_port_id_t)                        args->arg1,
-                                             (pok_port_queuing_status_t* __user)    args->arg2);
-         break;
+   SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_QUEUEING_CREATE)
+   SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_QUEUEING_SEND)
+   SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_QUEUEING_RECEIVE)
+   SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_QUEUEING_ID)
+   SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_QUEUEING_STATUS)
 #endif /* POK_NEEDS_PORTS_QUEUEING */
 
 #ifdef POK_NEEDS_IO

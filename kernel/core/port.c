@@ -162,10 +162,27 @@ pok_ret_t pok_port_queuing_create(
     return POK_ERRNO_OK;
 }
 
+pok_ret_t pok_port_queuing_create_packed(
+    const char* __user              name,
+    const pok_port_queuing_create_arg_t* __user arg,
+    pok_port_id_t* __user           id)
+{
+    if(!check_user_read(arg)) return POK_ERRNO_EFAULT;
+
+    return pok_port_queuing_create(
+       name,
+       __get_user_f(arg, message_size),
+       __get_user_f(arg, max_nb_message),
+       __get_user_f(arg, direction),
+       __get_user_f(arg, discipline),
+       id);
+
+}
+
+
 pok_ret_t pok_port_queuing_receive(
     pok_port_id_t               id, 
     const pok_time_t* __user    timeout, 
-    pok_port_size_t             maxlen, 
     void* __user                data, 
     pok_port_size_t* __user     len)
 {
@@ -269,10 +286,10 @@ err:
 
 
 pok_ret_t pok_port_queuing_send(
-    pok_port_id_t       id, 
-    const void* __user  data,
-    pok_port_size_t     len,
-    pok_time_t          timeout)
+    pok_port_id_t               id, 
+    const void* __user          data,
+    pok_port_size_t             len,
+    const pok_time_t* __user    timeout)
 {
     pok_port_queuing_t* port_queuing;
     pok_ret_t ret;
@@ -295,6 +312,9 @@ pok_ret_t pok_port_queuing_send(
         return POK_ERRNO_EINVAL;
     
     if(!check_access_read(data, len)) return POK_ERRNO_EFAULT;
+    if(!check_user_read(timeout)) return POK_ERRNO_EFAULT;
+    
+    pok_time_t kernel_timeout = __get_user(timeout);
     
     pok_preemption_local_disable();
     
@@ -311,7 +331,7 @@ pok_ret_t pok_port_queuing_send(
      * if channel is currently full. Otherwise waiting is allowed.
      */
 
-    if(timeout == 0)
+    if(kernel_timeout == 0)
         ret = POK_ERRNO_EMPTY;
     else if(!thread_is_waiting_allowed())
         ret = POK_ERRNO_MODE;
@@ -336,7 +356,7 @@ pok_ret_t pok_port_queuing_send(
         pok_thread_wq_add_common(&port_queuing->waiters, t,
             port_queuing->discipline);
         
-        thread_wait_common(t, timeout);
+        thread_wait_common(t, kernel_timeout);
         
         goto out;
     }
@@ -478,11 +498,11 @@ void pok_port_sampling_init(pok_port_sampling_t* port_sampling)
 
 
 pok_ret_t pok_port_sampling_create(
-    const char*             name,
-    pok_port_size_t         size,
-    pok_port_direction_t    direction,
-    uint64_t                refresh,
-    pok_port_id_t           *id
+    const char* __user          name,
+    pok_port_size_t             size,
+    pok_port_direction_t        direction,
+    const pok_time_t* __user    refresh,
+    pok_port_id_t               *id
 )
 {
     pok_port_sampling_t* port_sampling;
@@ -493,8 +513,10 @@ pok_ret_t pok_port_sampling_create(
     if(!check_access_read(name, MAX_NAME_LENGTH))
         return POK_ERRNO_EFAULT;
     
-    if(!check_user_write(id))
-        return POK_ERRNO_EFAULT;
+    if(!check_user_read(refresh)) return POK_ERRNO_EFAULT;
+    if(!check_user_write(id)) return POK_ERRNO_EFAULT;
+    
+    pok_time_t kernel_refresh = __get_user(refresh);
     
     port_sampling = find_port_sampling(name);
     
@@ -507,14 +529,14 @@ pok_ret_t pok_port_sampling_create(
     if(direction != port_sampling->direction)
         return POK_ERRNO_EINVAL;
     // ARINC specifies to check refresh period for any direction.
-    if(pok_time_is_infinity(refresh) || refresh == 0)
+    if(pok_time_is_infinity(kernel_refresh) || kernel_refresh == 0)
         return POK_ERRNO_EINVAL;
 
 
     port_sampling->is_created = TRUE;
     
     // Useless for OUT port.
-    port_sampling->refresh_period = refresh;
+    port_sampling->refresh_period = kernel_refresh;
     port_sampling->last_message_validity = FALSE;
     
     __put_user(id, port_sampling - current_partition_arinc->ports_sampling);
@@ -524,7 +546,7 @@ pok_ret_t pok_port_sampling_create(
 
 pok_ret_t pok_port_sampling_write(
     pok_port_id_t           id,
-    const void              *data,
+    const void __user       *data,
     pok_port_size_t         len
 )
 {
@@ -561,9 +583,9 @@ pok_ret_t pok_port_sampling_write(
 
 pok_ret_t pok_port_sampling_read(
     pok_port_id_t           id,
-    void                    *data,
-    pok_port_size_t         *len,
-    bool_t                  *valid
+    void __user             *data,
+    pok_port_size_t __user  *len,
+    bool_t __user           *valid
 )
 {
     pok_port_sampling_t* port_sampling;
@@ -615,14 +637,14 @@ pok_ret_t pok_port_sampling_read(
 }
 
 pok_ret_t pok_port_sampling_id(
-    const char              *name,
-    pok_port_id_t           *id
+    const char __user      *name,
+    pok_port_id_t __user   *id
 )
 {
     pok_port_sampling_t* port_sampling;
     
-    if(!check_user_write(id))
-        return POK_ERRNO_EFAULT;
+    if(!check_access_read(name, MAX_NAME_LENGTH)) return POK_ERRNO_EFAULT;
+    if(!check_user_write(id)) return POK_ERRNO_EFAULT;
     
     port_sampling = find_port_sampling(name);
     
@@ -635,8 +657,8 @@ pok_ret_t pok_port_sampling_id(
 }
 
 pok_ret_t pok_port_sampling_status (
-    const pok_port_id_t         id,
-    pok_port_sampling_status_t  *status
+    const pok_port_id_t                 id,
+    pok_port_sampling_status_t __user   *status
 )
 {
     pok_port_sampling_t* port_sampling;
@@ -645,8 +667,7 @@ pok_ret_t pok_port_sampling_status (
     
     if(!port_sampling) return POK_ERRNO_PORT;
 
-    if(!check_access_write(status, sizeof(status)))
-        return POK_ERRNO_EFAULT;
+    if(!check_user_write(status)) return POK_ERRNO_EFAULT;
     
     pok_preemption_local_disable();
     

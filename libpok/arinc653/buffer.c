@@ -59,25 +59,16 @@ void CREATE_BUFFER (
    strtoupper(BUFFER_NAME);
    pok_ret_t                  core_ret;
    pok_buffer_id_t            core_id;
-   pok_queueing_discipline_t  core_discipline;
+   pok_queuing_discipline_t   core_discipline;
    
-#ifdef POK_NEEDS_PARTITIONS
-   pok_partition_mode_t operating_mode;
-   pok_current_partition_get_operating_mode(&operating_mode);
-   if (operating_mode == POK_PARTITION_MODE_NORMAL) {
-      *RETURN_CODE = INVALID_MODE;
-      return;
-   }
-#endif 
-
    switch (QUEUING_DISCIPLINE)
    {
      case PRIORITY:
-         core_discipline = POK_QUEUEING_DISCIPLINE_PRIORITY;
+         core_discipline = POK_QUEUING_DISCIPLINE_PRIORITY;
          break;
 
      case FIFO:
-         core_discipline = POK_QUEUEING_DISCIPLINE_FIFO;
+         core_discipline = POK_QUEUING_DISCIPLINE_FIFO;
          break;
 
       default:
@@ -125,7 +116,8 @@ void SEND_BUFFER (
    }
 
    pok_ret_t core_ret;
-   core_ret = pok_buffer_send (BUFFER_ID - 1, MESSAGE_ADDR, LENGTH, TIME_OUT);
+   pok_time_t ms = TIME_OUT < 0 ? INFINITE_TIME_VALUE : arinc_time_to_ms(TIME_OUT);
+   core_ret = pok_buffer_send (BUFFER_ID - 1, MESSAGE_ADDR, LENGTH, &ms);
 
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
@@ -150,9 +142,12 @@ void RECEIVE_BUFFER (
    }
 
    pok_ret_t core_ret;
-   pok_port_size_t core_size;
-   core_ret = pok_buffer_receive (BUFFER_ID - 1, TIME_OUT, MESSAGE_ADDR, &core_size);
+   pok_message_size_t core_size;
+   pok_time_t ms = TIME_OUT < 0 ? INFINITE_TIME_VALUE : arinc_time_to_ms(TIME_OUT);
+   
+   core_ret = pok_buffer_receive (BUFFER_ID - 1, &ms, MESSAGE_ADDR, &core_size);
    *LENGTH = (APEX_INTEGER) core_size;
+
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
       MAP_ERROR(POK_ERRNO_EINVAL, INVALID_PARAM);
@@ -170,7 +165,7 @@ void GET_BUFFER_ID (
 {
    strtoupper(BUFFER_NAME);
    pok_buffer_id_t id;
-   pok_ret_t core_ret = pok_buffer_id(BUFFER_NAME, &id);
+   pok_ret_t core_ret = pok_buffer_get_id(BUFFER_NAME, &id);
 
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);

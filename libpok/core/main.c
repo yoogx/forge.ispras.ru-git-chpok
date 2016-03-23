@@ -18,31 +18,10 @@
 
 #include <errno.h>
 
-#ifdef POK_NEEDS_BLACKBOARDS
-   #include <middleware/blackboard.h>
-   pok_ret_t pok_blackboard_init (void);
-#endif
-
-#ifdef POK_NEEDS_BUFFERS
-   #include <middleware/buffer.h>
-   pok_ret_t pok_buffer_init (void);
-#endif
-
 int main();
 
 int __pok_partition_start ()
 {
-#ifdef POK_NEEDS_MIDDLEWARE
-
-#ifdef POK_NEEDS_BLACKBOARDS
-   pok_blackboard_init ();
-#endif
-
-#ifdef POK_NEEDS_BUFFERS
-   pok_buffer_init ();
-#endif
-
-#endif /* POK_NEEDS_MIDDLEWARE */
    main(); /* main loop from user */
    return (0);
 }

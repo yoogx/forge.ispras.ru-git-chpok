@@ -59,20 +59,17 @@ void CREATE_QUEUING_PORT (
    strtoupper(QUEUING_PORT_NAME);
    pok_ret_t                        core_ret;
    pok_port_id_t                    core_id;
-   pok_port_queueing_create_arg_t   arg;
-
-   arg.name = QUEUING_PORT_NAME;
-   arg.message_size = MAX_MESSAGE_SIZE;
-   arg.max_nb_message = MAX_NB_MESSAGE;
+   pok_queuing_discipline_t         core_discipline;
+   pok_port_direction_t             core_direction;
 
    switch (QUEUING_DISCIPLINE)
    {
      case PRIORITY:
-         arg.discipline = POK_PORT_QUEUEING_DISCIPLINE_PRIORITY;
+         core_discipline = POK_QUEUING_DISCIPLINE_PRIORITY;
          break;
 
      case FIFO:
-         arg.discipline = POK_PORT_QUEUEING_DISCIPLINE_FIFO;
+         core_discipline = POK_QUEUING_DISCIPLINE_FIFO;
          break;
 
       default:
@@ -83,11 +80,11 @@ void CREATE_QUEUING_PORT (
    switch (PORT_DIRECTION)
    {
       case SOURCE:
-         arg.direction = POK_PORT_DIRECTION_OUT;
+         core_direction = POK_PORT_DIRECTION_OUT;
          break;
       
       case DESTINATION:
-         arg.direction = POK_PORT_DIRECTION_IN;
+         core_direction = POK_PORT_DIRECTION_IN;
          break;
 
       default:
@@ -95,7 +92,9 @@ void CREATE_QUEUING_PORT (
          return;
    }
 
-   core_ret = pok_port_queueing_create(&arg, &core_id);
+   core_ret = pok_port_queuing_create(QUEUING_PORT_NAME,
+      MAX_MESSAGE_SIZE, MAX_NB_MESSAGE, core_direction, core_discipline,
+      &core_id);
 
    *QUEUING_PORT_ID = core_id + 1;
 
@@ -121,13 +120,13 @@ void SEND_QUEUING_MESSAGE (
         return;
     }
 
-    int64_t delay_ms = arinc_time_to_ms(TIME_OUT);
+    pok_time_t delay_ms = arinc_time_to_ms(TIME_OUT);
     if (delay_ms > INT32_MAX) {
         *RETURN_CODE = INVALID_PARAM;
         return;
     }
 
-    core_ret = pok_port_queueing_send (QUEUING_PORT_ID - 1, MESSAGE_ADDR, LENGTH, delay_ms);
+    core_ret = pok_port_queuing_send (QUEUING_PORT_ID - 1, MESSAGE_ADDR, LENGTH, &delay_ms);
 
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
@@ -154,13 +153,13 @@ void RECEIVE_QUEUING_MESSAGE (
        return;
    }
    
-   int64_t delay_ms = arinc_time_to_ms(TIME_OUT);
+   pok_time_t delay_ms = arinc_time_to_ms(TIME_OUT);
    if (delay_ms > INT32_MAX) {
        *RETURN_CODE = INVALID_PARAM;
        return;
    }
 
-   core_ret = pok_port_queueing_receive (QUEUING_PORT_ID - 1, delay_ms, *LENGTH, MESSAGE_ADDR, (pok_port_size_t*)LENGTH);
+   core_ret = pok_port_queuing_receive (QUEUING_PORT_ID - 1, &delay_ms, MESSAGE_ADDR, (pok_port_size_t*)LENGTH);
 
    switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
@@ -181,7 +180,7 @@ void GET_QUEUING_PORT_ID (
     pok_ret_t core_ret;
     pok_port_id_t id;
 
-    core_ret = pok_port_queueing_id(QUEUING_PORT_NAME, &id);
+    core_ret = pok_port_queuing_id(QUEUING_PORT_NAME, &id);
 
     if (core_ret == POK_ERRNO_OK) {
         *QUEUING_PORT_ID = id + 1;
@@ -199,14 +198,14 @@ void GET_QUEUING_PORT_STATUS (
       /*out*/ RETURN_CODE_TYPE          *RETURN_CODE)
 {
   pok_ret_t core_ret;
-  pok_port_queueing_status_t status;
+  pok_port_queuing_status_t status;
   
     if (QUEUING_PORT_ID == 0) {
        *RETURN_CODE = INVALID_PARAM;
        return;
     }
 
-   core_ret = pok_port_queueing_status(QUEUING_PORT_ID - 1, &status);
+   core_ret = pok_port_queuing_status(QUEUING_PORT_ID - 1, &status);
    if (core_ret == POK_ERRNO_OK) {
        QUEUING_PORT_STATUS->NB_MESSAGE = status.nb_message;
        QUEUING_PORT_STATUS->MAX_NB_MESSAGE = status.max_nb_message;

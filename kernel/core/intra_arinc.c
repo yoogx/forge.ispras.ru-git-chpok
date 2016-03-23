@@ -674,7 +674,7 @@ pok_ret_t pok_semaphore_wait(pok_sem_id_t id,
     }
     else if(kernel_timeout == 0)
     {
-        ret = POK_ERRNO_UNAVAILABLE;
+        ret = POK_ERRNO_EMPTY;
     }
     else if(!thread_is_waiting_allowed())
     {
@@ -838,7 +838,7 @@ pok_ret_t pok_event_reset(pok_event_id_t id)
 }
 
 pok_ret_t pok_event_wait(pok_event_id_t id,
-    const pok_time_t* timeout)
+    const pok_time_t* __user timeout)
 {
     pok_ret_t ret;
     
