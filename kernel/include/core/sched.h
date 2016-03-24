@@ -146,8 +146,6 @@ void pok_sched_start(void);
  * Never returns.
  * 
  * Should be called from context, different from ones used by partitions.
- * 
- * Note, that partitions are not cleared here. You need to clear them before.
  */
 void pok_sched_restart(void);
 
@@ -187,5 +185,17 @@ pok_time_t get_next_periodic_processing_start(void);
 void pok_partition_jump_user(void* __user entry,
     void* __user stack_addr,
     struct dStack* stack_kernel);
+
+/*
+ * Return to the user space.
+ *
+ * Called from interrupt after partition has finished to process it.
+ *
+ * Just before jumping into user space local preemption is
+ * enabled. It is assumed that partition never trust to user in
+ * preemption-related things. Because of enabled local preemption
+ * all pending callbacks for partition are triggered.
+ */
+void pok_partition_return_user(void);
 
 #endif /* !__POK_SCHED_H__ */

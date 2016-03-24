@@ -97,7 +97,7 @@ static inline void thread_wait_common(pok_thread_t* t, pok_time_t duration)
 {
     assert(duration != 0);
     if(pok_time_is_infinity(duration))
-        thread_wait(t);
+	thread_wait(t);
     else
         thread_wait_timed(t, POK_GETTICK() + duration);
 }

@@ -49,15 +49,15 @@ void pok_boot ()
 #if defined (POK_NEEDS_TIME) || defined (POK_NEEDS_SCHED) || defined (POK_NEEDS_THREADS)
    pok_time_init();
 #endif
-
 #ifdef POK_NEEDS_PARTITIONS
    pok_partition_arinc_init_all();
 #endif
-
+#ifdef POK_NEEDS_MONITOR
+   pok_monitor_thread_init();
+#endif
 #if defined (POK_NEEDS_SCHED) || defined (POK_NEEDS_THREADS)
    pok_sched_init ();
 #endif
-
 #if defined (POK_NEEDS_PORTS_QUEUEING) || defined (POK_NEEDS_PORTS_SAMPLING)
    pok_channels_init_all ();
 #endif

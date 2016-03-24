@@ -360,7 +360,6 @@ monitor()
 
 void monitor_start_func(void)
 {
-    printf("pok_monitor_thread\n");     
     pok_arch_preempt_enable(); //Initialize interrupts   
     for (int i=0; i < pok_partitions_arinc_n; i++){
         partition_pause_set(i, 1);
@@ -419,7 +418,6 @@ void pok_monitor_thread_init()
 {
 #ifdef POK_NEEDS_MONITOR
     partition_monitor.part_ops = &monitor_operations;
-    
     pok_dstack_alloc(&partition_monitor.initial_sp, 4096);
 #endif
 }

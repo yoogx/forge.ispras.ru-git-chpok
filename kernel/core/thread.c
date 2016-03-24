@@ -102,9 +102,9 @@ static pok_thread_t* get_thread_by_id(pok_thread_id_t id)
 #ifdef POK_NEEDS_ERROR_HANDLING
 		|| part->thread_error == &part->threads[id] /* error thread has no id */
 #endif		
-		)
-		return NULL;
-	
+        )
+        return NULL;
+
 	return &part->threads[id];
 }
 
@@ -191,9 +191,9 @@ pok_ret_t pok_thread_sleep(const pok_time_t* __user time)
     if(!check_user_read(time)) return POK_ERRNO_EFAULT;
     pok_time_t kernel_time = __get_user(time);
 
-	pok_preemption_local_disable();
+    pok_preemption_local_disable();
 
-	if(kernel_time == 0)
+    if(kernel_time == 0)
 		thread_yield(current_thread);
     else
         thread_wait_common(current_thread, kernel_time);
@@ -257,7 +257,7 @@ static pok_ret_t thread_delayed_start_internal (pok_thread_t* thread,
 	{
 		/* Delay thread's starting until normal mode. */
 		thread->delayed_time = delay;
-		thread_wait(thread);
+		thread->state = POK_STATE_WAITING;
 		
 		return POK_ERRNO_OK;
 	}
@@ -288,17 +288,15 @@ static pok_ret_t thread_delayed_start_internal (pok_thread_t* thread,
 pok_ret_t pok_thread_delayed_start (pok_thread_id_t id,
     const pok_time_t* __user delay_time)
 {
-	pok_ret_t ret;
+    pok_ret_t ret;
     
     pok_thread_t *thread = get_thread_by_id(id);
     if(!thread) return POK_ERRNO_PARAM;
-    
     if(!check_user_read(delay_time)) return POK_ERRNO_EFAULT;
     pok_time_t kernel_delay_time = __get_user(delay_time);
 
-    if (pok_time_is_infinity(kernel_delay_time)) {
+    if (pok_time_is_infinity(kernel_delay_time))
         return POK_ERRNO_EINVAL;
-    }
 
 	pok_preemption_local_disable();
 	ret = thread_delayed_start_internal(thread, kernel_delay_time);

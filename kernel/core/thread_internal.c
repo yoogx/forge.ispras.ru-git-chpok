@@ -37,7 +37,7 @@ pok_bool_t thread_create(pok_thread_t* t)
  */
 static pok_bool_t thread_is_eligible(pok_thread_t* t)
 {
-	return !list_empty(&t->eligible_elem);
+    return !list_empty(&t->eligible_elem);
 }
 
 /* 
@@ -49,27 +49,27 @@ static pok_bool_t thread_is_eligible(pok_thread_t* t)
  */
 static void thread_set_eligible(pok_thread_t* t)
 {
-	pok_thread_t* other_thread;
+    pok_thread_t* other_thread;
     pok_partition_arinc_t* part = current_partition_arinc;
-	
-	assert(part->mode == POK_PARTITION_MODE_NORMAL);
-	assert(!thread_is_eligible(t));
-	
-	list_for_each_entry(other_thread,
-		&part->eligible_threads,
-		eligible_elem)
-	{
-		if(other_thread->priority < t->priority)
-		{
-			list_add_tail(&t->eligible_elem, &other_thread->eligible_elem);
+
+    assert(part->mode == POK_PARTITION_MODE_NORMAL);
+    assert(!thread_is_eligible(t));
+
+    list_for_each_entry(other_thread,
+        &part->eligible_threads,
+        eligible_elem)
+    {
+        if(other_thread->priority < t->priority)
+        {
+            list_add_tail(&t->eligible_elem, &other_thread->eligible_elem);
             goto out;
-		}
+        }
 
-	}
-	list_add_tail(&t->eligible_elem, &part->eligible_threads);
+    }
+    list_add_tail(&t->eligible_elem, &part->eligible_threads);
 
-out:	
-	if(t->eligible_elem.prev == &part->eligible_threads)
+out:
+    if(t->eligible_elem.prev == &part->eligible_threads)
     {
         // Thread is inserted into the first position.
         pok_sched_local_invalidate(); 
@@ -101,44 +101,44 @@ static void thread_set_uneligible(pok_thread_t* t)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
     if(!list_empty(&t->eligible_elem))
-	{
+    {
         if(t->eligible_elem.prev == &part->eligible_threads)
         {
             // Thread is removed from the first position.
             pok_sched_local_invalidate(); 
         }
-		list_del_init(&t->eligible_elem);
-	}
+	list_del_init(&t->eligible_elem);
+    }
 }
 
 void thread_set_deadline(pok_thread_t* t, pok_time_t deadline_time)
 {
-	delayed_event_add(&t->thread_deadline_event, deadline_time,
-		&current_partition_arinc->queue_deadline);
+    delayed_event_add(&t->thread_deadline_event, deadline_time,
+        &current_partition_arinc->queue_deadline);
 }
 
 void thread_stop(pok_thread_t* t)
 {
-	pok_partition_arinc_t* part = current_partition_arinc;
+    pok_partition_arinc_t* part = current_partition_arinc;
 
-	assert(t->state != POK_STATE_STOPPED);
-	t->state = POK_STATE_STOPPED;
-	
-	thread_set_uneligible(t);
-	
-	// Remove thread from all queues except one for error handler.
-	thread_delay_event_cancel(t);
-	
-	delayed_event_remove(&t->thread_deadline_event);
+    assert(t->state != POK_STATE_STOPPED);
+    t->state = POK_STATE_STOPPED;
 
-	pok_thread_wq_remove(t);
-	
-	if(part->lock_level)
-	{
-		if(part->thread_locked == t)
-			current_partition_arinc->lock_level = 0;
-	}
-    
+    thread_set_uneligible(t);
+
+    // Remove thread from all queues except one for error handler.
+    thread_delay_event_cancel(t);
+
+    delayed_event_remove(&t->thread_deadline_event);
+
+    pok_thread_wq_remove(t);
+
+    if(part->lock_level)
+    {
+        if(part->thread_locked == t)
+            current_partition_arinc->lock_level = 0;
+    }
+
     if(t->is_unrecoverable)
     {
         t->is_unrecoverable = FALSE;
@@ -148,62 +148,58 @@ void thread_stop(pok_thread_t* t)
 
 void thread_start(pok_thread_t* t)
 {
-	assert(t->state == POK_STATE_WAITING);
-	
-	t->state = POK_STATE_RUNNABLE;
-	
-	if(!t->suspended)
-	{
-		thread_set_eligible(t);
-	}
+    assert(t->state == POK_STATE_WAITING);
+
+    t->state = POK_STATE_RUNNABLE;
+
+    if(!t->suspended)
+    {
+        thread_set_eligible(t);
+    }
 }
 
 void thread_wait(pok_thread_t* t)
 {
-	assert(current_partition_arinc->mode == POK_PARTITION_MODE_NORMAL);
+    assert(current_partition_arinc->mode == POK_PARTITION_MODE_NORMAL);
 
-	t->state = POK_STATE_WAITING;
-	thread_set_uneligible(t);
+    t->state = POK_STATE_WAITING;
+    thread_set_uneligible(t);
 }
 
 void thread_wake_up(pok_thread_t* t)
 {
-	assert(t->state == POK_STATE_WAITING);
-	
-	t->state = POK_STATE_RUNNABLE;
-	
+    assert(t->state == POK_STATE_WAITING);
+
+    t->state = POK_STATE_RUNNABLE;
+
     // For the case 3. Cancel possible timeout.
-	thread_delay_event_cancel(t);
-	
-	if(!list_empty(&t->wait_elem))
-	{
-		// Case 2.
-		
-		// Cancel wait on object.
-		list_del_init(&t->wait_elem);
-		// Set flag that we has been interrupted by timeout.
-		t->wait_private = (void*)(-(unsigned long)POK_ERRNO_TIMEOUT);
-	}
-	
-	if(!t->suspended)
-	{
-		thread_set_eligible(t);
-	}
+    thread_delay_event_cancel(t);
+
+    if(!list_empty(&t->wait_elem))
+    {
+        // Case 2.
+
+        // Cancel wait on object.
+        list_del_init(&t->wait_elem);
+        // Set flag that we has been interrupted by timeout.
+        t->wait_private = (void*)(-(unsigned long)POK_ERRNO_TIMEOUT);
+    }
+
+    if(!t->suspended)
+    {
+        thread_set_eligible(t);
+    }
 }
 
 
 void thread_wait_timed(pok_thread_t *thread, pok_time_t time)
 {
     assert(thread);
-    
-    if (time == 0) return;
-    
+    assert(!pok_time_is_infinity(time));
+
     thread_wait(thread);
-    
-    if(!pok_time_is_infinity(time))
-    {
-		thread_delay_event(thread, POK_GETTICK() + time, &thread_wake_up);
-	}
+
+    thread_delay_event(thread, time, &thread_wake_up);
 }
 
 void thread_suspend(pok_thread_t* t)

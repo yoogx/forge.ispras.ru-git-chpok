@@ -37,7 +37,7 @@ uint32_t		pok_context_init (uint32_t sp,
 
   ctx->r14     = (unsigned long)entry;
   ctx->r15     = id;
-  ctx->lr      = (uint32_t) pok_arch_thread_start;
+  ctx->lr      = (uint32_t) entry;
   ctx->sp      = (uint32_t) &ctx->back_chain;
 
 #ifdef POK_NEEDS_DEBUG

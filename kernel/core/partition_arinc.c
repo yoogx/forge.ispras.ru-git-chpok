@@ -101,9 +101,9 @@ static void partition_arinc_start_common(void)
 	thread_main->user_stack_size = part->main_user_stack_size;
 
     thread_create(thread_main);
-	
-	part->nthreads_used = POK_PARTITION_ARINC_MAIN_THREAD_ID;
-	
+
+	part->nthreads_used = POK_PARTITION_ARINC_MAIN_THREAD_ID + 1;
+
 	sched_arinc_start();
 
 	/* Current context is lost and may be reused for "do_nothing" thread
@@ -271,7 +271,11 @@ static void partition_set_mode_normal(void)
 	 * processes.
 	 */
 	pok_time_t periodic_release_point = POK_TIME_INFINITY;
-	
+
+	part->mode = POK_PARTITION_MODE_NORMAL;
+	part->lock_level = 0;
+	pok_sched_local_invalidate();
+
 	for(int i = POK_PARTITION_ARINC_MAIN_THREAD_ID + 1; i < part->nthreads_used; i++)
 	{
 		pok_thread_t* t = &part->threads[i];
@@ -307,10 +311,6 @@ static void partition_set_mode_normal(void)
 			thread_set_deadline(t, thread_start_time + t->time_capacity);
 		}
 	}
-	
-	part->mode = POK_PARTITION_MODE_NORMAL;
-	
-	pok_sched_local_invalidate();
 }
 
 

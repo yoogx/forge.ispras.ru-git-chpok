@@ -86,9 +86,12 @@ void pok_fatal (const char* message)
 
   pok_write ("FATAL ERROR: \n", 13);
   pok_write (message , debug_strlen(message));
+  pok_write("\n", 1);
 
   POK_DEBUG_PRINT_CURRENT_STATE
-  pok_arch_idle ();
+  //pok_arch_idle ();
+
+  wait_infinitely();
 
   __builtin_unreachable();
 }

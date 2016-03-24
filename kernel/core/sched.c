@@ -87,6 +87,13 @@ static void idle_function(void)
 
 #endif
 
+// Reset partition state, so scheduler may restart.
+static void pok_partition_reset(pok_partition_t* part)
+{
+    part->sp = 0;
+}
+
+
 static pok_bool_t sched_need_recheck;
 
 static void start_partition(void)
@@ -169,10 +176,13 @@ static void inter_partition_switch(pok_partition_t* part)
         pok_space_switch(part->space_id);
     else
         pok_space_switch(0xff); // TODO: This should disable all user space tables
-
 #ifdef POK_NEEDS_MONITOR
     if(current_partition_is_paused) old_sp = &idle_sp;
-    if(part->is_paused) new_sp = &idle_sp;
+    if(part->is_paused)
+    {
+        assert(idle_sp); // Idle sp shouldn't be 0.
+        new_sp = &idle_sp;
+    }
 
     if(old_sp == new_sp)
     {
@@ -180,7 +190,7 @@ static void inter_partition_switch(pok_partition_t* part)
         return;
     }
     
-    current_partition_is_paused = current_partition->is_paused;
+    current_partition_is_paused = part->is_paused;
 #endif /* POK_NEEDS_MONITOR */
     // old_sp != new_sp
 
@@ -191,8 +201,8 @@ static void inter_partition_switch(pok_partition_t* part)
          * (current context is different)
          * 
          * Need to initialize new context before switch.
-         */ 
-        pok_context_init(
+         */
+        *new_sp = pok_context_init(
             pok_dstack_get_stack(&part->initial_sp),
             &start_partition);
     }
@@ -216,6 +226,9 @@ void pok_sched_restart (void)
 #ifdef POK_NEEDS_MONITOR
     idle_sp = pok_context_init(idle_stack, &idle_function);
 #endif /*POK_NEEDS_MONITOR */
+
+    for_each_partition(&pok_partition_reset);
+
     sched_need_recheck = 0; // Acquire semantic
     barrier();
    
@@ -243,7 +256,6 @@ void pok_sched_restart (void)
     else
         pok_space_switch(0xff); // TODO: This should disable all user space tables
 
-    
     pok_context_jump(*new_sp);
 }
 
@@ -272,7 +284,11 @@ static void pok_sched(void)
     
     pok_sched_current_slot = (pok_sched_current_slot + 1);
     if(pok_sched_current_slot == pok_module_sched_n)
+    {
+        pok_sched_next_major_frame += pok_config_scheduling_major_frame;
         pok_sched_current_slot = 0;
+    }
+    pok_sched_next_deadline += pok_module_sched[pok_sched_current_slot].duration;
 
     new_partition = pok_module_sched[pok_sched_current_slot].partition;
     
@@ -299,10 +315,9 @@ void pok_preemption_disable(void)
 
 void pok_preemption_enable(void)
 {
-    assert(pok_arch_preempt_enabled());
+    assert(!pok_arch_preempt_enabled());
     
     pok_sched();
-    
     if(current_partition->preempt_local_disabled
         || !current_partition->state.bytes_all)
     {
@@ -369,7 +384,7 @@ void pok_sched_on_time_changed(void)
     sched_need_recheck = TRUE;
     pok_sched();
     
-    if(!part) return; // TODO: correctly check in case of paused partition.
+    if(current_partition_is_paused) return;
     
     pok_bool_t preempt_local_disabled_old = current_partition->preempt_local_disabled;
     
@@ -391,9 +406,7 @@ void pok_sched_on_time_changed(void)
     // Still with disabled preemption. It is needed for returning from interrupt.
 }
 
-void pok_partition_jump_user(void* __user entry,
-    void* __user stack_addr,
-    struct dStack* stack_kernel)
+void pok_partition_return_user(void)
 {
     pok_partition_t* part = current_partition;
 
@@ -410,7 +423,17 @@ void pok_partition_jump_user(void* __user entry,
     }
 
     part->preempt_local_disabled = 0;
+}
+
+
+void pok_partition_jump_user(void* __user entry,
+    void* __user stack_addr,
+    struct dStack* stack_kernel)
+{
+    pok_partition_return_user();
     
+    pok_partition_t* part = current_partition;
+
     pok_context_user_jump(
         stack_kernel,
         part->space_id,

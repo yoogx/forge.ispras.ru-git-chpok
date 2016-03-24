@@ -6,17 +6,19 @@
 static void thread_start_func(void)
 {
     pok_thread_t* thread_current = current_thread;
-    
+
     pok_partition_jump_user(
-        thread_current->init_stack_addr,
         thread_current->entry,
+        thread_current->init_stack_addr,
         &thread_current->initial_sp);
 }
 
 void sched_arinc_start(void)
 {
-	pok_partition_arinc_t* part = current_partition_arinc;
+    pok_partition_arinc_t* part = current_partition_arinc;
     
+    part->idle_sp = 0;
+
     pok_thread_t* thread_main
         = &part->threads[POK_PARTITION_ARINC_MAIN_THREAD_ID];
     
@@ -24,6 +26,7 @@ void sched_arinc_start(void)
 	part->thread_locked = thread_main;
 	
 	thread_main->state = POK_STATE_RUNNABLE;
+    part->thread_current = thread_main;
 	
 	// Direct jump into main thread.
 	pok_context_restart(&thread_main->initial_sp, &thread_start_func,
@@ -214,7 +217,7 @@ static void sched_arinc(void)
     // Switch between different threads
     part->thread_current = new_thread;
     
-    uint32_t* old_sp;
+    uint32_t* old_sp = old_thread? &old_thread->sp : &part->idle_sp;
     uint32_t new_sp;
     
     if(new_thread)
@@ -231,24 +234,21 @@ static void sched_arinc(void)
     else
     {
         // New thread is "do_nothing"
-        new_sp = pok_context_init(
+        new_sp = part->idle_sp;
+        if(new_sp ==0)
+        {
+            new_sp = pok_context_init(
                 pok_dstack_get_stack(&part->base_part.initial_sp),
                 &do_nothing_func);
+            part->idle_sp = new_sp;
+        }
     }
 
-    if(old_thread)
-    {
-        old_sp = &old_thread->sp;
-        /*
-         * If old_thread->sp is 0, this should be processed upon
-         * returning to given thread, not now.
-         */
-        if(*old_sp == 0) old_sp = NULL;
-    }
-    else
-    {
-        old_sp = NULL;
-    }
+    /*
+     * If old_thread->sp is 0, this should be processed upon
+     * returning to given thread, not now.
+     */
+    if(*old_sp == 0) old_sp = NULL;
     
     if(old_sp)
     {

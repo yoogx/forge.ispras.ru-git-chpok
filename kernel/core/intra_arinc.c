@@ -360,7 +360,9 @@ out_wait:
     pok_preemption_local_enable();
     
     wait_result = (unsigned long)current_thread->wait_private;
-    if(wait_result) return -wait_result;
+    if(wait_result < 0) return -wait_result;
+
+    __put_user(length, wait_result);
 
     return POK_ERRNO_OK;
 }

@@ -22,6 +22,7 @@
 #include <libc.h>
 #include <stdarg.h>
 #include <bsp.h>
+#include <arch.h>
 
 static const char digits[] = "0123456789abcdef";
 
@@ -51,7 +52,19 @@ typedef void (*t_putc)(int val, void *out);
 
 static void buf_flush(struct s_file *file)
 {
+    /*
+     * Normally, we do not want `printf` strings messed from different partitions.
+     * 
+     * Disable interrupts if they are not currently disabled.
+     */
+    pok_bool_t need_critical_section = pok_arch_preempt_enabled();
+    
+    if(need_critical_section)
+        pok_arch_preempt_disable();
     pok_cons_write (file->buff, file->pos);
+    if(need_critical_section)
+        pok_arch_preempt_enable();
+
     file->pos = 0;
 }
 

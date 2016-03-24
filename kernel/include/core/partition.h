@@ -231,28 +231,8 @@ typedef struct
 extern pok_partition_t* current_partition;
 
 /**
- * Reset partition state, so scheduler will be able to start it.
- * 
- * Should be called with preemption disabled.
- * 
- * Fields, which should be set(initialized) before given function:
- * 
- *   - @initial_sp
- *   - @sched
- *   - @start
- *   - @name
- * 
- * Fields, which are set by the function itself:
- * 
- *   - @sp = 0
- * 
- * Other fields remains unchanged.
- * 
- * Note, that fields below will be set by the scheduler before @start
- * function will see them:
- *   - @is_slot_started = TRUE
- *   - @sched_local_recheck_needed = TRUE
+ * Execute given function for each partition.
  */
-void pok_partition_reset(pok_partition_t* part);
+void for_each_partition(void (*f)(pok_partition_t* part));
 
 #endif /* __POK_PARTITION_H__ */

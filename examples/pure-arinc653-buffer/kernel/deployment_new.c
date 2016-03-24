@@ -275,7 +275,7 @@ pok_partition_arinc_t pok_partitions_arinc[1] =
         .base_part = {
             .name = "P1",
             
-            .period = 15000,
+            .period = 2000,
             
             .space_id = 0,
             
@@ -329,7 +329,7 @@ pok_partition_t partition_monitor =
 {
     .name = "Monitor",
     
-    .period = 15000,
+    .period = 2000,
     
     .space_id = 0xff,
     
@@ -338,19 +338,27 @@ pok_partition_t partition_monitor =
 };
 
 /************************* Setup time slots ***************************/
-const pok_sched_slot_t pok_module_sched[1] = {
+const pok_sched_slot_t pok_module_sched[2] = {
     {
-        .duration = 15000,
+        .duration = 1900,
         .offset = 0,
         .partition = &pok_partitions_arinc[0].base_part,
         .periodic_processing_start = TRUE,
         .id = 0
     },
+    {
+        .duration = 100,
+        .offset = 0,
+        .partition = &partition_monitor,
+        .periodic_processing_start = TRUE,
+        .id = 1
+    },
+
 };
 
-const uint8_t pok_module_sched_n = 1;
+const uint8_t pok_module_sched_n = 2;
 
-const pok_time_t pok_config_scheduling_major_frame = 15000;
+const pok_time_t pok_config_scheduling_major_frame = 2000;
 
 /************************ Setup address spaces ************************/
 struct pok_space spaces[1]; // As many as partitions
