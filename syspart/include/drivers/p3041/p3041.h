@@ -3,6 +3,6 @@
 
 #include <net/network.h>
 
-extern pok_network_driver_device_t pok_network_p3041_device;
+extern pok_netdevice_t pok_network_p3041_device;
 
 #endif

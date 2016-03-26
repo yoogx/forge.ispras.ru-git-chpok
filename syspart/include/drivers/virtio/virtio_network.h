@@ -21,7 +21,7 @@
 #include <net/network.h>
 
 //TODO delete it
-extern pok_network_driver_device_t pok_network_virtio_device;
+extern pok_netdevice_t pok_network_virtio_device;
 
 void virtio_net_init(void);
 

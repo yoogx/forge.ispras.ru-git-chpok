@@ -77,7 +77,7 @@ typedef struct {
 typedef struct {
     uint8_t *mac;
     const pok_network_driver_ops_t *ops;
-} pok_network_driver_device_t;
+} pok_netdevice_t;
 
 /*
  * Must be called early when the kernel is

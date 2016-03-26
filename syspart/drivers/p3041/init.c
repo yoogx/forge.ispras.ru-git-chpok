@@ -477,7 +477,7 @@ static const pok_network_driver_ops_t driver_ops = {
     .flush_send =                   dummy_flush_send,
 };
 
-pok_network_driver_device_t pok_network_p3041_device = {
+pok_netdevice_t pok_network_p3041_device = {
     .ops = &driver_ops,
     .mac = internal_device_struct.macaddr
 };

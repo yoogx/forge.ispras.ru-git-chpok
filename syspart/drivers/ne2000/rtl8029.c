@@ -387,7 +387,7 @@ static const pok_network_driver_ops_t driver_ops = {
     .flush_send = flush_send,
 };
 
-pok_network_driver_device_t pok_network_ne2000_device = {
+pok_netdevice_t pok_network_ne2000_device = {
     .ops = &driver_ops,
     .mac = dev.mac
 };
