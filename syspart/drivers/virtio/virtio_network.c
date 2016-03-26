@@ -203,65 +203,6 @@ static void process_received_buffer(
     }
 }
 
-/*
- * BEGIN "public" interface
- */
-
-static pok_bool_t probe_device(struct pci_device *pci_dev)
-{
-    struct virtio_network_device *dev = &virtio_network_device;
-
-    dev->pci_device = *pci_dev;
-    //TODO change to ioaddr everywhere
-    dev->pci_device.bar[0] &= ~0xFU;
-
-    //subsystem = pci_read_reg(dev, PCI_REG_SUBSYSTEM) >> 16;
-    //if (subsystem != VIRTIO_ID_NET)
-    //    printf("WARNING: wrong subsystem in virtio net device");
-
-
-    // 1. Reset the device
-    outb(dev->pci_device.bar[0] + VIRTIO_PCI_STATUS, 0x0);
-
-    // 2. ACK status bit
-    set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_ACKNOWLEDGE);
-
-    // 3. DRIVER status bit
-    set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_DRIVER);
-
-    // 4. Device-specific setup
-    setup_virtqueue(dev, VIRTIO_NETWORK_RX_VIRTQUEUE, &dev->rx_vq); 
-    setup_virtqueue(dev, VIRTIO_NETWORK_TX_VIRTQUEUE, &dev->tx_vq); 
-
-    virtio_virtqueue_allocate_callbacks(&dev->tx_vq);
-
-    setup_receive_buffers(dev);
-
-    //pok_bsp_irq_register(virtio_network_device.pci_device.irq_line, virtio_interrupt_handler);
-
-    // 5. Device feature bits
-
-    uint32_t features = inl(dev->pci_device.bar[0] + VIRTIO_PCI_HOST_FEATURES);
-    uint32_t recognized_features = 0;
-
-    if (features & (1 << VIRTIO_NET_F_MAC)) {
-        read_mac_address(dev);
-        recognized_features |= (1 << VIRTIO_NET_F_MAC);
-    } else {
-        PRINTF("MAC address is not configured\n");
-        set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_FAILED);
-        return FALSE;
-    }
-
-    outl(dev->pci_device.bar[0] + VIRTIO_PCI_GUEST_FEATURES, recognized_features);
-
-    // 6. DRIVER_OK status bit
-    set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_DRIVER_OK);
-
-    //PRINTF("the device has been successfully initialized\n");
-
-    return TRUE;
-}
 
 
 
@@ -447,6 +388,65 @@ pok_network_driver_device_t pok_network_virtio_device = {
 };
 
 
+/*
+ * PCI part
+ */
+
+static pok_bool_t probe_device(struct pci_device *pci_dev)
+{
+    struct virtio_network_device *dev = &virtio_network_device;
+
+    dev->pci_device = *pci_dev;
+    //TODO change to ioaddr everywhere
+    dev->pci_device.bar[0] &= ~0xFU;
+
+    //subsystem = pci_read_reg(dev, PCI_REG_SUBSYSTEM) >> 16;
+    //if (subsystem != VIRTIO_ID_NET)
+    //    printf("WARNING: wrong subsystem in virtio net device");
+
+
+    // 1. Reset the device
+    outb(dev->pci_device.bar[0] + VIRTIO_PCI_STATUS, 0x0);
+
+    // 2. ACK status bit
+    set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_ACKNOWLEDGE);
+
+    // 3. DRIVER status bit
+    set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_DRIVER);
+
+    // 4. Device-specific setup
+    setup_virtqueue(dev, VIRTIO_NETWORK_RX_VIRTQUEUE, &dev->rx_vq);
+    setup_virtqueue(dev, VIRTIO_NETWORK_TX_VIRTQUEUE, &dev->tx_vq);
+
+    virtio_virtqueue_allocate_callbacks(&dev->tx_vq);
+
+    setup_receive_buffers(dev);
+
+    //pok_bsp_irq_register(virtio_network_device.pci_device.irq_line, virtio_interrupt_handler);
+
+    // 5. Device feature bits
+
+    uint32_t features = inl(dev->pci_device.bar[0] + VIRTIO_PCI_HOST_FEATURES);
+    uint32_t recognized_features = 0;
+
+    if (features & (1 << VIRTIO_NET_F_MAC)) {
+        read_mac_address(dev);
+        recognized_features |= (1 << VIRTIO_NET_F_MAC);
+    } else {
+        PRINTF("MAC address is not configured\n");
+        set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_FAILED);
+        return FALSE;
+    }
+
+    outl(dev->pci_device.bar[0] + VIRTIO_PCI_GUEST_FEATURES, recognized_features);
+
+    // 6. DRIVER_OK status bit
+    set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_DRIVER_OK);
+
+    //PRINTF("the device has been successfully initialized\n");
+
+    return TRUE;
+}
 
 const struct pci_device_id virtio_pci_devid_tbl[] = {
     { VIRTIO_PCI_VENDORID, PCI_ANY_ID},
@@ -458,6 +458,9 @@ struct pci_driver virtio_pci_driver = {
     .id_table = virtio_pci_devid_tbl
 };
 
+/*
+ * init
+ */
 void virtio_net_init()
 {
     register_pci_driver(&virtio_pci_driver);
