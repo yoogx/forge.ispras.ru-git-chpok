@@ -59,6 +59,7 @@ struct network_driver_ops;
 typedef struct {
     uint8_t *mac;
     const struct network_driver_ops *ops;
+    void *info; //driver specific info
 } pok_netdevice_t;
 
 //XXX maybe pok_bool_t is a bad choice

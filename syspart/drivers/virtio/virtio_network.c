@@ -64,7 +64,7 @@ struct virtio_network_device {
 
 
 // the device (statically allocated)
-static struct virtio_network_device virtio_network_device;
+static struct virtio_network_device WILL_BE_DELETED_virtio_network_device;
 
 /*
  * When we're in interrupt context (e.g. system call or timer),
@@ -188,11 +188,10 @@ static void setup_receive_buffers(struct virtio_network_device *dev)
 }
 
 static void process_received_buffer(
-        struct receive_buffer *buf, 
+        struct virtio_network_device *dev,
+        struct receive_buffer *buf,
         size_t length)
 {
-    struct virtio_network_device *dev = &virtio_network_device;
-
     // FIXME process Ethernet header or not?
 
     if (dev->packet_received_callback != NULL) {
@@ -214,7 +213,7 @@ static pok_bool_t send_frame_gather(
         void *callback_arg)
 {
     static struct virtio_net_hdr net_hdr;
-    struct virtio_network_device *dev = &virtio_network_device;
+    struct virtio_network_device *dev = netdev->info;
 
     // now, send it to the virtqueue
     struct virtio_virtqueue *vq = &dev->tx_vq;
@@ -281,12 +280,14 @@ static void set_packet_received_callback(
         pok_netdevice_t *dev,
         void (*f)(const char *, size_t))
 {
-    virtio_network_device.packet_received_callback = f;
+    struct virtio_network_device *info = dev->info;
+    info->packet_received_callback = f;
 }
 
 static void reclaim_send_buffers(pok_netdevice_t *dev)
 {
-    struct virtio_virtqueue *vq = &virtio_network_device.tx_vq;
+    struct virtio_network_device *info = dev->info;
+    struct virtio_virtqueue *vq = &(info->tx_vq);
     
     // this function can be called by any thread
     // callbacks don't do much work, so we can run them all
@@ -325,7 +326,7 @@ static void reclaim_send_buffers(pok_netdevice_t *dev)
 
 static void reclaim_receive_buffers(pok_netdevice_t *netdev)
 {
-    struct virtio_network_device *dev = &virtio_network_device;
+    struct virtio_network_device *dev = netdev->info;
     struct virtio_virtqueue *vq = &dev->rx_vq;
 
     pok_bool_t saved_preemption;
@@ -344,7 +345,7 @@ static void reclaim_receive_buffers(pok_netdevice_t *netdev)
             return;
         }
         
-        process_received_buffer(buf, e->len);
+        process_received_buffer(dev, buf, e->len);
 
         // reclaim descriptor
         // FIXME support chained descriptors as well
@@ -374,7 +375,7 @@ static void reclaim_receive_buffers(pok_netdevice_t *netdev)
 
 static void flush_send(pok_netdevice_t *netdev)
 {
-    struct virtio_network_device *dev = &virtio_network_device;
+    struct virtio_network_device *dev = netdev->info;
 
     outw(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_NOTIFY, (uint16_t) VIRTIO_NETWORK_TX_VIRTQUEUE);
 }
@@ -390,7 +391,8 @@ static const pok_network_driver_ops_t driver_ops = {
 
 pok_netdevice_t pok_network_virtio_device = {
     .ops = &driver_ops,
-    .mac = virtio_network_device.mac
+    .mac = WILL_BE_DELETED_virtio_network_device.mac,
+    .info = &WILL_BE_DELETED_virtio_network_device
 };
 
 
@@ -400,7 +402,7 @@ pok_netdevice_t pok_network_virtio_device = {
 
 static pok_bool_t probe_device(struct pci_device *pci_dev)
 {
-    struct virtio_network_device *dev = &virtio_network_device;
+    struct virtio_network_device *dev = &WILL_BE_DELETED_virtio_network_device;
 
     dev->pci_device = *pci_dev;
     //TODO change to ioaddr everywhere
