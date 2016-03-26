@@ -25,17 +25,21 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <net/netdevices.h>
+
+#define DEV_NAME "virtio-net0"
 
 static pok_bool_t initialized = FALSE;
 
-#include <drivers/virtio/virtio_network.h>
-#include <drivers/ne2000/ne2000.h>
-#include <drivers/p3041/p3041.h>
-
-#define NETDEVICE_PTR &NETWORK_DRIVER
-#define POK_NEEDS_ARP_ANSWER
+pok_netdevice_t *tcpip_stack_device;
+#define NETDEVICE_PTR tcpip_stack_device
+#define NETWORK_DRIVER_OPS (NETDEVICE_PTR->ops)
 
 static pok_network_udp_receive_callback_t *receive_callback_list = NULL;
+
+
+#define POK_NEEDS_ARP_ANSWER
+
 #ifdef POK_NEEDS_ARP_ANSWER
 // ---- ARP support - begin ----
 
@@ -106,7 +110,7 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
     int i;
     for (i = 0; i < ETH_ALEN; i++) {
         arp_answer_buffer.arp_answer.sha[i] =
-            arp_answer_buffer.ether_hdr.src[i] = NETWORK_DRIVER.mac[i];
+            arp_answer_buffer.ether_hdr.src[i] = NETDEVICE_PTR->mac[i];
         arp_answer_buffer.arp_answer.tha[i] =
             arp_answer_buffer.ether_hdr.dst[i] = arp_packet->sha[i];
     }
@@ -148,7 +152,7 @@ static void packet_received_callback(const char *data, size_t len)
     len -= sizeof(*ether_hdr);
 
     if (!ether_is_multicast(ether_hdr->dst) &&
-        memcmp(ether_hdr->dst, NETWORK_DRIVER.mac, ETH_ALEN) != 0)
+        memcmp(ether_hdr->dst, NETDEVICE_PTR->mac, ETH_ALEN) != 0)
     {
         // it's not for us
         return;
@@ -243,6 +247,8 @@ uint8_t* find_mac_by_ip(uint32_t dst_ip)
 
 void pok_network_init(void)
 {
+    tcpip_stack_device = get_netdevice(DEV_NAME);
+
     NETWORK_DRIVER_OPS->set_packet_received_callback(NETDEVICE_PTR, packet_received_callback);
     initialized = TRUE;
 }
@@ -264,7 +270,7 @@ static void fill_in_udp_header(
     int i;
     uint8_t *dst_mac = find_mac_by_ip(dst_ip);
     for (i = 0; i < ETH_ALEN; i++) {
-        real_buffer->ether_hdr.src[i] = NETWORK_DRIVER.mac[i];
+        real_buffer->ether_hdr.src[i] = NETDEVICE_PTR->mac[i];
         real_buffer->ether_hdr.dst[i] = dst_mac[i];
     }
     real_buffer->ether_hdr.ethertype = hton16(ETH_P_IP);

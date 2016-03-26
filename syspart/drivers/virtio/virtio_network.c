@@ -33,6 +33,8 @@
 #include "virtio_virtqueue.h"
 #include "virtio_net.h"
 
+#include <net/netdevices.h>
+
 #define VIRTIO_PCI_VENDORID 0x1AF4
 
 #define VIRTIO_NETWORK_RX_VIRTQUEUE 0
@@ -41,6 +43,8 @@
 // FIXME
 #define POK_MAX_RECEIVE_BUFFERS 100
 #define DRV_NAME "virtio-net"
+#define DEV_NAME_PREFIX DRV_NAME
+
 #define PRINTF(fmt, ...) printf("virtio_network: " fmt, ##__VA_ARGS__)
 
 struct receive_buffer {
@@ -452,6 +456,8 @@ static pok_bool_t probe_device(struct pci_device *pci_dev)
     set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_DRIVER_OK);
 
     //PRINTF("the device has been successfully initialized\n");
+    //
+    register_netdevice(DEV_NAME_PREFIX"0", &pok_network_virtio_device);
 
     return TRUE;
 }
