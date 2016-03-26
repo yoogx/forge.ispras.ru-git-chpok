@@ -206,10 +206,12 @@ static void process_received_buffer(
 
 
 
-static pok_bool_t send_frame_gather(const pok_network_sg_list_t *sg_list,
-                                    size_t sg_list_len,
-                                    pok_network_buffer_callback_t callback,
-                                    void *callback_arg)
+static pok_bool_t send_frame_gather(
+        pok_netdevice_t *netdev,
+        const pok_network_sg_list_t *sg_list,
+        size_t sg_list_len,
+        pok_network_buffer_callback_t callback,
+        void *callback_arg)
 {
     static struct virtio_net_hdr net_hdr;
     struct virtio_network_device *dev = &virtio_network_device;
@@ -264,21 +266,25 @@ static pok_bool_t send_frame_gather(const pok_network_sg_list_t *sg_list,
     return TRUE;
 }
 
-static pok_bool_t send_frame(char *buffer,
-                             size_t size,
-                             pok_network_buffer_callback_t callback,
-                             void *callback_arg)
+static pok_bool_t send_frame(
+        pok_netdevice_t *dev,
+        char *buffer,
+        size_t size,
+        pok_network_buffer_callback_t callback,
+        void *callback_arg)
 {
     pok_network_sg_list_t sg_list[1] = {{.buffer=buffer, .size=size}};
-    return send_frame_gather(sg_list, 1, callback, callback_arg);
+    return send_frame_gather(dev, sg_list, 1, callback, callback_arg);
 }
 
-static void set_packet_received_callback(void (*f)(const char *, size_t))
+static void set_packet_received_callback(
+        pok_netdevice_t *dev,
+        void (*f)(const char *, size_t))
 {
     virtio_network_device.packet_received_callback = f;
 }
 
-static void reclaim_send_buffers(void)
+static void reclaim_send_buffers(pok_netdevice_t *dev)
 {
     struct virtio_virtqueue *vq = &virtio_network_device.tx_vq;
     
@@ -317,7 +323,7 @@ static void reclaim_send_buffers(void)
     maybe_unlock_preemption(&saved_preemption);
 }
 
-static void reclaim_receive_buffers(void)
+static void reclaim_receive_buffers(pok_netdevice_t *netdev)
 {
     struct virtio_network_device *dev = &virtio_network_device;
     struct virtio_virtqueue *vq = &dev->rx_vq;
@@ -366,7 +372,7 @@ static void reclaim_receive_buffers(void)
     maybe_unlock_preemption(&saved_preemption);
 }
 
-static void flush_send(void)
+static void flush_send(pok_netdevice_t *netdev)
 {
     struct virtio_network_device *dev = &virtio_network_device;
 

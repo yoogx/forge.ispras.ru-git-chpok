@@ -32,6 +32,7 @@ static pok_bool_t initialized = FALSE;
 #include <drivers/ne2000/ne2000.h>
 #include <drivers/p3041/p3041.h>
 
+#define NETDEVICE_PTR &NETWORK_DRIVER
 #define POK_NEEDS_ARP_ANSWER
 
 static pok_network_udp_receive_callback_t *receive_callback_list = NULL;
@@ -119,6 +120,7 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
     arp_answer_buffer.arp_answer.tpa = arp_packet->spa;
     pok_bool_t sent =
         NETWORK_DRIVER_OPS->send_frame(
+                NETDEVICE_PTR,
                 (char *) &arp_answer_buffer,
                 sizeof(arp_answer_buffer),
                 stub_callback,
@@ -241,7 +243,7 @@ uint8_t* find_mac_by_ip(uint32_t dst_ip)
 
 void pok_network_init(void)
 {
-    NETWORK_DRIVER_OPS->set_packet_received_callback(packet_received_callback);
+    NETWORK_DRIVER_OPS->set_packet_received_callback(NETDEVICE_PTR, packet_received_callback);
     initialized = TRUE;
 }
 
@@ -311,6 +313,7 @@ pok_bool_t pok_network_send_udp(
     );
 
     return NETWORK_DRIVER_OPS->send_frame(
+        NETDEVICE_PTR,
         buffer,
         size + POK_NETWORK_OVERHEAD,
         callback,
@@ -353,6 +356,7 @@ pok_bool_t pok_network_send_udp_gather(
     );
 
     return NETWORK_DRIVER_OPS->send_frame_gather(
+        NETDEVICE_PTR,
         sg_list,
         sg_list_len,
         callback,
@@ -370,21 +374,21 @@ void pok_network_register_udp_receive_callback(
 void pok_network_reclaim_send_buffers(void)
 {
     if (initialized) {
-        NETWORK_DRIVER_OPS->reclaim_send_buffers();
+        NETWORK_DRIVER_OPS->reclaim_send_buffers(NETDEVICE_PTR);
     }
 }
 
 void pok_network_reclaim_receive_buffers(void)
 {
     if (initialized) {
-        NETWORK_DRIVER_OPS->reclaim_receive_buffers();
+        NETWORK_DRIVER_OPS->reclaim_receive_buffers(NETDEVICE_PTR);
     }
 }
 
 void pok_network_flush_send(void)
 {
     if (initialized) {
-        NETWORK_DRIVER_OPS->flush_send();
+        NETWORK_DRIVER_OPS->flush_send(NETDEVICE_PTR);
     }
 }
 

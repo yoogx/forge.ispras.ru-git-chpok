@@ -54,30 +54,39 @@ typedef struct {
     size_t size;
 } pok_network_sg_list_t;
 
-//XXX maybe pok_bool_t is a bad choice
-typedef struct {
-    pok_bool_t (*send_frame)(char *buffer,
-                             size_t size,
-                             pok_network_buffer_callback_t callback,
-                             void *callback_arg);
-
-    pok_bool_t (*send_frame_gather)(const pok_network_sg_list_t *sg_list,
-                                    size_t sg_list_len,
-                                    pok_network_buffer_callback_t callback,
-                                    void *callback_arg);
-
-    void (*set_packet_received_callback)(void (*f)(const char *, size_t));
-
-    void (*reclaim_send_buffers)(void);
-    void (*reclaim_receive_buffers)(void);
-
-    void (*flush_send)(void);
-} pok_network_driver_ops_t;
+struct network_driver_ops;
 
 typedef struct {
     uint8_t *mac;
-    const pok_network_driver_ops_t *ops;
+    const struct network_driver_ops *ops;
 } pok_netdevice_t;
+
+//XXX maybe pok_bool_t is a bad choice
+typedef struct network_driver_ops{
+    pok_bool_t (*send_frame)(
+            pok_netdevice_t *dev,
+            char *buffer,
+            size_t size,
+            pok_network_buffer_callback_t callback,
+            void *callback_arg);
+
+    pok_bool_t (*send_frame_gather)(
+            pok_netdevice_t *dev,
+            const pok_network_sg_list_t *sg_list,
+            size_t sg_list_len,
+            pok_network_buffer_callback_t callback,
+            void *callback_arg);
+
+    void (*set_packet_received_callback)(
+            pok_netdevice_t *dev,
+            void (*f)(const char *, size_t));
+
+    void (*reclaim_send_buffers)(pok_netdevice_t *dev);
+    void (*reclaim_receive_buffers)(pok_netdevice_t *dev);
+
+    void (*flush_send)(pok_netdevice_t *dev);
+} pok_network_driver_ops_t;
+
 
 /*
  * Must be called early when the kernel is
