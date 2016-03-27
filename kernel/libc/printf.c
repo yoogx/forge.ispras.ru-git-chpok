@@ -337,6 +337,7 @@ void snprintf(char *dst, unsigned size, const char *format, ...)
     va_list args;
     va_start(args, format);
     vprintf(sprintf_putc, &out, format, &args);
+    sprintf_putc('\0', &out);
     va_end(args);
 }
 
