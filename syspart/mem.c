@@ -1,15 +1,13 @@
 #include <types.h>
 #include <stdio.h>
-#include <memory.h>
 
 #define MEMSIZE 0xa000 //should be enough for virtio
 
 char start[MEMSIZE];
-//static void * start = (void *)0x4000000;
-//static void * start = (void *)0x80010000;
+
 static char * end = NULL;
 
-void * driver_mem_alloc (size_t sz)
+void *smalloc(size_t sz)
 {
     char *res;
 
@@ -25,10 +23,10 @@ void * driver_mem_alloc (size_t sz)
     return res;
 }
 
-void * driver_mem_alloc_aligned(size_t mem_size, size_t alignment) 
+void *smalloc_aligned(size_t mem_size, size_t alignment)
 {
     if (alignment == 4096) {
-        return driver_mem_alloc(mem_size);
+        return smalloc(mem_size);
     } else {
         printf("Unsuported alignment");
         return NULL;

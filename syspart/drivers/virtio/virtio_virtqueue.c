@@ -16,14 +16,14 @@
  */
 #include "virtio_virtqueue.h"
 
-#include "mem.h"
+#include <mem.h>
 #include <string.h>
 
 void* virtio_virtqueue_setup(struct virtio_virtqueue *vq, uint16_t size, size_t alignment)
 {
     size_t mem_size = vring_size(size, alignment);
 
-    void *mem = driver_mem_alloc_aligned(mem_size, alignment);
+    void *mem = smalloc_aligned(mem_size, alignment);
     memset(mem, 0, mem_size);
 
     vring_init(&vq->vring, size, mem, alignment);
@@ -45,5 +45,5 @@ void* virtio_virtqueue_setup(struct virtio_virtqueue *vq, uint16_t size, size_t 
 
 void virtio_virtqueue_allocate_callbacks(struct virtio_virtqueue *vq)
 {
-    vq->callbacks = driver_mem_alloc(sizeof(vq->callbacks[0]) * vq->vring.num);
+    vq->callbacks = smalloc(sizeof(vq->callbacks[0]) * vq->vring.num);
 }
