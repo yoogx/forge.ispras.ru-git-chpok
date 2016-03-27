@@ -10,7 +10,8 @@ syspart_env['CPPPATH'] = [env['POK_PATH']+'/libpok/include',
 syspart_env.Program(target = 'syspart.lo', source = [
     'net/net.lo',
     'drivers/drivers.lo',
-    'config.c'
+    'config.c',
+    'mem.c'
 ])
 
 Export('syspart_env')

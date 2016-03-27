@@ -1,34 +1,31 @@
 #include <types.h>
 #include <stdio.h>
 
-#define MEMSIZE 0xa000 //should be enough for virtio
+extern char dynamic_memory[];
+extern unsigned dynamic_memory_size;
+#define ALIGN_UP(addr,size) (((addr)+((size)-1))&(~((size)-1)))
 
-char start[MEMSIZE];
 
 static char * end = NULL;
 
-void *smalloc(size_t sz)
+void *smalloc_aligned(size_t sz, size_t alignment)
 {
     char *res;
-
     if (!end)
-        end = start;
+        end = dynamic_memory;
 
-    res = (char *)(((unsigned) end + 4095) & ~4095);
+    res = (char *) ALIGN_UP((uintptr_t)end, alignment);
     end = res + sz;
-    if ((unsigned)end > (unsigned)start + MEMSIZE) {
+    if ((uintptr_t)end > (uintptr_t)dynamic_memory + dynamic_memory_size) {
         printf("Needs more memory!\n");
         return NULL;
     }
     return res;
 }
 
-void *smalloc_aligned(size_t mem_size, size_t alignment)
+void *smalloc(size_t sz)
 {
-    if (alignment == 4096) {
-        return smalloc(mem_size);
-    } else {
-        printf("Unsuported alignment");
-        return NULL;
-    }
+    //in PPC every memory access must be 4-byte aligned
+    return smalloc_aligned(sz, 4);
 }
+
