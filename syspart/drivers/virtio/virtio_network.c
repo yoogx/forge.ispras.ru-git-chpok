@@ -34,6 +34,8 @@
 #include "virtio_net.h"
 
 #include <net/netdevices.h>
+#include <net/network.h>
+#include <mem.h>
 
 #define VIRTIO_PCI_VENDORID 0x1AF4
 
@@ -44,6 +46,7 @@
 #define POK_MAX_RECEIVE_BUFFERS 100
 #define DRV_NAME "virtio-net"
 #define DEV_NAME_PREFIX DRV_NAME
+#define DEV_NAME_LEN 20
 
 #define PRINTF(fmt, ...) printf("virtio_network: " fmt, ##__VA_ARGS__)
 
@@ -65,10 +68,6 @@ struct virtio_network_device {
     struct receive_buffer receive_buffers[POK_MAX_RECEIVE_BUFFERS];
 };
 
-
-
-// the device (statically allocated)
-static struct virtio_network_device WILL_BE_DELETED_virtio_network_device;
 
 /*
  * When we're in interrupt context (e.g. system call or timer),
@@ -393,12 +392,6 @@ static const pok_network_driver_ops_t driver_ops = {
     .flush_send = flush_send,
 };
 
-pok_netdevice_t pok_network_virtio_device = {
-    .ops = &driver_ops,
-    .mac = WILL_BE_DELETED_virtio_network_device.mac,
-    .info = &WILL_BE_DELETED_virtio_network_device
-};
-
 
 /*
  * PCI part
@@ -406,7 +399,8 @@ pok_netdevice_t pok_network_virtio_device = {
 
 static pok_bool_t probe_device(struct pci_device *pci_dev)
 {
-    struct virtio_network_device *dev = &WILL_BE_DELETED_virtio_network_device;
+    static int dev_count = 0;
+    struct virtio_network_device *dev = smalloc(sizeof(*dev));
 
     dev->pci_device = *pci_dev;
     //TODO change to ioaddr everywhere
@@ -455,9 +449,16 @@ static pok_bool_t probe_device(struct pci_device *pci_dev)
     // 6. DRIVER_OK status bit
     set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_DRIVER_OK);
 
-    //PRINTF("the device has been successfully initialized\n");
-    //
-    register_netdevice(DEV_NAME_PREFIX"0", &pok_network_virtio_device);
+
+    /* create netdevice structure */
+    pok_netdevice_t *netdevice = smalloc(sizeof(*netdevice));
+    netdevice->ops = &driver_ops,
+    netdevice->mac = dev->mac,
+    netdevice->info = dev;
+    char *name = smalloc(DEV_NAME_LEN);
+    snprintf(name, 30, DEV_NAME_PREFIX"%d", dev_count);
+    register_netdevice(name, netdevice);
+    dev_count += 1;
 
     return TRUE;
 }
