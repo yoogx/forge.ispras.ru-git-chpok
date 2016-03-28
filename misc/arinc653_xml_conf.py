@@ -53,16 +53,14 @@ class ArincConfigParser:
 
         conf = chpok_configuration.Configuration()
 
-        partname_to_index = {}
+        # partname_to_index = {}
 
-        for i, part in enumerate(root.find("Partitions").findall("Partition")):
-            conf.partitions.append(self.parse_partition(part))
+        for part_root in root.find("Partitions").findall("Partition"):
+            self.parse_partition(conf, part_root)
 
-            partname_to_index[part.find("Definition").attrib["Name"]] = i
+        self.parse_schedule(conf, root.find("Schedule"))
 
-        conf.slots = self.parse_schedule(root.find("Schedule"), partname_to_index)
-
-        conf.channels = self.parse_channels(root.find("Connection_Table"), conf)
+        self.parse_channels(conf, root.find("Connection_Table"))
 
         conf.network = self.parse_network(root.find("Network"))
         
@@ -70,112 +68,106 @@ class ArincConfigParser:
 
         return conf
     
-    def parse_partition(self, root):
-        res = chpok_configuration.Partition()
+    def parse_partition(self, conf, part_root):
+        part_name = part_root.find("Definition").attrib["Name"]
 
-        # FIXME identifier is currently ignored
-        res.name = root.find("Definition").attrib["Name"]
+        part_size = parse_bytes(part_root.find("Memory").attrib["Bytes"])
+
+        # FIXME support partition period, which is simply a fixed attribute
+        #       with no real meaning (except it can be introspected)
+        part = conf.add_partition(part_name, part_size)
 
         # FIXME support partition period, which is simply a fixed attribute
         #       with no real meaning (except it can be introspected)
 
-        res.size = parse_bytes(root.find("Memory").attrib["Bytes"])
-        res.num_threads = int(root.find("Threads").attrib["Count"])
+        part.num_threads = int(part_root.find("Threads").attrib["Count"])
 
-        res.num_arinc653_buffers = int(root.find("ARINC653_Buffers").attrib["Count"])
-        res.num_arinc653_blackboards = int(root.find("ARINC653_Blackboards").attrib["Count"])
-        res.num_arinc653_events = int(root.find("ARINC653_Events").attrib["Count"])
-        res.num_arinc653_semaphores = int(root.find("ARINC653_Semaphores").attrib["Count"])
+        part.num_arinc653_buffers = int(part_root.find("ARINC653_Buffers").attrib["Count"])
+        part.num_arinc653_blackboards = int(part_root.find("ARINC653_Blackboards").attrib["Count"])
+        part.num_arinc653_events = int(part_root.find("ARINC653_Events").attrib["Count"])
+        part.num_arinc653_semaphores = int(part_root.find("ARINC653_Semaphores").attrib["Count"])
 
-        res.buffer_data_size = parse_bytes(root.find("ARINC653_Buffers").attrib["Data_Size"])
-        res.blackboard_data_size = parse_bytes(root.find("ARINC653_Blackboards").attrib["Data_Size"])
+        part.buffer_data_size = parse_bytes(part_root.find("ARINC653_Buffers").attrib["Data_Size"])
+        part.blackboard_data_size = parse_bytes(part_root.find("ARINC653_Blackboards").attrib["Data_Size"])
 
-        res.ports = self.parse_ports(root.find("ARINC653_Ports"))
+        self.parse_ports(part, part_root.find("ARINC653_Ports"))
 
-        res.hm_table = self.parse_hm(root.find("HM_Table"))
+        part.hm_table = self.parse_hm(part_root.find("HM_Table"))
 
-        return res
-
-    def parse_schedule(self, root, partname_to_index):
-        slots = []
-
-        for x in root.findall("Slot"):
+    def parse_schedule(self, conf, slot_root):
+        for x in slot_root.findall("Slot"):
             slot_type = x.attrib["Type"]
 
+            slot_duration = parse_time(x.attrib["Duration"])
+            slot = None
+
             if slot_type == "Spare":
-                s = chpok_configuration.TimeSlotSpare()
+                slot = chpok_configuration.TimeSlotSpare(slot_duration)
             elif slot_type == "Partition":
-                s = chpok_configuration.TimeSlotPartition()
-                s.partition = partname_to_index[x.attrib["PartitionNameRef"]]
-                s.periodic_processing_start = parse_bool(x.attrib["PeriodicProcessingStart"])
-                s.name=x.attrib["PartitionNameRef"]
+                slot_partition = conf.get_partition_by_name(x.attrib["PartitionNameRef"])
+                slot_periodic_processing_start = parse_bool(x.attrib["PeriodicProcessingStart"])
+
+                slot = chpok_configuration.TimeSlotPartition(slot_duration,
+                    slot_partition, slot_periodic_processing_start)
             elif slot_type == "Network":
-                s = chpok_configuration.TimeSlotNetwork()
+                slot = chpok_configuration.TimeSlotNetwork(slot_duration)
             elif slot_type == "Monitor":
-                s = chpok_configuration.TimeSlotMonitor()
+                slot = chpok_configuration.TimeSlotMonitor(slot_duration)
             else:
                 raise ValueError("unknown slot type %r" % slot_type)
 
-            s.duration = parse_time(x.attrib["Duration"])
+            conf.add_time_slot(slot)
 
-            slots.append(s)
+    def parse_ports(self, part, ports_root):
+        for qp in ports_root.findall("Queueing_Port"):
+            port_name = qp.attrib["Name"]
+            port_direction = qp.attrib["Direction"]
+            port_max_message_size = int(qp.attrib["MaxMessageSize"])
+            port_max_nb_messages = int(qp.attrib["MaxNbMessage"])
 
-        return slots
+            port = chpok_configuration.QueueingPort(port_name, port_direction,
+                port_max_message_size, port_max_nb_messages)
 
-    def parse_ports(self, root):
-        res = []
+            part.add_port_queueing(port)
 
-        for qp in root.findall("Queueing_Port"):
-            p = chpok_configuration.QueueingPort()
+        for sp in ports_root.findall("Sampling_Port"):
+            port_name = sp.attrib["Name"]
+            port_direction = sp.attrib["Direction"]
+            port_max_message_size = int(sp.attrib["MaxMessageSize"])
+            port_refresh = parse_time(sp.attrib["Refresh"])
 
-            p.name = qp.attrib["Name"]
-            p.direction = qp.attrib["Direction"]
-            p.max_nb_messages = int(qp.attrib["MaxNbMessage"])
-            p.max_message_size = int(qp.attrib["MaxMessageSize"])
+            port = chpok_configuration.SamplingPort(port_name, port_direction,
+                port_max_message_size, port_refresh)
 
-            res.append(p)
+            part.add_port_sampling(port)
 
-        for sp in root.findall("Sampling_Port"):
-            p = chpok_configuration.SamplingPort()
-            
-            p.name = sp.attrib["Name"]
-            p.direction = sp.attrib["Direction"]
-            p.max_message_size = int(sp.attrib["MaxMessageSize"])
-            p.refresh = parse_time(sp.attrib["Refresh"])
+    def parse_channels(self, conf, channels_root):
+        for ch in channels_root.findall("Channel") if channels_root else []:
 
-            res.append(p)
+            src = self.parse_connection(conf, ch.find("Source")[0])
+            dst = self.parse_connection(conf, ch.find("Destination")[0])
 
-        return res
+            conf.add_channel(src, dst)
 
-    def parse_channels(self, root, conf):
-        res = []
-
-        for ch in root.findall("Channel") if root else []:
-            x = chpok_configuration.Channel()
-            x.src = self.parse_connection(ch.find("Source")[0], conf)
-            x.dst = self.parse_connection(ch.find("Destination")[0], conf)
-
-            res.append(x)
-
-        return res
-
-    def parse_connection(self, root, conf):
-        if root.tag == "Standard_Partition":
-            res = chpok_configuration.LocalConnection()
-            res.port = conf.get_port_by_partition_and_name(
+    def parse_connection(self, conf, connection_root):
+        if connection_root.tag == "Standard_Partition":
+            port = conf.get_port_by_partition_and_name(
                 root.attrib["PartitionName"],
                 root.attrib["PortName"]
             )
-        elif root.tag == "UDP":
+
+            return chpok_configuration.LocalConnection(port)
+
+        elif connection_root.tag == "UDP":
             res = chpok_configuration.UDPConnection()
 
             #print('ipaddr: ', root.attrib['IP'])
             res.host = ipaddr.IPAddress(root.attrib["IP"])
             res.port = int(root.attrib["Port"])
-        else:
-            raise RuntimeError("unknown connection tag name %r" % root.tag)
 
-        return res
+            return res
+        else:
+            raise RuntimeError("unknown connection tag name %r" % connection_root.tag)
 
     def parse_network(self, root):
         if root is None:
@@ -236,3 +228,4 @@ def main():
 if __name__ == "__main__":
     main()
 '''
+

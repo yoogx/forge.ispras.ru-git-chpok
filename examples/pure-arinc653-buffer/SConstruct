@@ -10,6 +10,9 @@ import arinc653_xml_conf
 import chpok_configuration
 import xml.etree.ElementTree as ET
 
+import template_generation
+
+
 boards = ['e500mc', 'e500_highmem', 'p3041', 'x86-qemu']
 
 vars = Variables()
@@ -19,6 +22,18 @@ vars.AddVariables(
 )
 
 env = Environment(variables = vars, ENV = os.environ)
+AddMethod(env, template_generation.TemplateRender)
+
+def get_pok_tree(source, env):
+    if type(source) is list:
+        source = source[0]
+
+    root = ET.parse(source.path)
+
+    parser = arinc653_xml_conf.ArincConfigParser()
+    conf = parser.parse(root)
+
+    return dict(conf=conf)
 
 Help(vars.GenerateHelpText(env))
 
@@ -28,15 +43,23 @@ env['SCONSTRUCT_DIR'] = Dir('.').abspath
 
 # this prevents config parsing when we don't need to build
 if not COMMAND_LINE_TARGETS and not env.GetOption('clean') and not env.GetOption('help'):
-    root = ET.parse(env['xml'])
-    
-    parser = arinc653_xml_conf.ArincConfigParser()
-    conf = parser.parse(root)
-    
-    partition_dirs = ("pr%d" % i for i in itertools.count(1))
-    partition_dirs = list(itertools.islice(partition_dirs, 255)) # XXX limited to 255 partitions right now
-    chpok_configuration.write_configuration(conf, 'kernel', partition_dirs)
-    Command("kernel/deployment.c", "kernel/deployment_new.c", Copy("$TARGET", "$SOURCE"))
+    #root = ET.parse(env['xml'])
+
+    #parser = arinc653_xml_conf.ArincConfigParser()
+    #conf = parser.parse(root)
+
+    #partition_dirs = ("pr%d" % i for i in itertools.count(1))
+    #partition_dirs = list(itertools.islice(partition_dirs, 255)) # XXX limited to 255 partitions right now
+    #chpok_configuration.write_configuration(conf, 'kernel', partition_dirs)
+    #Command("kernel/deployment.c", "kernel/deployment_new.c", Copy("$TARGET", "$SOURCE"))
+    env.TemplateRender(
+        target = "kernel/deployment.c",
+        source = "config.xml",
+        create_tree_func = get_pok_tree,
+        template_main = "deployment_kernel",
+        template_dir = env['POK_PATH'] + "/misc/templates"
+        )
+    pass
 
 Export('env')
 
