@@ -4,9 +4,9 @@
 
 const uint32_t pok_network_ip_address = MY_IP;
 
-sys_link_t sys_queuing_links[] = {
+sys_channel_t sys_queuing_channels[] = {
     {
-        .port_id = 1,
+        .port_index = 1,
         .protocol = UDP,
         .udp_data = { //destination module ip
             .ip = IP_ADDR(192, 168, 160, 99),
@@ -14,7 +14,7 @@ sys_link_t sys_queuing_links[] = {
         }
     },
     {
-        .port_id = 0,
+        .port_index = 0,
         .protocol = UDP,
         .udp_data = {
             .ip = MY_IP,
@@ -22,11 +22,11 @@ sys_link_t sys_queuing_links[] = {
         }
     },
 };
-unsigned sys_queuing_links_nb = ARRAY_SIZE(sys_queuing_links);
+unsigned sys_queuing_channels_nb = ARRAY_SIZE(sys_queuing_channels);
 
-sys_link_t sys_sampling_links[] = {
+sys_channel_t sys_sampling_channels[] = {
 };
-unsigned sys_sampling_links_nb = ARRAY_SIZE(sys_sampling_links);
+unsigned sys_sampling_channels_nb = ARRAY_SIZE(sys_sampling_channels);
 
 struct mac_ip mac_addr_mapping[] = {
     {
@@ -43,7 +43,7 @@ struct mac_ip mac_addr_mapping[] = {
     }
 };
 
-unsigned mac_addr_mapping_nb = ARRAY_SIZE(sys_sampling_links);
+unsigned mac_addr_mapping_nb = ARRAY_SIZE(sys_sampling_channels);
 
 
 void drivers_init()

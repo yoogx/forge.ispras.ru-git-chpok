@@ -29,13 +29,13 @@ typedef struct {
 
 typedef struct
 {
-    uint32_t port_id;
+    uint32_t port_index;
 
     enum protocol_kind protocol;
     union {
         udp_data_t udp_data; //destination data!
     };
-} sys_link_t;
+} sys_channel_t;
 
 
 struct mac_ip {
@@ -43,10 +43,10 @@ struct mac_ip {
     uint8_t mac[6];
 };
 
-extern unsigned sys_sampling_links_nb;
-extern sys_link_t sys_sampling_links[];
-extern unsigned sys_queuing_links_nb;
-extern sys_link_t sys_queuing_links[];
+extern unsigned sys_sampling_channels_nb;
+extern sys_channel_t sys_sampling_channels[];
+extern unsigned sys_queuing_channels_nb;
+extern sys_channel_t sys_queuing_channels[];
 extern struct mac_ip mac_addr_mapping[];
 extern unsigned mac_addr_mapping_nb;
 void drivers_init(void);

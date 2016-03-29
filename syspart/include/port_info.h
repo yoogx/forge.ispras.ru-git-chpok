@@ -29,7 +29,7 @@ typedef struct
 {
     MESSAGE_SIZE_TYPE message_size;
     enum QUEUING_STATUS status;
-    uint32_t port_id;
+    uint32_t port_index;
     char     data[];
 } sys_queuing_data_t;
 

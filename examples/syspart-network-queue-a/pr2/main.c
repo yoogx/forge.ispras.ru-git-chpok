@@ -12,11 +12,11 @@
 
 #define SECOND 1000000000LL
 
-static void queuing_send_to_partition(unsigned link_idx, MESSAGE_ADDR_TYPE payload, size_t length)
+static void queuing_send_to_partition(unsigned channel_idx, MESSAGE_ADDR_TYPE payload, size_t length)
 {
     RETURN_CODE_TYPE ret;
-    sys_link_t link = sys_queuing_links[link_idx];
-    sys_queuing_port_t *port = &sys_queuing_ports[link.port_id];
+    sys_channel_t channel = sys_queuing_channels[channel_idx];
+    sys_queuing_port_t *port = &sys_queuing_ports[channel.port_index];
 
     SEND_QUEUING_MESSAGE(
             port->id,
@@ -32,10 +32,10 @@ static void queuing_send_to_partition(unsigned link_idx, MESSAGE_ADDR_TYPE paylo
     }
 }
 
-static void sampling_send_to_partition(unsigned link_idx, MESSAGE_ADDR_TYPE payload, size_t length)
+static void sampling_send_to_partition(unsigned channel_idx, MESSAGE_ADDR_TYPE payload, size_t length)
 {
-    sys_link_t link = sys_sampling_links[link_idx];
-    sys_sampling_port_t *port = &sys_sampling_ports[link.port_id];
+    sys_channel_t channel = sys_sampling_channels[channel_idx];
+    sys_sampling_port_t *port = &sys_sampling_ports[channel.port_index];
     RETURN_CODE_TYPE ret;
 
     WRITE_SAMPLING_MESSAGE(
@@ -56,13 +56,13 @@ static pok_bool_t udp_received_callback(
         const char *payload, 
         size_t length) 
 {
-    for (int i = 0; i<sys_sampling_links_nb; i++) {
-        sys_link_t *s_link = &sys_sampling_links[i];
-        if (s_link->protocol != UDP)
+    for (int i = 0; i<sys_sampling_channels_nb; i++) {
+        sys_channel_t *s_channel = &sys_sampling_channels[i];
+        if (s_channel->protocol != UDP)
             continue;
 
-        sys_sampling_port_t *port = &sys_sampling_ports[s_link->port_id];
-        udp_data_t udp_data = s_link->udp_data;
+        sys_sampling_port_t *port = &sys_sampling_ports[s_channel->port_index];
+        udp_data_t udp_data = s_channel->udp_data;
 
         if (port->header.direction != SOURCE)
             continue;
@@ -72,13 +72,13 @@ static pok_bool_t udp_received_callback(
         sampling_send_to_partition(i, (MESSAGE_ADDR_TYPE) payload, length);
     }
 
-    for (int i = 0; i<sys_queuing_links_nb; i++) {
-        sys_link_t *q_link = &sys_queuing_links[i];
-        if (q_link->protocol != UDP)
+    for (int i = 0; i<sys_queuing_channels_nb; i++) {
+        sys_channel_t *q_channel = &sys_queuing_channels[i];
+        if (q_channel->protocol != UDP)
             continue;
 
-        sys_queuing_port_t *port = &sys_queuing_ports[q_link->port_id];
-        udp_data_t udp_data = q_link->udp_data;
+        sys_queuing_port_t *port = &sys_queuing_ports[q_channel->port_index];
+        udp_data_t udp_data = q_channel->udp_data;
 
         if (port->header.direction != SOURCE)
             continue;
@@ -95,7 +95,7 @@ static void udp_sent_queueing_callback(void *arg)
 {
     sys_queuing_data_t *qdata = arg;
     qdata->status = QUEUING_STATUS_SENT;
-    sys_queuing_port_t *port = &sys_queuing_ports[qdata->port_id];
+    sys_queuing_port_t *port = &sys_queuing_ports[qdata->port_index];
 
     for (int i = 0; i < port->nb_message; i++) {
         sys_queuing_data_t *cur_data = utils_queue_head(port);
@@ -121,12 +121,12 @@ static void udp_sent_sampling_callback(void *arg) {
     *var = FALSE;
 }
 
-static void queueing_send_outside(unsigned link_idx)
+static void queueing_send_outside(unsigned channel_idx)
 {
-    sys_link_t link = sys_queuing_links[link_idx];
+    sys_channel_t channel = sys_queuing_channels[channel_idx];
     RETURN_CODE_TYPE ret;
 
-    sys_queuing_port_t *port = &sys_queuing_ports[link.port_id];
+    sys_queuing_port_t *port = &sys_queuing_ports[channel.port_index];
 
     while (!utils_queue_full(port)) {
 
@@ -156,12 +156,12 @@ static void queueing_send_outside(unsigned link_idx)
 
         port->nb_message++;
 
-        if (link.protocol == UDP) {
+        if (channel.protocol == UDP) {
             pok_bool_t res = pok_network_send_udp(
                     dst_place->data,
                     dst_place->message_size,
-                    link.udp_data.ip,
-                    link.udp_data.port,
+                    channel.udp_data.ip,
+                    channel.udp_data.port,
                     udp_sent_queueing_callback,
                     (void*) dst_place
                     );
@@ -171,18 +171,18 @@ static void queueing_send_outside(unsigned link_idx)
         }
 
         dst_place->status = QUEUING_STATUS_PENDING;
-        dst_place->port_id = link.port_id;
+        dst_place->port_index = channel.port_index;
         pok_network_flush_send();
     }
 }
 
-static void sampling_send_outside(unsigned link_idx)
+static void sampling_send_outside(unsigned channel_idx)
 {
     RETURN_CODE_TYPE ret;
     VALIDITY_TYPE validity;
 
-    sys_link_t link = sys_sampling_links[link_idx];
-    sys_sampling_port_t *port = &sys_sampling_ports[link.port_id];
+    sys_channel_t channel = sys_sampling_channels[channel_idx];
+    sys_sampling_port_t *port = &sys_sampling_ports[channel.port_index];
     sys_port_data_t *dst_place = port->data;
 
     if (!SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(port->id))
@@ -210,12 +210,12 @@ static void sampling_send_outside(unsigned link_idx)
 
     dst_place->busy = TRUE;
 
-    if (link.protocol == UDP) {
+    if (channel.protocol == UDP) {
         pok_bool_t res = pok_network_send_udp(
                 dst_place->data,
                 dst_place->message_size,
-                link.udp_data.ip,
-                link.udp_data.port,
+                channel.udp_data.ip,
+                channel.udp_data.port,
                 udp_sent_sampling_callback,
                 &dst_place->busy
                 );
@@ -230,9 +230,9 @@ static void sampling_send_outside(unsigned link_idx)
 static void first_process(void)
 {
     while(1) {
-        for (int i = 0; i<sys_sampling_links_nb; i++) {
-            sys_link_t *link = &sys_sampling_links[i];
-            sys_sampling_port_t *port = &sys_sampling_ports[link->port_id];
+        for (int i = 0; i<sys_sampling_channels_nb; i++) {
+            sys_channel_t *channel = &sys_sampling_channels[i];
+            sys_sampling_port_t *port = &sys_sampling_ports[channel->port_index];
 
             if (port->header.direction != DESTINATION)
                 break;
@@ -241,9 +241,9 @@ static void first_process(void)
             pok_network_reclaim_send_buffers();
         }
 
-        for (int i = 0; i<sys_queuing_links_nb; i++) {
-            sys_link_t *link = &sys_queuing_links[i];
-            sys_queuing_port_t *port = &sys_queuing_ports[link->port_id];
+        for (int i = 0; i<sys_queuing_channels_nb; i++) {
+            sys_channel_t *channel = &sys_queuing_channels[i];
+            sys_queuing_port_t *port = &sys_queuing_ports[channel->port_index];
 
             if (port->header.direction != DESTINATION)
                 break;
