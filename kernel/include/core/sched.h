@@ -119,9 +119,9 @@ void pok_sched_lock_current_thread(void);
 void pok_sched_lock_current_thread_timed(uint64_t time);
 
 pok_ret_t pok_sched_end_period(void);
-pok_ret_t pok_sched_replenish(int64_t budget);
+pok_ret_t pok_sched_replenish(pok_time_t* budget);
 
-uint32_t pok_sched_get_current(pok_thread_id_t *thread_id);
+pok_ret_t pok_sched_get_current(pok_thread_id_t *thread_id);
 
 #endif /* POK_NEEDS.... */
 

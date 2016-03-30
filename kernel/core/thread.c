@@ -232,29 +232,25 @@ void pok_thread_start(void (*entry)(), unsigned int id)
 }
 
 #ifdef POK_NEEDS_THREAD_SLEEP
-pok_ret_t pok_thread_sleep(int64_t time)
+pok_ret_t pok_thread_sleep(pok_time_t* time)
 {
     pok_thread_t *thread = &pok_threads[POK_SCHED_CURRENT_THREAD];
-    
-    if (pok_thread_is_periodic(thread)) {
-        return POK_ERRNO_MODE;
-    }
-    
+
     if (POK_CURRENT_PARTITION.lock_level > 0 || 
         pok_thread_is_error_handling(thread)) 
     {
         return POK_ERRNO_MODE;
     }
     
-    if (time == 0) {
+    if (*time == 0) {
         return POK_ERRNO_OK;
     }
     
     uint64_t wakeup_time;
-    if (time < 0) {
+    if (*time < 0) {
         wakeup_time = (uint64_t) -1; // TODO find a better way
     } else {
-        wakeup_time = POK_GETTICK() + time;
+        wakeup_time = POK_GETTICK() + *time;
     }
     
     POK_CURRENT_THREAD.state = POK_STATE_WAITING;
@@ -267,9 +263,9 @@ pok_ret_t pok_thread_sleep(int64_t time)
 #endif
 
 #ifdef POK_NEEDS_THREAD_SLEEP_UNTIL
-pok_ret_t pok_thread_sleep_until(uint64_t time)
+pok_ret_t pok_thread_sleep_until(pok_time_t* time)
 {
-   pok_sched_lock_current_thread_timed((uint64_t)time);
+   pok_sched_lock_current_thread_timed((uint64_t)(*time));
    pok_sched();
    return POK_ERRNO_OK;
 }
@@ -281,8 +277,9 @@ pok_ret_t pok_thread_yield (void)
    return POK_ERRNO_OK;
 }
 
-pok_ret_t pok_thread_delayed_start (pok_thread_id_t id, int64_t ms)
+pok_ret_t pok_thread_delayed_start (pok_thread_id_t id, pok_time_t* time)
 {
+    pok_time_t ms = *time;
     if (!pok_thread_is_valid_and_created(&pok_threads[id], &POK_CURRENT_PARTITION)) {
         return POK_ERRNO_THREADATTR;
     }
@@ -496,8 +493,9 @@ pok_ret_t pok_thread_suspend_target(pok_thread_id_t id)
     return POK_ERRNO_OK;
 }
 
-pok_ret_t pok_thread_suspend(int64_t ms)
+pok_ret_t pok_thread_suspend(pok_time_t* time)
 {
+    int64_t ms = *time;
     pok_thread_t *thread = &pok_threads[POK_SCHED_CURRENT_THREAD];
 
     if (pok_thread_is_error_handling(thread)) {

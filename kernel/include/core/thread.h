@@ -290,16 +290,16 @@ typedef struct
 
 void            pok_thread_init(void);
 pok_ret_t       pok_thread_create (pok_thread_id_t* thread_id, const pok_thread_attr_t* attr);
-pok_ret_t       pok_thread_sleep(int64_t ms);
-pok_ret_t       pok_thread_sleep_until(uint64_t ms);
+pok_ret_t       pok_thread_sleep(pok_time_t* time);
+pok_ret_t       pok_thread_sleep_until(pok_time_t* time);
 void            pok_thread_start(void (*entry)(), unsigned int id);
-pok_ret_t       pok_thread_suspend(int64_t ms);
+pok_ret_t       pok_thread_suspend(pok_time_t* time);
 pok_ret_t       pok_thread_suspend_target(pok_thread_id_t id);
 pok_ret_t       pok_thread_stop(void);
 pok_ret_t       pok_thread_stop_target(pok_thread_id_t);
-pok_ret_t       pok_thread_delayed_start (pok_thread_id_t id, int64_t ms);
+pok_ret_t       pok_thread_delayed_start (pok_thread_id_t id, pok_time_t* time);
 pok_ret_t       pok_thread_get_status(pok_thread_id_t id, pok_thread_status_t *attr);
-pok_ret_t       pok_thread_set_priority(pok_thread_id_t id, const uint32_t priority);
+pok_ret_t       pok_thread_set_priority(pok_thread_id_t id, uint32_t priority);
 pok_ret_t       pok_thread_resume(pok_thread_id_t id);
 pok_ret_t       pok_thread_yield(void);
 

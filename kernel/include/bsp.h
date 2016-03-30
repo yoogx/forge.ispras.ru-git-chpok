@@ -59,20 +59,6 @@ int read_serial_0();
 int data_to_read_1();
 int read_serial_1();
 
-#define BUF_MAX_SIZE 1000
-
-struct port_buf{
-    char data[BUF_MAX_SIZE];
-    /*
-     * Number of last read symbol
-     */    
-    int last_read;
-    /*
-     * Number of last written symbol
-     */
-    int last_write;
-};
-
 
 #ifdef POK_NEEDS_DEBUG
 void pok_bsp_debug();

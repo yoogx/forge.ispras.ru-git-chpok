@@ -459,7 +459,7 @@ define test2
     end
 
 define add_new_inferior
-    eval "add-inferior -copies 1 -exec pr%d/pr%d.elf", $arg0, $arg0
+    eval "add-inferior -copies 1 -exec P%d/build/e500mc/part.elf", $arg0
     eval "inferior %d", $arg0 + 1
     eval "attach %d", $arg0 + 1
     end

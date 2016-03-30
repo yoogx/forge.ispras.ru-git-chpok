@@ -59,7 +59,7 @@ pok_ret_t pok_port_sampling_create(
     const char*                            name, 
     const pok_port_size_t                  size, 
     const pok_port_direction_t             direction,
-    const uint64_t                         refresh,
+    const pok_time_t*                      refresh,
     pok_port_id_t*                         id)
 {
     // first, find the port in the array
@@ -107,7 +107,10 @@ pok_ret_t pok_port_sampling_create(
 
     *id = index;
     port->header.created = TRUE;
-    port->refresh = refresh;
+    port->refresh = *refresh;
+    port->last_receive = 0;
+    port->last_validity = FALSE;
+    port->not_empty = FALSE;
 
     return POK_ERRNO_OK;
 }

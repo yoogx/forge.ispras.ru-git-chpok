@@ -9,6 +9,10 @@
 //#define POK_NEEDS_LIBMATH 1
 //#define POK_NEEDS_ZERO_DIVISION_EXCEPTION 1
 
+/* Configuration from kernel starts*/
+#define POK_NEEDS_THREAD_SLEEP 1
+/* Configuration from kernel ends*/
+
 #define POK_NEEDS_LIBC_STDLIB 1
 #define POK_CONFIG_NEEDS_FUNC_MEMCPY         1
 #define POK_CONFIG_NEEDS_FUNC_MEMSET         1

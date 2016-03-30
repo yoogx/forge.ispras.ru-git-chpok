@@ -6,10 +6,9 @@ cflags = ''
 SConscript(os.environ['POK_PATH']+'/misc/SConscript', exports = 'cflags')
 
 Import('env')
-SConscript(env['POK_PATH']+'/misc/SConscript_base')
+SConscript(env['POK_PATH']+'/misc/SConscript_partition_base')
 
 env.Clean('chpok', env['POK_PATH']+'/build/')
-env.Clean('local', ['build/', [pdir+'/build' for pdir in env['PARTITION_DIRS']]])
-
+env.Clean('local', 'build')
 
 # EOF
