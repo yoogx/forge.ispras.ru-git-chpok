@@ -1,27 +1,42 @@
 #include <sysconfig.h>
+#include <channel_driver.h>
 
 #define MY_IP IP_ADDR(192, 168, 160, 200)
 
 const uint32_t pok_network_ip_address = MY_IP;
 
+udp_data_t ipnet_data_0 = { //destination module ip
+    .ip = IP_ADDR(192, 168, 160, 99),
+    .port = 10000,
+};
+
+udp_data_t ipnet_data_1 = {
+    .ip = MY_IP,
+    .port = 10000,
+};
+
+//TODO
+extern channel_driver_t ipnet_channel_driver;
+
 sys_channel_t sys_queuing_channels[] = {
     {
         .port_index = 1,
-        .protocol = UDP,
-        .udp_data = { //destination module ip
-            .ip = IP_ADDR(192, 168, 160, 99),
-            .port = 10000,
-        }
+        .driver_name = "ipnet",
+        .driver_data = &ipnet_data_0,
+
+//TMP
+        .driver_ptr = &ipnet_channel_driver,
     },
     {
         .port_index = 0,
-        .protocol = UDP,
-        .udp_data = {
-            .ip = MY_IP,
-            .port = 10000,
-        }
+        .driver_name = "ipnet",
+        .driver_data = &ipnet_data_1,
+
+//TMP
+        .driver_ptr = &ipnet_channel_driver,
     },
 };
+
 unsigned sys_queuing_channels_nb = ARRAY_SIZE(sys_queuing_channels);
 
 sys_channel_t sys_sampling_channels[] = {

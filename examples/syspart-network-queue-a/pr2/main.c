@@ -58,15 +58,16 @@ static pok_bool_t udp_received_callback(
 {
     for (int i = 0; i<sys_sampling_channels_nb; i++) {
         sys_channel_t *s_channel = &sys_sampling_channels[i];
-        if (s_channel->protocol != UDP)
-            continue;
+        //TODO
+        //if (s_channel->protocol != UDP)
+        //    continue;
 
         sys_sampling_port_t *port = &sys_sampling_ports[s_channel->port_index];
-        udp_data_t udp_data = s_channel->udp_data;
+        udp_data_t *udp_data = s_channel->driver_data;
 
         if (port->header.direction != SOURCE)
             continue;
-        if (udp_data.ip != ip || udp_data.port != udp_port)
+        if (udp_data->ip != ip || udp_data->port != udp_port)
             continue;
 
         sampling_send_to_partition(i, (MESSAGE_ADDR_TYPE) payload, length);
@@ -74,15 +75,16 @@ static pok_bool_t udp_received_callback(
 
     for (int i = 0; i<sys_queuing_channels_nb; i++) {
         sys_channel_t *q_channel = &sys_queuing_channels[i];
-        if (q_channel->protocol != UDP)
-            continue;
+        //TODO
+        //if (q_channel->protocol != UDP)
+        //    continue;
 
         sys_queuing_port_t *port = &sys_queuing_ports[q_channel->port_index];
-        udp_data_t udp_data = q_channel->udp_data;
+        udp_data_t *udp_data = q_channel->driver_data;
 
         if (port->header.direction != SOURCE)
             continue;
-        if (udp_data.ip != ip || udp_data.port != udp_port)
+        if (udp_data->ip != ip || udp_data->port != udp_port)
             continue;
 
         queuing_send_to_partition(i, (MESSAGE_ADDR_TYPE) payload, length);
@@ -156,19 +158,20 @@ static void queueing_send_outside(unsigned channel_idx)
 
         port->nb_message++;
 
-        if (channel.protocol == UDP) {
+        //TODO
+        //if (channel.protocol == UDP) {
             pok_bool_t res = pok_network_send_udp(
                     dst_place->data,
                     dst_place->message_size,
-                    channel.udp_data.ip,
-                    channel.udp_data.port,
+                    ((udp_data_t *)channel.driver_data)->ip,
+                    ((udp_data_t *)channel.driver_data)->port,
                     udp_sent_queueing_callback,
                     (void*) dst_place
                     );
 
             if (!res)
                 printf("SYSNET: Error in send_udp\n");
-        }
+        //}
 
         dst_place->status = QUEUING_STATUS_PENDING;
         dst_place->port_index = channel.port_index;
@@ -210,19 +213,20 @@ static void sampling_send_outside(unsigned channel_idx)
 
     dst_place->busy = TRUE;
 
-    if (channel.protocol == UDP) {
+    //TODO
+    //if (channel.protocol == UDP) {
         pok_bool_t res = pok_network_send_udp(
                 dst_place->data,
                 dst_place->message_size,
-                channel.udp_data.ip,
-                channel.udp_data.port,
+                ((udp_data_t *)channel.driver_data)->ip,
+                ((udp_data_t *)channel.driver_data)->port,
                 udp_sent_sampling_callback,
                 &dst_place->busy
                 );
 
         if (!res)
             printf("SYSNET: Error in send_udp\n");
-    }
+    //}
 
     pok_network_flush_send();
 }

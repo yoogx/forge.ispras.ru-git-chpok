@@ -31,10 +31,11 @@ typedef struct
 {
     uint32_t port_index;
 
-    enum protocol_kind protocol;
-    union {
-        udp_data_t udp_data; //destination data!
-    };
+    char *driver_name;
+    void *driver_data;
+
+//TODO
+    void *driver_ptr;
 } sys_channel_t;
 
 
