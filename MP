@@ -39,6 +39,8 @@ def read_in(conn, mask):
         elif port == 1:
             if conn1:
                 conn1.send(bytes([sym]))
+            else:
+                print(chr(sym), end='')
         elif port == 2:
             if conn2:
                 conn2.send(bytes([sym]))

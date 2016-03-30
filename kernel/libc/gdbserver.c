@@ -1,8 +1,8 @@
 #define PC_REGNUM 64
 #define SP_REGNUM 1
  
-#define DEBUG_GDB
-//~ #define QEMU
+//~ #define DEBUG_GDB
+#define QEMU
 #define MULTIPROCESS
 
 /*
@@ -111,6 +111,7 @@
 #include <core/time.h>
 #include <core/debug.h>
 #include <config.h>
+
  
 #ifdef __i386__
 #include <arch.h>
@@ -576,6 +577,9 @@ hexToInt (char **ptr, uintptr_t *intValue)
     return (numChars);
 }
 
+/*
+ * Saving instruction for single step
+ */
 #ifdef __PPC__
 char instr[8] = "00000000";
 int addr_instr = 0;
@@ -613,6 +617,11 @@ static inline void set_msr(int msr)
 #define mtspr(rn, v)    asm volatile("mtspr " __stringify(rn) ",%0" : \
                                              : "r" ((unsigned long)(v)) \
                                              : "memory")
+#endif
+
+
+#ifdef __PPC__
+#define MSR_EE      1<<(15)              /* External Interrupt Enable */
 #endif
 
 int current_part_id(){
@@ -774,9 +783,13 @@ void add_watchpoint(uintptr_t addr, int length, int *using_thread, int type){
     if (type == 4) DAC = 0x400F0000UL;
     uint32_t DBCR0 = mfspr(SPRN_DBCR0);
 
+#ifdef DEBUG_GDB
     printf("\nBefore DBCR0 = 0x%lx\n", DBCR0);
+#endif
     DBCR0 |= DAC;
+#ifdef DEBUG_GDB
     printf("After DBCR0 = 0x%lx\n", DBCR0);
+#endif
     mtspr(SPRN_DBCR0, DBCR0);
     //~ ea->srr1 |= 0x400000;
     ((struct regs *)pok_threads[*using_thread].entry_sp)->srr1 |= 0x200;
@@ -799,22 +812,34 @@ void remove_watchpoint(uintptr_t addr, int length, int *using_thread, int type){
     }
     strcpy(remcomOutBuffer, "OK");
     watchpoint_is_set = FALSE;
+#ifdef DEBUG_GDB
     printf("\nWatchpoint_is_set = %d \n",watchpoint_is_set);
+#endif
     uint32_t DBCR0 = mfspr(SPRN_DBCR0);
+#ifdef DEBUG_GDB
     printf("Before set MSR DBCR0 = 0x%lx\n", DBCR0);
+#endif
     struct regs * MSR = (struct regs *)pok_threads[*using_thread].entry_sp;
     MSR->srr1 &= (~0x200);
     DBCR0 = mfspr(SPRN_DBCR0);    
+#ifdef DEBUG_GDB
     printf("Before DBCR0 = 0x%lx\n", DBCR0);
+#endif
     DBCR0 &= (~0x400F0000UL);
+#ifdef DEBUG_GDB
     printf("After DBCR0 = 0x%lx\n", DBCR0);
+#endif
     mtspr(SPRN_DBCR0, DBCR0);
     uint32_t DBSR = mfspr(SPRN_DBSR);
+#ifdef DEBUG_GDB
     printf("Before DBSR = 0x%lx\n", DBSR);
+#endif
     DBSR &= (~0xF0000);
     mtspr(SPRN_DBSRWR, DBSR);
     DBSR = mfspr(SPRN_DBSR);
+#ifdef DEBUG_GDB
     printf("After DBSR = 0x%lx\n", DBSR);
+#endif
     uint32_t DBCR2 = mfspr(SPRN_DBCR2);
     DBCR2 &= (~0x800000);
     mtspr(SPRN_DBCR2, DBCR2);
@@ -1054,7 +1079,8 @@ handle_exception (int exceptionVector, struct regs * ea)
 
 
     if (addr_instr != 0){
-#ifdef __PPC__    
+#ifdef __PPC__
+        ea->srr1 |= MSR_EE;
         hex2mem(instr, (char *) (addr_instr), 4);
         addr_instr = 0;
         if (addr_instr2 != 0){
@@ -1535,7 +1561,9 @@ handle_exception (int exceptionVector, struct regs * ea)
                 uintptr_t pid = -1;
                 hexToInt(&ptr, &pid);
                 ptr++;
+#ifdef DEBUG_GDB
                 printf("PID = %d\n", pid);
+#endif
 #endif
                 hexToInt(&ptr, &addr);
                 if (addr != -1 && addr != 0) 
@@ -1547,7 +1575,9 @@ handle_exception (int exceptionVector, struct regs * ea)
                     //~ break;
                 
                 }else{
+#ifdef DEBUG_GDB
                     printf("ADDR = 0\n");
+#endif
                     if (pid == 1) using_thread = IDLE_THREAD;
                     else using_thread = pok_partitions[pid - 2].thread_index_low + 1;
                 }
@@ -1629,11 +1659,15 @@ handle_exception (int exceptionVector, struct regs * ea)
                                  * Packets starting with ‘v’ are identified by a multi-letter name, up to the first ‘;’ or ‘?’ (or the end of the packet). 
                                  */
             {
+#ifdef DEBUG_GDB
             printf("IN V\n");
             printf("String = %s, %d\n", remcomOutBuffer, remcomOutBuffer[0]);
+#endif
             ptr = &remcomInBuffer[1];
             if (strncmp(ptr, "Attach;", 7) == 0)   {
+#ifdef DEBUG_GDB
                 printf("Added reply\n");
+#endif
                 strcpy(remcomOutBuffer, "Any stop packet");
             }
             if (strncmp(ptr, "Cont;c", 6) == 0) {
@@ -1657,7 +1691,9 @@ handle_exception (int exceptionVector, struct regs * ea)
                                  * It is sent to the remote target before gdb disconnects via the detach command.
                                  */
             {
+#ifdef DEBUG_GDB
             printf("HERE\n");
+#endif
             ptr = &remcomInBuffer[2];
             int part_id;
             hexToInt(&ptr, (uintptr_t *)(&part_id));
@@ -1692,7 +1728,9 @@ handle_exception (int exceptionVector, struct regs * ea)
             //~ printf("inst=0x%lx;\n",inst);
             uint32_t c_inst = registers[pc];
             //~ printf("c_inst=0x%lx;\n",c_inst);
-/*
+            ea->srr1 &= (~((uint32_t)MSR_EE));
+
+/*  
  * if it's  unconditional branching, e.g. 'b' or 'bl'
  */
             if ((inst >> (6*4+2)) == 0x12){
@@ -1870,7 +1908,9 @@ handle_exception (int exceptionVector, struct regs * ea)
             }
             if (strncmp(ptr, "fThreadInfo", 11) == 0)   {
                 number_of_thread = 1;
+#ifdef DEBUG_GDB
                 printf("in first if\n");
+#endif
                 ptr = remcomOutBuffer;  
                 *ptr++ = 'm';
                 int previous_thread = 1;
@@ -1900,8 +1940,10 @@ handle_exception (int exceptionVector, struct regs * ea)
                 /*FIX IT*/
                 hexToInt(&ptr, &thread_num);
                 thread_num --;
+ #ifdef DEBUG_GDB
                 printf("thread_num=%d\n",thread_num);
                 printf("pok_threads[%d].state=%d\n",thread_num,pok_threads[thread_num].state);
+#endif
                 //~ struct thread_stack * id = (struct thread_stack *) pok_threads[thread_num].sp;
 
 
@@ -1920,9 +1962,11 @@ handle_exception (int exceptionVector, struct regs * ea)
                 if (thread_num == IDLE_THREAD){
                     ptr = mem2hex( (char *) &("IDLE "), ptr, 5);
                 }
+#ifdef DEBUG_GDB
                 printf("lengh = %d\n",lengh);
                 printf("info_offset = %d\n",info_offset);
                 printf("%c%c%c\n",info_thread[info_offset],info_thread[info_offset+1],info_thread[info_offset+2]);
+#endif
                 //~ strcpy(ptr,info);
                 ptr = mem2hex( (char *) (&info_thread[info_offset]), ptr, lengh);
                 *ptr++ = 0;
@@ -2106,17 +2150,22 @@ handle_exception (int exceptionVector, struct regs * ea)
             if (number_of_thread == 1){
             //TODO: FIX IT
                 strcpy(remcomOutBuffer,"OK");
+#ifdef DEBUG_GDB
                 printf("\nH break\n");
+#endif
                 break;
             }    
             ptr = &remcomInBuffer[1];
             if ( *ptr == 'c'){
                 using_thread = POK_SCHED_CURRENT_THREAD;
+#ifdef DEBUG_GDB
                 printf("pok_threads[%d].sp=0x%lx\n",using_thread,pok_threads[using_thread].sp);
                 printf("pok_threads[%d].entry_sp=0x%lx\n",using_thread,pok_threads[using_thread].entry_sp);
+#endif
                 set_regs((struct regs *)pok_threads[using_thread].entry_sp);
+#ifdef DEBUG_GDB
                 printf("registers [eip] = 0x%lx\n",registers[PC]);
-            
+#endif            
             }else if (*ptr++ == 'g'){
             /*FIX IT*/
                 //~ while (*ptr != '.')
@@ -2132,16 +2181,21 @@ handle_exception (int exceptionVector, struct regs * ea)
                     //~ break;
             
                 }else using_thread = POK_SCHED_CURRENT_THREAD;
+#ifdef DEBUG_GDB
                 printf("pok_threads[%d].sp=0x%lx\n",using_thread,pok_threads[using_thread].sp);
                 printf("pok_threads[%d].entry_sp=0x%lx\n",using_thread,pok_threads[using_thread].entry_sp);
                 printf("POK_CONFIG_NB_THREADS = %d\n\n",POK_CONFIG_NB_THREADS);
                 printf("MONITOR_THREAD = %d\n\n",MONITOR_THREAD);
                 printf("POK_SCHED_CURRENT_THREAD = %d\n\n",POK_SCHED_CURRENT_THREAD);
+#endif
                 set_regs((struct regs *)pok_threads[using_thread].entry_sp);
+#ifdef DEBUG_GDB
                 printf("\nentry= 0x%lx\n",(uint32_t) pok_threads[using_thread].entry);
+#endif
             }
+#ifdef DEBUG_GDB
             printf("\nH\n");
-        
+#endif        
             strcpy(remcomOutBuffer,"OK");
             break;
         }
@@ -2165,7 +2219,9 @@ handle_exception (int exceptionVector, struct regs * ea)
             ea->eflags = registers[PS];
       /* set the trace bit if we're stepping */
             if (stepping){
+#ifdef DEBUG_GDB
                 printf("\n\n\nStepping\n\n\n");
+#endif
                 stepping=FALSE;
                 registers[PS] |= 0x100;
                 ea->eflags = registers[PS];      

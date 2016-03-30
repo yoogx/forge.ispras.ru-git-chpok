@@ -34,8 +34,10 @@
 #include <middleware/port.h>
 #include <middleware/queue.h>
 #include <core/boot.h>
+#include <libc.h>
 
 #include <core/instrumentation.h>
+
 
 void pok_boot ()
 {
@@ -85,8 +87,12 @@ void pok_boot ()
    }
 #endif
 
-
 #ifdef POK_NEEDS_PARTITIONS
+#ifdef POK_NEEDS_WAIT_FOR_GDB
+  printf("Waiting for GDB connection ...\n");
+  printf("\n");
+  pok_trap();
+#endif
   pok_sched();
 #else
   pok_arch_preempt_enable();

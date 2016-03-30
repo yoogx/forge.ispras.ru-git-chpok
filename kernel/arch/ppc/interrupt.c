@@ -75,6 +75,7 @@ void pok_int_program(struct regs * ea) {
 
 ////printf("ea = 0x%lx\n", ea);
 //// pok_trap_addr = address of pok_trap in entry.S
+#ifdef DEBUG_GDB
     printf("    Pok_int_program interrupt\n");
     int DBCR0 = mfspr(SPRN_DBCR0);
     printf("DBCR0 = 0x%x\n", DBCR0);
@@ -83,12 +84,18 @@ void pok_int_program(struct regs * ea) {
     printf("DAC2 = %lx\n", mfspr(SPRN_DAC1));
     printf("srr0 = 0x%lx\n", ea->srr0);
     printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
+#endif
+
     if (ea->srr0 == (unsigned) (& pok_trap_addr)){
         k++;
+#ifdef DEBUG_GDB
         printf("Reason: SIGINT\n");
+#endif
         handle_exception(17,ea); 
     }else{
+#ifdef DEBUG_GDB
         printf("Reason: Breakpoint\n");
+#endif
         handle_exception(3,ea); 
     }
     //~ printf("\n\n            In pok_int_programm:\n");
@@ -144,9 +151,12 @@ void pok_int_program(struct regs * ea) {
  * it was a trap from gdb.c (in gdb.c function)
  */ 
         ea->srr0 += 4;
+#ifdef DEBUG_GDB
         printf("Change SRR0");
+#endif
     }
     k=0;
+#ifdef DEBUG_GDB
     printf("srr0 = 0x%lx\n", ea->srr0);
     printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
     //~ asm volatile("isync");
@@ -154,6 +164,7 @@ void pok_int_program(struct regs * ea) {
     DBCR0 = mfspr(SPRN_DBCR0);
     printf("DBCR0 = 0x%x\n", DBCR0);
     printf("\n          Exit from handle exception\n");
+#endif
     
 //~ asm volatile("acbi");  
     
@@ -196,6 +207,7 @@ void pok_int_inst_tlb_miss(uintptr_t ea, uintptr_t dear, unsigned long esr) {
 }
 
 void pok_int_debug(struct regs * ea) {
+#ifdef DEBUG_GDB
     printf("    DEBUG EVENT!\n");
     printf("DBSR = %lx\n", mfspr(SPRN_DBSR));
     printf("ea = 0x%lx\n", (uint32_t) ea);
@@ -206,7 +218,9 @@ void pok_int_debug(struct regs * ea) {
     printf("srr0 = 0x%lx\n", ea->srr0);
     printf("srr1 = 0x%lx\n", ea->srr1);
     printf("Reason: Watchpoint\n");   
+#endif
     handle_exception(1, ea); 
+#ifdef DEBUG_GDB
     printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
     DBCR0 = mfspr(SPRN_DBCR0);
     printf("DBCR0 = 0x%x\n", DBCR0);
@@ -214,4 +228,5 @@ void pok_int_debug(struct regs * ea) {
     printf("Exit from debug event\n");    
     //~ k = 1;
     //~ pok_fatal("Debug interrupt");
+#endif
 }

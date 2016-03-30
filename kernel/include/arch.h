@@ -138,6 +138,8 @@ uint32_t    pok_thread_stack_addr   (const uint8_t    partition_id,
  */
 void pok_arch_load_partition(pok_partition_id_t part_id, uintptr_t *entry);
 
+void pok_trap();
+
 //#ifdef POK_ARCH_PPC
 #ifdef __PPC__
 #include <arch/ppc/spinlock.h>

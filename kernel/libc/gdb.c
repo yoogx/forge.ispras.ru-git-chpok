@@ -6,8 +6,6 @@
 #include <core/partition.h>
 
 
-void pok_trap();
-
 static pok_bool_t *partiton_on_pause;
 
 
@@ -32,8 +30,6 @@ void pok_gdb_thread(void)
         //~ j++;
         //~ if (j % 1000 == 0) printf("Waiting...\n");
         if (data_to_read_1() == 1) {
-            printf("\n\nIt works!!!!!\n\n");
-
             pok_arch_preempt_disable();         
             gdb();
             pok_arch_preempt_enable();        

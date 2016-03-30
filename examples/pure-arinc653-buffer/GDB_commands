@@ -6,6 +6,20 @@ document Push_to_breakpoints_reason
 Change Reason of last breakpoint
 Syntax: push_to_breakpoints_reason REASON
     end
+    
+define Log_on
+    set logging on
+    set logging redirect off
+    set trace-commands on
+    end
+
+document Log_on
+Save all information from console (input and output)
+    end
+    
+define Log_off
+    set logging off
+    end    
 
 define Thread_pid
     set $i = 0
@@ -148,10 +162,12 @@ define Easy_switch
     if $OLD_PID != $arg0
         printf "SWITCH!!!\n"
         printf "OLD_PID = %d; NEW_PID = %d\n", $OLD_PID, $arg0
+        #log_on
         if $OLD_PID != -1
             eval "remove-symbol-file -a 0x%x", pok_partitions[$OLD_PID - 1].base_vaddr
             end
         eval "add-symbol-file pr%d/pr%d.elf 0x%x", $G,$G,pok_partitions[$arg0].base_vaddr
+        #log_off
         end
     end
 
@@ -173,13 +189,7 @@ Switch to the partition (load symbol-file if it needs)
 Syntax: switch_to PID 
     end
 
-define hook-continue
-    set $V = current_thread + 1
-    eval "Thread_pid %d",$V
-    set $V = $PID
-    eval "Switch_to %d",$V
-    eval "Easy_t_switch %d",current_thread + 1
-    end
+
     
     
 define Thread_break
@@ -246,7 +256,7 @@ define connect_to
     set $OLD_THREAD = -1
     set $P_break_on = -1
     set remotetimeout unlimited
-    target remote $arg0
+    target extended-remote $arg0
     symbol-file pok.elf
     Clear_breakpoints
     set height 0
@@ -260,19 +270,6 @@ Use 'set breakpoint always-inserted on' option.
 Syntax: connect_to PORT_ADDR
     end
 
-
-
-
-
-define hook-stop
-    eval "Thread_pid %d",current_thread + 1
-    eval "Switch_to %d",$PID
-    set $OLD_THREAD = current_thread + 1
-    if  $P_break_on > -1 
-        eval "P_delete %d", $P_break_on
-        set $P_break_on = -1
-        end
-end
 
 
 define P_break
@@ -445,6 +442,37 @@ Syntax: p_mem THREAD_NUM OPERATIONS ARG1 ARG2 ...
     
 define test
     connect_to  127.0.0.1:8002
-    thread_watch GLOBAL_THING 3
+    add-inferior -copies 1 -exec pr1/pr1.elf
+    inferior 2
+    #add-symbol-file pr1/pr1.elf 0x80000000
+    attach 2
+    inferior 1
+    test2
     end
 
+define test2
+    add-inferior -copies 1 -exec pr2/pr2.elf
+    inferior 3
+    #add-symbol-file pr2/pr2.elf 0x80000000
+    attach 3
+    inferior 1
+    end
+
+define add_new_inferior
+    eval "add-inferior -copies 1 -exec pr%d/pr%d.elf", $arg0, $arg0
+    eval "inferior %d", $arg0 + 1
+    eval "attach %d", $arg0 + 1
+    end
+
+define target hookpost-extended-remote
+    set breakpoint always-inserted on
+    set remotetimeout unlimited
+    set height 0
+    set $GDB_part = pok_config_nb_partitions
+    set $GDB_i = 1
+    while ($GDB_i <= $GDB_part)
+        eval "add_new_inferior %d", $GDB_i
+        set $GDB_i = $GDB_i + 1
+        end
+    inferior 1
+    end
