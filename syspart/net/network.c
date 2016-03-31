@@ -405,7 +405,27 @@ void pok_network_reclaim_buffers()
     pok_network_reclaim_receive_buffers();
 }
 
+static pok_bool_t send(
+        char *buffer,
+        size_t buffer_size,
+        void *driver_data,
+        pok_network_buffer_callback_t callback,
+        void *callback_arg
+    )
+{
+    udp_data_t *udp_data = driver_data;
+    return pok_network_send_udp(
+            buffer,
+            buffer_size,
+            udp_data->ip,
+            udp_data->port,
+            callback,
+            callback_arg
+            );
+}
+
+
 struct channel_driver ipnet_channel_driver = {
-    .name = "ipnet"
+    .send = send
 };
 

@@ -21,18 +21,12 @@ extern channel_driver_t ipnet_channel_driver;
 sys_channel_t sys_queuing_channels[] = {
     {
         .port_index = 1,
-        .driver_name = "ipnet",
         .driver_data = &ipnet_data_0,
-
-//TMP
         .driver_ptr = &ipnet_channel_driver,
     },
     {
         .port_index = 0,
-        .driver_name = "ipnet",
         .driver_data = &ipnet_data_1,
-
-//TMP
         .driver_ptr = &ipnet_channel_driver,
     },
 };

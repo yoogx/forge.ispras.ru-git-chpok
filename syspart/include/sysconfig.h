@@ -5,6 +5,7 @@
 #include <middleware/port.h>
 #include <port_info.h>
 #include <pci.h>
+#include <channel_driver.h>
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 #define IP_ADDR(a,b,c,d) ((uint32_t)((a) & 0xff) << 24) | \
@@ -30,12 +31,8 @@ typedef struct {
 typedef struct
 {
     uint32_t port_index;
-
-    char *driver_name;
     void *driver_data;
-
-//TODO
-    void *driver_ptr;
+    channel_driver_t *driver_ptr;
 } sys_channel_t;
 
 

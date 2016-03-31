@@ -93,7 +93,7 @@ static pok_bool_t udp_received_callback(
     return FALSE;
 }
 
-static void udp_sent_queueing_callback(void *arg)
+static void queuing_packet_sent_callback(void *arg)
 {
     sys_queuing_data_t *qdata = arg;
     qdata->status = QUEUING_STATUS_SENT;
@@ -116,14 +116,14 @@ static void udp_sent_queueing_callback(void *arg)
     }
 }
 
-static void udp_sent_sampling_callback(void *arg) {
+static void sampling_packet_sent_callback(void *arg) {
     pok_bool_t *var = (pok_bool_t*) arg;
     if (!*var)
         printf("error: buffer is no busy in callback\n");
     *var = FALSE;
 }
 
-static void queueing_send_outside(unsigned channel_idx)
+static void queuing_send_outside(unsigned channel_idx)
 {
     sys_channel_t channel = sys_queuing_channels[channel_idx];
     RETURN_CODE_TYPE ret;
@@ -158,20 +158,16 @@ static void queueing_send_outside(unsigned channel_idx)
 
         port->nb_message++;
 
-        //TODO
-        //if (channel.protocol == UDP) {
-            pok_bool_t res = pok_network_send_udp(
-                    dst_place->data,
-                    dst_place->message_size,
-                    ((udp_data_t *)channel.driver_data)->ip,
-                    ((udp_data_t *)channel.driver_data)->port,
-                    udp_sent_queueing_callback,
-                    (void*) dst_place
-                    );
+        pok_bool_t res = channel.driver_ptr->send(
+                dst_place->data,
+                dst_place->message_size,
+                channel.driver_data,
+                queuing_packet_sent_callback,
+                (void*) dst_place
+                );
 
-            if (!res)
-                printf("SYSNET: Error in send_udp\n");
-        //}
+        if (!res)
+            printf("SYSNET: Error in send_udp\n");
 
         dst_place->status = QUEUING_STATUS_PENDING;
         dst_place->port_index = channel.port_index;
@@ -213,20 +209,16 @@ static void sampling_send_outside(unsigned channel_idx)
 
     dst_place->busy = TRUE;
 
-    //TODO
-    //if (channel.protocol == UDP) {
-        pok_bool_t res = pok_network_send_udp(
-                dst_place->data,
-                dst_place->message_size,
-                ((udp_data_t *)channel.driver_data)->ip,
-                ((udp_data_t *)channel.driver_data)->port,
-                udp_sent_sampling_callback,
-                &dst_place->busy
-                );
+    pok_bool_t res = channel.driver_ptr->send(
+            dst_place->data,
+            dst_place->message_size,
+            channel.driver_data,
+            sampling_packet_sent_callback,
+            &dst_place->busy
+            );
 
-        if (!res)
-            printf("SYSNET: Error in send_udp\n");
-    //}
+    if (!res)
+        printf("SYSNET: Error in send_udp\n");
 
     pok_network_flush_send();
 }
@@ -252,7 +244,7 @@ static void first_process(void)
             if (port->header.direction != DESTINATION)
                 break;
 
-            queueing_send_outside(i);
+            queuing_send_outside(i);
             pok_network_reclaim_send_buffers();
         }
 
