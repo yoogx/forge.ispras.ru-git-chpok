@@ -149,4 +149,7 @@ void pok_network_thread(void);
  */
 extern const uint32_t pok_network_ip_address;
 
+
+#include <channel_driver.h>
+extern channel_driver_t ipnet_channel_driver;
 #endif

@@ -1,5 +1,6 @@
 #ifndef __POK_SYS_CHANNEL_DRIVER_H__
 #define __POK_SYS_CHANNEL_DRIVER_H__
+#include <net/network.h>
 typedef struct channel_driver {
     pok_bool_t (*send)(
         char *buffer,

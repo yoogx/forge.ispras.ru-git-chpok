@@ -1,5 +1,6 @@
 #include <sysconfig.h>
 #include <channel_driver.h>
+#include <net/network.h>
 
 #define MY_IP IP_ADDR(192, 168, 0, 2)
 
@@ -14,9 +15,6 @@ udp_data_t ipnet_data_1 = {
     .ip = MY_IP,
     .port = 10001,
 };
-
-//TODO
-extern channel_driver_t ipnet_channel_driver;
 
 sys_channel_t sys_queuing_channels[] = {
     {
