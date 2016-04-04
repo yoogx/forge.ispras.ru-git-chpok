@@ -25,12 +25,13 @@
 #include <errno.h> 
 #include <core/debug.h>
 #include <libc.h>
-#include <bsp.h>
+#include <bsp_common.h>
 #include "reg.h"
 
 #include "space.h"
 #include "timer.h"
 #include "syscalls.h"
+#include "thread.h"
 
 
 
@@ -44,14 +45,12 @@ void pok_int_machine_check(uintptr_t ea) {
     pok_fatal("Machine check interrupt"); 
 }
 
-void pok_int_data_storage(uintptr_t ea, uintptr_t dear, unsigned long esr) {
-    (void) ea;
-    pok_arch_handle_page_fault(dear, esr);
+void pok_int_data_storage(volatile_context_t *vctx, uintptr_t dear, unsigned long esr) {
+    pok_arch_handle_page_fault(vctx, dear, esr, PF_DATA_STORAGE);
 }
 
-void pok_int_inst_storage(uintptr_t ea, uintptr_t dear, unsigned long esr) {
-    (void) ea;
-    pok_arch_handle_page_fault(dear, esr);
+void pok_int_inst_storage(volatile_context_t *vctx, uintptr_t dear, unsigned long esr) {
+    pok_arch_handle_page_fault(vctx, dear, esr, PF_INST_STORAGE);
 }
 
 void pok_int_ext_interrupt(uintptr_t ea) {
@@ -196,14 +195,12 @@ void pok_int_watchdog(uintptr_t ea) {
     pok_fatal("Watchdog interrupt");
 }
 
-void pok_int_data_tlb_miss(uintptr_t ea, uintptr_t dear, unsigned long esr) {
-    (void) ea;
-    pok_arch_handle_page_fault(dear, esr);
+void pok_int_data_tlb_miss(volatile_context_t *vctx, uintptr_t dear, unsigned long esr) {
+    pok_arch_handle_page_fault(vctx, dear, esr, PF_DATA_TLB_MISS);
 }
 
-void pok_int_inst_tlb_miss(uintptr_t ea, uintptr_t dear, unsigned long esr) {
-    (void) ea;
-    pok_arch_handle_page_fault(dear, esr);
+void pok_int_inst_tlb_miss(volatile_context_t *vctx, uintptr_t dear, unsigned long esr) {
+    pok_arch_handle_page_fault(vctx, dear, esr, PF_INST_TLB_MISS);
 }
 
 void pok_int_debug(struct regs * ea) {

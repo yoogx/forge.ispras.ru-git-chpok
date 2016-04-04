@@ -1,7 +1,7 @@
 #include <config.h>
 
 #include <libc.h>
-#include <bsp.h>
+#include <bsp_common.h>
 #include <arch.h>
 #include <core/partition.h>
 

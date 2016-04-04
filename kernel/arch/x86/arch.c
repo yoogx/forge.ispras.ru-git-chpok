@@ -68,6 +68,14 @@ pok_bool_t pok_arch_preempt_enabled(void)
   return !!(flags & (1<<9));
 }
 
+void pok_arch_inf_loop()
+{
+   pok_arch_preempt_disable();
+   while (1) {
+      asm ("hlt");
+   }
+}
+
 pok_ret_t pok_arch_idle()
 {
    while (1)
@@ -96,3 +104,12 @@ uint32_t    pok_thread_stack_addr   (const uint8_t    partition_id,
    return pok_partitions[partition_id].size - 4 - (local_thread_id * POK_USER_STACK_SIZE);
 }
 
+#include <ioports.h>
+void pok_arch_cpu_reset()
+{
+    uint8_t good = 0x02;
+    while (good & 0x02)
+        good = inb(0x64);
+    outb(0x64, 0xFE);
+    pok_arch_idle();
+}

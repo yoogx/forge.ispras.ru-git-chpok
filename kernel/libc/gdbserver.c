@@ -104,7 +104,7 @@
  ****************************************************************************/
 
 #include <libc.h>
-#include <bsp.h>
+#include <bsp_common.h>
 #include <core/thread.h>
 #include <core/partition.h>
 
@@ -734,13 +734,13 @@ pok_bool_t watchpoint_is_set = FALSE;
  *           4 - Access watchpoint
  */
  
- uintptr_t pok_virt_to_phys(uintptr_t virt, int pid)
+ uintptr_t gdb_pok_virt_to_phys(uintptr_t virt, int pid)
 {
     if (pid > 0)
         return virt - pok_partitions[pid - 1].base_vaddr + pok_partitions[pid - 1].base_addr;
     return virt;
 }
-uintptr_t pok_phys_to_virt(uintptr_t phys, int pid)
+uintptr_t gdb_pok_phys_to_virt(uintptr_t phys, int pid)
 {
     if (pid > 0)
         return phys - pok_partitions[pid - 1].base_addr + pok_partitions[pid - 1].base_vaddr;
@@ -770,7 +770,7 @@ void add_watchpoint(uintptr_t addr, int length, int *using_thread, int type){
         strcpy (remcomOutBuffer, "E03");
         return;
     }
-    //~ addr = pok_virt_to_phys(addr, give_part_num_of_thread(*using_thread + 1));
+    //~ addr = gdb_pok_virt_to_phys(addr, give_part_num_of_thread(*using_thread + 1));
     
     mtspr(SPRN_DAC1, addr);
     mtspr(SPRN_DAC2, addr + length);

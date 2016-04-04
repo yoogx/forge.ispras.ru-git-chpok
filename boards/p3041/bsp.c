@@ -19,12 +19,28 @@
 #include <errno.h>
 #include <arch.h>
 #include <core/debug.h>
-#include "cons.h"
+#include <bsp_common.h>
 #include "space.h"
+#include <cons.h>
 
-#include <pci.h>
 #include "devtree.h"
 
+pok_bsp_t pok_bsp = {
+    .ccsrbar_size = 0x1000000ULL,
+    .ccsrbar_base = 0x0FE000000ULL,
+    .ccsrbar_base_phys = 0x0FE000000ULL,
+    .dcfg_offset = 0xE0000ULL,
+    .serial0_regs_offset = 0x11C500ULL,
+    .serial1_regs_offset = 0x11C600ULL,
+    /* U-Boot claims that CCB freq (equal to platform clock freq) = 606.061 MHz
+     * Timebase freq = platform_clock/32 */
+    .timebase_freq = 18939406,
+    .pci_bridge = {
+        .cfg_addr = 0xfe200000,
+        .cfg_data = 0xfe200004,
+        .iorange =  0xf8000000
+    }
+};
 
 int pok_bsp_init (void)
 {
@@ -77,5 +93,10 @@ void *pok_bsp_mem_alloc_aligned(size_t mem_size, size_t alignment)
         return pok_bsp_mem_alloc(mem_size);
 
     pok_fatal("unimplemented!");
+}
+
+void pok_bsp_get_info(void *addr) {
+    pok_bsp_t *data = addr;
+    *data = pok_bsp;
 }
 

@@ -47,7 +47,7 @@
 #ifdef POK_NEEDS_PARTITIONS
 
 #include <arch.h>
-#include <bsp.h>
+#include <bsp_common.h>
 #include <errno.h>
 #include <dependencies.h>
 #include <core/sched.h>
@@ -400,6 +400,7 @@ pok_ret_t pok_partition_set_mode(pok_partition_id_t pid, pok_partition_mode_t mo
 
          pok_partitions[pid].lock_level = 1; 
 
+         printf("Restarting partition...\n");
          pok_partition_reinit (pid);
          POK_CURRENT_THREAD.force_restart = TRUE;
 

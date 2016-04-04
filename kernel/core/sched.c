@@ -49,7 +49,7 @@
 
 #include <types.h>
 #include <arch.h>
-#include <bsp.h>
+#include <bsp_common.h>
 
 #include <core/time.h>
 #include <core/sched.h>
@@ -105,6 +105,8 @@ void pok_sched_init (void)
       pok_current_partition      = pok_module_sched[0].partition.id;
    } else {
       // otherwise, we simply don't care
+      pok_fatal("pok_module_sched[0].type != POK_SLOT_PARTITION."
+              "Currect implementation  doesn't allow this.");
    }
 }
 
@@ -115,6 +117,7 @@ void pok_sched_init (void)
  * Returns true if change has occured,
  *         false - if we're still in the same slot.
  */
+//TODO rename to elect_time_slot?
 static pok_bool_t pok_elect_partition(void)
 {
     int partition_id;
@@ -132,11 +135,8 @@ static pok_bool_t pok_elect_partition(void)
     }
     partition_id = pok_module_sched[pok_sched_current_slot].partition.id;
     pok_sched_next_deadline += pok_module_sched[pok_sched_current_slot].duration; 
-    if (pok_partitions[partition_id].is_paused == TRUE) {
-        current_partition_on_pause = TRUE;
-    }else{
-        current_partition_on_pause = FALSE;
-    }                    
+
+    current_partition_on_pause = pok_partitions[partition_id].is_paused;
     return TRUE;
 
 }

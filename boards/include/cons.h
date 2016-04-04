@@ -18,17 +18,6 @@
 #ifndef __POK_CONS_H__
 #define __POK_CONS_H__
 
-typedef struct {
-    uint32_t ccsrbar_size;
-    uint64_t ccsrbar_base;
-    uint64_t ccsrbar_base_phys;
-    uint32_t serial0_regs_offset;
-    uint32_t timebase_freq;
-    uint32_t serial1_regs_offset;
-} pok_bsp_t;
-
-extern pok_bsp_t pok_bsp;
-
 int pok_cons_init(void);
 
 #endif

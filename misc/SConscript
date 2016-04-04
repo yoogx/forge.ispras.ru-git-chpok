@@ -6,9 +6,14 @@ import os
 def print_cmd_line(s, target, src, env):
     # s is the original command line, target and src are lists of target
     # and source nodes respectively, and env is the environment.
+    global log_file_opened
+    if not log_file_opened and str(target[0]) != 'run':
+        open(env['SCONSTRUCT_DIR']+'/scons_build.log', 'w')
+        log_file_opened = True
 
-    with open(env['SCONSTRUCT_DIR']+'/scons_build.log', 'a') as log:
-        log.write("%s\n"%s)
+    if str(target[0]) != 'run':
+        with open(env['SCONSTRUCT_DIR']+'/scons_build.log', 'a') as log:
+                log.write("%s\n"%s)
 
     # For now len is always 1
     if len(target) == 1:
@@ -36,7 +41,7 @@ except:
     env['SCONSTRUCT_DIR'] = GetLaunchDir()
     env['BUILD_DIR'] = os.path.join(env['SCONSTRUCT_DIR'], 'build', env['bsp'], '')
 
-open(env['SCONSTRUCT_DIR']+'/scons_build.log', 'w')
+log_file_opened = False
 
 # This tells scons to store all file signatures 
 # in a separate .sconsign file in each directory
@@ -158,5 +163,6 @@ Export('env')
 SConscript('../boards/SConscript', variant_dir = '../build/'+env['BSP']+'/boards', duplicate = 0)
 SConscript('../kernel/SConscript', variant_dir = '../build/'+env['BSP']+'/kernel', duplicate = 0)
 SConscript('../libpok/SConscript', variant_dir = '../build/'+env['BSP']+'/libpok', duplicate = 0)
+SConscript('../syspart/SConscript', variant_dir = '../build/'+env['BSP']+'/syspart', duplicate = 0)
 
 # EOF

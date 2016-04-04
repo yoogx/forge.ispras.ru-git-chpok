@@ -1,8 +1,17 @@
-fix POK_CHECK_PTR_IN_PARTITION
-Add %04d support in printf
+pok_port_queueing_send 3rd arg type should be 'const pok_port_size_t' every where from libpok to kernel including syscalls
 
+core/syscall.c:371 fix before merging in master!
 
+currently in eflags IOPL bits are set on every context_switch to all partitions. Make setting IOPL only for system_partition
 
+remove `pok_error_raise_partition(part_id, POK_ERROR_KIND_PARTITION_CONFIGUR    ATION)` from loader.c both for ppc and x86
+
+pok_port_size_t is unsigned but MESSAGE_SIZE_TYPE is signed, and there are casts between them
+
+libpok/middleware/queueinit.c unused file
+libpok/middleware/resourses.c unused file?
+
+POK_NEEDS_PORTS_VIRTUAL never set
 
 KERNEL
 ========================================================================

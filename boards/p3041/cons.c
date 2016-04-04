@@ -22,6 +22,7 @@
 #include <libc.h>
 #include <core/debug.h>
 #include <core/cons.h>
+#include <bsp_common.h>
 #include <cons.h>
 
 
@@ -31,15 +32,6 @@
 #define NS16550_REG_LSR 5
 
 #define UART_LSR_THRE   0x20
-
-pok_bsp_t pok_bsp = {
-    .ccsrbar_size = 0x1000000ULL,
-    .ccsrbar_base = 0x0FE000000ULL,
-    .ccsrbar_base_phys = 0x0FE000000ULL,
-    .serial0_regs_offset = 0x11C500ULL,
-    .timebase_freq = 17000000,
-    .serial1_regs_offset = 0x11C600ULL
-};
 
 static void ns16550_writeb(int offset, int value, int flag)
 {

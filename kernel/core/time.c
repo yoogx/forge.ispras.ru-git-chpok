@@ -25,7 +25,7 @@
 
 #if defined (POK_NEEDS_TIME) || defined (POK_NEEDS_SCHED) || defined (POK_NEEDS_THREADS)
 
-#include <bsp.h>
+#include <bsp_common.h>
 #include <types.h>
 #include <errno.h>
 

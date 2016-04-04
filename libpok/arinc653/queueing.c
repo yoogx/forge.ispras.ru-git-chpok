@@ -116,7 +116,7 @@ void SEND_QUEUING_MESSAGE (
 {
     pok_ret_t core_ret;
 
-    if (QUEUING_PORT_ID == 0) {
+    if (QUEUING_PORT_ID <= 0) {
         *RETURN_CODE = INVALID_PARAM;
         return;
     }
@@ -149,7 +149,7 @@ void RECEIVE_QUEUING_MESSAGE (
 {
    pok_ret_t core_ret;
 
-   if (QUEUING_PORT_ID == 0) {
+   if (QUEUING_PORT_ID <= 0) {
        *RETURN_CODE = INVALID_PARAM;
        return;
    }
@@ -201,7 +201,7 @@ void GET_QUEUING_PORT_STATUS (
   pok_ret_t core_ret;
   pok_port_queueing_status_t status;
   
-    if (QUEUING_PORT_ID == 0) {
+    if (QUEUING_PORT_ID <= 0) {
        *RETURN_CODE = INVALID_PARAM;
        return;
     }

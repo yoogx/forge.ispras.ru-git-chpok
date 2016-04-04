@@ -1,0 +1,8 @@
+# -*- Mode: Python -*-
+
+Import('syspart_env')
+
+syspart_env.Program(target = 'net.lo', source = Glob('*.c'))
+
+
+# EOF

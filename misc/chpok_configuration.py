@@ -86,6 +86,7 @@ class TimeSlotGDB(TimeSlot):
 class Partition:
     __slots__ = [
         "name", 
+        "is_system",
 
         "size", # allocated RAM size in bytes (code + static storage)
         "num_threads", # number of user threads, _not_ counting init thread and error handler
@@ -160,6 +161,7 @@ class SamplingPort:
         "direction",
         "max_message_size",
         "refresh",
+        "protocol",
     ]
 
     def validate(self):
@@ -173,6 +175,7 @@ class QueueingPort:
         "direction",
         "max_nb_messages",
         "max_message_size",
+        "protocol",
     ]
 
     def validate(self):
@@ -333,8 +336,8 @@ class Configuration:
             if networking_time_slot_exists:
                 raise ValueError("Networking is disabled, but there's (unnecessary) network processing time slot in the schedule")
 
-            if any(chan.requires_network() for chan in self.channels):
-                raise ValueError("Network channel is present, but networking is not configured")
+            #if any(chan.requires_network() for chan in self.channels):
+            #    raise ValueError("Network channel is present, but networking is not configured")
             
         # validate schedule
         partitions_set = set(range(len(self.partitions)))
@@ -360,8 +363,7 @@ class Configuration:
 
     def get_all_channels(self):
         return self.channels
-"""
-"""
+
 TIMESLOT_SPARE_TEMPLATE = """\
     { .type = POK_SLOT_SPARE,
       .duration = %(duration)d,
@@ -441,22 +443,25 @@ static struct {
 """
 
 PORT_CONNECTION_NULL = """\
-    { .kind = POK_PORT_CONNECTION_NULL
-    }
+ {
+            .kind = POK_PORT_CONNECTION_NULL
+        }\
 """
 
 PORT_CONNECTION_LOCAL_TEMPLATE = """\
-    { .kind = POK_PORT_CONNECTION_LOCAL, 
-      .local =  {
-        .port_id = %(port_id)d, 
-      }
-    }
+ {
+            .kind = POK_PORT_CONNECTION_LOCAL,
+            .local =  {
+                .port_id = %(port_id)d,
+            }
+        }\
 """
 
-PORT_CONNECTION_UDP_TEMPLATE = """
-    { .kind = POK_PORT_CONNECTION_UDP,
-      .udp = {.ptr = %s }
-    }
+PORT_CONNECTION_UDP_TEMPLATE = """\
+ {
+            .kind = POK_PORT_CONNECTION_UDP,
+            .udp = {.ptr = %s }
+        }\
 """
 
 # this one is terrible
@@ -596,14 +601,18 @@ def write_kernel_deployment_c(conf, f):
     n_queueing_ports = len(conf.get_all_queueing_ports())
     
     p("unsigned pok_config_nb_sampling_ports = %d;" % n_sampling_ports)
-    
     p("unsigned pok_config_nb_queueing_ports = %d;" % n_queueing_ports)
+
+    n_queueing_channels = len([c for c in conf.channels if c.is_queueing()])
+    n_sampling_channels = len([c for c in conf.channels if c.is_sampling()])
+    p("unsigned pok_config_nb_queueing_channels = %d;"% n_queueing_channels)
+    p("unsigned pok_config_nb_sampling_channels = %d;"% n_sampling_channels)
     
     p("enum {")
-    p("tmp_pok_config_nb_threads = %d," % total_threads)
-    p("tmp_pok_config_nb_lockobjects = %d," % 
+    p("    tmp_pok_config_nb_threads = %d," % total_threads)
+    p("    tmp_pok_config_nb_lockobjects = %d," % 
         sum(part.get_needed_lock_objects() for part in conf.partitions))
-    p("tmp_pok_config_nb_partitions = %d," % len(conf.partitions))
+    p("    tmp_pok_config_nb_partitions = %d," % len(conf.partitions))
     p("};")
     
     p("#include <config.h>")
@@ -616,6 +625,8 @@ def write_kernel_deployment_c(conf, f):
     p("pok_partition_t pok_partitions[tmp_pok_config_nb_partitions];")
     p("struct pok_space spaces[tmp_pok_config_nb_partitions];")
 
+    p("")
+    p("")
     #if len(conf.get_all_ports()) > 0:
     write_kernel_deployment_c_ports(conf, f)
 
@@ -836,7 +847,6 @@ def write_kernel_deployment_c_ports(conf, f):
     #if all_queueing_ports:
     p("pok_port_queueing_t pok_queueing_ports[] = {")
     for i, port in enumerate(all_queueing_ports):
-
         p(QUEUEING_PORT_TEMPLATE % dict(
             name=_c_string(port.name),
             partition=get_partition(port),
@@ -853,16 +863,11 @@ def write_kernel_deployment_c_ports(conf, f):
         for channel in conf.channels:
             if not predicate(channel): continue
 
-            p("{")
-            p(".src = %s," % get_connection_string(channel.src))
-            p(".dst = %s," % get_connection_string(channel.dst))
-            p("},")
-
-        p("{")
-        p(".src = %s," % PORT_CONNECTION_NULL)
-        p(".dst = %s," % PORT_CONNECTION_NULL)
-        p("},")
-
+            p("    {")
+            p("        .src = %s," % get_connection_string(channel.src))
+            p("");
+            p("        .dst = %s," % get_connection_string(channel.dst))
+            p("    },")
         p("};")
 
     print_channels(lambda c: c.is_queueing(), "pok_queueing_port_channels")
@@ -947,3 +952,119 @@ def write_partition_deployment_c(conf, partition_idx, f):
     p("pok_arinc653_event_layer_t pok_arinc653_events_layers[tmp_pok_config_arinc653_nb_events];")
     
     p("ARINC_ATTRIBUTE arinc_process_attribute[tmp_pok_config_nb_threads];")
+
+    if part.is_system:
+        write_system_partition_deployment_c(part, f)
+
+SAMPLING_PORT_NETWORK_DATA_TEMPLATE = """\
+static struct {
+    pok_port_size_t message_size;
+    pok_bool_t busy;
+    char data[POK_NETWORK_%(protocol)s + %(max_message_size)d];
+} %(varname)s;
+"""
+
+QUEUEING_PORT_NETWORK_DATA_TEMPLATE = """\
+static struct {
+    pok_port_size_t message_size;
+    char data[POK_NETWORK_%(protocol)s + %(max_message_size)d];
+} %(varname)s[%(max_nb_messages)d];
+"""
+
+SYS_SAMPLING_PORT_TEMPLATE = """\
+    {
+        .header = {
+            .kind = POK_PORT_KIND_SAMPLING,
+            .name = %(name)s,
+            .direction = %(direction)s,
+            .overhead = POK_NETWORK_%(protocol)s,
+        },
+        .max_message_size = %(max_message_size)s,
+        .data = (void *) %(data)s,
+    },
+"""
+
+SYS_QUEUING_PORT_TEMPLATE = """\
+    {
+        .header = {
+            .kind = POK_PORT_KIND_QUEUEING,
+            .name = %(name)s,
+            .direction = %(direction)s,
+            .overhead = POK_NETWORK_%(protocol)s,
+        },
+        .max_message_size = %(max_message_size)d,
+        .max_nb_messages = %(max_nb_messages)d,
+        
+        .data = (void *) %(data)s,
+        .data_stride = %(data_stride)s,
+    },
+"""
+
+def write_system_partition_deployment_c(part, f):
+    p = functools.partial(print, file=f)
+
+    p()
+    p()
+    p("/* System partition specific */")
+    p("#include <net/network.h>")
+    p("#include <port_info.h>")
+    p("#include <sysconfig.h>")
+
+    p()
+
+    # we interested only in ports, which protocol is not None
+    sampling_ports = [ port for port in part.ports if isinstance(port, SamplingPort) and port.protocol]
+    queuing_ports = [ port for port in part.ports if isinstance(port, QueueingPort) and port.protocol]
+
+    def get_internal_port_name(port, suffix=""):
+        # the name that is used for static variables
+        # including port data, channels, etc.
+        if isinstance(port, SamplingPort):
+            return "sp_%d_%s_%s" % (sampling_ports.index(port), port.protocol, suffix)
+        if isinstance(port, QueueingPort):
+            return "qp_%d_%s_%s" % (queuing_ports.index(port), port.protocol, suffix)
+
+        assert False
+
+    # print static data storage
+    for i, port in enumerate(sampling_ports):
+        p(SAMPLING_PORT_NETWORK_DATA_TEMPLATE % dict(
+            varname=get_internal_port_name(port, "data"),
+            max_message_size=port.max_message_size,
+            protocol=port.protocol,
+        ))
+
+    for i, port in enumerate(queuing_ports):
+        p(QUEUEING_PORT_NETWORK_DATA_TEMPLATE % dict(
+            varname=get_internal_port_name(port, "data"),
+            max_message_size=port.max_message_size,
+            max_nb_messages=port.max_nb_messages,
+            protocol=port.protocol,
+        ))
+    p("sys_sampling_port_t sys_sampling_ports[] = {")
+    for i, port in enumerate(sampling_ports):
+
+        p(SYS_SAMPLING_PORT_TEMPLATE % dict(
+            name=_c_string(port.name),
+            direction=port.direction,
+            max_message_size=port.max_message_size,
+            data="&" + get_internal_port_name(port, "data"),
+            protocol=port.protocol,
+        ))
+    p("};")
+    p("unsigned sys_sampling_ports_nb = ARRAY_SIZE(sys_sampling_ports);")
+
+    p("sys_queuing_port_t sys_queuing_ports[] = {")
+    for i, port in enumerate(queuing_ports):
+        p(SYS_QUEUING_PORT_TEMPLATE % dict(
+            name=_c_string(port.name),
+            direction=port.direction,
+            max_message_size=port.max_message_size,
+            max_nb_messages=port.max_nb_messages,
+            data="&" + get_internal_port_name(port, "data"),
+            data_stride="sizeof(%s[0])" % get_internal_port_name(port, "data"),
+            protocol=port.protocol,
+        ))
+    p("};")
+    p("unsigned sys_queuing_ports_nb = ARRAY_SIZE(sys_queuing_ports);")
+

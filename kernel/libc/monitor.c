@@ -1,14 +1,12 @@
 #include <config.h>
 
 #include <libc.h>
-#include <bsp.h>
+#include <bsp_common.h>
 #include <arch.h>
 #include <core/partition.h>
 
 
-#define NCOMMANDS 8 //Number of commands, change it if you want to 
-                    //add a new command.
-
+#define NCOMMANDS sizeof(commands)/sizeof(commands[0])
 
 
 /*
@@ -48,6 +46,8 @@ int restart_N(int argc, char **argv); // restart pertition N
 
 int exit_from_monitor(int argc, char **argv); //exit from monitor
 
+int cpu_reset(int argc, char **argv); //cpu reset
+
 int info_partition(int argc,char ** argv);
 
 struct Command {
@@ -65,6 +65,7 @@ static struct Command commands[] = {
     {"pause", "/N/" ,"Pause partition N",pause_N},
     {"resume", "/N/" ,"Continue partition N",resume_N},
     {"restart", "/N/" ,"Restart partition N",restart_N},
+    {"reset", "" ,"reset cpu", cpu_reset},
     {"exit", "" ,"Exit from console",exit_from_monitor},
 };
 
@@ -263,6 +264,15 @@ exit_from_monitor(int argc, char **argv){
 
 }
 
+int cpu_reset(int argc, char **argv)
+{
+    (void) argc;
+    (void) argv;
+    printf("Rebooting\n");
+    pok_arch_cpu_reset();
+
+    return 0;
+}
 
 
 

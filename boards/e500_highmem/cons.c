@@ -22,6 +22,7 @@
 #include <libc.h>
 #include <core/debug.h>
 #include <core/cons.h>
+#include <bsp_common.h>
 #include <cons.h>
 
 #if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
@@ -31,14 +32,6 @@
 
 #define UART_LSR_THRE   0x20
 
-pok_bsp_t pok_bsp = {
-    .ccsrbar_size = 0x1000000ULL,
-    .ccsrbar_base = 0xE0000000ULL,
-    .ccsrbar_base_phys = 0xFE0000000ULL,
-    .serial0_regs_offset = 0x4500ULL,
-    .timebase_freq = 400000000,
-    .serial1_regs_offset = 0x4600ULL
-};
 
 static void ns16550_writeb(int offset, int value, int flag)
 {

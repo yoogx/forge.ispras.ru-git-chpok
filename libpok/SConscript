@@ -9,7 +9,6 @@ libpok_env['CPPPATH'] = [env['POK_PATH']+'/libpok/include']
 libpok_env.StaticLibrary(target = 'pok', source = [
 'arch/arch.lo',
 'core/core.lo',
-'drivers/drivers.lo',
 'middleware/middleware.lo',
 'arinc653/arinc653.lo',
 'libm/libm.lo',
@@ -21,7 +20,6 @@ Export('libpok_env')
 
 SConscript('arch/SConscript')
 SConscript('core/SConscript')
-SConscript('drivers/SConscript')
 SConscript('middleware/SConscript')
 SConscript('arinc653/SConscript')
 SConscript('libm/SConscript')

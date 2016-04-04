@@ -1,0 +1,7 @@
+# -*- Mode: Python -*-
+
+Import('syspart_env')
+
+syspart_env.Program(target = 'pci.lo', source = Glob('*.c'))
+
+# EOF

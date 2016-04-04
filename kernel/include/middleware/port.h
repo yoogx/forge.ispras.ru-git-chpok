@@ -42,10 +42,6 @@
 #ifndef __POK_KERNEL_PORTS_H__
 #define __POK_KERNEL_PORTS_H__
 
-#include <config.h>
-
-#if defined(POK_NEEDS_PORTS_QUEUEING) || defined(POK_NEEDS_PORTS_SAMPLING)
-
 #include <types.h>
 #include <errno.h>
 #include <core/lockobj.h>
@@ -93,14 +89,10 @@ typedef struct
 
 typedef enum
 {
-    POK_PORT_CONNECTION_NULL = 0, // used as a sentinel
-    POK_PORT_CONNECTION_LOCAL = 1,
-#ifdef POK_NEEDS_NETWORKING
-    POK_PORT_CONNECTION_UDP = 2,
-#endif
+    POK_PORT_CONNECTION_LOCAL,
+    POK_PORT_CONNECTION_UDP,
 } pok_port_connection_kind_t;
 
-#ifdef POK_NEEDS_NETWORKING
 typedef struct
 {
     uint32_t ip;
@@ -111,6 +103,7 @@ typedef struct
     char buffer[]; 
 } pok_port_connection_sampling_udp_send_t;
 
+#ifdef POK_NEEDS_NETWORKING
 typedef struct
 {
     uint32_t ip;
@@ -188,7 +181,6 @@ void pok_port_reset(pok_partition_id_t);
 
 void pok_port_flush_partition(pok_partition_id_t);
 
-#ifdef POK_NEEDS_PORTS_QUEUEING
 typedef struct pok_port_queueing_wait_list_t
 {
     struct pok_port_queueing_wait_list_t *next;
@@ -284,9 +276,7 @@ pok_ret_t pok_port_queueing_id(
     const char      *name,
     pok_port_id_t   *id
 );
-#endif // POK_NEEDS_PORTS_QUEUEING
 
-#ifdef POK_NEEDS_PORTS_SAMPLING
 typedef struct
 {
     pok_port_header_t           header;
@@ -296,6 +286,7 @@ typedef struct
     uint64_t                    last_receive;
     pok_bool_t                  last_validity;
     pok_bool_t                  not_empty;
+    pok_bool_t                  is_new;//TRUE if data hasn't been read yet
     pok_port_data_t             *data;
 } pok_port_sampling_t;
 
@@ -343,8 +334,9 @@ pok_ret_t pok_port_sampling_status (
     const pok_port_id_t         id,
     pok_port_sampling_status_t  *status
 );
-#endif // POK_NEEDS_PORTS_SAMPLING
 
-#endif // defined(POK_NEEDS_PORTS_QUEUEING) || defined(POK_NEEDS_PORTS_SAMPLING)
+pok_ret_t pok_port_sampling_check(
+    const pok_port_id_t id
+);
 
 #endif // __POK_KERNEL_PORTS_H__
