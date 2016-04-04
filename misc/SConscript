@@ -30,7 +30,7 @@ except:
     vars = Variables()
     vars.AddVariables(
         ('xml', 'xml config to be passed to parser', 'config.xml'),
-        EnumVariable('bsp', 'bsp', 'e500_highmem', allowed_values = boards)
+        EnumVariable('bsp', 'bsp', 'e500mc', allowed_values = boards)
     )
 
     env = Environment(variables = vars, ENV = os.environ)
