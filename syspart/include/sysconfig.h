@@ -56,4 +56,6 @@ void drivers_init(void);
 extern struct pci_driver pci_driver_table[];
 extern unsigned pci_driver_table_size;
 
+extern char *ipnet_netdev_name;
+
 #endif

@@ -49,6 +49,8 @@ channel_driver_t * channel_drivers[] = {
 };
 unsigned channel_drivers_nb = ARRAY_SIZE(channel_drivers);
 
+char *ipnet_netdev_name = "virtio-net1";
+
 #include <drivers/virtio/virtio_network.h>
 void drivers_init()
 {

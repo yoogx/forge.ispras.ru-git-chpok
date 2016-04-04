@@ -28,8 +28,6 @@
 #include <net/netdevices.h>
 #include <channel_driver.h>
 
-#define DEV_NAME "virtio-net0"
-
 static pok_bool_t initialized = FALSE;
 
 pok_netdevice_t *tcpip_stack_device;
@@ -249,7 +247,7 @@ uint8_t* find_mac_by_ip(uint32_t dst_ip)
 
 void pok_network_init(void)
 {
-    tcpip_stack_device = get_netdevice(DEV_NAME);
+    tcpip_stack_device = get_netdevice(ipnet_netdev_name);
 
     NETWORK_DRIVER_OPS->set_packet_received_callback(NETDEVICE_PTR, packet_received_callback);
     initialized = TRUE;
