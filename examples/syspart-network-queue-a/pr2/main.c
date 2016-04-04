@@ -318,8 +318,7 @@ static int real_main(void)
 
     drivers_init();
 
-    static pok_network_udp_receive_callback_t udp_callback = {udp_received_callback, NULL};
-    pok_network_register_udp_receive_callback(&udp_callback);
+    channel_drivers[0]->register_receive_callback(udp_received_callback);
 
     // transition to NORMAL operating mode
     // N.B. if everything is OK, this never returns

@@ -36,8 +36,15 @@ pok_netdevice_t *tcpip_stack_device;
 #define NETDEVICE_PTR tcpip_stack_device
 #define NETWORK_DRIVER_OPS (NETDEVICE_PTR->ops)
 
-static pok_network_udp_receive_callback_t *receive_callback_list = NULL;
+static pok_bool_t (*receive_callback)(
+        uint32_t ip,
+        uint16_t port,
+        const char *payload,
+        size_t length);
 
+
+static void flush_send();
+static void reclaim_send_buffers();
 
 #define POK_NEEDS_ARP_ANSWER
 
@@ -133,8 +140,8 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
     if (!sent) {
         printf("ARP: unable to send an answer.\n");
     }
-    pok_network_flush_send();
-    pok_network_reclaim_send_buffers();
+    flush_send();
+    reclaim_send_buffers();
 }
 // ---- ARP support -  end  ----
 #endif // POK_NEEDS_ARP_ANSWER
@@ -221,17 +228,11 @@ static void packet_received_callback(const char *data, size_t len)
     data += sizeof(struct udp_hdr);
     len -= sizeof(struct udp_hdr);
 
-    pok_network_udp_receive_callback_t *cb = receive_callback_list;
-    while (cb != NULL) {
-        if (cb->callback(ntoh32(ip_hdr->dst),
-                         ntoh16(udp_hdr->dst_port), 
-                         udp_hdr->payload, 
-                         len))
-        {
-            break;
-        }
-        cb = cb->next;
-    }
+    receive_callback(
+            ntoh32(ip_hdr->dst),
+            ntoh16(udp_hdr->dst_port),
+            udp_hdr->payload, 
+            len);
 }
 
 uint8_t default_mac[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
@@ -371,33 +372,6 @@ pok_bool_t pok_network_send_udp_gather(
     );
 }
 
-void pok_network_register_udp_receive_callback(
-    pok_network_udp_receive_callback_t *cb)
-{
-    cb->next = receive_callback_list;
-    receive_callback_list = cb;
-}
-
-void pok_network_reclaim_send_buffers(void)
-{
-    if (initialized) {
-        NETWORK_DRIVER_OPS->reclaim_send_buffers(NETDEVICE_PTR);
-    }
-}
-
-void pok_network_reclaim_receive_buffers(void)
-{
-    if (initialized) {
-        NETWORK_DRIVER_OPS->reclaim_receive_buffers(NETDEVICE_PTR);
-    }
-}
-
-void pok_network_flush_send(void)
-{
-    if (initialized) {
-        NETWORK_DRIVER_OPS->flush_send(NETDEVICE_PTR);
-    }
-}
 
 static pok_bool_t send(
         char *buffer,
@@ -431,16 +405,30 @@ static void receive(void)
         NETWORK_DRIVER_OPS->reclaim_receive_buffers(NETDEVICE_PTR);
     }
 }
+
 static void flush_send(void) {
     if (initialized) {
         NETWORK_DRIVER_OPS->flush_send(NETDEVICE_PTR);
     }
 }
 
+void register_receive_callback(
+            pok_bool_t (*callback)(
+                uint32_t ip,
+                uint16_t port,
+                const char *payload,
+                size_t length
+                )
+            )
+{
+    receive_callback = callback;
+}
+
 struct channel_driver ipnet_channel_driver = {
     .send = send,
     .reclaim_send_buffers = reclaim_send_buffers,
     .receive = receive,
-    .flush_send = flush_send
+    .flush_send = flush_send,
+    .register_receive_callback = register_receive_callback
 };
 

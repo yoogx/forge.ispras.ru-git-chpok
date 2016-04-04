@@ -32,12 +32,6 @@ struct send_callback {
 };
 
 
-// a linked list of callbacks, actually
-typedef struct pok_network_udp_receive_callback_t {
-    pok_bool_t (*callback)(uint32_t ip, uint16_t port, const char *payload, size_t length);
-    struct pok_network_udp_receive_callback_t *next;
-} pok_network_udp_receive_callback_t;
-
 typedef struct {
     char *buffer;
     size_t size;

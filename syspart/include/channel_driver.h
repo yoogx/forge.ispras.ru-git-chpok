@@ -12,11 +12,21 @@ typedef struct channel_driver {
     /* will call callbacks on sent packets */
     void (*reclaim_send_buffers)();
 
+    void (*register_receive_callback)(
+            pok_bool_t (*callback)(
+                uint32_t ip,
+                uint16_t port,
+                const char *payload,
+                size_t length
+                )
+            );
+
     /* will call callbacks on received packets */
     void (*receive)();
 
     /* We finished sending portion, so driver MAY flush send buffers */
     void (*flush_send)();
+
 
 } channel_driver_t;
 #endif
