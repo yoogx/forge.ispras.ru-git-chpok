@@ -176,4 +176,9 @@ pok_ret_t pok_syscall_init();
    return POK_ERRNO_EINVAL;					\
 }
 
+#include <core/thread.h>
+#include <core/partition.h>
+#include <middleware/port.h>
+#include <syscall_map_arinc.h>
+
 #endif /* __POK_SYSCALL_H__ */

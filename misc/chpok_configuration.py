@@ -536,6 +536,10 @@ def write_configuration(conf, kernel_dir, partition_dirs):
         with open(os.path.join(partition_dirs[i], "deployment.c"), "w") as f:
             write_partition_deployment_c(conf, i, f)
 
+def write_partition_configuration(conf, partition_dir, i):
+    with open(os.path.join(partition_dir, "deployment.c"), "w") as f:
+        write_partition_deployment_c(conf, i, f)
+
 def write_kernel_deployment_c(conf, f):
     p = functools.partial(print, file=f)
     

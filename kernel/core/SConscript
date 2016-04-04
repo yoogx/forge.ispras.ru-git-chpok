@@ -2,6 +2,23 @@
 
 Import('kernel_env')
 
-kernel_env.Program(target = 'core.lo', source = Glob('*.c'))
+import sys
+import os
+sys.path.insert(1, os.path.join(os.environ["POK_PATH"], "misc"))
+import generate_syscalls
+
+kernel_env.Append(CPPPATH = kernel_env['POK_PATH']+'/build/kernel/include')
+
+generate_syscall_kernel_command = kernel_env.Command(
+    target = kernel_env['POK_PATH'] + 'build/kernel/include/syscall_map_arinc.h',
+    source ='../include/uapi/syscall_map_arinc.h.in',
+    action = generate_syscalls.generate_syscalls_declaration_kernel)
+
+
+kernel_core_program = kernel_env.Program(target = 'core.lo', source = Glob('*.c'))
+
+kernel_env.Depends(kernel_core_program, generate_syscall_kernel_command)
+
+
 
 # EOF

@@ -44,6 +44,7 @@
 #include <core/error.h>
 #include <middleware/blackboard.h>
 #include <utils.h>
+#include <core/syscall.h>
 
 pok_ret_t pok_blackboard_read (const pok_blackboard_id_t   id, 
                                const int64_t               timeout,

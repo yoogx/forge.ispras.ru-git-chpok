@@ -1,10 +1,5 @@
-#!/usr/bin/env python2
-
-#import os
-#import itertools
 import ipaddr
 import chpok_configuration
-#import xml.etree.ElementTree as ET
 
 def parse_bool(s):
     # this follows xsd:boolean
@@ -57,7 +52,6 @@ class ArincConfigParser:
 
         for i, part in enumerate(root.find("Partitions").findall("Partition")):
             conf.partitions.append(self.parse_partition(part))
-
             partname_to_index[part.find("Definition").attrib["Name"]] = i
 
         conf.slots = self.parse_schedule(root.find("Schedule"), partname_to_index)
@@ -220,32 +214,3 @@ class ArincConfigParser:
             ))
 
         return res
-'''
-def parse_args():
-    import argparse
-
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("directory", type=str)
-    parser.add_argument("--xml", required=True, type=argparse.FileType("r"))
-
-    return parser.parse_args()
-
-def main():
-    args = parse_args()
-
-    # XXX directory names are hardcoded for now
-    partition_dirs = (os.path.join(args.directory, "pr%d" % i) for i in itertools.count(1))
-    partition_dirs = list(itertools.islice(partition_dirs, 255)) # XXX limited to 255 partitions right now
-    kernel_dir = os.path.join(args.directory, "kernel")
-
-    root = ET.parse(args.xml)
-
-    parser = ArincConfigParser()
-    conf = parser.parse(root)
-    
-    chpok_configuration.write_configuration(conf, kernel_dir, partition_dirs)
-
-if __name__ == "__main__":
-    main()
-'''

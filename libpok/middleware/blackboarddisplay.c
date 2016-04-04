@@ -42,6 +42,7 @@
 #include <libc/string.h>
 #include <core/thread.h>
 #include <middleware/blackboard.h>
+#include <core/syscall.h>
 
 pok_ret_t pok_blackboard_display (const pok_blackboard_id_t   id, 
                                   const void*                 message, 

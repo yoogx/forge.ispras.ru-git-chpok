@@ -72,8 +72,8 @@ void CREATE_ERROR_HANDLER (SYSTEM_ADDRESS_TYPE  ENTRY_POINT,
                            STACK_SIZE_TYPE      STACK_SIZE,
                            RETURN_CODE_TYPE     *RETURN_CODE)
 {
-    pok_ret_t core_ret;
-    core_ret = pok_syscall2 (POK_SYSCALL_ERROR_HANDLER_CREATE, (uint32_t)STACK_SIZE, (uint32_t)ENTRY_POINT);
+    pok_ret_t core_ret = pok_error_thread_create(STACK_SIZE, (void*)ENTRY_POINT);
+    //core_ret = pok_syscall2 (POK_SYSCALL_ERROR_HANDLER_CREATE, (uint32_t)STACK_SIZE, (uint32_t)ENTRY_POINT);
 
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);

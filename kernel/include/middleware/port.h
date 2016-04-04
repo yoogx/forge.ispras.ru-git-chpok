@@ -255,8 +255,7 @@ pok_ret_t pok_port_queueing_create(
 
 pok_ret_t pok_port_queueing_receive(
     pok_port_id_t           id, 
-    int64_t                timeout, 
-    const pok_port_size_t   maxlen, 
+    const pok_time_t*       timeout, 
     void                    *data, 
     pok_port_size_t         *len
 );
@@ -265,7 +264,7 @@ pok_ret_t pok_port_queueing_send(
     pok_port_id_t       id, 
     const void          *data,
     pok_port_size_t     len,
-    int64_t             timeout
+    const pok_time_t*   timeout
 );
 
 pok_ret_t pok_port_queueing_status(
@@ -300,7 +299,7 @@ typedef struct
 {
     pok_port_size_t         size;
     pok_port_direction_t    direction;
-    uint64_t                refresh;
+    pok_time_t              refresh;
     bool_t                  validity;
 } pok_port_sampling_status_t;
 
@@ -309,7 +308,7 @@ pok_ret_t pok_port_sampling_create(
     const char*             name,
     pok_port_size_t         size,
     pok_port_direction_t    direction,
-    uint64_t                refresh,
+    const pok_time_t*       refresh,
     pok_port_id_t           *id
 );
 
@@ -336,7 +335,7 @@ pok_ret_t pok_port_sampling_status (
     pok_port_sampling_status_t  *status
 );
 
-pok_bool_t pok_port_sampling_check(
+pok_ret_t pok_port_sampling_check(
     const pok_port_id_t id
 );
 

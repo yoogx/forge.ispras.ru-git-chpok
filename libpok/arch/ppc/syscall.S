@@ -1,9 +1,11 @@
         .text
+        .globl pok_syscall0
         .globl pok_syscall1
         .globl pok_syscall2
         .globl pok_syscall3
         .globl pok_syscall4
         .globl pok_syscall5
+pok_syscall0:
 pok_syscall1:
 pok_syscall2:
 pok_syscall3:

@@ -22,7 +22,24 @@ def print_cmd_line(s, target, src, env):
     else:
         sys.stdout.write("Making %s...\n" %(' and '.join([str(x) for x in target])))
 
-Import('env')
+try:
+    Import('env')
+except:
+    boards = ['e500mc', 'e500_highmem', 'p3041', 'x86-qemu']
+
+    vars = Variables()
+    vars.AddVariables(
+        ('xml', 'xml config to be passed to parser', 'config.xml'),
+        EnumVariable('bsp', 'bsp', 'e500_highmem', allowed_values = boards)
+    )
+
+    env = Environment(variables = vars, ENV = os.environ)
+
+    Help(vars.GenerateHelpText(env))
+
+    env['POK_PATH'] = os.path.join(os.environ['POK_PATH'], '')
+    env['SCONSTRUCT_DIR'] = GetLaunchDir()
+    env['BUILD_DIR'] = os.path.join(env['SCONSTRUCT_DIR'], 'build', env['bsp'], '')
 
 log_file_opened = False
 
@@ -42,6 +59,7 @@ env['BSP'] = env['bsp']
 # 16 MBytes
 env['MAX_PART_SIZE'] = 16 * 2**20
 
+# Architecture-dependent parameters
 bsp_arch_dict = {
     'e500mc':          'ppc',
     'e500_highmem':    'ppc',
@@ -50,33 +68,55 @@ bsp_arch_dict = {
 }
 env['ARCH'] = bsp_arch_dict[env['BSP']]
 
-if env['ARCH'] == 'ppc':
-    # ppc-specific flags
-    env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -g -O0 -Wuninitialized \
-        -ffreestanding -nostdlib -nostdinc -mregnames'
-    env['AR'] = 'powerpc-elf-ar'
-    env['CC'] = 'powerpc-elf-gcc'
-    env['LINK'] = 'powerpc-elf-ld'
-    env['OBJCOPY'] = 'powerpc-elf-objcopy'
-    env['OBJDUMP'] = 'powerpc-elf-objdump'
-    env['RANLIB'] = 'powerpc-elf-ranlib'
-    env['GDB'] = 'powerpc-elf-gdb'
-    env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
-    env['QEMU'] = 'qemu-system-ppc'
+arch_prefix_dict = {
+    'ppc':    'powerpc-elf-',
+    'x86':    'i386-elf-'
+}
 
-elif env['ARCH'] == 'x86':
-    # x86-specific flags
-    env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -g -Og -Wuninitialized \
-        -ffreestanding -nostdlib -nostdinc'
-    env['AR'] = 'i386-elf-ar'
-    env['CC'] = 'i386-elf-gcc'
-    env['LINK'] = 'i386-elf-ld'
-    env['OBJCOPY'] = 'i386-elf-objcopy'
-    env['OBJDUMP'] = 'i386-elf-objdump'
-    env['RANLIB'] = 'i386-elf-ranlib'
-    env['GDB'] = 'i386-elf-gdb'
-    env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
-    env['QEMU'] = 'qemu-system-i386'
+arch_gdb_dict = {
+    'ppc':    'powerpc-elf-gdb',
+    'x86':    'i386-elf-gdb'
+}
+
+arch_qemu_dict = {
+    'ppc':    'qemu-system-ppc',
+    'x86':    'qemu-system-i386'
+}
+
+tools_dict = {
+    'PREFIX':    arch_prefix_dict,
+    'GDB':       arch_gdb_dict,
+    'QEMU':      arch_qemu_dict
+}
+
+# These might be specified as Linux environment variables
+tools = ['PREFIX', 'GDB', 'QEMU']
+
+for tool in tools:
+    try:
+        env[tool] = os.environ[tool]
+    except:
+        env[tool] = tools_dict[tool][env['ARCH']]
+
+# These depend only on prefix
+env['AR']      = env['PREFIX'] + 'ar'
+env['CC']      = env['PREFIX'] + 'gcc'
+env['LINK']    = env['PREFIX'] + 'ld'
+env['OBJCOPY'] = env['PREFIX'] + 'objcopy'
+env['OBJDUMP'] = env['PREFIX'] + 'objdump'
+env['RANLIB']  = env['PREFIX'] + 'ranlib'
+
+env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
+
+Import('cflags')
+env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -Wuninitialized -ffreestanding -nostdlib -nostdinc -g '
+env.Append(CFLAGS = cflags)
+
+cflags_arch_dict = {
+    'ppc':    ' -O0 -mregnames',
+    'x86':    ' -Og'
+}
+env.Append(CFLAGS = cflags_arch_dict[env['ARCH']])
 
 env['ASFLAGS'] = env['CFLAGS']
 
@@ -96,9 +136,22 @@ bsp_qemu_dict = {
 }
 env.Append(QEMU_FLAGS = bsp_qemu_dict[env['BSP']])
 
-Export('env')
+env.Append(QEMU_FLAGS = ' -kernel '+env['BUILD_DIR']+'pok.elf')
 
-SConscript(env['SCONSTRUCT_DIR']+'/SConscript')
+#env.Append(QEMU_FLAGS = ' -display none')
+
+env.Command('run_cmd', [], env['QEMU']+env['QEMU_FLAGS'])
+env.Alias('run', 'run_cmd')
+
+env.Command('run_debug_cmd', [], [
+env.Append(QEMU_FLAGS = ' -S -s'),
+env['QEMU']+env['QEMU_FLAGS']])
+env.Alias('rundbg', 'run_debug_cmd')
+
+env.Command('debug_cmd', [], env['GDB']+' '+env['BUILD_DIR']+'pok.elf -ex "target remote :1234"')
+env.Alias('debug', 'debug_cmd')
+
+Export('env')
 
 SConscript('../boards/SConscript', variant_dir = '../build/'+env['BSP']+'/boards', duplicate = 0)
 SConscript('../kernel/SConscript', variant_dir = '../build/'+env['BSP']+'/kernel', duplicate = 0)

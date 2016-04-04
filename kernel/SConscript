@@ -5,7 +5,7 @@ Import('env')
 kernel_env = env.Clone()
 kernel_env.Append(CFLAGS = ' -Werror')
 
-kernel_env.Program(target = 'pok.lo', source = [
+kernel_env.Program(target = 'core.lo', source = [
 'core/core.lo',
 'middleware/middleware.lo',
 'libc/libc.lo',
