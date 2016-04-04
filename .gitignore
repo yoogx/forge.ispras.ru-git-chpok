@@ -1,5 +1,8 @@
+/build
 /cache
 /old
+/examples/*/build
+/examples/*/*/build
 /examples/*/sizes.c
 /examples/*/*/deployment.c
 *.o
@@ -10,6 +13,8 @@ libpok.a
 *.uboot
 *.map
 *.pyc
+build/
 .sconsign*
 *.log
 *.directory
+*.gdb_history
