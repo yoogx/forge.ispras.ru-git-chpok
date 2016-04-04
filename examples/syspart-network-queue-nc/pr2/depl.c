@@ -54,7 +54,12 @@ struct mac_ip mac_addr_mapping[] = {
 
 unsigned mac_addr_mapping_nb = ARRAY_SIZE(sys_sampling_channels);
 
+channel_driver_t * channel_drivers[] = {
+    &ipnet_channel_driver
+};
+unsigned channel_drivers_nb = ARRAY_SIZE(channel_drivers);
 
+#include <drivers/virtio/virtio_network.h>
 void drivers_init()
 {
     virtio_net_init();

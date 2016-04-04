@@ -47,6 +47,9 @@ extern unsigned sys_queuing_channels_nb;
 extern sys_channel_t sys_queuing_channels[];
 extern struct mac_ip mac_addr_mapping[];
 extern unsigned mac_addr_mapping_nb;
+extern channel_driver_t *channel_drivers[];
+extern unsigned channel_drivers_nb;
+
 void drivers_init(void);
 
 

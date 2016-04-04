@@ -399,12 +399,6 @@ void pok_network_flush_send(void)
     }
 }
 
-void pok_network_reclaim_buffers()
-{
-    pok_network_reclaim_send_buffers();
-    pok_network_reclaim_receive_buffers();
-}
-
 static pok_bool_t send(
         char *buffer,
         size_t buffer_size,
@@ -424,8 +418,23 @@ static pok_bool_t send(
             );
 }
 
+static void reclaim_send_buffers(void)
+{
+    if (initialized) {
+        NETWORK_DRIVER_OPS->reclaim_send_buffers(NETDEVICE_PTR);
+    }
+}
+
+static void receive(void)
+{
+    if (initialized) {
+        NETWORK_DRIVER_OPS->reclaim_receive_buffers(NETDEVICE_PTR);
+    }
+}
 
 struct channel_driver ipnet_channel_driver = {
-    .send = send
+    .send = send,
+    .reclaim_send_buffers = reclaim_send_buffers,
+    .receive = receive,
 };
 

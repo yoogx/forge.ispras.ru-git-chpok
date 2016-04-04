@@ -133,7 +133,7 @@ static void queuing_send_outside(unsigned channel_idx)
     while (!utils_queue_full(port)) {
 
         if (port->nb_message > port->max_nb_messages/2) {
-            pok_network_reclaim_send_buffers();
+            channel.driver_ptr->reclaim_send_buffers();
         }
 
         sys_queuing_data_t *dst_place = utils_queue_tail(port);
@@ -234,7 +234,7 @@ static void first_process(void)
                 break;
 
             sampling_send_outside(i);
-            pok_network_reclaim_send_buffers();
+            channel->driver_ptr->reclaim_send_buffers();
         }
 
         for (int i = 0; i<sys_queuing_channels_nb; i++) {
@@ -245,10 +245,13 @@ static void first_process(void)
                 break;
 
             queuing_send_outside(i);
-            pok_network_reclaim_send_buffers();
+            channel->driver_ptr->reclaim_send_buffers();
         }
 
-        pok_network_reclaim_receive_buffers();
+        for (int i = 0; i < channel_drivers_nb; i++) {
+            channel_driver_t *driver_ptr = channel_drivers[i];
+            driver_ptr->receive();
+        }
     }
 }
 
