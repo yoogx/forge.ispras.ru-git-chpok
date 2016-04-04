@@ -1,18 +1,18 @@
 #include <sysconfig.h>
 #include <channel_driver.h>
 
-#define MY_IP IP_ADDR(192, 168, 160, 200)
+#define MY_IP IP_ADDR(192, 168, 0, 2)
 
 const uint32_t pok_network_ip_address = MY_IP;
 
 udp_data_t ipnet_data_0 = { //destination module ip
-    .ip = IP_ADDR(192, 168, 160, 99),
+    .ip = IP_ADDR(192, 168, 0, 1),
     .port = 10000,
 };
 
 udp_data_t ipnet_data_1 = {
     .ip = MY_IP,
-    .port = 10000,
+    .port = 10001,
 };
 
 //TODO
@@ -39,16 +39,8 @@ unsigned sys_sampling_channels_nb = ARRAY_SIZE(sys_sampling_channels);
 
 struct mac_ip mac_addr_mapping[] = {
     {
-        .ip  = MY_IP,
-        .mac = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff} //NOT USED FOR NOW
-    },
-    {
-        .ip = IP_ADDR(10, 0, 2, 2),
-        .mac = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, //by default
-    },
-    {
-        .ip = IP_ADDR(192, 168, 160, 99),
-        .mac = {0x00, 0x80, 0x48, 0x6b, 0x53, 0xa9},
+        .ip = IP_ADDR(192, 168, 0, 1),
+        .mac = {0x6e, 0x80, 0xfb, 0x46, 0xd4, 0x92},
     }
 };
 
