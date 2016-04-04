@@ -23,7 +23,7 @@ static void first_process(void)
 
     while (1) {
         MESSAGE_SIZE_TYPE len;
-        VALIDITY_TYPE validity;
+        //VALIDITY_TYPE validity;
 
         RECEIVE_QUEUING_MESSAGE(QP2, INFINITE_TIME_VALUE, (MESSAGE_ADDR_TYPE) &msg, &len, &ret);
 

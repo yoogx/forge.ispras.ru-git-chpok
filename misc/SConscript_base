@@ -14,6 +14,7 @@ parser = arinc653_xml_conf.ArincConfigParser()
 conf = parser.parse(root)
 
 env['PARTITION_DIRS'] = list(part.name for part in conf.partitions)
+env['PARTITION_IS_SYSTEM'] = list(part.is_system for part in conf.partitions)
 env['PARTITIONS'] = list(os.path.join(env['SCONSTRUCT_DIR'], part_dir, 'build',
 					env['bsp'], 'part.elf') for part_dir in env['PARTITION_DIRS'])
 
@@ -64,8 +65,12 @@ def create_sizes_c(target, source, env):
 for i in range(len(pok_env['PARTITION_BUILD_DIRS'])):
     part_dir = os.path.join(pok_env['SCONSTRUCT_DIR'], pok_env['PARTITION_DIRS'][i])
     part_build_dir = os.path.join(pok_env['SCONSTRUCT_DIR'], pok_env['PARTITION_BUILD_DIRS'][i])
+    part_is_system = pok_env['PARTITION_IS_SYSTEM'][i]
+    print("aaa")
+    print(part_is_system)
     if any(f.endswith('.c') for f in os.listdir(part_dir)):
-        SConscript('SConscript_partition', exports = ['part_dir', 'part_build_dir'])
+        SConscript('SConscript_partition', exports = ['part_dir', 'part_build_dir', 'part_is_system'])
+    print("bbb")
 
 merge_command = pok_env.Command(target = pok_env['BUILD_DIR']+'partitions.bin',
 source = pok_env['PARTITIONS'],

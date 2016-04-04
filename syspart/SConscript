@@ -4,15 +4,18 @@ Import('env')
 
 syspart_env = env.Clone()
 
-syspart_env['CPPPATH'] = [env['POK_PATH']+'/libpok/include',
-                          env['POK_PATH']+'/syspart/include']
+syspart_env['CPPPATH'] = [env['POK_PATH']+'/build/libpok/include',
+                          env['POK_PATH']+'/libpok/include',
+                          env['POK_PATH']+'/syspart/include',
+                          ]
 
-syspart_env.Program(target = 'syspart.lo', source = [
+syspart_program = syspart_env.Program(target = 'syspart.lo', source = [
     'net/net.lo',
     'drivers/drivers.lo',
     'config.c',
     'mem.c'
 ])
+syspart_env.Depends(syspart_program, env['POK_PATH']+'/libpok/')
 
 Export('syspart_env')
 
