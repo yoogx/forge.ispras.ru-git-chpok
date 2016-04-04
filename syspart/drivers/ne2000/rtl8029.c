@@ -21,8 +21,9 @@
  * @date   PFE GISTR 2010
  */
 
+#ifdef SYS_NEEDS_DRIVER_P3041
+
 #include "rtl8029.h"
-#ifdef POK_NEEDS_RTL8029
 
 #define DRV_NAME "ne2k-pci"
 
@@ -404,4 +405,5 @@ struct pci_driver ne2k_pci_driver = {
     .id_table = ne2k_pci_tbl
 };
 
-#endif
+#endif /* SYS_NEEDS_DRIVER_P3041 */
+

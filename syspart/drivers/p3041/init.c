@@ -10,6 +10,7 @@
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
+#ifdef SYS_NEEDS_DRIVER_P3041
 
 #ifdef __PPC__
 #include <stdio.h>
@@ -482,4 +483,5 @@ pok_netdevice_t pok_network_p3041_device = {
     .mac = internal_device_struct.macaddr
 };
 
-#endif
+#endif /* PPC */
+#endif /* SYS_NEEDS_DRIVER_P3041 */

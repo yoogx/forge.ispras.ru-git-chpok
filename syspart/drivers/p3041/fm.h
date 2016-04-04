@@ -1,5 +1,8 @@
+#ifdef SYS_NEEDS_DRIVER_P3041
+
 #ifndef __SYSPART_P3041_FM_H
 #define __SYSPART_P3041_FM_H
+
 
 #define FM_PRAM_SIZE  sizeof(struct fm_port_global_pram)
 #define FM_PRAM_ALIGN 256
@@ -294,3 +297,5 @@ struct fm_port_bd {
 };
 
 #endif
+
+#endif /*SYS_NEEDS_DRIVER_P3041*/
