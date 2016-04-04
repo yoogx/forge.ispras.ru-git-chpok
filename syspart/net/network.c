@@ -431,10 +431,16 @@ static void receive(void)
         NETWORK_DRIVER_OPS->reclaim_receive_buffers(NETDEVICE_PTR);
     }
 }
+static void flush_send(void) {
+    if (initialized) {
+        NETWORK_DRIVER_OPS->flush_send(NETDEVICE_PTR);
+    }
+}
 
 struct channel_driver ipnet_channel_driver = {
     .send = send,
     .reclaim_send_buffers = reclaim_send_buffers,
     .receive = receive,
+    .flush_send = flush_send
 };
 

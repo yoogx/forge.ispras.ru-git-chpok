@@ -8,8 +8,15 @@ typedef struct channel_driver {
         pok_network_buffer_callback_t callback,
         void *callback_arg
     );
+
+    /* will call callbacks on sent packets */
     void (*reclaim_send_buffers)();
+
+    /* will call callbacks on received packets */
     void (*receive)();
+
+    /* We finished sending portion, so driver MAY flush send buffers */
+    void (*flush_send)();
 
 } channel_driver_t;
 #endif

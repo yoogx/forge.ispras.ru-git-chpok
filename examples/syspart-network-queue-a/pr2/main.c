@@ -171,7 +171,7 @@ static void queuing_send_outside(unsigned channel_idx)
 
         dst_place->status = QUEUING_STATUS_PENDING;
         dst_place->port_index = channel.port_index;
-        pok_network_flush_send();
+        channel.driver_ptr->flush_send();
     }
 }
 
@@ -220,7 +220,7 @@ static void sampling_send_outside(unsigned channel_idx)
     if (!res)
         printf("SYSNET: Error in send_udp\n");
 
-    pok_network_flush_send();
+    channel.driver_ptr->flush_send();
 }
 
 static void first_process(void)
