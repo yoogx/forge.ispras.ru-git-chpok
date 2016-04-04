@@ -171,7 +171,7 @@ static void sched_arinc(void)
     else if(!list_empty(&part->error_list))
     {
         // Start error handler (aperiodic, no timeout).
-        pok_thread_t* new_thread = part->thread_error;
+        new_thread = part->thread_error;
         
         new_thread->priority = new_thread->base_priority;
         new_thread->sp = 0;

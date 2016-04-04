@@ -140,7 +140,7 @@ static pok_bool_t process_error_partition(pok_system_state_t system_state,
     {
     case POK_SYSTEM_STATE_USER:
 #ifdef POK_NEEDS_ERROR_HANDLING
-        if(!pok_error_level_select(part->partition_hm_selector,
+        if(pok_error_level_select(part->partition_hm_selector,
             system_state, error_id)
             && part->mode == POK_PARTITION_MODE_NORMAL
             && part->thread_error) return FALSE;
@@ -215,18 +215,16 @@ static void thread_add_error_bit(pok_thread_t* thread,
  * 
  * Additional information about error should already be filled
  * in accordance with description of POK_THREAD_ERROR_BIT_SYNC.
+ * 
+ * Should be called with local preemption disabled.
  */
 static void thread_emit_sync_error(pok_thread_t* thread,
     pok_error_id_t error_id, void* __user failed_addr)
 {
-    pok_preemption_local_disable();
-    
     current_partition_arinc->sync_error = error_id;
     current_partition_arinc->sync_error_failed_addr = failed_addr;
     
     thread_add_error_bit(thread, POK_THREAD_ERROR_BIT_SYNC);
-    
-    pok_preemption_local_enable();
 }
 
 #endif /* POK_NEEDS_ERROR_HANDLING */

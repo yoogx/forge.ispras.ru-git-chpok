@@ -104,7 +104,8 @@ class TimeSlotMonitor(TimeSlot):
 #
 # - name - name of the partition
 # ...
-# - part_id - identificator(number) of given partition.
+# - part_id - identificator(number) of given partition. Optional.
+# - part_index - index of the partition in the array. Filled automatically.
 class Partition:
     __slots__ = [
         "name", 
@@ -145,8 +146,13 @@ class Partition:
         self.ports_sampling = []
 
         # Internal
+        self.part_id = None # Not assigned
+        self.part_index = None # Not set yet
         self.port_names_map = dict() # Map `port_name` => `port`
         self.has_periodic_processing_start = False
+
+    def set_index(self, part_index):
+        self.part_index = part_index
 
     def add_port_queueing(self, port):
         if port.name in self.port_names_map:
@@ -174,6 +180,9 @@ class Partition:
             if not hasattr(self, attr):
                 raise ValueError("%r is not set for %r" % (attr, self))
 
+        if self.part_index is None:
+            raise ValueError("Index is not set for partition '%s' (Partition is added via conf.add_partition(), isn't it?).")
+
         for port in self.ports_sampling + self.ports_queueing:
             port.validate()
             if port.channel_id is None:
@@ -188,7 +197,7 @@ class Partition:
             self.num_threads
         )
 
-    def get_port_by_name(self, name):
+    def get_port_by_name(self, port_name):
         return self.port_names_map[port_name]
 
 def _get_port_direction(port):
@@ -286,7 +295,6 @@ class Channel:
     __slots__ = ["src", "dst"]
 
     def __init__(self, src, dst, max_message_size):
-        self.channel_type = channel_type
         self.max_message_size = max_message_size
 
         self.src = src
@@ -430,19 +438,35 @@ class Configuration:
 
         # For internal usage
         self.partition_names_map = dict()
+        self.partition_ids_map = dict()
         self.next_partition_id = 0
 
         self.next_channel_id_sampling = 0
         self.next_channel_id_queueing = 0
 
 
-    def add_partition(self, part_name, part_size):
+    def add_partition(self, part_name, part_size, part_id = None):
         if part_name in self.partition_names_map:
             raise RuntimeError("Adding already existed partition '%s'" % part_name)
-        part = Partition(self.next_partition_id, part_name, part_size)
+
+        part_id_real = None
+
+        if part_id is not None:
+            if part_id in self.partition_ids_map:
+                raise RuntimeError("Adding already existed partition (by id) '%s'" % part_id)
+            part_id_real = part_id
+        else:
+            part_id_real = self.next_partition_id
+            self.next_partition_id += 1
+
+        part = Partition(part_id_real, part_name, part_size)
+        part.set_index(len(self.partitions))
+
         self.partitions.append(part)
-        self.next_partition_id += 1
         self.partition_names_map[part_name] = part
+
+        if part_id is not None:
+            self.partition_ids_map[part_id] = part
 
         return part
 
@@ -493,11 +517,11 @@ class Configuration:
             raise RuntimeError("At least one connection for channel should be local")
 
         if channel_type == 'sampling':
-            channel = ChannelSampling(src_connection, dst_connection, port_max_message_size)
+            channel = ChannelSampling(src_connection, dst_connection, channel_max_message_size)
             self.channels_sampling.append(channel)
             self.next_channel_id_sampling += 1
         else:
-            channel = ChannelQueueing(src_connection, dst_connection, port_max_message_size,
+            channel = ChannelQueueing(src_connection, dst_connection, channel_max_message_size,
                 max_nb_message_send, max_nb_message_receive)
             self.channels_queueing.append(channel)
             self.next_channel_id_queueing += 1
@@ -521,6 +545,9 @@ class Configuration:
 
     def get_partition_by_name(self, name):
         return self.partition_names_map[name]
+
+    def get_partition_by_id(self, part_id):
+        return self.partition_ids_map[part_id]
 
     def get_port_by_partition_and_name(self, partition_name, port_name):
         return self.get_partition_by_name(partition_name).get_port_by_name(port_name)

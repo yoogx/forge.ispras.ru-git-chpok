@@ -106,7 +106,7 @@ uint8_t pok_channels_queuing_n = {{ conf.channels_queueing | length }};
 pok_channel_sampling_t pok_channels_sampling[{{ conf.channels_sampling | length }}] = {
     <$for channel_sampling in conf.channels_sampling$>
     {
-        .max_message_size = {{channel_queuing.max_message_size}},
+        .max_message_size = {{channel_sampling.max_message_size}},
     },
     <$endfor$>
 };
@@ -238,7 +238,7 @@ static pok_port_queuing_t partition_ports_queuing_{{loop.index0}}[{{part.ports_q
     {
         .name = "{{port_queueing.name}}",
         .channel = &pok_channels_queuing[{{port_queueing.channel_id}}],
-        .direction = <$if port_queueing.is_src()$>POK_PORT_DIRECTION_IN<$else$>POK_PORT_DIRECTION_IN<$endif$>,
+        .direction = <$if port_queueing.is_src()$>POK_PORT_DIRECTION_OUT<$else$>POK_PORT_DIRECTION_IN<$endif$>,
         .partition = &pok_partitions_arinc[{{loop.index0}}],
     },
 <$endfor$>
@@ -250,7 +250,7 @@ static pok_port_sampling_t partition_ports_sampling_{{loop.index0}}[{{part.ports
     {
         .name = "{{port_sampling.name}}",
         .channel = &pok_channels_sampling[{{port_sampling.channel_id}}],
-        .direction = <$if port_sampling.is_src()$>POK_PORT_DIRECTION_IN<$else$>POK_PORT_DIRECTION_IN<$endif$>,
+        .direction = <$if port_sampling.is_src()$>POK_PORT_DIRECTION_OUT<$else$>POK_PORT_DIRECTION_IN<$endif$>,
     },
 <$endfor$>
 };
@@ -344,7 +344,7 @@ const pok_sched_slot_t pok_module_sched[{{conf.slots | length}}] = {
         .offset = 0, <#TODO: precalculate somehow#>
         <$-if slot.get_kind_constant() == 'POK_SLOT_PARTITION' $>
 
-        .partition = &pok_partitions_arinc[0].base_part,
+        .partition = &pok_partitions_arinc[{{slot.partition.part_index}}].base_part,
         .periodic_processing_start = <$if slot.periodic_processing_start$>TRUE<$else$>FALSE<$endif$>,
         <$elif slot.get_kind_constant() == 'POK_SLOT_MONITOR' $>
 

@@ -137,13 +137,19 @@ void READ_SAMPLING_MESSAGE (
 			 /*out*/ RETURN_CODE_TYPE           *RETURN_CODE )
 {
     pok_ret_t core_ret;
+    pok_bool_t core_validity;
     
     if (SAMPLING_PORT_ID <= 0) {
         *RETURN_CODE = INVALID_PARAM;
         return;
     }
 
-    core_ret = pok_port_sampling_read (SAMPLING_PORT_ID - 1, MESSAGE_ADDR, (pok_port_size_t*) LENGTH, (pok_bool_t*) VALIDITY);
+    core_ret = pok_port_sampling_read (SAMPLING_PORT_ID - 1, MESSAGE_ADDR, (pok_port_size_t*) LENGTH, &core_validity);
+
+    if(core_ret == POK_ERRNO_OK){
+        *VALIDITY = core_validity? VALID : INVALID;
+    }
+
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
         MAP_ERROR(POK_ERRNO_EMPTY, NO_ACTION);
@@ -189,7 +195,7 @@ void GET_SAMPLING_PORT_STATUS (
         SAMPLING_PORT_STATUS->REFRESH_PERIOD = ms_to_arinc_time(status.refresh);
         SAMPLING_PORT_STATUS->MAX_MESSAGE_SIZE = status.size;
         SAMPLING_PORT_STATUS->PORT_DIRECTION = (status.direction == POK_PORT_DIRECTION_OUT) ? SOURCE : DESTINATION;
-        SAMPLING_PORT_STATUS->LAST_MSG_VALIDITY = status.validity;
+        SAMPLING_PORT_STATUS->LAST_MSG_VALIDITY = status.validity? VALID : INVALID;
     }
 
     switch (core_ret) {

@@ -512,18 +512,17 @@ pok_ret_t pok_port_sampling_create(
 
     if(!check_access_read(name, MAX_NAME_LENGTH))
         return POK_ERRNO_EFAULT;
-    
+
     if(!check_user_read(refresh)) return POK_ERRNO_EFAULT;
     if(!check_user_write(id)) return POK_ERRNO_EFAULT;
-    
+
     pok_time_t kernel_refresh = __get_user(refresh);
     
     port_sampling = find_port_sampling(name);
     
     if(!port_sampling) return POK_ERRNO_UNAVAILABLE;
-    
     if(port_sampling->is_created) return POK_ERRNO_EXISTS;
-    
+
     if(size != port_sampling->channel->max_message_size)
         return POK_ERRNO_EINVAL;
     if(direction != port_sampling->direction)
@@ -532,9 +531,8 @@ pok_ret_t pok_port_sampling_create(
     if(pok_time_is_infinity(kernel_refresh) || kernel_refresh == 0)
         return POK_ERRNO_EINVAL;
 
-
     port_sampling->is_created = TRUE;
-    
+
     // Useless for OUT port.
     port_sampling->refresh_period = kernel_refresh;
     port_sampling->last_message_validity = FALSE;
@@ -547,8 +545,7 @@ pok_ret_t pok_port_sampling_create(
 pok_ret_t pok_port_sampling_write(
     pok_port_id_t           id,
     const void __user       *data,
-    pok_port_size_t         len
-)
+    pok_port_size_t         len)
 {
     pok_port_sampling_t* port_sampling;
 
@@ -563,7 +560,7 @@ pok_ret_t pok_port_sampling_write(
 
     if(port_sampling->direction != POK_PORT_DIRECTION_OUT)
         return POK_ERRNO_MODE;
-    
+
     if(!check_access_read(data, len))
         return POK_ERRNO_EFAULT;
 
@@ -585,8 +582,7 @@ pok_ret_t pok_port_sampling_read(
     pok_port_id_t           id,
     void __user             *data,
     pok_port_size_t __user  *len,
-    bool_t __user           *valid
-)
+    bool_t __user           *valid)
 {
     pok_port_sampling_t* port_sampling;
     pok_ret_t ret;
@@ -617,8 +613,9 @@ pok_ret_t pok_port_sampling_read(
         __copy_to_user(data, message->content, message->size);
         __put_user(len, (pok_port_size_t)message->size);
         
+        pok_time_t current_time = POK_GETTICK();
         port_sampling->last_message_validity =
-            ((ts + port_sampling->refresh_period) <= POK_GETTICK())
+            ((ts + port_sampling->refresh_period) >= current_time)
             ? TRUE: FALSE;
         ret = POK_ERRNO_OK;
     }

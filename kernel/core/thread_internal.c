@@ -26,6 +26,7 @@ pok_bool_t thread_create(pok_thread_t* t)
     delayed_event_init(&t->thread_delayed_event);
     INIT_LIST_HEAD(&t->wait_elem);
     INIT_LIST_HEAD(&t->eligible_elem);
+    INIT_LIST_HEAD(&t->error_elem);
     
     return TRUE;
 }
