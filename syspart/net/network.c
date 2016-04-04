@@ -36,7 +36,7 @@ pok_netdevice_t *tcpip_stack_device;
 #define NETDEVICE_PTR tcpip_stack_device
 #define NETWORK_DRIVER_OPS (NETDEVICE_PTR->ops)
 
-static pok_bool_t (*receive_callback)(
+static pok_bool_t (*received_callback)(
         uint32_t ip,
         uint16_t port,
         const char *payload,
@@ -228,7 +228,7 @@ static void packet_received_callback(const char *data, size_t len)
     data += sizeof(struct udp_hdr);
     len -= sizeof(struct udp_hdr);
 
-    receive_callback(
+    received_callback(
             ntoh32(ip_hdr->dst),
             ntoh16(udp_hdr->dst_port),
             udp_hdr->payload, 
@@ -412,7 +412,7 @@ static void flush_send(void) {
     }
 }
 
-void register_receive_callback(
+void register_received_callback(
             pok_bool_t (*callback)(
                 uint32_t ip,
                 uint16_t port,
@@ -421,7 +421,7 @@ void register_receive_callback(
                 )
             )
 {
-    receive_callback = callback;
+    received_callback = callback;
 }
 
 struct channel_driver ipnet_channel_driver = {
@@ -429,6 +429,6 @@ struct channel_driver ipnet_channel_driver = {
     .reclaim_send_buffers = reclaim_send_buffers,
     .receive = receive,
     .flush_send = flush_send,
-    .register_receive_callback = register_receive_callback
+    .register_received_callback = register_received_callback
 };
 

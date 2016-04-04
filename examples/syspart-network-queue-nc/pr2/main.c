@@ -318,7 +318,7 @@ static int real_main(void)
 
     drivers_init();
 
-    channel_drivers[0]->register_receive_callback(udp_received_callback);
+    channel_drivers[0]->register_received_callback(udp_received_callback);
 
     // transition to NORMAL operating mode
     // N.B. if everything is OK, this never returns

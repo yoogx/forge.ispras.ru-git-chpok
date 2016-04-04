@@ -111,10 +111,6 @@ pok_bool_t pok_network_send_udp_gather(
     void *callback_arg
 );
 
-void pok_network_register_udp_receive_callback(
-    pok_network_udp_receive_callback_t *cb
-);
-
 /*
  * Reclaim buffers used for pok_network_send,
  * running callbacks associated with them.

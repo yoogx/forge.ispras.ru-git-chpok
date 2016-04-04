@@ -12,7 +12,7 @@ typedef struct channel_driver {
     /* will call callbacks on sent packets */
     void (*reclaim_send_buffers)();
 
-    void (*register_receive_callback)(
+    void (*register_received_callback)(
             pok_bool_t (*callback)(
                 uint32_t ip,
                 uint16_t port,
