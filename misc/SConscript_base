@@ -22,6 +22,9 @@ env['PARTITION_BUILD_DIRS'] = []
 for i in range(len(env['PARTITION_DIRS'])):
 	env['PARTITION_BUILD_DIRS'].append(os.path.join(env['SCONSTRUCT_DIR'], env['PARTITION_DIRS'][i], 'build', env['bsp'], ''))
 
+env.Command('clean_cmd', [], Delete(['build/']+[pdir+'/build' for pdir in env['PARTITION_DIRS']]))
+env.Alias('clean', 'clean_cmd')
+
 # this prevents config writing when we don't need to build
 if not COMMAND_LINE_TARGETS and not env.GetOption('clean') and not env.GetOption('help'):
 	if not os.path.exists(env['BUILD_DIR']):
