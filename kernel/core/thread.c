@@ -509,11 +509,20 @@ out:
 
 pok_ret_t pok_thread_stop(void)
 {
+    pok_partition_arinc_t* part = current_partition_arinc;
+    pok_thread_t* t = part->thread_current;
+
     pok_preemption_local_disable();
-	thread_stop(current_thread);
-    
+
+    thread_stop(t);
+
+    if(t == &part->threads[POK_PARTITION_ARINC_MAIN_THREAD_ID])
+    {
+        // Stopping of the main thread always change scheduling
+        pok_sched_local_invalidate();
+    }
 #ifdef POK_NEEDS_ERROR_HANDLING
-    if(current_thread == current_partition_arinc->thread_error)
+    else if(t == part->thread_error)
     {
         error_check_after_handler();
     }

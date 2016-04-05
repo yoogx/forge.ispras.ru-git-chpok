@@ -65,6 +65,16 @@ static char main_thread_name[MAX_NAME_LENGTH] = "main";
 static void partition_arinc_start_common(void)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
+
+	for(int i = 0; i < part->nports_queuing; i++)
+	{
+		pok_port_queuing_init(&part->ports_queuing[i]);
+	}
+
+	for(int i = 0; i < part->nports_sampling; i++)
+	{
+		pok_port_sampling_init(&part->ports_sampling[i]);
+	}
 	
 	INIT_LIST_HEAD(&part->eligible_threads);
 	delayed_event_queue_init(&part->queue_deadline);
@@ -164,7 +174,6 @@ static const struct pok_partition_operations arinc_ops = {
 
 void pok_partition_arinc_init(pok_partition_arinc_t* part)
 {
-	int i;
 	size_t size = part->size;
 
 	pok_dstack_alloc(&part->base_part.initial_sp, DEFAULT_STACK_SIZE);
@@ -196,16 +205,6 @@ void pok_partition_arinc_init(pok_partition_arinc_t* part)
 	part->intra_memory = part->intra_memory_size
 		? pok_bsp_mem_alloc(part->intra_memory_size)
 		: NULL;
-
-	for(i = 0; i < part->nports_queuing; i++)
-	{
-		pok_port_queuing_init(&part->ports_queuing[i]);
-	}
-
-	for(i = 0; i < part->nports_sampling; i++)
-	{
-		pok_port_sampling_init(&part->ports_sampling[i]);
-	}
 }
 
 void* partition_arinc_im_get(size_t size, size_t alignment)
@@ -326,6 +325,7 @@ static pok_ret_t partition_set_mode_internal (const pok_partition_mode_t mode)
 			return POK_ERRNO_PARTITION_MODE;
 	// Walkthrough
 	case POK_PARTITION_MODE_INIT_COLD:
+		part->base_part.start_condition = POK_START_CONDITION_PARTITION_RESTART;
 		pok_partition_arinc_reset(mode); // Never return.
 	break;
 	case POK_PARTITION_MODE_IDLE:

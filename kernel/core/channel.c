@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <core/time.h>
 
+#include <core/sched.h>
+
 /*********************** Queuing channel ******************************/
 
 void pok_channel_queuing_init(pok_channel_queuing_t* channel)
@@ -279,39 +281,11 @@ pok_message_t* pok_channel_sampling_r_get_message(
     pok_channel_sampling_t* channel, pok_time_t* timestamp)
 {
     pok_message_t* m;
+    uint8_t read_pos;
     
-    uint8_t read_pos = channel->read_pos;
-    uint8_t read_pos_next = ACCESS_ONCE(channel->read_pos_next);
-    
-    // Update reading position if needed.
-    while(read_pos_next != read_pos)
-    {
-        barrier();
-        read_pos = read_pos_next;
-        ACCESS_ONCE(channel->read_pos) = read_pos;
-        
-/* 
- * The most tricky part.
- * 
- * It is possible that `read_pos_next` have been changed since we read it.
- * 
- * It is not a problem for receiver: the message may become staled
- * at any point, even while we read it. 
- * 
- * But this is problem for *sender*, which needs to choose
- * position for write next (pos_write). This position should differ
- * from `pos_read`, but `pos_read` is controlled by *receiver*, and
- * may outdate immediately after sender have read it.
- * 
- * Sender assumes `read_pos` to be same as `read_pos_next` OR one which
- * it reads from `read_pos` after updating `read_pos_next`.
- * 
- * On receiver side we need to recheck `read_pos_next` after we update 
- * `read_pos`. Number of such rechecks should be limited, because
- * switching between sender and receiver's partitions shouldn't be frequent.
- */
-        read_pos_next = ACCESS_ONCE(channel->read_pos_next);
-    }
+    pok_preemption_disable();
+    read_pos = channel->read_pos = channel->read_pos_next;
+    __pok_preemption_enable();
     
     m = channel_sampling_message_at(channel, read_pos);
     
@@ -324,6 +298,12 @@ pok_message_t* pok_channel_sampling_r_get_message(
     return NULL;
 }
 
+void pok_channel_sampling_r_clear_message(pok_channel_sampling_t* channel)
+{
+    pok_preemption_disable();
+    channel_sampling_message_at(channel, channel->read_pos)->size = 0;
+    __pok_preemption_enable();
+}
 
 pok_message_t* pok_channel_sampling_s_get_message(
     pok_channel_sampling_t* channel)
@@ -334,48 +314,29 @@ pok_message_t* pok_channel_sampling_s_get_message(
 void pok_channel_sampling_send_message(
     pok_channel_sampling_t* channel)
 {
-    uint8_t read_pos_next = channel->write_pos;
-    uint8_t read_pos;
+    uint8_t read_pos_next;
+
+    assert(channel_sampling_message_at(channel, channel->write_pos)->size);
+    
+    pok_preemption_disable();
+    channel->read_pos_next = read_pos_next = channel->write_pos;
     channel->timestamps[read_pos_next] = POK_GETTICK();
-    
-    assert(channel_sampling_message_at(channel, read_pos_next)->size);
-    
-    // Make message available for receiver.
-    barrier();
-    ACCESS_ONCE(channel->read_pos_next) = read_pos_next;
-    
+
     /*
-     * Now we need to choose next `write_pos`.
+     * The only choice for `write_pos`, which can differ from both
+     * `read_pos` and `read_pos_next`.
      * 
-     * See comments in pok_channel_sampling_r_get_message() above.
+     * (read_pos + read_pos_next + write_pos = 0 + 1 + 2 = 3).
      */
-    
-    barrier();
-    read_pos = ACCESS_ONCE(channel->read_pos);
-    
-    if(read_pos != read_pos_next)
-    {
-        /*
-         * The only choice for `write_pos`, which can differ from both
-         * `read_pos` and `read_pos_next`.
-         * 
-         * (read_pos + read_pos_next + write_pos = 0 + 1 + 2 = 3).
-         */
-         channel->write_pos = 3 - read_pos - read_pos_next;
-    }
-    else
-    {
-        /* 
-         * Receiver has already found the message we have produced.
-         * 
-         * Choose any other position for write.
-         * 
-         * 0 -> 1
-         * 1 -> 0
-         * 2 -> 1
-         */
-        channel->write_pos = (read_pos_next & 1) ^ 1;
-    }
+    channel->write_pos = 3 - channel->read_pos - read_pos_next;
+    __pok_preemption_enable();
+}
+
+void pok_channel_sampling_s_clear_message(pok_channel_sampling_t* channel)
+{
+    pok_preemption_disable();
+    channel->read_pos_next = channel->read_pos;
+    __pok_preemption_enable();
 }
 
 /**********************************************************************/

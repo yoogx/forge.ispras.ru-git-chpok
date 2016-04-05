@@ -149,8 +149,6 @@ void thread_stop(pok_thread_t* t)
 
 void thread_start(pok_thread_t* t)
 {
-    assert(t->state == POK_STATE_WAITING);
-
     t->state = POK_STATE_RUNNABLE;
 
     if(!t->suspended)

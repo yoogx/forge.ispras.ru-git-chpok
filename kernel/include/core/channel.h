@@ -197,6 +197,9 @@ pok_message_range_t pok_channel_queuing_s_n_messages(pok_channel_queuing_t* chan
  * message, and one message slot for newest message received.
  * 
  * Sender has one message slot for currently formed message.
+ * 
+ * Actually, ARINC distinguish message which is *sent* or *received*:
+ * message is treated as sent until it is received.
  */
 typedef struct {
     pok_message_size_t max_message_size;
@@ -238,6 +241,11 @@ void pok_channel_sampling_init(pok_channel_sampling_t* channel);
 pok_message_t* pok_channel_sampling_r_get_message(
     pok_channel_sampling_t* channel, pok_time_t* timestamp);
 
+/*
+ * Clear message received.
+ */
+void pok_channel_sampling_r_clear_message(pok_channel_sampling_t* channel);
+
 
 /***** Operations for sender. Should be serialized wrt themselves *****/
 
@@ -252,6 +260,11 @@ pok_message_t* pok_channel_sampling_s_get_message(
  */
 void pok_channel_sampling_send_message(
     pok_channel_sampling_t* channel);
+
+/*
+ * Clear message sent.
+ */
+void pok_channel_sampling_s_clear_message(pok_channel_sampling_t* channel);
 
 /**********************************************************************/
 /* 

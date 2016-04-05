@@ -343,6 +343,13 @@ void pok_preemption_enable(void)
     pok_arch_preempt_enable();
 }
 
+void __pok_preemption_enable(void)
+{
+    assert(!pok_arch_preempt_enabled());
+    pok_arch_preempt_enable();
+}
+
+
 /*
  * Forward implementation, which iterates over all slots.
  * 

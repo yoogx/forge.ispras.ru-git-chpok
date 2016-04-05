@@ -148,9 +148,8 @@ static void sched_arinc(void)
     if(part->mode != POK_PARTITION_MODE_NORMAL)
     {
         new_thread = &part->threads[POK_PARTITION_ARINC_MAIN_THREAD_ID];
-        if(new_thread->state != POK_STATE_STOPPED)
+        if(new_thread->state == POK_STATE_STOPPED)
         {
-            assert(new_thread->state == POK_STATE_STOPPED);
             /*
              * Stopped main thread means that partition can do nothing.
              * 

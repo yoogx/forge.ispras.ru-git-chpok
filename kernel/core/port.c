@@ -537,6 +537,15 @@ pok_ret_t pok_port_sampling_create(
     port_sampling->refresh_period = kernel_refresh;
     port_sampling->last_message_validity = FALSE;
     
+    if(port_sampling->direction == POK_PORT_DIRECTION_OUT)
+    {
+        pok_channel_sampling_s_clear_message(port_sampling->channel);
+    }
+    else
+    {
+        pok_channel_sampling_r_clear_message(port_sampling->channel);
+    }
+
     __put_user(id, port_sampling - current_partition_arinc->ports_sampling);
     
     return POK_ERRNO_OK;

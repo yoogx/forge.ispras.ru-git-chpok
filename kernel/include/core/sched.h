@@ -91,6 +91,18 @@ void pok_preemption_disable(void);
  */
 void pok_preemption_enable(void);
 
+/**
+ *  Ends critical section without running scheduler.
+ * 
+ * Should be paired with pok_preemption_disable or
+ * pok_preemption_disable_from_interrupt.
+ * 
+ * Should be used only if no action in the critical section affects
+ * scheduler. Otherwise pok_preemption_enable() should be used.
+ */
+void __pok_preemption_enable(void);
+
+
 /** 
  * Mark scheduler state as needed to be rechecked.
  * 

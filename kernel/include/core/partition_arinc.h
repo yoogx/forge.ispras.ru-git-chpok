@@ -269,6 +269,8 @@ void pok_partition_arinc_init(pok_partition_arinc_t* part);
  * or by the use space via SET_PARTITION_MODE.
  * 
  * Switch between COLD_START and WARM_START generates error.
+ * 
+ * Appropriate START_CONDITION should be set before.
  */
 void pok_partition_arinc_reset(pok_partition_mode_t mode);
 
