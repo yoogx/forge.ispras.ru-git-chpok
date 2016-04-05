@@ -84,9 +84,9 @@ static struct {
 } __attribute__((packed)) arp_answer_buffer;
 
 static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
-    if (!ether_is_broadcast(ether_hdr->dst)) {
-        return; // This is not an ARP request.
-    }
+    //if (!ether_is_broadcast(ether_hdr->dst)) {
+    //    return; // This is not an ARP request.
+    //}
     if (ether_hdr->ethertype != hton16(ETH_P_ARP)) {
         return; // This is not an ARP request.
     }
