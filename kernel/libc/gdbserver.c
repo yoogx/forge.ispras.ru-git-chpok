@@ -866,13 +866,6 @@ void add_0_breakpoint(uintptr_t addr, int length, int *using_thread){
 #endif
         switch_part_id(old_pid, new_pid);
     }
-    if (!mem2hex((char *)addr, &(breakpoints[Head_of_breakpoints].Instr), length)){
-        strcpy (remcomOutBuffer, "E22");
-        switch_part_id(new_pid, old_pid);    
-        return;
-    }
-
-
     int i;
     for (i = 0; i < max_breakpoint; i++){
         if (breakpoints[i].P_num == 0)
@@ -890,6 +883,11 @@ void add_0_breakpoint(uintptr_t addr, int length, int *using_thread){
     breakpoints[Head_of_breakpoints].B_num = last_breakpoint;
     breakpoints[Head_of_breakpoints].Reason = 2;
     breakpoints[Head_of_breakpoints].addr = addr;
+    if (!mem2hex((char *)addr, &(breakpoints[Head_of_breakpoints].Instr), length)){
+        strcpy (remcomOutBuffer, "E22");
+        switch_part_id(new_pid, old_pid);    
+        return;
+    }
     //~ Head_of_breakpoints++;
     //~ if (Head_of_breakpoints == max_breakpoint){
         //~ strcpy(remcomOutBuffer, "E22");
