@@ -1,7 +1,7 @@
 #define PC_REGNUM 64
 #define SP_REGNUM 1
  
-//~ #define DEBUG_GDB
+#define DEBUG_GDB
 #define QEMU
 #define MULTIPROCESS
 
@@ -868,7 +868,7 @@ void add_0_breakpoint(uintptr_t addr, int length, int *using_thread){
     }
     int i;
     for (i = 0; i < max_breakpoint; i++){
-        if (breakpoints[i].P_num == 0)
+        if (breakpoints[i].P_num == 0) & (breakpoints[i].B_num == 0) & (breakpoints[i].T_num == 0)
             break;
     }
     if (i == max_breakpoint){
