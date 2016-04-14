@@ -21,12 +21,13 @@
  * @date   PFE GISTR 2010
  */
 
-#ifdef SYS_NEEDS_DRIVER_P3041
+#include "syspart_config.h"
 
-#include "rtl8029.h"
+#ifdef SYS_NEEDS_DRIVER_P3041
 
 #define DRV_NAME "ne2k-pci"
 
+#include "rtl8029.h"
 //#include <middleware/port.h>
 #include <pci.h>
 #include <ioports.h>
@@ -41,6 +42,7 @@
 # define outb_inverse(a,b) outb((b), (a))
 
 // global since there is no way to get device data otherwise...
+//static s_ne2000_dev will_be_deleted_dev;
 static s_ne2000_dev dev;
 
 /*
