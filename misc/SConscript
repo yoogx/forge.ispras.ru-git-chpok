@@ -40,13 +40,14 @@ except:
 
     # If bsp isn't specified on the command line,
     # try to get it from bash environment
-    if env['bsp'] == default_board:
+    #if 'bsp' not in COMMAND_LINE_TARGETS:
+    if ARGUMENTS.get('bsp'):
+        env['BSP'] = env['bsp']
+    else:
         try:
             env['BSP'] = os.environ['POK_BSP']
         except:
             env['BSP'] = env['bsp']
-    else:
-        env['BSP'] = env['bsp']
 
     env['POK_PATH'] = os.path.join(os.environ['POK_PATH'], '')
     env['SCONSTRUCT_DIR'] = GetLaunchDir()
