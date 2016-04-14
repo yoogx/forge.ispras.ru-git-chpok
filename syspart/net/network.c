@@ -30,8 +30,8 @@
 
 static pok_bool_t initialized = FALSE;
 
-pok_netdevice_t *tcpip_stack_device;
-#define NETDEVICE_PTR tcpip_stack_device
+pok_netdevice_t *current_netdevice;
+#define NETDEVICE_PTR current_netdevice
 #define NETWORK_DRIVER_OPS (NETDEVICE_PTR->ops)
 
 static pok_bool_t (*received_callback)(
@@ -250,9 +250,9 @@ uint8_t* find_mac_by_ip(uint32_t dst_ip)
 
 void pok_network_init(void)
 {
-    tcpip_stack_device = get_netdevice(ipnet_netdev_name);
+    current_netdevice = get_netdevice(ipnet_netdev_name);
 
-    if (tcpip_stack_device == NULL) {
+    if (current_netdevice == NULL) {
         printf("ipnet ERROR: netdevice '%s' not found\n", ipnet_netdev_name);
         return;
     }
