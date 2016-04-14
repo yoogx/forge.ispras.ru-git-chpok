@@ -29,7 +29,8 @@ def get_pok_partition_definitions(source, env):
 root = etree.parse(os.path.join(env['SCONSTRUCT_DIR'], env['xml']))
 parser = arinc653_xml_conf.ArincConfigParser()
 conf = chpok_configuration.Configuration()
-conf.partitions.append(parser.parse_partition(root))
+part = parser.parse_partition(root)
+conf.partitions.append(part)
 
 env.Command('clean_cmd', [], Delete('build/'))
 env.Alias('clean', 'clean_cmd')
@@ -51,6 +52,8 @@ if not COMMAND_LINE_TARGETS and not env.GetOption('clean') and not env.GetOption
 
 part_dir = os.path.join(env['SCONSTRUCT_DIR'], '')
 part_build_dir = os.path.join(env['SCONSTRUCT_DIR'], env['BUILD_DIR'])
-SConscript('SConscript_partition', exports = ['part_dir', 'part_build_dir'])
+
+part_is_system = part.is_system
+SConscript('SConscript_partition', exports = ['part_dir', 'part_build_dir', 'part_is_system'])
 
 # EOF

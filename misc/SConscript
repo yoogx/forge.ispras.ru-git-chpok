@@ -26,20 +26,31 @@ try:
     Import('env')
 except:
     boards = ['e500mc', 'e500_highmem', 'p3041', 'x86-qemu']
+    default_board = 'e500mc'
 
     vars = Variables()
     vars.AddVariables(
         ('xml', 'xml config to be passed to parser', 'config.xml'),
-        EnumVariable('bsp', 'bsp', 'e500mc', allowed_values = boards)
+        EnumVariable('bsp', 'bsp', default_board, allowed_values = boards)
     )
 
     env = Environment(variables = vars, ENV = os.environ)
 
     Help(vars.GenerateHelpText(env))
 
+    # If bsp isn't specified on the command line,
+    # try to get it from bash environment
+    if env['bsp'] == default_board:
+        try:
+            env['BSP'] = os.environ['POK_BSP']
+        except:
+            env['BSP'] = env['bsp']
+    else:
+        env['BSP'] = env['bsp']
+
     env['POK_PATH'] = os.path.join(os.environ['POK_PATH'], '')
     env['SCONSTRUCT_DIR'] = GetLaunchDir()
-    env['BUILD_DIR'] = os.path.join(env['SCONSTRUCT_DIR'], 'build', env['bsp'], '')
+    env['BUILD_DIR'] = os.path.join(env['SCONSTRUCT_DIR'], 'build', env['BSP'], '')
 
 log_file_opened = False
 
@@ -55,7 +66,6 @@ env['PRINT_CMD_LINE_FUNC'] = print_cmd_line
 env['CPPPATH'] = [env['POK_PATH']+'/kernel/include']
 env['LINKFLAGS'] = '-r'
 env['QEMU_FLAGS'] = ' -serial stdio'
-env['BSP'] = env['bsp']
 # 16 MBytes
 env['MAX_PART_SIZE'] = 16 * 2**20
 
@@ -142,6 +152,9 @@ env.Append(QEMU_FLAGS = ' -kernel '+env['BUILD_DIR']+'pok.elf')
 
 env.Command('run_cmd', [], env['QEMU']+env['QEMU_FLAGS'])
 env.Alias('run', 'run_cmd')
+
+env.Command('run_tap_cmd', [], env['QEMU'] + env['QEMU_FLAGS'] + ' -net nic,model=virtio,macaddr=16:0b:5e:36:81:de -net tap,ifname=tap0,script=no,downscript=no')
+env.Alias('run-tap', 'run_tap_cmd')
 
 env.Command('run_with_2_ports', [], env['QEMU']+env['QEMU_FLAGS']+' -serial tcp::8000,server')
 env.Alias('run-gdb', 'run_with_2_ports')

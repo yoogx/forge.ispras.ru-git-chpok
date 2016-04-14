@@ -41,11 +41,11 @@ conf_layout = parser.parse_layout(root)
 env['PARTITION_DIRS'] = list(part.name for part in conf_layout)
 env['PARTITION_IS_SYSTEM'] = list(part.is_system for part in conf_layout)
 env['PARTITIONS'] = list(os.path.join(env['SCONSTRUCT_DIR'], part_dir, 'build',
-					env['bsp'], 'part.elf') for part_dir in env['PARTITION_DIRS'])
+					env['BSP'], 'part.elf') for part_dir in env['PARTITION_DIRS'])
 
 env['PARTITION_BUILD_DIRS'] = []
 for i in range(len(env['PARTITION_DIRS'])):
-	env['PARTITION_BUILD_DIRS'].append(os.path.join(env['SCONSTRUCT_DIR'], env['PARTITION_DIRS'][i], 'build', env['bsp'], ''))
+	env['PARTITION_BUILD_DIRS'].append(os.path.join(env['SCONSTRUCT_DIR'], env['PARTITION_DIRS'][i], 'build', env['BSP'], ''))
 
 env.Command('clean_cmd', [], Delete(['build/']+[pdir+'/build' for pdir in env['PARTITION_DIRS']]))
 env.Alias('clean', 'clean_cmd')

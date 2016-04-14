@@ -2,12 +2,12 @@
 #include <channel_driver.h>
 #include <net/network.h>
 
-#define MY_IP IP_ADDR(192, 168, 0, 2)
+#define MY_IP IP_ADDR(192, 168, 56, 101)
 
 const uint32_t pok_network_ip_address = MY_IP;
 
 udp_data_t ipnet_data_0 = { //destination module ip
-    .ip = IP_ADDR(192, 168, 0, 1),
+    .ip = IP_ADDR(192, 168, 56, 1),
     .port = 10000,
 };
 
@@ -37,19 +37,20 @@ unsigned sys_sampling_channels_nb = ARRAY_SIZE(sys_sampling_channels);
 
 struct mac_ip mac_addr_mapping[] = {
     {
-        .ip = IP_ADDR(192, 168, 0, 1),
-        .mac = {0x6e, 0x80, 0xfb, 0x46, 0xd4, 0x92},
+        .ip = IP_ADDR(192, 168, 56, 1),
+        //.mac = {0x6e, 0x80, 0xfb, 0x46, 0xd4, 0x92},
+        .mac = {0x08, 0x00, 0x27, 0x00, 0x88, 0xAD},
     }
 };
 
-unsigned mac_addr_mapping_nb = ARRAY_SIZE(sys_sampling_channels);
+unsigned mac_addr_mapping_nb = ARRAY_SIZE(mac_addr_mapping);
 
 channel_driver_t * channel_drivers[] = {
     &ipnet_channel_driver
 };
 unsigned channel_drivers_nb = ARRAY_SIZE(channel_drivers);
 
-char *ipnet_netdev_name = "virtio-net1";
+char *ipnet_netdev_name = "virtio-net0";
 
 #include <drivers/virtio/virtio_network.h>
 void drivers_init()

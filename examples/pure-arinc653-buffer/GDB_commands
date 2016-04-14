@@ -467,6 +467,7 @@ define add_new_inferior
 define target hookpost-extended-remote
     set breakpoint always-inserted on
     set remotetimeout unlimited
+    set schedule-multiple on
     set height 0
     set $GDB_part = pok_config_nb_partitions
     set $GDB_i = 1
