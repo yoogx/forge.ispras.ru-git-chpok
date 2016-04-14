@@ -63,14 +63,14 @@ struct arp_packet_t {
     uint32_t tpa;
 } __attribute__((packed));
 
-static pok_bool_t ether_is_broadcast(const uint8_t addr[ETH_ALEN]) {
-    for (int i = 0; i < ETH_ALEN; ++i) {
-        if (addr[i] != 0xFF) {
-            return 0;
-        }
-    }
-    return 1;
-}
+//static pok_bool_t ether_is_broadcast(const uint8_t addr[ETH_ALEN]) {
+//    for (int i = 0; i < ETH_ALEN; ++i) {
+//        if (addr[i] != 0xFF) {
+//            return 0;
+//        }
+//    }
+//    return 1;
+//}
 static pok_bool_t arp_answer_buffer_is_busy = FALSE;
 
 static void stub_callback(void *arg) {
@@ -84,9 +84,12 @@ static struct {
 } __attribute__((packed)) arp_answer_buffer;
 
 static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
+
+    //TODO check that dst is either broadcast or our mac address
     //if (!ether_is_broadcast(ether_hdr->dst)) {
     //    return; // This is not an ARP request.
     //}
+
     if (ether_hdr->ethertype != hton16(ETH_P_ARP)) {
         return; // This is not an ARP request.
     }
@@ -248,6 +251,11 @@ uint8_t* find_mac_by_ip(uint32_t dst_ip)
 void pok_network_init(void)
 {
     tcpip_stack_device = get_netdevice(ipnet_netdev_name);
+
+    if (tcpip_stack_device == NULL) {
+        printf("ipnet ERROR: netdevice '%s' not found\n", ipnet_netdev_name);
+        return;
+    }
 
     NETWORK_DRIVER_OPS->set_packet_received_callback(NETDEVICE_PTR, packet_received_callback);
     initialized = TRUE;

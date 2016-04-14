@@ -35,6 +35,6 @@ pok_netdevice_t* get_netdevice(char *name)
         }
     }
 
-    printf("%s: no netdevice\n", __func__);
+    //printf("%s: no netdevice\n", __func__);
     return NULL;
 }
