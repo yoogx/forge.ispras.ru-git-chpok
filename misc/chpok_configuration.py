@@ -1008,7 +1008,7 @@ def write_system_partition_deployment_c(part, f):
     p("/* System partition specific */")
     p("#include <net/network.h>")
     p("#include <port_info.h>")
-    p("#include <sysconfig.h>")
+    p("#include <depl.h>")
 
     p()
 

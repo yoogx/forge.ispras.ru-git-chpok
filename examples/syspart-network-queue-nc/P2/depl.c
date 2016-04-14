@@ -1,4 +1,4 @@
-#include <sysconfig.h>
+#include <depl.h>
 #include <channel_driver.h>
 #include <net/network.h>
 
@@ -50,7 +50,8 @@ channel_driver_t * channel_drivers[] = {
 };
 unsigned channel_drivers_nb = ARRAY_SIZE(channel_drivers);
 
-char *ipnet_netdev_name = "virtio-net0";
+//char *ipnet_netdev_name = "virtio-net0";
+char *ipnet_netdev_name = "ne2k-pci0";
 
 #include <drivers/virtio/virtio_network.h>
 void drivers_init()

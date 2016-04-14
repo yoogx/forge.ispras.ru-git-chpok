@@ -1,5 +1,5 @@
-#ifndef __POK_SYSCONFIG_H__
-#define __POK_SYSCONFIG_H__
+#ifndef __POK_DEPL_H__
+#define __POK_DEPL_H__
 
 #include <arinc653/types.h>
 #include <middleware/port.h>

@@ -1,4 +1,4 @@
-#include <sysconfig.h>
+#include <depl.h>
 #include <pci.h>
 enum {
     PCI_DRIVER_TABLE_SIZE = 10,

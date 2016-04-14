@@ -5,7 +5,7 @@
 
 #include <bsp.h>
 #include "pci_internal.h"
-#include <sysconfig.h>
+#include <depl.h>
 
 unsigned pci_driver_table_used_cnt = 0;
 

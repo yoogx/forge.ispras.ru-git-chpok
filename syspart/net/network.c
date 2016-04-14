@@ -21,7 +21,7 @@
 #include <net/ip.h>
 #include <net/udp.h>
 #include <pci.h>
-#include <sysconfig.h>
+#include <depl.h>
 
 #include <stdio.h>
 #include <string.h>
