@@ -27,7 +27,7 @@
 
 #include <types.h>
 #include <errno.h>
-#include <bsp.h>
+#include <bsp_common.h>
 
 // TODO: Where should be that definition?
 #define KERNEL_STACK_SIZE_DEFAULT 8192
@@ -39,6 +39,12 @@ struct pok_space
 };
 
 extern struct pok_space spaces[];
+
+/**
+ * Return current partition id
+ */
+int current_segment(void);
+
 
 /**
  * Function that initializes architecture concerns.
@@ -69,6 +75,19 @@ pok_ret_t   pok_arch_idle ();
  * Register an event (for example, an interruption)
  */
 pok_ret_t   pok_arch_event_register (uint8_t vector, void (*handler)(void));
+
+/**
+ *  Disable interrupts and loop
+ */
+void pok_arch_inf_loop();
+
+void pok_trap();
+
+/*
+ * reset cpu
+ */
+void pok_arch_cpu_reset();
+
 
 /**
  * Initialize `context` on the given stack.
@@ -215,6 +234,8 @@ void pok_space_context_restart(
 
 /**
  * Switch to given (user) space.
+ * 
+ * Space with index 0 is kernel space.
  */
 pok_ret_t   pok_space_switch (uint8_t new_space_id);
 

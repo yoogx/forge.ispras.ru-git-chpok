@@ -48,6 +48,8 @@
 #include <core/error.h>
 #include <arch.h>
 
+// Only for get enum of process's states for gdb.
+#include <core/thread.h>
 
 typedef enum
 {
@@ -97,6 +99,49 @@ struct pok_partition_operations
         pok_error_id_t error_id,
         uint8_t state_byte_preempt_local,
         void* failed_address);
+    
+#if 0 /* Disabled until port of GDB */
+    /* 
+     * Return number of (user space) threads for given partition.
+     * 
+     * Returning 0 means that partition doesn't work with user space.
+     * Alternatively, method itself can be NULL.
+     * 
+     * NOTE: Called (possibly) outside of partition's timeslot, so
+     * 'current_partition' doesn't correspond to given partition.
+     */
+    int (*get_number_of_threads)(pok_partition_t* part);
+    
+    /*
+     * Return index of current thread within partition.
+     * 
+     * Returning negative value means that no current thread(is it possible?).
+     * 
+     * If partition doesn't work with user space, never called.
+     * 
+     * NOTE: Called (possibly) outside of partition's timeslot, so
+     * 'current_partition' doesn't correspond to given partition.
+     */
+    int (*get_current_thread)(pok_partition_t* part);
+    
+    /*
+     * Get information about thread with given index.
+     * 
+     * Returns name of the thread.
+     * 
+     * Store state of the thread at 'state' address, if applicable.
+     * 
+     * Store address of thread's registers at 'entry_sp' address, if applicable.
+     * If given process is current for partition, partition's entry_sp will be used.
+     * 
+     * If partition doesn't work with user space, never called.
+     * 
+     * NOTE: Called (possibly) outside of partition's timeslot, so
+     * 'current_partition' doesn't correspond to given partition.
+     */
+    const char* (*get_thread_info)(pok_partition_t* part, int thread_index,
+         pok_state_t* state, uint32_t* entry_sp);
+#endif /* 0 */
 };
 
 /*!

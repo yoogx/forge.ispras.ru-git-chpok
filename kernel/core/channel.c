@@ -305,6 +305,22 @@ void pok_channel_sampling_r_clear_message(pok_channel_sampling_t* channel)
     __pok_preemption_enable();
 }
 
+pok_bool_t pok_channel_sampling_r_check_new_message(pok_channel_sampling_t* channel)
+{
+    pok_bool_t ret = FALSE;
+
+    pok_preemption_disable();
+    if(channel->read_pos != channel->read_pos_next)
+    {
+        ret = TRUE;
+        // TODO: This mark message as consumed. Do we need that?
+        channel->read_pos = channel->read_pos_next;
+    }
+    __pok_preemption_enable();
+
+    return ret;
+}
+
 pok_message_t* pok_channel_sampling_s_get_message(
     pok_channel_sampling_t* channel)
 {

@@ -41,6 +41,25 @@ def parse_time(s):
 
 class ArincConfigParser:
 
+    def parse_layout(self, root):
+        """
+        Minimal parsing for extract layout of the module.
+
+        Return list of 'part_layout' objects.
+        """
+        partitions_layout = []
+
+        for part_root in root.find("Partitions").findall("Partition"):
+            part_name = part_root.find("Definition").attrib["Name"]
+            part_is_system = False
+            if "System" in part_root.find("Definition").attrib:
+                part_is_system = parse_bool(part_root.find("Definition").attrib["System"])
+
+            part_layout = chpok_configuration.PartitionLayout(part_name, part_is_system)
+            partitions_layout.append(part_layout)
+
+        return partitions_layout
+
     def parse(self, root):
         """
         Returns chpok_configuration.Configuration object.
@@ -55,7 +74,9 @@ class ArincConfigParser:
 
         self.parse_schedule(conf, root.find("Schedule"))
 
-        self.parse_channels(conf, root.find("Connection_Table"))
+        connection_table = root.find("Connection_Table")
+        if connection_table is not None:
+            self.parse_channels(conf, connection_table)
 
         conf.network = self.parse_network(root.find("Network"))
         
@@ -71,6 +92,10 @@ class ArincConfigParser:
         # FIXME support partition period, which is simply a fixed attribute
         #       with no real meaning (except it can be introspected)
         part = conf.add_partition(part_name, part_size)
+
+        part.is_system = False
+        if "System" in part_root.find("Definition").attrib:
+            part.is_system = parse_bool(part_root.find("Definition").attrib["System"])
 
         # FIXME support partition period, which is simply a fixed attribute
         #       with no real meaning (except it can be introspected)
@@ -108,6 +133,8 @@ class ArincConfigParser:
                 slot = chpok_configuration.TimeSlotNetwork(slot_duration)
             elif slot_type == "Monitor":
                 slot = chpok_configuration.TimeSlotMonitor(slot_duration)
+            elif slot_type == "GDB":
+                slot = chpok_configuration.TimeSlotGDB(slot_duration)
             else:
                 raise ValueError("unknown slot type %r" % slot_type)
 
@@ -123,6 +150,11 @@ class ArincConfigParser:
             port = chpok_configuration.QueueingPort(port_name, port_direction,
                 port_max_message_size, port_max_nb_messages)
 
+            if "Protocol" in qp.attrib:
+                port.protocol = qp.attrib["Protocol"]
+            else:
+                port.protocol = None
+
             part.add_port_queueing(port)
 
         for sp in ports_root.findall("Sampling_Port"):
@@ -134,10 +166,15 @@ class ArincConfigParser:
             port = chpok_configuration.SamplingPort(port_name, port_direction,
                 port_max_message_size, port_refresh)
 
+            if "Protocol" in sp.attrib:
+                port.protocol = sp.attrib["Protocol"]
+            else:
+                port.protocol = None
+
             part.add_port_sampling(port)
 
     def parse_channels(self, conf, channels_root):
-        for ch in channels_root.findall("Channel") if channels_root else []:
+        for ch in channels_root.findall("Channel"):
 
             src = self.parse_connection(conf, ch.find("Source")[0])
             dst = self.parse_connection(conf, ch.find("Destination")[0])
@@ -146,12 +183,11 @@ class ArincConfigParser:
 
     def parse_connection(self, conf, connection_root):
         if connection_root.tag == "Standard_Partition":
-            port = conf.get_port_by_partition_and_name(
-                root.attrib["PartitionName"],
-                root.attrib["PortName"]
-            )
+            connection_port = conf.get_port_by_partition_and_name(
+                connection_root.attrib["PartitionName"],
+                connection_root.attrib["PortName"])
 
-            return chpok_configuration.LocalConnection(port)
+            return chpok_configuration.LocalConnection(connection_port)
 
         elif connection_root.tag == "UDP":
             res = chpok_configuration.UDPConnection()

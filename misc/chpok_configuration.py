@@ -29,6 +29,15 @@ import functools
 import collections
 import ipaddr
 
+
+class PartitionLayout():
+    """
+    Contain minimal information, needed for determine layout of the partition.
+    """
+    def __init__(self, name, is_system=False):
+        self.name = name
+        self.is_system = is_system
+
 # Single time slot for execute something.
 #
 # - duration - duration of given slot, in miliseconds.
@@ -99,6 +108,13 @@ class TimeSlotMonitor(TimeSlot):
 
     def get_kind_constant(self):
         return "POK_SLOT_MONITOR"
+class TimeSlotGDB(TimeSlot):
+    __slots__ = []
+    def __init__(self, duration):
+        TimeSlot.__init__(self, duration)
+    def get_kind_constant(self):
+        return "POK_SLOT_GDB"
+
 
 # ARINC partition.
 #
@@ -109,6 +125,7 @@ class TimeSlotMonitor(TimeSlot):
 class Partition:
     __slots__ = [
         "name", 
+        "is_system",
 
         "size", # allocated RAM size in bytes (code + static storage)
         "num_threads", # number of user threads, _not_ counting init thread and error handler
@@ -124,6 +141,9 @@ class Partition:
         "blackboard_data_size", # same, for blackboards
 
         "hm_table", # partition hm table
+
+        "ports_queueing_system", # list of queuing ports with non-empty protocol set
+        "ports_sampling_system", # list of sampling ports with non-empty protocol set
     ]
 
     def __init__(self, part_id, name, size):
@@ -145,6 +165,9 @@ class Partition:
         self.ports_queueing = []
         self.ports_sampling = []
 
+        self.ports_queueing_system = []
+        self.ports_sampling_system = []
+
         # Internal
         self.part_id = None # Not assigned
         self.part_index = None # Not set yet
@@ -160,11 +183,18 @@ class Partition:
         self.ports_queueing.append(port)
         self.port_names_map[port.name] = port
 
+        if port.protocol is not None:
+            self.ports_queueing_system.append(port)
+
     def add_port_sampling(self, port):
         if port.name in self.port_names_map:
             raise RuntimeError("Port with name %s already exists in partition %s" % (port.name, self.name))
         self.ports_sampling.append(port)
         self.port_names_map[port.name] = port
+
+        if port.protocol is not None:
+            self.ports_sampling_system.append(port)
+
 
     def get_all_sampling_ports(self):
         return ports_sampling
@@ -216,6 +246,7 @@ class Port:
         "name",
         "is_direction_src",
         "max_message_size",
+        "protocol",
         "channel_id" # id of corresponded channel. Set internally.
     ]
 
@@ -568,8 +599,8 @@ class Configuration:
             if networking_time_slot_exists:
                 raise ValueError("Networking is disabled, but there's (unnecessary) network processing time slot in the schedule")
 
-            if any(chan.requires_network() for chan in self.channels_sampling + self.channels_queueing):
-                raise ValueError("Network channel is present, but networking is not configured")
+            #if any(chan.requires_network() for chan in self.channels):
+            #    raise ValueError("Network channel is present, but networking is not configured")
 
         # validate schedule
         if not isinstance(self.slots[0], TimeSlotPartition):

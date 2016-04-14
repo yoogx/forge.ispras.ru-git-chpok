@@ -91,11 +91,11 @@ pok_error_module_action_table_t hm_multi_partition_table_default = {
 
 /****************** Setup queuing channels ****************************/
 pok_channel_queuing_t pok_channels_queuing[{{ conf.channels_queueing | length }}] = {
-    <$for channel_queuing in conf.channels_queueing$>
+    <$for channel_queueing in conf.channels_queueing$>
     {
-        .max_message_size = {{channel_queuing.max_message_size}},
-        .max_nb_message_send = {{channel_queuing.max_nb_message_send}},
-        .max_nb_message_receive = {{channel_queuing.max_nb_message_receive}},
+        .max_message_size = {{channel_queueing.max_message_size}},
+        .max_nb_message_send = {{channel_queueing.max_nb_message_send}},
+        .max_nb_message_receive = {{channel_queueing.max_nb_message_receive}},
     },
     <$endfor$>
 };
@@ -290,7 +290,7 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
         .main_user_stack_size = 8192, <# TODO: This should be set in config somehow. #>
 
         .ports_queuing = partition_ports_queuing_{{loop.index0}},
-        .nports_queuing = {{part.ports_queuing | length}},
+        .nports_queuing = {{part.ports_queueing | length}},
 
         .ports_sampling = partition_ports_sampling_{{loop.index0}},
         .nports_sampling = {{part.ports_sampling | length}}, <#TODO: ports#>
@@ -336,6 +336,20 @@ pok_partition_t partition_monitor =
     .multi_partition_hm_table = &hm_multi_partition_table_default,
 };
 
+/******************************* GDB **********************************/
+pok_partition_t partition_gdb =
+{
+    .name = "GDB",
+
+    .period = {{conf.major_frame}}, <#TODO: Where it is stored in conf?#>
+
+    .space_id = 0xff,
+
+    .multi_partition_hm_selector = &hm_multi_partition_selector_default,
+    .multi_partition_hm_table = &hm_multi_partition_table_default,
+};
+
+
 /************************* Setup time slots ***************************/
 const pok_sched_slot_t pok_module_sched[{{conf.slots | length}}] = {
 <$for slot in conf.slots$>
@@ -349,6 +363,10 @@ const pok_sched_slot_t pok_module_sched[{{conf.slots | length}}] = {
         <$elif slot.get_kind_constant() == 'POK_SLOT_MONITOR' $>
 
         .partition = &partition_monitor,
+        .periodic_processing_start = FALSE,
+        <$elif slot.get_kind_constant() == 'POK_SLOT_GDB' $>
+
+        .partition = &partition_gdb,
         .periodic_processing_start = FALSE,
         <$endif-$>
         .id = {{loop.index0}}

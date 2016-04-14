@@ -1,7 +1,7 @@
 #ifndef __POK_ARCH_UACCESS_H__
 #define __POK_ARCH_UACCESS_H__
 
-// TODO: Revisit
+// TODO: Revisit (see also pok_space_* code in arch.h)
 static inline pok_bool_t arch_check_access(const void* __user addr, size_t size)
 {
     unsigned long p = (unsigned long)addr;

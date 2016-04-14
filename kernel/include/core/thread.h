@@ -43,13 +43,7 @@
 
 #ifdef POK_NEEDS_THREADS
 
-#include <types.h>
-#include <errno.h>
-#include <core/sched.h>
-#include <core/delayed_event.h>
-#include <arch.h>
-#include <list.h>
-
+// Note: Should come before possible inclusion of <core/partition.h>
 // must match libpok/include/core/thread.h
 typedef enum
 {
@@ -59,6 +53,14 @@ typedef enum
   POK_STATE_WAITING = 2, // WAITING (any reason except suspended, from the first list)
   POK_STATE_RUNNING = 3, // RUNNING. Used only for return status to user space.
 } pok_state_t;
+
+#include <types.h>
+#include <errno.h>
+//#include <core/sched.h>
+#include <core/delayed_event.h>
+#include <arch.h>
+#include <list.h>
+
 
 
 /*
@@ -70,6 +72,22 @@ typedef enum
  * there's another thread that polls the network card.
  */
 
+
+#ifdef POK_NEEDS_NETWORKING
+
+#define NETWORK_THREAD POK_CONFIG_NB_THREADS-4
+#define POK_KERNEL_THREADS 4
+
+#else
+
+#define POK_KERNEL_THREADS 3
+
+#endif
+
+
+#define MONITOR_THREAD POK_CONFIG_NB_THREADS-3
+#define KERNEL_THREAD		POK_CONFIG_NB_THREADS -2
+#define IDLE_THREAD        POK_CONFIG_NB_THREADS -1
 
 #define POK_THREAD_DEFAULT_TIME_CAPACITY 10
 
@@ -344,6 +362,12 @@ typedef struct _pok_thread
 
     // Whether thread is in unrecoverable error state.
     pok_bool_t is_unrecoverable;
+
+    /*
+     * Stack from entry.S for PPC and from interrupt.h for i386
+     * where all registers have been saved.
+     */
+    uint32_t            entry_sp;
 
     /* 
      * Name of the process.

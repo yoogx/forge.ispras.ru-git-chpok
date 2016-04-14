@@ -1,6 +1,8 @@
-#define SAVE_FP(num) stfd %f##num,(92+8*num)(%r1)
-#define LOAD_FP(num) lfd %f##num,(92+8*num)(%r1)
-//352 = 0x160 = align_up(96(old) + (31+1)*8)
+/* FP_START must be equal to offsetof(context_t, fp0) */
+#define FP_START 96
+#define SAVE_FP(num) stfd %f##num,(96+8*num)(%r1)
+#define LOAD_FP(num) lfd %f##num,(96+8*num)(%r1)
+/* FRAME_SIZE must be equal to offsetof(context_t, back_chain) */
 #define FRAME_SIZE 352
         .text
         .globl pok_context_switch
@@ -8,9 +10,9 @@ pok_context_switch:
         /* r3: *old_sp, r4: new_sp */
 
         /* Save registers.  */
-        mflr    %r0
-        stw     %r0,4(%r1)
         stwu    %r1,-FRAME_SIZE(%r1)
+        mflr    %r0
+        stw     %r0,FRAME_SIZE+4(%r1)
         mfcr    %r0
         stw     %r0,8(%r1)
         stw     %r2,12(%r1)

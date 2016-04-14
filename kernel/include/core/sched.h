@@ -37,6 +37,16 @@
 extern pok_partition_t partition_monitor;
 #endif /* POK_NEEDS_MONITOR */
 
+#ifdef POK_NEEDS_GDB
+
+/*
+ * GDB partition.
+ * 
+ * It should be defined in deployment.c and slot should be assigned to it.
+ */
+extern pok_partition_t partition_gdb;
+#endif /* POK_NEEDS_GDB */
+
 typedef struct
 {
     uint64_t duration; // Set in deployment.c

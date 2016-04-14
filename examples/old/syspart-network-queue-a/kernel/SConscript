@@ -1,0 +1,10 @@
+# -*- Mode: Python -*-
+
+Import('env')
+
+env.Program(target = 'kernel.lo', source = [
+env['POK_PATH']+'/build/'+env['BSP']+'/kernel/pok.lo',
+env['POK_PATH']+'/build/'+env['BSP']+'/boards/bsp.lo',
+'deployment.c'])
+
+# EOF

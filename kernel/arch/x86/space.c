@@ -24,7 +24,7 @@
 #include <types.h>
 #include <errno.h>
 #include <libc.h>
-#include <bsp.h>
+#include <bsp_common.h>
 #include <assert.h>
 
 #include <arch.h>
@@ -35,6 +35,8 @@
 #include "tss.h"
 
 #include "space.h"
+#include "core/sched.h"
+#include "core/partition.h"
 
 #define KERNEL_STACK_SIZE 8192
 
@@ -75,7 +77,7 @@ static void pok_dispatch_space(
    ctx.eax     = arg1;
    ctx.ebx     = arg2;
    ctx.cs      = code_sel;
-   ctx.eflags  = 1 << 9;
+   ctx.eflags  = 1 << 9 | 3<<12;
    ctx.esp     = user_sp;
 
    tss_set_esp0 (kernel_sp);
@@ -139,7 +141,7 @@ pok_space_context_init(
     sp->ctx.__esp  = (uint32_t)(&sp->ctx.eip); /* for pusha */
     sp->ctx.eip    = (uint32_t)pok_dispatch_space;
     sp->ctx.cs     = GDT_CORE_CODE_SEGMENT << 3;
-    sp->ctx.eflags = 1 << 9;
+    sp->ctx.eflags = 1 << 9 | 3<<12;
     
     sp->arg1          = arg1;
     sp->arg2          = arg2;
@@ -191,4 +193,25 @@ void pok_space_context_restart(
         arg1,
         arg2
     );
+}
+
+//Double check here because these function are called not only in syscall
+//(where there is checking), but also inside kernel
+//TODO: maybe rename to pok_arch_?
+uintptr_t pok_virt_to_phys(uintptr_t virt) {
+    if (POK_CHECK_PTR_IN_PARTITION(pok_current_partition, virt)) {
+        printf("pok_virt_to_phys: wrong virtual address %p\n", (void*)virt);
+        pok_fatal("wrong pointer in pok_virt_to_phys\n");
+    }
+    return virt + pok_partitions[pok_current_partition].base_addr;
+}
+
+uintptr_t pok_phys_to_virt(uintptr_t phys) {
+    uintptr_t virt = phys - pok_partitions[pok_current_partition].base_addr;
+
+    if (POK_CHECK_PTR_IN_PARTITION(pok_current_partition, virt)) {
+        printf("pok_phys_to_virt: wrong virtual address %p\n", (void*)virt);
+        pok_fatal("wrong pointer in pok_phys_to_virt\n");
+    }
+    return virt;
 }

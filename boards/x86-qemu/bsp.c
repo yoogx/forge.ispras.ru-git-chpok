@@ -25,12 +25,12 @@
 
 #include <assert.h>
 
-#include <bsp.h>
+#include <bsp_common.h>
 
 #define ALIGN_UP(boundary, val) \
 	(val + (boundary - 1)) & (~(boundary - 1))
 
-pok_ret_t pok_bsp_init (void)
+int pok_bsp_init (void)
 {
    pok_cons_init ();
    pok_pm_init ();
@@ -81,8 +81,8 @@ void  *pok_bsp_mem_alloc_aligned(size_t size, size_t alignment)
 
 void *pok_bsp_alloc_partition(size_t size)
 {
-    return pok_bsp_mem_alloc(size); 
-}   
+    return pok_bsp_mem_alloc_aligned(size, 0x1000);
+}
 
 /**
  * Init time. \a freq is the frequency
@@ -92,4 +92,9 @@ pok_ret_t pok_bsp_time_init ()
 {
    return (pok_x86_qemu_timer_init ());
 }
+
+void pok_bsp_get_info(void *addr) {
+    pok_fatal("pok_bsp_get_info unimplemented on x86");
+}
+
 

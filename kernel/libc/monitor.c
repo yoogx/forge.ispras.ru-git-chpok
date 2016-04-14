@@ -1,7 +1,7 @@
 #include <config.h>
 
 #include <libc.h>
-#include <bsp.h>
+#include <bsp_common.h>
 #include <arch.h>
 #include <core/partition_arinc.h>
 
@@ -15,8 +15,7 @@ static void pok_network_thread_init(void)
 #endif
 
 
-#define NCOMMANDS 8 //Number of commands, change it if you want to 
-                    //add a new command.
+#define NCOMMANDS sizeof(commands)/sizeof(commands[0])
 
 
 
@@ -79,6 +78,8 @@ int restart_N(int argc, char **argv); // restart pertition N
 
 int exit_from_monitor(int argc, char **argv); //exit from monitor
 
+int cpu_reset(int argc, char **argv); //cpu reset
+
 int info_partition(int argc,char ** argv);
 
 struct Command {
@@ -96,6 +97,7 @@ static struct Command commands[] = {
     {"pause", "/N/" ,"Pause partition N",pause_N},
     {"resume", "/N/" ,"Continue partition N",resume_N},
     {"restart", "/N/" ,"Restart partition N",restart_N},
+    {"reset", "" ,"reset cpu", cpu_reset},
     {"exit", "" ,"Exit from console",exit_from_monitor},
 };
 
@@ -290,6 +292,15 @@ exit_from_monitor(int argc, char **argv){
 
 }
 
+int cpu_reset(int argc, char **argv)
+{
+    (void) argc;
+    (void) argv;
+    printf("Rebooting\n");
+    pok_arch_cpu_reset();
+
+    return 0;
+}
 
 
 
@@ -360,15 +371,15 @@ monitor()
 
 void monitor_start_func(void)
 {
-    pok_arch_preempt_enable(); //Initialize interrupts   
     for (int i=0; i < pok_partitions_arinc_n; i++){
         partition_pause_set(i, 1);
     }
     for (;;) {
-        if (data_to_read() == 1) {
+        if (data_to_read_0() == 1) {
             /*
              * Set all partition on pause
              */
+            pok_preemption_disable();
             for (int i=0; i < pok_partitions_arinc_n; i++){
                 pok_partition_arinc_t* part = &pok_partitions_arinc[i];
                 if (!part->base_part.is_paused){ 
@@ -376,20 +387,18 @@ void monitor_start_func(void)
                     part->base_part.is_paused=TRUE;
                 }
             }
+            pok_preemption_enable();
             
-            //pok_arch_preempt_disable();         
             monitor();
-            //pok_arch_preempt_enable();        
-            
+
+            pok_preemption_disable();
             for (int i=0; i < pok_partitions_arinc_n; i++){
                 if (!partition_pause_get(i)){ 
                     pok_partitions_arinc[i].base_part.is_paused=FALSE;
                 }
             }
+            pok_preemption_enable();
         }
-        #ifdef i386
-        asm("hlt");
-        #endif
     }
 }
 

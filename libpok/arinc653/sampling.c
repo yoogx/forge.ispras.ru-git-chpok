@@ -204,4 +204,10 @@ void GET_SAMPLING_PORT_STATUS (
     }
 }
 
+pok_bool_t SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(
+        /*in */ SAMPLING_PORT_ID_TYPE      SAMPLING_PORT_ID)
+{
+    return pok_port_sampling_check(SAMPLING_PORT_ID - 1);
+}
+
 #endif

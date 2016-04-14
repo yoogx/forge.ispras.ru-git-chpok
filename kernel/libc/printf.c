@@ -21,7 +21,7 @@
 #include <types.h>
 #include <libc.h>
 #include <stdarg.h>
-#include <bsp.h>
+#include <bsp_common.h>
 #include <arch.h>
 
 static const char digits[] = "0123456789abcdef";
@@ -153,6 +153,7 @@ static void print_num(t_putc putc,
         putc(digit_str[size], out);
 }
 
+/* DON'T USE floating point register in kernel
 static void print_float(t_putc putc,
                         void *out,
                         long double value, 
@@ -173,6 +174,7 @@ static void print_float(t_putc putc,
         fractional *= 10;
     print_num(putc, out, fractional, 10, precision, 0, 1);
 }
+*/
 
 /*
  * finally, printf
@@ -278,6 +280,7 @@ const char * handle_fmt(t_putc putc, void * out, const char* format, va_list *ar
                     print_num(putc, out, value, 10, pad, 0, pad_with_zero);
                     return ++format;
                 }
+            /* DON'T USE floating point register in kernel
             case 'f':
                 {
                     long double value;
@@ -293,6 +296,7 @@ const char * handle_fmt(t_putc putc, void * out, const char* format, va_list *ar
                     print_float(putc, out, value, pad, precision, neg, pad_with_zero);
                     return ++format;
                 }
+            */
             case 'c':
                 //TODO implement l!=0 case
                 putc(va_arg(*args, unsigned ), out);
@@ -346,6 +350,7 @@ void snprintf(char *dst, unsigned size, const char *format, ...)
     va_list args;
     va_start(args, format);
     vprintf(sprintf_putc, &out, format, &args);
+    sprintf_putc('\0', &out);
     va_end(args);
 }
 

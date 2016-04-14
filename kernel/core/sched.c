@@ -65,6 +65,8 @@ static uint8_t               pok_sched_current_slot = 0; /* Which slot are we ex
 
 pok_partition_t* current_partition = NULL;
 
+uintptr_t global_thread_stack = 0;
+
 #ifdef POK_NEEDS_MONITOR
 /* 
  * Whether current partition has `.is_paused` flag set.

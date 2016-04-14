@@ -265,5 +265,6 @@ pok_ret_t pok_port_sampling_status (
     pok_port_sampling_status_t __user   *status
 );
 
+pok_ret_t pok_port_sampling_check(pok_port_id_t id);
 
 #endif /* __POK_KERNEL_PORT_H__ */

@@ -14,6 +14,7 @@
 #define POK_NEEDS_THREAD_SLEEP 1
 #define POK_NEEDS_THREAD_ID 1
 #define POK_NEEDS_MONITOR 1
+#define POK_NEEDS_GDB 1
 #define POK_NEEDS_PORTS_SAMPLING 1
 #define POK_NEEDS_PORTS_QUEUEING 1
 #define POK_NEEDS_BUFFERS 1
@@ -42,6 +43,7 @@
 // #define POK_CONFIG_SCHEDULING_MAJOR_FRAME pok_config_scheduling_major_frame
 // #define POK_CONFIG_NB_SAMPLING_PORTS pok_config_nb_sampling_ports
 // #define POK_CONFIG_NB_QUEUEING_PORTS pok_config_nb_queueing_ports
+#define PARTITION_DEBUG_MODE 1
 
 //extern uint8_t pok_config_nb_threads;
 //extern uint32_t pok_config_partitions_nthreads[];

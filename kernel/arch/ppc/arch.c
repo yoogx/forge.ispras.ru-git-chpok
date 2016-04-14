@@ -30,6 +30,7 @@
 #include "msr.h"
 #include "space.h"
 #include "devtree.h"
+#include <bsp_common.h>
 
 pok_ret_t pok_arch_init ()
 {
@@ -59,6 +60,14 @@ pok_ret_t pok_arch_preempt_enable()
 pok_bool_t pok_arch_preempt_enabled(void)
 {
   return !!(mfmsr() & MSR_EE);
+}
+
+void pok_arch_inf_loop()
+{
+   pok_arch_preempt_disable();
+
+   while (1)
+   {}
 }
 
 pok_ret_t pok_arch_idle()
@@ -93,3 +102,11 @@ uint32_t    pok_thread_stack_addr   (uint8_t    space_id,
 }
 
 
+#include <arch/ppc/linux_io.h>
+#define DCFG_RSTCR 0xb0
+#define RSTCR_RESET_REQ 0x2
+void pok_arch_cpu_reset()
+{
+    uintptr_t addr = pok_bsp.ccsrbar_base + pok_bsp.dcfg_offset + DCFG_RSTCR;
+    out_be32((void*)addr, RSTCR_RESET_REQ);
+}

@@ -663,7 +663,7 @@ pok_ret_t pok_port_sampling_id(
 }
 
 pok_ret_t pok_port_sampling_status (
-    const pok_port_id_t                 id,
+    pok_port_id_t                 id,
     pok_port_sampling_status_t __user   *status
 )
 {
@@ -685,4 +685,28 @@ pok_ret_t pok_port_sampling_status (
     pok_preemption_local_enable();
 
     return POK_ERRNO_OK;
+}
+
+// TODO: This should be transformed into READ_UPDATED_SAMPLING_MESSAGE eventually.
+pok_ret_t pok_port_sampling_check(pok_port_id_t id)
+{
+    pok_ret_t ret;
+
+    pok_port_sampling_t* port_sampling;
+
+    port_sampling = get_port_sampling(id);
+
+    if(!port_sampling) return POK_ERRNO_PORT;
+
+    if(port_sampling->direction != POK_PORT_DIRECTION_IN)
+        return POK_ERRNO_MODE;
+
+
+    pok_preemption_local_disable();
+    ret = pok_channel_sampling_r_check_new_message(port_sampling->channel)
+        ? POK_ERRNO_OK
+        : POK_ERRNO_EMPTY;
+    pok_preemption_local_enable();
+
+    return ret;
 }

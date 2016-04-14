@@ -20,7 +20,7 @@
 #include <types.h>
 #include <errno.h>
 #include <libc.h>
-#include <bsp.h>
+#include <bsp_common.h>
 #include <core/sched.h>
 #include <core/debug.h>
 
@@ -31,6 +31,9 @@
 #include "mmu.h"
 #include "space.h"
 #include "cons.h"
+#include "core/partition.h"
+#include "core/partition_arinc.h"
+#include "core/error.h"
 
 pok_ret_t pok_create_space (uint8_t space_id,
                             uintptr_t addr,
@@ -79,7 +82,7 @@ pok_space_context_init0(
     vctx->r4     = arg2;
     vctx->sp     = stack_rel - 12;
     vctx->srr0   = entry_rel;
-    vctx->srr1   = MSR_EE | MSR_IP | MSR_PR | MSR_FP;
+    vctx->srr1   = MSR_EE | MSR_IP | MSR_PR | MSR_FP | MSR_FE0 | MSR_FE1;
     ctx->lr      = (uintptr_t) pok_arch_rfi;
 
     ctx->sp      = (uintptr_t) &vctx->sp;
@@ -129,7 +132,7 @@ uint32_t pok_space_context_create (
           (unsigned long) stack_rel, 
           (unsigned long) arg1, 
           (unsigned long) arg2, 
-          &vctx->sp);
+          vctx);
 #endif
 
   return (uint32_t)ctx;
@@ -279,7 +282,7 @@ static inline const char* pok_ppc_tlb_size(unsigned size)
  *      the core provides a hint that can be used for implementing a round-robin replacement algorithm. <...>
  */
 // XXX not implemented
-void pok_instert_tlb0();
+void pok_insert_tlb0();
 
 static int pok_ccsrbar_ready = 0;
 
@@ -297,16 +300,16 @@ static void pok_ppc_tlb_print(unsigned tlbsel) {
                 &epn,
                 &rpn
                 );
-        if (valid) {
-            printf("DEBUG: tlb entry %d:%d:\r\n", tlbsel, i);
-            printf("DEBUG:   Valid\r\n");
-            printf("DEBUG:   Effective: %p\r\n", (void*)epn);
-            // FIXME This is wrong. We print only 32 bits out of 36
-            printf("DEBUG:   Physical: %x:%p\r\n", 
-                    (unsigned)(rpn>>32), (void*)(unsigned)rpn);
-            printf("DEBUG:   Size: %s\r\n", pok_ppc_tlb_size(tsize));
-
-        }
+        //~ if (valid) {
+            //~ printf("DEBUG: tlb entry %d:%d:\r\n", tlbsel, i);
+            //~ printf("DEBUG:   Valid\r\n");
+            //~ printf("DEBUG:   Effective: %p\r\n", (void*)epn);
+            //~ // FIXME This is wrong. We print only 32 bits out of 36
+            //~ printf("DEBUG:   Physical: %x:%p\r\n", 
+                    //~ (unsigned)(rpn>>32), (void*)(unsigned)rpn);
+            //~ printf("DEBUG:   Size: %s\r\n", pok_ppc_tlb_size(tsize));
+//~ 
+        //~ }
     }
 }
 
@@ -316,21 +319,22 @@ void pok_arch_space_init (void)
     // we just need to change access bits for the kernel,
     // so user won't be able to access it
     pok_insert_tlb1(
-            0,
-            0,
-            E500MC_PGSIZE_64M,  //TODO make smaller
-            MAS3_SW | MAS3_SR | MAS3_SX,
-            0,
-            0, // any pid 
-            TRUE
-            );
+        0,
+        0,
+        E500MC_PGSIZE_256M,  //TODO make smaller
+        MAS3_SW | MAS3_SR | MAS3_SX,
+        0,
+        0, // any pid 
+        TRUE
+    );
     /*
      * Clear all other mappings. For instance, those created by u-boot.
      */
     unsigned limit = pok_ppc_tlb_get_nentry(1);
     pok_ppc_tlb_write(1,
             pok_bsp.ccsrbar_base, pok_bsp.ccsrbar_base_phys, E500MC_PGSIZE_16M,
-            MAS3_SW | MAS3_SR | MAS3_SX,
+            //MAS3_SW | MAS3_SR | MAS3_SX,
+            MAS3_SW | MAS3_SR | MAS3_SX | MAS3_UW | MAS3_UR,
             MAS2_W | MAS2_I | MAS2_M | MAS2_G,
             0,
             limit-1,
@@ -356,37 +360,39 @@ void pok_arch_space_init (void)
 #define MPC8544_PCI_IO_SIZE      0x10000ULL
 #define MPC8544_PCI_IO           0xE1000000ULL
 
-void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
+void pok_arch_handle_page_fault(
+        volatile_context_t *vctx,
+        uintptr_t faulting_address,
+        uint32_t syndrome,
+        pf_type_t type)
 {
-    (void) syndrome;
-
+    int tlb_miss = (type == PF_INST_TLB_MISS || type == PF_DATA_TLB_MISS);
     unsigned pid = mfspr(SPRN_PID);
 
-    if (pok_ccsrbar_ready) {
-        printf("DEBUG: page fault: pid: %u, address %p, syndrome %u\n", pid, (void*)faulting_address, (unsigned)syndrome);
-    }
-
-    if (faulting_address >= pok_bsp.ccsrbar_base && faulting_address < pok_bsp.ccsrbar_base + pok_bsp.ccsrbar_size) {
+    if (tlb_miss && faulting_address >= pok_bsp.ccsrbar_base && faulting_address < pok_bsp.ccsrbar_base + pok_bsp.ccsrbar_size) {
         pok_insert_tlb1(
-            pok_bsp.ccsrbar_base,
-            pok_bsp.ccsrbar_base_phys,
-            E500MC_PGSIZE_16M,
-            MAS3_SW | MAS3_SR,
+            pok_bsp.ccsrbar_base, 
+            pok_bsp.ccsrbar_base_phys, 
+            E500MC_PGSIZE_16M, 
+            //MAS3_SW | MAS3_SR,
+            MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,
             MAS2_W | MAS2_I | MAS2_M | MAS2_G,
             0, /* any pid */
             TRUE 
         );
-    } else if (faulting_address >= MPC8544_PCI_IO && faulting_address < MPC8544_PCI_IO + MPC8544_PCI_IO_SIZE) {
+    } else if (tlb_miss && faulting_address >= MPC8544_PCI_IO && faulting_address < MPC8544_PCI_IO + MPC8544_PCI_IO_SIZE) {
         pok_insert_tlb1(
             MPC8544_PCI_IO,
             MPC8544_PCI_IO,
             E500MC_PGSIZE_64K,
-            MAS3_SW | MAS3_SR,
+            //MAS3_SW | MAS3_SR,
+            MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,
             MAS2_W | MAS2_I | MAS2_M | MAS2_G,
             0, /* any pid */
             TRUE
         );
     } else if (
+            tlb_miss &&
             pid != 0 &&
             faulting_address >= POK_PARTITION_MEMORY_BASE &&
             faulting_address < POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE)
@@ -403,9 +409,49 @@ void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome)
             FALSE
         );
     } else {
-        // TODO handle it correctly, distinguish kernel code / user code, etc.
-        printf("page fault wrong address: pid: %u, address %p, syndrome %u\n", pid, (void*)faulting_address, (unsigned)syndrome);
-        pok_fatal("bad memory access");
+        if (vctx->srr1&MSR_PR) {
+            printf("USER ");
+        } else {
+            printf("KERNEL ");
+        }
+
+        if (type == PF_DATA_TLB_MISS || type == PF_DATA_STORAGE) {
+            printf("code at %p address tried to access data on %p address\n", (void*)vctx->srr0, (void*)faulting_address);
+        } else {
+            printf("code at %p address tried to execute code at %p address\n", (void *)vctx->lr, (void*)vctx->srr0);
+        }
+#ifdef PARTITION_DEBUG_MODE
+        pok_fatal("page fault");
+#else
+        printf("raising error in pagefault addr %p  syndrome 0x%lx\n", (void*) faulting_address, syndrome);
+        POK_ERROR_CURRENT_THREAD(POK_ERROR_KIND_MEMORY_VIOLATION);
+#endif
+        //pok_fatal("bad memory access");
     }
 }
 
+//Double check here because these function are called not only in syscall
+//(where there is checking), but also inside kernel
+//TODO: maybe rename to pok_arch_?
+uintptr_t pok_virt_to_phys(uintptr_t virt)
+{
+    pok_partition_id_t partid = mfspr(SPRN_PID) - 1;
+    if (!POK_CHECK_PTR_IN_PARTITION(partid, virt)) {
+        printf("pok_virt_to_phys: wrong virtual address %p\n", (void*)virt);
+        pok_fatal("wrong pointer in pok_virt_to_phys\n");
+    }
+
+    return virt - POK_PARTITION_MEMORY_BASE + spaces[partid].phys_base;
+}
+
+uintptr_t pok_phys_to_virt(uintptr_t phys)
+{
+    pok_partition_id_t partid = mfspr(SPRN_PID) - 1;
+
+    uintptr_t virt = phys - spaces[partid].phys_base + POK_PARTITION_MEMORY_BASE;
+    if (!POK_CHECK_PTR_IN_PARTITION(partid, virt)) {
+        printf("pok_phys_to_virt: wrong virtual address %p\n", (void*)virt);
+        pok_fatal("wrong pointer in pok_phys_to_virt\n");
+    }
+    return virt;
+}

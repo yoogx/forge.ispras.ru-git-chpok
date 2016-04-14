@@ -40,8 +40,7 @@ int debug_strlen (const char* str)
 
 void pok_debug_print_current_state ()
 {
-   // TODO: What to output here?
-   /* uint32_t i;
+   /*uint32_t i;
    printf ("\nCurrent state\n");
    printf ("-------------\n");
    printf ("Kernel thread        : %d\n", KERNEL_THREAD);
@@ -86,12 +85,9 @@ void pok_fatal (const char* message)
 
   pok_write ("FATAL ERROR: \n", 13);
   pok_write (message , debug_strlen(message));
-  pok_write("\n", 1);
 
   POK_DEBUG_PRINT_CURRENT_STATE
-  //pok_arch_idle ();
-
-  wait_infinitely();
+  pok_arch_inf_loop();
 
   __builtin_unreachable();
 }

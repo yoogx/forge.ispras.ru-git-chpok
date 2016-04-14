@@ -24,8 +24,7 @@
 #include <config.h>
 
 #include <arch.h>
-#include <bsp.h>
-#include <net/network.h>
+#include <bsp_common.h>
 
 #include <core/time.h>
 #include <core/thread.h>
@@ -34,6 +33,7 @@
 #include <core/partition_arinc.h>
 #include <core/channel.h>
 #include <core/boot.h>
+#include <libc.h>
 
 #include <core/instrumentation.h>
 
@@ -55,6 +55,10 @@ void pok_boot ()
 #ifdef POK_NEEDS_MONITOR
    pok_monitor_thread_init();
 #endif
+#ifdef POK_NEEDS_GDB
+   pok_gdb_thread_init();
+#endif
+
 #if defined (POK_NEEDS_SCHED) || defined (POK_NEEDS_THREADS)
    pok_sched_init ();
 #endif
@@ -80,6 +84,11 @@ void pok_boot ()
 
 
 #ifdef POK_NEEDS_PARTITIONS
+#ifdef POK_NEEDS_WAIT_FOR_GDB
+  printf("Waiting for GDB connection ...\n");
+  printf("\n");
+  pok_trap();
+#endif
   pok_sched_start();
 #else
   pok_arch_preempt_enable();

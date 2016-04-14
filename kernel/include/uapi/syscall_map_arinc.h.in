@@ -264,6 +264,9 @@ SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_SAMPLING_ID, pok_port_sampling_id,
 SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_SAMPLING_STATUS, pok_port_sampling_status,
    pok_port_id_t, id,
    pok_port_sampling_status_t*, status)
+
+SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_SAMPLING_CHECK, pok_port_sampling_check,
+   pok_port_id_t, id)
 #endif /* POK_NEEDS_PORTS_SAMPLING */
 
 #ifdef POK_NEEDS_PORTS_QUEUEING

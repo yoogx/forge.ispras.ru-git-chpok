@@ -71,6 +71,7 @@ typedef enum
    POK_SYSCALL_MIDDLEWARE_SAMPLING_STATUS          = 103,
    POK_SYSCALL_MIDDLEWARE_SAMPLING_WRITE           = 104,
    POK_SYSCALL_MIDDLEWARE_SAMPLING_CREATE          = 105,
+   POK_SYSCALL_MIDDLEWARE_SAMPLING_CHECK           = 106,
 #endif
 #ifdef POK_NEEDS_PORTS_QUEUEING
    POK_SYSCALL_MIDDLEWARE_QUEUEING_CREATE          = 110,
@@ -140,6 +141,10 @@ typedef enum
 #ifdef POK_NEEDS_PCI
    POK_SYSCALL_PCI_REGISTER                        = 601,
 #endif
+
+   POK_SYSCALL_MEM_VIRT_TO_PHYS                    = 701,
+   POK_SYSCALL_MEM_PHYS_TO_VIRT                    = 702,
+   POK_SYSCALL_GET_BSP_INFO                        = 703,
 } pok_syscall_id_t;
 
 typedef struct

@@ -31,6 +31,9 @@ parser = arinc653_xml_conf.ArincConfigParser()
 conf = chpok_configuration.Configuration()
 conf.partitions.append(parser.parse_partition(root))
 
+env.Command('clean_cmd', [], Delete('build/'))
+env.Alias('clean', 'clean_cmd')
+
 # this prevents config writing when we don't need to build
 if not COMMAND_LINE_TARGETS and not env.GetOption('clean') and not env.GetOption('help'):
 	if not os.path.exists(env['BUILD_DIR']):

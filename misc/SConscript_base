@@ -13,8 +13,7 @@ Import('env')
 AddMethod(env, template_generation.TemplateRender)
 
 def get_pok_definitions(source, env):
-    if type(source) is list:
-        source = source[0]
+    source = source[0]
 
     root = etree.parse(source.path)
 
@@ -23,11 +22,24 @@ def get_pok_definitions(source, env):
 
     return dict(conf=conf)
 
+def get_pok_partition_definitions(source, env):
+    source = source[0]
+
+    root = etree.parse(source.path)
+
+    parser = arinc653_xml_conf.ArincConfigParser()
+    conf = chpok_configuration.Configuration()
+    parser.parse_partition(conf, root)
+
+    return dict(part = conf.partitions[0])
+
+
 root = etree.parse(os.path.join(env['SCONSTRUCT_DIR'], env['xml']))
 parser = arinc653_xml_conf.ArincConfigParser()
-conf = parser.parse(root)
+conf_layout = parser.parse_layout(root)
 
-env['PARTITION_DIRS'] = list(part.name for part in conf.partitions)
+env['PARTITION_DIRS'] = list(part.name for part in conf_layout)
+env['PARTITION_IS_SYSTEM'] = list(part.is_system for part in conf_layout)
 env['PARTITIONS'] = list(os.path.join(env['SCONSTRUCT_DIR'], part_dir, 'build',
 					env['bsp'], 'part.elf') for part_dir in env['PARTITION_DIRS'])
 
@@ -35,23 +47,39 @@ env['PARTITION_BUILD_DIRS'] = []
 for i in range(len(env['PARTITION_DIRS'])):
 	env['PARTITION_BUILD_DIRS'].append(os.path.join(env['SCONSTRUCT_DIR'], env['PARTITION_DIRS'][i], 'build', env['bsp'], ''))
 
+env.Command('clean_cmd', [], Delete(['build/']+[pdir+'/build' for pdir in env['PARTITION_DIRS']]))
+env.Alias('clean', 'clean_cmd')
+
 # this prevents config writing when we don't need to build
 if not COMMAND_LINE_TARGETS and not env.GetOption('clean') and not env.GetOption('help'):
-	if not os.path.exists(env['BUILD_DIR']):
-		os.makedirs(env['BUILD_DIR'])
-	for pdir in env['PARTITION_BUILD_DIRS']:
+	build_dir = env['BUILD_DIR']
+	partition_build_dirs = env['PARTITION_BUILD_DIRS']
+
+	if not os.path.exists(build_dir):
+		os.makedirs(build_dir)
+	for pdir in partition_build_dirs:
 		if not os.path.exists(pdir):
 			os.makedirs(pdir)
 	#chpok_configuration.write_configuration(conf, env['BUILD_DIR'], env['PARTITION_BUILD_DIRS'])
-	
+
 	env.TemplateRender(
-        target = [os.path.join(env['BUILD_DIR'], "deployment.c")]
-			+ [os.path.join(part_dir, "deployment.c") for part_dir in env['PARTITION_BUILD_DIRS']],
-        source = os.path.join(env['SCONSTRUCT_DIR'], env['xml']),
+        target = os.path.join(build_dir, "deployment.c"),
+        source = [os.path.join(env['SCONSTRUCT_DIR'], env['xml'])] +
+			[os.path.join(env['SCONSTRUCT_DIR'], part_dir, env['xml']) for part_dir in partition_build_dirs],
         create_definitions_func = get_pok_definitions,
-        template_main = ["deployment_kernel"] + ["deployment_user" * len(env['PARTITION_BUILD_DIRS'])],
+        template_main = "deployment_kernel",
         template_dir = env['POK_PATH'] + "/misc/templates"
         )
+
+	for part_dir in partition_build_dirs:
+		env.TemplateRender(
+			target = os.path.join(part_dir, "deployment.c"),
+			source = os.path.join(env['SCONSTRUCT_DIR'], part_dir, env['xml']),
+			create_definitions_func = get_pok_partition_definitions,
+			template_main = "deployment_user",
+			template_dir = env['POK_PATH'] + "/misc/templates"
+			)
+
 
 
 env.Program(target = env['BUILD_DIR']+'kernel.lo', source = [
@@ -88,8 +116,9 @@ def create_sizes_c(target, source, env):
 for i in range(len(pok_env['PARTITION_BUILD_DIRS'])):
     part_dir = os.path.join(pok_env['SCONSTRUCT_DIR'], pok_env['PARTITION_DIRS'][i])
     part_build_dir = os.path.join(pok_env['SCONSTRUCT_DIR'], pok_env['PARTITION_BUILD_DIRS'][i])
+    part_is_system = pok_env['PARTITION_IS_SYSTEM'][i]
     if any(f.endswith('.c') for f in os.listdir(part_dir)):
-        SConscript('SConscript_partition', exports = ['part_dir', 'part_build_dir'])
+        SConscript('SConscript_partition', exports = ['part_dir', 'part_build_dir', 'part_is_system'])
 
 merge_command = pok_env.Command(target = pok_env['BUILD_DIR']+'partitions.bin',
 source = pok_env['PARTITIONS'],

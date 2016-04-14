@@ -8,35 +8,35 @@ static BUFFER_ID_TYPE global_buffer_id;
 
 static void first_process(void)
 {
-    RETURN_CODE_TYPE ret;
-    int i = 0;
+    //~ RETURN_CODE_TYPE ret;
+    //~ int i = 0;
     while (1) {
-        SEND_BUFFER(global_buffer_id, (MESSAGE_ADDR_TYPE) &i, sizeof(i), 0, &ret);
-        if (ret != NO_ERROR) {
-            printf("couldn't send to the buffer: %d\n", (int) ret);
-            break;
-        } 
-        i++;
-        TIMED_WAIT(1000000000LL, &ret);
+        //~ SEND_BUFFER(global_buffer_id, (MESSAGE_ADDR_TYPE) &i, sizeof(i), 0, &ret);
+        //~ if (ret != NO_ERROR) {
+            //~ printf("couldn't send to the buffer: \n");
+            //~ break;
+        //~ } 
+        //~ i++;
+        //~ TIMED_WAIT(1000000000LL, &ret);
     }
 }
 
 static void second_process(void)
 {
-    RETURN_CODE_TYPE ret;
+    //~ RETURN_CODE_TYPE ret;
     while (1) {
-        int i;
-        MESSAGE_SIZE_TYPE len;
-
-        RECEIVE_BUFFER(global_buffer_id, INFINITE_TIME_VALUE, (MESSAGE_ADDR_TYPE) &i, &len, &ret);
-
-        if (ret != NO_ERROR) {
-            printf("couldn'd receive from the buffer: %d\n", (int) ret);
-            break;
-        }
-        printf("received message %d\n", i);
+        //~ int i;
+        //~ MESSAGE_SIZE_TYPE len;
+//~ 
+        //~ RECEIVE_BUFFER(global_buffer_id, INFINITE_TIME_VALUE, (MESSAGE_ADDR_TYPE) &i, &len, &ret);
+//~ 
+        //~ if (ret != NO_ERROR) {
+            //~ printf("couldn'd receive from the buffer: %d\n", (int) ret);
+            //~ break;
+        //~ }
+        //~ printf("received message \n");
     }
-    STOP_SELF();
+    //~ STOP_SELF();
 }
 
  

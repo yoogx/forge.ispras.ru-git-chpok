@@ -93,7 +93,7 @@ def template_render_action(target, source, env):
                 deps_file_path = target_single.path + '.deps'
                 with open(deps_file_path, "w") as deps_file:
                     for f in used_list:
-                        deps_file.write("%s: %s\n" % (target_single.path, f))
+                        deps_file.write("%s: %s\n" % (target_single.abspath, f))
         except jinja2.TemplateError as e:
             print "Error while rendering templates: " + e.message
             return 1
