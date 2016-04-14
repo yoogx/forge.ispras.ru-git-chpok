@@ -49,10 +49,6 @@ class TemplateLoader(jinja2.BaseLoader):
         return source, filename, lambda: mtime == os.path.getmtime(filename)
 
 jinja_env_global = jinja2.Environment(
-    block_start_string='<$',
-    block_end_string='$>',
-    comment_start_string='<#',
-    comment_end_string='#>',
     trim_blocks=True
 # For some reasons, jinja 2.6 lack of support for 'lstrip_block' parameter
 # (but support {%- %} in templates )

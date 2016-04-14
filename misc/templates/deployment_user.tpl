@@ -13,8 +13,8 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-<$if part.is_system$>
-<$ include 'deployment_user_system'$>
-<$else$>
+{%if part.is_system%}
+{% include 'deployment_user_system'%}
+{%else%}
 /* Empty */
-<$endif$>
+{%endif%}

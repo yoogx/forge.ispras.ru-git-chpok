@@ -107,31 +107,31 @@ pok_error_module_action_table_t hm_multi_partition_table_default = {
 
 /****************** Setup queuing channels ****************************/
 pok_channel_queuing_t pok_channels_queuing[{{ conf.channels_queueing | length }}] = {
-    <$for channel_queueing in conf.channels_queueing$>
+    {%for channel_queueing in conf.channels_queueing%}
     {
         .max_message_size = {{channel_queueing.max_message_size}},
         .max_nb_message_send = {{channel_queueing.max_nb_message_send}},
         .max_nb_message_receive = {{channel_queueing.max_nb_message_receive}},
     },
-    <$endfor$>
+    {%endfor%}
 };
 
 uint8_t pok_channels_queuing_n = {{ conf.channels_queueing | length }};
 
 /****************** Setup sampling channels ***************************/
 pok_channel_sampling_t pok_channels_sampling[{{ conf.channels_sampling | length }}] = {
-    <$for channel_sampling in conf.channels_sampling$>
+    {%for channel_sampling in conf.channels_sampling%}
     {
         .max_message_size = {{channel_sampling.max_message_size}},
     },
-    <$endfor$>
+    {%endfor%}
 };
 
 uint8_t pok_channels_sampling_n = {{ conf.channels_sampling | length }};
 
-<$for part in conf.partitions$>
+{%for part in conf.partitions%}
 /****************** Setup partition{{loop.index0}} (auxiliary) **********************/
-<# TODO: Parse errors from input #>
+{# TODO: Parse errors from input #}
 // HM partition level selector.
 static const pok_error_level_selector_t partition_hm_selector_{{loop.index0}} = {
     .levels = {
@@ -153,7 +153,7 @@ static const pok_error_level_selector_t partition_hm_selector_{{loop.index0}} = 
         0,      /* POK_ERROR_ID_UNHANDLED_INT */
     }
 };
-<# TODO: Parse errors from input #>
+{# TODO: Parse errors from input #}
 // Mapping of thread-level errors information.
 static const pok_thread_error_map_t partition_thread_error_info_{{loop.index0}} = {
     .map = {
@@ -176,7 +176,7 @@ static const pok_thread_error_map_t partition_thread_error_info_{{loop.index0}} 
     }
 };
 
-<# TODO: Parse errors from input #>
+{# TODO: Parse errors from input #}
 /* 
  * Pointer to partition HM table.
  * 
@@ -250,25 +250,25 @@ static pok_thread_t partition_threads_{{loop.index0}}[{{part.num_threads}} + 1 /
 
 // Queuing ports
 static pok_port_queuing_t partition_ports_queuing_{{loop.index0}}[{{part.ports_queueing | length}}] = {
-<$for port_queueing in part.ports_queueing$>
+{%for port_queueing in part.ports_queueing%}
     {
         .name = "{{port_queueing.name}}",
         .channel = &pok_channels_queuing[{{port_queueing.channel_id}}],
-        .direction = <$if port_queueing.is_src()$>POK_PORT_DIRECTION_OUT<$else$>POK_PORT_DIRECTION_IN<$endif$>,
+        .direction = {%if port_queueing.is_src()%}POK_PORT_DIRECTION_OUT{%else%}POK_PORT_DIRECTION_IN{%endif%},
         .partition = &pok_partitions_arinc[{{loop.index0}}],
     },
-<$endfor$>
+{%endfor%}
 };
 
 // Sampling ports
 static pok_port_sampling_t partition_ports_sampling_{{loop.index0}}[{{part.ports_sampling | length}}] = {
-<$for port_sampling in part.ports_sampling$>
+{%for port_sampling in part.ports_sampling%}
     {
         .name = "{{port_sampling.name}}",
         .channel = &pok_channels_sampling[{{port_sampling.channel_id}}],
-        .direction = <$if port_sampling.is_src()$>POK_PORT_DIRECTION_OUT<$else$>POK_PORT_DIRECTION_IN<$endif$>,
+        .direction = {%if port_sampling.is_src()%}POK_PORT_DIRECTION_OUT{%else%}POK_PORT_DIRECTION_IN{%endif%},
     },
-<$endfor$>
+{%endfor%}
 };
 
 // Buffers array
@@ -282,16 +282,16 @@ static pok_semaphore_t partition_semaphores_{{loop.index0}}[{{part.num_arinc653_
 
 // Events array
 static pok_event_t partition_events_{{loop.index0}}[{{part.num_arinc653_events}}];
-<$endfor$><#partitions loop#>
+{%endfor%}{#partitions loop#}
 
 /*************** Setup partitions array *******************************/
 pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
-<$for part in conf.partitions$>
+{%for part in conf.partitions%}
     {
         .base_part = {
             .name = "{{part.name}}",
             
-            .period = {{conf.major_frame}}, <#TODO: Where it is stored in conf?#>
+            .period = {{conf.major_frame}}, {#TODO: Where it is stored in conf?#}
             
             .space_id = {{loop.index0}},
             
@@ -303,13 +303,13 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
         .nthreads = {{part.num_threads}} + 1 /*main thread*/ + 1 /* error thread */,
         .threads = partition_threads_{{loop.index0}},
         
-        .main_user_stack_size = 8192, <# TODO: This should be set in config somehow. #>
+        .main_user_stack_size = 8192, {# TODO: This should be set in config somehow. #}
 
         .ports_queuing = partition_ports_queuing_{{loop.index0}},
         .nports_queuing = {{part.ports_queueing | length}},
 
         .ports_sampling = partition_ports_sampling_{{loop.index0}},
-        .nports_sampling = {{part.ports_sampling | length}}, <#TODO: ports#>
+        .nports_sampling = {{part.ports_sampling | length}}, {#TODO: ports#}
 
 
         .intra_memory_size = {{part.buffer_data_size}} + {{part.blackboard_data_size}}, // Memory for intra-partition communication
@@ -334,7 +334,7 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
 
 		.partition_id = {{loop.index0}},
     },
-<$endfor$><#partitions loop#>
+{%endfor%}{#partitions loop#}
 };
 
 const uint8_t pok_partitions_arinc_n = {{conf.partitions | length}};
@@ -344,7 +344,7 @@ pok_partition_t partition_monitor =
 {
     .name = "Monitor",
     
-    .period = {{conf.major_frame}}, <#TODO: Where it is stored in conf?#>
+    .period = {{conf.major_frame}}, {#TODO: Where it is stored in conf?#}
     
     .space_id = 0xff,
     
@@ -357,7 +357,7 @@ pok_partition_t partition_gdb =
 {
     .name = "GDB",
 
-    .period = {{conf.major_frame}}, <#TODO: Where it is stored in conf?#>
+    .period = {{conf.major_frame}}, {#TODO: Where it is stored in conf?#}
 
     .space_id = 0xff,
 
@@ -368,26 +368,26 @@ pok_partition_t partition_gdb =
 
 /************************* Setup time slots ***************************/
 const pok_sched_slot_t pok_module_sched[{{conf.slots | length}}] = {
-<$for slot in conf.slots$>
+{%for slot in conf.slots%}
     {
         .duration = {{slot.duration}},
-        .offset = 0, <#TODO: precalculate somehow#>
-        <$-if slot.get_kind_constant() == 'POK_SLOT_PARTITION' $>
+        .offset = 0, {#TODO: precalculate somehow#}
+        {%-if slot.get_kind_constant() == 'POK_SLOT_PARTITION' %}
 
         .partition = &pok_partitions_arinc[{{slot.partition.part_index}}].base_part,
-        .periodic_processing_start = <$if slot.periodic_processing_start$>TRUE<$else$>FALSE<$endif$>,
-        <$elif slot.get_kind_constant() == 'POK_SLOT_MONITOR' $>
+        .periodic_processing_start = {%if slot.periodic_processing_start%}TRUE{%else%}FALSE{%endif%},
+        {%elif slot.get_kind_constant() == 'POK_SLOT_MONITOR' %}
 
         .partition = &partition_monitor,
         .periodic_processing_start = FALSE,
-        <$elif slot.get_kind_constant() == 'POK_SLOT_GDB' $>
+        {%elif slot.get_kind_constant() == 'POK_SLOT_GDB' %}
 
         .partition = &partition_gdb,
         .periodic_processing_start = FALSE,
-        <$endif-$>
+        {%endif-%}
         .id = {{loop.index0}}
     },
-<$endfor$>
+{%endfor%}
 };
 
 const uint8_t pok_module_sched_n = {{conf.slots | length}};
