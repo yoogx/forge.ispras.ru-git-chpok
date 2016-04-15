@@ -25,7 +25,9 @@
 
 #ifdef SYS_NEEDS_DRIVER_P3041
 
-#define DRV_NAME "ne2k-pci"
+#define DRV_NAME "ne2k-net"
+#define DEV_NAME_PREFIX DRV_NAME
+#define DEV_NAME_MAXLEN 20
 
 #include "rtl8029.h"
 //#include <middleware/port.h>
@@ -37,6 +39,8 @@
 #include <net/ip.h>
 #include <net/udp.h>
 #include <net/byteorder.h>
+
+#include <mem.h>
 
 //TODO
 # define outb_inverse(a,b) outb((b), (a))
@@ -398,22 +402,47 @@ static const pok_network_driver_ops_t driver_ops = {
     .flush_send = flush_send,
 };
 
+static pok_bool_t probe_device(struct pci_device *pci_dev)
+{
+	printf("PROBE\n");
+	static int dev_count = 0;
+
+	rtl8029_init(pci_dev);
+
+    /* Register netdevice */
+    pok_netdevice_t *netdevice = smalloc(sizeof(*netdevice));
+    netdevice->ops = &driver_ops,
+    netdevice->mac = drv_info.mac,
+    netdevice->info = &drv_info;
+    char *name = smalloc(DEV_NAME_MAXLEN);
+    snprintf(name, 30, DEV_NAME_PREFIX"%d", dev_count);
+    register_netdevice(name, netdevice);
+    dev_count += 1;
+
+
+}
+
 pok_netdevice_t pok_network_ne2000_device = {
     .ops = &driver_ops,
     .mac = drv_info.mac
 };
 
 
-static const struct pci_device_id ne2k_pci_tbl[] = {
+const struct pci_device_id ne2k_pci_tbl[] = {
     { 0x10ec, 0x8029},
     //Here may be others cards from ne2k family
 };
 
 struct pci_driver ne2k_pci_driver = {
     .name     = DRV_NAME,
-    .probe    = rtl8029_init,
+    .probe    = probe_device,
     .id_table = ne2k_pci_tbl
 };
+
+void ne2k_net_init()
+{
+	register_pci_driver(&ne2k_pci_driver);
+}
 
 #endif /* SYS_NEEDS_DRIVER_P3041 */
 
