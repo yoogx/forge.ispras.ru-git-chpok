@@ -23,9 +23,9 @@
 
 #include "syspart_config.h"
 
-#ifdef SYS_NEEDS_DRIVER_P3041
+#ifdef SYS_NEEDS_DRIVER_NE2000
 
-#define DRV_NAME "ne2k-net"
+#define DRV_NAME "ne2000-net"
 #define DEV_NAME_PREFIX DRV_NAME
 #define DEV_NAME_MAXLEN 20
 
@@ -321,7 +321,7 @@ static pok_bool_t send_frame_gather(
         void *callback_arg)
 {
     if (sg_list_len != 1) {
-        printf("In NE2k driver real gathering is not supported yet");
+        printf("In ne2000 driver real gathering is not supported yet");
         return FALSE;
     }
 
@@ -353,7 +353,7 @@ static pok_bool_t send_frame_gather(
 
     outb_inverse(NE2000_ISR_RDC, drv_info->addr + NE2000_ISR); // Clear RDC bit
 
-    //XXX: Currently NE2K driver ignores reclaim_*
+    //XXX: Currently ne2000 driver ignores reclaim_*
     callback(callback_arg);
 
     return TRUE;
@@ -423,21 +423,21 @@ static pok_bool_t probe_device(struct pci_device *pci_dev)
 }
 
 
-const struct pci_device_id ne2k_pci_tbl[] = {
+const struct pci_device_id ne2000_pci_tbl[] = {
     { 0x10ec, 0x8029},
-    //Here may be others cards from ne2k family
+    //Here may be others cards from ne2000 family
 };
 
-struct pci_driver ne2k_pci_driver = {
+struct pci_driver ne2000_pci_driver = {
     .name     = DRV_NAME,
     .probe    = probe_device,
-    .id_table = ne2k_pci_tbl
+    .id_table = ne2000_pci_tbl
 };
 
-void ne2k_net_init()
+void ne2000_net_init()
 {
-    register_pci_driver(&ne2k_pci_driver);
+    register_pci_driver(&ne2000_pci_driver);
 }
 
-#endif /* SYS_NEEDS_DRIVER_P3041 */
+#endif
 

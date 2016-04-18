@@ -18,7 +18,7 @@
 
 #include "syspart_config.h"
 
-#ifdef SYS_NEEDS_DRIVER_P3041
+#ifdef SYS_NEEDS_DRIVER_NE2000
 
 #  include <libc/stdio.h>
 #  include <libc/string.h>

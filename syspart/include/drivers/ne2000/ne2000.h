@@ -3,6 +3,6 @@
 
 #include <net/network.h>
 
-void ne2k_net_init();
+void ne2000_net_init();
 
 #endif

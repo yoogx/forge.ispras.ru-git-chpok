@@ -51,14 +51,14 @@ channel_driver_t * channel_drivers[] = {
 unsigned channel_drivers_nb = ARRAY_SIZE(channel_drivers);
 
 char *ipnet_netdev_name = "virtio-net0";
-//char *ipnet_netdev_name = "ne2k-net1";
+//char *ipnet_netdev_name = "ne2000-net1";
 
 #include <drivers/virtio/virtio_network.h>
 #include <drivers/ne2000/ne2000.h>
 void drivers_init()
 {
     virtio_net_init();
-    ne2k_net_init();
+    ne2000_net_init();
     pci_init();
     pok_network_init();
 }
