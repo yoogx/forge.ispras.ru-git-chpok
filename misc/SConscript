@@ -154,9 +154,11 @@ env.Append(QEMU_FLAGS = ' -kernel '+env['BUILD_DIR']+'pok.elf')
 env.Command('run_cmd', [], env['QEMU']+env['QEMU_FLAGS'])
 env.Alias('run', 'run_cmd')
 
-#env.Command('run_tap_cmd', [], env['QEMU'] + env['QEMU_FLAGS'] + ' -net nic,model=virtio,macaddr=16:0b:5e:36:81:de -net tap,ifname=tap0,script=no,downscript=no')
-env.Command('run_tap_cmd', [], env['QEMU'] + env['QEMU_FLAGS'] + ' -net nic,model=ne2k_pci,vlan=0 -net nic,model=ne2k_pci,vlan=1 -net tap,ifname=tap0,script=no,downscript=no,vlan=0, -net tap,ifname=tap1,script=no,downscript=no,vlan=1')
+env.Command('run_tap_cmd', [], env['QEMU'] + env['QEMU_FLAGS'] + ' -net nic,model=virtio -net tap,ifname=tap0,script=no,downscript=no')
 env.Alias('run-tap', 'run_tap_cmd')
+
+env.Command('run_tap_cmd_ne2k', [], env['QEMU'] + env['QEMU_FLAGS'] + ' -net nic,model=ne2k_pci,vlan=0 -net nic,model=ne2k_pci,vlan=1 -net tap,ifname=tap0,script=no,downscript=no,vlan=0, -net tap,ifname=tap1,script=no,downscript=no,vlan=1')
+env.Alias('run-tap-ne2k', 'run_tap_cmd_ne2k')
 
 env.Command('run_with_2_ports', [], env['QEMU']+env['QEMU_FLAGS']+' -serial tcp::8000,server')
 env.Alias('run-gdb', 'run_with_2_ports')
