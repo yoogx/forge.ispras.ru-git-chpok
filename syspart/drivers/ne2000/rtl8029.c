@@ -66,8 +66,8 @@ static int ne2000_write(
     int ret = count;
 
     // Sets RD2 (abort/complete remote DMA)
-    outb_inverse((inb((dev)->addr + NE2000_CR) & ~(NE2000_CR_RD0 | NE2000_CR_RD1)) |
-            NE2000_CR_RD2, (dev)->addr);
+    outb_inverse((inb(dev->addr + NE2000_CR) & ~(NE2000_CR_RD0 | NE2000_CR_RD1)) |
+            NE2000_CR_RD2, dev->addr);
 
     /* These two registers set the start address of remote DMA. */
     outb_inverse(offset, dev->addr + NE2000_RSAR0);
@@ -78,8 +78,8 @@ static int ne2000_write(
     outb_inverse(count >> 8, dev->addr + NE2000_RBCR1);
 
     // Sets RD1 (remote write)
-    outb_inverse((inb((dev)->addr + NE2000_CR) & ~(NE2000_CR_RD0 | NE2000_CR_RD2)) |
-            NE2000_CR_RD1, (dev)->addr);
+    outb_inverse((inb(dev->addr + NE2000_CR) & ~(NE2000_CR_RD0 | NE2000_CR_RD2)) |
+            NE2000_CR_RD1, dev->addr);
 
     for (p = buf; count > 0; count--, p++) {
         outb_inverse(*p, dev->addr + NE2000_DMA_PORT);
@@ -418,6 +418,8 @@ static pok_bool_t probe_device(struct pci_device *pci_dev)
     snprintf(name, 30, DEV_NAME_PREFIX"%d", dev_count);
     register_netdevice(name, netdevice);
     dev_count += 1;
+
+    return TRUE;
 }
 
 
