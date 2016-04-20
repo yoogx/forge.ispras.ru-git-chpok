@@ -10,6 +10,7 @@ import chpok_configuration
 Import('env')
 
 root = etree.parse(os.path.join(env['SCONSTRUCT_DIR'], env['xml']))
+root.xinclude()
 parser = arinc653_xml_conf.ArincConfigParser()
 conf = parser.parse(root)
 
