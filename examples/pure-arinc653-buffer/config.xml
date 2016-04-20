@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<doc xmlns:xi="http://www.w3.org/2003/XInclude">
-<chpok-configuration>
+<chpok-configuration xmlns:xi="http://www.w3.org/2001/XInclude">
     <Partitions>
         <xi:include href="P1/config.xml" parse="xml"/>
     </Partitions>
@@ -27,4 +26,3 @@
         Recent standard doesn't define this at all.
     -->
 </chpok-configuration>
-</doc>

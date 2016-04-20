@@ -49,7 +49,6 @@ class ArincConfigParser:
         conf = chpok_configuration.Configuration()
 
         partname_to_index = {}
-        root = root.find("chpok-configuration")
 
         for i, part in enumerate(root.find("Partitions").findall("Partition")):
             conf.partitions.append(self.parse_partition(part))
