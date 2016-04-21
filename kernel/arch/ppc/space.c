@@ -55,6 +55,12 @@ pok_ret_t pok_space_switch (uint8_t space_id)
     return POK_ERRNO_OK;
 }
 
+uint8_t pok_space_get_current (void)
+{
+    return ((uint8_t)mfspr(SPRN_PID)) - 1;
+}
+
+
 uintptr_t pok_space_base_vaddr(uintptr_t addr)
 {
     (void) addr;

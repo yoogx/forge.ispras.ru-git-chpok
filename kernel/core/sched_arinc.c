@@ -31,18 +31,20 @@ static void thread_start_func(void)
 void sched_arinc_start(void)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
-    
+
     part->idle_sp = 0;
 
     pok_thread_t* thread_main
         = &part->threads[POK_PARTITION_ARINC_MAIN_THREAD_ID];
-    
+
+    thread_main->entry_sp_user = 0;
+
     part->lock_level = 1;
 	part->thread_locked = thread_main;
-	
+
 	thread_main->state = POK_STATE_RUNNABLE;
     part->thread_current = thread_main;
-	
+
 	// Direct jump into main thread.
 	pok_context_restart(&thread_main->initial_sp, &thread_start_func,
         &thread_main->sp);
@@ -224,6 +226,7 @@ static void sched_arinc(void)
          */
         assert(new_thread == part->thread_error);
         
+        new_thread->entry_sp_user = 0;
         pok_context_restart(&new_thread->initial_sp, &thread_start_func,
             &new_thread->sp);
     }
@@ -263,6 +266,16 @@ static void sched_arinc(void)
      * returning to given thread, not now.
      */
     if(*old_sp == 0) old_sp = NULL;
+
+    if(old_thread && part->base_part.entry_sp_user)
+    {
+        /*
+         * Copy address of frame with user space addresses locally
+         * and clear original.
+         */
+        old_thread->entry_sp_user = part->base_part.entry_sp_user;
+        part->base_part.entry_sp_user = 0;
+    }
     
     if(old_sp)
     {

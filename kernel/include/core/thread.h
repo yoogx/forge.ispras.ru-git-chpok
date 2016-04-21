@@ -349,9 +349,11 @@ typedef struct _pok_thread
 
     /*
      * Stack from entry.S for PPC and from interrupt.h for i386
-     * where all registers have been saved.
+     * where all user space registers have been saved.
+     * 
+     * If user space has never been called yet, this is 0.
      */
-    uint32_t            entry_sp;
+    uint32_t            entry_sp_user;
 
     /* 
      * Name of the process.

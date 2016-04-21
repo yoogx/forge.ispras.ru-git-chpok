@@ -179,11 +179,115 @@ void pok_partition_arinc_reset(pok_partition_mode_t mode)
 		&partition_arinc_restart, &fake_sp);
 }
 
+static int pok_sched_arinc_get_number_of_threads(pok_partition_t* part)
+{
+	pok_partition_arinc_t* part_arinc = container_of(part,
+		typeof(*part_arinc), base_part);
 
+	return part_arinc->nthreads + 1; //IDLE thread
+}
+
+static int pok_sched_arinc_get_current_thread_index(pok_partition_t* part)
+{
+	pok_partition_arinc_t* part_arinc = container_of(part,
+		typeof(*part_arinc), base_part);
+
+	return part_arinc->thread_current
+		? part_arinc->thread_current - part_arinc->threads
+		: part_arinc->nthreads; //IDLE thread
+}
+
+static int pok_sched_arinc_get_thread_at_index(pok_partition_t* part,
+	int index, void** private)
+{
+    pok_partition_arinc_t* part_arinc = container_of(part,
+		typeof(*part_arinc), base_part);
+	if(index >part_arinc->nthreads) return 1;
+
+	if(index == part_arinc->nthreads)
+	{
+		*private = NULL;
+	}
+	else
+	{
+		*private = part_arinc->threads + index;
+	}
+
+	return 0;
+}
+
+static size_t pok_sched_arinc_get_thread_info(pok_partition_t* part, int index, void* private,
+	char* buf, size_t size)
+{
+	pok_thread_t* t = private;
+	pok_partition_arinc_t* part_arinc = container_of(part, typeof(*part_arinc), base_part);
+	if(!t)
+	{
+		return snprintf(buf, size, "%s", "IDLE");
+	}
+	else if(index < part_arinc->nthreads_used)
+	{
+		return snprintf(buf, size, "%s", t->name);
+	}
+	else
+	{
+		return snprintf(buf, size, "%s", "Not created");
+	}
+}
+
+static void pok_sched_arinc_get_thread_registers(pok_partition_t* part,
+	int index, void* private,
+	uint32_t registers[NUMREGS])
+{
+	pok_thread_t* t = private;
+	pok_partition_arinc_t* part_arinc = container_of(part, typeof(*part_arinc), base_part);
+
+	if(!t)
+	{
+		// Idle thread
+		memset(registers, 0, NUMREGS * sizeof(long));
+	}
+	else if(index < part_arinc->nthreads_used && t->entry_sp_user)
+	{
+		memcpy(registers, (void*)t->entry_sp_user, NUMREGS * sizeof(long));
+	}
+	else
+	{
+		// Not created or user space is hasn't been called yet.
+		memset(registers, 0, NUMREGS * sizeof(long));
+	}
+}
+
+/*
+ * Set (architecture-specific) registers for non-current thread.
+ */
+static void pok_sched_arinc_set_thread_registers(pok_partition_t* part,
+	int index, void* private,
+    const uint32_t registers[NUMREGS])
+{
+	pok_thread_t* t = private;
+	pok_partition_arinc_t* part_arinc = container_of(part, typeof(*part_arinc), base_part);
+
+	if(t && index < part_arinc->nthreads_used && t->entry_sp_user)
+	{
+		memcpy((void*)t->entry_sp_user, registers, NUMREGS * sizeof(long));
+	}
+}
+
+
+
+static const struct pok_partition_sched_operations arinc_sched_ops = {
+	.on_event = &pok_sched_arinc_on_event,
+	.get_number_of_threads = &pok_sched_arinc_get_number_of_threads,
+	.get_current_thread_index = &pok_sched_arinc_get_current_thread_index,
+	.get_thread_at_index = &pok_sched_arinc_get_thread_at_index,
+	.get_thread_info = &pok_sched_arinc_get_thread_info,
+	.get_thread_registers = &pok_sched_arinc_get_thread_registers,
+	.set_thread_registers = &pok_sched_arinc_set_thread_registers
+};
 
 static const struct pok_partition_operations arinc_ops = {
 	.start = &partition_arinc_start,
-	.on_event = &pok_sched_arinc_on_event,
 	.process_partition_error = &pok_partition_arinc_process_error,
 };
 
@@ -216,6 +320,7 @@ void pok_partition_arinc_init(pok_partition_arinc_t* part)
 	}
 	
 	part->base_part.part_ops = &arinc_ops;
+	part->base_part.part_sched_ops = &arinc_sched_ops;
 	
 	part->intra_memory = part->intra_memory_size
 		? pok_bsp_mem_alloc(part->intra_memory_size)

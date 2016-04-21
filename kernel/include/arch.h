@@ -233,6 +233,8 @@ void pok_space_context_restart(
  */
 pok_ret_t   pok_space_switch (uint8_t new_space_id);
 
+uint8_t pok_space_get_current (void);
+
 /**
  * Jump to the user space.
  * 

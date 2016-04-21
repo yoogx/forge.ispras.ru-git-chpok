@@ -40,6 +40,8 @@ static uint8_t               pok_sched_current_slot = 0; /* Which slot are we ex
 
 pok_partition_t* current_partition = NULL;
 
+volatile pok_bool_t pok_in_user_space;
+
 uintptr_t global_thread_stack = 0;
 
 #ifdef POK_NEEDS_MONITOR
@@ -147,6 +149,8 @@ static void inter_partition_switch(pok_partition_t* part)
     uint32_t* old_sp = &current_partition->sp;
     uint32_t* new_sp = &part->sp;
     
+    current_partition->entry_sp = global_thread_stack;
+
     current_partition = part;
 
     if(part->space_id != 0xff)
@@ -310,7 +314,7 @@ void pok_preemption_enable(void)
     {
         pok_arch_preempt_enable();
     
-        current_partition->part_ops->on_event();
+        current_partition->part_sched_ops->on_event();
         
         pok_arch_preempt_disable();
     } while(current_partition->preempt_local_disabled
@@ -366,28 +370,40 @@ void pok_sched_on_time_changed(void)
 {
     pok_partition_t* part = current_partition;
     sched_need_recheck = TRUE;
+
+    pok_bool_t in_user_space = pok_in_user_space;
+
+    if(in_user_space)
+        part->entry_sp_user = global_thread_stack;
+
+    pok_in_user_space = FALSE;
+
     pok_sched();
-    
-    if(current_partition_is_paused) return;
-    
+
+    if(current_partition_is_paused) goto out;
+
     pok_bool_t preempt_local_disabled_old = current_partition->preempt_local_disabled;
-    
+
     part->state.bytes.time_changed = 1;
-    
-    if(preempt_local_disabled_old) return;
-    
+
+    if(preempt_local_disabled_old) goto out;
+
     // Emit events for partition.
     do
     {
         part->preempt_local_disabled = 1;
         pok_arch_preempt_enable();
-        part->part_ops->on_event();
+        part->part_sched_ops->on_event();
         pok_arch_preempt_disable();
     } while(part->preempt_local_disabled && part->state.bytes_all);
-    
+
     part->preempt_local_disabled = 0;
-    
+
     // Still with disabled preemption. It is needed for returning from interrupt.
+
+out:
+    // Restore user space indicator on return
+    pok_in_user_space = in_user_space;
 }
 
 void pok_partition_return_user(void)
@@ -402,7 +418,7 @@ void pok_partition_return_user(void)
     {
         part->preempt_local_disabled = 1;
         pok_arch_preempt_enable();
-        part->part_ops->on_event();
+        part->part_sched_ops->on_event();
         pok_arch_preempt_disable();
     }
 

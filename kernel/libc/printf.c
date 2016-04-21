@@ -44,8 +44,6 @@ struct s_sprintf
     size_t size;
 };
 
-typedef void (*t_putc)(int val, void *out);
-
 /*
  * buffered I/O
  */
@@ -341,8 +339,10 @@ int printf(const char *format, ...)
     return 0;
 }
 
-void snprintf(char *dst, unsigned size, const char *format, ...)
+int snprintf(char *dst, unsigned size, const char *format, ...)
 {
+    int res;
+
     struct s_sprintf out;
     out.ptr = dst;
     out.size = size;
@@ -350,8 +350,13 @@ void snprintf(char *dst, unsigned size, const char *format, ...)
     va_list args;
     va_start(args, format);
     vprintf(sprintf_putc, &out, format, &args);
+
+    res = out.size;
+
     sprintf_putc('\0', &out);
     va_end(args);
+
+    return res;
 }
 
 

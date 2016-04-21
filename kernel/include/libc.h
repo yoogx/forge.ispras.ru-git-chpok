@@ -18,7 +18,7 @@
 #define __POK_KERNEL_LIBC_H__
 
 #include <config.h>
-
+#include <stdarg.h>
 #include <types.h>
 
 void  *memcpy(void * to, const void * from, size_t n);
@@ -42,12 +42,23 @@ char *strrchr(const char *s, int c);
 
 void *memchr(const void *s, int c, size_t n);
 
-
+typedef void (*t_putc)(int val, void *out);
+// Generic printf-like function.
+void vprintf(t_putc putc, void *out, const char* format, va_list *args) __attribute__ ((format(printf, 3, 0)));
 
 #if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
 
 int printf(const char *format, ...)__attribute__ ((format(printf, 1, 2)));
-void snprintf(char *dst, unsigned size, const char *format, ...) __attribute__ ((format(printf, 3, 4)));
+
+/* 
+ * Unlike to standard C function, this returns number of characters which are ACTUALLY written.
+ * (but terminating '\0' doesn't count, as usual).
+ * 
+ * Linux kernel has 'scnprintf' function with exactly that semantic.
+ * 
+ * TODO: Probably, rename this function for prevent result misconfusion?
+ */
+int snprintf(char *dst, unsigned size, const char *format, ...) __attribute__ ((format(printf, 3, 4)));
 char * readline(const char *prompt);
 int getchar(void);
 int getchar2(void);

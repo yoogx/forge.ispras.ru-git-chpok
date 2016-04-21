@@ -55,7 +55,7 @@ static pok_ret_t unprotected_syscall(
  * \author Julien Delange
  */
 
-pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
+static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       syscall_id,
                             const pok_syscall_args_t*    args,
                             const pok_syscall_info_t*    infos)
 {
@@ -277,4 +277,23 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
    }
 
    return POK_ERRNO_EINVAL; // TODO: Unreachable?
+}
+
+extern uintptr_t global_thread_stack;
+
+pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
+                            const pok_syscall_args_t*    args,
+                            const pok_syscall_info_t*    infos)
+{
+    pok_ret_t ret;
+
+    current_partition->entry_sp_user = global_thread_stack;
+
+    pok_in_user_space = FALSE;
+
+    ret = pok_core_syscall_internal(syscall_id, args, infos);
+
+    return ret;
+
+    pok_in_user_space = TRUE;
 }

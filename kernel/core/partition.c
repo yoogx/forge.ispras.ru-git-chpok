@@ -41,3 +41,53 @@ void for_each_partition(void (*f)(pok_partition_t* part))
       f(&pok_partitions_arinc[i].base_part);
    }
 }
+
+static void kernel_thread_on_event(void)
+{
+    //Shouldn't be call
+    unreachable();
+}
+
+static int kernel_thread_get_number_of_threads(pok_partition_t* part)
+{
+   (void)part;
+   return 1;
+}
+
+static int kernel_thread_get_current_thread_index(pok_partition_t* part)
+{
+   (void)part;
+   return 0;
+}
+
+static int kernel_thread_get_thread_at_index(pok_partition_t* part,
+     int index, void** private)
+{
+   (void)part;
+   (void)private;
+   return index == 0? 0 : 1;
+}
+
+static size_t kernel_thread_get_thread_info(pok_partition_t* part,
+   int index, void* private,
+   char* buf, size_t size)
+{
+   (void)part;
+   (void)private;
+   (void)index;
+
+   static const char* kernel_thread_name = "kernel_thread";
+   int len = strlen(kernel_thread_name);
+
+   memcpy(buf, kernel_thread_name, len);
+   return len;
+}
+
+const struct pok_partition_sched_operations partition_sched_ops_kernel =
+{
+   .on_event = &kernel_thread_on_event,
+   .get_number_of_threads = &kernel_thread_get_number_of_threads,
+   .get_current_thread_index = &kernel_thread_get_current_thread_index,
+   .get_thread_at_index = &kernel_thread_get_thread_at_index,
+   .get_thread_info = &kernel_thread_get_thread_info
+};

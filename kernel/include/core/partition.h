@@ -27,8 +27,7 @@
 #include <core/error.h>
 #include <arch.h>
 
-// Only for get enum of process's states for gdb.
-#include <core/thread.h>
+#include <gdb.h>
 
 typedef enum
 {
@@ -38,19 +37,11 @@ typedef enum
   POK_START_CONDITION_HM_PARTITION_RESTART  = 3
 }pok_start_condition_t;
 
+struct _pok_partition;
 
-/* Operations specific for given partition. */
-struct pok_partition_operations
+/* Scheduling operations specific for given partition. */
+struct pok_partition_sched_operations
 {
-    /* 
-     * Called when partition is (re)started.
-     * 
-     * Local preemption is disabled.
-     * 
-     * Cannot be NULL.
-     */
-    void (*start)(void);  /**< The entry-point for the partition's thread. */
-
     /*
      * Called when some async event about partition occures.
      * Event is encoded into partition's `.state` bits(bytes).
@@ -64,7 +55,70 @@ struct pok_partition_operations
      * But corresponded `.state` bytes are set nevetheless.
      */
     void (*on_event)(void);
-    
+
+    /* 
+     * Return number of threads for given partition.
+     * 
+     * NOTE: Called (possibly) outside of partition's timeslot, so
+     * 'current_partition' doesn't correspond to given partition.
+     */
+    int (*get_number_of_threads)(struct _pok_partition* part);
+
+    /*
+     * Return index of current thread within partition.
+     * 
+     * Returning negative value means that no current thread(is it possible?).
+     * 
+     * If partition doesn't work with user space, never called.
+     * 
+     * NOTE: Called (possibly) outside of partition's timeslot, so
+     * 'current_partition' doesn't correspond to given partition.
+     */
+    int (*get_current_thread_index)(struct _pok_partition* part);
+
+    /* 
+     * Return 0 if thread with given index exists. Fill 'private' with
+     * value, which will be passed for callbacks below.
+     */
+    int (*get_thread_at_index)(struct _pok_partition* part,
+        int index, void** private);
+
+    /*
+     * Get information about thread with given index.
+     * 
+     * Write some string into buffer 'buf' of maximum capacity 'size'.
+     * Return actual number of characters written.
+     * 
+     * NOTE: Called (possibly) outside of partition's timeslot, so
+     * 'current_partition' doesn't correspond to given partition.
+     */
+    size_t (*get_thread_info)(struct _pok_partition* part, int index, void* private,
+        char* buf, size_t size);
+
+    /*
+     * Get (architecture-specific) registers for non-current thread.
+     */
+    void (*get_thread_registers)(struct _pok_partition* part, int index, void* private,
+        uint32_t registers[NUMREGS]);
+
+    /*
+     * Set (architecture-specific) registers for non-current thread.
+     */
+    void (*set_thread_registers)(struct _pok_partition* part, int index, void* private,
+        const uint32_t registers[NUMREGS]);
+};
+
+struct pok_partition_operations
+{
+    /* 
+     * Called when partition is (re)started.
+     * 
+     * Local preemption is disabled.
+     * 
+     * Cannot be NULL.
+     */
+    void (*start)(void);  /**< The entry-point for the partition's thread. */
+
     /* 
      * Process sync error related to given partition.
      * 
@@ -78,61 +132,20 @@ struct pok_partition_operations
         pok_error_id_t error_id,
         uint8_t state_byte_preempt_local,
         void* failed_address);
-    
-#if 0 /* Disabled until port of GDB */
-    /* 
-     * Return number of (user space) threads for given partition.
-     * 
-     * Returning 0 means that partition doesn't work with user space.
-     * Alternatively, method itself can be NULL.
-     * 
-     * NOTE: Called (possibly) outside of partition's timeslot, so
-     * 'current_partition' doesn't correspond to given partition.
-     */
-    int (*get_number_of_threads)(pok_partition_t* part);
-    
-    /*
-     * Return index of current thread within partition.
-     * 
-     * Returning negative value means that no current thread(is it possible?).
-     * 
-     * If partition doesn't work with user space, never called.
-     * 
-     * NOTE: Called (possibly) outside of partition's timeslot, so
-     * 'current_partition' doesn't correspond to given partition.
-     */
-    int (*get_current_thread)(pok_partition_t* part);
-    
-    /*
-     * Get information about thread with given index.
-     * 
-     * Returns name of the thread.
-     * 
-     * Store state of the thread at 'state' address, if applicable.
-     * 
-     * Store address of thread's registers at 'entry_sp' address, if applicable.
-     * If given process is current for partition, partition's entry_sp will be used.
-     * 
-     * If partition doesn't work with user space, never called.
-     * 
-     * NOTE: Called (possibly) outside of partition's timeslot, so
-     * 'current_partition' doesn't correspond to given partition.
-     */
-    const char* (*get_thread_info)(pok_partition_t* part, int thread_index,
-         pok_state_t* state, uint32_t* entry_sp);
-#endif /* 0 */
 };
+
 
 /*!
  * \struct pok_partition_t
  * \brief This structure contains all needed information for partition management
  */
-typedef struct
+typedef struct _pok_partition
 {
 #ifdef POK_NEEDS_MONITOR
     pok_bool_t               is_paused;      /*Partition paused or not*/
 #endif
 
+    const struct pok_partition_sched_operations* part_sched_ops;
     const struct pok_partition_operations* part_ops;
     
     /* 
@@ -178,7 +191,6 @@ typedef struct
      * when it need to call partition's callbacks.
      */
     uint8_t preempt_local_disabled;
-
     
     /* 
      * Whether currently executed *user space* process is error handler.
@@ -212,7 +224,7 @@ typedef struct
      * Set by particular partition's implementation.
      */
     struct dStack            initial_sp;
-    
+
     /* 
      * Identificator of (user) space, corresponded to given partition.
      * Special value 0xff means that no user space is used by this partition.
@@ -223,6 +235,19 @@ typedef struct
      */
     uint8_t                  space_id;
 
+    /*
+     * Pointer to the user space registers array, stored for given partition.
+     * 
+     * Set by global scheduler, used (may be cleared) by partition.
+     */
+    uint32_t                entry_sp_user;
+
+    /*
+     * Pointer to the registers array, stored for given partition when switched off.
+     * 
+     * Used only by global scheduler.
+     */
+    uint32_t                entry_sp;
 
 #ifdef POK_NEEDS_IO
   uint16_t		    io_min;             /**< If the partition is allowed to perform I/O, the lower bound of the I/O */
@@ -258,5 +283,12 @@ extern pok_partition_t* current_partition;
  * Execute given function for each partition.
  */
 void for_each_partition(void (*f)(pok_partition_t* part));
+
+/* 
+ * Ready-made scheduler operations for partition with single kernel thread.
+ * 
+ * '.start' function for such partition shouldn't enable local preemption.
+ */
+extern const struct pok_partition_sched_operations partition_sched_ops_kernel;
 
 #endif /* __POK_PARTITION_H__ */
