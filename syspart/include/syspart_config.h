@@ -2,6 +2,7 @@
 #define __POK_SYSPART_CONFIG_H__
 
 #define SYS_NEEDS_DRIVER_NE2000 1
+#define SYS_NEEDS_DRIVER_P3041 1
 
 
 #endif

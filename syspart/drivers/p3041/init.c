@@ -10,6 +10,8 @@
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
+#include <syspart_config.h>
+
 #ifdef SYS_NEEDS_DRIVER_P3041
 
 #ifdef __PPC__
@@ -17,32 +19,39 @@
 #include <ioports.h>
 #include <string.h>
 #include <net/network.h>
+#include <net/netdevices.h>
 #include <memory.h>
+#include <mem.h>
 #include "fm.h"
 
-#define DRV_NAME "P3041-NET"
+#define DRV_NAME "dtsec_drv"
+#define DEV_NAME_DTSEC3 "dtsec3"
+#define DEV_NAME_DTSEC4 "dtsec4"
 
-struct {
+struct send_state{
     unsigned send_last_seen; //Truly points to first nonseen element
-    unsigned receive__last_seen;
     struct send_callback send_callbacks[TX_BD_RING_SIZE];
-} current_state;
+};
 
-char tx_buffer_pseudo_malloc[sizeof(struct fm_port_bd) * TX_BD_RING_SIZE];
-char rx_ring_pseudo_malloc  [sizeof(struct fm_port_bd) * RX_BD_RING_SIZE];
-char rx_pool_pseudo_malloc  [MAX_RXBUF_LEN * RX_BD_RING_SIZE];
+struct init_buffers {
+    char tx_buffer_pseudo_malloc[sizeof(struct fm_port_bd) * TX_BD_RING_SIZE];
+    char rx_ring_pseudo_malloc  [sizeof(struct fm_port_bd) * RX_BD_RING_SIZE];
+    char rx_pool_pseudo_malloc  [MAX_RXBUF_LEN * RX_BD_RING_SIZE];
+};
+
 
 struct fm_eth dtsec3;
 struct fm_eth dtsec4;
-struct fm_eth *current;
 
-struct {
+struct dev_state{
+    struct fm_eth *current_fm;
+    struct send_state send_state;
+    struct init_buffers init_buffers;
     uint8_t macaddr[6];
     void (*packet_received_callback)(const char *, size_t);
-}internal_device_struct;
+};
 
 struct fm_muram muram;
-
 
 uint32_t fm_muram_base()
 {
@@ -88,13 +97,14 @@ static void fm_init_muram(int fm_idx, void *reg)
 
 
 
-static int fm_eth_send(struct fm_eth *fm_eth,
+static int fm_eth_send(struct dev_state *dev_state,
                        void *buf,
                        int len,
                        pok_network_buffer_callback_t callback,
                        void *callback_arg
                       )
 {
+    struct fm_eth *fm_eth = dev_state->current_fm;
     struct fm_port_global_pram *pram;
     struct fm_port_bd *txbd, *txbd_base;
     uint16_t offset_in;
@@ -122,8 +132,8 @@ static int fm_eth_send(struct fm_eth *fm_eth,
     offset_in = in_be16(&pram->txqd.offset_in);
 
     c_idx = offset_in / sizeof(struct fm_port_bd);
-    current_state.send_callbacks[c_idx].func = callback;
-    current_state.send_callbacks[c_idx].argument = callback_arg;
+    dev_state->send_state.send_callbacks[c_idx].func = callback;
+    dev_state->send_state.send_callbacks[c_idx].argument = callback_arg;
 
     offset_in += sizeof(struct fm_port_bd);
     if (offset_in >= in_be16(&pram->txqd.bd_ring_size))
@@ -144,28 +154,30 @@ static int fm_eth_send(struct fm_eth *fm_eth,
     return 1;
 }
 
-static void reclaim_send_buffers(void)
+static void reclaim_send_buffers(pok_netdevice_t *dev)
 {
     //send_last_seen is initialized by zero as member of static global structure
-
-    struct fm_eth *fm_eth = current;
+    struct dev_state *dev_state = dev->info;
+    struct fm_eth *fm_eth = dev_state->current_fm;
     size_t bd_size = sizeof(struct fm_port_bd);
     size_t bd_ring_size = bd_size * TX_BD_RING_SIZE;
+    struct send_state *send_state = &dev_state->send_state;
 
     // Sets by NIC
     uint16_t offset_out = in_be16(&fm_eth->tx_pram->txqd.offset_out);
 
-    while ((offset_out + bd_ring_size - current_state.send_last_seen * bd_size)%bd_ring_size >= bd_size) {
-        uint16_t idx = current_state.send_last_seen;
-        struct send_callback cb = current_state.send_callbacks[idx];
+    while ((offset_out + bd_ring_size - send_state->send_last_seen * bd_size)%bd_ring_size >= bd_size) {
+        uint16_t idx = send_state->send_last_seen;
+        struct send_callback cb = send_state->send_callbacks[idx];
         cb.func(cb.argument);
-        current_state.send_last_seen = (current_state.send_last_seen + 1) % TX_BD_RING_SIZE;
+        send_state->send_last_seen = (send_state->send_last_seen + 1) % TX_BD_RING_SIZE;
     }
 
 }
 
-static int fm_eth_recv(struct fm_eth *fm_eth)
+static int fm_eth_recv(struct dev_state *dev_state)
 {
+    struct fm_eth *fm_eth = dev_state->current_fm;
     struct fm_port_global_pram *pram;
     struct fm_port_bd *rxbd, *rxbd_base;
     uint16_t status, len;
@@ -182,7 +194,7 @@ static int fm_eth_recv(struct fm_eth *fm_eth)
             //XXX phys_to_virt?
             data = (void *)pok_phys_to_virt(rxbd->buf_ptr_lo);
             len = rxbd->len;
-            internal_device_struct.packet_received_callback(data, len);
+            dev_state->packet_received_callback(data, len);
         } else {
             printf("%s: Rx error\n", DRV_NAME);
             ret = 0;
@@ -214,13 +226,14 @@ static int fm_eth_recv(struct fm_eth *fm_eth)
     return ret;
 }
 
-static void reclaim_receive_buffers(void)
+static void reclaim_receive_buffers(pok_netdevice_t *dev)
 {
-    fm_eth_recv(current);
+    fm_eth_recv(dev->info);
 }
 
-static int fm_eth_tx_port_parameter_init(struct fm_eth *fm_eth)
+static int fm_eth_tx_port_parameter_init(struct dev_state *dev_state)
 {
+    struct fm_eth *fm_eth = dev_state->current_fm;
     struct fm_port_global_pram *pram;
     uint32_t pram_page_offset;
     void *tx_bd_ring_base;
@@ -248,7 +261,7 @@ static int fm_eth_tx_port_parameter_init(struct fm_eth *fm_eth)
     out_be32(&pram->txqd_ptr, pram_page_offset + 0x40);
 
     /* alloc Tx buffer descriptors from main memory */
-    tx_bd_ring_base = tx_buffer_pseudo_malloc;
+    tx_bd_ring_base = dev_state->init_buffers.tx_buffer_pseudo_malloc;
     if (!tx_bd_ring_base)
         return 0;
 
@@ -283,8 +296,9 @@ static int fm_eth_tx_port_parameter_init(struct fm_eth *fm_eth)
     return 1;
 }
 
-static int fm_eth_rx_port_parameter_init(struct fm_eth *fm_eth)
+static int fm_eth_rx_port_parameter_init(struct dev_state *dev_state)
 {
+    struct fm_eth *fm_eth = dev_state->current_fm;
     struct fm_port_global_pram *pram;
     u32 pram_page_offset;
     void *rx_bd_ring_base;
@@ -312,14 +326,14 @@ static int fm_eth_rx_port_parameter_init(struct fm_eth *fm_eth)
     out_be16(&pram->mrblr, MAX_RXBUF_LOG2);
 
     /* alloc Rx buffer descriptors from main memory */
-    rx_bd_ring_base = rx_ring_pseudo_malloc;
+    rx_bd_ring_base = dev_state->init_buffers.rx_ring_pseudo_malloc;
     if (!rx_bd_ring_base)
         return 0;
     memset(rx_bd_ring_base, 0, sizeof(struct fm_port_bd)
             * RX_BD_RING_SIZE);
 
     /* alloc Rx buffer from main memory */
-    rx_buf_pool = rx_pool_pseudo_malloc;
+    rx_buf_pool = dev_state->init_buffers.rx_pool_pseudo_malloc;
     if (!rx_buf_pool)
         return 0;
     memset(rx_buf_pool, 0, MAX_RXBUF_LEN * RX_BD_RING_SIZE);
@@ -391,16 +405,16 @@ static void dtsec_get_mac_addr(struct dtsec *regs, uint8_t *mac_addr)
     mac_addr[4] = mac1>>16 & 0xff;
     mac_addr[5] = mac1>>24 & 0xff;
 
-
-    printf("mac_addr ");
-    for (int i=0; i<6; i++) {
-        printf("%02x ", mac_addr[i]);
-    }
-    printf("\n");
+    //printf("mac_addr ");
+    //for (int i=0; i<6; i++) {
+    //    printf("%02x ", mac_addr[i]);
+    //}
+    //printf("\n");
 }
 
-static void fm_eth_open(struct fm_eth *fm_eth)
+static void fm_eth_open(struct dev_state *dev_state)
 {
+    struct fm_eth *fm_eth = dev_state->current_fm;
     /* enable bmi Rx port */
     setbits_be32(&fm_eth->rx_port->fmbm_rcfg, FMBM_RCFG_EN);
     /* enable MAC rx/tx port */
@@ -413,60 +427,41 @@ static void fm_eth_open(struct fm_eth *fm_eth)
 
 
 
-void p3041_init(void)
-{
-    //TODO move constants to .h file
-    dtsec3.rx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC3_RX_PORT*0x1000);
-    dtsec3.tx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC3_TX_PORT*0x1000);
-    dtsec3.reg_addr = (void *)CONFIG_SYS_FM1_DTSEC3_ADDR;
-
-    dtsec4.rx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC4_RX_PORT*0x1000);
-    dtsec4.tx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC4_TX_PORT*0x1000);
-    dtsec4.reg_addr = (void *)CONFIG_SYS_FM1_DTSEC4_ADDR;
-
-    current = &dtsec3;
-
-    dtsec_get_mac_addr(current->reg_addr, internal_device_struct.macaddr);
-    fm_init_muram(0, (void *)CONFIG_SYS_FSL_FM1_MURAM_ADDR);
-
-    /* qmi_common and bmi_common are initialized in this memory by u-boot */
-    muram.alloc = muram.base + 0x21000;
-
-    fm_eth_rx_port_parameter_init(current);
-    fm_eth_tx_port_parameter_init(current);
-
-    fm_eth_open(current);
-}
-
-
 static pok_bool_t send_frame(
+        pok_netdevice_t *dev,
         char *buffer,
         size_t size,
         pok_network_buffer_callback_t callback,
         void *callback_arg)
 {
-    //pok_network_sg_list_t sg_list[1] = {{.buffer=buffer, .size=size}};
-    //return send_frame_gather(sg_list, 1, callback, callback_arg);
-    fm_eth_send(current, buffer, size, callback, callback_arg);
-
+    fm_eth_send(dev->info, buffer, size, callback, callback_arg);
     return 1;
 }
 
 
-pok_bool_t dummy_send_frame_gather(const pok_network_sg_list_t *sg_list,
-                                size_t sg_list_len,
-                                pok_network_buffer_callback_t callback,
-                                void *callback_arg)
+pok_bool_t dummy_send_frame_gather(
+        pok_netdevice_t *netdev,
+        const pok_network_sg_list_t *sg_list,
+        size_t sg_list_len,
+        pok_network_buffer_callback_t callback,
+        void *callback_arg)
 {
     printf("%s\n", __func__);
     return 0;
 }
 
-void set_packet_received_callback(void (*f)(const char *, size_t)) {
-    internal_device_struct.packet_received_callback = f;
+void set_packet_received_callback(
+        pok_netdevice_t *dev,
+        void (*f)(const char *, size_t))
+{
+    struct dev_state *dev_state = dev->info;
+    dev_state->packet_received_callback = f;
 }
 
-void dummy_flush_send(void) {
+void dummy_flush_send(pok_netdevice_t *dev)
+{
+    (void) dev; 
+    //TODO
 }
 
 static const pok_network_driver_ops_t driver_ops = {
@@ -478,10 +473,44 @@ static const pok_network_driver_ops_t driver_ops = {
     .flush_send =                   dummy_flush_send,
 };
 
-pok_netdevice_t pok_network_p3041_device = {
-    .ops = &driver_ops,
-    .mac = internal_device_struct.macaddr
-};
+static void register_dtsec(struct fm_eth *fm_eth, char *name)
+{
+    struct dev_state *dev_state;
+    dev_state = smalloc(sizeof(*dev_state));
+    dev_state->current_fm = fm_eth;
+
+    dtsec_get_mac_addr(dev_state->current_fm->reg_addr, dev_state->macaddr);
+
+    fm_eth_rx_port_parameter_init(dev_state);
+    fm_eth_tx_port_parameter_init(dev_state);
+
+    fm_eth_open(dev_state);
+
+    pok_netdevice_t *netdevice = smalloc(sizeof(*netdevice));
+    netdevice->ops = &driver_ops,
+    netdevice->mac = dev_state->macaddr,
+    netdevice->info = dev_state,
+    register_netdevice(name, netdevice);
+}
+
+void dtsec_init(void)
+{
+    //TODO move constants to .h file
+    dtsec3.rx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC3_RX_PORT*0x1000);
+    dtsec3.tx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC3_TX_PORT*0x1000);
+    dtsec3.reg_addr = (void *)CONFIG_SYS_FM1_DTSEC3_ADDR;
+
+    dtsec4.rx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC4_RX_PORT*0x1000);
+    dtsec4.tx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC4_TX_PORT*0x1000);
+    dtsec4.reg_addr = (void *)CONFIG_SYS_FM1_DTSEC4_ADDR;
+
+    fm_init_muram(0, (void *)CONFIG_SYS_FSL_FM1_MURAM_ADDR);
+    /* XXX HACK. Depend on u-boot! qmi_common and bmi_common are initialized in this memory by u-boot */
+    muram.alloc = muram.base + 0x21000;
+
+    register_dtsec(&dtsec3, DEV_NAME_DTSEC3);
+    register_dtsec(&dtsec4, DEV_NAME_DTSEC4);
+}
 
 #endif /* PPC */
 #endif /* SYS_NEEDS_DRIVER_P3041 */

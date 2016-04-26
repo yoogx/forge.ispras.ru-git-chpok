@@ -1,3 +1,5 @@
+#include <syspart_config.h>
+
 #ifdef SYS_NEEDS_DRIVER_P3041
 
 #ifndef __SYSPART_P3041_FM_H
