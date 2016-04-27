@@ -62,6 +62,7 @@ void drivers_init()
     virtio_net_init();
     ne2000_net_init();
     pci_init();
-    dtsec_init();
+    //TODO add next string if BSP=P3041
+    //dtsec_init();
     pok_network_init();
 }
