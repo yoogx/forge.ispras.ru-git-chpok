@@ -16,10 +16,9 @@
 
 //TODO move define to config.h or delete
 
-#ifdef SYS_NEEDS_DRIVER_P3041
+#include "syspart_config.h"
 
-# ifndef __POK_RTL8029_H__
-#  define __POK_RTL8029_H__
+#ifdef SYS_NEEDS_DRIVER_NE2000
 
 #  include <libc/stdio.h>
 #  include <libc/string.h>
@@ -198,5 +197,4 @@ This bit is set when the receive buffer */
 // in 256 bytes block
 //
 
-# endif /* !__POK_RTL8029_H__ */
 #endif /*SYS_NEEDS_DRIVER_P3041*/

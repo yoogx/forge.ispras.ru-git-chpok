@@ -3,6 +3,6 @@
 
 #include <net/network.h>
 
-extern pok_netdevice_t pok_network_ne2000_device;
+void ne2000_net_init();
 
 #endif

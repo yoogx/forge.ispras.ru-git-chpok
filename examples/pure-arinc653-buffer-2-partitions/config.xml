@@ -1,12 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE doc [
-<!ENTITY P1 SYSTEM "P1/config.xml">
-<!ENTITY P2 SYSTEM "P2/config.xml">
-]>
-<chpok-configuration>
+<chpok-configuration xmlns:xi="http://www.w3.org/2001/XInclude">
 	<Partitions>
-		&P1;
-		&P2;
+        <xi:include href="P1/config.xml" parse="xml"/>
+        <xi:include href="P2/config.xml" parse="xml"/>
 	</Partitions>
     <Schedule>
         <!--

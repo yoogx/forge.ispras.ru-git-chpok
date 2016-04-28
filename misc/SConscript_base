@@ -16,6 +16,7 @@ def get_pok_definitions(source, env):
     source = source[0]
 
     root = etree.parse(source.path)
+    root.xinclude()
 
     parser = arinc653_xml_conf.ArincConfigParser()
     conf = parser.parse(root)
@@ -26,6 +27,7 @@ def get_pok_partition_definitions(source, env):
     source = source[0]
 
     root = etree.parse(source.path)
+    root.xinclude()
 
     parser = arinc653_xml_conf.ArincConfigParser()
     conf = chpok_configuration.Configuration()
@@ -42,6 +44,7 @@ def get_pok_gdb_definitions(source, env):
 
 
 root = etree.parse(os.path.join(env['SCONSTRUCT_DIR'], env['xml']))
+root.xinclude()
 parser = arinc653_xml_conf.ArincConfigParser()
 conf_layout = parser.parse_layout(root)
 

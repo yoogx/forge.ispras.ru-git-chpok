@@ -79,7 +79,7 @@ class ArincConfigParser:
             self.parse_channels(conf, connection_table)
 
         conf.network = self.parse_network(root.find("Network"))
-        
+
         conf.validate()
 
         return conf

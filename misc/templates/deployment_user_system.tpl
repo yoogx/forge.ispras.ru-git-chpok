@@ -16,7 +16,7 @@
 /* System partition specific */
 #include <net/network.h>
 #include <port_info.h>
-#include <sysconfig.h>
+#include <depl.h>
 
 {%for port_queueing in part.ports_queueing_system%}
 static struct {

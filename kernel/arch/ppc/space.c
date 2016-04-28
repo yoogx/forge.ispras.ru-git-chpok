@@ -88,7 +88,7 @@ pok_space_context_init0(
     vctx->r4     = arg2;
     vctx->sp     = stack_rel - 12;
     vctx->srr0   = entry_rel;
-    vctx->srr1   = MSR_EE | MSR_IP | MSR_PR | MSR_FP | MSR_FE0 | MSR_FE1;
+    vctx->srr1   = MSR_EE | MSR_IP | MSR_PR | MSR_FP;
     ctx->lr      = (uintptr_t) pok_arch_rfi;
 
     ctx->sp      = (uintptr_t) &vctx->sp;

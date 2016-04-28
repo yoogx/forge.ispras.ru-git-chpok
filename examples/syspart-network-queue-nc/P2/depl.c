@@ -1,4 +1,4 @@
-#include <sysconfig.h>
+#include <depl.h>
 #include <channel_driver.h>
 #include <net/network.h>
 
@@ -51,11 +51,18 @@ channel_driver_t * channel_drivers[] = {
 unsigned channel_drivers_nb = ARRAY_SIZE(channel_drivers);
 
 char *ipnet_netdev_name = "virtio-net0";
+//char *ipnet_netdev_name = "ne2000-net1";
+//char *ipnet_netdev_name = "dtsec3";
 
 #include <drivers/virtio/virtio_network.h>
+#include <drivers/p3041/p3041.h>
+#include <drivers/ne2000/ne2000.h>
 void drivers_init()
 {
     virtio_net_init();
+    ne2000_net_init();
     pci_init();
+    //TODO add next string if BSP=P3041
+    //dtsec_init();
     pok_network_init();
 }
