@@ -45,12 +45,12 @@ struct pok_partition_sched_operations
     /*
      * Called when some async event about partition occures.
      * Event is encoded into partition's `.state` bits(bytes).
-     * 
+     *
      * During call to this handler, local preemption is disabled.
-     * 
+     *
      * The handler should either clear `.state` bytes, or enable local
      * preemption. Otherwise the handler will be called again.
-     * 
+     *
      * If local preemption is already disabled, handler is not called.
      * But corresponded `.state` bytes are set nevetheless.
      */
@@ -58,7 +58,7 @@ struct pok_partition_sched_operations
 
     /* 
      * Return number of threads for given partition.
-     * 
+     *
      * NOTE: Called (possibly) outside of partition's timeslot, so
      * 'current_partition' doesn't correspond to given partition.
      */
@@ -66,11 +66,11 @@ struct pok_partition_sched_operations
 
     /*
      * Return index of current thread within partition.
-     * 
+     *
      * Returning negative value means that no current thread(is it possible?).
-     * 
+     *
      * If partition doesn't work with user space, never called.
-     * 
+     *
      * NOTE: Called (possibly) outside of partition's timeslot, so
      * 'current_partition' doesn't correspond to given partition.
      */
@@ -85,27 +85,21 @@ struct pok_partition_sched_operations
 
     /*
      * Get information about thread with given index.
-     * 
-     * Write some string into buffer 'buf' of maximum capacity 'size'.
-     * Return actual number of characters written.
-     * 
+     *
+     * Information is written using 'print_cb' callback.
+     *
      * NOTE: Called (possibly) outside of partition's timeslot, so
      * 'current_partition' doesn't correspond to given partition.
      */
-    size_t (*get_thread_info)(struct _pok_partition* part, int index, void* private,
-        char* buf, size_t size);
+    void (*get_thread_info)(struct _pok_partition* part, int index, void* private,
+        print_cb_t print_cb, void* cb_data);
 
     /*
      * Get (architecture-specific) registers for non-current thread.
+     *
+     * Returning NULL means that thread has no registers assosiated with it.
      */
-    void (*get_thread_registers)(struct _pok_partition* part, int index, void* private,
-        uint32_t registers[NUMREGS]);
-
-    /*
-     * Set (architecture-specific) registers for non-current thread.
-     */
-    void (*set_thread_registers)(struct _pok_partition* part, int index, void* private,
-        const uint32_t registers[NUMREGS]);
+    struct regs* (*get_thread_registers)(struct _pok_partition* part, int index, void* private);
 };
 
 struct pok_partition_operations

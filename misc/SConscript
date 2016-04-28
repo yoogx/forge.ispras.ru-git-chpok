@@ -2,6 +2,7 @@
 
 import sys
 import os
+import template_generation
 
 def print_cmd_line(s, target, src, env):
     # s is the original command line, target and src are lists of target
@@ -53,6 +54,8 @@ except:
     env['BUILD_DIR'] = os.path.join(env['SCONSTRUCT_DIR'], 'build', env['BSP'], '')
 
 log_file_opened = False
+
+AddMethod(env, template_generation.TemplateRender)
 
 # This tells scons to store all file signatures 
 # in a separate .sconsign file in each directory
@@ -167,7 +170,8 @@ env.Alias('rundbg', 'run_debug_cmd')
 env.Command('debug_cmd', [], env['GDB']+' '+env['BUILD_DIR']+'pok.elf -ex "target remote :1234"')
 env.Alias('debug', 'debug_cmd')
 
-env.Command('debug_gdb', [], env['GDB']+' '+env['BUILD_DIR']+'pok.elf -ex "source ../pure-arinc653-buffer/GDB_commands"\
+gdb_commands_file = env['BUILD_DIR'] + '/GDB_commands'
+command_debug_gdb = env.Command('debug_gdb', [gdb_commands_file,], env['GDB']+' '+env['BUILD_DIR']+'pok.elf -ex "source '+gdb_commands_file+'" \
                                                                             -ex "target extended-remote 127.0.0.1:8000"')
 env.Alias('debug-gdb', 'debug_gdb')
 

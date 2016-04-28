@@ -13,7 +13,8 @@
  *
  */
 
-
+#include <core/partition_arinc.h>
+#include <uaccess.h>
 
 /****************************************************************************
 
@@ -142,12 +143,17 @@ struct gdb_thread
     void* part_private;
 };
 
+// Currently executed thread
+static struct gdb_thread gdb_thread_current;
+
 /* Whether t1 and t2 actually refers to the same thread. */
 static inline pok_bool_t gdb_thread_equal(const struct gdb_thread* t1,
     const struct gdb_thread* t2)
 {
-    return t1->inferior_id == t2->inferior_id
-        && t1->thread_id == t2->thread_id;
+    pok_bool_t ret = (t1->inferior_id == t2->inferior_id)
+        && (t1->thread_id == t2->thread_id);
+
+    return ret;
 }
 
 /* Copy src thread into dest. */
@@ -191,7 +197,7 @@ static void _get_partition_at_index_cb(pok_partition_t* part)
 
 /*
  * Return partition at given index.
- * 
+ *
  * Return NULL if not found.
  */
 static pok_partition_t* get_partition_at_index(uint8_t index,
@@ -210,43 +216,58 @@ static pok_partition_t* get_partition_at_index(uint8_t index,
 /*
  * If 't.inferior_id' and 't.thread_id' are both zero, fill 't' with
  * the first thread.
- * 
+ *
  * Otherwise fill 't' with next thread.
- * 
+ *
  * Return 0 on success, non-zero on EOF.
+ *
+ * Firstly enumerate all user-space threads (inferior_id = 2,3,...),
+ * then enumerate kernel space threads (inferior_id = 1).
+ * This will overcome gdb(?) problem, when it forget all inferiors
+ * except the last listed one, so it cannot find address space for
+ * current (GDB, kernel) thread.
  */
 int gdb_thread_get_next(struct gdb_thread* t)
 {
-    if(t->inferior_id == 0)
-        t->inferior_id = 1;
-
     t->thread_id++;
 
-    if(t->inferior_id == 1)
+    if(t->inferior_id == 0) // Just begins
     {
-        // All kernel-only partitions here.
-        t->part = get_partition_at_index(t->thread_id - 1, TRUE);
-        if(!t->part) goto next_inferior;
-
-        assert(t->part->part_sched_ops->get_number_of_threads(t->part) == 1);
-        t->part->part_sched_ops->get_thread_at_index(t->part, 0, &t->part_private);
+        t->inferior_id = 1; // Fake, will be 2 after "goto"
+        goto next_inferior;
     }
-    else
-    {
-        if(t->thread_id > t->part->part_sched_ops->get_number_of_threads(t->part))
-            goto next_inferior;
 
-        t->part->part_sched_ops->get_thread_at_index(t->part, 0, &t->part_private);
-    }
+
+    if(t->inferior_id >= 2) goto user_thread;
+    else goto kernel_thread;
+
+user_thread:
+    if(t->thread_id > t->part->part_sched_ops->get_number_of_threads(t->part))
+        goto next_inferior;
+
+    t->part->part_sched_ops->get_thread_at_index(t->part, 0, &t->part_private);
+
+    return 0;
+
+kernel_thread:
+    t->part = get_partition_at_index(t->thread_id - 1, TRUE);
+    if(!t->part) return 1; // EOF
+
+    assert(t->part->part_sched_ops->get_number_of_threads(t->part) == 1);
+    t->part->part_sched_ops->get_thread_at_index(t->part, 0, &t->part_private);
 
     return 0;
 
 next_inferior:
-    // Next inferior can only be user space.
     t->inferior_id++;
     t->thread_id = 1;
     t->part = get_partition_at_index(t->inferior_id - 2, FALSE);
-    if(!t->part) return 1;
+    if(!t->part)
+    {
+        t->inferior_id = 1;
+        t->thread_id = 1;
+        goto kernel_thread;
+    }
 
     t->part->part_sched_ops->get_thread_at_index(t->part, 0, &t->part_private);
 
@@ -313,9 +334,10 @@ int get_partition_index(pok_partition_t* part)
     return _partition_index;
 }
 
-/* Fill current thread. */
-void gdb_thread_get_current(struct gdb_thread* t)
+/* Update current thread. */
+void gdb_thread_get_current(void)
 {
+    struct gdb_thread* t = &gdb_thread_current;
     t->part = current_partition;
     if(t->part->space_id == 0xff)
     {
@@ -334,85 +356,72 @@ void gdb_thread_get_current(struct gdb_thread* t)
 /*
  * Return space identificator for given thread.
  */
-uint8_t gdb_thread_get_space(const struct gdb_thread* t)
+static uint8_t gdb_thread_get_space(const struct gdb_thread* t)
 {
     return t->part->space_id;
 }
 
-/* Transform virtual(user-space) pointer for given thread into physical one. */
-uintptr_t gdb_thread_virt_to_phys(const struct gdb_thread* t, uintptr_t virt)
-{
-    //if (pid > 0)
-    //    return virt - pok_partitions[pid - 1].base_vaddr + pok_partitions[pid - 1].base_addr;
-    //return virt;
-    //TODO: correct code.
-    (void)t;
-    return virt;
-}
-/* Transform physical pointer for given thread into virtual(user-space) one. */
-uintptr_t gdb_thread_phys_to_virt(const struct gdb_thread* t, uintptr_t phys)
-{
-    //if (pid > 0)
-    //    return phys - pok_partitions[pid - 1].base_addr + pok_partitions[pid - 1].base_vaddr;
-    //return phys;
-    //TODO: correct code
-    (void)t;
-    return phys;
-}
-
-/* Check whether given address range is accessible by the thread. */
+/*
+ * Check whether given address range is accessible by the thread.
+ *
+ * Note: space should be switched already!
+ */
 pok_bool_t gdb_thread_check_access(const struct gdb_thread* t, uintptr_t addr,
     size_t size)
 {
-    //TODO
-    return TRUE;
+    // All threads have access to kernel part.
+    if(addr >= 0
+        && (addr + size) < pok_partitions_arinc[0].base_addr)
+        return TRUE;
+
+    // User partitions have access to their user space.
+    // Assume we are currently switched to that user space.
+    if(t->inferior_id >= 2
+        && (check_access_read((void*)addr, size) || check_access_exec((void*)addr)))
+        return TRUE;
+
+    return FALSE;
 }
 
-/* 
- * 'printf'-like callback for use in function's arguments.
- * 
- * 'data' also should be passed via function's arguments.
- */
-typedef void (*print_cb_t)(void* data, const char* format, ...);
-
 /* Print name of the thread using given callback. */
-void gdb_thread_print_name(const struct gdb_thread* t, print_cb_t print_cb, void* data)
+void gdb_thread_print_name(const struct gdb_thread* t,
+    print_cb_t print_cb, void* cb_data)
 {
-    char thread_name_only[100];
+#define WRITE_STR(s) print_cb(s, strlen(s), cb_data)
+    if(gdb_thread_equal(&gdb_thread_current, t))
+        WRITE_STR("* ");
 
-    int thread_name_only_len = t->part->part_sched_ops->get_thread_info(t->part, t->thread_id - 1,
-        t->part_private, thread_name_only, sizeof(thread_name_only));
+    size_t name_len = strnlen(t->part->name, MAX_NAME_LENGTH);
+    print_cb(t->part->name, name_len, cb_data);
 
-    struct gdb_thread t_current;
+    WRITE_STR(".");
 
-    gdb_thread_get_current(&t_current);
-
-    if(gdb_thread_equal(&t_current, t))
-    {
-        print_cb(data, "%s", "* ");
-    }
-
-    print_cb(data, "P%d", (int)t->inferior_id - 1);
-
-    (void)thread_name_only_len; // Currently, printf doesn't support %.*s notation.
-    print_cb(data, "%s", thread_name_only);
+    t->part->part_sched_ops->get_thread_info(t->part, t->thread_id - 1,
+        t->part_private, print_cb, cb_data);
+#undef WRITE_STR
 }
 
 /* 
  * Return registers(arch-specific) for non-current thread.
  */
-void gdb_thread_get_regs(const struct gdb_thread* t, uint32_t* registers)
+static struct regs* gdb_thread_get_regs(const struct gdb_thread* t)
 {
-    int current_thread_id = t->part->part_sched_ops->get_current_thread_index(t->part) - 1;
+    if(t->inferior_id == 1)
+    {
+        // Kernel threads always current for partition.
+        return (struct regs*)t->part->entry_sp;
+    }
+
+    int current_thread_id = t->part->part_sched_ops->get_current_thread_index(t->part) + 1;
 
     if(current_thread_id == t->thread_id)
     {
-        memcpy(registers, (void*)t->part->entry_sp, NUMREGS * sizeof(unsigned long));
+        return (struct regs*)t->part->entry_sp;
     }
     else
     {
-        t->part->part_sched_ops->get_thread_registers(t->part, t->thread_id - 1,
-            t->part_private, registers);
+        return t->part->part_sched_ops->get_thread_registers(t->part, t->thread_id - 1,
+            t->part_private);
     }
 }
 
@@ -422,24 +431,6 @@ void gdb_thread_get_regs(const struct gdb_thread* t, uint32_t* registers)
 void gdb_thread_get_fp_regs(const struct gdb_thread* t, uint32_t* fp_registers)
 {
     memset(fp_registers, 0, NUMREGS_FP * sizeof(unsigned long));
-}
-
-/* 
- * Set registers(arch-specific) for non-current thread.
- */
-void gdb_thread_set_regs(struct gdb_thread* t, const uint32_t* registers)
-{
-    int current_thread_id = t->part->part_sched_ops->get_current_thread_index(t->part) - 1;
-
-    if(current_thread_id == t->thread_id)
-    {
-        memcpy((void*)t->part->entry_sp, registers, NUMREGS * sizeof(unsigned long));
-    }
-    else
-    {
-        t->part->part_sched_ops->set_thread_registers(t->part, t->thread_id - 1,
-            t->part_private, registers);
-    }
 }
 
 /* 
@@ -722,7 +713,7 @@ set_mem_err (void)
    to mem_fault, they won't get restored, so there better not be any
    saved).  */
 int
-get_char (char *addr)
+get_char (const char *addr)
 {
     return *addr;
 }
@@ -740,7 +731,7 @@ asm volatile("dcbst 0, %0; sync; icbi 0,%0; sync; isync" : : "r" (addr));
    a fault; if zero treat a fault like any other fault in the stub.  */
 char *
 mem2hex (mem, buf, count, may_fault)
-     char *mem;
+     const char *mem;
      char *buf;
      int count;
      int may_fault;
@@ -1004,7 +995,6 @@ struct regs  null_ea = {
 };
 
 
-//TODO
 /*int   POK_CHECK_ADDR_IN_PARTITION(int pid,uintptr_t address){
     if (pid > 0)
         return ((POK_CHECK_VPTR_IN_PARTITION(pid - 1,address)) || (address >= 0x0 && address <  pok_partitions[0].base_addr));
@@ -1061,7 +1051,137 @@ uintptr_t gdb_pok_phys_to_virt(uintptr_t phys, int pid)
 #define SPRN_DBSR       0x130   /* Debug Status Register */
 #define SPRN_DBSRWR       0x132   /* Debug Status Register Write Register*/
 
-void add_watchpoint(uintptr_t addr, int length, const struct gdb_thread* t, int type){
+
+// Helper: writes identificator of the thread into output packet.
+static char* write_thread_id(char* ptr, const struct gdb_thread* t)
+{
+#ifdef MULTIPROCESS
+    *ptr++ = 'p';
+    ptr = mem2hex( (char *)(&t->inferior_id), ptr, 4);
+    *ptr++ = '.';
+#endif
+    ptr = mem2hex( (char *)(&t->thread_id), ptr, 4);
+
+    return ptr;
+}
+
+
+// Helper: reads identificator of the thread from input packet.
+static char* read_thread_id(char* ptr, struct gdb_thread* t)
+{
+#ifdef MULTIPROCESS
+    assert(*ptr == 'p');
+    ptr++;
+    hexToInt(&ptr, (uintptr_t *)(&t->inferior_id));
+    assert(*ptr == '.');
+    ptr++;
+#endif
+    hexToInt(&ptr, (uintptr_t *)(&t->thread_id));
+
+    return ptr;
+}
+
+struct packet_write_cb_data
+{
+    char* ptr;
+    // TODO: Maximum length should be there
+};
+
+// Callback of type print_cb_t for write into gdb packet.
+void packet_write_cb(const void* data, size_t len, void* cb_data)
+{
+    struct packet_write_cb_data* cb_data_real = cb_data;
+
+    cb_data_real->ptr = mem2hex(data, cb_data_real->ptr, len);
+}
+
+
+/* State of gdb server while stopped. */
+struct gdb_state
+{
+    struct gdb_thread t; // processed thread
+
+    struct regs* current_ea; // These regs should be used when processed thread is actually the current one.
+};
+
+/*
+ * Initialize cache of the thread.
+ *
+ * Initially processed thread is current one.
+ */
+static void gdb_state_init(struct gdb_state* tc,
+    struct regs* current_ea)
+{
+    gdb_thread_copy(&tc->t, &gdb_thread_current);
+
+    tc->current_ea = current_ea;
+}
+
+/* Make processed thread state uptodate. */
+static void gdb_state_store_registers(struct gdb_state* tc)
+{
+    struct regs* ea;
+
+    if(!gdb_thread_equal(&tc->t, &gdb_thread_current))
+    {
+        ea = gdb_thread_get_regs(&tc->t);
+        if(!ea) ea = &null_ea;
+
+        gdb_thread_set_fp_regs(&tc->t, fp_registers);
+    }
+    else
+    {
+        ea = tc->current_ea;
+    }
+
+    printf("Flush registers. pc = 0x%lx\n", registers[pc]);
+    gdb_get_regs(ea, registers);
+}
+
+/* Make exposed registers for processed state up-to-date. */
+static void gdb_state_fill_registers(struct gdb_state* tc)
+{
+    struct regs* ea;
+
+    if(!gdb_thread_equal(&tc->t, &gdb_thread_current))
+    {
+        ea = gdb_thread_get_regs(&tc->t);
+        if(!ea) ea = &null_ea;
+
+        gdb_thread_get_fp_regs(&tc->t, fp_registers);
+    }
+    else
+    {
+        ea = tc->current_ea;
+    }
+
+    gdb_set_regs(ea, registers);
+}
+
+/*
+ * Set given thread as processed.
+ *
+ * Previously processed thread is flushed if needed.
+ */
+static void gdb_sate_set_thread(struct gdb_state* tc,
+    struct gdb_thread* t)
+{
+    if(gdb_thread_equal(&tc->t, t)) return;
+
+    gdb_thread_copy(&tc->t, t);
+}
+
+
+
+int new_start;
+
+void clear_breakpoints(){
+    for (int i = 0; i < max_breakpoint; i++)
+        breakpoints[i].addr = 0;
+}
+
+void add_watchpoint(uintptr_t addr, int length, const struct gdb_thread* t, int type)
+{
 #ifdef QEMU
     /*do nothing*/
     strcpy (remcomOutBuffer, "E22");
@@ -1072,12 +1192,17 @@ void add_watchpoint(uintptr_t addr, int length, const struct gdb_thread* t, int 
         strcpy (remcomOutBuffer, "E22");
         return;
     }
-    if (!POK_CHECK_ADDR_IN_PARTITION(give_part_num_of_thread(*using_thread + 1), addr)){
+
+    int old_pid = pok_space_get_current();
+    int new_pid = gdb_thread_get_space(t);
+    pok_space_switch(new_pid);
+
+    if (!gdb_thread_check_access(t,m addr, 4)){
         strcpy (remcomOutBuffer, "E03");
-        return;
+        goto out;
     }
     //~ addr = gdb_pok_virt_to_phys(addr, give_part_num_of_thread(*using_thread + 1));
-    
+
     mtspr(SPRN_DAC1, addr);
     mtspr(SPRN_DAC2, addr + length);
     uint32_t DBCR2 = mfspr(SPRN_DBCR2);
@@ -1102,6 +1227,10 @@ void add_watchpoint(uintptr_t addr, int length, const struct gdb_thread* t, int 
     watchpoint_is_set = TRUE;
     strcpy(remcomOutBuffer, "OK");
 #endif
+#ifndef QEMU
+out:
+    pok_space_switch(old_pid);
+#endif
 }
 
 void remove_watchpoint(uintptr_t addr, int length, const struct gdb_thread* t, int type){
@@ -1116,6 +1245,7 @@ void remove_watchpoint(uintptr_t addr, int length, const struct gdb_thread* t, i
         strcpy (remcomOutBuffer, "E22");
         return;
     }
+
     strcpy(remcomOutBuffer, "OK");
     watchpoint_is_set = FALSE;
 #ifdef DEBUG_GDB
@@ -1149,14 +1279,11 @@ void remove_watchpoint(uintptr_t addr, int length, const struct gdb_thread* t, i
     uint32_t DBCR2 = mfspr(SPRN_DBCR2);
     DBCR2 &= (~0x800000);
     mtspr(SPRN_DBCR2, DBCR2);
-    
+
     //~ ea->srr1 &= (~0x400000);
-    
+
 #endif    
-    
 }
-
-
 
 void add_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t){
     //int old_pid = current_part_id();
@@ -1166,8 +1293,8 @@ void add_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t){
 //    printf("Old_pid = %d\n",old_pid);
 //#endif
     uint8_t old_space_id = pok_space_get_current();
-
-    if(!gdb_thread_check_access(t, addr, 4)) goto err;
+    uint8_t space_id = gdb_thread_get_space(t);
+    pok_space_switch(space_id);
     //if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
     //{
 //#ifdef DEBUG_GDB
@@ -1176,8 +1303,7 @@ void add_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t){
         //switch_part_id(old_pid, new_pid);
     //}
 
-    uint8_t space_id = gdb_thread_get_space(t);
-    pok_space_switch(space_id);
+    if(!gdb_thread_check_access(t, addr, 4)) goto err;
 
     int i;
     for (i = 0; i < max_breakpoint; i++){
@@ -1208,9 +1334,6 @@ void add_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t){
     if (!hex2mem(trap, (char *)addr, length)) goto err;
 
     strcpy(remcomOutBuffer, "OK");
-#ifdef DEBUG_GDB
-    printf("hex2mem: addr = 0x%x; instr = 0x%lx", addr, *(uint32_t *)addr);
-#endif
 
     pok_space_switch(old_space_id);
     return;
@@ -1237,7 +1360,7 @@ void remove_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t)
     if(!gdb_thread_check_access(t, addr, length)) goto err;
 
     for (i = 0; i < max_breakpoint; i++){
-        if ((breakpoints[i].addr == addr) && (breakpoints[i].P_num == new_pid))
+        if ((breakpoints[i].addr == addr) && (breakpoints[i].P_num == t->inferior_id))
             break;
     }
     if (i == max_breakpoint) goto err;
@@ -1263,255 +1386,6 @@ err:
     pok_space_switch(old_pid);
 }
 
-// Helper: writes identificator of the thread into output packet.
-static char* write_thread_id(char* ptr, const struct gdb_thread* t)
-{
-#ifdef MULTIPROCESS
-    *ptr++ = 'p';
-    ptr = mem2hex( (char *)(&t->inferior_id), ptr, 4);
-    *ptr++ = '.';
-#endif
-    ptr = mem2hex( (char *)(&t->thread_id), ptr, 4);
-
-    return ptr;
-}
-
-
-// Helper: reads identificator of the thread from input packet.
-static char* read_thread_id(char* ptr, struct gdb_thread* t)
-{
-#ifdef MULTIPROCESS
-    assert(*ptr == 'p');
-    ptr++;
-    hexToInt(&ptr, (uintptr_t *)(&t->inferior_id));
-    assert(*ptr == '.');
-    ptr++;
-#endif
-    hexToInt(&ptr, (uintptr_t *)(&t->thread_id));
-
-    return ptr;
-}
-
-struct write_cb_data
-{
-    char* ptr;
-};
-
-static void write_single(int c, void* data)
-{
-    struct write_cb_data* data_real = data;
-    data_real->ptr = mem2hex(&c, data_real->ptr, 1);
-}
-
-// Callback for printf-like functionality for output packet.
-void write_cb(void* data, const char* format, ...)
-{
-    va_list args;
-    va_start(args, format);
-
-    vprintf(write_single, data, format, &args);
-
-    va_end(args);
-}
-
-
-void set_regs(struct regs *ea){
-    if ((uint32_t) ea == 0) {
-        ea =  &null_ea;
-    }
-#ifdef __PPC__
-    registers[r0] = ea->r0;
-    registers[r1] = ea->r1;
-    registers[r2] = ea->r2;
-    registers[r3] = ea->r3;
-    registers[r4] = ea->r4;
-    registers[r5] = ea->r5;
-    registers[r6] = ea->r6;
-    registers[r7] = ea->r7;
-    registers[r8] = ea->r8;
-    registers[r9] = ea->r9;
-    registers[r10] = ea->r10;
-    registers[r11] = ea->r11;
-    registers[r12] = ea->r12;
-    registers[r13] = ea->r13;
-    registers[r14] = ea->r14;
-    registers[r15] = ea->r15;
-    registers[r16] = ea->r16;
-    registers[r17] = ea->r17;
-    registers[r18] = ea->r18;
-    registers[r19] = ea->r19;
-    registers[r20] = ea->r20;
-    registers[r21] = ea->r21;
-    registers[r22] = ea->r22;
-    registers[r23] = ea->r23;
-    registers[r24] = ea->r24;
-    registers[r25] = ea->r25;
-    registers[r26] = ea->r26;
-    registers[r27] = ea->r27;
-    registers[r28] = ea->r28;
-    registers[r29] = ea->r29;
-    registers[r30] = ea->r30;
-    registers[r31] = ea->r31;
-    registers[ctr] = ea->ctr;
-    registers[xer] = ea->xer;
-    registers[pc] = ea->srr0;
-    registers[msr] = ea->srr1;
-    registers[lr] = ea->lr;
-    registers[cr] = ea->cr;
-    fp_registers[f0] = 0;
-    fp_registers[f1] = 0;
-    fp_registers[f2] = 0;
-    fp_registers[f3] = 0;
-    fp_registers[f4] = 0;
-    fp_registers[f5] = 0;
-    fp_registers[f6] = 0;
-    fp_registers[f7] = 0;
-    fp_registers[f8] = 0;
-    fp_registers[f9] = 0;
-    fp_registers[f10] = 0;
-    fp_registers[f11] = 0;
-    fp_registers[f12] = 0;
-    fp_registers[f13] = 0;
-    fp_registers[f14] = 0;
-    fp_registers[f15] = 0;
-    fp_registers[f16] = 0;
-    fp_registers[f17] = 0;
-    fp_registers[f18] = 0;
-    fp_registers[f19] = 0;
-    fp_registers[f20] = 0;
-    fp_registers[f21] = 0;
-    fp_registers[f22] = 0;
-    fp_registers[f23] = 0;
-    fp_registers[f24] = 0;
-    fp_registers[f25] = 0;
-    fp_registers[f26] = 0;
-    fp_registers[f27] = 0;
-    fp_registers[f28] = 0;
-    fp_registers[f29] = 0;
-    fp_registers[f30] = 0;
-    fp_registers[f31] = 0;
-    
-#endif        
-#ifdef __i386__
-    registers[EAX] = ea->eax;
-    registers[ECX] = ea->ecx;
-    registers[EDX] = ea->edx;
-    registers[EBX] = ea->ebx;
-    registers[ESP] = ea->__esp;
-    registers[EBP] = ea->ebp;
-    registers[ESI] = ea->esi;
-    registers[EDI] = ea->edi;
-    registers[PC] = ea->eip;
-    registers[PS] = ea->eflags;
-    registers[CS] = ea->cs;
-    registers[SS] = ea->ss;
-    registers[DS] = ea->ds;
-    registers[ES] = ea->es;
-    registers[FS] = -1;
-    registers[GS] = -1;
-#endif
-}
-
-/* Consistency between exposed value and actual (internal) value. */
-enum cache_state
-{
-    CACHE_STATE_UPTODATE, // Exposed value corresponds to actual
-    CACHE_STATE_READ_REQUIRED, // Exposed value is out-of-date. Need to read it from internal representation.
-    CACHE_STATE_WRITE_REQUIRED // Internal representation is out-of-date. Need to write exposed value into it.
-};
-/* gdb_thread with some cached functionality, used in gdb operations. */
-struct gdb_thread_cached
-{
-    struct gdb_thread t; // processed thread
-
-    enum cache_state registers_state; // Cache state of registers (both regular and floating point).
-
-    struct gdb_thread gdb_thread_current; // Current thread
-    struct regs* ea; // These regs should be used when processed thread is actually the current one.
-};
-
-/* 
- * Initialize cache of the thread.
- * 
- * Initially processed thread is current one.
- */
-static void gdb_thread_cached_init(struct gdb_thread_cached* tc,
-    struct regs* ea)
-{
-    gdb_thread_get_current(&tc->gdb_thread_current);
-    gdb_thread_copy(&tc->t, &tc->gdb_thread_current);
-
-    tc->registers_state = CACHE_STATE_READ_REQUIRED;
-    tc->ea = ea;
-}
-
-/* Make processed thread state uptodate. */
-static void gdb_thread_cached_flush(struct gdb_thread_cached* tc)
-{
-    if(tc->registers_state != CACHE_STATE_WRITE_REQUIRED) return; // Nothing to do.
-
-    if(!gdb_thread_equal(&tc->t, &tc->gdb_thread_current))
-    {
-        gdb_thread_set_regs(&tc->t, /*tc->*/registers);
-        gdb_thread_set_fp_regs(&tc->t, /*tc->*/fp_registers);
-    }
-    else
-    {
-        // TODO: Set registers for current thread.
-    }
-
-    tc->registers_state = CACHE_STATE_UPTODATE;
-}
-
-/* Make exposed registers for processed state up-to-date. */
-static void gdb_thread_cached_fill_registers(struct gdb_thread_cached* tc)
-{
-    if(tc->registers_state != CACHE_STATE_READ_REQUIRED) return; // Nothing to do.
-
-    if(!gdb_thread_equal(&tc->t, &tc->gdb_thread_current))
-    {
-        gdb_thread_get_regs(&tc->t, /*tc->*/registers);
-        gdb_thread_get_fp_regs(&tc->t, /*tc->*/fp_registers);
-    }
-    else
-    {
-        set_regs(tc->ea);
-    }
-
-    tc->registers_state = CACHE_STATE_UPTODATE;
-}
-
-/* Should be called after writting exposed registers. */
-static void gdb_thread_cached_invalidate_registers(struct gdb_thread_cached* tc)
-{
-    tc->registers_state = CACHE_STATE_WRITE_REQUIRED;
-}
-
-/* 
- * Set give thread as processed.
- * 
- * Previously processed thread is flushed if needed.
- */
-static void gdb_thread_cached_set(struct gdb_thread_cached* tc,
-    struct gdb_thread* t)
-{
-    if(gdb_thread_equal(&tc->t, t)) return;
-
-    gdb_thread_cached_flush(tc);
-
-    gdb_thread_copy(&tc->t, t);
-
-    tc->registers_state = CACHE_STATE_READ_REQUIRED;
-}
-
-
-
-int new_start;
-
-void clear_breakpoints(){
-    for (int i = 0; i < max_breakpoint; i++)
-        breakpoints[i].addr = 0;
-}
 
 /*
  * This function does all command procesing for interfacing to gdb.
@@ -1528,9 +1402,10 @@ handle_exception (int exceptionVector, struct regs * ea)
     //int using_thread = POK_SCHED_CURRENT_THREAD;
     //int number_of_thread = 0;
 
+    gdb_thread_get_current();
     // Cached thread for current operation.
-    struct gdb_thread_cached tc;
-    gdb_thread_cached_init(&tc, ea);
+    struct gdb_state tc;
+    gdb_state_init(&tc, ea);
     // Temporary thread
     struct gdb_thread t;
 
@@ -1567,6 +1442,8 @@ handle_exception (int exceptionVector, struct regs * ea)
     sigval = computeSignal (exceptionVector);
 
     ptr = remcomOutBuffer;
+
+    gdb_state_fill_registers(&tc);
 #ifdef __PPC__
     *ptr++ = 'T';
     *ptr++ = hexchars[sigval >> 4];
@@ -1589,7 +1466,7 @@ handle_exception (int exceptionVector, struct regs * ea)
     *ptr++ = 'd';
     *ptr++ = ':';
 
-    ptr = write_thread_id(ptr, &tc.gdb_thread_current);
+    ptr = write_thread_id(ptr, &gdb_thread_current);
     *ptr++ = ';';
 
 
@@ -1688,7 +1565,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                     printf("New_start = %d",new_start);
 #endif
                     clear_breakpoints();
-                }         
+                }
                 ptr = &remcomInBuffer[1];
                 int type = -1;
                 hexToInt(&ptr, (uintptr_t *)(&type));
@@ -1703,27 +1580,27 @@ handle_exception (int exceptionVector, struct regs * ea)
                 if (kind == -1) break;
                 if (type == 0){
                     if (remcomInBuffer[0] == 'Z') 
-                            add_0_breakpoint(addr, kind, &tc.gdb_thread_current);
+                            add_0_breakpoint(addr, kind, &tc.t);
                         else
-                            remove_0_breakpoint(addr, kind, &tc.gdb_thread_current);
+                            remove_0_breakpoint(addr, kind, &tc.t);
                 }
                 if (type == 2){
                     if (remcomInBuffer[0] == 'Z') 
-                            add_watchpoint(addr, kind, &tc.gdb_thread_current, 2);
+                            add_watchpoint(addr, kind, &tc.t, 2);
                         else
-                            remove_watchpoint(addr, kind, &tc.gdb_thread_current, 2);
+                            remove_watchpoint(addr, kind, &tc.t, 2);
                 }
                 if (type == 3){
                     if (remcomInBuffer[0] == 'Z') 
-                            add_watchpoint(addr, kind, &tc.gdb_thread_current, 3);
+                            add_watchpoint(addr, kind, &tc.t, 3);
                         else
-                            remove_watchpoint(addr, kind, &tc.gdb_thread_current, 3);
+                            remove_watchpoint(addr, kind, &tc.t, 3);
                 }
                 if (type == 4){
                     if (remcomInBuffer[0] == 'Z') 
-                            add_watchpoint(addr, kind, &tc.gdb_thread_current, 4);
+                            add_watchpoint(addr, kind, &tc.t, 4);
                         else
-                            remove_watchpoint(addr, kind, &tc.gdb_thread_current, 4);
+                            remove_watchpoint(addr, kind, &tc.t, 4);
                 }
                 break;
             }
@@ -1741,31 +1618,23 @@ handle_exception (int exceptionVector, struct regs * ea)
                 ptr = remcomOutBuffer;
                 *ptr++ = 'Q';
                 *ptr++ = 'C';
-                //uint32_t p;
-                if (Connect_to_new_inferior == 1){
-                    ptr = write_thread_id(ptr, &tc.gdb_thread_current);
-                    *ptr++ = 0;
 
+                ptr = write_thread_id(ptr, &gdb_thread_current);
+                *ptr++ = 0;
+
+                if (Connect_to_new_inferior == 1){
                     Connect_to_new_inferior = -1;
                     putpacket ( (unsigned char *) remcomOutBuffer);
                     //pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = old_entryS;?
                
-                    gdb_thread_cached_fill_registers(&tc);
                     ptr = &remcomInBuffer[1];
                     if (hexToInt(&ptr, &addr)) {
-                        registers[pc]/*nip*/ = addr;
+                        //ea->srr0 = addr;
                     }
-                    ea->srr0 = ea->srr0 - 4;
-                    gdb_thread_cached_invalidate_registers(&tc);
-                    gdb_thread_cached_flush(&tc);
-                    return;                    
                     
-                }else{
-                    gdb_thread_get_current(&t);
-                    //p = POK_SCHED_CURRENT_THREAD + 1;
+                    ea->srr0 = ea->srr0 - 4;
+                    return;
                 }
-                ptr = write_thread_id(ptr, &tc.gdb_thread_current);
-                *ptr++ = 0;
 
                 break;
             }
@@ -1874,11 +1743,11 @@ handle_exception (int exceptionVector, struct regs * ea)
 
                 ptr = remcomOutBuffer;
 
-                struct write_cb_data data = {.ptr = ptr};
+                struct packet_write_cb_data cb_data = {.ptr = ptr};
 
-                gdb_thread_print_name(&t, write_cb, &data);
+                gdb_thread_print_name(&t, packet_write_cb, &cb_data);
 
-                ptr = data.ptr;
+                ptr = cb_data.ptr;
 
                 *ptr++ = 0;
                 break;
@@ -1899,7 +1768,7 @@ handle_exception (int exceptionVector, struct regs * ea)
         {
             ptr = remcomOutBuffer;
 
-            gdb_thread_cached_fill_registers(&tc);
+            gdb_state_fill_registers(&tc);
 
             //uint32_t old_pc = registers[pc];
             /* General Purpose Regs */
@@ -1944,7 +1813,7 @@ handle_exception (int exceptionVector, struct regs * ea)
             ptr = hex2mem(ptr, (char *)&registers[ctr], 4);
             ptr = hex2mem(ptr, (char *)&registers[xer], 4);
 
-            gdb_thread_cached_invalidate_registers(&tc);
+            gdb_state_store_registers(&tc);
 
             strcpy(remcomOutBuffer,"OK");
             }
@@ -1966,18 +1835,17 @@ handle_exception (int exceptionVector, struct regs * ea)
                 ptr++;
                 ptr = read_thread_id(ptr, &t);
                 
-                // "Any" choice assume the first.
+                // "Any" choice assume the current.
                 // TODO: What means "all" choice in that case?
-                if(t.inferior_id == -1 || t.inferior_id == 0)
-                    t.inferior_id = 1;
+                if(t.inferior_id == -1 || t.inferior_id == 0) {
+                    gdb_sate_set_thread(&tc, &gdb_thread_current);
+                    strcpy(remcomOutBuffer,"OK");
+                }
 
-                if(t.thread_id == -1 || t.thread_id == 0)
-                    t.thread_id = 1;
-
-                if(gdb_thread_find(&t)) {
+                else if(gdb_thread_find(&t)) {
                     strcpy(remcomOutBuffer,"E22");
                 }else {
-                    gdb_thread_cached_set(&tc, &t);
+                    gdb_sate_set_thread(&tc, &t);
                     strcpy(remcomOutBuffer,"OK");
                 }
             }
@@ -2066,10 +1934,10 @@ handle_exception (int exceptionVector, struct regs * ea)
                 if (hexToInt(&ptr, &addr)) {
                     registers[pc]/*nip*/ = addr;
                 }
-                gdb_thread_cached_flush(&tc);
                 return;
             }         
             Connect_to_new_inferior = 1;
+
             break;
             //~ putpacket((unsigned char *)remcomOutBuffer);            
             //~ return;
@@ -2101,20 +1969,19 @@ handle_exception (int exceptionVector, struct regs * ea)
 
             ptr = &remcomInBuffer[1];
             if (hexToInt(&ptr, &addr)) {
-                gdb_thread_cached_set(&tc, &tc.gdb_thread_current);
-                gdb_thread_cached_fill_registers(&tc);
+                gdb_sate_set_thread(&tc, &gdb_thread_current);
+                gdb_state_fill_registers(&tc);
                 registers[pc]/*nip*/ = addr;
-                gdb_thread_cached_invalidate_registers(&tc);
+                gdb_state_store_registers(&tc);
             }
 
-            gdb_thread_cached_flush(&tc);
             return;
 
         case 's':
         {
             ////TODO:Use special registers for single step instruction
-            gdb_thread_cached_set(&tc, &tc.gdb_thread_current);
-            gdb_thread_cached_fill_registers(&tc);
+            gdb_sate_set_thread(&tc, &gdb_thread_current);
+            gdb_state_fill_registers(&tc);
 
             uint32_t inst = *((uint32_t *)registers[pc]);
             //~ printf("inst=0x%lx;\n",inst);
@@ -2139,8 +2006,6 @@ handle_exception (int exceptionVector, struct regs * ea)
                     mem2hex((char *)(inst), instr2,4);            
                     hex2mem(trap, (char *)(inst), 4);
                     addr_instr2 = inst;
-                    gdb_thread_cached_invalidate_registers(&tc);
-                    gdb_thread_cached_flush(&tc);
                     return;
                 }else{
                     //~ printf("%lx\n",((inst << 6) >> 8) << 2);
@@ -2151,8 +2016,6 @@ handle_exception (int exceptionVector, struct regs * ea)
                     mem2hex((char *)(inst), instr2,4);            
                     hex2mem(trap, (char *)(inst), 4);
                     addr_instr2 = inst;
-                    gdb_thread_cached_invalidate_registers(&tc);
-                    gdb_thread_cached_flush(&tc);
                     return;
                 }
                 if (inst & 0x1){
@@ -2176,9 +2039,6 @@ handle_exception (int exceptionVector, struct regs * ea)
                     mem2hex((char *)(inst), instr2,4);            
                     hex2mem(trap, (char *)(inst), 4);
                     addr_instr2 = inst;
-                    gdb_thread_cached_invalidate_registers(&tc);
-                    gdb_thread_cached_flush(&tc);
-
                     return;
             
                 }else{
@@ -2190,10 +2050,6 @@ handle_exception (int exceptionVector, struct regs * ea)
                     mem2hex((char *)(inst), instr2,4);            
                     hex2mem(trap, (char *)(inst), 4);
                     addr_instr2 = inst;
-
-                    gdb_thread_cached_invalidate_registers(&tc);
-                    gdb_thread_cached_flush(&tc);
-
                     return;
                 }
                 if (inst & 0x1){
@@ -2210,19 +2066,11 @@ handle_exception (int exceptionVector, struct regs * ea)
                 mem2hex((char *)(registers[pc]+4), instr2,4);            
                 hex2mem(trap, (char *)(registers[pc]+4), 4);
                 addr_instr2 = registers[pc] + 4;
-
-                gdb_thread_cached_invalidate_registers(&tc);
-                gdb_thread_cached_flush(&tc);
-
                 return;
             }
             mem2hex((char *)(registers[pc]+4), instr,4);            
             hex2mem(trap, (char *)(registers[pc]+4), 4);
             addr_instr = registers[pc] + 4;
-
-            gdb_thread_cached_invalidate_registers(&tc);
-            gdb_thread_cached_flush(&tc);
-
             return;
         }
         case 'r':       /* Reset (if user process..exit ???)*/

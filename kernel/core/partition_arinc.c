@@ -216,28 +216,56 @@ static int pok_sched_arinc_get_thread_at_index(pok_partition_t* part,
 	return 0;
 }
 
-static size_t pok_sched_arinc_get_thread_info(pok_partition_t* part, int index, void* private,
-	char* buf, size_t size)
+static void pok_sched_arinc_get_thread_info(pok_partition_t* part, int index, void* private,
+	print_cb_t print_cb, void* cb_data)
 {
+// Write given string (null-terminated)
+#define WRITE_STR(s) print_cb(s, strlen(s), cb_data)
 	pok_thread_t* t = private;
 	pok_partition_arinc_t* part_arinc = container_of(part, typeof(*part_arinc), base_part);
 	if(!t)
 	{
-		return snprintf(buf, size, "%s", "IDLE");
+		WRITE_STR("IDLE");
+	}
+	else if(index == POK_PARTITION_ARINC_MAIN_THREAD_ID)
+	{
+		// Main thread. Currently do not bother with its state
+		WRITE_STR(t->name);
 	}
 	else if(index < part_arinc->nthreads_used)
 	{
-		return snprintf(buf, size, "%s", t->name);
+		WRITE_STR(t->name);
+		// Write state of the thread
+		WRITE_STR(" ");
+		switch(t->state)
+		{
+		case POK_STATE_STOPPED:
+			WRITE_STR("Stopped");
+		break;
+		case POK_STATE_WAITING:
+			WRITE_STR("Waiting"); // Waiting for anything except resume.
+		break;
+		case POK_STATE_RUNNABLE:
+			if(t->suspended)
+				WRITE_STR("Suspended");
+			else if(part_arinc->thread_current == t)
+				WRITE_STR("Running");
+			else
+				WRITE_STR("Ready");
+		break;
+		default:
+			unreachable();
+		}
 	}
 	else
 	{
-		return snprintf(buf, size, "%s", "Not created");
+		WRITE_STR("[Not created]");
 	}
+#undef WRITE_STR
 }
 
-static void pok_sched_arinc_get_thread_registers(pok_partition_t* part,
-	int index, void* private,
-	uint32_t registers[NUMREGS])
+static struct regs* pok_sched_arinc_get_thread_registers(pok_partition_t* part,
+	int index, void* private)
 {
 	pok_thread_t* t = private;
 	pok_partition_arinc_t* part_arinc = container_of(part, typeof(*part_arinc), base_part);
@@ -245,35 +273,18 @@ static void pok_sched_arinc_get_thread_registers(pok_partition_t* part,
 	if(!t)
 	{
 		// Idle thread
-		memset(registers, 0, NUMREGS * sizeof(long));
+		return NULL;
 	}
 	else if(index < part_arinc->nthreads_used && t->entry_sp_user)
 	{
-		memcpy(registers, (void*)t->entry_sp_user, NUMREGS * sizeof(long));
+		return (struct regs*) t->entry_sp_user;
 	}
 	else
 	{
-		// Not created or user space is hasn't been called yet.
-		memset(registers, 0, NUMREGS * sizeof(long));
+		// Not created or user space hasn't been called yet.
+		return NULL;
 	}
 }
-
-/*
- * Set (architecture-specific) registers for non-current thread.
- */
-static void pok_sched_arinc_set_thread_registers(pok_partition_t* part,
-	int index, void* private,
-    const uint32_t registers[NUMREGS])
-{
-	pok_thread_t* t = private;
-	pok_partition_arinc_t* part_arinc = container_of(part, typeof(*part_arinc), base_part);
-
-	if(t && index < part_arinc->nthreads_used && t->entry_sp_user)
-	{
-		memcpy((void*)t->entry_sp_user, registers, NUMREGS * sizeof(long));
-	}
-}
-
 
 
 static const struct pok_partition_sched_operations arinc_sched_ops = {
@@ -283,7 +294,6 @@ static const struct pok_partition_sched_operations arinc_sched_ops = {
 	.get_thread_at_index = &pok_sched_arinc_get_thread_at_index,
 	.get_thread_info = &pok_sched_arinc_get_thread_info,
 	.get_thread_registers = &pok_sched_arinc_get_thread_registers,
-	.set_thread_registers = &pok_sched_arinc_set_thread_registers
 };
 
 static const struct pok_partition_operations arinc_ops = {

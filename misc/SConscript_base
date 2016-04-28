@@ -33,6 +33,13 @@ def get_pok_partition_definitions(source, env):
 
     return dict(part = conf.partitions[0])
 
+def get_pok_gdb_definitions(source, env):
+	defs = get_pok_definitions(source, env)
+
+	defs['partition_build_dirs'] = env['PARTITION_BUILD_DIRS']
+
+	return defs
+
 
 root = etree.parse(os.path.join(env['SCONSTRUCT_DIR'], env['xml']))
 parser = arinc653_xml_conf.ArincConfigParser()
@@ -50,35 +57,45 @@ for i in range(len(env['PARTITION_DIRS'])):
 env.Command('clean_cmd', [], Delete(['build/']+[pdir+'/build' for pdir in env['PARTITION_DIRS']]))
 env.Alias('clean', 'clean_cmd')
 
-# this prevents config writing when we don't need to build
-if not COMMAND_LINE_TARGETS and not env.GetOption('clean') and not env.GetOption('help'):
-	build_dir = env['BUILD_DIR']
-	partition_build_dirs = env['PARTITION_BUILD_DIRS']
+build_dir = env['BUILD_DIR']
+partition_build_dirs = env['PARTITION_BUILD_DIRS']
 
-	if not os.path.exists(build_dir):
-		os.makedirs(build_dir)
-	for pdir in partition_build_dirs:
-		if not os.path.exists(pdir):
-			os.makedirs(pdir)
-	#chpok_configuration.write_configuration(conf, env['BUILD_DIR'], env['PARTITION_BUILD_DIRS'])
+if not os.path.exists(build_dir):
+	os.makedirs(build_dir)
+for pdir in partition_build_dirs:
+	if not os.path.exists(pdir):
+		os.makedirs(pdir)
+#chpok_configuration.write_configuration(conf, env['BUILD_DIR'], env['PARTITION_BUILD_DIRS'])
 
+# Generate "deployment.c" for kernel
+env.TemplateRender(
+	target = os.path.join(build_dir, "deployment.c"),
+	source = [os.path.join(env['SCONSTRUCT_DIR'], env['xml'])] +
+		[os.path.join(env['SCONSTRUCT_DIR'], part_dir, env['xml']) for part_dir in partition_build_dirs],
+	create_definitions_func = get_pok_definitions,
+	template_main = "deployment_kernel",
+	template_dir = env['POK_PATH'] + "/misc/templates"
+	)
+
+# Generate "deployment.c" for every user partition
+for part_dir in partition_build_dirs:
 	env.TemplateRender(
-        target = os.path.join(build_dir, "deployment.c"),
-        source = [os.path.join(env['SCONSTRUCT_DIR'], env['xml'])] +
-			[os.path.join(env['SCONSTRUCT_DIR'], part_dir, env['xml']) for part_dir in partition_build_dirs],
-        create_definitions_func = get_pok_definitions,
-        template_main = "deployment_kernel",
-        template_dir = env['POK_PATH'] + "/misc/templates"
-        )
+		target = os.path.join(part_dir, "deployment.c"),
+		source = os.path.join(env['SCONSTRUCT_DIR'], part_dir, env['xml']),
+		create_definitions_func = get_pok_partition_definitions,
+		template_main = "deployment_user",
+		template_dir = env['POK_PATH'] + "/misc/templates"
+		)
 
-	for part_dir in partition_build_dirs:
-		env.TemplateRender(
-			target = os.path.join(part_dir, "deployment.c"),
-			source = os.path.join(env['SCONSTRUCT_DIR'], part_dir, env['xml']),
-			create_definitions_func = get_pok_partition_definitions,
-			template_main = "deployment_user",
-			template_dir = env['POK_PATH'] + "/misc/templates"
-			)
+# Generate file with commands for GDB for possible debugging
+env.TemplateRender(
+	target = build_dir + "/GDB_commands",
+	source = [os.path.join(env['SCONSTRUCT_DIR'], env['xml'])] +
+		[os.path.join(env['SCONSTRUCT_DIR'], part_dir, env['xml']) for part_dir in partition_build_dirs],
+	create_definitions_func = get_pok_gdb_definitions,
+	template_main = "GDB_commands",
+	template_dir = env['POK_PATH'] + "/misc/templates"
+	)
 
 
 

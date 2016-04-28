@@ -26,4 +26,13 @@
 
 #define NUMREGBYTES (NUMREGS * 4)
 
+/* Callback function for append string(or other data) into
+ * some stream.
+ *
+ * 'data' - data for append
+ * 'len' - length of the data for append
+ * 'cb_data' - opaque value, specific for concrete callback.
+ */
+typedef void (*print_cb_t)(const void* data, size_t len, void* cb_data);
+
 #endif /* __POK_GDB_H__ */

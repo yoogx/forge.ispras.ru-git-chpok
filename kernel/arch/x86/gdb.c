@@ -13,21 +13,31 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __POK_ARCH_GDB_H__
-#define __POK_ARCH_GDB_H__
-
-#define NUMREGS 16
-enum regnames {
-EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
-           PC /* also known as eip */,
-           PS /* also known as eflags */,
-           CS, SS, DS, ES, FS, GS
-};
-
+#include <gdb.h>
 /* Fill 'registers' array according to 'ea'. */
-void gdb_set_regs(const struct regs* ea, uint32_t* registers);
+void gdb_set_regs(const struct regs* ea, uint32_t* registers)
+{
+    registers[EAX] = ea->eax;
+    registers[ECX] = ea->ecx;
+    registers[EDX] = ea->edx;
+    registers[EBX] = ea->ebx;
+    registers[ESP] = ea->__esp;
+    registers[EBP] = ea->ebp;
+    registers[ESI] = ea->esi;
+    registers[EDI] = ea->edi;
+    registers[PC] = ea->eip;
+    registers[PS] = ea->eflags;
+    registers[CS] = ea->cs;
+    registers[SS] = ea->ss;
+    registers[DS] = ea->ds;
+    registers[ES] = ea->es;
+    registers[FS] = -1;
+    registers[GS] = -1;
+}
 
 /* Fill 'ea' array according to 'registers'. */
-void gdb_get_regs(struct regs* ea, const uint32_t* registers);
+void gdb_get_regs(struct regs* ea, const uint32_t* registers)
+{
+    //TODO
+}
 
-#endif /* __POK_ARCH_GDB_H__ */

@@ -40,7 +40,7 @@ static uint8_t               pok_sched_current_slot = 0; /* Which slot are we ex
 
 pok_partition_t* current_partition = NULL;
 
-volatile pok_bool_t pok_in_user_space;
+volatile pok_bool_t pok_in_user_space = 0;
 
 uintptr_t global_thread_stack = 0;
 
@@ -374,9 +374,10 @@ void pok_sched_on_time_changed(void)
     pok_bool_t in_user_space = pok_in_user_space;
 
     if(in_user_space)
+    {
         part->entry_sp_user = global_thread_stack;
-
-    pok_in_user_space = FALSE;
+        pok_in_user_space = FALSE;
+    }
 
     pok_sched();
 
@@ -423,6 +424,8 @@ void pok_partition_return_user(void)
     }
 
     part->preempt_local_disabled = 0;
+
+    pok_in_user_space = TRUE;
 }
 
 

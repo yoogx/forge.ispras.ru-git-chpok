@@ -68,19 +68,17 @@ static int kernel_thread_get_thread_at_index(pok_partition_t* part,
    return index == 0? 0 : 1;
 }
 
-static size_t kernel_thread_get_thread_info(pok_partition_t* part,
+static void kernel_thread_get_thread_info(pok_partition_t* part,
    int index, void* private,
-   char* buf, size_t size)
+   print_cb_t print_cb, void* cb_data)
 {
    (void)part;
    (void)private;
    (void)index;
 
    static const char* kernel_thread_name = "kernel_thread";
-   int len = strlen(kernel_thread_name);
 
-   memcpy(buf, kernel_thread_name, len);
-   return len;
+   print_cb(kernel_thread_name, strlen(kernel_thread_name), cb_data);
 }
 
 const struct pok_partition_sched_operations partition_sched_ops_kernel =
