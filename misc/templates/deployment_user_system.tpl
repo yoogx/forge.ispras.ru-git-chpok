@@ -39,7 +39,7 @@ sys_queuing_port_t sys_queuing_ports[] = {
         .header = {
             .kind = POK_PORT_KIND_QUEUEING,
             .name = "{{port_queueing.name}}",
-            .direction = {%if port_queueing.is_source%}SOURCE{%else%}DESTINATION{%endif%},
+            .direction = {%if port_queueing.is_src()%}SOURCE{%else%}DESTINATION{%endif%},
             .overhead = POK_NETWORK_{{port_queueing.protocol}},
         },
         .max_message_size = {{port_queueing.max_message_size}},
