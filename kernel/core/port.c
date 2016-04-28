@@ -80,7 +80,9 @@ void port_queuing_send(pok_port_queuing_t* port, pok_thread_t* t)
     pok_message_t* m = pok_channel_queuing_s_get_message(port->channel, FALSE);
     
     __copy_from_user(m->content, m_send->data, m_send->size);
-    t->wait_private = (void*)(unsigned long)m->size;
+    m->size = m_send->size;
+
+    t->wait_private = 0;
     
     pok_channel_queuing_s_produce_message(port->channel);
 }
@@ -149,11 +151,21 @@ pok_ret_t pok_port_queuing_create(
     
     if(message_size != port_queuing->channel->max_message_size)
         return POK_ERRNO_EINVAL;
-    if(max_nb_message != port_queuing->channel->max_nb_message)
-        return POK_ERRNO_EINVAL;
     if(direction != port_queuing->direction)
         return POK_ERRNO_EINVAL;
     
+    if(direction == POK_PORT_DIRECTION_IN)
+    {
+        if(max_nb_message != port_queuing->channel->max_nb_message_receive)
+            return POK_ERRNO_EINVAL;
+    }
+    else // (direction == POK_PORT_DIRECTION_OUT)
+    {
+        if(max_nb_message != port_queuing->channel->max_nb_message_send)
+            return POK_ERRNO_EINVAL;
+    }
+
+
     if(current_partition_arinc->mode == POK_PARTITION_MODE_NORMAL)
         return POK_ERRNO_MODE;
 
@@ -321,11 +333,11 @@ pok_ret_t pok_port_queuing_send(
         return POK_ERRNO_MODE;
 
     if(len == 0) return POK_ERRNO_EINVAL;
-    
+
     // error should be INVALID_CONFIG
     if(len > port_queuing->channel->max_message_size)
         return POK_ERRNO_EINVAL;
-    
+
     if(!check_access_read(data, len)) return POK_ERRNO_EFAULT;
     if(!check_user_read(timeout)) return POK_ERRNO_EFAULT;
     
@@ -378,7 +390,7 @@ pok_ret_t pok_port_queuing_send(
     /* There is place for message in the buffer. */
     message_send.size = len;
     message_send.data = data;
-    
+
     t->wait_private = &message_send;
 
     port_queuing_send(port_queuing, t);
@@ -402,7 +414,6 @@ out:
     
 err:
     pok_preemption_local_enable();
-    
     return ret;
 }
 

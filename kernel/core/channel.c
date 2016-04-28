@@ -115,7 +115,7 @@ void pok_channel_queuing_r_consume_messages(
     pok_channel_queuing_t* channel,
     pok_message_range_t n)
 {
-    assert(n < pok_channel_queuing_r_n_messages(channel));
+    assert(n <= pok_channel_queuing_r_n_messages(channel));
     
     barrier();
     channel->r_start = channel_queuing_cyclic_add(channel,
@@ -235,6 +235,8 @@ void pok_channel_queuing_s_produce_message(
     assert(channel_queuing_cyclic_sub(channel, channel->s_end,
         ACCESS_ONCE(channel->border)) < channel->max_nb_message_send);
     
+    assert(channel_queuing_message_at(channel, channel->s_end)->size > 0);
+
     assert(channel_queuing_message_at(channel, channel->s_end)->size
         <= channel->max_message_size);
     
