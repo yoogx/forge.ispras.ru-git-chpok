@@ -630,7 +630,7 @@ pok_ret_t pok_port_sampling_read(
     if(!port_sampling) return POK_ERRNO_PORT;
     
     if(port_sampling->direction != POK_PORT_DIRECTION_IN)
-        return POK_ERRNO_MODE;
+        return POK_ERRNO_DIRECTION;
 
     if(!check_access_write(data, port_sampling->channel->max_message_size))
         return POK_ERRNO_EFAULT;
