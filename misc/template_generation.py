@@ -130,9 +130,11 @@ def template_render_action(target, source, env):
 # In case of single target, both 'target' and 'template_main' may be single
 # objects, not a list.
 #
+# All other dictionary arguments are assigned to the environment.
+#
 # Use AddMethod for add it into the environment
 def TemplateRender(env, target, source, create_definitions_func,
-    template_main, template_dir):
+    template_main, template_dir, **kargs):
 
     if type(target) is not list:
         target = [target]
@@ -150,7 +152,8 @@ def TemplateRender(env, target, source, create_definitions_func,
                 TEMPLATE_DIR = template_dir,
                 TEMPLATE_MAIN = template_main,
                 TEMPLATE_CREATE_DEFINITIONS_FUNC = create_definitions_func,
-                TEMPLATE_CREATE_USED = 1
+                TEMPLATE_CREATE_USED = 1,
+                **kargs
                 )
 
     for target_single in target:
