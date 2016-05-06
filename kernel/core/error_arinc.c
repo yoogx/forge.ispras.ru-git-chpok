@@ -108,7 +108,7 @@ static void take_fixed_action(pok_error_action_t action)
             unreachable();
             break;
         case POK_ERROR_ACTION_COLD_START:
-            pok_partition_arinc_reset(POK_PARTITION_MODE_INIT_WARM);
+            pok_partition_arinc_reset(POK_PARTITION_MODE_INIT_COLD);
             assert(FALSE && "this's supposed to be unreachable");
             break;
         case POK_ERROR_ACTION_WARM_START:

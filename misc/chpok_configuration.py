@@ -116,6 +116,103 @@ class TimeSlotGDB(TimeSlot):
         return "POK_SLOT_GDB"
 
 
+# Possible system states(ordered, without prefix)
+system_states = [
+    'INIT_PARTOS',
+    'INIT_PARTUSER',
+    'INTERRUPT_HANDLER',
+    'OS_MOD',
+    'OS_PART',
+    'ERROR_HANDLER',
+    'USER'
+]
+
+# Possible error identificators(ordered, without prefix)
+error_ids = [
+    'MODPOSTPROCEVENT_ELIST',
+    'ILLEGAL_REQUEST',
+    'APPLICATION_ERROR',
+    'PARTLOAD_ERROR',
+    'NUMERIC_ERROR',
+    'MEMORY_VIOLATION',
+    'DEADLINE_MISSED',
+    'HARDWARE_FAULT',
+    'POWER_FAIL',
+    'STACK_OVERFLOW',
+    'PROCINIT_ERROR',
+    'NOMEMORY_PROCDATA',
+    'ASSERT',
+    'CONFIG_ERROR',
+    'CHECK_POOL',
+    'UNHANDLED_INT'
+]
+
+class HMTable:
+    def __init__(self):
+        # Error level selector.
+        #
+        # Maps (system state) on map (error id) => {0, 1}
+        # Absence of corresponded mapping defaults to 0.
+        self.level_selector = {}
+
+        # Actions for errors.
+        #
+        # Maps (system state) on map (error id) => action
+        #
+        # Absence of corresponded mapping defaults to subclass-specific value.
+        self.actions = {}
+
+    # Compute aggregate for level selector for specific error id.
+    def level_selector_total(self, error_id):
+        res = 0
+        for shift, s in enumerate(system_states):
+            if not s in self.level_selector:
+                continue
+            selector_per_state = self.level_selector[s]
+            if not error_id in selector_per_state:
+                continue
+
+            res += selector_per_state[error_id] << shift
+
+        return res
+
+    # Return action for given system state and error id.
+    # If mapping is absent, return given 'default_action'.
+    def get_action_generic(self, system_state, error_id, default_action):
+        if not system_state in self.actions:
+            return default_action
+
+        actions_per_state = self.actions[system_state]
+        if not error_id in actions_per_state:
+            return default_action
+
+        return actions_per_state[error_id]
+
+class ModuleHMTable(HMTable):
+    def __init__(self):
+        HMTable.__init__(self)
+    def get_action(self, system_state, error_id):
+        return self.get_action_generic(system_state, error_id, 'SHUTDOWN')
+
+class PartitionHMTable(HMTable):
+    # List of system states corresponded to partition
+    partition_system_states = [
+        'OS_PART',
+        'ERROR_HANDLER',
+        'USER'
+    ]
+
+    def __init__(self):
+        HMTable.__init__(self)
+
+        # Map error id -> (error code (without prefix), description)
+        # for state 'USER'. Absence of corresponded mapping means that
+        # given error id is never passed to error handler.
+        self.user_level_codes = {}
+
+    def get_action(self, system_state, error_id):
+        return self.get_action_generic(system_state, error_id, 'IDLE')
+
 # ARINC partition.
 #
 # - name - name of the partition
@@ -160,7 +257,7 @@ class Partition:
         self.buffer_data_size = 0
         self.blackboard_data_size = 0
 
-        self.hm_table = None
+        self.hm_table = PartitionHMTable()
 
         self.ports_queueing = []
         self.ports_sampling = []
@@ -441,6 +538,9 @@ class NetworkConfiguration:
     #    return "{%s}" % ", ".join(hex(i) for i in self.mac)
 
 class Configuration:
+    system_states_all = system_states
+    error_ids_all = error_ids
+
 
     __slots__ = [
         "partitions", 
@@ -457,6 +557,8 @@ class Configuration:
     ]
 
     def __init__(self):
+        self.module_hm_table = ModuleHMTable()
+
         self.partitions = []
         self.slots = []
         self.channels_queueing = []

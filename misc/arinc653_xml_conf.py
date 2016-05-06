@@ -40,6 +40,18 @@ def parse_time(s):
     return ns // (10 ** 6)
 
 class ArincConfigParser:
+    # Static map: error code (without prefix) -> error description
+    error_description_table = {
+        'ILLEGAL_REQUEST': 'Illegal Request',
+        'APPLICATION_ERROR': 'Application Error',
+        'NUMERIC_ERROR': 'Numeric Error',
+        'MEMORY_VIOLATION': 'Memory Violation',
+        'DEADLINE_MISSED': 'Deadline Missed',
+        'HARDWARE_FAULT': 'Hardware Fault',
+        'POWER_FAIL': 'Power Fail',
+        'STACK_OVERFLOW': 'Stack Overflow',
+        'PARTITION_CONFIGURATION': 'Config Error',
+    }
 
     def parse_layout(self, root):
         """
@@ -67,8 +79,6 @@ class ArincConfigParser:
 
         conf = chpok_configuration.Configuration()
 
-        # partname_to_index = {}
-
         for part_root in root.find("Partitions").findall("Partition"):
             self.parse_partition(conf, part_root)
 
@@ -79,6 +89,11 @@ class ArincConfigParser:
             self.parse_channels(conf, connection_table)
 
         conf.network = self.parse_network(root.find("Network"))
+
+        # Use some default value for module HM table.
+        module_error_level_selector_per_state = {error_id: 1 for error_id in conf.error_ids_all }
+        for s in ['ERROR_HANDLER', 'USER']:
+            conf.module_hm_table.level_selector[s] = module_error_level_selector_per_state
 
         conf.validate()
 
@@ -112,7 +127,7 @@ class ArincConfigParser:
 
         self.parse_ports(part, part_root.find("ARINC653_Ports"))
 
-        part.hm_table = self.parse_hm(part_root.find("HM_Table"))
+        self.parse_hm(part.hm_table, part_root.find("HM_Table"))
 
     def parse_schedule(self, conf, slot_root):
         for x in slot_root.findall("Slot"):
@@ -207,7 +222,7 @@ class ArincConfigParser:
         res = chpok_configuration.NetworkConfiguration()
 
         res.ip = ipaddr.IPAddress(root.attrib["IP"])
-        
+
         #if "MAC" in root.attrib:
         #    res.mac = bytes(int(x, 16) for x in root.attrib["MAC"].split(":"))
         #else:
@@ -215,18 +230,23 @@ class ArincConfigParser:
 
         return res
 
-    def parse_hm(self, root):
+    def parse_hm(self, table, root):
         if root is None:
-            return None
+            return
 
-        res = []
+        table.level_selector['USER'] = {}
+        table.actions['USER'] = {}
 
         for x in root.findall("Error"):
-            res.append((
-                x.attrib["Code"], # kind
-                "POK_ERROR_LEVEL_" + x.attrib["Level"], # level
-                "POK_ERROR_ACTION_" + x.attrib["Action"], # action
-                "POK_ERROR_KIND_" + x.attrib["ErrorCode"], # target code
-            ))
+            # Assume "ErrorCode" to be error id
+            error_id = x.attrib["ErrorCode"]
 
-        return res
+            if x.attrib["Level"] == 'PROCESS':
+                table.level_selector['USER'][error_id] = 1
+
+            table.actions['USER'][error_id] = x.attrib['Action']
+
+            error_code = x.attrib["Code"].replace('POK_ERROR_KIND_', '')
+            error_description = self.error_description_table[error_code]
+
+            table.user_level_codes[error_id] = (error_code, error_description)
