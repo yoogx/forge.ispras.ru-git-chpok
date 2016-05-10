@@ -1,9 +1,26 @@
+/*
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
+ *
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ * See the GNU General Public License version 3 for more details.
+ *
+ * This file also incorporates work covered by POK License.
+ * Copyright (c) 2007-2009 POK team
+ */
 # ifndef __POK__PCI_INTERNAL_H__
 # define __POK__PCI_INTERNAL_H__
 
 
 /* 
- * These struct was got from http://www.jbox.dk/sanos/source/sys/krnl/pci.c.html 
+ * These struct is gotten from http://www.jbox.dk/sanos/source/sys/krnl/pci.c.html 
  * Copyright (C) 2002 Michael Ringgaard. All rights reserved.
  */
 const struct {
