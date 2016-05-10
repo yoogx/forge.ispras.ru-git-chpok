@@ -50,10 +50,6 @@ int pok_bsp_init (void)
 
    //devtree_dummy_dump();
 
-#ifdef POK_NEEDS_PCI
-   pok_pci_init();
-#endif
-
    return (POK_ERRNO_OK);
 }
 
