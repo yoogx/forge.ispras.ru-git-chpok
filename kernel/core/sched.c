@@ -70,6 +70,12 @@ static void idle_function(void)
 static void pok_partition_reset(pok_partition_t* part)
 {
     part->sp = 0;
+    part->restarted_externally = TRUE;
+    part->partition_generation++;
+    if(part->partition_generation == 0)
+    {
+        part->partition_generation = 1;
+    }
 }
 
 
@@ -445,6 +451,27 @@ void pok_partition_jump_user(void* __user entry,
         0xdead,
         0xbeaf);
 }
+
+void pok_partition_restart(void)
+{
+	pok_partition_t* part = current_partition;
+    assert(part);
+
+    pok_preemption_disable();
+
+    // Assign new generation for partition.
+    part->partition_generation++;
+    // For the case of overflow.
+    if(part->partition_generation == 0) part->partition_generation = 1;
+
+	part->sp = 0;
+    sched_need_recheck = TRUE;
+
+    pok_preemption_enable();
+
+    unreachable();
+}
+
 
 void pok_sched_init(void)
 {

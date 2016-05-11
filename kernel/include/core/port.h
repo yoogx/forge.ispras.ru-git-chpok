@@ -39,9 +39,6 @@ typedef enum
 
 /* 
  * Queuing port. 
- * 
- * Contain common parts for "in" and "out" ports +
- * "union"ed in- and out-specific parts.
  */
 typedef struct
 {
@@ -60,8 +57,6 @@ typedef struct
      * Channel to which port is connected.
      * 
      * Should be set initially.
-     * 
-     * Note, that reverse link (channel->port) is set on CREATE_QUEUING_PORT.
      */
     pok_channel_queuing_t       *channel;
 
@@ -79,31 +74,8 @@ typedef struct
      */
     pok_queuing_discipline_t    discipline;
 
-    /* 
-     * Partition to which port belongs to.
-     * It is needed for notification callback, because it is called
-     * by the other channel's side.
-     * 
-     * Should be set initially.
-     */
-    struct _pok_patition_arinc *partition;
-
     /* Whether port has been created (with CREATE_QUEUING_PORT)*/
     pok_bool_t                  is_created;
-    
-    /* 
-     * Whether port has been notified by the channel.
-     * 
-     * This flag is intended to be cleared after every check.
-     */
-    pok_bool_t                  is_notified;
-    
-    /* Direction-specific parts. */
-    union {
-        pok_channel_queuing_sender_t sender; // OUT
-        pok_channel_queuing_reciever_t receiver; // IN
-    };
-
 } pok_port_queuing_t;
 
 /* Status for queuing port, for return into user space. */

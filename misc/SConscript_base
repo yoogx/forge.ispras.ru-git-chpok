@@ -85,7 +85,6 @@ if not os.path.exists(build_dir):
 for pdir in partition_build_dirs:
 	if not os.path.exists(pdir):
 		os.makedirs(pdir)
-#chpok_configuration.write_configuration(conf, env['BUILD_DIR'], env['PARTITION_BUILD_DIRS'])
 
 # Generate "deployment.c" for kernel
 env.TemplateRender(

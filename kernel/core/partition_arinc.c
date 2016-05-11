@@ -76,10 +76,16 @@ static void thread_init(pok_thread_t* t)
 // This name is not accessible for user space
 static char main_thread_name[MAX_NAME_LENGTH] = "main";
 
-/* Common start function for partition. Do not change mode. */
-static void partition_arinc_start_common(void)
+/* Start function for partition. */
+static void partition_arinc_start(void)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
+
+	if(part->base_part.restarted_externally)
+	{
+		part->base_part.restarted_externally = FALSE;
+		current_partition_arinc->mode = POK_PARTITION_MODE_INIT_COLD;
+	}
 
 	for(int i = 0; i < part->nports_queuing; i++)
 	{
@@ -90,7 +96,7 @@ static void partition_arinc_start_common(void)
 	{
 		pok_port_sampling_init(&part->ports_sampling[i]);
 	}
-	
+
 	INIT_LIST_HEAD(&part->eligible_threads);
 	delayed_event_queue_init(&part->queue_deadline);
 	delayed_event_queue_init(&part->queue_delayed);
@@ -116,7 +122,7 @@ static void partition_arinc_start_common(void)
 #endif
 
     pok_thread_t* thread_main = &part->threads[POK_PARTITION_ARINC_MAIN_THREAD_ID];
-    
+
 	thread_main->entry = (void* __user)part->main_entry;
 	thread_main->base_priority = 0;
 	thread_main->period = POK_TIME_INFINITY;
@@ -136,33 +142,11 @@ static void partition_arinc_start_common(void)
 	 */
 }
 
-/* 
- * Start function called from outside (as partition's .start callback).
- * 
- * Mode is set to INIT_COLD.
- */
-static void partition_arinc_start(void)
-{
-	current_partition_arinc->mode = POK_PARTITION_MODE_INIT_COLD;
-	partition_arinc_start_common();
-}
-
-/* 
- * Start function called by partition itself.
- * 
- * Mode should be set before.
- */
-static void partition_arinc_restart(void)
-{
-	partition_arinc_start_common();
-}
-
 void pok_partition_arinc_reset(pok_partition_mode_t mode)
 {
 	pok_partition_arinc_t* part = current_partition_arinc;
 	
 	part->base_part.preempt_local_disabled = 1;
-	part->base_part.state.bytes_all = 0; // Just for the case.
 	
 	assert(mode == POK_PARTITION_MODE_INIT_WARM
 		|| mode == POK_PARTITION_MODE_INIT_COLD);
@@ -172,11 +156,7 @@ void pok_partition_arinc_reset(pok_partition_mode_t mode)
 
 	part->mode = mode;
 
-	// Do not change partition's sp - it is only for global scheduler.
-	uint32_t fake_sp;
-	
-	pok_context_restart(&part->base_part.initial_sp,
-		&partition_arinc_restart, &fake_sp);
+	pok_partition_restart();
 }
 
 static int pok_sched_arinc_get_number_of_threads(pok_partition_t* part)
@@ -552,7 +532,7 @@ static pok_bool_t is_lock_level_blocked(void)
 
 pok_ret_t pok_current_partition_inc_lock_level(int32_t * __user lock_level)
 {
-    if(!is_lock_level_blocked())
+    if(is_lock_level_blocked())
 		return POK_ERRNO_PARTITION_MODE;
     if(current_partition_arinc->lock_level == 16)
 		return POK_ERRNO_EINVAL;

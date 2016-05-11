@@ -69,13 +69,23 @@ pok_error_module_action_table_t hm_multi_partition_table_default = {
     }
 };
 
-/****************** Setup queuing channels ****************************/
+{%macro connection_partition(connection)%}
+{%if connection.get_kind_constant() == 'Local'%}
+&pok_partitions_arinc[{{connection.port.partition.part_index}}].base_part
+{%-elif connection.get_kind_constant() == 'UDP'%}
+error("UDP connection for the channel doesn't supported yet")
+{%-endif%}
+{%-endmacro%}
+
+/**************** Setup queuing channels ****************************/
 pok_channel_queuing_t pok_channels_queuing[{{ conf.channels_queueing | length }}] = {
     {%for channel_queueing in conf.channels_queueing%}
     {
         .max_message_size = {{channel_queueing.max_message_size}},
         .max_nb_message_send = {{channel_queueing.max_nb_message_send}},
         .max_nb_message_receive = {{channel_queueing.max_nb_message_receive}},
+        .receiver = {{connection_partition(channel_queueing.dst)}},
+        .sender = {{connection_partition(channel_queueing.src)}},
     },
     {%endfor%}
 };
@@ -143,7 +153,6 @@ static pok_port_queuing_t partition_ports_queuing_{{loop.index0}}[{{part.ports_q
         .name = "{{port_queueing.name}}",
         .channel = &pok_channels_queuing[{{port_queueing.channel_id}}],
         .direction = {%if port_queueing.is_src()%}POK_PORT_DIRECTION_OUT{%else%}POK_PORT_DIRECTION_IN{%endif%},
-        .partition = &pok_partitions_arinc[{{loop.index0}}],
     },
 {%endfor%}
 };
