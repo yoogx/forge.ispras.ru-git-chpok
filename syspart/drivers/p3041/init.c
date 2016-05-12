@@ -1,14 +1,31 @@
 /*
- * This file is based on u-boot driver. In new versions of u-boot they have added support 
- * of different endianess and 64-bit platforms. This file older version of u-boot. Be aware.
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * Also this code expected to be running after u-boot correctly initialize all devices
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
+ * See the GNU General Public License version 3 for more details.
+ *
+ * Originally from U-boot:
  * Copyright 2009-2012 Freescale Semiconductor, Inc.
- *	Dave Liu <daveliu@freescale.com>
+ * Dave Liu <daveliu@freescale.com>
  *
- * SPDX-License-Identifier:	GPL-2.0+
+ * SPDX-License-Identifier: GPL-2.0+
+ */
+
+
+/*
+ * This file is based on u-boot driver. In new versions of u-boot they have added support 
+ * of different endianess and 64-bit platforms. This file is from older u-boot version. Be aware!
+ *
+ * XXX Also this code expected to be running after u-boot correctly initialize all devices
+ *
  */
 #include <syspart_config.h>
 
@@ -20,7 +37,6 @@
 #include <string.h>
 #include <net/network.h>
 #include <net/netdevices.h>
-#include <memory.h>
 #include <mem.h>
 #include "fm.h"
 
