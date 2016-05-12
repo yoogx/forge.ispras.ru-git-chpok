@@ -51,10 +51,6 @@ int pok_bsp_init (void)
    //devtree_dummy_dump();
    if ((uintptr_t) _end > 0x4000000ULL)
        pok_fatal("Kernel size is more than 64 megabytes");
- 
-#ifdef POK_NEEDS_PCI
-   pok_pci_init();
-#endif
 
    return (POK_ERRNO_OK);
 }
