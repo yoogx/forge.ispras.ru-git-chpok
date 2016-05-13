@@ -24,7 +24,7 @@
 #include <errno.h>
 
 typedef struct {
-    pok_event_state_t event_state;
+    pok_bool_t up;
     pok_range_t waiting_processes;
 } pok_event_status_t;
 

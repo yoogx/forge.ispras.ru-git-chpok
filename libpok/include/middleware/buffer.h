@@ -49,10 +49,10 @@
  * This essentially mirrors ARINC-653 BUFFER_STATUS type.
  */
 typedef struct {
-   pok_range_t          nb_messages;
-   pok_range_t          max_messages;
-   pok_size_t           message_size;
-   pok_range_t          waiting_processes;
+   pok_message_range_t          nb_messages;
+   pok_message_range_t          max_messages;
+   pok_message_size_t           message_size;
+   pok_range_t                  waiting_processes;
 } pok_buffer_status_t;
 
 

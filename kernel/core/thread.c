@@ -348,6 +348,9 @@ pok_ret_t pok_thread_set_priority(pok_thread_id_t id, uint32_t priority)
     
     pok_thread_t *t = get_thread_by_id(id);
     if(!t) return POK_ERRNO_PARAM;
+
+    if(priority > MAX_PRIORITY_VALUE) return POK_ERRNO_PARAM;
+    if(priority < MIN_PRIORITY_VALUE) return POK_ERRNO_PARAM;
     
     pok_preemption_local_disable();
 

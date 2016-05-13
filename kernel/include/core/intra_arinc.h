@@ -90,9 +90,9 @@ typedef struct {
 
 typedef struct
 {
-   pok_message_size_t       max_message_size;
-   pok_blackboard_empty_t   empty_indicator;
-   pok_range_t              waiting_processes;
+   pok_message_size_t   max_message_size;
+   pok_bool_t           is_empty;
+   pok_range_t          waiting_processes;
 }pok_blackboard_status_t;
 
 
@@ -157,13 +157,13 @@ pok_ret_t pok_semaphore_status(pok_sem_id_t id,
 typedef struct {
     char name[MAX_NAME_LENGTH];
     
-    pok_event_state_t value;
+    pok_bool_t is_up;
     
     pok_thread_wq_t waiters;
 } pok_event_t;
 
 typedef struct {
-    pok_event_state_t event_state;
+    pok_bool_t is_up;
     pok_range_t waiting_processes;
 } pok_event_status_t;
 

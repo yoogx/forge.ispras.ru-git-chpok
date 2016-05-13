@@ -532,21 +532,23 @@ static pok_bool_t is_lock_level_blocked(void)
 
 pok_ret_t pok_current_partition_inc_lock_level(int32_t * __user lock_level)
 {
+    pok_partition_arinc_t* part = current_partition_arinc;
+
     if(is_lock_level_blocked())
 		return POK_ERRNO_PARTITION_MODE;
-    if(current_partition_arinc->lock_level == 16)
+    if(part->lock_level == MAX_LOCK_LEVEL)
 		return POK_ERRNO_EINVAL;
 	if(!check_user_write(lock_level))
 		return POK_ERRNO_EFAULT;
 
-    
     pok_preemption_local_disable();
-	++current_partition_arinc->lock_level;
+	part->lock_level++;
+	part->thread_locked = part->thread_current;
 	// Note: this doesn't invalidate any scheduling event.
 	pok_preemption_local_enable();
-	
+
 	__put_user(lock_level, current_partition_arinc->lock_level);
-	
+
 	return POK_ERRNO_OK;
 }
 
@@ -558,7 +560,7 @@ pok_ret_t pok_current_partition_dec_lock_level(int32_t * __user lock_level)
 		return POK_ERRNO_EINVAL;
 	if(!check_user_write(lock_level))
 		return POK_ERRNO_EFAULT;
-    
+
     pok_preemption_local_disable();
     if(--current_partition_arinc->lock_level == 0)
     {
