@@ -19,6 +19,6 @@
 
 Import('libpok_env')
 
-libpok_env.Program(target = 'misc.lo', source = Glob('*.c'))
+libpok_env.StaticObject(source = Glob('*.c'))
 
 # EOF

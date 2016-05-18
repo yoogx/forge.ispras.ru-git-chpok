@@ -19,7 +19,8 @@
 
 Import('syspart_env')
 
-syspart_env.Program(target = 'net.lo', source = Glob('*.c'))
+net = syspart_env.StaticObject(source = Glob('*.c'))
 
+Return('net')
 
 # EOF

@@ -19,6 +19,8 @@
 
 Import('libpok_env')
 
-libpok_env.Program(target = 'x86.lo', source = Glob('*.c'))
+arch = libpok_env.StaticObject(source = Glob('*.[Sc]'))
+
+Return('arch')
 
 # EOF

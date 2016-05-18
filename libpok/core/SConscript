@@ -31,7 +31,9 @@ generate_syscall_user_command = libpok_env.Command(
     source = libpok_env["POK_PATH"] + 'kernel/include/uapi/syscall_map_arinc.h.in',
     action = generate_syscalls.generate_syscalls_declaration_user)
 
-libpok_program = libpok_env.Program(target = 'core.lo', source = Glob('*.c'))
-libpok_env.Depends(libpok_program, generate_syscall_user_command)
+libpok_core = libpok_env.StaticObject(source = Glob('*.c'))
+libpok_env.Depends(libpok_core, generate_syscall_user_command)
+
+Return('libpok_core')
 
 # EOF

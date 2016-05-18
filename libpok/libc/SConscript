@@ -19,13 +19,10 @@
 
 Import('libpok_env')
 
-libpok_env.Program(target = 'libc.lo', source = [
-'stdio/stdio.lo',
-'string/string.lo',
-'stdlib/stdlib.lo'])
+stdio  = SConscript('stdio/SConscript')
+string = SConscript('string/SConscript')
+stdlib = SConscript('stdlib/SConscript')
 
-SConscript('stdio/SConscript')
-SConscript('string/SConscript')
-SConscript('stdlib/SConscript')
+Return('stdio', 'string', 'stdlib')
 
 # EOF

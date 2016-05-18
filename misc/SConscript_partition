@@ -44,8 +44,8 @@ VariantDir(part_build_dir, part_dir, duplicate = 0)
 
 part_elf = part_env.Program(target = part_build_dir+'part.elf', source = [
 Glob(part_build_dir+'*.c'),
-libpok,
 syspart_lo,
+libpok,
 part_env['LIBGCC']])
 part_env.Depends(part_elf, ldscript)
 

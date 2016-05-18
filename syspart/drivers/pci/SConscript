@@ -19,6 +19,8 @@
 
 Import('syspart_env')
 
-syspart_env.Program(target = 'pci.lo', source = Glob('*.c'))
+pci = syspart_env.StaticObject(source = Glob('*.c'))
+
+Return('pci')
 
 # EOF

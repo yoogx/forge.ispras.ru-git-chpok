@@ -19,6 +19,8 @@
 
 Import('syspart_env')
 
-syspart_env.Program(target = 'virtio.lo', source = Glob('*.c'))
+virtio = syspart_env.StaticObject(source = Glob('*.c'))
+
+Return('virtio')
 
 # EOF

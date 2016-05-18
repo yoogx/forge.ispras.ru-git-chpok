@@ -19,6 +19,8 @@
 
 Import('arch_env')
 
-arch_env.Program(target = 'libfdt.lo', source = Glob('*.c'))
+libfdt = arch_env.StaticObject(source = Glob('*.c'))
+
+Return('libfdt')
 
 # EOF

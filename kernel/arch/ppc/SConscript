@@ -19,10 +19,10 @@
 
 Import('arch_env')
 
-arch_env.Program(target = 'ppc.lo', source = [
-Glob('*.[Sc]'),
-'libfdt/libfdt.lo'])
+libfdt = SConscript('libfdt/SConscript')
 
-SConscript('libfdt/SConscript')
+arch = arch_env.StaticObject(source = Glob('*.[Sc]'))
+
+Return('arch', 'libfdt')
 
 # EOF
