@@ -15,14 +15,14 @@
  */
 
 
-#ifndef __LIBPOK_PROTOCOLS_CEASAR_H__
-#define __LIBPOK_PROTOCOLS_CEASAR_H__
+#ifndef __LIBPOK_PROTOCOLS_CAESAR_H__
+#define __LIBPOK_PROTOCOLS_CAESAR_H__
 
 /**
- * \file    libpok/include/protocols/ceasar.h
+ * \file    libpok/include/protocols/caesar.h
  * \author  Julien Delange
  * \date    2009
- * \brief   Ceasar crypto protocol.
+ * \brief   Caesar crypto protocol.
  *
  * This is a very basic crypto protocol that just
  * change the order of bytes in data. There is no
@@ -34,7 +34,7 @@
  * http://en.wikipedia.org/wiki/Caesar_cipher
  * 
  * We don't provide an associated marshalling type
- * for the Ceasar protocol since the crypted size
+ * for the Caesar protocol since the crypted size
  * is the same than the uncrypted size.
  */
 
@@ -42,18 +42,18 @@
 
 #include <types.h>
 
-#ifdef POK_NEEDS_PROTOCOLS_CEASAR
+#ifdef POK_NEEDS_PROTOCOLS_CAESAR
 
 /**
  * Function that uncrypts data
  */
-void pok_protocols_ceasar_unmarshall (void* crypted_data, pok_size_t crypted_size, void* uncrypted_data, size_t* uncrypted_size);
+void pok_protocols_caesar_unmarshall (void* crypted_data, pok_size_t crypted_size, void* uncrypted_data, size_t* uncrypted_size);
 
 
 /**
  * Function that encrypts data
  */
-void pok_protocols_ceasar_marshall (void* uncrypted_data, pok_size_t uncrypted_size, void* crypted_data, size_t* crypted_size);
+void pok_protocols_caesar_marshall (void* uncrypted_data, pok_size_t uncrypted_size, void* crypted_data, size_t* crypted_size);
 
 #endif
 

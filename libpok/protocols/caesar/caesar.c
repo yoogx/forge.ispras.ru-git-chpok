@@ -15,24 +15,24 @@
  */
 
 /**
- **\\file   libpok/protocols/ceasar.c
- **\\brief  Function to crypt/uncrypt data using the Ceasar cipher.
+ **\\file   libpok/protocols/caesar.c
+ **\\brief  Function to crypt/uncrypt data using the Caesar cipher.
  **\\author Julien Delange
  */
 
 #include <config.h>
 
-#include <protocols/ceasar.h>
+#include <protocols/caesar.h>
 #include <libc/string.h>
 #include <types.h>
 
-#ifdef POK_NEEDS_PROTOCOLS_CEASAR
+#ifdef POK_NEEDS_PROTOCOLS_CAESAR
 
 /**
  *\\brief Marshall data, the crypted size has
           the same size than uncrypted data.
  */
-void pok_protocols_ceasar_marshall (void* uncrypted_data, pok_size_t uncrypted_size, void* crypted_data, size_t* crypted_size)
+void pok_protocols_caesar_marshall (void* uncrypted_data, pok_size_t uncrypted_size, void* crypted_data, size_t* crypted_size)
 {
    uint8_t* uncrypted;
    uint8_t* crypted;
@@ -54,7 +54,7 @@ void pok_protocols_ceasar_marshall (void* uncrypted_data, pok_size_t uncrypted_s
  *\\brief Unmarshall data, the crypted size has
           the same size than uncrypted data.
  */
-void pok_protocols_ceasar_unmarshall (void* crypted_data, pok_size_t crypted_size, void* uncrypted_data, size_t* uncrypted_size)
+void pok_protocols_caesar_unmarshall (void* crypted_data, pok_size_t crypted_size, void* uncrypted_data, size_t* uncrypted_size)
 {
    uint8_t* uncrypted;
    uint8_t* crypted;
