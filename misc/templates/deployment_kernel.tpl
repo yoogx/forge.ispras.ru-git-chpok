@@ -188,7 +188,9 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
         .base_part = {
             .name = "{{part.name}}",
             
-            .period = {{conf.major_frame}}, {#TODO: Where it is stored in conf?#}
+            .period = {%if part.period is not none%}{{part.period}}{%else%}{{conf.major_frame}}{%endif%},
+            .duration = {%if part.duration is not none%}{{part.duration}}{%else%}{{part.total_time}}{%endif%},
+            .partition_id = {{part.part_id}},
             
             .space_id = {{loop.index0}},
             
@@ -228,8 +230,6 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
         .thread_error_info = &partition_thread_error_info_{{loop.index0}},
 
         .partition_hm_table = &partition_hm_table_{{loop.index0}},
-
-		.partition_id = {{loop.index0}},
     },
 {%endfor%}{#partitions loop#}
 };

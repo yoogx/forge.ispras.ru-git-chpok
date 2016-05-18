@@ -81,9 +81,7 @@ typedef struct _pok_patition_arinc
     
     uint32_t               user_stack_state; /* State of the use-space allocation. */
 
-    pok_time_t             duration; // Not used now
     pok_time_t             activation; // Not used now
-    pok_time_t             period; // Should be set in deployment.c.
 
     /*
      * Number of (allocated) threads inside the partition.
@@ -186,25 +184,23 @@ typedef struct _pok_patition_arinc
      *
      * The field is decremented every time unrecoverable thread is stopped.
      */
-    uint32_t               nthreads_unrecoverable;
+    uint32_t                nthreads_unrecoverable;
 
 
-    uintptr_t              main_entry;
-    uint32_t               main_user_stack_size;
+    uintptr_t               main_entry;
+    uint32_t                main_user_stack_size;
 
 
-    uint32_t		         lock_level;
-    pok_thread_t*          thread_locked; /* Thread which locks preemption. */
-   
-    pok_partition_id_t		partition_id; // Set in deployment.c
-    
+    uint32_t		        lock_level;
+    pok_thread_t*           thread_locked; /* Thread which locks preemption. */
+
     /**
      * Priority/FIFO ordered queue of eligible threads.
      * 
      * Used only in NORMAL mode.
      */
     struct list_head       eligible_threads; 
-    
+
     /**
      * Queue of threads with deadline events.
      * 
@@ -230,6 +226,16 @@ typedef struct _pok_patition_arinc
 
 #define current_partition_arinc container_of(current_partition, pok_partition_arinc_t, base_part)
 #define current_thread (current_partition_arinc->thread_current)
+
+typedef struct {
+   pok_partition_id_t id;
+   pok_time_t period;
+   pok_time_t duration;
+   int32_t lock_level;
+   pok_partition_mode_t mode;
+   pok_start_condition_t  start_condition;
+} pok_partition_status_t;
+
 
 /* 
  * Array of ARINC partitions.
@@ -298,17 +304,7 @@ void pok_partition_arinc_idle(void);
 
 pok_ret_t pok_partition_set_mode_current (const pok_partition_mode_t mode);
 
-pok_ret_t pok_current_partition_get_id (pok_partition_id_t *id);
-
-pok_ret_t pok_current_partition_get_period (pok_time_t* __user period);
-
-pok_ret_t pok_current_partition_get_duration (pok_time_t* __user duration);
-
-pok_ret_t pok_current_partition_get_operating_mode (pok_partition_mode_t *op_mode);
-
-pok_ret_t pok_current_partition_get_lock_level (int32_t *lock_level);
-
-pok_ret_t pok_current_partition_get_start_condition (pok_start_condition_t *start_condition);
+pok_ret_t pok_current_partition_get_status (pok_partition_status_t* status);
 
 pok_ret_t pok_current_partition_inc_lock_level(int32_t *lock_level);
 

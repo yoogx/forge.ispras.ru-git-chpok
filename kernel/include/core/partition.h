@@ -206,9 +206,10 @@ typedef struct _pok_partition
 
     const char               *name;          /**< Name of the partition */
 
-    uint8_t                  priority;       /**< Priority of the partition (unused at this time */
+    // Should be set in deployment.c.
     uint32_t                 period;         /**< Period of the partition, unused at this time */
-    uint32_t                 duration;       /**< Duration of the partition */
+    uint32_t                 duration;       /**< Duration of the partition, unused at this time */
+    pok_partition_id_t       partition_id;
 
     /*
      * Kernel stack address which is used for enter into the partition.

@@ -66,12 +66,10 @@ typedef enum {
 typedef struct
 {
     uint8_t      	priority;
-    void*        	entry;
     pok_time_t	   	period;
     pok_deadline_t	deadline;
     pok_time_t   	time_capacity;
     uint32_t     	stack_size;
-    char 		process_name[MAX_NAME_LENGTH];
 } pok_thread_attr_t;
 
 typedef struct 
@@ -84,18 +82,10 @@ typedef struct
 
 #include <core/syscall.h>
 
-pok_ret_t       pok_thread_lock(void);
-pok_ret_t       pok_thread_unlock(pok_thread_id_t thread_id);
-pok_thread_id_t pok_thread_current (void);
-pok_ret_t       pok_thread_wait_infinite (void);
-pok_ret_t       pok_thread_attr_init (pok_thread_attr_t* attr);
-
 // Renames for system calls
 #define pok_thread_period pok_sched_end_period
 #define pok_thread_id pok_sched_get_current
 #define pok_thread_status pok_thread_get_status
-
-//#define pok_thread_wait_infinite() pok_thread_suspend()
 
 #endif /* __POK_NEEDS_THREADS */
 #endif /* __POK_THREAD_H__ */

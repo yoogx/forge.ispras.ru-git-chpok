@@ -61,7 +61,7 @@ static void thread_deadline_occured(struct delayed_event* event)
 static void thread_delayed_event_func(struct delayed_event* event)
 {
     pok_thread_t* thread = container_of(event, typeof(*thread), thread_delayed_event);
-    thread_wake_up(thread);
+    thread->thread_delayed_func(thread);
 }
 
 

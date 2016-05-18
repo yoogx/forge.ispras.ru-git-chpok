@@ -85,7 +85,7 @@ pok_ret_t pok_error_thread_create (uint32_t stack_size, void* __user entry)
     t->user_stack_size = stack_size;
     
     if(!thread_create(t))
-       return POK_ERRNO_TOOMANY; // TODO: Change return code for this case.
+       return POK_ERRNO_UNAVAILABLE;
    
     part->nthreads_used++;
     
@@ -207,6 +207,28 @@ static void thread_add_error_bit(pok_thread_t* thread,
         pok_sched_local_invalidate();
     }
 }
+
+/*
+ * Clear error bit in the thread.
+ * 
+ * Note, that other information about the error doesn't destroyed.
+ * 
+ * Should be executed with local preemption disabled.
+ */
+static void thread_clear_error_bit(pok_thread_t* thread,
+    pok_thread_error_bits_t bit)
+{
+    assert((thread->error_bits & bit) == bit);
+    assert(!list_empty(&thread->error_elem));
+
+    thread->error_bits -= bit;
+
+    if(!thread->error_bits)
+    {
+        list_del_init(&thread->error_elem);
+    }
+}
+
 
 /* 
  * Emit sync error for non-error-handler thread.
@@ -389,8 +411,7 @@ pok_ret_t pok_error_get (pok_error_status_t* __user status)
    
     if(error_bits & POK_THREAD_ERROR_BIT_SYNC)
     {
-         // Clear bit
-         thread->error_bits = error_bits & ~POK_THREAD_ERROR_BIT_SYNC;
+         thread_clear_error_bit(thread, POK_THREAD_ERROR_BIT_SYNC);
        
          if(part->sync_error == POK_ERROR_ID_APPLICATION_ERROR)
          {
@@ -409,34 +430,39 @@ pok_ret_t pok_error_get (pok_error_status_t* __user status)
     }
     else if(error_bits & POK_THREAD_ERROR_BIT_DEADLINE)
     {
-        // Clear bit
-        thread->error_bits = error_bits & ~POK_THREAD_ERROR_BIT_DEADLINE;
+        thread_clear_error_bit(thread, POK_THREAD_ERROR_BIT_DEADLINE);
 
         copy_error_to_user(POK_ERROR_ID_DEADLINE_MISSED, status);
     }
 
     else if(error_bits & POK_THREAD_ERROR_BIT_DEADLINE_OOR)
     {
-        // Clear bit
-        thread->error_bits = error_bits & ~POK_THREAD_ERROR_BIT_DEADLINE_OOR;
+        thread_clear_error_bit(thread, POK_THREAD_ERROR_BIT_DEADLINE_OOR);
 
         copy_error_to_user(POK_ERROR_ID_ILLEGAL_REQUEST, status);
     }
     else
     {
-        assert(FALSE);
+        unreachable();
     }
     
     __put_user_f(status, failed_addr, failed_addr);
    
-    if(thread->error_bits == 0)
-    {
-        list_del_init(&thread->error_elem);
-    }
-
     return POK_ERRNO_OK;
 }
 
+void error_ignore_sync(void)
+{
+    pok_partition_arinc_t* part = current_partition_arinc;
+
+    if(list_empty(&part->error_list)) return;
+
+    // Synchronous error could be only the first in the list.
+    pok_thread_t* thread = list_first_entry(&part->error_list, pok_thread_t, error_elem);
+
+    if(thread->error_bits & POK_THREAD_ERROR_BIT_SYNC)
+        thread_clear_error_bit(thread, POK_THREAD_ERROR_BIT_SYNC);
+}
 #endif /* POK_NEEDS_ERROR_HANDLING */
 
 #endif

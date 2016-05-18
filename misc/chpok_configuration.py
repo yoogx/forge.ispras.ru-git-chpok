@@ -217,7 +217,7 @@ class PartitionHMTable(HMTable):
 #
 # - name - name of the partition
 # ...
-# - part_id - identificator(number) of given partition. Optional.
+# - part_id - identificator(number) of given partition.
 # - part_index - index of the partition in the array. Filled automatically.
 class Partition:
     __slots__ = [
@@ -245,6 +245,17 @@ class Partition:
 
     def __init__(self, part_id, name, size):
         self.name = name
+        self.part_id = part_id
+
+        # If application needs, it may set 'period' and 'duration' attributes.
+        #
+        # Otherwise, these attributes are treated as:
+        #
+        # 'period' is major time frame
+        # 'duration' is sum of all timeslots, denoted for partition.
+        self.period = None
+        self.duration = None
+
         self.size = size
 
         self.num_threads = 0
@@ -266,9 +277,11 @@ class Partition:
         self.ports_sampling_system = []
 
         # Internal
-        self.part_id = None # Not assigned
         self.part_index = None # Not set yet
         self.port_names_map = dict() # Map `port_name` => `port`
+
+        self.total_time = 0 # Incremented every time timeslot is added.
+        # When timeslot with periodic processing start is added, this is set to True.
         self.has_periodic_processing_start = False
 
     def set_index(self, part_index):
@@ -592,7 +605,6 @@ class Configuration:
         self.next_channel_id_sampling = 0
         self.next_channel_id_queueing = 0
 
-
     def add_partition(self, part_name, part_size, part_id = None):
         if part_name in self.partition_names_map:
             raise RuntimeError("Adding already existed partition '%s'" % part_name)
@@ -676,6 +688,7 @@ class Configuration:
 
     def add_time_slot(self, slot):
         if isinstance(slot, TimeSlotPartition):
+            slot.partition.total_time += slot.duration
             if slot.periodic_processing_start:
                 slot.partition.has_periodic_processing_start = True
 

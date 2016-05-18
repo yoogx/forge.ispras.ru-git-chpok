@@ -208,8 +208,8 @@ int info_partition(int argc,char **argv){
     printf("size = 0x%lx\n", part->size);
     printf("name = %s\n", part->base_part.name);
     printf("nthreads = %lu\n", part->nthreads);
-    printf("priority = 0x%x\n", part->base_part.priority);
     printf("period = %lu\n", part->base_part.period);
+    printf("duration = %lu\n", part->base_part.duration);
     //printf("activation = %llu\n", part->base_part.activation);
     printf("lock_level = %u\n", (unsigned) part->lock_level);
     printf("prev_thread = %u\n", part->lock_level ? part->thread_locked - part->threads : (unsigned)-1);

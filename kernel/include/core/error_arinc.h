@@ -103,6 +103,17 @@ pok_ret_t   pok_error_get (pok_error_status_t* status);
  */
 void error_check_after_handler(void);
 
+/*
+ * If synchronous error is in the error list, clear it.
+ * 
+ * This function is called when error handler stops.
+ * 
+ * Because syncrhonous error cannot be generated while
+ * error handler is executed, it always trigger error handler to start,
+ * so it never can be missed because of race.
+ */
+void error_ignore_sync(void);
+
 #endif
 
 typedef uint8_t pok_error_action_t;
