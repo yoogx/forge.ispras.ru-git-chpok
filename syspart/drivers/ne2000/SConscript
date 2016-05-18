@@ -19,6 +19,8 @@
 
 Import('syspart_env')
 
-syspart_env.Program(target = 'ne2000.lo', source = Glob('*.c'))
+ne2000 = syspart_env.StaticObject(source = Glob('*.c'))
+
+Return('ne2000')
 
 # EOF

@@ -24,7 +24,9 @@ p3041_env = syspart_env.Clone()
 p3041_env.Append(CPPPATH = syspart_env['POK_PATH']+'/syspart/drivers/p3041/include')
 
 #syspart_env.Program(target = 'p3041.lo', source = Glob('fm/*.c'))
-p3041_env.Program(target = 'p3041.lo', source = ['init.c'])
+p3041 = p3041_env.StaticObject(source = ['init.c'])
+
+Return('p3041')
 
 #Export('syspart_env')
 #

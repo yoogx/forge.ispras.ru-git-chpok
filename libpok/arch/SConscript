@@ -19,8 +19,8 @@
 
 Import('libpok_env')
 
-libpok_env.Program(target = 'arch.lo', source = libpok_env['ARCH']+'/'+libpok_env['ARCH']+'.lo')
+arch = SConscript(libpok_env['ARCH']+'/SConscript')
 
-SConscript(libpok_env['ARCH']+'/SConscript')
+Return('arch')
 
 # EOF

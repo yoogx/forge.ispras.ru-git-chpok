@@ -23,25 +23,18 @@ libpok_env = env.Clone()
 
 libpok_env['CPPPATH'] = [env['POK_PATH']+'/libpok/include']
 
-libpok_env.StaticLibrary(target = 'pok', source = [
-'arch/arch.lo',
-'core/core.lo',
-'middleware/middleware.lo',
-'arinc653/arinc653.lo',
-'libm/libm.lo',
-'protocols/protocols.lo',
-'utils/utils.lo',
-'libc/libc.lo'])
-
 Export('libpok_env')
 
-SConscript('arch/SConscript')
-SConscript('core/SConscript')
-SConscript('middleware/SConscript')
-SConscript('arinc653/SConscript')
-SConscript('libm/SConscript')
-SConscript('protocols/SConscript')
-SConscript('libc/SConscript')
-SConscript('utils/SConscript')
+arch        =  SConscript('arch/SConscript')
+arinc653    =  SConscript('arinc653/SConscript')
+core        =  SConscript('core/SConscript')
+libc        =  SConscript('libc/SConscript')
+libm        =  SConscript('libm/SConscript')
+middleware  =  SConscript('middleware/SConscript')
+protocols   =  SConscript('protocols/SConscript')
+utils       =  SConscript('utils/SConscript')
+
+libpok_env.StaticLibrary(target = 'pok',
+source = [arch, arinc653, core, libc, libm, middleware, protocols, utils])
 
 # EOF

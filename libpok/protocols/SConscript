@@ -19,13 +19,10 @@
 
 Import('libpok_env')
 
-libpok_env.Program(target = 'protocols.lo', source = [
-'ceasar/ceasar.lo',
-'blowfish/blowfish.lo',
-'des/des.lo'])
+blowfish = SConscript('blowfish/SConscript')
+caesar   = SConscript('caesar/SConscript')
+des      = SConscript('des/SConscript')
 
-SConscript('blowfish/SConscript')
-SConscript('ceasar/SConscript')
-SConscript('des/SConscript')
+Return('blowfish', 'caesar', 'des')
 
 # EOF

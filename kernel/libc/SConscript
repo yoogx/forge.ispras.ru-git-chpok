@@ -19,6 +19,8 @@
 
 Import('kernel_env')
 
-kernel_env.Program(target = 'libc.lo', source = Glob('*.c'))
+libc = kernel_env.StaticObject(source = Glob('*.c'))
+
+Return('libc')
 
 # EOF

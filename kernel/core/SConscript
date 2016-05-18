@@ -32,9 +32,10 @@ generate_syscall_kernel_command = kernel_env.Command(
     action = generate_syscalls.generate_syscalls_declaration_kernel)
 
 
-kernel_core_program = kernel_env.Program(target = 'core.lo', source = Glob('*.c'))
+kernel_core = kernel_env.StaticObject(source = Glob('*.c'))
 
-kernel_env.Depends(kernel_core_program, generate_syscall_kernel_command)
+kernel_env.Depends(kernel_core, generate_syscall_kernel_command)
 
+Return('kernel_core')
 
 # EOF
