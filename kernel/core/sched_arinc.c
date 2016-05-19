@@ -178,7 +178,7 @@ static void sched_arinc(void)
         }
     }
 #ifdef POK_NEEDS_ERROR_HANDLING
-    else if(part->thread_error->state != POK_STATE_STOPPED)
+    else if(part->thread_error && part->thread_error->state != POK_STATE_STOPPED)
     {
         // Continue error handler
         new_thread = part->thread_error;
