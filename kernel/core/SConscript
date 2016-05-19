@@ -1,7 +1,41 @@
-# -*- Mode: Python -*-
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 Import('kernel_env')
 
-kernel_env.Program(target = 'core.lo', source = Glob('*.c'))
+import sys
+import os
+sys.path.insert(1, os.path.join(os.environ["POK_PATH"], "misc"))
+import generate_syscalls
+
+kernel_env.Append(CPPPATH = kernel_env['POK_PATH']+'/build/kernel/include')
+
+generate_syscall_kernel_command = kernel_env.Command(
+    target = kernel_env['POK_PATH'] + 'build/kernel/include/syscall_map_arinc.h',
+    source ='../include/uapi/syscall_map_arinc.h.in',
+    action = generate_syscalls.generate_syscalls_declaration_kernel)
+
+
+kernel_core = kernel_env.StaticObject(source = Glob('*.c'))
+
+kernel_env.Depends(kernel_core, generate_syscall_kernel_command)
+
+Return('kernel_core')
 
 # EOF

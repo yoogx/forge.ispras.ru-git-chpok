@@ -40,93 +40,31 @@
 
 #include <core/event.h>       /* For core function */
 
-#include <libc/string.h>      /* For strcmp */
-
 #include <errno.h>            /* For POK_ERRNO_... maccros */
 
-#include <core/partition.h>
-#include <core/thread.h>
-#include <core/error.h>
+#include <core/event.h>
 #include <utils.h>
-
-#define POK_EVENT_NAME_EQ(x, y) (strncmp((x), (y), POK_EVENT_MAX_NAME_LENGTH) == 0)
 
 #define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
 #define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
-
-bool_t pok_arinc653_events_initialized = 0;
-
-static void init_events() 
-{
-   size_t i;
-   for (i = 0; i < POK_CONFIG_ARINC653_NB_EVENTS; i++) {
-      pok_arinc653_events_layers[i].ready = 0;
-   }
-   pok_arinc653_events_initialized = 1;
-}
-
-#define CHECK_EVENTS_INIT if (!pok_arinc653_events_initialized) init_events();
 
 void CREATE_EVENT (EVENT_NAME_TYPE EVENT_NAME,
                    EVENT_ID_TYPE *EVENT_ID,
                    RETURN_CODE_TYPE *RETURN_CODE)
 {
-   strtoupper(EVENT_NAME);
    pok_event_id_t    core_id;
    pok_ret_t         core_ret;
 
-   *RETURN_CODE = INVALID_CONFIG;
+   core_ret = pok_event_create(EVENT_NAME, &core_id);
 
-   CHECK_EVENTS_INIT
-
-#ifdef POK_NEEDS_PARTITIONS
-   pok_partition_mode_t operating_mode;
-   pok_current_partition_get_operating_mode(&operating_mode);
-   if (operating_mode == POK_PARTITION_MODE_NORMAL) {
-      *RETURN_CODE = INVALID_MODE;
-      return;
-   }
-#endif 
-
-   // try to find existing one
-   size_t i;
-   for (i = 0; i < POK_CONFIG_ARINC653_NB_EVENTS; i++) {
-      if (pok_arinc653_events_layers[i].ready && 
-          POK_EVENT_NAME_EQ(EVENT_NAME, pok_arinc653_events_layers[i].name)) 
-      {
-         *RETURN_CODE = NO_ACTION;
-         return;
-      }
+   switch (core_ret) {
+      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      MAP_ERROR(POK_ERRNO_PARTITION_MODE, INVALID_MODE);
+      MAP_ERROR(POK_ERRNO_EXISTS, NO_ACTION);
+      MAP_ERROR(POK_ERRNO_TOOMANY, INVALID_CONFIG);
+      MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
    }
 
-   // otherwise, create a new one
-   for (i = 0; i < POK_CONFIG_ARINC653_NB_EVENTS; i++) {
-      if (!pok_arinc653_events_layers[i].ready) {
-         // found a free one
-
-         // note: ARINC events never use "notify", only "broadcast"
-         // it means that queueing discipline is irrelevant here
-         core_ret = pok_event_create(&core_id, POK_QUEUEING_DISCIPLINE_PRIORITY);
-         if (core_ret != POK_ERRNO_OK) {
-            // XXX figure out exact cause of the error
-            return;
-         }
-
-         pok_arinc653_event_layer_t *evt = &pok_arinc653_events_layers[i];
-
-         evt->ready = TRUE;
-         evt->core_id = core_id;
-         evt->is_up = FALSE;
-         strncpy(evt->name, EVENT_NAME, POK_EVENT_MAX_NAME_LENGTH);
-
-         *EVENT_ID = i + 1;
-         *RETURN_CODE = NO_ERROR;
-         return;
-      }
-   }
-   
-   // out of events
-   *RETURN_CODE = INVALID_CONFIG;
    return;
 }
 
@@ -135,59 +73,30 @@ void SET_EVENT (EVENT_ID_TYPE EVENT_ID,
 {
    pok_ret_t core_ret;
 
-   *RETURN_CODE = INVALID_PARAM;
+   core_ret = pok_event_set(EVENT_ID + 1);
 
-   CHECK_EVENTS_INIT
-
-   if (EVENT_ID <= 0 || EVENT_ID >= POK_CONFIG_ARINC653_NB_EVENTS) {
-      *RETURN_CODE = INVALID_PARAM;
-      return;
+   switch (core_ret) {
+      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      MAP_ERROR(POK_ERRNO_UNAVAILABLE, INVALID_PARAM);
+      MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
    }
 
-   size_t events_layer_idx = EVENT_ID - 1;
-   pok_arinc653_event_layer_t *evt = &pok_arinc653_events_layers[events_layer_idx];
-
-   if (!evt->ready) {
-      *RETURN_CODE = INVALID_PARAM;
-      return;
-   }
-
-   evt->is_up = TRUE;
-
-   core_ret = pok_event_broadcast(evt->core_id);
-   if (core_ret == POK_ERRNO_OK) {
-      // TODO yield only if someone's waiting
-      pok_thread_yield(); 
-
-      *RETURN_CODE = NO_ERROR;
-      return;
-   } else {
-      *RETURN_CODE = INVALID_PARAM;
-      return;
-   }
+   return;
 }
 
 void RESET_EVENT (EVENT_ID_TYPE EVENT_ID,
                   RETURN_CODE_TYPE *RETURN_CODE)
 {
-   if (EVENT_ID <= 0 || EVENT_ID >= POK_CONFIG_ARINC653_NB_EVENTS)
-   {
-      *RETURN_CODE = INVALID_PARAM;
-      return;
-   }
-   
-   size_t events_layer_idx = EVENT_ID - 1;
-   pok_arinc653_event_layer_t *evt = &pok_arinc653_events_layers[events_layer_idx];
+   pok_ret_t core_ret;
 
-   if (!evt->ready)
-   {
-      *RETURN_CODE = INVALID_PARAM;
-      return;
+   core_ret = pok_event_reset(EVENT_ID + 1);
+
+   switch (core_ret) {
+      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      MAP_ERROR(POK_ERRNO_UNAVAILABLE, INVALID_PARAM);
+      MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
    }
 
-   evt->is_up = FALSE;
-
-   *RETURN_CODE = NO_ERROR;
    return;
 }
 
@@ -196,61 +105,18 @@ void WAIT_EVENT (EVENT_ID_TYPE EVENT_ID,
                  RETURN_CODE_TYPE *RETURN_CODE)
 {
    pok_ret_t core_ret;
-
-   *RETURN_CODE = INVALID_PARAM;
-
-   CHECK_EVENTS_INIT
-
-   if (EVENT_ID <= 0 || EVENT_ID >= POK_CONFIG_ARINC653_NB_EVENTS)
-   {
-      *RETURN_CODE = INVALID_PARAM;
-      return;
-   }
-
-   // XXX this code smells of race conditions
+   pok_time_t ms = TIME_OUT < 0 ? INFINITE_TIME_VALUE : arinc_time_to_ms(TIME_OUT);
    
-   size_t events_layer_idx = EVENT_ID - 1;
-   pok_arinc653_event_layer_t *evt = &pok_arinc653_events_layers[events_layer_idx];
+   core_ret = pok_event_wait(EVENT_ID + 1, &ms);
 
-   if (!evt->ready)
-   {
-      *RETURN_CODE = INVALID_PARAM;
-      return;
+   switch (core_ret) {
+      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      MAP_ERROR(POK_ERRNO_UNAVAILABLE, INVALID_PARAM);
+      MAP_ERROR(POK_ERRNO_TIMEOUT, TIMED_OUT);
+      MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
    }
 
-   if (evt->is_up) {
-      *RETURN_CODE = NO_ERROR;
-      return;
-   }
-
-   if (TIME_OUT == 0) {
-      // don't wait
-      *RETURN_CODE = NOT_AVAILABLE;
-      return;
-   } 
-
-   if (pok_current_partition_preemption_disabled() || pok_error_is_handler() == POK_ERRNO_OK) {
-      *RETURN_CODE = INVALID_MODE;
-      return;
-   }
-
-   int64_t delay_ms = arinc_time_to_ms(TIME_OUT);
-   core_ret = pok_event_wait (pok_arinc653_events_layers[events_layer_idx].core_id, delay_ms);
-
-   switch (core_ret)
-   {
-      case POK_ERRNO_OK:
-         *RETURN_CODE = NO_ERROR;
-         break;
-
-      case POK_ERRNO_TIMEOUT:
-         *RETURN_CODE = TIMED_OUT;
-         break;
-
-      default:
-         *RETURN_CODE = INVALID_PARAM;
-         break;
-   }
+   return;
 }
 
 void GET_EVENT_ID (EVENT_NAME_TYPE EVENT_NAME,
@@ -258,47 +124,35 @@ void GET_EVENT_ID (EVENT_NAME_TYPE EVENT_NAME,
                    RETURN_CODE_TYPE *RETURN_CODE)
 {
    strtoupper(EVENT_NAME);
-   size_t i;
+   pok_event_id_t id;
+   pok_ret_t core_ret = pok_event_id(EVENT_NAME, &id);
 
-   *RETURN_CODE = INVALID_CONFIG;
-
-   CHECK_EVENTS_INIT
-
-   for (i = 0 ; i < POK_CONFIG_ARINC653_NB_EVENTS ; i++)
-   {
-      if (POK_EVENT_NAME_EQ(pok_arinc653_events_layers[i].name, EVENT_NAME))
-      {
-         *EVENT_ID = i + 1;
-         *RETURN_CODE = NO_ERROR;
-         return;
-      }
+   switch (core_ret) {
+      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG);
+      MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
    }
+   *EVENT_ID = id + 1;
 }
 
 void GET_EVENT_STATUS (EVENT_ID_TYPE EVENT_ID,
                        EVENT_STATUS_TYPE *EVENT_STATUS,
                        RETURN_CODE_TYPE *RETURN_CODE)
 {
-   if (EVENT_ID <= 0 || EVENT_ID >= POK_CONFIG_ARINC653_NB_EVENTS)
-   {
-      *RETURN_CODE = INVALID_PARAM;
-      return;
-   }
-   
-   size_t events_layer_idx = EVENT_ID - 1;
-   pok_arinc653_event_layer_t *evt = &pok_arinc653_events_layers[events_layer_idx];
+   pok_event_status_t core_status;
+   pok_ret_t core_ret = pok_event_status(EVENT_ID + 1, &core_status);
 
-   if (!pok_arinc653_events_layers[events_layer_idx].ready)
-   {
-      *RETURN_CODE = INVALID_PARAM;
-      return;
+   switch (core_ret) {
+      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG);
+      MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
    }
-   
-   // TODO
-   EVENT_STATUS->EVENT_STATE = evt->is_up ? UP : DOWN;
-   EVENT_STATUS->WAITING_PROCESSES = 0;
 
-   *RETURN_CODE = NO_ERROR;
+   if(core_ret == POK_ERRNO_OK)
+   {
+      EVENT_STATUS->EVENT_STATE = core_status.event_state == POK_EVENT_DOWN ? DOWN : UP;
+      EVENT_STATUS->WAITING_PROCESSES = core_status.waiting_processes;
+   }
 }
 
 #endif

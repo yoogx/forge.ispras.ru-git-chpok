@@ -1,17 +1,16 @@
 /*
- *                               POK header
- * 
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *                                      Copyright (c) 2007-2009 POK team 
- *
- * Created by julien on Thu Jan 15 23:34:13 2009 
+ * See the GNU General Public License version 3 for more details.
  */
 
 #include <config.h>
@@ -21,7 +20,8 @@
 #include <types.h>
 #include <libc.h>
 #include <stdarg.h>
-#include <bsp.h>
+#include <bsp_common.h>
+#include <arch.h>
 
 static const char digits[] = "0123456789abcdef";
 
@@ -43,15 +43,25 @@ struct s_sprintf
     size_t size;
 };
 
-typedef void (*t_putc)(int val, void *out);
-
 /*
  * buffered I/O
  */
 
 static void buf_flush(struct s_file *file)
 {
+    /*
+     * Normally, we do not want `printf` strings messed from different partitions.
+     * 
+     * Disable interrupts if they are not currently disabled.
+     */
+    pok_bool_t need_critical_section = pok_arch_preempt_enabled();
+    
+    if(need_critical_section)
+        pok_arch_preempt_disable();
     pok_cons_write (file->buff, file->pos);
+    if(need_critical_section)
+        pok_arch_preempt_enable();
+
     file->pos = 0;
 }
 
@@ -140,6 +150,7 @@ static void print_num(t_putc putc,
         putc(digit_str[size], out);
 }
 
+/* DON'T USE floating point register in kernel
 static void print_float(t_putc putc,
                         void *out,
                         long double value, 
@@ -160,6 +171,7 @@ static void print_float(t_putc putc,
         fractional *= 10;
     print_num(putc, out, fractional, 10, precision, 0, 1);
 }
+*/
 
 /*
  * finally, printf
@@ -265,6 +277,7 @@ const char * handle_fmt(t_putc putc, void * out, const char* format, va_list *ar
                     print_num(putc, out, value, 10, pad, 0, pad_with_zero);
                     return ++format;
                 }
+            /* DON'T USE floating point register in kernel
             case 'f':
                 {
                     long double value;
@@ -280,6 +293,7 @@ const char * handle_fmt(t_putc putc, void * out, const char* format, va_list *ar
                     print_float(putc, out, value, pad, precision, neg, pad_with_zero);
                     return ++format;
                 }
+            */
             case 'c':
                 //TODO implement l!=0 case
                 putc(va_arg(*args, unsigned ), out);
@@ -324,8 +338,10 @@ int printf(const char *format, ...)
     return 0;
 }
 
-void snprintf(char *dst, unsigned size, const char *format, ...)
+int snprintf(char *dst, unsigned size, const char *format, ...)
 {
+    int res;
+
     struct s_sprintf out;
     out.ptr = dst;
     out.size = size;
@@ -333,7 +349,13 @@ void snprintf(char *dst, unsigned size, const char *format, ...)
     va_list args;
     va_start(args, format);
     vprintf(sprintf_putc, &out, format, &args);
+
+    res = out.size;
+
+    sprintf_putc('\0', &out);
     va_end(args);
+
+    return res;
 }
 
 

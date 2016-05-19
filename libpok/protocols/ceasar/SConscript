@@ -1,7 +1,0 @@
-# -*- Mode: Python -*-
-
-Import('libpok_env')
-
-libpok_env.Program(target = 'ceasar.lo', source = Glob('*.c'))
-
-# EOF

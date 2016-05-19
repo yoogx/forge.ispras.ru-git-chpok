@@ -24,16 +24,16 @@
 #include <config.h>
 
 #include <arch.h>
-#include <bsp.h>
-#include <net/network.h>
+#include <bsp_common.h>
 
 #include <core/time.h>
 #include <core/thread.h>
 #include <core/sched.h>
 #include <core/partition.h>
-#include <middleware/port.h>
-#include <middleware/queue.h>
+#include <core/partition_arinc.h>
+#include <core/channel.h>
 #include <core/boot.h>
+#include <libc.h>
 
 #include <core/instrumentation.h>
 
@@ -49,24 +49,21 @@ void pok_boot ()
 #if defined (POK_NEEDS_TIME) || defined (POK_NEEDS_SCHED) || defined (POK_NEEDS_THREADS)
    pok_time_init();
 #endif
-
-#ifdef POK_NEEDS_THREADS
-   pok_thread_init ();
-#endif
-
 #ifdef POK_NEEDS_PARTITIONS
-   pok_partition_init ();
+   pok_partition_arinc_init_all();
+#endif
+#ifdef POK_NEEDS_MONITOR
+   pok_monitor_thread_init();
+#endif
+#ifdef POK_NEEDS_GDB
+   pok_gdb_thread_init();
 #endif
 
 #if defined (POK_NEEDS_SCHED) || defined (POK_NEEDS_THREADS)
    pok_sched_init ();
 #endif
-
-#if (defined POK_NEEDS_LOCKOBJ) || defined (POK_NEEDS_PORTS_QUEUEING) || defined (POK_NEEDS_PORTS_SAMPLING)
-   pok_lockobj_init ();
-#endif
 #if defined (POK_NEEDS_PORTS_QUEUEING) || defined (POK_NEEDS_PORTS_SAMPLING)
-   pok_port_init ();
+   pok_channels_init_all ();
 #endif
 
 #if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_CONSOLE)
@@ -87,7 +84,12 @@ void pok_boot ()
 
 
 #ifdef POK_NEEDS_PARTITIONS
-  pok_sched();
+#ifdef POK_NEEDS_WAIT_FOR_GDB
+  printf("Waiting for GDB connection ...\n");
+  printf("\n");
+  pok_trap();
+#endif
+  pok_sched_start();
 #else
   pok_arch_preempt_enable();
 

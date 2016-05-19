@@ -22,7 +22,9 @@
 #include <libc.h>
 #include <core/debug.h>
 #include <core/cons.h>
+#include <bsp_common.h>
 #include <cons.h>
+
 
 #if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
 
@@ -31,21 +33,13 @@
 
 #define UART_LSR_THRE   0x20
 
-pok_bsp_t pok_bsp = {
-    .ccsrbar_size = 0x1000000ULL,
-    .ccsrbar_base = 0x0FE000000ULL,
-    .ccsrbar_base_phys = 0x0FE000000ULL,
-    .serial0_regs_offset = 0x11C500ULL,
-    .serial1_regs_offset = 0x11C600ULL
-};
-
 static void ns16550_writeb(int offset, int value, int flag)
 {
-	if (flag == 0){
-		outb(pok_bsp.ccsrbar_base + pok_bsp.serial0_regs_offset + offset, value);
-	} else {
-		outb(pok_bsp.ccsrbar_base + pok_bsp.serial1_regs_offset + offset, value);
-	}
+    if (flag == 0){
+        outb(pok_bsp.ccsrbar_base + pok_bsp.serial0_regs_offset + offset, value);
+    } else {
+        outb(pok_bsp.ccsrbar_base + pok_bsp.serial1_regs_offset + offset, value);
+    }
 }
 
 static int ns16550_readb(int offset, int flag)
@@ -62,7 +56,6 @@ static int ns16550_readb(int offset, int flag)
 {
    while ((ns16550_readb(NS16550_REG_LSR, 1) & UART_LSR_THRE) == 0)
      ;
-
    ns16550_writeb(NS16550_REG_THR, a, 1);
 }
 
@@ -71,46 +64,47 @@ static void write_serial_0(char a)
    while ((ns16550_readb(NS16550_REG_LSR, 0) & UART_LSR_THRE) == 0)
      ;
 
+
    ns16550_writeb(NS16550_REG_THR, a, 0);
-    //write_serial_1(a);
 }
 
 #define UART_LSR_DR   0x01
 #define UART_LSR_RFE  0x80
-	
+
+
 int data_to_read_0() //return 0 if no data to read
 {
-	if (!(ns16550_readb(NS16550_REG_LSR, 0) & UART_LSR_DR))
-		return 0;
-	return 1;
+    int flags = ns16550_readb(NS16550_REG_LSR, 0);
+    if ((!(flags & UART_LSR_DR)) || (flags & UART_LSR_RFE))
+        return 0;
+    return 1;
 }
 
 int data_to_read_1() //return 0 if no data to read
-		  
+          
 {
-	if (!(ns16550_readb(NS16550_REG_LSR, 1) & UART_LSR_DR))
-		return 0;
-	return 1;
+    int flags = ns16550_readb(NS16550_REG_LSR, 1);
+    if ((!(flags & UART_LSR_DR)) || (flags & UART_LSR_RFE))
+        return 0;
+    return 1;
 }
 
 int read_serial_0()
 {
-	int data;
-	data=ns16550_readb(NS16550_REG_THR,0);
-	if ( !(ns16550_readb(NS16550_REG_LSR,0) & UART_LSR_RFE) )
-		return data;
-	return -1;
-
+       int data;
+       data=ns16550_readb(NS16550_REG_THR,0);
+       if ( !(ns16550_readb(NS16550_REG_LSR,0) & UART_LSR_RFE) )
+               return data;
+       return -1;
 }
 
 int read_serial_1()
 {
-	int data;
-	data=ns16550_readb(NS16550_REG_THR,1);
-	if ( !(ns16550_readb(NS16550_REG_LSR,1) & UART_LSR_RFE) )
-		return data;
-	return -1;
-
+    int data;
+    data=ns16550_readb(NS16550_REG_THR,1);
+    if ( !(ns16550_readb(NS16550_REG_LSR,1) & UART_LSR_RFE) )
+        return data;
+    return -1;
 }
 
 

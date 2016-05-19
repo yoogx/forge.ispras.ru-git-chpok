@@ -1,35 +1,19 @@
 /*
- *                               POK header
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * See the GNU General Public License version 3 for more details.
  *
- *                                      Copyright (c) 2007-2009 POK team
- *
- * This file also incorporates work covered by the following 
- * copyright and license notice:
- *
- *  Copyright (C) 2013-2014 Maxim Malkov, ISPRAS <malkov@ispras.ru> 
- *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Created by julien on Thu Jan 15 23:34:13 2009
+ * This file also incorporates work covered by POK License.
+ * Copyright (c) 2007-2009 POK team
  */
 
 #include <config.h>
@@ -81,18 +65,17 @@ void CREATE_SAMPLING_PORT (
 				 return;
 	 }
 
-         if (REFRESH_PERIOD < 0) {
-             *RETURN_CODE = INVALID_CONFIG;
-             return;
-         }
+     if (REFRESH_PERIOD < 0) {
+        *RETURN_CODE = INVALID_CONFIG;
+        return;
+     }
 
-         int64_t refresh_ms = arinc_time_to_ms(REFRESH_PERIOD);
-         if (refresh_ms < 0 || refresh_ms > UINT32_MAX) {
-            *RETURN_CODE = INVALID_CONFIG;
-            return;
-         }
-
-	 core_ret = pok_port_sampling_create (SAMPLING_PORT_NAME, MAX_MESSAGE_SIZE, core_direction, (uint32_t) refresh_ms, &core_id);
+     pok_time_t refresh_ms = arinc_time_to_ms(REFRESH_PERIOD);
+     if (refresh_ms < 0 || refresh_ms > UINT32_MAX) {
+         *RETURN_CODE = INVALID_CONFIG;
+         return;
+     }
+     core_ret = pok_port_sampling_create (SAMPLING_PORT_NAME, MAX_MESSAGE_SIZE, core_direction, &refresh_ms, &core_id);
 
 	 *SAMPLING_PORT_ID = core_id + 1;
 
@@ -138,13 +121,19 @@ void READ_SAMPLING_MESSAGE (
 			 /*out*/ RETURN_CODE_TYPE           *RETURN_CODE )
 {
     pok_ret_t core_ret;
+    pok_bool_t core_validity;
     
     if (SAMPLING_PORT_ID <= 0) {
         *RETURN_CODE = INVALID_PARAM;
         return;
     }
 
-    core_ret = pok_port_sampling_read (SAMPLING_PORT_ID - 1, MESSAGE_ADDR, (pok_port_size_t*) LENGTH, (pok_bool_t*) VALIDITY);
+    core_ret = pok_port_sampling_read (SAMPLING_PORT_ID - 1, MESSAGE_ADDR, (pok_port_size_t*) LENGTH, &core_validity);
+
+    if(core_ret == POK_ERRNO_OK){
+        *VALIDITY = core_validity? VALID : INVALID;
+    }
+
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
         MAP_ERROR(POK_ERRNO_EMPTY, NO_ACTION);
@@ -190,13 +179,19 @@ void GET_SAMPLING_PORT_STATUS (
         SAMPLING_PORT_STATUS->REFRESH_PERIOD = ms_to_arinc_time(status.refresh);
         SAMPLING_PORT_STATUS->MAX_MESSAGE_SIZE = status.size;
         SAMPLING_PORT_STATUS->PORT_DIRECTION = (status.direction == POK_PORT_DIRECTION_OUT) ? SOURCE : DESTINATION;
-        SAMPLING_PORT_STATUS->LAST_MSG_VALIDITY = status.validity;
+        SAMPLING_PORT_STATUS->LAST_MSG_VALIDITY = status.validity? VALID : INVALID;
     }
 
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
         MAP_ERROR_DEFAULT(INVALID_PARAM);
     }
+}
+
+pok_bool_t SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(
+        /*in */ SAMPLING_PORT_ID_TYPE      SAMPLING_PORT_ID)
+{
+    return pok_port_sampling_check(SAMPLING_PORT_ID - 1);
 }
 
 #endif

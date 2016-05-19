@@ -23,12 +23,13 @@
 #include <types.h>
 #include <errno.h>
 
-pok_ret_t pok_event_create    (pok_event_id_t* id, pok_queueing_discipline_t discipline);
-pok_ret_t pok_event_wait      (pok_event_id_t  id, const int64_t timeout);
-pok_ret_t pok_event_broadcast (pok_event_id_t  id);
-pok_ret_t pok_event_signal    (pok_event_id_t  id);
-pok_ret_t pok_event_signal_thread (pok_event_id_t  id, pok_thread_id_t thread);
-pok_ret_t pok_event_lock      (pok_event_id_t  id);
-pok_ret_t pok_event_unlock    (pok_event_id_t  id);
+typedef struct {
+    pok_event_state_t event_state;
+    pok_range_t waiting_processes;
+} pok_event_status_t;
+
+
+// All event-related functions are already defined as syscalls.
+#include <core/syscall.h>
 
 #endif

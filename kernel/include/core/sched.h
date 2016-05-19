@@ -1,127 +1,234 @@
 /*
- *                               POK header
- * 
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *                                      Copyright (c) 2007-2009 POK team 
- *
- * Created by julien on Thu Jan 15 23:34:13 2009 
+ * See the GNU General Public License version 3 for more details.
  */
+
 
 #ifndef __POK_SCHED_H__
 #define __POK_SCHED_H__
 
 #include <config.h>
 
-#if defined (POK_NEEDS_SCHED) || defined (POK_NEEDS_THREADS)
-
 #include <types.h>
 #include <errno.h>
 #include <core/schedvalues.h>
+#include <core/partition.h>
+#include <common.h>
 
-#ifdef POK_NEEDS_PARTITIONS
-extern pok_partition_id_t pok_current_partition;
-extern uint64_t pok_sched_next_deadline;
-extern uint8_t pok_sched_current_slot;
-#define POK_SCHED_CURRENT_PARTITION pok_current_partition
+#ifdef POK_NEEDS_MONITOR
+/*
+ * Monitor partition.
+ * 
+ * It should be defined in core/libc/monitor.c.
+ * 
+ * For take effect, this partition should be assigned to a slot
+ * in deployment.c.
+ */
+extern pok_partition_t partition_monitor;
+#endif /* POK_NEEDS_MONITOR */
 
-typedef enum
-{
-    POK_SLOT_SPARE = 0, // idle thread is always scheduled here
-    POK_SLOT_PARTITION = 1,
+#ifdef POK_NEEDS_GDB
 
-
-#if defined(POK_NEEDS_MONITOR)
- 
-    POK_SLOT_MONITOR = 2,
-
-#endif
-
-#if defined(POK_NEEDS_GDB)
- 
-    POK_SLOT_GDB = 3,
-
-#endif
-
-
-#if defined(POK_NEEDS_NETWORKING)
-    POK_SLOT_NETWORKING = 4,
-#endif
-
-} pok_sched_slot_type_t;
+/*
+ * GDB partition.
+ * 
+ * It should be defined in deployment.c and slot should be assigned to it.
+ */
+extern pok_partition_t partition_gdb;
+#endif /* POK_NEEDS_GDB */
 
 typedef struct
 {
-    pok_sched_slot_type_t type;
+    uint64_t duration; // Set in deployment.c
+    uint64_t offset; // Set in deployment.c
 
-    uint64_t duration;
-    uint64_t offset;
+    pok_partition_t* partition; // Set in deployment.c
 
-    union {
-        struct {
-            pok_partition_id_t id;
-            pok_bool_t periodic_processing_start;
-            char name[128];
-        } partition;
-    };
+    pok_bool_t periodic_processing_start; // Set in deployment.c
+
+    uint32_t id; // Set in deployment.c
 } pok_sched_slot_t;
 
-// as usual, defined in deployment.c
+/*
+ * Array of schedule slots.
+ * 
+ * Set in deployment.c.
+ */
 extern const pok_sched_slot_t pok_module_sched[];
-#endif
 
+/*
+ * Number of schedule slots.
+ * 
+ * Set in deployment.c.
+ */
+extern const uint8_t pok_module_sched_n;
 
-extern pok_thread_id_t current_thread;
-#define POK_SCHED_CURRENT_THREAD current_thread
-
-// must match libpok/include/core/thread.h
-typedef enum
-{
-  // comments describe to what states of ARINC653 these correspond to
-  POK_STATE_STOPPED = 0, // DORMANT (must be started first)
-  POK_STATE_RUNNABLE = 1, // READY 
-  POK_STATE_WAITING = 2, // WAITING (sleeping for specified time OR waiting for a lock with timeout)
-  POK_STATE_LOCK = 3, // WAITING (waiting for a lock without timeout)
-  POK_STATE_WAIT_NEXT_ACTIVATION = 4, // WAITING (for next activation aka "release point")
-  POK_STATE_DELAYED_START = 5 // WAITING (waitng for partition mode NORMAL)
-} pok_state_t;
-
-typedef struct {
-    void (*initialize)(void);
-    pok_thread_id_t (*elect_thread)(void);
-    void (*enqueue_thread)(pok_thread_id_t thread_id);
-} pok_scheduler_ops;
+/*
+ * Major time frame.
+ * 
+ * Set in deployment.c.
+ */
+extern const pok_time_t pok_config_scheduling_major_frame;
 
 void pok_sched_init(void); /* Initialize scheduling stuff */
 
-void pok_sched(void);      /* Main scheduling function, this function
-                             * schedules everything
-                             */
 
-/* Context switch functions */
-void pok_sched_context_switch(pok_thread_id_t);
-void pok_partition_switch (void);
+/**
+ *  Starts critical section, when scheduler will not run.
+ * 
+ * Shouldn't be called from interrupt handler
+ * (see pok_preemption_disable_from_interrupt below).
+ * 
+ * NOTE: Critical sections are NOT reentrant.
+ */
+void pok_preemption_disable(void);
+
+/**
+ *  Ends critical section, and runs scheduler.
+ * 
+ * Should be paired with pok_preemption_disable or
+ * pok_preemption_disable_from_interrupt.
+ */
+void pok_preemption_enable(void);
+
+/**
+ *  Ends critical section without running scheduler.
+ * 
+ * Should be paired with pok_preemption_disable or
+ * pok_preemption_disable_from_interrupt.
+ * 
+ * Should be used only if no action in the critical section affects
+ * scheduler. Otherwise pok_preemption_enable() should be used.
+ */
+void __pok_preemption_enable(void);
+
+
+/** 
+ * Mark scheduler state as needed to be rechecked.
+ * 
+ * If called outside of critical section, action will be taken at next
+ * scheduler run.
+ */
+void pok_sched_invalidate(void);
+
+/**
+ * Disables preemption in interrupt handler.
+ * 
+ * If preemption is not disabled by normal context, disable it
+ * and return TRUE.
+ * 
+ * Otherwise return FALSE.
+ * 
+ * DEV: If preemption will be implemented via disabling interrupts,
+ * this will return TRUE always.
+ */
+pok_bool_t pok_preemption_disable_from_interrupt(void);
+
+/**
+ * Set `invalidate` flag for scheduler.
+ * 
+ * Can be called outside of critical section. So scheduler will found
+ * the flag set on the next call.
+ */
+void pok_sched_invalidate(void);
+
+/**
+ * Disable preemption before scheduler (re)start.
+ * 
+ * DEV: When kernel is initialized, this function should be called
+ * before enabling interrupts. So, triggering timer interrupt will
+ * not call scheduler until it will be ready.
+ */
+void pok_preemption_off(void);
+
+/**
+ * Start scheduler.
+ * 
+ * Never returns.
+ * 
+ * Should be called from context, different from ones used by partitions.
+ * 
+ * Assume partitions to be initialized at this step.
+ */
+void pok_sched_start(void);
+
+/**
+ * Retart scheduler.
+ * 
+ * Never returns.
+ * 
+ * Should be called from context, different from ones used by partitions.
+ */
+void pok_sched_restart(void);
+
+/**
+ * Should be called from interrupt handler after time is changed.
+ * 
+ * Called with disabled interrupts.
+ */
+void pok_sched_on_time_changed(void);
+
+/**
+ * Return next release point for periodic process in current partition.
+ * 
+ * May be used by partition-specific code.
+ */
+pok_time_t get_next_periodic_processing_start(void);
+
 
 /*
- * Functions to lock threads
+ * Jump into user code from partition.
+ * 
+ * `entry` and `stack_addr` denotes pointers to initial user-space
+ * entries and stack values correspondingly.
+ * 
+ * `stack_kernel` is kernel stack which will be used for interrupts
+ * occured while user-space code is executed.
+ * 
+ * Some part of this functions is executed with global(!) preemption
+ * disabled, because its architecture-specific code uses registers
+ * which are not stored on common context switch.
+ * 
+ * Also, just before jumping into user space local preemption is
+ * enabled. It is assumed that partition never trust to user in
+ * preemption-related things. Because of enabled local preemption
+ * all pending callbacks for partition are triggered.
  */
-void pok_sched_lock_thread(pok_thread_id_t);
-void pok_sched_unlock_thread(pok_thread_id_t);
-void pok_sched_lock_current_thread(void);
-void pok_sched_lock_current_thread_timed(uint64_t time);
+void pok_partition_jump_user(void* __user entry,
+    void* __user stack_addr,
+    struct dStack* stack_kernel);
 
-pok_ret_t pok_sched_end_period(void);
-pok_ret_t pok_sched_replenish(int64_t budget);
+/*
+ * Return to the user space.
+ *
+ * Called from interrupt after partition has finished to process it.
+ *
+ * Just before jumping into user space local preemption is
+ * enabled. It is assumed that partition never trust to user in
+ * preemption-related things. Because of enabled local preemption
+ * all pending callbacks for partition are triggered.
+ */
+void pok_partition_return_user(void);
 
-uint32_t pok_sched_get_current(pok_thread_id_t *thread_id);
-
-#endif /* POK_NEEDS.... */
+/*
+ * Whether we are in user space.
+ * 
+ * This variable is set when we jump/return to user space and cleared
+ * on return from there.
+ * 
+ * This variable is checked in interrupts handlers for decide, whether
+ * need to store 'global_thread_stack' localy.
+ */
+extern volatile pok_bool_t pok_in_user_space;
 
 #endif /* !__POK_SCHED_H__ */
-

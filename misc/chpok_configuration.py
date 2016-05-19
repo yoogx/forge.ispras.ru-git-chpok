@@ -1,17 +1,21 @@
-#  Copyright (C) 2014 Maxim Malkov, ISPRAS <malkov@ispras.ru> 
+#******************************************************************
 #
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
 #
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #
-#  You should have received a copy of the GNU General Public License
-#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 """
 This file defines classes and functions that can be used to
@@ -29,13 +33,28 @@ import functools
 import collections
 import ipaddr
 
+
+class PartitionLayout():
+    """
+    Contain minimal information, needed for determine layout of the partition.
+    """
+    def __init__(self, name, is_system=False):
+        self.name = name
+        self.is_system = is_system
+
+# Single time slot for execute something.
+#
+# - duration - duration of given slot, in miliseconds.
 class TimeSlot():
     __metaclass__ = abc.ABCMeta
     __slots__ = ["duration"]
-    
+
     @abc.abstractmethod
     def get_kind_constant(self):
         pass
+
+    def __init__(self, duration):
+        self.duration = duration
 
     def validate(self):
         if not isinstance(self.duration, int):
@@ -47,15 +66,26 @@ class TimeSlotSpare(TimeSlot):
     def get_kind_constant(self):
         return "POK_SLOT_SPARE"
 
+    def __init__(self, duration):
+        TimeSlot.__init__(self, duration)
+
+# Time slot used for execute partition.
+#
+# - partition - reference to the partition to execute during given timeslot.
+# - periodic_processing_start - whether given slot can be used for start periodic processes.
 class TimeSlotPartition(TimeSlot):
     __slots__ = [
         "partition",
         "periodic_processing_start",
-        "name",
     ]
 
     def get_kind_constant(self):
         return "POK_SLOT_PARTITION"
+
+    def __init__(self, duration, partition, periodic_processing_start):
+        TimeSlot.__init__(self, duration)
+        self.partition = partition
+        self.periodic_processing_start = periodic_processing_start
 
     def validate(self):
         super(TimeSlotPartition, self).validate()
@@ -63,33 +93,48 @@ class TimeSlotPartition(TimeSlot):
         if not isinstance(self.periodic_processing_start, bool):
             raise TypeError
 
-        if not isinstance(self.partition, int):
-            raise TypeError
-
+# Time slot for network.
 class TimeSlotNetwork(TimeSlot):
     __slots__ = []
 
+    def __init__(self, duration):
+        TimeSlot.__init__(self, duration)
+
     def get_kind_constant(self):
         return "POK_SLOT_NETWORKING"
-#code
+
+# Time slot for monitor.
 class TimeSlotMonitor(TimeSlot):
     __slots__ = []
+
+    def __init__(self, duration):
+        TimeSlot.__init__(self, duration)
 
     def get_kind_constant(self):
         return "POK_SLOT_MONITOR"
 class TimeSlotGDB(TimeSlot):
     __slots__ = []
-
+    def __init__(self, duration):
+        TimeSlot.__init__(self, duration)
     def get_kind_constant(self):
         return "POK_SLOT_GDB"
 
+
+# ARINC partition.
+#
+# - name - name of the partition
+# ...
+# - part_id - identificator(number) of given partition. Optional.
+# - part_index - index of the partition in the array. Filled automatically.
 class Partition:
     __slots__ = [
         "name", 
+        "is_system",
 
         "size", # allocated RAM size in bytes (code + static storage)
         "num_threads", # number of user threads, _not_ counting init thread and error handler
-        "ports", # list of ports
+        "ports_queueing", # list of queuing ports
+        "ports_sampling", # list of sampling ports
 
         "num_arinc653_buffers",
         "num_arinc653_blackboards",
@@ -100,16 +145,66 @@ class Partition:
         "blackboard_data_size", # same, for blackboards
 
         "hm_table", # partition hm table
+
+        "ports_queueing_system", # list of queuing ports with non-empty protocol set
+        "ports_sampling_system", # list of sampling ports with non-empty protocol set
     ]
 
-    def get_all_ports(self):
-        return list(self.ports)
+    def __init__(self, part_id, name, size):
+        self.name = name
+        self.size = size
+
+        self.num_threads = 0
+
+        self.num_arinc653_buffers = 0
+        self.num_arinc653_blackboards = 0
+        self.num_arinc653_semaphores = 0
+        self.num_arinc653_events = 0
+
+        self.buffer_data_size = 0
+        self.blackboard_data_size = 0
+
+        self.hm_table = None
+
+        self.ports_queueing = []
+        self.ports_sampling = []
+
+        self.ports_queueing_system = []
+        self.ports_sampling_system = []
+
+        # Internal
+        self.part_id = None # Not assigned
+        self.part_index = None # Not set yet
+        self.port_names_map = dict() # Map `port_name` => `port`
+        self.has_periodic_processing_start = False
+
+    def set_index(self, part_index):
+        self.part_index = part_index
+
+    def add_port_queueing(self, port):
+        if port.name in self.port_names_map:
+            raise RuntimeError("Port with name %s already exists in partition %s" % (port.name, self.name))
+        self.ports_queueing.append(port)
+        self.port_names_map[port.name] = port
+
+        if port.protocol is not None:
+            self.ports_queueing_system.append(port)
+
+    def add_port_sampling(self, port):
+        if port.name in self.port_names_map:
+            raise RuntimeError("Port with name %s already exists in partition %s" % (port.name, self.name))
+        self.ports_sampling.append(port)
+        self.port_names_map[port.name] = port
+
+        if port.protocol is not None:
+            self.ports_sampling_system.append(port)
+
 
     def get_all_sampling_ports(self):
-        return [port for port in self.ports if isinstance(port, SamplingPort)]
+        return ports_sampling
 
     def get_all_queueing_ports(self):
-        return [port for port in self.ports if isinstance(port, QueueingPort)]
+        return ports_queueing
 
     def validate(self):
         # validation is by no means complete
@@ -119,18 +214,15 @@ class Partition:
             if not hasattr(self, attr):
                 raise ValueError("%r is not set for %r" % (attr, self))
 
-        for port in self.ports:
-            port.validate()
+        if self.part_index is None:
+            raise ValueError("Index is not set for partition '%s' (Partition is added via conf.add_partition(), isn't it?).")
 
-    def get_needed_lock_objects(self):
-        # all of them implicitly require a lock object
-        return (
-            len(self.ports) + 
-            self.num_arinc653_buffers +
-            self.num_arinc653_blackboards +
-            self.num_arinc653_semaphores +
-            self.num_arinc653_events
-        )
+        for port in self.ports_sampling + self.ports_queueing:
+            port.validate()
+            if port.channel_id is None:
+                # Uncomment if processing of non-binded ports will be implemented
+                # raise RuntimeError("Port '%s' is not connected to any channel" % port.name)
+                port.channel_id = 0
 
     def get_needed_threads(self):
         return (
@@ -139,11 +231,8 @@ class Partition:
             self.num_threads
         )
 
-    def get_port_by_name(self, name):
-        res = next((port for port in self.get_all_ports() if port.name == name), None)
-        if not res:
-            raise ValueError("no such named port %r in %r" % (name, self))
-        return res
+    def get_port_by_name(self, port_name):
+        return self.port_names_map[port_name]
 
 def _get_port_direction(port):
     direction = port.direction.lower()
@@ -154,36 +243,95 @@ def _get_port_direction(port):
     raise ValueError("%r is not valid port direction" % port["direction"])
 
 
-class SamplingPort:
+# Common parameters for Sampling and Queueing ports.
+class Port:
+    __metaclass__ = abc.ABCMeta
     __slots__ = [
         "name",
-        "direction",
+        "is_direction_src",
         "max_message_size",
+        "protocol",
+        "channel_id" # id of corresponded channel. Set internally.
+    ]
+
+    @abc.abstractmethod
+    def get_kind_constant(self):
+        pass
+
+    def __init__(self, name, direction, max_message_size):
+        self.name = name
+        _direction = direction.lower()
+        if _direction in ("source", "out"):
+            self.is_direction_src = True
+        elif _direction in ("destination", "in"):
+            self.is_direction_src = False
+        else:
+            raise ValueError("%r is not valid port direction" % direction)
+
+        self.max_message_size = max_message_size
+        self.channel_id = None
+
+    def is_src(self):
+        return self.is_direction_src;
+
+    def is_dst(self):
+        return not self.is_direction_src;
+
+    def setChannel(self, channel_id):
+        self.channel_id = channel_id
+
+    def validate(self):
+        for attr in self.__slots__:
+            if not hasattr(self, attr):
+                raise ValueError("%r is not set for %r" % (attr, self))
+
+
+class SamplingPort(Port):
+    __slots__ = [
         "refresh",
     ]
 
+    def get_kind_constant(self):
+        return "sampling"
+
+    def __init__(self, name, direction, max_message_size, refresh):
+        Port.__init__(self, name, direction, max_message_size)
+        self.refresh = refresh
+
     def validate(self):
         for attr in self.__slots__:
             if not hasattr(self, attr):
                 raise ValueError("%r is not set for %r" % (attr, self))
 
-class QueueingPort:
+class QueueingPort(Port):
     __slots__ = [
-        "name",
-        "direction",
-        "max_nb_messages",
-        "max_message_size",
+        "max_nb_message",
     ]
 
+    def get_kind_constant(self):
+        return "queueing"
+
+    def __init__(self, name, direction, max_message_size, max_nb_message):
+        Port.__init__(self, name, direction, max_message_size)
+        self.max_nb_message = max_nb_message
+
+
     def validate(self):
         for attr in self.__slots__:
             if not hasattr(self, attr):
                 raise ValueError("%r is not set for %r" % (attr, self))
 
+# Generic channel connecting two connections.
+#
+# - max_message_size - maximum size of the message passed to the channel.
+
 class Channel:
+    __metaclass__ = abc.ABCMeta
     __slots__ = ["src", "dst"]
 
-    def __init__(self, src=None, dst=None):
+    def __init__(self, src, dst, max_message_size):
+        self.max_message_size = max_message_size
+
         self.src = src
         self.dst = dst
 
@@ -206,23 +354,44 @@ class Channel:
             return self.dst
         return None
 
-    def is_queueing(self):
-        return isinstance(self.get_local_connection().port, QueueingPort)
-    
-    def is_sampling(self):
-        return isinstance(self.get_local_connection().port, SamplingPort)
+    @abc.abstractmethod
+    def get_kind_constant(self):
+        pass
 
     def requires_network(self):
         return any(isinstance(x, UDPConnection) for x in [self.src, self.dst])
 
+class ChannelQueueing(Channel):
+    def __init__(self, src, dst, max_message_size, max_nb_message_send, max_nb_message_receive):
+        Channel.__init__(self, src, dst, max_message_size)
+
+        self.max_nb_message_send = max_nb_message_send
+        self.max_nb_message_receive = max_nb_message_receive
+
+    def get_kind_constant(self):
+        return "queueing"
+
+
+class ChannelSampling(Channel):
+    def __init__(self, src, dst, max_message_size):
+        Channel.__init__(self, src, dst, max_message_size)
+
+    def get_kind_constant(self):
+        return "sampling"
+
+# One point of the channel
 class Connection():
     __metaclass__ = abc.ABCMeta
     @abc.abstractmethod
     def validate(self):
         pass
 
+# Connection to partition's port.
 class LocalConnection(Connection):
     __slots__ = ["port"]
+
+    def __init__(self, port):
+        self.port = port
 
     def validate(self):
         if not hasattr(self, "port") or self.port == None:
@@ -280,23 +449,125 @@ class Configuration:
     __slots__ = [
         "partitions", 
         "slots", # time windows
-        "channels", # queueing and sampling port channels (connections)
+        "channels_queueing", # queueing port channels (connections)
+        "channels_sampling", # sampling port channels (connections)
         "network", # NetworkConfiguration object (or None)
 
         # if this is set, POK writes a special string once 
         # there are no more schedulable threads
         # it's used by test runner as a sign that POK
         # can be terminated
-        "test_support_print_when_all_threads_stopped",  
+        "test_support_print_when_all_threads_stopped",
     ]
 
     def __init__(self):
         self.partitions = []
         self.slots = []
-        self.channels = []
+        self.channels_queueing = []
+        self.channels_sampling = []
         self.network = None
 
         self.test_support_print_when_all_threads_stopped = False
+
+        self.major_frame = 0
+
+        # For internal usage
+        self.partition_names_map = dict()
+        self.partition_ids_map = dict()
+        self.next_partition_id = 0
+
+        self.next_channel_id_sampling = 0
+        self.next_channel_id_queueing = 0
+
+
+    def add_partition(self, part_name, part_size, part_id = None):
+        if part_name in self.partition_names_map:
+            raise RuntimeError("Adding already existed partition '%s'" % part_name)
+
+        part_id_real = None
+
+        if part_id is not None:
+            if part_id in self.partition_ids_map:
+                raise RuntimeError("Adding already existed partition (by id) '%s'" % part_id)
+            part_id_real = part_id
+        else:
+            part_id_real = self.next_partition_id
+            self.next_partition_id += 1
+
+        part = Partition(part_id_real, part_name, part_size)
+        part.set_index(len(self.partitions))
+
+        self.partitions.append(part)
+        self.partition_names_map[part_name] = part
+
+        if part_id is not None:
+            self.partition_ids_map[part_id] = part
+
+        return part
+
+    def add_channel(self, src_connection, dst_connection):
+        channel_type = None
+        channel_max_message_size = None
+        max_nb_message_receive = 1 # Only for queueing channel
+        max_nb_message_send = 1 # Only for queueing channel
+
+        for connection in [src_connection, dst_connection]:
+            if connection is not None:
+                if not isinstance(connection, LocalConnection):
+                    raise RuntimeError("Non-local connections are not supported now")
+                if isinstance(connection.port, SamplingPort):
+                    if channel_type is not None: 
+                        if channel_type != "sampling":
+                            raise RuntimeError("Channel for ports of different types: %s and %s" %
+                                (src_connection.port.name, dst_connection.port.name))
+                    else:
+                        channel_type = "sampling"
+                    connection.port.setChannel(self.next_channel_id_sampling)
+                else: # Local connection to queueing port
+                    if channel_type is not None: 
+                        if channel_type != "queueing":
+                            raise RuntimeError("Channel for ports of different types: %s and %s" %
+                                (src_connection.port.name, dst_connection.port.name))
+                    else:
+                        channel_type = "queueing"
+                    connection.port.setChannel(self.next_channel_id_queueing)
+
+                    if connection == src_connection:
+                        if not connection.port.is_src():
+                            raise RuntimeError("Using dst port '%s' as src connection for the channel" % connection.port.name)
+                        max_nb_message_send = connection.port.max_nb_message
+                    else:
+                        if not connection.port.is_dst():
+                            raise RuntimeError("Using dst port '%s' as src connection for the channel" % connection.port.name)
+                        max_nb_message_receive = connection.port.max_nb_message
+
+                if channel_max_message_size is not None:
+                    if channel_max_message_size > connection.port.max_message_size:
+                        raise RuntimeError("Max message size of dst port '%s' is less than one for src port '%s'" %
+                            (src_connection.port.name, dst_connection.port.name))
+                else:
+                    channel_max_message_size = connection.port.max_message_size
+
+        if channel_type is None:
+            raise RuntimeError("At least one connection for channel should be local")
+
+        if channel_type == 'sampling':
+            channel = ChannelSampling(src_connection, dst_connection, channel_max_message_size)
+            self.channels_sampling.append(channel)
+            self.next_channel_id_sampling += 1
+        else:
+            channel = ChannelQueueing(src_connection, dst_connection, channel_max_message_size,
+                max_nb_message_send, max_nb_message_receive)
+            self.channels_queueing.append(channel)
+            self.next_channel_id_queueing += 1
+
+    def add_time_slot(self, slot):
+        if isinstance(slot, TimeSlotPartition):
+            if slot.periodic_processing_start:
+                slot.partition.has_periodic_processing_start = True
+
+        self.slots.append(slot)
+        self.major_frame += slot.duration
 
     def get_all_ports(self):
         return sum((part.get_all_ports() for part in self.partitions), [])
@@ -308,11 +579,10 @@ class Configuration:
         return sum((part.get_all_queueing_ports() for part in self.partitions), [])
 
     def get_partition_by_name(self, name):
-        return [
-            part
-            for part in self.partitions
-            if part.name == name
-        ][0]
+        return self.partition_names_map[name]
+
+    def get_partition_by_id(self, part_id):
+        return self.partition_ids_map[part_id]
 
     def get_port_by_partition_and_name(self, partition_name, port_name):
         return self.get_partition_by_name(partition_name).get_port_by_name(port_name)
@@ -333,30 +603,16 @@ class Configuration:
             if networking_time_slot_exists:
                 raise ValueError("Networking is disabled, but there's (unnecessary) network processing time slot in the schedule")
 
-            if any(chan.requires_network() for chan in self.channels):
-                raise ValueError("Network channel is present, but networking is not configured")
-            
-        # validate schedule
-        partitions_set = set(range(len(self.partitions)))
-        partitions_without_periodic_processing = set(partitions_set) # copy
+            #if any(chan.requires_network() for chan in self.channels):
+            #    raise ValueError("Network channel is present, but networking is not configured")
 
+        # validate schedule
         if not isinstance(self.slots[0], TimeSlotPartition):
             raise ValueError("First time slot must be partition slot")
 
-        for slot in self.slots:
-            slot.validate()
-
-            if isinstance(slot, TimeSlotPartition):
-                if slot.partition >= len(self.partitions):
-                    raise ValueError("slot doesn't correspond to existing partition")
-                
-                if slot.periodic_processing_start:
-                    partitions_without_periodic_processing.discard(slot.partition)
-
-
-        if partitions_without_periodic_processing:
-            raise ValueError("partitions %r don't have periodic processing points set" % partitions_without_periodic_processing)
-        
+        for partition in self.partitions:
+            if not partition.has_periodic_processing_start:
+                raise ValueError("partitions '%s' don't have periodic processing points set" % partition.name)
 
     def get_all_channels(self):
         return self.channels
@@ -387,12 +643,6 @@ TIMESLOT_NETWORKING_TEMPLATE = """\
 
 TIMESLOT_MONITOR_TEMPLATE = """\
     { .type = POK_SLOT_MONITOR,
-      .duration = %(duration)d,
-    },
-"""
-
-TIMESLOT_GDB_TEMPLATE = """\
-    { .type = POK_SLOT_GDB,
       .duration = %(duration)d,
     },
 """
@@ -531,18 +781,32 @@ def _c_string(b):
     return json.dumps(b)
 
 def write_configuration(conf, kernel_dir, partition_dirs):
-    with open(os.path.join(kernel_dir, "deployment.c"), "w") as f:
-        write_kernel_deployment_c(conf, f)
+    # with open(os.path.join(kernel_dir, "deployment.c"), "w") as f:
+    #    write_kernel_deployment_c(conf, f)
 
     # caller may pass more directories than required
     # we just ignore them
-    assert len(partition_dirs) >= len(conf.partitions)
+    #assert len(partition_dirs) >= len(conf.partitions)
+    #
+    #for i in range(len(conf.partitions)):
+    #    with open(os.path.join(partition_dirs[i], "deployment.c"), "w") as f:
+    #        write_partition_deployment_c(conf, i, f)
+    pass
 
-    for i in range(len(conf.partitions)):
-        with open(os.path.join(partition_dirs[i], "deployment.c"), "w") as f:
-            write_partition_deployment_c(conf, i, f)
+
+def write_partition_configuration(conf, partition_dir, i):
+    with open(os.path.join(partition_dir, "deployment.c"), "w") as f:
+        write_partition_deployment_c(conf, i, f)
 
 def write_kernel_deployment_c(conf, f):
+    # Choose template for instantiate
+    template = jinja2_env.get_template("kernel")
+    # Render template into stream...
+    stream = template.stream(conf)
+    # ..and dump stream itself into file.
+    stream.dump(f)
+
+def not_used1():
     p = functools.partial(print, file=f)
     
     p("#include <types.h>")
@@ -559,8 +823,6 @@ def write_kernel_deployment_c(conf, f):
     if conf.network:
         total_threads += 1
 #Add 1 thread for monitor
-    total_threads +=1
-#Add 1 thread for gdb
     total_threads +=1
     
     p("uint8_t pok_config_nb_threads = %d;" % total_threads)
@@ -647,11 +909,6 @@ def write_kernel_deployment_c(conf, f):
         elif isinstance(slot, TimeSlotMonitor):
             pass
             p(TIMESLOT_MONITOR_TEMPLATE % dict(
-                duration=slot.duration
-            ))
-        elif isinstance(slot, TimeSlotGDB):
-            pass
-            p(TIMESLOT_GDB_TEMPLATE % dict(
                 duration=slot.duration
             ))
         else:

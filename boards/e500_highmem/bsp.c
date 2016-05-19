@@ -1,17 +1,19 @@
 /*
- *                               POK header
- * 
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *                                      Copyright (c) 2007-2009 POK team 
+ * See the GNU General Public License version 3 for more details.
  *
- * Created by julien on Thu Jan 15 23:34:13 2009 
+ * This file also incorporates work covered by POK License.
+ * Copyright (c) 2007-2009 POK team
  */
 
 #include <config.h>
@@ -20,27 +22,39 @@
 #include <arch.h>
 #include <core/debug.h>
 #include "cons.h"
+#include <bsp_common.h>
 #include "space.h"
 
-#include <pci.h>
 #include "devtree.h"
 
+pok_bsp_t pok_bsp = {
+    .ccsrbar_size = 0x1000000ULL,
+    .ccsrbar_base = 0xE0000000ULL,
+    .ccsrbar_base_phys = 0xFE0000000ULL,
+    .dcfg_offset = 0xE0000UL,
+    .serial0_regs_offset = 0x4500ULL,
+    .serial1_regs_offset = 0x4600ULL,
+    .timebase_freq = 400000000,
+    .pci_bridge = {
+        .cfg_addr = 0xe0008000,
+        .cfg_data = 0xe0008004,
+        .iorange =  0xe1000000
+    }
+};
+
+extern char _end[];
 
 int pok_bsp_init (void)
 {
    pok_cons_init ();
 
    //devtree_dummy_dump();
-
-#ifdef POK_NEEDS_PCI
-   pok_pci_init();
-#endif
+   if ((uintptr_t) _end > 0x4000000ULL)
+       pok_fatal("Kernel size is more than 64 megabytes");
 
    return (POK_ERRNO_OK);
 }
 
-
-extern char _end[];
 
 static char *heap_end = _end;
 
@@ -77,5 +91,10 @@ void *pok_bsp_mem_alloc_aligned(size_t mem_size, size_t alignment)
         return pok_bsp_mem_alloc(mem_size);
 
     pok_fatal("unimplemented!");
+}
+
+void pok_bsp_get_info(void *addr) {
+    pok_bsp_t *data = addr;
+    *data = pok_bsp;
 }
 

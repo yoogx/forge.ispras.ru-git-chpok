@@ -27,35 +27,14 @@
 #include <types.h>
 #include <errno.h>
 
-
-#define POK_SEMAPHORE_DISCIPLINE_FIFO 1
-
-// in kernel it's called pok_lockobj_status_t
-// layout is the same
 typedef struct {
-    uint32_t current_value;
-    uint32_t maximum_value;
-    uint32_t waiting_processes; 
-} pok_sem_status_t;
+    pok_sem_value_t current_value;
+    pok_sem_value_t maximum_value;
+    pok_range_t waiting_processes; 
+} pok_semaphore_status_t;
 
-
-pok_ret_t pok_sem_create (pok_sem_id_t*                        id,
-                          const pok_sem_value_t                current_value,
-                          const pok_sem_value_t                max_value,
-                          const pok_queueing_discipline_t      discipline);
-
-pok_ret_t pok_sem_wait (pok_sem_id_t       id,
-                        uint64_t           timeout);
-
-pok_ret_t pok_sem_trywait (pok_sem_id_t    id);
-
-pok_ret_t pok_sem_signal (pok_sem_id_t     id);
-
-pok_ret_t pok_sem_id (char*            name,
-                      pok_sem_id_t*    id);
-
-pok_ret_t pok_sem_status (pok_sem_id_t       id,
-                          pok_sem_status_t*  status);
+// All semaphore-related functions are already defined as syscalls.
+#include <core/syscall.h>
 
 
 #endif

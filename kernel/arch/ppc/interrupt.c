@@ -1,18 +1,16 @@
-/*  
- *  Copyright (C) 2015 Maxim Malkov, ISPRAS <malkov@ispras.ru> 
+/*
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * See the GNU General Public License version 3 for more details.
  */
 
 /*
@@ -27,7 +25,8 @@
 #include <core/sched.h>
 #include <core/error.h>
 #include <libc.h>
-#include <bsp.h>
+#include <bsp_common.h>
+#include "reg.h"
 
 #include "space.h"
 #include "timer.h"
@@ -35,6 +34,7 @@
 #include "fpscr.h"
 #include "esr.h"
 
+#include "thread.h"
 
 void pok_int_critical_input(uintptr_t ea) {
     (void) ea;
@@ -46,7 +46,7 @@ void pok_int_machine_check(uintptr_t ea) {
     pok_fatal("Machine check interrupt"); 
 }
 
-void pok_int_data_storage(uintptr_t ea, uintptr_t dear, unsigned long esr) {
+/*void pok_int_data_storage(uintptr_t ea, uintptr_t dear, unsigned long esr) {
     (void) ea;
     if (dear == (uintptr_t) NULL) {
 		POK_ERROR_CURRENT_THREAD(POK_ERROR_KIND_MEMORY_VIOLATION);
@@ -62,6 +62,16 @@ void pok_int_inst_storage(uintptr_t ea, uintptr_t dear, unsigned long esr) {
 		return;
 	}
     pok_arch_handle_page_fault(dear, esr);
+}*/
+
+void pok_int_data_storage(volatile_context_t *vctx, uintptr_t dear, unsigned long esr) {
+    pok_arch_handle_page_fault(vctx, dear, esr, PF_DATA_STORAGE);
+
+}
+
+void pok_int_inst_storage(volatile_context_t *vctx, uintptr_t dear, unsigned long esr) {
+    pok_arch_handle_page_fault(vctx, dear, esr, PF_INST_STORAGE);
+
 }
 
 void pok_int_ext_interrupt(uintptr_t ea) {
@@ -77,9 +87,10 @@ void pok_int_alignment(uintptr_t ea) {
 int k=0;
 
 extern void * pok_trap_addr;
-extern void * pok_trap;
+//extern void * pok_trap;
+void write_on_screen();
 
-void pok_int_program(struct regs * ea, unsigned long esr) {
+/*void pok_int_program(struct regs * ea, unsigned long esr) {
 	printf("%s: ea->fpscr: 0x%lx\n", __func__, ea->fpscr);
 	printf("%s: ea->xer: 0x%lx\n", __func__, ea->xer);
 	printf("%s: esr: 0x%lx\n", __func__, esr);
@@ -98,31 +109,65 @@ void pok_int_program(struct regs * ea, unsigned long esr) {
 	{
 		printf("%s: numeric exception!\n", __func__);
 		POK_ERROR_CURRENT_THREAD(POK_ERROR_KIND_NUMERIC_ERROR);
-		/* Step over the instruction that caused exception
-		 * so that CPU won't retry it
-		 */
+		// Step over the instruction that caused exception
+        // so that CPU won't retry it
+        //
 		ea->srr0 += 4;
 		return;
 	}
+*/
+
+void pok_int_program(struct regs * ea) {
 
 //// pok_trap_addr = address of pok_trap in entry.S
+#ifdef DEBUG_GDB
+    printf("    Pok_int_program interrupt\n");
+    int DBCR0 = mfspr(SPRN_DBCR0);
+    printf("DBCR0 = 0x%x\n", DBCR0);
+    printf("DBSR = %lx\n", mfspr(SPRN_DBSR));
+    printf("DAC1 = %lx\n", mfspr(SPRN_DAC1));
+    printf("DAC2 = %lx\n", mfspr(SPRN_DAC1));
+    printf("srr0 = 0x%lx\n", ea->srr0);
+    printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
+#endif
 
-    if (ea->srr0 == (unsigned) (& pok_trap_addr)){
+    if (ea->srr0 == (unsigned) (& pok_trap_addr)) {
         k++;
-        handle_exception(17, ea);
+#ifdef DEBUG_GDB
+        printf("Reason: SIGINT\n");
+#endif
+        handle_exception(17, ea); 
     } else {
-        handle_exception(3, ea);
+#ifdef DEBUG_GDB
+        printf("Reason: Breakpoint\n");
+#endif
+        handle_exception(3, ea); 
     }
 
-    printf("\n          Exit from handle exception\n");
-
-    if (k == 1){
+    if (k == 1) {
 /*
  * it was a trap from gdb.c (in gdb.c function)
  */ 
-        ea->srr0+=4;
-    }    
+        ea->srr0 += 4;
+#ifdef DEBUG_GDB
+        printf("Change SRR0");
+#endif
+    }
     k=0;
+
+#ifdef DEBUG_GDB
+    printf("srr0 = 0x%lx\n", ea->srr0);
+    printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
+    //~ asm volatile("isync");
+    printf("instr = 0x%lx\n", *(uint32_t *)(ea->srr0));
+    DBCR0 = mfspr(SPRN_DBCR0);
+    printf("DBCR0 = 0x%x\n", DBCR0);
+    printf("\n          Exit from handle exception\n");
+#endif
+    
+//~ asm volatile("acbi");  
+    
+////    pok_fatal("Program interrupt");
 }
 
 void pok_int_fp_unavail(uintptr_t ea) {
@@ -150,17 +195,35 @@ void pok_int_watchdog(uintptr_t ea) {
     pok_fatal("Watchdog interrupt");
 }
 
-void pok_int_data_tlb_miss(uintptr_t ea, uintptr_t dear, unsigned long esr) {
-    (void) ea;
-    pok_arch_handle_page_fault(dear, esr);
+void pok_int_data_tlb_miss(volatile_context_t *vctx, uintptr_t dear, unsigned long esr) {
+    pok_arch_handle_page_fault(vctx, dear, esr, PF_DATA_TLB_MISS);
 }
 
-void pok_int_inst_tlb_miss(uintptr_t ea, uintptr_t dear, unsigned long esr) {
-    (void) ea;
-    pok_arch_handle_page_fault(dear, esr);
+void pok_int_inst_tlb_miss(volatile_context_t *vctx, uintptr_t dear, unsigned long esr) {
+    pok_arch_handle_page_fault(vctx, dear, esr, PF_INST_TLB_MISS);
 }
 
-void pok_int_debug(uintptr_t ea) {
-    (void) ea;
-    pok_fatal("Debug interrupt");
+void pok_int_debug(struct regs * ea) {
+#ifdef DEBUG_GDB
+    printf("    DEBUG EVENT!\n");
+    printf("DBSR = %lx\n", mfspr(SPRN_DBSR));
+    printf("ea = 0x%lx\n", (uint32_t) ea);
+    int DBCR0 = mfspr(SPRN_DBCR0);
+    printf("DBCR0 = 0x%x\n", DBCR0);
+    printf("DAC1 = %lx\n", mfspr(SPRN_DAC1));
+    printf("DAC2 = %lx\n", mfspr(SPRN_DAC2));
+    printf("srr0 = 0x%lx\n", ea->srr0);
+    printf("srr1 = 0x%lx\n", ea->srr1);
+    printf("Reason: Watchpoint\n");   
+#endif
+    handle_exception(1, ea); 
+#ifdef DEBUG_GDB
+    printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
+    DBCR0 = mfspr(SPRN_DBCR0);
+    printf("DBCR0 = 0x%x\n", DBCR0);
+    asm volatile("dcbst 0, %0; sync; icbi 0,%0; sync; isync" : : "r" ((char *) ea->srr0));
+    printf("Exit from debug event\n");    
+    //~ k = 1;
+    //~ pok_fatal("Debug interrupt");
+#endif
 }

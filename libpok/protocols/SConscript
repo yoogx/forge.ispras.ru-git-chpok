@@ -1,14 +1,28 @@
-# -*- Mode: Python -*-
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 Import('libpok_env')
 
-libpok_env.Program(target = 'protocols.lo', source = [
-'ceasar/ceasar.lo',
-'blowfish/blowfish.lo',
-'des/des.lo'])
+blowfish = SConscript('blowfish/SConscript')
+caesar   = SConscript('caesar/SConscript')
+des      = SConscript('des/SConscript')
 
-SConscript('blowfish/SConscript')
-SConscript('ceasar/SConscript')
-SConscript('des/SConscript')
+Return('blowfish', 'caesar', 'des')
 
 # EOF

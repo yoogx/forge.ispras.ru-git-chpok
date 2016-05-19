@@ -1,25 +1,33 @@
-# -*- Mode: Python -*-
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 Import('env')
 
 kernel_env = env.Clone()
 kernel_env.Append(CFLAGS = ' -Werror')
 
-kernel_env.Program(target = 'pok.lo', source = [
-'core/core.lo',
-'middleware/middleware.lo',
-'libc/libc.lo',
-'arch/arch.lo',
-'drivers/drivers.lo',
-'net/net.lo'])
-
 Export('kernel_env')
 
-SConscript('core/SConscript')
-SConscript('middleware/SConscript')
-SConscript('libc/SConscript')
-SConscript('arch/SConscript')
-SConscript('drivers/SConscript')
-SConscript('net/SConscript')
+core = SConscript('core/SConscript')
+libc = SConscript('libc/SConscript')
+arch = SConscript('arch/SConscript')
+
+kernel_env.Program(target = 'core.lo', source = [arch, core, libc])
 
 # EOF

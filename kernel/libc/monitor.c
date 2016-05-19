@@ -1,13 +1,37 @@
+/*
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
+ *
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ * See the GNU General Public License version 3 for more details.
+ */
+
+
 #include <config.h>
 
 #include <libc.h>
-#include <bsp.h>
+#include <bsp_common.h>
 #include <arch.h>
-#include <core/partition.h>
+#include <core/partition_arinc.h>
 
 
-#define NCOMMANDS 8 //Number of commands, change it if you want to 
-                    //add a new command.
+#ifdef POK_NEEDS_NETWORKING
+static void pok_network_thread_init(void)
+{
+    pok_threads[NETWORK_THREAD].entry = pok_network_thread;
+    pok_threads[NETWORK_THREAD].sp = pok_context_create(NETWORK_THREAD, 4096, (uintptr_t) pok_network_thread);
+}
+#endif
+
+
+#define NCOMMANDS sizeof(commands)/sizeof(commands[0])
 
 
 
@@ -30,7 +54,29 @@ int atoi(char * s)
     return n;
 }
 
-pok_bool_t *partiton_on_pause;
+/* 
+ * N-th bit means that N-th ARINC partition should paused when
+ * monitor leaves active mode.
+ */
+static uint32_t partition_on_pause_bits = 0;
+
+static void partition_pause_set(pok_partition_id_t id, uint8_t is_paused)
+{
+    assert(id < 32);
+    
+    uint32_t mask = 1 << id;
+    
+    if(is_paused)
+        partition_on_pause_bits |= mask;
+    else
+        partition_on_pause_bits &= (~mask);
+}
+static uint8_t partition_pause_get(pok_partition_id_t id)
+{
+    assert(id < 32);
+    
+    return partition_on_pause_bits >> id & 1;
+}
 
 pok_bool_t want_to_exit=FALSE; 
 
@@ -47,6 +93,8 @@ int resume_N(int argc, char **argv); // continue partition N
 int restart_N(int argc, char **argv); // restart pertition N
 
 int exit_from_monitor(int argc, char **argv); //exit from monitor
+
+int cpu_reset(int argc, char **argv); //cpu reset
 
 int info_partition(int argc,char ** argv);
 
@@ -65,6 +113,7 @@ static struct Command commands[] = {
     {"pause", "/N/" ,"Pause partition N",pause_N},
     {"resume", "/N/" ,"Continue partition N",resume_N},
     {"restart", "/N/" ,"Restart partition N",restart_N},
+    {"reset", "" ,"reset cpu", cpu_reset},
     {"exit", "" ,"Exit from console",exit_from_monitor},
 };
 
@@ -115,20 +164,21 @@ print_partition(int argc, char **argv){
         printf("Too many arguments for ps!\n");
         return 0;
     }
-   pok_partition_id_t number_of_current_partition;
-   pok_current_partition_get_id(&number_of_current_partition);
-   if (POK_CONFIG_NB_PARTITIONS > 1) 
-            printf("There are %d partitions:\n",POK_CONFIG_NB_PARTITIONS);
-        else 
-            printf("There is %d partition:\n",POK_CONFIG_NB_PARTITIONS);
-   for (int i = 0 ; i < POK_CONFIG_NB_PARTITIONS ; i++){
-        printf("Partition %d: %s",i,pok_partitions[i].name);
-        if (i == number_of_current_partition) printf(" - current partition");
+
+    if (pok_partitions_arinc_n > 1) 
+        printf("There are %d partitions:\n", pok_partitions_arinc_n);
+    else 
+        printf("There is %d partition:\n", pok_partitions_arinc_n);
+   
+    for (int i = 0 ; i < pok_partitions_arinc_n ; i++){
+        pok_partition_arinc_t* part = &pok_partitions_arinc[i];
+        printf("Partition %d: %s", i, part->base_part.name);
         printf("\n");    
-   }
-   (void) argc;
-   (void) argv;
-   return 0;
+    }
+
+    (void) argc;
+    (void) argv;
+    return 0;
 }
 
 int info_partition(int argc,char **argv){
@@ -140,43 +190,37 @@ int info_partition(int argc,char **argv){
         printf("Missing parameter - Number of partition!\n");
         return 0;
     }    
+
     int number=0;
     number=atoi(argv[1]);
-    if (number >= POK_CONFIG_NB_PARTITIONS) {
+    if (number >= pok_partitions_arinc_n) {
         printf("There is no such partition!\n");
         return 0;        
     }
     
+    pok_partition_arinc_t* part = &pok_partitions_arinc[number];
+    
     printf("\n\n");
     printf("Info about partition #%d\n",number);
-    printf("is_paused = %d\n",partiton_on_pause[number]);
-    printf("base_addr = 0x%lx\n",pok_partitions[number].base_addr);     
-    printf("base_vaddr = 0x%lx\n",pok_partitions[number].base_vaddr);       
-    printf("size = 0x%lx\n",pok_partitions[number].size);   
-    printf("name = %s\n",pok_partitions[number].name);      
-    printf("nthreads = %lu\n",pok_partitions[number].nthreads);     
-    printf("priority = 0x%x\n",pok_partitions[number].priority);    
-    printf("period = %lu\n",pok_partitions[number].period);     
-    printf("activation = %llu\n",pok_partitions[number].activation);        
-    printf("prev_thread = %lu\n",pok_partitions[number].prev_thread);   
-    printf("current_thread = %lu\n",pok_partitions[number].current_thread);     
-    printf("thread_index_low = %lu\n",pok_partitions[number].thread_index_low);     
-    printf("thread_index_high = %lu\n",pok_partitions[number].thread_index_high);       
-    printf("thread_index = %lu\n",pok_partitions[number].thread_index);     
-#if defined(POK_NEEDS_LOCKOBJECTS) || defined(POK_NEEDS_ERROR_HANDLING)
-    printf("lockobj_index_low = 0x%x\n",pok_partitions[number].lockobj_index_low);      
-    printf("lockobj_index_high = 0x%x\n",pok_partitions[number].lockobj_index_high);        
-    printf("nlockobjs = 0x%x\n",pok_partitions[number].nlockobjs);      
-#endif
-    printf("thread_main = %d\n",pok_partitions[number].thread_main);    
+    printf("is_paused = %d\n", partition_pause_get(number));
+    printf("base_addr = 0x%lx\n", part->base_addr);
+    printf("base_vaddr = 0x%lx\n", part->base_vaddr);
+    printf("size = 0x%lx\n", part->size);
+    printf("name = %s\n", part->base_part.name);
+    printf("nthreads = %lu\n", part->nthreads);
+    printf("priority = 0x%x\n", part->base_part.priority);
+    printf("period = %lu\n", part->base_part.period);
+    //printf("activation = %llu\n", part->base_part.activation);
+    printf("lock_level = %u\n", (unsigned) part->lock_level);
+    printf("prev_thread = %u\n", part->lock_level ? part->thread_locked - part->threads : (unsigned)-1);
+    printf("current_thread = %u\n", part->thread_current - part->threads);
+    printf("thread_main = %d\n", POK_PARTITION_ARINC_MAIN_THREAD_ID);
 #ifdef POK_NEEDS_IO
     //printf("io_min = %d\n",pok_partitions[number].io_min);        
     //printf("io_max = %d\n",pok_partitions[number].io_max);        
 #endif
-    //printf("lock_level = %d\n",pok_partitions[number].lock_level);   uint32   
     printf("\n\n");
 
-    
     return 0;
 }
 
@@ -192,15 +236,15 @@ pause_N(int argc, char **argv){
     }    
     int number=0;
     number=atoi(argv[1]);
-    if (number >= POK_CONFIG_NB_PARTITIONS) {
+    if (number >= pok_partitions_arinc_n) {
         printf("There is no such partition!\n");
         return 0;        
     }
     //Change mode of this partition to paused
-    partiton_on_pause[number]=TRUE;
-    printf("Partition %d paused\n",number);
-    return 0;
+    partition_pause_set(number, 1);
+    printf("Partition %d paused\n", number);
 
+    return 0;
 }
 
 int 
@@ -214,17 +258,17 @@ resume_N(int argc, char **argv){
         printf("Missing parameter - Number of partition!\n");
         return 0;
     }    
+
     int number=0;
     number=atoi(argv[1]);
-    if (number >= POK_CONFIG_NB_PARTITIONS) {
+    if (number >= pok_partitions_arinc_n) {
         printf("There is no such partition!\n");
         return 0;        
     }
     //Change mode of this partition to not paused
-    partiton_on_pause[number]=FALSE;
+    partition_pause_set(number, 0);
     printf("Partition %d resumed\n",number);
     return 0;
-
 }
 
 int 
@@ -238,19 +282,20 @@ restart_N(int argc, char **argv){
         printf("Missing parameter - Number of partition!\n");
         return 0;
     }    
+
     int number=0;
     number=atoi(argv[1]);
-    if (number >= POK_CONFIG_NB_PARTITIONS) {
+    if (number >= pok_partitions_arinc_n) {
         printf("There is no such partition!\n");
         return 0;        
     }
-    //Change mode of this partition and call reinit to restart it
-    pok_partition_set_mode(number,POK_PARTITION_MODE_INIT_COLD);
-    pok_partition_reinit(number);
-//    pok_partitions[number].is_paused=FALSE;
-    printf("Partition %d restarted\n",number);
-    return 0;
 
+    // Restart partition via global scheduler.
+    pok_partitions_arinc[number].base_part.sp = 0;
+
+    printf("Partition %d restarted\n",number);
+
+    return 0;
 }
 
 int 
@@ -263,6 +308,15 @@ exit_from_monitor(int argc, char **argv){
 
 }
 
+int cpu_reset(int argc, char **argv)
+{
+    (void) argc;
+    (void) argv;
+    printf("Rebooting\n");
+    pok_arch_cpu_reset();
+
+    return 0;
+}
 
 
 
@@ -331,53 +385,59 @@ monitor()
 }
 
 
-void pok_monitor_thread(void)
+void monitor_start_func(void)
 {
-    printf("pok_monitor_thread\n");     
-    pok_arch_preempt_enable(); //Initialize interrupts   
-    for (int i=0; i < POK_CONFIG_NB_PARTITIONS; i++){
-        partiton_on_pause[i]=TRUE;
+    for (int i=0; i < pok_partitions_arinc_n; i++){
+        partition_pause_set(i, 1);
     }
     for (;;) {
         if (data_to_read_0() == 1) {
             /*
              * Set all partition on pause
              */
-            pok_arch_preempt_disable();         
-            for (int i=0; i < POK_CONFIG_NB_PARTITIONS; i++){
-                if (!pok_partitions[i].is_paused){ 
-                    partiton_on_pause[i]=FALSE;
-                    pok_partitions[i].is_paused=TRUE;
+            pok_preemption_disable();
+            for (int i=0; i < pok_partitions_arinc_n; i++){
+                pok_partition_arinc_t* part = &pok_partitions_arinc[i];
+                if (!part->base_part.is_paused){ 
+                    partition_pause_set(i, 0);
+                    part->base_part.is_paused=TRUE;
                 }
             }
-            pok_arch_preempt_enable();         
+            pok_preemption_enable();
             
-            //pok_arch_preempt_disable();         
             monitor();
-            //pok_arch_preempt_enable();        
 
-            pok_arch_preempt_disable();         
-            for (int i=0; i < POK_CONFIG_NB_PARTITIONS; i++){
-                if (!partiton_on_pause[i]){ 
-                    pok_partitions[i].is_paused=FALSE;
+            pok_preemption_disable();
+            for (int i=0; i < pok_partitions_arinc_n; i++){
+                if (!partition_pause_get(i)){ 
+                    pok_partitions_arinc[i].base_part.is_paused=FALSE;
                 }
             }
-            pok_arch_preempt_enable();         
+            pok_preemption_enable();
         }
-        #ifdef i386
-        asm("hlt");
-        #endif
     }
 }
+
+void monitor_process_error(pok_system_state_t partition_state,
+        pok_error_id_t error_id,
+        uint8_t state_byte_preempt_local,
+        void* failed_address)
+{
+    pok_fatal("Error in monitor");
+}
+
+static const struct pok_partition_operations monitor_operations =
+{
+    .start = monitor_start_func,
+    .process_partition_error = monitor_process_error
+};
 
 void pok_monitor_thread_init()
 {
 #ifdef POK_NEEDS_MONITOR
-    pok_threads[MONITOR_THREAD].entry = pok_monitor_thread;
-    pok_threads[MONITOR_THREAD].sp = pok_context_create(MONITOR_THREAD, 4096, (uintptr_t) pok_monitor_thread);
-    pok_bool_t tmp[POK_CONFIG_NB_PARTITIONS];
-    partiton_on_pause = tmp;
+    partition_monitor.part_sched_ops = &partition_sched_ops_kernel;
+    partition_monitor.part_ops = &monitor_operations;
+    pok_dstack_alloc(&partition_monitor.initial_sp, 4096);
 #endif
 }
-
 

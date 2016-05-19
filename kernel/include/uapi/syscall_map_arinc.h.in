@@ -1,0 +1,313 @@
+/*
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
+ *
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ * See the GNU General Public License version 3 for more details.
+ */
+
+//!
+//! Map from syscall identificators to functions, which implements them.
+//! 
+//! This file is processed by script `generate_syscalls.py`.
+//! All lines from given file will go into resulting file "as is", except:
+//!
+//! 1. Comments marked so will not go into the resulted file.
+//!
+//! 2. Lines started with "SYSCALL_DECLARE(" begins syscall definition.
+//!    The definition is continued until the line ended with ")"
+//!    Format of syscall definition is:
+//!        SYSCALL_DECLARE(syscall_id, function, [arg_type, arg_name [,arg_type, arg_name]... )
+//!
+//!    Every parameter for syscall definition is interpreted as string
+//!    with trailing and prepending space-like charactes removed;
+//!    every 1 or more consequent intermediate spaces-like characters are replaced with single space.
+//!
+//!    Every syscall definition is transformed in some manner.
+//!
+
+SYSCALL_DECLARE(POK_SYSCALL_THREAD_CREATE, pok_thread_create,
+   pok_thread_id_t*, thread_id,
+   const pok_thread_attr_t*, attr)
+
+//! User function accepts int64_t arg, checks that it fits into int32_t and transforms it.
+#ifdef POK_NEEDS_THREAD_SLEEP
+SYSCALL_DECLARE(POK_SYSCALL_THREAD_SLEEP, pok_thread_sleep,
+   const pok_time_t*, time)
+#endif
+
+#ifdef POK_NEEDS_THREAD_SLEEP_UNTIL
+SYSCALL_DECLARE(POK_SYSCALL_THREAD_SLEEP_UNTIL, pok_thread_sleep_until,
+   const pok_time_t*, time)
+#endif
+//! User name - pok_thread_period
+SYSCALL_DECLARE(POK_SYSCALL_THREAD_PERIOD, pok_sched_end_period)
+
+#if defined (POK_NEEDS_THREAD_SUSPEND) || defined (POK_NEEDS_ERROR_HANDLING)
+//! User function accepts int64_t arg, checks that it fits into int32_t and transforms it.
+SYSCALL_DECLARE(POK_SYSCALL_THREAD_SUSPEND, pok_thread_suspend,
+   const pok_time_t*, time)
+#endif
+
+#ifdef POK_NEEDS_THREAD_ID
+//! User name - pok_thread_id
+SYSCALL_DECLARE(POK_SYSCALL_THREAD_ID, pok_sched_get_current,
+   pok_thread_id_t*, thread_id)
+#endif
+//! User name - pok_thread_status
+SYSCALL_DECLARE(POK_SYSCALL_THREAD_STATUS, pok_thread_get_status,
+   pok_thread_id_t, thread_id,
+   pok_thread_status_t*, attr)
+
+//! User function accepts int64_t arg, checks that it fits into int32_t and transforms it.
+SYSCALL_DECLARE(POK_SYSCALL_THREAD_DELAYED_START, pok_thread_delayed_start,
+   pok_thread_id_t, thread_id,
+   const pok_time_t*, time)
+
+SYSCALL_DECLARE(POK_SYSCALL_THREAD_SET_PRIORITY, pok_thread_set_priority,
+   pok_thread_id_t, thread_id,
+   uint32_t, priority)
+
+SYSCALL_DECLARE(POK_SYSCALL_THREAD_RESUME, pok_thread_resume,
+   pok_thread_id_t, thread_id)
+
+SYSCALL_DECLARE(POK_SYSCALL_THREAD_SUSPEND_TARGET, pok_thread_suspend_target,
+   pok_thread_id_t, thread_id)
+
+SYSCALL_DECLARE(POK_SYSCALL_THREAD_YIELD, pok_thread_yield)
+
+//! User name - pok_thread_replenish
+SYSCALL_DECLARE(POK_SYSCALL_THREAD_REPLENISH, pok_sched_replenish,
+   const pok_time_t*, budget)
+
+SYSCALL_DECLARE(POK_SYSCALL_THREAD_STOP, pok_thread_stop_target,
+   pok_thread_id_t, thread_id)
+
+SYSCALL_DECLARE(POK_SYSCALL_THREAD_STOPSELF, pok_thread_stop)
+
+SYSCALL_DECLARE(POK_SYSCALL_THREAD_FIND, pok_thread_find,
+   const char*, name,
+   pok_thread_id_t*, id)
+
+#ifdef POK_NEEDS_PARTITIONS
+//! User name - pok_partition_set_mode
+SYSCALL_DECLARE(POK_SYSCALL_PARTITION_SET_MODE, pok_partition_set_mode_current,
+   pok_partition_mode_t, mode)
+
+SYSCALL_DECLARE(POK_SYSCALL_PARTITION_GET_ID, pok_current_partition_get_id,
+   pok_partition_id_t*, id)
+
+SYSCALL_DECLARE(POK_SYSCALL_PARTITION_GET_PERIOD, pok_current_partition_get_period,
+   pok_time_t*, period)
+
+SYSCALL_DECLARE(POK_SYSCALL_PARTITION_GET_DURATION, pok_current_partition_get_duration,
+   pok_time_t*, duration)
+
+SYSCALL_DECLARE(POK_SYSCALL_PARTITION_GET_LOCK_LEVEL, pok_current_partition_get_lock_level,
+   int32_t*, lock_level)
+
+SYSCALL_DECLARE(POK_SYSCALL_PARTITION_GET_OPERATING_MODE, pok_current_partition_get_operating_mode,
+   pok_partition_mode_t*, mode)
+
+SYSCALL_DECLARE(POK_SYSCALL_PARTITION_GET_START_CONDITION, pok_current_partition_get_start_condition,
+   pok_start_condition_t*, start_condition)
+
+//! User name - pok_partition_inc_lock_level
+SYSCALL_DECLARE(POK_SYSCALL_PARTITION_INC_LOCK_LEVEL, pok_current_partition_inc_lock_level,
+   int32_t*, lock_level)
+
+//! User name - pok_partition_dec_lock_level
+SYSCALL_DECLARE(POK_SYSCALL_PARTITION_DEC_LOCK_LEVEL, pok_current_partition_dec_lock_level,
+   int32_t*, lock_level)
+#endif
+
+#ifdef POK_NEEDS_BUFFERS
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_BUFFER_CREATE, pok_buffer_create,
+   char*, name,
+   pok_message_size_t, max_message_size,
+   pok_message_range_t, max_nb_message,
+   pok_queuing_discipline_t, discipline,
+   pok_buffer_id_t*, id)
+
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_BUFFER_SEND, pok_buffer_send,
+   pok_buffer_id_t, id,
+   const void*, data,
+   pok_message_size_t, length,
+   const pok_time_t*, timeout)
+   
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_BUFFER_RECEIVE, pok_buffer_receive,
+   pok_buffer_id_t, id,
+   const pok_time_t*, timeout,
+   void*, data,
+   pok_message_size_t*, length)
+
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_BUFFER_ID, pok_buffer_get_id,
+   char*, name,
+   pok_buffer_id_t*, id)
+                        
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_BUFFER_STATUS, pok_buffer_status,
+   pok_buffer_id_t, id,
+   pok_buffer_status_t*, status)
+#endif
+
+#ifdef POK_NEEDS_BLACKBOARDS
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_BLACKBOARD_CREATE, pok_blackboard_create,
+   const char*, name,
+   pok_message_size_t, max_message_size,
+   pok_blackboard_id_t*, id)
+
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_BLACKBOARD_READ, pok_blackboard_read,
+   pok_blackboard_id_t, id,
+   const pok_time_t*, timeout,
+   void*, data,
+   pok_message_size_t*, len)
+   
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_BLACKBOARD_DISPLAY, pok_blackboard_display,
+   pok_blackboard_id_t, id,
+   const void*, message,
+   pok_message_size_t, len)
+   
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_BLACKBOARD_CLEAR, pok_blackboard_clear,
+   pok_blackboard_id_t, id)
+
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_BLACKBOARD_ID, pok_blackboard_id,
+   const char*, name,
+   pok_blackboard_id_t*, id)
+
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_BLACKBOARD_STATUS, pok_blackboard_status,
+   pok_blackboard_id_t, id,
+   pok_blackboard_status_t*, status)
+#endif
+
+#ifdef POK_NEEDS_SEMAPHORES
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_SEMAPHORE_CREATE, pok_semaphore_create,
+   const char*, name,
+   pok_sem_value_t, value,
+   pok_sem_value_t, max_value,
+   pok_queuing_discipline_t, discipline,
+   pok_sem_id_t*, id)
+
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_SEMAPHORE_WAIT, pok_semaphore_wait,
+   pok_sem_id_t, id,
+   const pok_time_t*, timeout)
+
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_SEMAPHORE_SIGNAL, pok_semaphore_signal,
+   pok_sem_id_t, id)
+
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_SEMAPHORE_ID, pok_semaphore_id,
+   const char*, name,
+   pok_sem_id_t*, id)
+
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_SEMAPHORE_STATUS, pok_semaphore_status,
+   pok_sem_id_t, id,
+   pok_semaphore_status_t*, status)
+#endif
+
+#ifdef POK_NEEDS_EVENTS
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_EVENT_CREATE, pok_event_create,
+   const char*, name,
+   pok_event_id_t*, id)
+
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_EVENT_SET, pok_event_set,
+   pok_event_id_t, id)
+   
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_EVENT_RESET, pok_event_reset,
+   pok_event_id_t, id)
+
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_EVENT_WAIT, pok_event_wait,
+   pok_event_id_t, id,
+   const pok_time_t*, timeout)
+
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_EVENT_ID, pok_event_id,
+   const char*, name,
+   pok_event_id_t*, id)
+
+SYSCALL_DECLARE(POK_SYSCALL_INTRA_EVENT_STATUS, pok_event_status,
+   pok_event_id_t, id,
+   pok_event_status_t*, status)
+#endif
+
+
+#ifdef POK_NEEDS_ERROR_HANDLING
+//! Used directly for CREATE_ERROR_HANDLER
+SYSCALL_DECLARE(POK_SYSCALL_ERROR_HANDLER_CREATE, pok_error_thread_create,
+   uint32_t, stack_size,
+   void*, entry)
+
+SYSCALL_DECLARE(POK_SYSCALL_ERROR_RAISE_APPLICATION_ERROR, pok_error_raise_application_error,
+   const char*, msg,
+   size_t, msg_size)
+
+SYSCALL_DECLARE(POK_SYSCALL_ERROR_GET, pok_error_get,
+   pok_error_status_t*, status)
+
+//!SYSCALL_DECLARE(POK_SYSCALL_ERROR_IS_HANDLER, pok_error_is_handler)
+#endif
+
+         /* Middleware syscalls */
+#ifdef POK_NEEDS_PORTS_SAMPLING
+//! User function accepts uint64_t and transforms it to uint32_t without checks
+SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_SAMPLING_CREATE, pok_port_sampling_create,
+   const char*, name,
+   pok_port_size_t, size,
+   pok_port_direction_t, direction,
+   const pok_time_t*, refresh,
+   pok_port_id_t*, id)
+
+SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_SAMPLING_WRITE, pok_port_sampling_write,
+   pok_port_id_t, id,
+   const void*, data,
+   pok_port_size_t, len)
+
+SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_SAMPLING_READ, pok_port_sampling_read,
+   pok_port_id_t, id,
+   void*, data,
+   pok_port_size_t*, len,
+   bool_t*, valid)
+
+SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_SAMPLING_ID, pok_port_sampling_id,
+   const char*, name,
+   pok_port_id_t*, id)
+
+SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_SAMPLING_STATUS, pok_port_sampling_status,
+   pok_port_id_t, id,
+   pok_port_sampling_status_t*, status)
+
+SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_SAMPLING_CHECK, pok_port_sampling_check,
+   pok_port_id_t, id)
+#endif /* POK_NEEDS_PORTS_SAMPLING */
+
+#ifdef POK_NEEDS_PORTS_QUEUEING
+SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_QUEUEING_CREATE, pok_port_queuing_create_packed,
+    const char*, name,
+    const pok_port_queuing_create_arg_t*, arg,
+    pok_port_id_t*, id)
+
+//! User function accepts int64_t and transforms it to int32_t without checks
+SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_QUEUEING_SEND, pok_port_queuing_send,
+   pok_port_id_t, id,
+   const void*, data,
+   pok_port_size_t, len,
+   const pok_time_t*, timeout)
+
+SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_QUEUEING_RECEIVE, pok_port_queuing_receive,
+   pok_port_id_t, id,
+   const pok_time_t*, timeout,
+   void*, data,
+   pok_port_size_t*, len)
+
+SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_QUEUEING_ID, pok_port_queuing_id,
+   const char*, name,
+   pok_port_id_t*, id)
+
+SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_QUEUEING_STATUS, pok_port_queuing_status,
+   pok_port_id_t, id,
+   pok_port_queuing_status_t*, status)
+#endif /* POK_NEEDS_PORTS_QUEUEING */

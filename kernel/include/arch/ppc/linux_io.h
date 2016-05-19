@@ -1,16 +1,17 @@
+/*
+ * From linux sources:
+ * arch/powerpc/include/asm/io.h
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version
+ * 2 of the License, or (at your option) any later version.
+ *
+ */
 #ifndef __POK_LINUX_IOPORTS_H__
 #define __POK_LINUX_IOPORTS_H__
 
 #include <stdint.h>
 
-/* From linux kernel */
-
-/*
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version
- * 2 of the License, or (at your option) any later version.
- */
 
 typedef uint8_t  u8;
 typedef uint16_t u16;

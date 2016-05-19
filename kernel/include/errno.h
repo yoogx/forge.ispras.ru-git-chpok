@@ -65,5 +65,4 @@ typedef enum
 		POK_ERRNO_PARTITION            =  401
 } pok_ret_t;
 
-
 #endif

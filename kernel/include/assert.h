@@ -34,7 +34,9 @@ static inline void pok_assertion_fail(const char *expression, const char *file, 
         pok_assertion_fail(#expr, __FILE__, __LINE__) \
     )
 #else
-    #define assert(expr) ((void)0)
+    #define assert(expr) do {} while (0)
 #endif
+
+#define unreachable() assert(FALSE)
 
 #endif

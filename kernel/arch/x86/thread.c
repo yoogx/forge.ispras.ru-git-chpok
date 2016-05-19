@@ -22,7 +22,7 @@
 
 #include <config.h>
 
-#include <bsp.h>
+#include <bsp_common.h>
 #include <libc.h>
 #include <errno.h>
 #include <core/thread.h>

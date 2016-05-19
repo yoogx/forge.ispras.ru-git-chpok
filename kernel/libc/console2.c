@@ -1,5 +1,5 @@
 #include <libc.h>
-#include <bsp.h>
+#include <bsp_common.h>
 
 
 /*
@@ -62,10 +62,8 @@ cons_getc2(void) //Get 1 element from cons
 int
 getchar2(void)
 {
-    int c;
-    
-    while ((c = cons_getc2()) == 0){
+    while (!data_to_read_1()){
     }
-    return c;
+    return read_serial_1();
 }
 
