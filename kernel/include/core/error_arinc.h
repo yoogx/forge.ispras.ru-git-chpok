@@ -72,7 +72,6 @@ typedef struct
    pok_thread_id_t      failed_thread;
    uintptr_t            failed_addr;
    size_t               msg_size;
-   char                 msg[POK_ERROR_MAX_MSG_SIZE];
 } pok_error_status_t;
 
 /*
@@ -93,7 +92,8 @@ pok_ret_t   pok_error_raise_application_error (const char* msg, size_t msg_size)
 /*
  * Pops an error from partition error queue.
  */
-pok_ret_t   pok_error_get (pok_error_status_t* status);
+pok_ret_t   pok_error_get (pok_error_status_t* status,
+    void* __user msg);
 
 
 /* 

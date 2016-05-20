@@ -53,15 +53,14 @@ typedef struct
    pok_thread_id_t      failed_thread;
    uintptr_t            failed_addr;
    size_t               msg_size;
-   char                 msg[POK_ERROR_MAX_MSG_SIZE];
 } pok_error_status_t;
 
 #include <core/syscall.h>
 
-pok_ret_t pok_error_handler_create ();
-void pok_error_ignore  (const uint32_t error_id, const uint32_t thread_id);
-void pok_error_confirm (const uint32_t error_id, const uint32_t thread_id);
-pok_ret_t pok_error_handler_set_ready (const pok_error_status_t*);
+//pok_ret_t pok_error_handler_create ();
+//void pok_error_ignore  (const uint32_t error_id, const uint32_t thread_id);
+//void pok_error_confirm (const uint32_t error_id, const uint32_t thread_id);
+//pok_ret_t pok_error_handler_set_ready (const pok_error_status_t*);
 
 #endif
 

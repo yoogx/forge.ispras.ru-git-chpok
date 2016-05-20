@@ -235,7 +235,8 @@ SYSCALL_DECLARE(POK_SYSCALL_ERROR_RAISE_APPLICATION_ERROR, pok_error_raise_appli
    size_t, msg_size)
 
 SYSCALL_DECLARE(POK_SYSCALL_ERROR_GET, pok_error_get,
-   pok_error_status_t*, status)
+   pok_error_status_t*, status,
+   void*, msg)
 
 //!SYSCALL_DECLARE(POK_SYSCALL_ERROR_IS_HANDLER, pok_error_is_handler)
 #endif

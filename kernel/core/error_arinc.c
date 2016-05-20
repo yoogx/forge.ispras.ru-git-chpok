@@ -374,22 +374,23 @@ void error_check_after_handler(void)
  * Should be called with local preemption disabled.
  */
 static void copy_error_to_user(pok_error_id_t error_id,
-    pok_error_status_t* __user status)
+    pok_error_status_t* __user status, void* __user msg)
 {
-     const char* msg = get_error_description(error_id);
+     const char* kernel_msg = get_error_description(error_id);
      size_t msg_size;
      assert(msg); // TODO: Should be another error raised.
 
-     msg_size = strnlen(msg, POK_ERROR_MAX_MSG_SIZE);
+     msg_size = strnlen(kernel_msg, POK_ERROR_MAX_MSG_SIZE);
      if(msg_size != POK_ERROR_MAX_MSG_SIZE) msg_size++;
 
-     __copy_to_user(status->msg, msg, msg_size);
+     __copy_to_user(msg, msg, msg_size);
      __put_user_f(status, msg_size, msg_size);
 
     __put_user_f(status, error_kind, get_error_kind(error_id));
 }
 
-pok_ret_t pok_error_get (pok_error_status_t* __user status)
+pok_ret_t pok_error_get (pok_error_status_t* __user status,
+    void* __user msg)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
     pok_thread_t* thread;
@@ -417,13 +418,13 @@ pok_ret_t pok_error_get (pok_error_status_t* __user status)
          {
              pok_message_send_t* message_send = thread->wait_private;
            
-             __copy_user(&status->msg, message_send->data, message_send->size);
              __put_user_f(status, msg_size, message_send->size);
              __put_user_f(status, error_kind, get_error_kind(POK_ERROR_ID_APPLICATION_ERROR));
+             __copy_user(msg, message_send->data, message_send->size);
          }
          else
          {
-             copy_error_to_user(part->sync_error, status);
+             copy_error_to_user(part->sync_error, status, msg);
          }
          
          failed_addr = part->sync_error_failed_addr;
@@ -432,20 +433,21 @@ pok_ret_t pok_error_get (pok_error_status_t* __user status)
     {
         thread_clear_error_bit(thread, POK_THREAD_ERROR_BIT_DEADLINE);
 
-        copy_error_to_user(POK_ERROR_ID_DEADLINE_MISSED, status);
+        copy_error_to_user(POK_ERROR_ID_DEADLINE_MISSED, status, msg);
     }
 
     else if(error_bits & POK_THREAD_ERROR_BIT_DEADLINE_OOR)
     {
         thread_clear_error_bit(thread, POK_THREAD_ERROR_BIT_DEADLINE_OOR);
 
-        copy_error_to_user(POK_ERROR_ID_ILLEGAL_REQUEST, status);
+        copy_error_to_user(POK_ERROR_ID_ILLEGAL_REQUEST, status, msg);
     }
     else
     {
         unreachable();
     }
     
+    __put_user_f(status, failed_thread, thread - part->threads);
     __put_user_f(status, failed_addr, failed_addr);
    
     return POK_ERRNO_OK;
