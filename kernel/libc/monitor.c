@@ -13,7 +13,6 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-
 #include <config.h>
 
 #include <libc.h>
