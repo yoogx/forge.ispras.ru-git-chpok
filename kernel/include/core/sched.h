@@ -37,8 +37,9 @@
 extern pok_partition_t partition_monitor;
 #endif /* POK_NEEDS_MONITOR */
 
-#ifdef POK_NEEDS_GDB
+extern pok_bool_t sched_not_started;
 
+#ifdef POK_NEEDS_GDB
 /*
  * GDB partition.
  * 

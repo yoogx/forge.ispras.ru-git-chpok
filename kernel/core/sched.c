@@ -240,8 +240,11 @@ void pok_sched_restart (void)
     pok_context_jump(*new_sp);
 }
 
+pok_bool_t sched_not_started = TRUE;
+
 void pok_sched_start (void)
 {
+    sched_not_started = FALSE;
 #ifdef POK_NEEDS_MONITOR
     idle_stack = pok_stack_alloc(KERNEL_STACK_SIZE_DEFAULT);
 #endif /*POK_NEEDS_MONITOR */

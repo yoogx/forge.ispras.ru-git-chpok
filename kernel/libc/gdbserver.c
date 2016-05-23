@@ -125,8 +125,10 @@
  * 
  * Threading model of the POK.
  * 
+ * 1.1 - Idle, which is active even before scheduler starts.
+ * 
  * For each kernel-only partition with (relative) index K there is thread
- * 1.(K+1)
+ * 1.(K+2)
  * 
  * For each partition with access to user space (space_id is not 0xff)
  * with (relative) index U there is inferior
@@ -142,7 +144,7 @@ struct gdb_thread
     pok_partition_t* part;
     void* part_private;
 };
-
+extern struct regs null_ea;
 // Currently executed thread
 static struct gdb_thread gdb_thread_current;
 
@@ -250,7 +252,13 @@ user_thread:
     return 0;
 
 kernel_thread:
-    t->part = get_partition_at_index(t->thread_id - 1, TRUE);
+    if(t->thread_id == 1)
+    {
+        t->part = NULL;
+        return 0;
+    }
+    
+    t->part = get_partition_at_index(t->thread_id - 2, TRUE);
     if(!t->part) return 1; // EOF
 
     assert(t->part->part_sched_ops->get_number_of_threads(t->part) == 1);
@@ -284,9 +292,16 @@ int gdb_thread_find(struct gdb_thread* t)
 {
     if(t->inferior_id == 1)
     {
-        t->part = get_partition_at_index(t->thread_id - 1, TRUE);
-        if(!t->part) return 1;
-        t->part->part_sched_ops->get_thread_at_index(t->part, 0, &t->part_private);
+        if(t->thread_id == 1)
+        {
+            t->part = NULL;
+        }
+        else
+        {
+            t->part = get_partition_at_index(t->thread_id - 2, TRUE);
+            if(!t->part) return 1;
+            t->part->part_sched_ops->get_thread_at_index(t->part, 0, &t->part_private);
+        }
     }
     else
     {
@@ -339,6 +354,13 @@ void gdb_thread_get_current(void)
 {
     struct gdb_thread* t = &gdb_thread_current;
     t->part = current_partition;
+    if(sched_not_started)
+    {
+        t->inferior_id = 1;
+        t->thread_id = 1;
+        t->part = NULL;
+        return;
+    }
     if(t->part->space_id == 0xff)
     {
         t->inferior_id = 1;
@@ -358,6 +380,7 @@ void gdb_thread_get_current(void)
  */
 static uint8_t gdb_thread_get_space(const struct gdb_thread* t)
 {
+    if(!t->part) return 0xff;
     return t->part->space_id;
 }
 
@@ -390,6 +413,13 @@ void gdb_thread_print_name(const struct gdb_thread* t,
 #define WRITE_STR(s) print_cb(s, strlen(s), cb_data)
     if(gdb_thread_equal(&gdb_thread_current, t))
         WRITE_STR("* ");
+    
+    if(!t->part)
+    {
+        WRITE_STR("IDLE");
+        return;
+    }
+    
 
     size_t name_len = strnlen(t->part->name, MAX_NAME_LENGTH);
     print_cb(t->part->name, name_len, cb_data);
@@ -408,6 +438,7 @@ static struct regs* gdb_thread_get_regs(const struct gdb_thread* t)
 {
     if(t->inferior_id == 1)
     {
+        if(!t->part) return &null_ea;
         // Kernel threads always current for partition.
         return (struct regs*)t->part->entry_sp;
     }
