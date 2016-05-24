@@ -231,4 +231,13 @@ void pok_partition_return_user(void);
  */
 extern volatile pok_bool_t pok_in_user_space;
 
+/** 
+ * Restart current partition.
+ * 
+ * Because this function is called by partition itself,
+ * '.restarted_externally' flag is not set.
+ */
+void pok_partition_restart(void);
+
+
 #endif /* !__POK_SCHED_H__ */

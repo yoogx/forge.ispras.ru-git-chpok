@@ -34,7 +34,7 @@ typedef enum
   // comments describe to what states of ARINC653 these correspond to
   POK_STATE_STOPPED = 0, // DORMANT (must be started first)
   POK_STATE_RUNNABLE = 1, // READY or RUNNING. When return status to user space it means READY.
-  POK_STATE_WAITING = 2, // WAITING (any reason except suspended, from the first list)
+  POK_STATE_WAITING = 2, // WAITING for any event except resuming(but for timed suspend exactly this state is used).
   POK_STATE_RUNNING = 3, // RUNNING. Used only for return status to user space.
 } pok_state_t;
 
@@ -369,12 +369,10 @@ typedef struct _pok_thread
 typedef struct
 {
     uint8_t         priority;         /* Priority is from 0 to 255 */
-    void*           entry;            /* entrypoint of the thread  */
     pok_time_t      period;
     pok_deadline_t  deadline;
     pok_time_t      time_capacity;
     uint32_t        stack_size;
-    char 		    process_name [MAX_NAME_LENGTH];
 } pok_thread_attr_t;
 
 typedef struct 
@@ -473,7 +471,10 @@ pok_bool_t pok_thread_is_runnable(const pok_thread_t *thread)
  * Return POK_ERRNO_TOOMANY if the partition cannot contain
  * more threads.
  */
-pok_ret_t pok_thread_create (pok_thread_id_t* __user thread_id, const pok_thread_attr_t* __user attr);
+pok_ret_t pok_thread_create (const char* __user name,
+    void* __user entry,
+    const pok_thread_attr_t* __user attr,
+    pok_thread_id_t* __user thread_id);
 
 pok_ret_t pok_thread_start(pok_thread_id_t thread_id);
 pok_ret_t pok_thread_suspend(const pok_time_t* time);
@@ -484,7 +485,12 @@ pok_ret_t pok_thread_stop_target(pok_thread_id_t thread_id);
 pok_ret_t pok_thread_delayed_start (pok_thread_id_t id, const pok_time_t* __user delay_time);
 pok_ret_t pok_thread_get_id_self(pok_thread_id_t* __user thread_id);
 pok_ret_t pok_thread_get_id(const char* __user name, pok_thread_id_t* __user thread_id);
-pok_ret_t pok_thread_get_status(pok_thread_id_t id, pok_thread_status_t* __user attr);
+
+pok_ret_t pok_thread_get_status(pok_thread_id_t id,
+    char* __user name,
+    void** __user entry,
+    pok_thread_status_t* __user attr);
+
 pok_ret_t pok_thread_set_priority(pok_thread_id_t id, const uint32_t priority);
 pok_ret_t pok_thread_resume(pok_thread_id_t id);
 

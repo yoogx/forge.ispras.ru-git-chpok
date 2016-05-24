@@ -150,10 +150,10 @@ void thread_stop(pok_thread_t* t)
 
     pok_thread_wq_remove(t);
 
-    if(part->lock_level)
+    if(part->lock_level && part->thread_locked == t)
     {
-        if(part->thread_locked == t)
-            current_partition_arinc->lock_level = 0;
+        current_partition_arinc->lock_level = 0;
+	pok_sched_local_invalidate(); // Thread could be non-highest priority thread when stopped.
     }
 
     if(t->is_unrecoverable)
@@ -217,15 +217,51 @@ void thread_wait_timed(pok_thread_t *thread, pok_time_t time)
     thread_delay_event(thread, time, &thread_wake_up);
 }
 
+
 void thread_suspend(pok_thread_t* t)
 {
     t->suspended = TRUE;
     thread_set_uneligible(t);
 }
 
+// Special function for resume thread after suspension time is over.
+static void thread_resume_waited(pok_thread_t* t)
+{
+    assert(t->state == POK_STATE_WAITING);
+
+    t->suspended = FALSE;
+    t->state = POK_STATE_RUNNABLE;
+
+    // Set flag that we has been interrupted by timeout.
+    t->wait_private = (void*)(-(long)POK_ERRNO_TIMEOUT);
+
+    thread_set_eligible(t);
+}
+
+void thread_suspend_timed(pok_thread_t* t, pok_time_t time)
+{
+    t->suspended = TRUE;
+    thread_set_uneligible(t);
+    thread_wait(t);
+    thread_delay_event(t, POK_GETTICK() + time, &thread_resume_waited);
+}
+
+
 void thread_resume(pok_thread_t* t)
 {
     t->suspended = FALSE;
+    if(delayed_event_is_active(&t->thread_delayed_event)
+	&& t->thread_delayed_func == &thread_resume_waited)
+    {
+	// We are waited on timer for suspencion. Cancel that waiting.
+	t->state = POK_STATE_RUNNABLE;
+
+	thread_delay_event_cancel(t);
+
+        // Set flag that we doesn't hit timeout.
+        t->wait_private = 0;
+    }
+
     if(t->state == POK_STATE_RUNNABLE)
     {
         thread_set_eligible(t);

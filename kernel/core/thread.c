@@ -38,6 +38,8 @@
 #include "thread_internal.h"
 #include <uaccess.h>
 
+#include <system_limits.h>
+
 
 /*
  * Find thread by name.
@@ -50,18 +52,18 @@ static pok_thread_t* find_thread(const char name[MAX_NAME_LENGTH])
 {
     pok_partition_arinc_t* part = current_partition_arinc;
     
-    pok_thread_t* t = part->threads;
-    pok_thread_t* t_end = t + part->nthreads_used;
+    pok_thread_t* t;
+    pok_thread_t* t_end = part->threads + part->nthreads_used;
     
     
-    for(t = t + POK_PARTITION_ARINC_MAIN_THREAD_ID;
+    for(t = &part->threads[POK_PARTITION_ARINC_MAIN_THREAD_ID + 1];
         t != t_end;
         t++)
     {
 #ifdef POK_NEEDS_ERROR_HANDLING
 		if(part->thread_error == t) continue; /* error thread is not searchable. */
 #endif
-        if(pok_compare_names(t->name, name)) return t;
+        if(!pok_compare_names(t->name, name)) return t;
     }
     
     return NULL;
@@ -90,8 +92,10 @@ static pok_thread_t* get_thread_by_id(pok_thread_id_t id)
 }
 
 
-pok_ret_t pok_thread_create (pok_thread_id_t* __user thread_id,
-							   const pok_thread_attr_t  * __user attr)
+pok_ret_t pok_thread_create (const char* __user name,
+    void* __user entry,
+    const pok_thread_attr_t  * __user attr,
+    pok_thread_id_t* __user thread_id)
 {
     pok_thread_t* t;
     pok_partition_arinc_t* part = current_partition_arinc;
@@ -105,6 +109,7 @@ pok_ret_t pok_thread_create (pok_thread_id_t* __user thread_id,
     
     if(!check_user_read(attr)) return POK_ERRNO_EFAULT;
     if(!check_user_write(thread_id)) return POK_ERRNO_EFAULT;
+    if(!check_access_read(name, MAX_NAME_LENGTH)) return POK_ERRNO_EFAULT;
     
     if (part->nthreads_used == part->nthreads) {
         return POK_ERRNO_TOOMANY;
@@ -112,12 +117,14 @@ pok_ret_t pok_thread_create (pok_thread_id_t* __user thread_id,
 
     t = &part->threads[part->nthreads_used];
     
-    __copy_from_user(t->name, &attr->process_name, MAX_NAME_LENGTH);
-    t->entry = __get_user_f(attr, entry);
+    t->entry = entry;
     t->base_priority = __get_user_f(attr, priority);
     t->period = __get_user_f(attr, period);
     t->time_capacity = __get_user_f(attr, time_capacity);
     t->deadline = __get_user_f(attr, deadline);
+
+    if (t->base_priority > MAX_PRIORITY_VALUE ||
+        t->base_priority < MIN_PRIORITY_VALUE) return POK_ERRNO_EINVAL;
 
     if (t->period == 0) {
         return POK_ERRNO_PARAM;
@@ -125,7 +132,7 @@ pok_ret_t pok_thread_create (pok_thread_id_t* __user thread_id,
     if (t->time_capacity == 0) {
         return POK_ERRNO_PARAM;
     }
-   
+
     if(!pok_time_is_infinity(t->period))
     {
         if(pok_time_is_infinity(t->time_capacity)) {
@@ -133,11 +140,12 @@ pok_ret_t pok_thread_create (pok_thread_id_t* __user thread_id,
             return POK_ERRNO_PARAM;
         }
        
-        if(!pok_time_is_infinity(t->time_capacity)
-            && t->time_capacity > t->period) {
+        if(t->time_capacity > t->period) {
             // for periodic process, time capacity <= period
             return POK_ERRNO_PARAM;
         }
+
+        // TODO: Check period for being multiple to partition's period.
    }
 
     // do at least basic check of entry point
@@ -145,14 +153,16 @@ pok_ret_t pok_thread_create (pok_thread_id_t* __user thread_id,
         return POK_ERRNO_PARAM;
     }
 
+    __copy_from_user(t->name, name, MAX_NAME_LENGTH);
+
+    if(find_thread(t->name)) return POK_ERRNO_EXISTS;
+
     t->user_stack_size = __get_user_f(attr, stack_size);
-    
-    if(!thread_create(t)) {
-       return POK_ERRNO_TOOMANY; // TODO: Change return code for this case.
-    }
-   
+
+    if(!thread_create(t)) return POK_ERRNO_UNAVAILABLE;
+
     __put_user(thread_id, part->nthreads_used);
-    
+
     part->nthreads_used++;
 
     return POK_ERRNO_OK;
@@ -175,7 +185,7 @@ pok_ret_t pok_thread_sleep(const pok_time_t* __user time)
     pok_preemption_local_disable();
 
     if(kernel_time == 0)
-		thread_yield(current_thread);
+        thread_yield(current_thread);
     else
         thread_wait_common(current_thread, kernel_time);
 
@@ -301,20 +311,26 @@ pok_ret_t pok_thread_start (pok_thread_id_t id)
 }
 
 
-pok_ret_t pok_thread_get_status (pok_thread_id_t id, pok_thread_status_t* __user status)
+pok_ret_t pok_thread_get_status (pok_thread_id_t id,
+    char* __user name,
+    void* __user *entry,
+    pok_thread_status_t* __user status)
 {
     pok_thread_t *t = get_thread_by_id(id);
     if(!t) return POK_ERRNO_PARAM;
-    
-    if(!check_user_write(status)) return POK_ERRNO_EFAULT;
 
-	__put_user_f(status, attributes.priority, t->base_priority);
-	__put_user_f(status, attributes.entry, t->entry);
+    if(!check_user_write(status)) return POK_ERRNO_EFAULT;
+    if(!check_user_write(entry)) return POK_ERRNO_EFAULT;
+    if(!check_access_write(name, MAX_NAME_LENGTH)) return POK_ERRNO_EFAULT;
+
+    __copy_to_user(name, t->name, MAX_NAME_LENGTH);
+    __put_user(entry, t->entry);
+
+    __put_user_f(status, attributes.priority, t->base_priority);
 	__put_user_f(status, attributes.period, t->period);
 	__put_user_f(status, attributes.deadline, t->deadline);
 	__put_user_f(status, attributes.time_capacity, t->time_capacity);
 	__put_user_f(status, attributes.stack_size, t->user_stack_size);
-
 
     pok_preemption_local_disable();
 
@@ -331,14 +347,14 @@ pok_ret_t pok_thread_get_status (pok_thread_id_t id, pok_thread_status_t* __user
 	}
     else
         __put_user_f(status, state, t->state);
-    
+
 	if(pok_time_is_infinity(t->time_capacity))
 		__put_user_f(status, deadline_time, POK_TIME_INFINITY);
 	else
 		__put_user_f(status, deadline_time, t->thread_deadline_event.timepoint);
 
 	pok_preemption_local_enable();
-	
+
 	return POK_ERRNO_OK;
 }
 
@@ -348,6 +364,9 @@ pok_ret_t pok_thread_set_priority(pok_thread_id_t id, uint32_t priority)
     
     pok_thread_t *t = get_thread_by_id(id);
     if(!t) return POK_ERRNO_PARAM;
+
+    if(priority > MAX_PRIORITY_VALUE) return POK_ERRNO_PARAM;
+    if(priority < MIN_PRIORITY_VALUE) return POK_ERRNO_PARAM;
     
     pok_preemption_local_disable();
 
@@ -437,30 +456,41 @@ out:
 pok_ret_t pok_thread_suspend(const pok_time_t* __user time)
 {
     pok_thread_t *t = current_thread;
-    
+
 	if(!check_user_read(time)) return POK_ERRNO_EFAULT;
-    
+
     pok_time_t kernel_time = __get_user(time);
-    
+
     // although periodic process can never be suspended anyway,
 	// ARINC-653 requires different error code
     if (pok_thread_is_periodic(t)) return POK_ERRNO_MODE;
 
     if (!thread_is_waiting_allowed()) return POK_ERRNO_MODE;
-    
+
     pok_preemption_local_disable();
 
 	if(kernel_time == 0) goto out; // Nothing to do with 0 timeout.
 
     thread_suspend(t);
-    
-	if(!pok_time_is_infinity(kernel_time))
-		thread_delay_event(t, POK_GETTICK() + kernel_time, &thread_resume);
+
+	if(!pok_time_is_infinity(kernel_time)) goto suspend_timed;
 
 out:
 	pok_preemption_local_enable();
 
     return POK_ERRNO_OK;
+
+suspend_timed:
+    thread_suspend_timed(t, kernel_time);
+
+    pok_preemption_local_enable();
+
+    // Extract result from `wait_private` field.
+
+    long wait_result = (long)t->wait_private;
+
+    if(wait_result) return (pok_ret_t)(-wait_result);
+    else return POK_ERRNO_OK;
 }
 
 pok_ret_t pok_thread_stop_target(pok_thread_id_t id)
@@ -497,17 +527,16 @@ pok_ret_t pok_thread_stop(void)
 
     thread_stop(t);
 
-    if(t == &part->threads[POK_PARTITION_ARINC_MAIN_THREAD_ID])
-    {
-        // Stopping of the main thread always change scheduling
-        pok_sched_local_invalidate();
-    }
 #ifdef POK_NEEDS_ERROR_HANDLING
-    else if(t == part->thread_error)
+    if(t == part->thread_error)
     {
         error_check_after_handler();
+
+        error_ignore_sync();
     }
 #endif
+    // Stopping current thread always change scheduling.
+    pok_sched_local_invalidate();
 	pok_preemption_local_enable();
 	
 	return POK_ERRNO_OK;
@@ -540,7 +569,7 @@ pok_ret_t pok_sched_end_period(void)
     
     if(!pok_thread_is_periodic(t)) return POK_ERRNO_MODE;
 
-	if(thread_is_waiting_allowed()) return POK_ERRNO_MODE;
+	if(!thread_is_waiting_allowed()) return POK_ERRNO_MODE;
 
     pok_preemption_local_disable();
 
@@ -569,26 +598,26 @@ pok_ret_t pok_sched_replenish(const pok_time_t* __user budget)
     
     if(current_partition_arinc->mode != POK_PARTITION_MODE_NORMAL)
 		return POK_ERRNO_UNAVAILABLE;
-    
+
     if(pok_time_is_infinity(t->time_capacity)) return POK_ERRNO_OK; //nothing to do
-    
+
     pok_preemption_local_disable();
-    
+
     calculated_deadline = POK_GETTICK() + kernel_budget;
-    
+
     if(!pok_time_is_infinity(t->period)
 		&& calculated_deadline >= t->next_activation)
     {
         ret = POK_ERRNO_MODE;
         goto out;
     }
-    
+
     thread_set_deadline(t, calculated_deadline);
     ret = POK_ERRNO_OK;
 
 out:    
     pok_preemption_local_enable();
-    
+
     return ret;
 }
 

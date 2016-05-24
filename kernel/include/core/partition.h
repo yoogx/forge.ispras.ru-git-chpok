@@ -128,6 +128,8 @@ struct pok_partition_operations
         void* failed_address);
 };
 
+/* Non-zero number, which is incremented every time partition is started. */
+typedef uint32_t pok_partition_generation_t;
 
 /*!
  * \struct pok_partition_t
@@ -151,8 +153,8 @@ typedef struct _pok_partition
         /* 
          * State flags (bytes). Can be 0 or 1.
          * 
-         * Because flags are bytes (not bits), they can be set atomically
-         * without locked operations.
+         * Because flags are bytes (not bits), they can be (re)set
+         * atomically without locked operations.
          */
         struct {
             /*
@@ -163,9 +165,13 @@ typedef struct _pok_partition
              * Set after time slot is changed from other partition to given one.
              */
             uint8_t control_returned;
+            /*
+             * Set when some event in out-of-partition time is generated.
+             * E.g., when receive message on the port we are waited on.
+             */
+            uint8_t outer_notification;
 
-            uint8_t unused1;
-            uint8_t unused2;
+            uint8_t unused;
         } bytes;
         /* 
          * All flags at once.
@@ -186,6 +192,8 @@ typedef struct _pok_partition
      */
     uint8_t preempt_local_disabled;
     
+    pok_partition_generation_t partition_generation;
+
     /* 
      * Whether currently executed *user space* process is error handler.
      * 
@@ -198,9 +206,10 @@ typedef struct _pok_partition
 
     const char               *name;          /**< Name of the partition */
 
-    uint8_t                  priority;       /**< Priority of the partition (unused at this time */
+    // Should be set in deployment.c.
     uint32_t                 period;         /**< Period of the partition, unused at this time */
-    uint32_t                 duration;       /**< Duration of the partition */
+    uint32_t                 duration;       /**< Duration of the partition, unused at this time */
+    pok_partition_id_t       partition_id;
 
     /*
      * Kernel stack address which is used for enter into the partition.
@@ -249,7 +258,12 @@ typedef struct _pok_partition
 #endif
 
   pok_start_condition_t	    start_condition;
-  
+
+  /* Set if partition is restarted by outside.
+   * 
+   * Partition may clear this flag in its `start()` callback. */
+  pok_bool_t restarted_externally;
+
   /* 
    * Pointer to Multi partition HM selector.
    * 

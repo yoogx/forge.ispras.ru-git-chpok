@@ -30,8 +30,8 @@ void pok_arch_load_partition(pok_partition_arinc_t* part,
     
     if (elf_size > part->size)
     {
-		printf("Declared size for partition %d : %ld\n", part->partition_id, part->size);
-        printf("Real size for partition %d     : %d\n", part->partition_id, elf_size);
+		printf("Declared size for partition %d : %ld\n", part->base_part.partition_id, part->size);
+        printf("Real size for partition %d     : %d\n", part->base_part.partition_id, elf_size);
 //TODO: How to emit partition's error?
 //#ifdef POK_NEEDS_ERROR_HANDLING
 //        pok_error_raise_partition(part_id, POK_ERROR_KIND_PARTITION_CONFIGURATION);

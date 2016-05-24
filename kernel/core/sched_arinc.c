@@ -61,7 +61,7 @@ static void thread_deadline_occured(struct delayed_event* event)
 static void thread_delayed_event_func(struct delayed_event* event)
 {
     pok_thread_t* thread = container_of(event, typeof(*thread), thread_delayed_event);
-    thread_wake_up(thread);
+    thread->thread_delayed_func(thread);
 }
 
 
@@ -75,7 +75,7 @@ static void port_queuing_fired(pok_port_queuing_t* port_queuing)
             pok_thread_t* t;
             int n;
             
-            if(!pok_channel_queuing_receive(port_queuing->channel, TRUE))
+            if(!pok_channel_queuing_r_get_message(port_queuing->channel, TRUE))
                 break; // wait again
             
             n = pok_channel_queuing_r_n_messages(port_queuing->channel);
@@ -127,22 +127,22 @@ static void sched_arinc(void)
     
     if(flag_test_and_reset(part->base_part.state.bytes.control_returned))
     {
+        // Currently ignore this flag
+        // As if time has been changed too.
+        flag_set(part->base_part.state.bytes.time_changed);
+    }
+
+    if(flag_test_and_reset(part->base_part.state.bytes.outer_notification))
+    {
         pok_port_queuing_t* port_queuing = part->ports_queuing;
         pok_port_queuing_t* port_queuing_end = port_queuing + part->nports_queuing;
         
         for(;port_queuing < port_queuing_end; port_queuing++)
         {
-            if(!port_queuing->is_notified) continue;
-            
-            port_queuing->is_notified = FALSE; // Acquire semantic
-            barrier();
-            
             port_queuing_fired(port_queuing);
         }
-        
-        // As if time has been changed too.
-        flag_set(part->base_part.state.bytes.time_changed);
     }
+
     if(flag_test_and_reset(part->base_part.state.bytes.time_changed))
     {
         pok_time_t now = POK_GETTICK();
@@ -178,7 +178,7 @@ static void sched_arinc(void)
         }
     }
 #ifdef POK_NEEDS_ERROR_HANDLING
-    else if(part->thread_error->state != POK_STATE_STOPPED)
+    else if(part->thread_error && part->thread_error->state != POK_STATE_STOPPED)
     {
         // Continue error handler
         new_thread = part->thread_error;

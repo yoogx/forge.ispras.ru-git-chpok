@@ -52,6 +52,8 @@ void CREATE_EVENT (EVENT_NAME_TYPE EVENT_NAME,
                    EVENT_ID_TYPE *EVENT_ID,
                    RETURN_CODE_TYPE *RETURN_CODE)
 {
+   strtoupper(EVENT_NAME);
+
    pok_event_id_t    core_id;
    pok_ret_t         core_ret;
 
@@ -65,6 +67,11 @@ void CREATE_EVENT (EVENT_NAME_TYPE EVENT_NAME,
       MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
    }
 
+   if(core_ret == POK_ERRNO_OK)
+   {
+      *EVENT_ID = core_id + 1;
+   }
+
    return;
 }
 
@@ -73,7 +80,7 @@ void SET_EVENT (EVENT_ID_TYPE EVENT_ID,
 {
    pok_ret_t core_ret;
 
-   core_ret = pok_event_set(EVENT_ID + 1);
+   core_ret = pok_event_set(EVENT_ID - 1);
 
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
@@ -89,7 +96,7 @@ void RESET_EVENT (EVENT_ID_TYPE EVENT_ID,
 {
    pok_ret_t core_ret;
 
-   core_ret = pok_event_reset(EVENT_ID + 1);
+   core_ret = pok_event_reset(EVENT_ID - 1);
 
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
@@ -107,11 +114,13 @@ void WAIT_EVENT (EVENT_ID_TYPE EVENT_ID,
    pok_ret_t core_ret;
    pok_time_t ms = TIME_OUT < 0 ? INFINITE_TIME_VALUE : arinc_time_to_ms(TIME_OUT);
    
-   core_ret = pok_event_wait(EVENT_ID + 1, &ms);
+   core_ret = pok_event_wait(EVENT_ID - 1, &ms);
 
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
       MAP_ERROR(POK_ERRNO_UNAVAILABLE, INVALID_PARAM);
+      MAP_ERROR(POK_ERRNO_EMPTY, NOT_AVAILABLE);
+      MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
       MAP_ERROR(POK_ERRNO_TIMEOUT, TIMED_OUT);
       MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
    }
@@ -140,17 +149,17 @@ void GET_EVENT_STATUS (EVENT_ID_TYPE EVENT_ID,
                        RETURN_CODE_TYPE *RETURN_CODE)
 {
    pok_event_status_t core_status;
-   pok_ret_t core_ret = pok_event_status(EVENT_ID + 1, &core_status);
+   pok_ret_t core_ret = pok_event_status(EVENT_ID - 1, &core_status);
 
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-      MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG);
+      MAP_ERROR(POK_ERRNO_UNAVAILABLE, INVALID_PARAM);
       MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
    }
 
    if(core_ret == POK_ERRNO_OK)
    {
-      EVENT_STATUS->EVENT_STATE = core_status.event_state == POK_EVENT_DOWN ? DOWN : UP;
+      EVENT_STATUS->EVENT_STATE = core_status.up ? UP : DOWN;
       EVENT_STATUS->WAITING_PROCESSES = core_status.waiting_processes;
    }
 }

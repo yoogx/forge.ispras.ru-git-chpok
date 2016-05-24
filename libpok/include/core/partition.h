@@ -42,6 +42,15 @@ typedef enum
   POK_START_CONDITION_HM_PARTITION_RESTART  = 3
 }pok_start_condition_t;
 
+typedef struct {
+   pok_partition_id_t id;
+   pok_time_t period;
+   pok_time_t duration;
+   int32_t lock_level;
+   pok_partition_mode_t mode;
+   pok_start_condition_t  start_condition;
+} pok_partition_status_t;
+
 #include <core/syscall.h>
 
 // Rename syscall

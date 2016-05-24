@@ -49,7 +49,7 @@
 
 typedef struct
 {
-   pok_port_size_t      msg_size;
+   pok_message_size_t   msg_size;
    pok_bool_t           empty;
    pok_range_t          waiting_processes;
 }pok_blackboard_status_t;

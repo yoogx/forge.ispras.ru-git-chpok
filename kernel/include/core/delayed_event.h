@@ -29,6 +29,12 @@ struct delayed_event {
 	pok_time_t timepoint;
 };
 
+// Whether we wait something.
+static inline pok_bool_t delayed_event_is_active(struct delayed_event* event)
+{
+	return !list_empty(&event->elem);
+}
+
 typedef void (*process_event_t)(struct delayed_event* event);
 
 /** 

@@ -75,14 +75,15 @@ void CREATE_BUFFER (
        return;
    }
 
-   core_ret = pok_buffer_create (BUFFER_NAME, MAX_NB_MESSAGE, MAX_MESSAGE_SIZE, core_discipline, &core_id);
+   core_ret = pok_buffer_create (BUFFER_NAME, MAX_MESSAGE_SIZE, MAX_NB_MESSAGE, core_discipline, &core_id);
    
    *BUFFER_ID = core_id + 1;
 
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-      MAP_ERROR(POK_ERRNO_READY, NO_ACTION);
+      MAP_ERROR(POK_ERRNO_EXISTS, NO_ACTION);
       MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG);
+      MAP_ERROR(POK_ERRNO_PARTITION_MODE, INVALID_MODE);
       MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
    }
 }
