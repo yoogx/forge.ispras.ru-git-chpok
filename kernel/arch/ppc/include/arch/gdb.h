@@ -13,7 +13,8 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __POK_ARCH_GDB_H__
+#ifndef __POK_PPC_GDB_H__
+#define __POK_PPC_GDB_H__
 
 #define NUMREGS_FP 32
 enum fp_regnames {
@@ -35,5 +36,4 @@ void gdb_set_regs(const struct regs* ea, uint32_t* registers);
 /* Fill 'ea' array according to 'registers'. */
 void gdb_get_regs(struct regs* ea, const uint32_t* registers);
 
-#define __POK_ARCH_GDB_H__
-#endif /* __POK_ARCH_GDB_H__ */
+#endif /* __POK_PPC_GDB_H__ */

@@ -15,8 +15,12 @@
  */
 
 
-#ifndef __POK_SPINLOCK_H__
-#define __POK_SPINLOCK_H__
+/*
+ * Define type `pok_spinlock_t` and operations SPIN_UNLOCK and SPIN_LOCK with it.
+ */
+
+#ifndef __POK_ARCH_SPINLOCK_H__
+#define __POK_ARCH_SPINLOCK_H__
 
 typedef unsigned int pok_spinlock_t;
 
@@ -36,4 +40,4 @@ typedef unsigned int pok_spinlock_t;
                   : "=&r"(val) : "r" (&_spin_), "r"(1));         \
   } while (0)
 
-#endif /* !__POK_SPINLOCK_H__ */
+#endif /* !__POK_ARCH_SPINLOCK_H__ */

@@ -7,6 +7,7 @@
  * 2 of the License, or (at your option) any later version.
  *
  */
+
 #ifndef __POK_LINUX_IOPORTS_H__
 #define __POK_LINUX_IOPORTS_H__
 

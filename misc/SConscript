@@ -19,7 +19,6 @@
 
 import sys
 import os
-import template_generation
 
 def print_cmd_line(s, target, src, env):
     # s is the original command line, target and src are lists of target
@@ -73,8 +72,6 @@ except:
 
 log_file_opened = False
 
-AddMethod(env, template_generation.TemplateRender)
-
 # This tells scons to store all file signatures 
 # in a separate .sconsign file in each directory
 SConsignFile(None)
@@ -84,7 +81,6 @@ CacheDir(env['POK_PATH']+'/cache')
 
 # Flags common for all architectures
 env['PRINT_CMD_LINE_FUNC'] = print_cmd_line
-env['CPPPATH'] = [env['POK_PATH']+'/kernel/include']
 env['LINKFLAGS'] = '-r'
 env['QEMU_FLAGS'] = ' -serial stdio'
 # 16 MBytes
@@ -98,6 +94,18 @@ bsp_arch_dict = {
     'x86-qemu':        'x86'
 }
 env['ARCH'] = bsp_arch_dict[env['BSP']]
+
+env['KERNEL_CPPPATH'] = [
+    env['POK_PATH']+'/kernel/include',
+    env['POK_PATH']+'/build/kernel/include',
+    env['POK_PATH']+'/kernel/arch/' + env['ARCH'] + '/include',
+]
+
+env['LIBPOK_CPPPATH'] = [
+    env['POK_PATH']+'/libpok/include',
+    env['POK_PATH']+'/build/libpok/include'
+]
+
 
 arch_prefix_dict = {
     'ppc':    'powerpc-elf-',

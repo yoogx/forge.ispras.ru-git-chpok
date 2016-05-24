@@ -17,12 +17,7 @@
 #define __POK_GDB_H__
 
 #include <libc.h>
-
-#if defined(__PPC__)
-#include <arch/ppc/gdb.h>
-#elif defined(__i386__)
-#include <arch/x86/gdb.h>
-#endif
+#include <arch/gdb.h>
 
 #define NUMREGBYTES (NUMREGS * 4)
 

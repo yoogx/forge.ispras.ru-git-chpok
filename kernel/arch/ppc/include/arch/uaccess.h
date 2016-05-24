@@ -13,16 +13,19 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __POK_IOPORTS_H__
-#define __POK_IOPORTS_H__
+/// Arch template starts
 
-#include <arch/ioports.h>
+#ifndef __POK_ARCH_UACCESS_H__
+#define __POK_ARCH_UACCESS_H__
 
-#define outb ja_outb
-#define inb ja_inb
-#define outw ja_outw
-#define inw ja_inw
-#define outl ja_outl
-#define inl ja_inl
+#include <types.h>
+#include <common.h>
 
-#endif /* __POK_IOPORTS_H__ */
+/* Check that user space can read area specified. */
+pok_bool_t ja_check_access_read(const void* __user addr, size_t size);
+/* Check that user space can write area specified. */
+pok_bool_t ja_check_access_write(void* __user addr, size_t size);
+
+#endif /* __POK_ARCH_UACCESS_H__ */
+
+/// Arch template ends

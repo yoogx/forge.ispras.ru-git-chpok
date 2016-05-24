@@ -19,8 +19,20 @@
 
 Import('env')
 
+import sys
+import os
+sys.path.insert(1, os.path.join(os.environ["POK_PATH"], "misc"))
+import generate_syscalls
+
 kernel_env = env.Clone()
 kernel_env.Append(CFLAGS = ' -Werror')
+
+generate_syscall_kernel_command = kernel_env.Command(
+    target = kernel_env['POK_PATH'] + 'build/kernel/include/syscall_map_arinc.h',
+    source = kernel_env['POK_PATH'] + 'kernel/include/uapi/syscall_map_arinc.h.in',
+    action = generate_syscalls.generate_syscalls_declaration_kernel)
+
+kernel_env['CPPPATH'] = kernel_env['KERNEL_CPPPATH']
 
 Export('kernel_env')
 
@@ -28,6 +40,10 @@ core = SConscript('core/SConscript')
 libc = SConscript('libc/SConscript')
 arch = SConscript('arch/SConscript')
 
-kernel_env.Program(target = 'core.lo', source = [arch, core, libc])
+kernel_objects=[core, libc, arch]
+
+kernel_env.Depends(kernel_objects, generate_syscall_kernel_command)
+
+kernel_env.Program(target = 'core.lo', source = kernel_objects)
 
 # EOF

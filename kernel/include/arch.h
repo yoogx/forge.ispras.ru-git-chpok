@@ -296,19 +296,6 @@ void pok_arch_load_partition(struct _pok_patition_arinc* part,
         uint8_t space_id,
         uintptr_t *entry);
 
-//#ifdef POK_ARCH_PPC
-#ifdef __PPC__
-#include <arch/ppc/spinlock.h>
-#endif
-
-//#ifdef POK_ARCH_X86
-#ifdef __i386__
-#include <arch/x86/spinlock.h>
-#endif
-
-//#ifdef POK_ARCH_SPARC
-#ifdef __sparc__
-#include <arch/sparc/spinlock.h>
-#endif
+#include <arch/spinlock.h>
 
 #endif /* !__POK_ARCH_H__ */

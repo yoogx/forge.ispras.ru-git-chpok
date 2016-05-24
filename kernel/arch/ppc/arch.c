@@ -97,7 +97,7 @@ uint32_t    pok_thread_stack_addr   (uint8_t    space_id,
 }
 
 
-#include <arch/ppc/linux_io.h>
+#include <arch/linux_io.h>
 #define DCFG_RSTCR 0xb0
 #define RSTCR_RESET_REQ 0x2
 void pok_arch_cpu_reset()
