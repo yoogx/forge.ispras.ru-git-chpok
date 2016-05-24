@@ -19,13 +19,13 @@
 
 import os
 
-cflags = ''
-SConscript(os.environ['POK_PATH']+'/misc/SConscript', exports = 'cflags')
-
 Import('env')
-SConscript('SConscript')
 
-env.Clean('chpok', env['POK_PATH']+'/build/')
-env.Clean('local', 'build')
+part_dir = Dir('.').abspath
+part_build_dir = os.path.join(part_dir, 'build', env['BSP'], '')
+part_is_system = True
 
-# EOF
+part_elf = SConscript(env['POK_PATH']+'/misc/SConscript_partition',
+                        exports = ['part_dir', 'part_build_dir', 'part_is_system'])
+
+Return('part_elf')

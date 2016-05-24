@@ -40,18 +40,6 @@ def get_pok_definitions(source, env):
 
     return dict(conf=conf)
 
-def get_pok_partition_definitions(source, env):
-    source = source[0]
-
-    root = etree.parse(source.path)
-    root.xinclude()
-
-    parser = arinc653_xml_conf.ArincConfigParser()
-    conf = chpok_configuration.Configuration()
-    parser.parse_partition(conf, root)
-
-    return dict(part = conf.partitions[0])
-
 def get_pok_gdb_definitions(source, env):
 	defs = get_pok_definitions(source, env)
 
@@ -59,22 +47,11 @@ def get_pok_gdb_definitions(source, env):
 
 	return defs
 
-
-root = etree.parse(os.path.join(env['SCONSTRUCT_DIR'], env['xml']))
-root.xinclude()
-parser = arinc653_xml_conf.ArincConfigParser()
-conf_layout = parser.parse_layout(root)
-
-env['PARTITION_DIRS'] = list(part.name for part in conf_layout)
-env['PARTITION_IS_SYSTEM'] = list(part.is_system for part in conf_layout)
-env['PARTITIONS'] = list(os.path.join(env['SCONSTRUCT_DIR'], part_dir, 'build',
-					env['BSP'], 'part.elf') for part_dir in env['PARTITION_DIRS'])
-
 env['PARTITION_BUILD_DIRS'] = []
-for i in range(len(env['PARTITION_DIRS'])):
-	env['PARTITION_BUILD_DIRS'].append(os.path.join(env['SCONSTRUCT_DIR'], env['PARTITION_DIRS'][i], 'build', env['BSP'], ''))
+for i in range(len(env['PARTITIONS'])):
+	env['PARTITION_BUILD_DIRS'].append(os.path.join(env['SCONSTRUCT_DIR'], env['PARTITIONS'][i], 'build', env['BSP'], ''))
 
-env.Command('clean_cmd', [], Delete(['build/']+[pdir+'/build' for pdir in env['PARTITION_DIRS']]))
+env.Command('clean_cmd', [], Delete(['build/']+[pdir+'/build' for pdir in env['PARTITIONS']]))
 env.Alias('clean', 'clean_cmd')
 
 build_dir = env['BUILD_DIR']
@@ -95,16 +72,6 @@ env.TemplateRender(
 	template_main = "deployment_kernel",
 	template_dir = env['POK_PATH'] + "/misc/templates"
 	)
-
-# Generate "deployment.c" for every user partition
-for part_dir in partition_build_dirs:
-	env.TemplateRender(
-		target = os.path.join(part_dir, "deployment.c"),
-		source = os.path.join(env['SCONSTRUCT_DIR'], part_dir, env['xml']),
-		create_definitions_func = get_pok_partition_definitions,
-		template_main = "deployment_user",
-		template_dir = env['POK_PATH'] + "/misc/templates"
-		)
 
 # Generate file with commands for GDB for possible debugging
 env.TemplateRender(
@@ -149,22 +116,18 @@ def create_sizes_c(target, source, env):
 				sizes.write(',\n')
 		sizes.write('\n};\n')
 
-for i in range(len(pok_env['PARTITION_BUILD_DIRS'])):
-    part_dir = os.path.join(pok_env['SCONSTRUCT_DIR'], pok_env['PARTITION_DIRS'][i])
-    part_build_dir = os.path.join(pok_env['SCONSTRUCT_DIR'], pok_env['PARTITION_BUILD_DIRS'][i])
-    part_is_system = pok_env['PARTITION_IS_SYSTEM'][i]
-    if any(f.endswith('.c') for f in os.listdir(part_dir)):
-        SConscript('SConscript_partition', exports = ['part_dir', 'part_build_dir', 'part_is_system'])
+part_elf_list = SConscript([os.path.join(pok_env['SCONSTRUCT_DIR'], x, 'SConscript')
+                            for x in pok_env['PARTITIONS']], exports = 'env')
 
 merge_command = pok_env.Command(target = pok_env['BUILD_DIR']+'partitions.bin',
-source = pok_env['PARTITIONS'],
+source = part_elf_list,
 action = merge_partitions)
-pok_env.Depends(merge_command, pok_env['PARTITIONS'])
+pok_env.Depends(merge_command, part_elf_list)
 
 sizes_c_command = pok_env.Command(target = pok_env['BUILD_DIR']+'sizes.c',
-source = pok_env['PARTITIONS'],
+source = part_elf_list,
 action = create_sizes_c)
-pok_env.Depends(sizes_c_command, pok_env['PARTITIONS'])
+pok_env.Depends(sizes_c_command, part_elf_list)
 
 compile_sizes = pok_env.Command(target = pok_env['BUILD_DIR']+'sizes.o',
 source = pok_env['BUILD_DIR']+'sizes.c',
@@ -172,7 +135,7 @@ action = [
 pok_env['CC']+' -c -o '+pok_env['BUILD_DIR']+'sizes.o '+pok_env['CFLAGS']+' -I'+pok_env['POK_PATH']+'/kernel/include '+
 pok_env['BUILD_DIR']+'sizes.c',
 pok_env['OBJCOPY']+' --add-section .archive2='+pok_env['BUILD_DIR']+'partitions.bin '+pok_env['BUILD_DIR']+'sizes.o'])
-pok_env.Depends(compile_sizes, pok_env['PARTITIONS'])
+pok_env.Depends(compile_sizes, part_elf_list)
 
 pok_target = pok_env.Program(target = pok_env['BUILD_DIR']+'pok.elf', source = [
 pok_env['BUILD_DIR']+'sizes.o',

@@ -17,17 +17,45 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+import os
+
+from lxml import etree
+import arinc653_xml_conf
+import chpok_configuration
+
 Import('env')
 Import('part_dir')
 Import('part_build_dir')
 Import('part_is_system')
+
+def get_pok_partition_definitions(source, env):
+    if type(source) is list:
+        source = source[0]
+
+    root = etree.parse(source.path)
+
+    parser = arinc653_xml_conf.ArincConfigParser()
+
+    conf = chpok_configuration.Configuration()
+    parser.parse_partition(conf, root)
+    #conf.partitions[0].is_system = part_is_system
+
+    return dict(part = conf.partitions[0])
+
+env.TemplateRender(
+    target = os.path.join(part_build_dir, "deployment.c"),
+    source = os.path.join(part_dir, env['xml']),
+    create_definitions_func = get_pok_partition_definitions,
+    template_main = "deployment_user",
+    template_dir = env['POK_PATH'] + "/misc/templates"
+    )
 
 part_env = env.Clone()
 part_env['CPPPATH'] = [part_env['POK_PATH']+'libpok/include']
 
 if part_is_system:
     part_env.Append(CPPPATH = part_env['POK_PATH']+'/syspart/include')
-    part_env.Append(CPPPATH = env['POK_PATH']+'/build/libpok/include')
+    part_env.Append(CPPPATH = part_env['POK_PATH']+'/build/libpok/include')
 
 part_env.Append(CFLAGS = ' -include '+part_env['POK_PATH']+'libpok/include/config.h')
 
@@ -50,5 +78,7 @@ part_env['LIBGCC']])
 part_env.Depends(part_elf, ldscript)
 
 part_env.Depends(part_elf, part_build_dir + "deployment.c")
+
+Return('part_elf')
 
 # EOF

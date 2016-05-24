@@ -58,7 +58,6 @@ except:
 
     # If bsp isn't specified on the command line,
     # try to get it from bash environment
-    #if 'bsp' not in COMMAND_LINE_TARGETS:
     if ARGUMENTS.get('bsp'):
         env['BSP'] = env['bsp']
     else:

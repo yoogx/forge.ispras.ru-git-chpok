@@ -23,9 +23,10 @@ cflags = '-D POK_NEEDS_WAIT_FOR_GDB'
 SConscript(os.environ['POK_PATH']+'/misc/SConscript', exports = 'cflags')
 
 Import('env')
+env['PARTITIONS'] = ['P1', 'P2']
 SConscript(env['POK_PATH']+'/misc/SConscript_base')
 
 env.Clean('chpok', env['POK_PATH']+'/build/')
-env.Clean('local', ['build/', [pdir+'/build' for pdir in env['PARTITION_DIRS']]])
+env.Clean('local', ['build/', [pdir+'/build' for pdir in env['PARTITIONS']]])
 
 # EOF
