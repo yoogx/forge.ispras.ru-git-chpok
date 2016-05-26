@@ -103,7 +103,8 @@ env['KERNEL_CPPPATH'] = [
 
 env['LIBPOK_CPPPATH'] = [
     env['POK_PATH']+'/libpok/include',
-    env['POK_PATH']+'/build/libpok/include'
+    env['POK_PATH']+'/build/libpok/include',
+    env['POK_PATH']+'/libpok/arch/' + env['ARCH'] + '/include',
 ]
 
 

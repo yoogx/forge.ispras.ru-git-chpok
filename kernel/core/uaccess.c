@@ -25,32 +25,32 @@
 void __copy_from_user(void* to, const void* __user from, size_t n)
 {
     assert(check_access_read(from, n));
-    memcpy(to, from, n);
+    memcpy(to, ja_user_to_kernel_ro(from), n);
 }
 
 void __copy_to_user(void* __user to, const void* from, size_t n)
 {
     assert(check_access_write(to, n));
-    memcpy(to, from, n);
+    memcpy(ja_user_to_kernel(to), from, n);
 }
 
 void __copy_user(void* __user to, const void* __user from, size_t n)
 {
-    memcpy(to, from, n);
+    memcpy(ja_user_to_kernel(to), ja_user_to_kernel_ro(from), n);
 }
 #endif /* NDEBUG */
 
 pok_bool_t copy_from_user(void* to, const void* __user from, size_t n)
 {
     if(!check_access_read(from, n)) return FALSE;
-    memcpy(to, from, n);
+    memcpy(to, ja_user_to_kernel_ro(from), n);
     return TRUE;
 }
 
-static inline pok_bool_t copy_to_user(void* __user to, const void* from, size_t n)
+pok_bool_t copy_to_user(void* __user to, const void* from, size_t n)
 {
     if(!check_access_write(to, n)) return FALSE;
-    memcpy(to, from, n);
+    memcpy(ja_user_to_kernel(to), from, n);
     return TRUE;
 }
 

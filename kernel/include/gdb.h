@@ -17,7 +17,7 @@
 #define __POK_GDB_H__
 
 #include <libc.h>
-#include <arch/gdb.h>
+#include <asp/gdb.h>
 
 #define NUMREGBYTES (NUMREGS * 4)
 

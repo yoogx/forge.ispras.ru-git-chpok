@@ -172,4 +172,12 @@ pok_bool_t pok_raise_error_by_partition(pok_system_state_t system_state,
 
 // Current state of the module or POK_SYSTEM_STATE_OS_PART.
 extern pok_system_state_t kernel_state;
+
+/********************* Default HM Multi-partition tables **********************/
+// Default HM multi-partition selector - all errors are partition-level.
+extern pok_error_level_selector_t pok_hm_multi_partition_selector_default;
+
+// Default HM multi-partition table - shutdown for all errors.
+extern pok_error_module_action_table_t pok_hm_multi_partition_table_default;
+
 #endif /* __POK_CORE_ERROR_H__ */

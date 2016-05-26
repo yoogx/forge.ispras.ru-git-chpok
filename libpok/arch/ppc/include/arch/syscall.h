@@ -13,12 +13,9 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __JET_PPC_UACCESS_H__
-#define __JET_PPC_UACCESS_H__
+#ifndef __LIBJET_PPC_SYSCALL_H__
+#define __LIBJET_PPC_SYSCALL_H__
 
-#define JET_ARCH_DECLARE_USER_TO_KERNEL 1
+// No declaration is needed.
 
-#define ja_user_to_kernel(addr) ((void*)(addr))
-#define ja_user_to_kernel_ro(addr) ((const void*)(addr))
-
-#endif /* __JET_PPC_UACCESS_H__ */
+#endif /* __LIBJET_PPC_SYSCALL_H__ */

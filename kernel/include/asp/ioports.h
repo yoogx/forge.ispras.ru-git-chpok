@@ -13,12 +13,23 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __JET_PPC_UACCESS_H__
-#define __JET_PPC_UACCESS_H__
+#ifndef __JET_ASP_IOPORTS_H__
+#define __JET_ASP_IOPORTS_H__
 
-#define JET_ARCH_DECLARE_USER_TO_KERNEL 1
+#include <stdint.h>
+#include <arch/ioports.h>
 
-#define ja_user_to_kernel(addr) ((void*)(addr))
-#define ja_user_to_kernel_ro(addr) ((const void*)(addr))
+#ifndef JET_ARCH_DECLARE_IO_PORT
 
-#endif /* __JET_PPC_UACCESS_H__ */
+void ja_outb(unsigned int port, uint8_t value);
+uint8_t ja_inb(unsigned int port);
+
+void ja_outw(unsigned int port, uint16_t value);
+uint16_t ja_inw(unsigned int port);
+
+void ja_outl(unsigned int port, uint32_t value);
+uint32_t ja_inl(unsigned int port);
+
+#endif /* JET_ARCH_DECLARE_IO_PORT */
+
+#endif // __JET_ASP_IOPORTS_H__

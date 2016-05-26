@@ -22,7 +22,7 @@
 
 #include <types.h>
 
-#include <arch/uaccess.h>
+#include <asp/uaccess.h>
 
 #define check_access_read ja_check_access_read
 #define check_access_write ja_check_access_write
@@ -35,6 +35,13 @@
  * TODO: Is this symlink needed?
  */
 #define check_access_rw check_access_write
+
+/*
+ * TODO: instead of `copy_*` functions these functions with following
+ * direct access should be used eventually.
+ */
+#define jet_user_to_kernel ja_user_to_kernel
+#define jet_user_to_kernel_ro ja_user_to_kernel_ro
 
 #ifndef NDEBUG
 /* 

@@ -16,9 +16,6 @@
 #ifndef __JET_PPC_UACCESS_H__
 #define __JET_PPC_UACCESS_H__
 
-#define JET_ARCH_DECLARE_USER_TO_KERNEL 1
-
-#define ja_user_to_kernel(addr) ((void*)(addr))
-#define ja_user_to_kernel_ro(addr) ((const void*)(addr))
+// All definitions are generic.
 
 #endif /* __JET_PPC_UACCESS_H__ */

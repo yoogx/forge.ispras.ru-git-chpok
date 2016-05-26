@@ -15,7 +15,7 @@
  */
 
 
-#include <arch/x86/interrupt.h>
+#include "interrupt.h"
 
 void update_tss (interrupt_frame* frame)
 {

@@ -21,7 +21,7 @@ Import('env')
 
 libpok_env = env.Clone()
 
-libpok_env['CPPPATH'] = [env['POK_PATH']+'/libpok/include']
+libpok_env['CPPPATH'] = libpok_env['LIBPOK_CPPPATH']
 
 Export('libpok_env')
 

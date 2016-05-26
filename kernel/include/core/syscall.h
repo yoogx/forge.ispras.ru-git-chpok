@@ -184,6 +184,8 @@ pok_ret_t pok_syscall_init();
    return POK_ERRNO_EINVAL;					\
 }
 
+extern uintptr_t global_thread_stack;
+
 #include <core/port.h>
 
 #include <core/thread.h>

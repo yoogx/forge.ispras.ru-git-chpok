@@ -101,7 +101,7 @@ uint32_t    pok_thread_stack_addr   (uint8_t    space_id,
    //TODO: Check boundaries
    *state += stack_size;
    
-   result;
+   return result;
 }
 
 #include <ioports.h>

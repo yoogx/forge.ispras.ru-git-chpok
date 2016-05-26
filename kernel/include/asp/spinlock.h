@@ -13,12 +13,12 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __JET_PPC_UACCESS_H__
-#define __JET_PPC_UACCESS_H__
 
-#define JET_ARCH_DECLARE_USER_TO_KERNEL 1
+#ifndef __JET_ASP_SPINLOCK_H__
+#define __JET_ASP_SPINLOCK_H__
 
-#define ja_user_to_kernel(addr) ((void*)(addr))
-#define ja_user_to_kernel_ro(addr) ((const void*)(addr))
+/* Arch header should define type 'pok_spinlock_t' and declare
+ * SPIN_LOCK and SPIN_UNLOCK operations with variable of that type.*/
+#include <arch/spinlock.h>
 
-#endif /* __JET_PPC_UACCESS_H__ */
+#endif /* __JET_ASP_SPINLOCK_H__ */

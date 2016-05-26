@@ -18,12 +18,14 @@
 #ifndef __POK_X86_IOPORTS_H__
 #define __POK_X86_IOPORTS_H__
 
-#define outb(port, data)                                        \
+#define JET_ARCH_DECLARE_IO_PORT 1
+
+#define ja_outb(port, data)                                        \
   asm volatile ("outb %b0,%w1"                                  \
                 :						\
 		:"a" (data),"d" (port))
 
-#define inb(port)                                               \
+#define ja_inb(port)                                               \
 ({                                                              \
   unsigned char res;                                            \
   asm volatile ("inb %w1,%0"                                    \
@@ -32,12 +34,12 @@
   res;                                                          \
 })
 
-#define outw(port, data)                                        \
+#define ja_outw(port, data)                                        \
   asm volatile ("outw %0,%w1"					\
                 :						\
 		:"a" (data),"d" (port))
 
-#define inw(port)                                               \
+#define ja_inw(port)                                               \
 ({                                                              \
   unsigned short res;						\
   asm volatile ("inw %w1,%0"					\
@@ -46,12 +48,12 @@
   res;                                                          \
 })
 
-#define outl(port, data)                                        \
+#define ja_outl(port, data)                                        \
   asm volatile ("outl %0,%w1"					\
                 :						\
 		:"a" (data),"d" (port))
 
-#define inl(port)                                               \
+#define ja_inl(port)                                               \
 ({                                                              \
   unsigned int res;						\
   asm volatile ("inl %w1,%0"					\

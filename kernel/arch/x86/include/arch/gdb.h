@@ -13,12 +13,15 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __JET_PPC_UACCESS_H__
-#define __JET_PPC_UACCESS_H__
+#ifndef __JET_X86_GDB_H__
+#define __JET_X86_GDB_H__
 
-#define JET_ARCH_DECLARE_USER_TO_KERNEL 1
+#define NUMREGS 16
+enum regnames {
+EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
+           PC /* also known as eip */,
+           PS /* also known as eflags */,
+           CS, SS, DS, ES, FS, GS
+};
 
-#define ja_user_to_kernel(addr) ((void*)(addr))
-#define ja_user_to_kernel_ro(addr) ((const void*)(addr))
-
-#endif /* __JET_PPC_UACCESS_H__ */
+#endif /* __JET_X86_GDB_H__ */

@@ -13,13 +13,12 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __POK_PPC_IOPORTS_H__
-#define __POK_PPC_IOPORTS_H__
+#ifndef __JET_PPC_IOPORTS_H__
+#define __JET_PPC_IOPORTS_H__
 
-#include <stdint.h>
 #include <arch/linux_io.h>
 
-/// Template starts
+#define JET_ARCH_DECLARE_IO_PORT 1
 
 static inline void ja_outb(unsigned int port, uint8_t value)
 {
@@ -51,6 +50,4 @@ static inline uint32_t ja_inl(unsigned int port)
     return in_le32((uint32_t *) port);
 }
 
-/// Template ends
-
-#endif // __POK_PPC_IOPORTS_H__
+#endif // __JET_PPC_IOPORTS_H__
