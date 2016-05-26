@@ -20,6 +20,7 @@
 
 
 #include <types.h>
+#include <core/syscall.h>
 
 typedef struct
 {

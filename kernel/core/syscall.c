@@ -274,8 +274,6 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
    return POK_ERRNO_EINVAL; // TODO: Unreachable?
 }
 
-extern uintptr_t global_thread_stack;
-
 pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
                             const pok_syscall_args_t*    args,
                             const pok_syscall_info_t*    infos)

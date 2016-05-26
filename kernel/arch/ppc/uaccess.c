@@ -13,26 +13,27 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __POK_ARCH_UACCESS_H__
-#define __POK_ARCH_UACCESS_H__
+#include <asp/uaccess.h>
+#include "space.h"
 
 // TODO: Revisit (see also pok_space_* code in arch.h)
-static inline pok_bool_t arch_check_access(const void* __user addr, size_t size)
+pok_bool_t ppc_check_access(const void* __user addr, size_t size)
 {
-    unsigned long p = (unsigned long)addr;
+    unsigned long start = (unsigned long)addr;
+    unsigned long end = start + size;
     
-    return (p >= 0x80000000) && ((p + size) < (0x80000000 + 0x1000000ULL));
+    return start >= POK_PARTITION_MEMORY_BASE
+        && end >= start
+        && end < (POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE);
 }
 
-static inline pok_bool_t arch_check_access_read(const void* __user addr, size_t size)
+pok_bool_t ja_check_access_read(const void* __user addr, size_t size)
 {
-     return arch_check_access(addr, size);
+     return ppc_check_access(addr, size);
 }
 
 
-static inline pok_bool_t arch_check_access_write(void* __user addr, size_t size)
+pok_bool_t ja_check_access_write(void* __user addr, size_t size)
 {
-     return arch_check_access(addr, size);
+     return ppc_check_access(addr, size);
 }
-
-#endif /* __POK_ARCH_UACCESS_H__ */

@@ -16,17 +16,17 @@
  * Copyright (c) 2007-2009 POK team
  */
         .text
-        .globl pok_syscall0
-        .globl pok_syscall1
-        .globl pok_syscall2
-        .globl pok_syscall3
-        .globl pok_syscall4
-        .globl pok_syscall5
-pok_syscall0:
-pok_syscall1:
-pok_syscall2:
-pok_syscall3:
-pok_syscall4:
-pok_syscall5:
+        .globl lja_syscall0
+        .globl lja_syscall1
+        .globl lja_syscall2
+        .globl lja_syscall3
+        .globl lja_syscall4
+        .globl lja_syscall5
+lja_syscall0:
+lja_syscall1:
+lja_syscall2:
+lja_syscall3:
+lja_syscall4:
+lja_syscall5:
         sc
         blr

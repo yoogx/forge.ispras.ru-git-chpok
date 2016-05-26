@@ -26,6 +26,7 @@
 #include <types.h>
 #include <errno.h>
 
+#include <arch/bsp.h>
 
 int pok_bsp_init(void);
 
@@ -78,13 +79,5 @@ int read_serial_1();
 void pok_bsp_debug();
 #endif
 
-
-#ifdef __PPC__
-#include <arch/ppc/bsp.h>
-#endif
-
-#ifdef __i386__
-//#include <arch/x86/bsp.h>
-#endif
 
 #endif /* !BSP_H_ */

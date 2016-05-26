@@ -208,7 +208,7 @@ static void inter_partition_switch(pok_partition_t* part)
 void pok_sched_restart (void)
 {
     uint32_t* new_sp;
-    
+
     first_frame_starts = POK_GETTICK();
 #ifdef POK_NEEDS_MONITOR
     idle_sp = pok_context_init(idle_stack, &idle_function);
@@ -475,5 +475,6 @@ void pok_partition_restart(void)
 
 void pok_sched_init(void)
 {
+    pok_dstack_alloc(&partition_idle.initial_sp, 4096);
     // TODO: It looks like nothing should be done there.
 }

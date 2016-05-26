@@ -22,97 +22,52 @@
 
 #include <types.h>
 
-// TODO: Single <asm/uaccess.h>
-#ifdef __PPC__
-#include <arch/ppc/uaccess.h>
-#endif
+#include <asp/uaccess.h>
 
-//#ifdef POK_ARCH_X86
-#ifdef __i386__
-#include <arch/x86/uaccess.h>
-#endif
-
-//#ifdef POK_ARCH_SPARC
-#ifdef __sparc__
-#include <arch/sparc/uaccess.h>
-#endif
+#define check_access_read ja_check_access_read
+#define check_access_write ja_check_access_write
 
 #include <libc.h>
-
-/* Check that user space can read area specified. */
-static inline pok_bool_t check_access_read(const void* __user addr, size_t size)
-{
-    return arch_check_access_read(addr, size);
-}
-
-/* Check that user space can write area specified. */
-static inline pok_bool_t check_access_write(void* __user addr, size_t size)
-{
-    return arch_check_access_write(addr, size);
-}
 
 /* 
  * Check that user space can read and write area specified.
  * 
  * TODO: Is this symlink needed?
  */
-static inline pok_bool_t check_access_rw(void* __user addr, size_t size)
-{
-    return check_access_write(addr, size);
-}
+#define check_access_rw check_access_write
 
+/*
+ * TODO: instead of `copy_*` functions these functions with following
+ * direct access should be used eventually.
+ */
+#define jet_user_to_kernel ja_user_to_kernel
+#define jet_user_to_kernel_ro ja_user_to_kernel_ro
 
+#ifndef NDEBUG
 /* 
  * Copy from user memory to kernel one.
  * 
  * NOTE: Access check should be performed before.
  */
-static inline void __copy_from_user(void* to, const void* __user from, size_t n)
-{
-    assert(check_access_read(from, n));
-
-    memcpy(to, from, n);
-}
-
+void __copy_from_user(void* to, const void* __user from, size_t n);
 /* 
  * Copy from kernel memory to user one.
  * 
  * NOTE: Access check should be performed before.
  */
-static inline void __copy_to_user(void* __user to, const void* from, size_t n)
-{
-    assert(check_access_write(to, n));
-    
-    memcpy(to, from, n);
-}
-
-/* 
- * Copy from user memory to kernel one.
+void __copy_to_user(void* __user to, const void* from, size_t n);
+/*
+ * Copy between areas in user space.
  * 
- * Return TRUE on success, FALSE if user memory is invalid.
+ * Both areas should be checked before.
  */
-static inline pok_bool_t copy_from_user(void* to, const void* __user from, size_t n)
-{
-    if(!check_access_read(from, n)) return FALSE;
-    
-    memcpy(to, from, n);
-    
-    return TRUE;
-}
+void __copy_user(void* __user to, const void* __user from, size_t n);
 
-/* 
- * Copy from kernel memory to user one.
- * 
- * Return TRUE on success, FALSE if user memory is invalid.
- */
-static inline pok_bool_t copy_to_user(void* __user to, const void* from, size_t n)
-{
-    if(!check_access_write(to, n)) return FALSE;
-    
-    memcpy(to, from, n);
-    
-    return TRUE;
-}
+#else /* NDEBUG */
+#define __copy_from_user(to, from, n) memcpy(to, from, n)
+#define __copy_to_user(to, from, n) memcpy(to, from, n)
+#define __copy_user(to, from, n) memcpy(to, from, n)
+#endif /* NDEBUG */
 
 /* Check that given *typed* user area is readable. */
 #define check_user_read(ptr) check_access_read(ptr, sizeof(*ptr))
@@ -126,14 +81,12 @@ static inline pok_bool_t copy_to_user(void* __user to, const void* from, size_t 
  */
 #define __get_user(ptr) ({typeof(*(ptr)) __val = *(ptr); __val; })
 
-
 /* 
  * Return value of the field in user-space structure.
  * 
  * NOTE: Access check should be performed before.
  */
 #define __get_user_f(ptr, field) ({typeof((ptr)->field) __val = (ptr)->field; __val; })
-
 
 /* 
  * Put value to *typed* user memory.
@@ -149,30 +102,12 @@ static inline pok_bool_t copy_to_user(void* __user to, const void* from, size_t 
  */
 #define __put_user_f(ptr, field, val) do {(ptr)->field = (typeof((ptr)->field))(val); } while(0)
 
-
-/*
- * Copy between areas in user space.
- * 
- * Both areas should be checked before.
- */
-static inline void __copy_user(void* __user to, const void* __user from, size_t n)
-{
-    memcpy(to, from, n);
-}
-
 /* 
  * Copy name to the user space.
  * 
  * Destination buffer should be checked before.
  */
-static inline void pok_copy_name_to_user(void* __user to, const char* name)
-{
-    // How many bytes to copy.
-    size_t n = strnlen(name, MAX_NAME_LENGTH);
-    if(n != MAX_NAME_LENGTH) n++; // null-byte should be copied too.
-    
-    __copy_to_user(to, name, n);
-}
+void pok_copy_name_to_user(void* __user to, const char* name);
 
 /*
  * Check whether given address may be executed.
@@ -182,10 +117,7 @@ static inline void pok_copy_name_to_user(void* __user to, const char* name)
  * given address is performed only from user space.
  * (Unlike to read/write access to user buffers, performed from kernel space).
  */
-static inline pok_bool_t check_access_exec(void* addr)
-{
-    return check_access_read(addr, sizeof(void*));
-}
+#define check_access_exec(addr) check_access_read(addr, sizeof(void*))
 
 
 #endif /* __POK_UACCESS_H__ */

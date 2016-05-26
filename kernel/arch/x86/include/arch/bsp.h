@@ -13,21 +13,9 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __POK_ARCH_GDB_H__
-#define __POK_ARCH_GDB_H__
+#ifndef __JET_X86_BSP_H__
+#define __JET_X86_BSP_H__
 
-#define NUMREGS 16
-enum regnames {
-EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
-           PC /* also known as eip */,
-           PS /* also known as eflags */,
-           CS, SS, DS, ES, FS, GS
-};
+// Currently, there is no board-specific definition which user needs.
 
-/* Fill 'registers' array according to 'ea'. */
-void gdb_set_regs(const struct regs* ea, uint32_t* registers);
-
-/* Fill 'ea' array according to 'registers'. */
-void gdb_get_regs(struct regs* ea, const uint32_t* registers);
-
-#endif /* __POK_ARCH_GDB_H__ */
+#endif /* __JET_X86_BSP_H__ */

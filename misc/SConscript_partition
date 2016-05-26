@@ -23,11 +23,10 @@ Import('part_build_dir')
 Import('part_is_system')
 
 part_env = env.Clone()
-part_env['CPPPATH'] = [part_env['POK_PATH']+'libpok/include']
+part_env['CPPPATH'] = part_env['LIBPOK_CPPPATH']
 
 if part_is_system:
     part_env.Append(CPPPATH = part_env['POK_PATH']+'/syspart/include')
-    part_env.Append(CPPPATH = env['POK_PATH']+'/build/libpok/include')
 
 part_env.Append(CFLAGS = ' -include '+part_env['POK_PATH']+'libpok/include/config.h')
 

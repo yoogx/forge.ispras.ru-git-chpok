@@ -322,13 +322,13 @@ pok_ret_t pok_current_partition_dec_lock_level(int32_t *lock_level);
 
 #ifdef __i386__
 #define POK_CHECK_PTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= pok_partitions[pid].base_addr && \
-                                             ((uintptr_t)(ptr)) <  pok_partitions[pid].base_addr + pok_partitions[pid].size\
+                                             ((uintptr_t)(ptr)) >= current_partition_arinc->base_addr && \
+                                             ((uintptr_t)(ptr)) <  current_partition_arinc->base_addr + current_partition_arinc->size\
                                              )
 
 #define POK_CHECK_VPTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= pok_partitions[pid].base_vaddr && \
-                                             ((uintptr_t)(ptr)) <  pok_partitions[pid].base_vaddr + pok_partitions[pid].size\
+                                             ((uintptr_t)(ptr)) >= current_partition_arinc->base_vaddr && \
+                                             ((uintptr_t)(ptr)) <  current_partition_arinc->base_vaddr + current_partition_arinc->size\
                                              )
 #elif defined(__PPC__)
 #define POK_CHECK_PTR_IN_PARTITION(pid,ptr) (\

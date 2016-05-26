@@ -148,3 +148,38 @@ pok_bool_t pok_raise_error_by_partition(pok_system_state_t system_state,
     
     return process_error_module(system_state, error_id);
 }
+
+// Default HM multi-partition selector - all errors are partition-level.
+pok_error_level_selector_t pok_hm_multi_partition_selector_default = {
+    .levels = {
+        0x7f,   /* POK_ERROR_ID_MODPOSTPROCEVENT_ELIST */
+        0x7f,   /* POK_ERROR_ID_ILLEGAL_REQUEST */
+        0x7f,   /* POK_ERROR_ID_APPLICATION_ERROR */
+        0x7f,   /* POK_ERROR_ID_PARTLOAD_ERROR */
+        0x7f,   /* POK_ERROR_ID_NUMERIC_ERROR */
+        0x7f,   /* POK_ERROR_ID_MEMORY_VIOLATION */
+        0x7f,   /* POK_ERROR_ID_DEADLINE_MISSED */
+        0x7f,   /* POK_ERROR_ID_HARDWARE_FAULT */
+        0x7f,   /* POK_ERROR_ID_POWER_FAIL */
+        0x7f,   /* POK_ERROR_ID_STACK_OVERFLOW */
+        0x7f,   /* POK_ERROR_ID_PROCINIT_ERROR */
+        0x7f,   /* POK_ERROR_ID_NOMEMORY_PROCDATA */
+        0x7f,   /* POK_ERROR_ID_ASSERT */
+        0x7f,   /* POK_ERROR_ID_CONFIG_ERROR */
+        0x7f,   /* POK_ERROR_ID_CHECK_POOL */
+        0x7f,   /* POK_ERROR_ID_UNHANDLED_INT */
+    }
+};
+
+// Default HM multi-partition table - shutdown for all errors.
+pok_error_module_action_table_t pok_hm_multi_partition_table_default = {
+    .actions = {
+        {POK_ERROR_MODULE_ACTION_SHUTDOWN, }, /* POK_SYSTEM_STATE_INIT_PARTOS */
+        {POK_ERROR_MODULE_ACTION_SHUTDOWN, }, /* POK_SYSTEM_STATE_INIT_PARTUSER */
+        {POK_ERROR_MODULE_ACTION_SHUTDOWN, }, /* POK_SYSTEM_STATE_INTERRUPT_HANDLER */
+        {POK_ERROR_MODULE_ACTION_SHUTDOWN, }, /* POK_SYSTEM_STATE_OS_MOD */
+        {POK_ERROR_MODULE_ACTION_SHUTDOWN, }, /* POK_SYSTEM_STATE_OS_PART */
+        {POK_ERROR_MODULE_ACTION_SHUTDOWN, }, /* POK_SYSTEM_STATE_ERROR_HANDLER */
+        {POK_ERROR_MODULE_ACTION_SHUTDOWN, }, /* POK_SYSTEM_STATE_USER */
+    }
+};

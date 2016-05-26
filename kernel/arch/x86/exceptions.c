@@ -109,7 +109,7 @@ static void dump_registers (interrupt_frame *frame)
   printf ("EFLAGS: %lx\n\n", frame->eflags);
 }
 
-#if defined(POK_NEEDS_ERROR_HANDLING)
+/*#if defined(POK_NEEDS_ERROR_HANDLING)
 static
 void pok_error_from_exception(pok_error_kind_t error)
 {
@@ -119,7 +119,7 @@ void pok_error_from_exception(pok_error_kind_t error)
     // TODO: make a shortcut: switch to handler immediately (if it's created, ofc)
     pok_sched(); 
 }
-#endif
+#endif*/
 
 INTERRUPT_HANDLER (exception_divide_error)
 {
@@ -127,10 +127,11 @@ INTERRUPT_HANDLER (exception_divide_error)
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
 
 #ifdef POK_NEEDS_DEBUG
-  printf ("[KERNEL] Raise divide by zero error, current thread=%d\n", POK_SCHED_CURRENT_THREAD);
+  printf ("[KERNEL] Raise divide by zero error\n");
 #endif
-
-  pok_error_from_exception(POK_ERROR_KIND_NUMERIC_ERROR);
+  pok_raise_error(POK_ERROR_ID_NUMERIC_ERROR,
+    /*TODO: User or kernel*/TRUE,
+    /*TODO: Failed address or kernel*/NULL);
 #else
   pok_fatal ("Divide error");
 #endif
@@ -165,13 +166,15 @@ INTERRUPT_HANDLER (exception_nmi)
    printf ("[KERNEL] Raise exception NMI fault\n");
    #endif
 
-   pok_error_from_exception (POK_ERROR_KIND_ILLEGAL_REQUEST);
+   pok_raise_error (POK_ERROR_ID_ILLEGAL_REQUEST,
+    /*TODO: User or kernel*/TRUE,
+    /*TODO: Failed address or kernel*/NULL);
 #else
 
-   #ifdef POK_NEEDS_DEBUG
+#ifdef POK_NEEDS_DEBUG
    dump_registers(frame);
    pok_fatal ("NMI Interrupt");
-   #endif
+#endif
 #endif
 }
 
@@ -212,7 +215,6 @@ INTERRUPT_HANDLER (exception_breakpoint)
     }
     was_breakpoint=TRUE;
     printf("Exit from GDBserver\n");
-    
 }
 
 INTERRUPT_HANDLER (exception_overflow)
@@ -224,12 +226,15 @@ INTERRUPT_HANDLER (exception_overflow)
    printf ("[KERNEL] Raise exception overflow fault\n");
    #endif
 
-  pok_error_from_exception (POK_ERROR_KIND_STACK_OVERFLOW);
+  pok_raise_error (POK_ERROR_ID_STACK_OVERFLOW,
+    /*TODO: User or kernel*/TRUE,
+    /*TODO: Failed address or kernel*/NULL);
+
 #else
-   #ifdef POK_NEEDS_DEBUG
-   dump_registers(frame);
-   pok_fatal ("Overflow");
-   #endif
+#ifdef POK_NEEDS_DEBUG
+  dump_registers(frame);
+  pok_fatal ("Overflow");
+#endif
 #endif
 }
 
@@ -238,16 +243,19 @@ INTERRUPT_HANDLER (exception_boundrange)
   (void)frame;
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
 
-   #ifdef POK_NEEDS_DEBUG
+#ifdef POK_NEEDS_DEBUG
    printf ("[KERNEL] Raise exception bound range fault\n");
-   #endif
+#endif
 
-  pok_error_from_exception (POK_ERROR_KIND_STACK_OVERFLOW);
+  pok_raise_error (POK_ERROR_ID_STACK_OVERFLOW,
+    /*TODO: User or kernel*/TRUE,
+    /*TODO: Failed address or kernel*/NULL);
+
 #else
-   #ifdef POK_NEEDS_DEBUG
+#ifdef POK_NEEDS_DEBUG
       dump_registers(frame);
       pok_fatal ("Bound range exceded");
-   #endif
+#endif
 #endif
 }
 
@@ -256,18 +264,19 @@ INTERRUPT_HANDLER (exception_invalidopcode)
   (void)frame;
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
 
-   #ifdef POK_NEEDS_DEBUG
-   printf ("[KERNEL] Raise exception invalid opcode fault, current thread: %d, EIP: 0x%lx\n", 
-           POK_SCHED_CURRENT_THREAD, 
+#ifdef POK_NEEDS_DEBUG
+   printf ("[KERNEL] Raise exception invalid opcode fault, EIP: 0x%lx\n",
            frame->eip);
-   #endif
+#endif
 
-  pok_error_from_exception (POK_ERROR_KIND_ILLEGAL_REQUEST);
+  pok_raise_error (POK_ERROR_ID_ILLEGAL_REQUEST,
+    /*TODO: User or kernel*/TRUE,
+    /*TODO: Failed address or kernel*/NULL);
 #else
-   #ifdef POK_NEEDS_DEBUG
+#ifdef POK_NEEDS_DEBUG
       dump_registers(frame);
       pok_fatal ("Invalid Opcode");
-   #endif
+#endif
 #endif
 }
 
@@ -276,17 +285,20 @@ INTERRUPT_HANDLER (exception_nomath_coproc)
   (void)frame;
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
 
-   #ifdef POK_NEEDS_DEBUG
+#ifdef POK_NEEDS_DEBUG
    printf ("[KERNEL] Raise exception no math coprocessor fault\n");
-   #endif
+#endif
 
-  pok_error_from_exception (POK_ERROR_KIND_ILLEGAL_REQUEST);
+  pok_raise_error (POK_ERROR_ID_ILLEGAL_REQUEST,
+    /*TODO: User or kernel*/TRUE,
+    /*TODO: Failed address or kernel*/NULL);
+
 #else
 
-   #ifdef POK_NEEDS_DEBUG
+#ifdef POK_NEEDS_DEBUG
       dump_registers(frame);
       pok_fatal ("Invalid No Math Coprocessor");
-   #endif
+#endif
 
 #endif
 }
@@ -296,17 +308,20 @@ INTERRUPT_HANDLER_errorcode (exception_doublefault)
   (void)frame;
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
 
-   #ifdef POK_NEEDS_DEBUG
-   printf ("[KERNEL] Raise exception double fault\n");
-   #endif
+#ifdef POK_NEEDS_DEBUG
+  printf ("[KERNEL] Raise exception double fault\n");
+#endif
 
   // FIXME: does it make sense?
-  pok_error_from_exception(POK_ERROR_KIND_PARTITION_HANDLER);
+  pok_raise_error (POK_ERROR_ID_UNHANDLED_INT,
+    /*TODO: User or kernel*/TRUE,
+    /*TODO: Failed address or kernel*/NULL);
+
 #else
-   #ifdef POK_NEEDS_DEBUG
-      dump_registers(frame);
-      pok_fatal ("Double Fault");
-   #endif
+#ifdef POK_NEEDS_DEBUG
+  dump_registers(frame);
+  pok_fatal ("Double Fault");
+#endif
 #endif
 }
 
@@ -315,16 +330,19 @@ INTERRUPT_HANDLER (exception_copseg_overrun)
   (void)frame;
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
 
-   #ifdef POK_NEEDS_DEBUG
-   printf ("[KERNEL] Raise exception copseg overrun fault\n");
-   #endif
+#ifdef POK_NEEDS_DEBUG
+  printf ("[KERNEL] Raise exception copseg overrun fault\n");
+#endif
 
-  pok_error_from_exception (POK_ERROR_KIND_MEMORY_VIOLATION);
+  pok_raise_error (POK_ERROR_ID_MEMORY_VIOLATION,
+    /*TODO: User or kernel*/TRUE,
+    /*TODO: Failed address or kernel*/NULL);
+
 #else
-   #ifdef POK_NEEDS_DEBUG
-      dump_registers(frame);
-      pok_fatal ("Coprocessur Segment Overrun");
-   #endif
+#ifdef POK_NEEDS_DEBUG
+  dump_registers(frame);
+  pok_fatal ("Coprocessur Segment Overrun");
+#endif
 #endif
 }
 
@@ -333,16 +351,19 @@ INTERRUPT_HANDLER_errorcode (exception_invalid_tss)
   (void)frame;
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
 
-   #ifdef POK_NEEDS_DEBUG
-   printf ("[KERNEL] Raise exception invalid tss fault\n");
-   #endif
+#ifdef POK_NEEDS_DEBUG
+  printf ("[KERNEL] Raise exception invalid tss fault\n");
+#endif
 
-  pok_error_from_exception (POK_ERROR_KIND_MEMORY_VIOLATION);
+  pok_raise_error (POK_ERROR_ID_MEMORY_VIOLATION,
+    /*TODO: User or kernel*/TRUE,
+    /*TODO: Failed address or kernel*/NULL);
+
 #else
-   #ifdef POK_NEEDS_DEBUG
-      dump_registers(frame);
-      pok_fatal ("Invalid TSS");
-   #endif
+#ifdef POK_NEEDS_DEBUG
+  dump_registers(frame);
+  pok_fatal ("Invalid TSS");
+#endif
 #endif
 }
 
@@ -351,16 +372,19 @@ INTERRUPT_HANDLER_errorcode (exception_segment_not_present)
   (void)frame;
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
 
-   #ifdef POK_NEEDS_DEBUG
-   printf ("[KERNEL] Raise exception segment not present fault %d\n", POK_SCHED_CURRENT_THREAD);
-   #endif
+#ifdef POK_NEEDS_DEBUG
+  printf ("[KERNEL] Raise exception segment not present fault\n");
+#endif
 
-  pok_error_from_exception (POK_ERROR_KIND_MEMORY_VIOLATION);
+  pok_raise_error (POK_ERROR_ID_MEMORY_VIOLATION,
+    /*TODO: User or kernel*/TRUE,
+    /*TODO: Failed address or kernel*/NULL);
+
 #else
-   #ifdef POK_NEEDS_DEBUG
-      dump_registers(frame);
-      pok_fatal ("Segment Not Present");
-   #endif
+#ifdef POK_NEEDS_DEBUG
+  dump_registers(frame);
+  pok_fatal ("Segment Not Present");
+#endif
 #endif
 }
 
@@ -369,16 +393,19 @@ INTERRUPT_HANDLER_errorcode (exception_stackseg_fault)
   (void)frame;
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
 
-   #ifdef POK_NEEDS_DEBUG
-   printf ("[KERNEL] Raise exception stack segment fault\n");
-   #endif
+#ifdef POK_NEEDS_DEBUG
+  printf ("[KERNEL] Raise exception stack segment fault\n");
+#endif
 
-   pok_error_from_exception (POK_ERROR_KIND_MEMORY_VIOLATION);
+  pok_raise_error (POK_ERROR_ID_MEMORY_VIOLATION,
+    /*TODO: User or kernel*/TRUE,
+    /*TODO: Failed address or kernel*/NULL);
+
 #else
-   #ifdef POK_NEEDS_DEBUG
-      dump_registers(frame);
-      pok_fatal ("Stack-Segment Fault");
-   #endif
+#ifdef POK_NEEDS_DEBUG
+  dump_registers(frame);
+  pok_fatal ("Stack-Segment Fault");
+#endif
 #endif
 }
 
@@ -387,18 +414,20 @@ INTERRUPT_HANDLER_errorcode (exception_general_protection)
   (void)frame;
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
 
-   #ifdef POK_NEEDS_DEBUG
-   printf ("[KERNEL] Raise exception general protection fault current thread=%d, EIP=0x%lx\n",
-           POK_SCHED_CURRENT_THREAD,
+#ifdef POK_NEEDS_DEBUG
+  printf ("[KERNEL] Raise exception general protection fault. EIP=0x%lx\n",
            frame->eip);
-   #endif
+#endif
 
-  pok_error_from_exception (POK_ERROR_KIND_ILLEGAL_REQUEST);
+  pok_raise_error (POK_ERROR_ID_ILLEGAL_REQUEST,
+    /*TODO: User or kernel*/TRUE,
+    /*TODO: Failed address or kernel*/NULL);
+
 #else
-   #ifdef POK_NEEDS_DEBUG
-   dump_registers(frame);
-   pok_fatal ("General Protection Fault");
-   #endif
+#ifdef POK_NEEDS_DEBUG
+  dump_registers(frame);
+  pok_fatal ("General Protection Fault");
+#endif
 #endif
 }
 
@@ -406,16 +435,18 @@ INTERRUPT_HANDLER_errorcode (exception_pagefault)
 {
   (void)frame;
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
-   #ifdef POK_NEEDS_DEBUG
-   printf ("[KERNEL] Raise exception pagefault fault\n");
-   #endif
+#ifdef POK_NEEDS_DEBUG
+  printf ("[KERNEL] Raise exception pagefault fault\n");
+#endif
 
-   pok_error_from_exception (POK_ERROR_KIND_MEMORY_VIOLATION);
+  pok_raise_error (POK_ERROR_ID_MEMORY_VIOLATION,
+    /*TODO: User or kernel*/TRUE,
+    /*TODO: Failed address or kernel*/NULL);
 #else
-   #ifdef POK_NEEDS_DEBUG
-      dump_registers(frame);
-      pok_fatal ("Page Fault");
-   #endif
+#ifdef POK_NEEDS_DEBUG
+  dump_registers(frame);
+  pok_fatal ("Page Fault");
+#endif
 #endif
 }
 
@@ -424,16 +455,19 @@ INTERRUPT_HANDLER (exception_fpu_fault)
   (void)frame;
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
 
-   #ifdef POK_NEEDS_DEBUG
-   printf ("[KERNEL] Raise exception FPU fault\n");
-   #endif
+#ifdef POK_NEEDS_DEBUG
+  printf ("[KERNEL] Raise exception FPU fault\n");
+#endif
 
-   pok_error_from_exception (POK_ERROR_KIND_HARDWARE_FAULT);
+  pok_raise_error (POK_ERROR_ID_HARDWARE_FAULT,
+    /*TODO: User or kernel*/TRUE,
+    /*TODO: Failed address or kernel*/NULL);
+
 #else
-   #ifdef POK_NEEDS_DEBUG
-      dump_registers(frame);
-      pok_fatal ("Floating Point Exception");
-   #endif
+#ifdef POK_NEEDS_DEBUG
+  dump_registers(frame);
+  pok_fatal ("Floating Point Exception");
+#endif
 #endif
 }
 
@@ -442,16 +476,18 @@ INTERRUPT_HANDLER_errorcode (exception_alignement_check)
   (void)frame;
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
 
-   #ifdef POK_NEEDS_DEBUG
-   printf ("[KERNEL] Raise exception alignment fault\n");
-   #endif
+#ifdef POK_NEEDS_DEBUG
+  printf ("[KERNEL] Raise exception alignment fault\n");
+#endif
 
-  pok_error_from_exception (POK_ERROR_KIND_HARDWARE_FAULT);
+  pok_raise_error (POK_ERROR_ID_HARDWARE_FAULT,
+    /*TODO: User or kernel*/TRUE,
+    /*TODO: Failed address or kernel*/NULL);
 #else
-   #ifdef POK_NEEDS_DEBUG
-      dump_registers(frame);
-      pok_fatal ("Bad alignement");
-   #endif
+#ifdef POK_NEEDS_DEBUG
+  dump_registers(frame);
+  pok_fatal ("Bad alignement");
+#endif
 #endif
 }
 
@@ -460,16 +496,19 @@ INTERRUPT_HANDLER (exception_machine_check)
   (void)frame;
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
 
-   #ifdef POK_NEEDS_DEBUG
+#ifdef POK_NEEDS_DEBUG
    printf ("[KERNEL] Raise exception machine check fault\n");
-   #endif
+#endif
 
-  pok_error_from_exception (POK_ERROR_KIND_HARDWARE_FAULT);
+  pok_raise_error (POK_ERROR_ID_HARDWARE_FAULT,
+    /*TODO: User or kernel*/TRUE,
+    /*TODO: Failed address or kernel*/NULL);
+
 #else
-   #ifdef POK_NEEDS_DEBUG
-      pok_fatal ("Machine check error");
-      dump_registers(frame);
-   #endif
+#ifdef POK_NEEDS_DEBUG
+  pok_fatal ("Machine check error");
+  dump_registers(frame);
+#endif
 #endif
 }
 
@@ -478,18 +517,19 @@ INTERRUPT_HANDLER (exception_simd_fault)
   (void)frame;
 #if defined (POK_NEEDS_PARTITIONS) && defined (POK_NEEDS_ERROR_HANDLING)
 
-   #ifdef POK_NEEDS_DEBUG
-   printf ("[KERNEL] Raise exception SIMD fault\n");
-   #endif
+#ifdef POK_NEEDS_DEBUG
+  printf ("[KERNEL] Raise exception SIMD fault\n");
+#endif
 
-  pok_error_from_exception (POK_ERROR_KIND_HARDWARE_FAULT);
+  pok_raise_error (POK_ERROR_ID_HARDWARE_FAULT,
+    /*TODO: User or kernel*/TRUE,
+    /*TODO: Failed address or kernel*/NULL);
 #else
 
-   #ifdef POK_NEEDS_DEBUG
-      dump_registers(frame);
-      pok_fatal ("SIMD Fault");
-   #endif
-
+#ifdef POK_NEEDS_DEBUG
+  dump_registers(frame);
+  pok_fatal ("SIMD Fault");
+#endif
 #endif
 }
 

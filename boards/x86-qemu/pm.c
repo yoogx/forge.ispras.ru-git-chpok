@@ -24,7 +24,7 @@
 #include <config.h>
 
 #include <errno.h>
-#include <arch/x86/multiboot.h>
+#include <multiboot.h>
 #include <types.h>
 
 #include "pm.h"

@@ -23,8 +23,8 @@
 /* FRAME_SIZE must be equal to offsetof(context_t, back_chain) */
 #define FRAME_SIZE 352
         .text
-        .globl pok_context_switch
-pok_context_switch:
+        .globl ja_context_switch
+ja_context_switch:
         /* r3: *old_sp, r4: new_sp */
 
         /* Save registers.  */
@@ -150,15 +150,4 @@ pok_context_switch:
         mtlr    %r0
         blr
 
-        .size pok_context_switch, . - pok_context_switch
-
-        .globl pok_arch_thread_start
-pok_arch_thread_start:
-        mr      %r3, %r14
-        mr      %r4, %r15
-        
-        xor     %r0,%r0,%r0
-        stw     %r0,4(%r1)
-        bl      pok_thread_start
-
-        .size pol_arch_thread_start, . - pok_arch_thread_start
+        .size ja_context_switch, . - ja_context_switch
