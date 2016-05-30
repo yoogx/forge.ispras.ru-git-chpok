@@ -18,10 +18,10 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_DEBUG
-
 #ifndef __POK_KERNEL_DEBUG_H_
 #define __POK_KERNEL_DEBUG_H_
+
+#ifdef POK_NEEDS_DEBUG
 
 #include <errno.h>
 #include <types.h>
@@ -34,14 +34,18 @@ int      debug_strlen (const char* str);
 
 void hexdump (const void *addr, int len);
 
+/* Print formatted message if debugging enabled. Otherwise do nothing.*/
+#define printf_debug printf
 
 #define POK_FATAL(arg) pok_fatal(arg)
 
 #define POK_DEBUG_PRINT_CURRENT_STATE pok_debug_print_current_state();
 
-#endif /* __POK_KERNELDEBUG_H__ */
-#else
-   #define POK_DEBUG_PRINT_CURRENT_STATE
-   #define POK_FATAL(arg) 
+#else /* POK_NEEDS_DEBUG */
+#define printf_debug(...) do {} while(0)
+#define POK_DEBUG_PRINT_CURRENT_STATE
+#define POK_FATAL(arg)
 #endif /* POK_NEEDS_DEBUG */
+
+#endif /* __POK_KERNELDEBUG_H__ */
 
