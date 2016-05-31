@@ -243,6 +243,7 @@ void pok_sched_restart (void)
     else
         pok_space_switch(0xff); // TODO: This should disable all user space tables
 
+    kernel_state = POK_SYSTEM_STATE_OS_PART;
     pok_context_jump(*new_sp);
 }
 

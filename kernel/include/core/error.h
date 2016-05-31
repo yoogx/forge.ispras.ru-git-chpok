@@ -140,8 +140,6 @@ extern pok_error_module_action_table_t pok_hm_module_table;
 /* 
  * Raise error with given identificator.
  * 
- * Should be called from interrupt handler with interrupts enabled.
- * 
  * Error level will be determined using generic mechanism,
  * and action will be taken.
  * 

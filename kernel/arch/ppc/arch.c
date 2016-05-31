@@ -85,7 +85,7 @@ pok_ret_t pok_arch_event_register (uint8_t vector, void (*handler)(void))
 }
 
 
-uint32_t    pok_thread_stack_addr   (uint8_t    space_id,
+uint32_t    ja_thread_stack_addr   (uint8_t    space_id,
                                      uint32_t stack_size,
                                      uint32_t* state)
 {
