@@ -416,6 +416,15 @@ static void flush_send(void) {
     }
 }
 
+#ifdef POK_NEEDS_SIMULATION
+static void flush_send_and_stop(void) {
+    flush_send();
+    if (initialized) {
+        sim_stop_tick = pok_tick_counter; // Assuming this method is called ONLY when some data sent out.
+    }
+}
+#endif // POK_NEEDS_SIMULATION
+
 void register_received_callback(
             pok_bool_t (*callback)(
                 uint32_t ip,
@@ -432,7 +441,11 @@ struct channel_driver ipnet_channel_driver = {
     .send = send,
     .reclaim_send_buffers = reclaim_send_buffers,
     .receive = receive,
+#ifndef POK_NEEDS_SIMULATION
     .flush_send = flush_send,
+#else
+    .flush_send = flush_send_and_stop,
+#endif // POK_NEEDS_SIMULATION
     .register_received_callback = register_received_callback
 };
 

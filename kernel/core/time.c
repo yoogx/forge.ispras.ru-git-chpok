@@ -41,6 +41,12 @@
  */
 uint64_t pok_tick_counter = 0;
 
+#ifdef POK_NEEDS_SIMULATION
+#include <stdint.h>
+
+uint64_t sim_stop_tick = UINT64_MAX;
+#endif
+
 /**
  * \brief Init the timing service.
  *

@@ -265,6 +265,13 @@ static void pok_sched(void)
     pok_partition_t* new_partition;
     pok_time_t now;
     
+#ifdef POK_NEEDS_SIMULATION
+    if (POK_GETTICK() >= sim_stop_tick) {
+        inter_partition_switch(&partition_idle);
+        return;
+    }
+#endif
+
     if(!flag_test_and_reset(sched_need_recheck)) return;
     
     now = POK_GETTICK();
