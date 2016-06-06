@@ -27,7 +27,6 @@ Import('env')
 Import('part_dir')
 Import('part_build_dir')
 Import('src_dir')
-Import('part_is_system')
 Import('part_xml')
 
 def get_pok_partition_definitions(source, env):
@@ -40,7 +39,6 @@ def get_pok_partition_definitions(source, env):
 
     conf = chpok_configuration.Configuration()
     parser.parse_partition(conf, root)
-    #conf.partitions[0].is_system = part_is_system
 
     return dict(part = conf.partitions[0])
 
@@ -51,6 +49,10 @@ env.TemplateRender(
     template_main = "deployment_user",
     template_dir = env['POK_PATH'] + "/misc/templates"
     )
+
+root = etree.parse(os.path.join(part_dir, part_xml))
+definition_attrib = root.find("Definition").attrib
+part_is_system = ("System" in definition_attrib) and (arinc653_xml_conf.parse_bool(definition_attrib["System"]))
 
 part_env = env.Clone()
 part_env['CPPPATH'] = [part_env['POK_PATH']+'libpok/include']
