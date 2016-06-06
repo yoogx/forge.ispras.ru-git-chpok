@@ -78,7 +78,7 @@ log_file_opened = False
 SConsignFile(None)
 
 # Cache built files
-CacheDir(env['POK_PATH']+'/cache')
+#CacheDir(env['POK_PATH']+'/cache')
 
 # Flags common for all architectures
 env['PRINT_CMD_LINE_FUNC'] = print_cmd_line
