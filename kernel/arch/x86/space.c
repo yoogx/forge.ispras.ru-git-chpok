@@ -30,8 +30,9 @@
 #include "tss.h"
 
 #include "space.h"
-#include "core/sched.h"
-#include "core/partition.h"
+#include <core/sched.h>
+#include <core/partition.h>
+#include <core/partition_arinc.h>
 
 #define KERNEL_STACK_SIZE 8192
 

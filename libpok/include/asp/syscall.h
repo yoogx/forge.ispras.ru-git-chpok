@@ -17,8 +17,8 @@
 #define __LIBJET_ASP_SYSCALL_H__
 
 #include <config.h>
-#include <types.h>
-#include <core/syscall_types.h>
+
+#include <uapi/syscall_types.h>
 
 #include <arch/syscall.h>
 

@@ -48,7 +48,8 @@ except:
     vars = Variables()
     vars.AddVariables(
         ('xml', 'xml config to be passed to parser', 'config.xml'),
-        EnumVariable('bsp', 'bsp', default_board, allowed_values = boards)
+        EnumVariable('bsp', 'bsp', default_board, allowed_values = boards),
+        BoolVariable('jdeveloper', 'Enables developer mode', 0)
     )
 
     env = Environment(variables = vars, ENV = os.environ)
@@ -97,13 +98,11 @@ env['ARCH'] = bsp_arch_dict[env['BSP']]
 
 env['KERNEL_CPPPATH'] = [
     env['POK_PATH']+'/kernel/include',
-    env['POK_PATH']+'/build/kernel/include',
     env['POK_PATH']+'/kernel/arch/' + env['ARCH'] + '/include',
 ]
 
 env['LIBPOK_CPPPATH'] = [
     env['POK_PATH']+'/libpok/include',
-    env['POK_PATH']+'/build/libpok/include',
     env['POK_PATH']+'/libpok/arch/' + env['ARCH'] + '/include',
 ]
 

@@ -19,7 +19,7 @@
 #ifndef __LIBPOK_X86_SYSCALL_H__
 #define __LIBPOK_X86_SYSCALL_H__
 
-#include <core/syscall_types.h>
+#include <uapi/syscall_types.h>
 #include <types.h>
 
 #define LIBJET_ARCH_DECLARE_SYSCALL 1

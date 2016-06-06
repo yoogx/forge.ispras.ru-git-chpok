@@ -19,20 +19,7 @@
 
 Import('libpok_env')
 
-import sys
-import os
-sys.path.insert(1, os.path.join(os.environ["POK_PATH"], "misc"))
-import generate_syscalls
-
-libpok_env.Append(CPPPATH = libpok_env['POK_PATH']+'/build/libpok/include')
-
-generate_syscall_user_command = libpok_env.Command(
-    target = libpok_env['POK_PATH'] + 'build/libpok/include/pok/syscall_map_arinc.h',
-    source = libpok_env["POK_PATH"] + 'kernel/include/uapi/syscall_map_arinc.h.in',
-    action = generate_syscalls.generate_syscalls_declaration_user)
-
 libpok_core = libpok_env.StaticObject(source = Glob('*.c'))
-libpok_env.Depends(libpok_core, generate_syscall_user_command)
 
 Return('libpok_core')
 

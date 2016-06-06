@@ -580,7 +580,7 @@ pok_ret_t pok_port_sampling_read(
     pok_port_id_t           id,
     void __user             *data,
     pok_port_size_t __user  *len,
-    bool_t __user           *valid)
+    pok_bool_t __user       *valid)
 {
     pok_port_sampling_t* port_sampling;
     pok_ret_t ret;

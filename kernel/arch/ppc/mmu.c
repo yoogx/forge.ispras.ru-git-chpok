@@ -36,7 +36,7 @@ void pok_ppc_tlb_write(
         unsigned wimge,
         unsigned pid,
         unsigned entry,
-        bool_t   valid
+        pok_bool_t  valid
         )
 {
     /*
