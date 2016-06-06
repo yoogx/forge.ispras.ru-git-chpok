@@ -115,6 +115,11 @@ pok_ret_t ja_space_switch (uint8_t space_id)
     return (POK_ERRNO_OK);
 }
 
+uint8_t ja_space_get_current (void)
+{
+    return current_space_id;
+}
+
 uint32_t	ja_space_base_vaddr (uint32_t addr)
 {
    (void) addr;

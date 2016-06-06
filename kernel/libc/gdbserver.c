@@ -430,6 +430,7 @@ static struct regs* gdb_thread_get_regs(const struct gdb_thread* t)
     }
 }
 
+#ifdef NUMREGS_FP
 /* 
  * Return floating-point registers(arch-specific) for non-current thread.
  */
@@ -445,7 +446,7 @@ void gdb_thread_set_fp_regs(struct gdb_thread* t, const uint32_t* registers)
 {
     //TODO: Currently floating point registers are not stored.
 }
-
+#endif
 
 /************************************************************************
  *
@@ -727,7 +728,9 @@ void
 set_char (char *addr, int val)
 {
     *addr = val;
+#ifdef __PPC__
 asm volatile("dcbst 0, %0; sync; icbi 0,%0; sync; isync" : : "r" (addr));
+#endif
 }
 
 /* convert the memory pointed to by mem into hex, placing result in buf */
@@ -1132,14 +1135,21 @@ static void gdb_state_store_registers(struct gdb_state* tc)
         ea = gdb_thread_get_regs(&tc->t);
         if(!ea) ea = &null_ea;
 
+#ifdef NUMREGS_FP
         gdb_thread_set_fp_regs(&tc->t, fp_registers);
+#endif
     }
     else
     {
         ea = tc->current_ea;
     }
-
+#ifdef __PPC__
     printf("Flush registers. pc = 0x%lx\n", registers[pc]);
+#endif
+#ifdef __i386__
+    printf("Flush registers. PC = 0x%lx\n", registers[PC]);
+#endif
+
     gdb_get_regs(ea, registers);
 }
 
@@ -1153,7 +1163,9 @@ static void gdb_state_fill_registers(struct gdb_state* tc)
         ea = gdb_thread_get_regs(&tc->t);
         if(!ea) ea = &null_ea;
 
+#ifdef NUMREGS_FP
         gdb_thread_get_fp_regs(&tc->t, fp_registers);
+#endif
     }
     else
     {
@@ -1520,8 +1532,7 @@ handle_exception (int exceptionVector, struct regs * ea)
     *ptr++ = 'a';
     *ptr++ = 'd';
     *ptr++ = ':';
-    int thread_num = POK_SCHED_CURRENT_THREAD + 1;
-    ptr = mem2hex( (char *)&thread_num, ptr, 1); 
+    ptr = write_thread_id(ptr, &gdb_thread_current);
     *ptr++ = ';';
   *ptr = 0;
 #endif      
@@ -2106,10 +2117,10 @@ handle_exception (int exceptionVector, struct regs * ea)
                     printf("New_start = %d",new_start);
 #endif
                     clear_breakpoints();
-                }         
+                }
                 ptr = &remcomInBuffer[1];
                 int type = -1;
-                hexToInt(&ptr, &type);
+                hexToInt(&ptr, (uintptr_t *)(&type));
                 if (type == -1) break;
                 if (*ptr != ',') break;
                 ptr++;
@@ -2117,21 +2128,40 @@ handle_exception (int exceptionVector, struct regs * ea)
                 if (*ptr != ',') break;
                 ptr++;
                 int kind = -1;
-                hexToInt(&ptr, &kind);
+                hexToInt(&ptr, (uintptr_t *)(&kind));
                 if (kind == -1) break;
                 if (type == 0){
                     if (remcomInBuffer[0] == 'Z') 
-                            add_0_breakpoint(&addr,&kind,&using_thread);
+                            add_0_breakpoint(addr, kind, &tc.t);
                         else
-                            remove_0_breakpoint(&addr,&kind,&using_thread);
+                            remove_0_breakpoint(addr, kind, &tc.t);
+                }
+                if (type == 2){
+                    if (remcomInBuffer[0] == 'Z') 
+                            add_watchpoint(addr, kind, &tc.t, 2);
+                        else
+                            remove_watchpoint(addr, kind, &tc.t, 2);
+                }
+                if (type == 3){
+                    if (remcomInBuffer[0] == 'Z') 
+                            add_watchpoint(addr, kind, &tc.t, 3);
+                        else
+                            remove_watchpoint(addr, kind, &tc.t, 3);
+                }
+                if (type == 4){
+                    if (remcomInBuffer[0] == 'Z') 
+                            add_watchpoint(addr, kind, &tc.t, 4);
+                        else
+                            remove_watchpoint(addr, kind, &tc.t, 4);
                 }
                 break;
             }
+
         case 'T':               /*Find out if the thread thread-id is alive*/
             ptr = &remcomInBuffer[1];
-            int thread_num = -1;
-            hexToInt(&ptr, &thread_num);
-            if ( thread_num > 0 && thread_num < POK_CONFIG_NB_THREADS + 1){
+            ptr = read_thread_id(ptr, &t);
+
+            if(!gdb_thread_find(&t)) {
                 remcomOutBuffer[0] = 'O';
                 remcomOutBuffer[1] = 'K';
                 remcomOutBuffer[2] = 0;
@@ -2145,9 +2175,24 @@ handle_exception (int exceptionVector, struct regs * ea)
                 ptr = remcomOutBuffer;
                 *ptr++ = 'Q';
                 *ptr++ = 'C';
-                uint32_t p = POK_SCHED_CURRENT_THREAD + 1;
-                ptr = mem2hex( (char *)(&p),ptr,1); 
+
+                ptr = write_thread_id(ptr, &gdb_thread_current);
                 *ptr++ = 0;
+
+                if (Connect_to_new_inferior == 1){
+                    Connect_to_new_inferior = -1;
+                    putpacket ( (unsigned char *) remcomOutBuffer);
+                    //pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = old_entryS;?
+               
+                    ptr = &remcomInBuffer[1];
+                    if (hexToInt(&ptr, &addr)) {
+                        //ea->srr0 = addr;
+                    }
+                    
+                    ea->eip = ea->eip - 4;
+                    return;
+                }
+
                 break;
             }
             if (strncmp(ptr, "Offsets", 7) == 0){
@@ -2171,73 +2216,53 @@ handle_exception (int exceptionVector, struct regs * ea)
                 
             }
             if (strncmp(ptr, "fThreadInfo", 11) == 0)   {
-                number_of_thread = 1;
-#ifdef DEBUG_GDB
-                printf("in first if\n");
-#endif
-                ptr = remcomOutBuffer;  
+                t.inferior_id = 0;
+                t.thread_id = 0;
+
+                ptr = remcomOutBuffer;
                 *ptr++ = 'm';
-                int previous_thread = 1;
-                ptr = mem2hex( (char *)(&previous_thread), ptr, 1); 
+
+                gdb_thread_get_next(&t);
+
+                ptr = write_thread_id(ptr, &t);
                 *ptr++ = 0;
-                number_of_thread++;
+
                 break;
             }
             if (strncmp(ptr, "sThreadInfo", 11) == 0){
-                if (number_of_thread == POK_CONFIG_NB_THREADS +1){
-                    ptr = remcomOutBuffer;
+                ptr = remcomOutBuffer;
+
+                if(gdb_thread_get_next(&t))
+                {
                     *ptr++ = 'l';
                     *ptr++ = 0;
                     break;
                 }
-                ptr = remcomOutBuffer;
+
                 *ptr++ = 'm';
-                int previous_thread = number_of_thread;
-                ptr = mem2hex( (char *)(&previous_thread), ptr, 1); 
-                number_of_thread++;
+
+                ptr = write_thread_id(ptr, &t);
                 *ptr++ = 0;
                 break;
              }
              if (strncmp(ptr, "ThreadExtraInfo", 15) == 0){
                 ptr += 16;
-                int thread_num;
-                /*FIX IT*/
-                hexToInt(&ptr, &thread_num);
-                thread_num --;
- #ifdef DEBUG_GDB
-                printf("thread_num=%d\n",thread_num);
-                printf("pok_threads[%d].state=%d\n",thread_num,pok_threads[thread_num].state);
-#endif
-                //~ struct thread_stack * id = (struct thread_stack *) pok_threads[thread_num].sp;
 
+                ptr = read_thread_id(ptr, &t);
+                gdb_thread_find(&t);
 
                 ptr = remcomOutBuffer;
-                int info_offset = 0;
-                int lengh = pok_thread_info(pok_threads[thread_num].state, &info_offset);
-                if (thread_num == POK_SCHED_CURRENT_THREAD){
-                    ptr = mem2hex( (char *) &("* "), ptr, 2);
-                }
-                if (thread_num == MONITOR_THREAD){
-                    ptr = mem2hex( (char *) &("MONITOR "), ptr, 8);
-                }
-                if (thread_num == GDB_THREAD){
-                    ptr = mem2hex( (char *) &("GDB "), ptr, 4);
-                }
-                if (thread_num == IDLE_THREAD){
-                    ptr = mem2hex( (char *) &("IDLE "), ptr, 5);
-                }
-#ifdef DEBUG_GDB
-                printf("lengh = %d\n",lengh);
-                printf("info_offset = %d\n",info_offset);
-                printf("%c%c%c\n",info_thread[info_offset],info_thread[info_offset+1],info_thread[info_offset+2]);
-#endif
-                //~ strcpy(ptr,info);
-                ptr = mem2hex( (char *) (&info_thread[info_offset]), ptr, lengh);
+
+                struct packet_write_cb_data cb_data = {.ptr = ptr};
+
+                gdb_thread_print_name(&t, packet_write_cb, &cb_data);
+
+                ptr = cb_data.ptr;
+
                 *ptr++ = 0;
                 break;
             }
-
-        break;
+            break;
         }
         case '?':
             remcomOutBuffer[0] = 'S';
@@ -2256,7 +2281,7 @@ handle_exception (int exceptionVector, struct regs * ea)
         {
             int regno;
 
-            if (hexToInt (&ptr, &regno) && *ptr++ == '=')
+            if (hexToInt (&ptr, (uintptr_t *)&regno) && *ptr++ == '=')
                 if (regno >= 0 && regno < NUMREGS)
                 {
                     hex2mem (ptr, (char *) &registers[regno], 4, 0);
@@ -2271,7 +2296,7 @@ handle_exception (int exceptionVector, struct regs * ea)
         {
             int regno;
 
-            if (hexToInt (&ptr, &regno))
+            if (hexToInt (&ptr, (uintptr_t *)&regno))
             {
                 //~ printf("Regno = %d\n",regno);
                 ///FIXME
@@ -2320,88 +2345,60 @@ handle_exception (int exceptionVector, struct regs * ea)
                 /* Try to read %x,%x.  */
             {
                 ptr = &remcomInBuffer[1];
-                int old_pid = current_part_id();
-                int new_pid = give_part_num_of_thread(using_thread + 1);
+                int old_pid = pok_space_get_current();
+                int new_pid = gdb_thread_get_space(&tc.t);
 #ifdef DEBUG_GDB
                 printf("New_pid = %d\n",new_pid);
                 printf("Old_pid = %d\n",old_pid);
 #endif
                 if (hexToInt(&ptr, &addr)
                     && *ptr++ == ','
-                    && hexToInt(&ptr, &length)) {
-                    if (!POK_CHECK_ADDR_IN_PARTITION(new_pid,addr)){
-                        
+                    && hexToInt(&ptr, (uintptr_t *)(&length))) {
+                    if (!gdb_thread_check_access(&tc.t, addr, length)){
                         strcpy (remcomOutBuffer, "E03");
                         break;
                     }else{ 
 #ifdef DEBUG_GDB
                         printf("Load new_pid\n");
 #endif
-                        switch_part_id(old_pid, new_pid);
+                        pok_space_switch(new_pid);
                     }
-                    if (mem2hex((char *)addr, remcomOutBuffer,length)){
-                        switch_part_id(new_pid, old_pid);
-                        break;
+                    if (!mem2hex((char *)addr, remcomOutBuffer,length)){
+                        strcpy (remcomOutBuffer, "E03");
                     }
-                    strcpy (remcomOutBuffer, "E03");
-                    if (POK_CHECK_ADDR_IN_PARTITION(new_pid,addr))
-                        switch_part_id(new_pid, old_pid);
+                    pok_space_switch(old_pid);
                 } else {
                     strcpy(remcomOutBuffer,"E01");
                 }
                 break;
             }
 
-      //~ /* MAA..AA,LLLL: Write LLLL bytes at address AA.AA return OK */
-        //~ case 'M':
-      //~ /* TRY TO READ '%x,%x:'.  IF SUCCEED, SET PTR = 0 */
-            //~ if (hexToInt (&ptr, &addr))
-                //~ if (*(ptr++) == ',')
-                    //~ if (hexToInt (&ptr, &length))
-                        //~ if (*(ptr++) == ':')
-                        //~ {
-                            //~ mem_err = 0;
-                            //~ hex2mem (ptr, (char *) addr, length, 1);
-                            //~ if (mem_err)
-                            //~ {
-                                //~ strcpy (remcomOutBuffer, "E03");
-                            //~ }else{
-                                //~ strcpy (remcomOutBuffer, "OK");
-                            //~ }
-//~ 
-                            //~ ptr = 0;
-                        //~ }
-            //~ if (ptr)
-            //~ {
-                //~ strcpy (remcomOutBuffer, "E02");
-            //~ }
-            //~ break;
+
         case 'M': /* MAA..AA,LLLL: Write LLLL bytes at address AA.AA return OK */
             /* Try to read '%x,%x:'.  */
             {
-
                 ptr = &remcomInBuffer[1];
-                int old_pid = current_part_id();
-                int new_pid = give_part_num_of_thread(using_thread + 1);
+                int old_pid = pok_space_get_current();
+                int new_pid = gdb_thread_get_space(&tc.t);
+
                 if (hexToInt(&ptr, &addr)
                     && *ptr++ == ','
-                    && hexToInt(&ptr, &length)
+                    && hexToInt(&ptr, (uintptr_t *)(&length))
                     && *ptr++ == ':') {
-                    if (POK_CHECK_ADDR_IN_PARTITION(new_pid,addr))
-                        switch_part_id(old_pid, new_pid);
-                    else{
+
+                    if (gdb_thread_check_access(&tc.t, addr, length))
                         strcpy (remcomOutBuffer, "E03");
                         break;
-                    }
-                    if (strncmp(ptr, "7d821008", 8) == 0)
+
+                    pok_space_switch(new_pid);
+                    if (strncmp(ptr, "7d821008", 8) == 0) // TODO: Magic constant
                         ptr = trap;
                     if (hex2mem(ptr, (char *)addr, length)) {
                         strcpy(remcomOutBuffer, "OK");
                     } else {
                         strcpy(remcomOutBuffer, "E03");
                     }
-                    if (POK_CHECK_ADDR_IN_PARTITION(new_pid,addr))
-                        switch_part_id(new_pid, old_pid);
+                    pok_space_switch(old_pid);
                 } else {
                     strcpy(remcomOutBuffer, "E02");
                 }
@@ -2411,71 +2408,53 @@ handle_exception (int exceptionVector, struct regs * ea)
 
         case 'H':                   /*Set thread for subsequent operations (‘m’, ‘M’, ‘g’, ‘G’, et.al.). */
         {
-            if (number_of_thread == 1){
-            //TODO: FIX IT
-                strcpy(remcomOutBuffer,"OK");
-#ifdef DEBUG_GDB
-                printf("\nH break\n");
-#endif
-                break;
-            }    
             ptr = &remcomInBuffer[1];
             if ( *ptr == 'c'){
-                using_thread = POK_SCHED_CURRENT_THREAD;
-#ifdef DEBUG_GDB
-                printf("pok_threads[%d].sp=0x%lx\n",using_thread,pok_threads[using_thread].sp);
-                printf("pok_threads[%d].entry_sp=0x%lx\n",using_thread,pok_threads[using_thread].entry_sp);
-#endif
-                set_regs((struct regs *)pok_threads[using_thread].entry_sp);
-#ifdef DEBUG_GDB
-                printf("registers [eip] = 0x%lx\n",registers[PC]);
-#endif            
-            }else if (*ptr++ == 'g'){
-            /*FIX IT*/
-                //~ while (*ptr != '.')
-                    //~ ptr++;
-                //~ ptr++;
-                hexToInt(&ptr, &addr);
-                if (addr != -1 && addr != 0) 
-                {
-                    using_thread = addr;
-                    using_thread --;
-                    //~ strcpy(remcomOutBuffer,"OK");
-                    //~ printf("\nH-1 break\n");
-                    //~ break;
-            
-                }else using_thread = POK_SCHED_CURRENT_THREAD;
-#ifdef DEBUG_GDB
-                printf("pok_threads[%d].sp=0x%lx\n",using_thread,pok_threads[using_thread].sp);
-                printf("pok_threads[%d].entry_sp=0x%lx\n",using_thread,pok_threads[using_thread].entry_sp);
-                printf("POK_CONFIG_NB_THREADS = %d\n\n",POK_CONFIG_NB_THREADS);
-                printf("MONITOR_THREAD = %d\n\n",MONITOR_THREAD);
-                printf("POK_SCHED_CURRENT_THREAD = %d\n\n",POK_SCHED_CURRENT_THREAD);
-#endif
-                set_regs((struct regs *)pok_threads[using_thread].entry_sp);
-#ifdef DEBUG_GDB
-                printf("\nentry= 0x%lx\n",(uint32_t) pok_threads[using_thread].entry);
-#endif
+                /*ptr++;
+                ptr = read_thread_id(ptr, &t);
+                if(!gdb_thread_equal(&t, &tc.gdb_thread_current)) {
+                    // Only current thread can be single-stepped or continued
+                    strcpy(remcomOutBuffer, "E22");
+                } else {
+                    strcpy(remcomOutBuffer, "OK");
+                }*/
+                // Ignore thread id and assume it to be current one.
+                strcpy(remcomOutBuffer, "OK");
+            }else if (*ptr == 'g'){
+                ptr++;
+                ptr = read_thread_id(ptr, &t);
+                
+                // "Any" choice assume the current.
+                // TODO: What means "all" choice in that case?
+                if(t.inferior_id == -1 || t.inferior_id == 0) {
+                    gdb_sate_set_thread(&tc, &gdb_thread_current);
+                    strcpy(remcomOutBuffer,"OK");
+                }
+
+                else if(gdb_thread_find(&t)) {
+                    strcpy(remcomOutBuffer,"E22");
+                }else {
+                    gdb_sate_set_thread(&tc, &t);
+                    strcpy(remcomOutBuffer,"OK");
+                }
             }
-#ifdef DEBUG_GDB
-            printf("\nH\n");
-#endif        
-            strcpy(remcomOutBuffer,"OK");
             break;
         }
-      /* cAA..AA    Continue at address AA..AA(optional) */
+    /* cAA..AA    Continue at address AA..AA(optional) */
       /* sAA..AA   Step one instruction from AA..AA(optional) */
         case 's':
             stepping = TRUE;
         case 'k':       /* do nothing */
         case 'c':
-            pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = old_entryS;
-       
-            set_regs(ea);
 
       /* try to read optional parameter, pc unchanged if no parm */
-            if (hexToInt (&ptr, &addr))
-                registers[PC] = addr;
+            ptr = &remcomInBuffer[1];
+            if (hexToInt(&ptr, &addr)) {
+                gdb_sate_set_thread(&tc, &gdb_thread_current);
+                gdb_state_fill_registers(&tc);
+                registers[PC]/*eip*/ = addr;
+                gdb_state_store_registers(&tc);
+            }
 
 
       /* clear the trace bit */
