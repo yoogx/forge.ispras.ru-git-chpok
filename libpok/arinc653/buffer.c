@@ -22,8 +22,7 @@
 #include <arinc653/types.h>
 #include <arinc653/buffer.h>
 #include <types.h>
-#include <middleware/port.h>
-#include <middleware/buffer.h>
+#include <core/buffer.h>
 #include <utils.h>
 
 
@@ -174,9 +173,9 @@ void GET_BUFFER_STATUS (
 
    *RETURN_CODE = pok_buffer_status(BUFFER_ID - 1, &status);
     
-   BUFFER_STATUS->NB_MESSAGE = status.nb_messages;
-   BUFFER_STATUS->MAX_NB_MESSAGE = status.max_messages;
-   BUFFER_STATUS->MAX_MESSAGE_SIZE = status.message_size;
+   BUFFER_STATUS->NB_MESSAGE = status.nb_message;
+   BUFFER_STATUS->MAX_NB_MESSAGE = status.max_nb_message;
+   BUFFER_STATUS->MAX_MESSAGE_SIZE = status.max_message_size;
    BUFFER_STATUS->WAITING_PROCESSES = status.waiting_processes;
 }
  

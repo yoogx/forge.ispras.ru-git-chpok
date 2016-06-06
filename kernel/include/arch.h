@@ -26,6 +26,13 @@
 // TODO: Where should be that definition?
 #define KERNEL_STACK_SIZE_DEFAULT 8192
 
+/* 
+ * TODO: Actually, this is architecture-dependent structure which
+ * is used only in arch-specific code.
+ * 
+ * The only reason it is included here: `spaces` array should be
+ * defined in the deployment.c (kernel).
+ */
 struct pok_space
 {
     uintptr_t     phys_base;
@@ -153,6 +160,8 @@ static inline void pok_context_restart(struct dStack* d,
 #define pok_space_switch ja_space_switch
 #define pok_space_get_current() ja_space_get_current();
 
+#define pok_thread_stack_addr ja_thread_stack_addr
+
 /**
  * Jump to the user space.
  * 
@@ -179,7 +188,6 @@ static inline void pok_context_user_jump (
         pok_context_jump(sp);
 }
 
-#define pok_thread_stack_addr ja_thread_stack_addr
 #define pok_arch_load_partition ja_load_partition
 
 #include <asp/spinlock.h>

@@ -586,35 +586,49 @@ pok_ret_t pok_sched_replenish(const pok_time_t* __user budget)
 {
     pok_ret_t ret;
 
+    pok_partition_arinc_t* part = current_partition_arinc;
+
     if(!check_user_read(budget)) return POK_ERRNO_EFAULT;
     pok_time_t kernel_budget = __get_user(budget);
     
     pok_thread_t* t = current_thread;
-    pok_time_t calculated_deadline;
 
 #ifdef POK_NEEDS_ERROR_HANDLING
-    if(t == current_partition_arinc->thread_error) return POK_ERRNO_UNAVAILABLE;
+    if(t == part->thread_error) return POK_ERRNO_UNAVAILABLE;
 #endif
     
-    if(current_partition_arinc->mode != POK_PARTITION_MODE_NORMAL)
+    if(part->mode != POK_PARTITION_MODE_NORMAL)
 		return POK_ERRNO_UNAVAILABLE;
 
     if(pok_time_is_infinity(t->time_capacity)) return POK_ERRNO_OK; //nothing to do
 
     pok_preemption_local_disable();
 
-    calculated_deadline = POK_GETTICK() + kernel_budget;
-
-    if(!pok_time_is_infinity(t->period)
-		&& calculated_deadline >= t->next_activation)
+    if(pok_time_is_infinity(kernel_budget))
     {
-        ret = POK_ERRNO_MODE;
-        goto out;
+        if(!pok_time_is_infinity(t->period))
+        {
+            ret = POK_ERRNO_MODE;
+            goto out;
+        }
+
+        delayed_event_remove(&t->thread_deadline_event);
+        ret = POK_ERRNO_OK;
     }
+    else
+    {
+        pok_time_t calculated_deadline = POK_GETTICK() + kernel_budget;
 
-    thread_set_deadline(t, calculated_deadline);
-    ret = POK_ERRNO_OK;
+        if(!pok_time_is_infinity(t->period)
+            && calculated_deadline >= t->next_activation)
+        {
+            ret = POK_ERRNO_MODE;
+            goto out;
+        }
 
+        thread_set_deadline(t, calculated_deadline);
+        ret = POK_ERRNO_OK;
+    }
 out:    
     pok_preemption_local_enable();
 

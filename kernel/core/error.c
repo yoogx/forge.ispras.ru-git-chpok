@@ -116,9 +116,10 @@ void pok_raise_error(pok_error_id_t error_id, pok_bool_t user_space, void* faile
     
     pok_partition_t* part;
     pok_bool_t need_call_process_partition_error = FALSE;
-    uint8_t preempt_local_disabled_old = 1;
+    uint8_t preempt_local_disabled_old = !pok_arch_preempt_enabled();
     
-    pok_preemption_disable();
+    if(!preempt_local_disabled_old)
+        pok_preemption_disable();
     
     system_state = get_current_state(user_space);
     
@@ -134,7 +135,8 @@ void pok_raise_error(pok_error_id_t error_id, pok_bool_t user_space, void* faile
         }
     }
     
-    pok_preemption_disable();
+    if(!preempt_local_disabled_old)
+        pok_preemption_enable();
 
     if(need_call_process_partition_error)
         part->part_ops->process_partition_error(system_state, error_id,

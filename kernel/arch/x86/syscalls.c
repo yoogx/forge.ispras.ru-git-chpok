@@ -25,6 +25,7 @@
 #include <errno.h>
 #include <core/debug.h>
 #include <core/partition.h>
+#include <core/partition_arinc.h>
 #include <core/syscall.h>
 
 #include "gdt.h"

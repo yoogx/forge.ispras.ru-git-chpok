@@ -30,8 +30,9 @@
 #include "tss.h"
 
 #include "space.h"
-#include "core/sched.h"
-#include "core/partition.h"
+#include <core/sched.h>
+#include <core/partition.h>
+#include <core/partition_arinc.h>
 
 #define KERNEL_STACK_SIZE 8192
 
@@ -98,11 +99,16 @@ pok_ret_t ja_space_create (uint8_t space_id,
    gdt_set_segment (GDT_PARTITION_DATA_SEGMENT (space_id),
          addr, size, GDTE_DATA, 3);
 
+   spaces[space_id].size = size;
+
    return (POK_ERRNO_OK);
 }
 
 pok_ret_t ja_space_switch (uint8_t space_id)
 {
+    // For kernel space-only partitions do not change space at all.
+    if(space_id != (uint8_t)(-1)) return POK_ERRNO_OK;
+
     if(current_space_id != (uint8_t)(-1)) {
         gdt_disable (GDT_PARTITION_CODE_SEGMENT(current_space_id));
         gdt_disable (GDT_PARTITION_DATA_SEGMENT(current_space_id));

@@ -29,13 +29,7 @@
 
 #include <gdb.h>
 
-typedef enum
-{
-  POK_START_CONDITION_NORMAL_START          = 0,
-  POK_START_CONDITION_PARTITION_RESTART     = 1,
-  POK_START_CONDITION_HM_MODULE_RESTART     = 2,
-  POK_START_CONDITION_HM_PARTITION_RESTART  = 3
-}pok_start_condition_t;
+#include <uapi/partition_types.h>
 
 struct _pok_partition;
 

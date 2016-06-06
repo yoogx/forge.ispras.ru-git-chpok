@@ -45,16 +45,7 @@
 // must be at least MAX_NAME_LENGTH of ARINC653 (which is 30)
 #define POK_BUFFER_MAX_NAME_LENGTH 30
 
-/* 
- * This essentially mirrors ARINC-653 BUFFER_STATUS type.
- */
-typedef struct {
-   pok_message_range_t          nb_messages;
-   pok_message_range_t          max_messages;
-   pok_message_size_t           message_size;
-   pok_range_t                  waiting_processes;
-} pok_buffer_status_t;
-
+#include <uapi/buffer_types.h>
 
 // All buffer-related functions are already defined as syscalls.
 #include <core/syscall.h>

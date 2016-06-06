@@ -24,14 +24,7 @@
 
 #ifdef POK_NEEDS_SEMAPHORES
 
-#include <types.h>
-#include <errno.h>
-
-typedef struct {
-    pok_sem_value_t current_value;
-    pok_sem_value_t maximum_value;
-    pok_range_t waiting_processes; 
-} pok_semaphore_status_t;
+#include <uapi/semaphore_types.h>
 
 // All semaphore-related functions are already defined as syscalls.
 #include <core/syscall.h>

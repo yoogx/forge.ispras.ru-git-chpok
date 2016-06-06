@@ -64,9 +64,9 @@ void __copy_to_user(void* __user to, const void* from, size_t n);
 void __copy_user(void* __user to, const void* __user from, size_t n);
 
 #else /* NDEBUG */
-#define __copy_from_user(to, from, n) memcpy(to, from, n)
-#define __copy_to_user(to, from, n) memcpy(to, from, n)
-#define __copy_user(to, from, n) memcpy(to, from, n)
+#define __copy_from_user(to, from, n) memcpy(to, ja_user_to_kernel_ro(from), n)
+#define __copy_to_user(to, from, n) memcpy(ja_user_to_kernel(to), from, n)
+#define __copy_user(to, from, n) memcpy(ja_user_to_kernel(to), ja_user_to_kernel_ro(from), n)
 #endif /* NDEBUG */
 
 /* Check that given *typed* user area is readable. */
@@ -79,28 +79,28 @@ void __copy_user(void* __user to, const void* __user from, size_t n);
  * 
  * NOTE: Access check should be performed before.
  */
-#define __get_user(ptr) ({typeof(*(ptr)) __val = *(ptr); __val; })
+#define __get_user(ptr) ({typeof(*(ptr)) __val; __copy_from_user((void*)&__val, ptr, sizeof(__val)); __val; })
 
 /* 
  * Return value of the field in user-space structure.
  * 
  * NOTE: Access check should be performed before.
  */
-#define __get_user_f(ptr, field) ({typeof((ptr)->field) __val = (ptr)->field; __val; })
+#define __get_user_f(ptr, field) ({typeof((ptr)->field) __val; __copy_from_user((void*)&__val, &(ptr)->field, sizeof(__val)); __val; })
 
 /* 
  * Put value to *typed* user memory.
  * 
  * NOTE: Access check should be performed before.
  */
-#define __put_user(ptr, val) do {*(ptr) = (typeof(*ptr))(val); } while(0)
+#define __put_user(ptr, val) do {typeof(*(ptr)) __val = (val); __copy_to_user(ptr, &__val, sizeof(__val)); } while(0)
 
 /* 
  * Set field of user-space structure.
  * 
  * NOTE: Access check should be performed before.
  */
-#define __put_user_f(ptr, field, val) do {(ptr)->field = (typeof((ptr)->field))(val); } while(0)
+#define __put_user_f(ptr, field, val) do {typeof((ptr)->field) __val = (val); __copy_to_user(&((ptr)->field), &__val, sizeof(__val)); } while(0)
 
 /* 
  * Copy name to the user space.
