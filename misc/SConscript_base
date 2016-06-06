@@ -63,11 +63,16 @@ for pdir in partition_build_dirs:
 	if not os.path.exists(pdir):
 		os.makedirs(pdir)
 
+part_elf_list = SConscript([os.path.join(env['SCONSTRUCT_DIR'], x, 'SConscript')
+                            for x in env['PARTITIONS']], exports = 'env')
+
+Import('part_xml')
+
 # Generate "deployment.c" for kernel
 env.TemplateRender(
 	target = os.path.join(build_dir, "deployment.c"),
-	source = [os.path.join(env['SCONSTRUCT_DIR'], env['xml'])] +
-		[os.path.join(env['SCONSTRUCT_DIR'], part_dir, env['xml']) for part_dir in partition_build_dirs],
+	source = [os.path.join(env['SCONSTRUCT_DIR'], env['XML'])] +
+		[os.path.join(env['SCONSTRUCT_DIR'], part_dir, part_xml) for part_dir in env['PARTITIONS']],
 	create_definitions_func = get_pok_definitions,
 	template_main = "deployment_kernel",
 	template_dir = env['POK_PATH'] + "/misc/templates"
@@ -76,8 +81,8 @@ env.TemplateRender(
 # Generate file with commands for GDB for possible debugging
 env.TemplateRender(
 	target = build_dir + "/GDB_commands",
-	source = [os.path.join(env['SCONSTRUCT_DIR'], env['xml'])] +
-		[os.path.join(env['SCONSTRUCT_DIR'], part_dir, env['xml']) for part_dir in partition_build_dirs],
+	source = [os.path.join(env['SCONSTRUCT_DIR'], env['XML'])] +
+		[os.path.join(env['SCONSTRUCT_DIR'], part_dir, part_xml) for part_dir in env['PARTITIONS']],
 	create_definitions_func = get_pok_gdb_definitions,
 	template_main = "GDB_commands",
 	template_dir = env['POK_PATH'] + "/misc/templates"
@@ -115,9 +120,6 @@ def create_sizes_c(target, source, env):
 			if source.index(s) != len(source) - 1:
 				sizes.write(',\n')
 		sizes.write('\n};\n')
-
-part_elf_list = SConscript([os.path.join(pok_env['SCONSTRUCT_DIR'], x, 'SConscript')
-                            for x in pok_env['PARTITIONS']], exports = 'env')
 
 merge_command = pok_env.Command(target = pok_env['BUILD_DIR']+'partitions.bin',
 source = part_elf_list,

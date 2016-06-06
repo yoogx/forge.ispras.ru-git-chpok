@@ -26,7 +26,9 @@ import chpok_configuration
 Import('env')
 Import('part_dir')
 Import('part_build_dir')
+Import('src_dir')
 Import('part_is_system')
+Import('part_xml')
 
 def get_pok_partition_definitions(source, env):
     if type(source) is list:
@@ -44,7 +46,7 @@ def get_pok_partition_definitions(source, env):
 
 env.TemplateRender(
     target = os.path.join(part_build_dir, "deployment.c"),
-    source = os.path.join(part_dir, env['xml']),
+    source = os.path.join(part_dir, part_xml),
     create_definitions_func = get_pok_partition_definitions,
     template_main = "deployment_user",
     template_dir = env['POK_PATH'] + "/misc/templates"
@@ -68,7 +70,7 @@ syspart_lo = []
 if part_is_system:
     syspart_lo = part_env['POK_PATH']+'build/'+part_env['BSP']+'/syspart/syspart.lo'
 
-VariantDir(part_build_dir, part_dir, duplicate = 0)
+VariantDir(part_build_dir, src_dir, duplicate = 0)
 
 part_elf = part_env.Program(target = part_build_dir+'part.elf', source = [
 Glob(part_build_dir+'*.c'),

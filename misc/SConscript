@@ -48,7 +48,6 @@ except:
 
     vars = Variables()
     vars.AddVariables(
-        ('xml', 'xml config to be passed to parser', 'config.xml'),
         EnumVariable('bsp', 'bsp', default_board, allowed_values = boards)
     )
 
