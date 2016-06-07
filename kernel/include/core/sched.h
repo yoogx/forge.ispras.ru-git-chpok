@@ -48,7 +48,9 @@ extern pok_partition_t partition_idle;
  */
 extern pok_partition_t partition_monitor;
 #endif /* POK_NEEDS_MONITOR */
-
+/*
+ * If sched has not started yet. It is used when POK_NEEDS_WAIT_FOR_GDB was defined
+ */
 extern pok_bool_t sched_not_started;
 
 #ifdef POK_NEEDS_GDB

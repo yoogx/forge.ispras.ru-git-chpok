@@ -130,6 +130,9 @@
  * 
  * Threading model of the POK.
  * 
+ * 1.1 - Idle, which is active even before scheduler starts (sched_not_started == true) 
+ * After that it becomes normal kernel thread, for exapmple Monitor thread
+ * 
  * For each kernel-only partition with (relative) index K there is thread
  * 1.(K+1)
  * 
