@@ -19,7 +19,7 @@
 #define __POK_X86_EVENT_H__
 
 #include <types.h>
-#include <arch/x86/interrupt.h>
+#include "interrupt.h"
 
 #include "gdt.h"
 

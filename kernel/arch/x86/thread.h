@@ -19,6 +19,7 @@
 #define __POK_X86_THREAD_H__
 
 #include <types.h>
+#include <asp/cswitch.h>
 
 typedef struct
 {
@@ -45,15 +46,7 @@ typedef struct
   uint32_t id;
 } start_context_t;
 
-uint32_t		pok_context_create(uint32_t id,
-					   uint32_t stack_size,
-					   uint32_t entry);
 
-void			pok_context_switch(uint32_t* old_sp,
-					   uint32_t new_sp);
-
-void			pok_context_reset(uint32_t stack_size,
-					  uint32_t stack_addr);
 
 #endif /* !__POK_X86_THREAD_H__ */
 

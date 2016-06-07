@@ -29,26 +29,9 @@
 #include <common.h>
 #include <core/thread.h>
 
-#define POK_ERROR_MAX_MSG_SIZE                  250
+#include <uapi/error_arinc_types.h>
 
-typedef uint8_t pok_error_kind_t;
-#define POK_ERROR_KIND_INVALID                   0 // this is "NULL" error - that is, no error
-#define POK_ERROR_KIND_DEADLINE_MISSED          10
-#define POK_ERROR_KIND_APPLICATION_ERROR        11
-#define POK_ERROR_KIND_NUMERIC_ERROR            12
-#define POK_ERROR_KIND_ILLEGAL_REQUEST          13
-#define POK_ERROR_KIND_STACK_OVERFLOW           14
-#define POK_ERROR_KIND_MEMORY_VIOLATION         15
-#define POK_ERROR_KIND_HARDWARE_FAULT           16
-#define POK_ERROR_KIND_POWER_FAIL               17
-#define POK_ERROR_KIND_PARTITION_CONFIGURATION  30 
-#define POK_ERROR_KIND_PARTITION_INIT           31
-#define POK_ERROR_KIND_PARTITION_SCHEDULING     32
-#define POK_ERROR_KIND_PARTITION_HANDLER        33
-#define POK_ERROR_KIND_PARTITION_PROCESS        34
-#define POK_ERROR_KIND_KERNEL_INIT              50
-#define POK_ERROR_KIND_KERNEL_SCHEDULING        51
-#define POK_ERROR_KIND_KERNEL_CONFIG            52
+#define POK_ERROR_MAX_MSG_SIZE                  250
 
 
 /* Information about thread-level error. */
@@ -65,15 +48,6 @@ typedef struct
 {
     pok_thread_error_info_t map[POK_ERROR_ID_MAX + 1];
 }pok_thread_error_map_t;
-
-typedef struct
-{
-   pok_error_kind_t     error_kind;
-   pok_thread_id_t      failed_thread;
-   uintptr_t            failed_addr;
-   size_t               msg_size;
-   char                 msg[POK_ERROR_MAX_MSG_SIZE];
-} pok_error_status_t;
 
 /*
  * Creates an error-handler thread for the current partition.
@@ -93,7 +67,8 @@ pok_ret_t   pok_error_raise_application_error (const char* msg, size_t msg_size)
 /*
  * Pops an error from partition error queue.
  */
-pok_ret_t   pok_error_get (pok_error_status_t* status);
+pok_ret_t   pok_error_get (pok_error_status_t* status,
+    void* __user msg);
 
 
 /* 
@@ -102,6 +77,17 @@ pok_ret_t   pok_error_get (pok_error_status_t* status);
  * Should be called with local preemption disabled.
  */
 void error_check_after_handler(void);
+
+/*
+ * If synchronous error is in the error list, clear it.
+ * 
+ * This function is called when error handler stops.
+ * 
+ * Because syncrhonous error cannot be generated while
+ * error handler is executed, it always trigger error handler to start,
+ * so it never can be missed because of race.
+ */
+void error_ignore_sync(void);
 
 #endif
 

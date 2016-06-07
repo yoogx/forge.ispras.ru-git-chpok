@@ -21,27 +21,12 @@
 #include <core/channel.h>
 #include <core/thread.h>
 #include <common.h>
+#include <uapi/port_types.h>
+
 struct _pok_patition_arinc;
-
-typedef enum
-{
-	 POK_PORT_DIRECTION_IN   = 1,
-	 POK_PORT_DIRECTION_OUT  = 2
-} pok_port_directions_t;
-
-typedef enum
-{
-	 POK_PORT_KIND_QUEUEING  = 1,
-	 POK_PORT_KIND_SAMPLING  = 2,
-	 POK_PORT_KIND_INVALID   = 10
-} pok_port_kinds_t;
-
 
 /* 
  * Queuing port. 
- * 
- * Contain common parts for "in" and "out" ports +
- * "union"ed in- and out-specific parts.
  */
 typedef struct
 {
@@ -60,8 +45,6 @@ typedef struct
      * Channel to which port is connected.
      * 
      * Should be set initially.
-     * 
-     * Note, that reverse link (channel->port) is set on CREATE_QUEUING_PORT.
      */
     pok_channel_queuing_t       *channel;
 
@@ -79,55 +62,9 @@ typedef struct
      */
     pok_queuing_discipline_t    discipline;
 
-    /* 
-     * Partition to which port belongs to.
-     * It is needed for notification callback, because it is called
-     * by the other channel's side.
-     * 
-     * Should be set initially.
-     */
-    struct _pok_patition_arinc *partition;
-
     /* Whether port has been created (with CREATE_QUEUING_PORT)*/
     pok_bool_t                  is_created;
-    
-    /* 
-     * Whether port has been notified by the channel.
-     * 
-     * This flag is intended to be cleared after every check.
-     */
-    pok_bool_t                  is_notified;
-    
-    /* Direction-specific parts. */
-    union {
-        pok_channel_queuing_sender_t sender; // OUT
-        pok_channel_queuing_reciever_t receiver; // IN
-    };
-
 } pok_port_queuing_t;
-
-/* Status for queuing port, for return into user space. */
-typedef struct
-{
-   pok_port_size_t      nb_message;
-   pok_port_size_t      max_nb_message;
-   pok_port_size_t      max_message_size;
-   pok_port_direction_t direction;
-   uint8_t              waiting_processes;
-} pok_port_queuing_status_t;
-
-/* 
- * Packaging for arguments passed to syscall
- * POK_SYSCALL_MIDDLEWARE_QUEUEING_CREATE.
- */
-typedef struct
-{
-    pok_port_size_t message_size;
-    pok_port_size_t max_nb_message;
-    pok_port_direction_t direction;
-    pok_queuing_discipline_t discipline;
-} pok_port_queuing_create_arg_t;
-
 
 // Initialize queuing port.
 void pok_port_queuing_init(pok_port_queuing_t* port_queuing);
@@ -236,18 +173,8 @@ typedef struct
     pok_bool_t                  last_message_validity;
 } pok_port_sampling_t;
 
-/* Status for sampling port, for return into user space. */
-typedef struct
-{
-    pok_port_size_t         size;
-    pok_port_direction_t    direction;
-    pok_time_t              refresh;
-    bool_t                  validity;
-} pok_port_sampling_status_t;
-
 // Initialize sampling port
 void pok_port_sampling_init(pok_port_sampling_t* port_sampling);
-
 
 pok_ret_t pok_port_sampling_create(
     const char* __user          name,
@@ -267,7 +194,7 @@ pok_ret_t pok_port_sampling_read(
     pok_port_id_t           id,
     void __user             *data,
     pok_port_size_t __user  *len,
-    bool_t __user           *valid
+    pok_bool_t __user       *valid
 );
 
 pok_ret_t pok_port_sampling_id(

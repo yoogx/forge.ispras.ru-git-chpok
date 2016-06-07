@@ -33,9 +33,22 @@
 //!    Every syscall definition is transformed in some manner.
 //!
 
+#include <uapi/types.h>
+#include <uapi/thread_types.h>
+#include <uapi/partition_types.h>
+#include <uapi/partition_arinc_types.h>
+#include <uapi/port_types.h>
+#include <uapi/buffer_types.h>
+#include <uapi/blackboard_types.h>
+#include <uapi/semaphore_types.h>
+#include <uapi/event_types.h>
+#include <uapi/error_arinc_types.h>
+
 SYSCALL_DECLARE(POK_SYSCALL_THREAD_CREATE, pok_thread_create,
-   pok_thread_id_t*, thread_id,
-   const pok_thread_attr_t*, attr)
+   const char*, name,
+   void*, entry,
+   const pok_thread_attr_t*, attr,
+   pok_thread_id_t*, thread_id)
 
 //! User function accepts int64_t arg, checks that it fits into int32_t and transforms it.
 #ifdef POK_NEEDS_THREAD_SLEEP
@@ -64,7 +77,9 @@ SYSCALL_DECLARE(POK_SYSCALL_THREAD_ID, pok_sched_get_current,
 //! User name - pok_thread_status
 SYSCALL_DECLARE(POK_SYSCALL_THREAD_STATUS, pok_thread_get_status,
    pok_thread_id_t, thread_id,
-   pok_thread_status_t*, attr)
+   char*, name,
+   void**, entry,
+   pok_thread_status_t*, status)
 
 //! User function accepts int64_t arg, checks that it fits into int32_t and transforms it.
 SYSCALL_DECLARE(POK_SYSCALL_THREAD_DELAYED_START, pok_thread_delayed_start,
@@ -101,23 +116,8 @@ SYSCALL_DECLARE(POK_SYSCALL_THREAD_FIND, pok_thread_find,
 SYSCALL_DECLARE(POK_SYSCALL_PARTITION_SET_MODE, pok_partition_set_mode_current,
    pok_partition_mode_t, mode)
 
-SYSCALL_DECLARE(POK_SYSCALL_PARTITION_GET_ID, pok_current_partition_get_id,
-   pok_partition_id_t*, id)
-
-SYSCALL_DECLARE(POK_SYSCALL_PARTITION_GET_PERIOD, pok_current_partition_get_period,
-   pok_time_t*, period)
-
-SYSCALL_DECLARE(POK_SYSCALL_PARTITION_GET_DURATION, pok_current_partition_get_duration,
-   pok_time_t*, duration)
-
-SYSCALL_DECLARE(POK_SYSCALL_PARTITION_GET_LOCK_LEVEL, pok_current_partition_get_lock_level,
-   int32_t*, lock_level)
-
-SYSCALL_DECLARE(POK_SYSCALL_PARTITION_GET_OPERATING_MODE, pok_current_partition_get_operating_mode,
-   pok_partition_mode_t*, mode)
-
-SYSCALL_DECLARE(POK_SYSCALL_PARTITION_GET_START_CONDITION, pok_current_partition_get_start_condition,
-   pok_start_condition_t*, start_condition)
+SYSCALL_DECLARE(POK_SYSCALL_PARTITION_GET_STATUS, pok_current_partition_get_status,
+   pok_partition_status_t*, status)
 
 //! User name - pok_partition_inc_lock_level
 SYSCALL_DECLARE(POK_SYSCALL_PARTITION_INC_LOCK_LEVEL, pok_current_partition_inc_lock_level,
@@ -246,7 +246,8 @@ SYSCALL_DECLARE(POK_SYSCALL_ERROR_RAISE_APPLICATION_ERROR, pok_error_raise_appli
    size_t, msg_size)
 
 SYSCALL_DECLARE(POK_SYSCALL_ERROR_GET, pok_error_get,
-   pok_error_status_t*, status)
+   pok_error_status_t*, status,
+   void*, msg)
 
 //!SYSCALL_DECLARE(POK_SYSCALL_ERROR_IS_HANDLER, pok_error_is_handler)
 #endif
@@ -270,7 +271,7 @@ SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_SAMPLING_READ, pok_port_sampling_read,
    pok_port_id_t, id,
    void*, data,
    pok_port_size_t*, len,
-   bool_t*, valid)
+   pok_bool_t*, valid)
 
 SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_SAMPLING_ID, pok_port_sampling_id,
    const char*, name,

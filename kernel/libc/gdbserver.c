@@ -1,4 +1,9 @@
-// TODO: Modify code for it work with new scheduler
+#include <config.h>
+
+#ifdef POK_NEEDS_GDB
+
+#include <gdb.h>
+
 #define PC_REGNUM 64
 #define SP_REGNUM 1
  
@@ -2525,3 +2530,12 @@ handle_exception (int exceptionVector, struct regs * ea)
     } /* while(1) */
     ////printf("\n\n\n          End of handle_exeption\n\n");
 }
+
+#else /* POK_NEEDS_GDB */
+#include <core/debug.h>
+void
+handle_exception (int exceptionVector, struct regs * ea)
+{
+    pok_fatal("Exception without GDB enabled");
+}
+#endif /* POK_NEEDS_GDB */

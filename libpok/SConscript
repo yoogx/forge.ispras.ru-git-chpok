@@ -21,7 +21,7 @@ Import('env')
 
 libpok_env = env.Clone()
 
-libpok_env['CPPPATH'] = [env['POK_PATH']+'/libpok/include']
+libpok_env['CPPPATH'] = libpok_env['LIBPOK_CPPPATH']
 
 Export('libpok_env')
 
@@ -34,7 +34,41 @@ middleware  =  SConscript('middleware/SConscript')
 protocols   =  SConscript('protocols/SConscript')
 utils       =  SConscript('utils/SConscript')
 
+user_objects = [arch, arinc653, core, libc, libm, middleware, protocols, utils]
+
 libpok_env.StaticLibrary(target = 'pok',
-source = [arch, arinc653, core, libc, libm, middleware, protocols, utils])
+    source = user_objects)
+
+if libpok_env.get('jdeveloper'):
+    import sys
+    import os
+    sys.path.insert(1, os.path.join(os.environ["POK_PATH"], "misc"))
+    import generate_syscalls
+
+    source_dir = libpok_env["POK_PATH"] + '/kernel/include/uapi/'
+    target_dir = libpok_env['POK_PATH'] + '/libpok/include/uapi/'
+
+    # Read list of headers for copy by executing SConsctipt in <source_dir>
+    (uapi_headers, uapi_headers_syscall) = SConscript(source_dir + 'SConscript')
+
+    uapi_copy_headers = []
+    for uapi_header in uapi_headers:
+        uapi_copy_headers.extend(libpok_env.Command(
+            target = target_dir + uapi_header,
+            source = source_dir + uapi_header,
+            action = Copy('$TARGET', '$SOURCE')))
+
+    user_syscall_headers = []
+    for uapi_header_syscall in uapi_headers_syscall:
+        user_syscall_headers.extend(libpok_env.Command(
+            target = target_dir + uapi_header_syscall,
+            source = source_dir + uapi_header_syscall + '.in',
+            action = generate_syscalls.generate_syscalls_declaration_user))
+
+    jet_headers = libpok_env.Alias('jet-headers', user_syscall_headers + uapi_copy_headers)
+
+    libpok_env.Depends(user_objects, jet_headers)
+
+    libpok_env.NoClean(user_syscall_headers + uapi_copy_headers)
 
 # EOF

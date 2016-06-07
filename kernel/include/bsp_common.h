@@ -26,6 +26,7 @@
 #include <types.h>
 #include <errno.h>
 
+#include <arch/bsp.h>
 
 int pok_bsp_init(void);
 
@@ -62,9 +63,9 @@ pok_ret_t pok_bsp_time_init ();
 void pok_bsp_get_info(void *addr);
 
 
-bool_t pok_cons_write (const char* s,
+pok_bool_t pok_cons_write (const char* s,
                        size_t length);
-bool_t pok_cons_write_1 (const char* s,
+pok_bool_t pok_cons_write_1 (const char* s,
                        size_t length);
 
 
@@ -78,13 +79,5 @@ int read_serial_1();
 void pok_bsp_debug();
 #endif
 
-
-#ifdef __PPC__
-#include <arch/ppc/bsp.h>
-#endif
-
-#ifdef __i386__
-//#include <arch/x86/bsp.h>
-#endif
 
 #endif /* !BSP_H_ */

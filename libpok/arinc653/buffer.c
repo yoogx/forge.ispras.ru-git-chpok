@@ -22,8 +22,7 @@
 #include <arinc653/types.h>
 #include <arinc653/buffer.h>
 #include <types.h>
-#include <middleware/port.h>
-#include <middleware/buffer.h>
+#include <core/buffer.h>
 #include <utils.h>
 
 
@@ -75,14 +74,15 @@ void CREATE_BUFFER (
        return;
    }
 
-   core_ret = pok_buffer_create (BUFFER_NAME, MAX_NB_MESSAGE, MAX_MESSAGE_SIZE, core_discipline, &core_id);
+   core_ret = pok_buffer_create (BUFFER_NAME, MAX_MESSAGE_SIZE, MAX_NB_MESSAGE, core_discipline, &core_id);
    
    *BUFFER_ID = core_id + 1;
 
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-      MAP_ERROR(POK_ERRNO_READY, NO_ACTION);
+      MAP_ERROR(POK_ERRNO_EXISTS, NO_ACTION);
       MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG);
+      MAP_ERROR(POK_ERRNO_PARTITION_MODE, INVALID_MODE);
       MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
    }
 }
@@ -173,9 +173,9 @@ void GET_BUFFER_STATUS (
 
    *RETURN_CODE = pok_buffer_status(BUFFER_ID - 1, &status);
     
-   BUFFER_STATUS->NB_MESSAGE = status.nb_messages;
-   BUFFER_STATUS->MAX_NB_MESSAGE = status.max_messages;
-   BUFFER_STATUS->MAX_MESSAGE_SIZE = status.message_size;
+   BUFFER_STATUS->NB_MESSAGE = status.nb_message;
+   BUFFER_STATUS->MAX_NB_MESSAGE = status.max_nb_message;
+   BUFFER_STATUS->MAX_MESSAGE_SIZE = status.max_message_size;
    BUFFER_STATUS->WAITING_PROCESSES = status.waiting_processes;
 }
  

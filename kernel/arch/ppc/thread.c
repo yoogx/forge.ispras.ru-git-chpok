@@ -25,10 +25,7 @@
 
 #ifdef POK_NEEDS_THREADS
 
-extern void pok_arch_thread_start(void);
-
-uint32_t		pok_context_init (uint32_t sp,
-                                void (*entry)(void))
+uint32_t		ja_context_init (uint32_t sp, void (*entry)(void))
 {
   uint32_t id = 0; // Was: thread_id
   context_t* ctx = (context_t*)(sp - sizeof(context_t));
@@ -45,25 +42,6 @@ uint32_t		pok_context_init (uint32_t sp,
 #endif
 
   return (uint32_t)ctx;
-}
-
-void pok_context_reset(uint32_t stack_size,
-			    uint32_t stack_addr)
-{
-  context_t* sp;
-  uint32_t id;
-  uint32_t entry;
-  
-  sp = (context_t *) (stack_addr + stack_size - 4 - sizeof (context_t));
-
-  id = sp->r15;
-  entry = sp->r14;
-  memset (sp, 0, sizeof (context_t));
-
-  sp->r14     = entry;
-  sp->r15     = id;
-  sp->lr      = (uint32_t) pok_arch_thread_start;
-  sp->sp      = (uint32_t) &sp->back_chain;
 }
 
 #endif

@@ -40,8 +40,8 @@ void pok_channel_queuing_init(pok_channel_queuing_t* channel)
     channel->notify_receiver = FALSE;
     channel->notify_sender = FALSE;
     
-    channel->sender = NULL;
-    channel->receiver = NULL;
+    channel->sender_generation = 0;
+    channel->receiver_generation = 0;
 }
 
 /*
@@ -82,17 +82,36 @@ static inline pok_message_t* channel_queuing_message_at(
     return (pok_message_t*)&channel->buffer[channel->message_stride * pos];
 }
 
-
-void pok_channel_queuing_set_receiver(pok_channel_queuing_t* channel,
-    pok_channel_queuing_reciever_t* receiver)
+/* 
+ * Helper: notify sender if requested.
+ * 
+ * Should be executed with preemption disabled.
+ * 
+ * Should be called only after consuming messages from the sender.
+ * That is, sender is initialized at this stage.
+ */
+static inline void channel_queuing_notify_sender(pok_channel_queuing_t* channel)
 {
-    barrier();
-    channel->receiver = receiver;
+    if(channel->notify_sender)
+    {
+        channel->notify_sender = FALSE;
+        channel->sender->state.bytes.outer_notification = 1;
+    }
+}
+
+void pok_channel_queuing_r_init(pok_channel_queuing_t* channel)
+{
+    pok_preemption_disable();
+    channel->r_start = channel->border;
+    channel->notify_receiver = FALSE;
+    channel->receiver_generation = channel->receiver->partition_generation;
+
+    __pok_preemption_enable();
 }
 
 size_t pok_channel_queuing_r_n_messages(pok_channel_queuing_t* channel)
 {
-    // Both boundaries are modified by receiver itself. No need ACCESS_ONCE().
+    // Both boundaries are modified by receiver itself. No needs critical section.
     return channel_queuing_cyclic_sub(channel,
         channel->border,
         channel->r_start);
@@ -100,133 +119,92 @@ size_t pok_channel_queuing_r_n_messages(pok_channel_queuing_t* channel)
 
 pok_message_t* pok_channel_queuing_r_get_message(
     pok_channel_queuing_t* channel,
-    pok_message_range_t index)
-{
-    pok_message_range_t pos;
-    assert(index < pok_channel_queuing_r_n_messages(channel));
-    
-    pos = channel_queuing_cyclic_add(channel, channel->r_start, index);
-    
-    return channel_queuing_message_at(channel, pos);
-}
-
-
-void pok_channel_queuing_r_consume_messages(
-    pok_channel_queuing_t* channel,
-    pok_message_range_t n)
-{
-    assert(n <= pok_channel_queuing_r_n_messages(channel));
-    
-    barrier();
-    channel->r_start = channel_queuing_cyclic_add(channel,
-        channel->r_start, n); //Release semantic
-}
-
-pok_message_range_t pok_channel_queuing_receive(
-    pok_channel_queuing_t* channel,
     pok_bool_t subscribe)
 {
-    pok_message_range_t n, n_available;
-    
-    /* 
-     * Because temporal subscription may be needed, we need
-     * to rollback it on success, but only when subscription
-     * initially was FALSE.
-     */
-    pok_bool_t unsubscribe_on_success = FALSE;
-    
-    assert(!pok_channel_queuing_r_n_messages(channel));
+    pok_message_t* msg;
 
-    /* 
-     * Because s_produce() is asyncronous, we need to subscribe before
-     * cheking emptiness.
-     */
-    if(subscribe && !ACCESS_ONCE(channel->notify_receiver)) {
-        channel->notify_receiver = TRUE;
-        barrier();
-        unsubscribe_on_success = TRUE;
+    if(!subscribe)
+    {
+        // fastpath without locks. TODO: revisit
+        return (channel->border != channel->r_start)
+            ? channel_queuing_message_at(channel, channel->r_start)
+            : NULL;
     }
     
-    n_available = channel_queuing_cyclic_sub(channel,
-        ACCESS_ONCE(channel->s_end), channel->border);
+    pok_preemption_disable();
     
-    if(n_available)
-    {
-        // Reverting temporal subscription doesn't require barriers.
-        if(unsubscribe_on_success) channel->notify_receiver = FALSE;
-        
-        n = n_available > channel->max_nb_message_receive
-            ? channel->max_nb_message_receive
-            : n_available;
-        
-        channel->border = channel_queuing_cyclic_add(channel,
-            channel->border, n); // Acquire semantic
 
-        barrier();
-        
-        if(channel->notify_sender)
-        {
-            ACCESS_ONCE(channel->notify_sender) = FALSE;
-            channel->sender->on_message_received(channel->sender);
-        }
+    if(channel->border != channel->r_start)
+    {
+        msg = channel_queuing_message_at(channel, channel->r_start);
     }
     else
     {
-        n = 0;
+        msg = NULL;
+        channel->notify_receiver = TRUE;
+    }
+
+    __pok_preemption_enable();
+    
+    return msg;
+}
+
+
+void pok_channel_queuing_r_consume_message(
+    pok_channel_queuing_t* channel)
+{
+    assert(channel->r_start != channel->border);
+    
+    pok_preemption_disable();
+    
+    channel->r_start = channel_queuing_cyclic_add(channel,
+        channel->r_start, 1);
+    
+    if(channel->sender->partition_generation == channel->sender_generation
+        && channel->border != channel->s_end)
+    {
+        channel->border = channel_queuing_cyclic_add(channel,
+            channel->border, 1);
+        channel_queuing_notify_sender(channel);
     }
     
-    return n;
+    __pok_preemption_enable();
 }
 
-void pok_channel_queuing_set_sender(pok_channel_queuing_t* channel,
-    pok_channel_queuing_sender_t* sender)
+void pok_channel_queuing_s_init(pok_channel_queuing_t* channel)
 {
-    barrier();
-    channel->sender = sender;
+    pok_preemption_disable();
+    channel->s_end = channel->border;
+    channel->notify_sender = FALSE;
+    channel->sender_generation = channel->sender->partition_generation;
+
+    __pok_preemption_enable();
 }
 
-/* 
- * Return pointer to the message for being filled at sender side.
- * 
- * Return NULL if no space is left in the sender buffer.
- * 
- * If there is no space in the sender buffer and @subscribe parameter
- * is TRUE, subscribe to notifications when the space will be released.
- */
 pok_message_t* pok_channel_queuing_s_get_message(
     pok_channel_queuing_t* channel,
     pok_bool_t subscribe)
 {
     pok_message_range_t n_used;
-    /* 
-     * Because temporal subscription may be needed, we need
-     * to rollback it on success, but only when subscription
-     * initially was FALSE.
-     */
-    pok_bool_t unsubscribe_on_success = FALSE;
-    
-    /* 
-     * Because s_produce() is asyncronous, we need to subscribe before
-     * cheking emptiness.
-     */
-    if(subscribe && !ACCESS_ONCE(channel->notify_sender)) {
-        channel->notify_sender = TRUE;
-        barrier();
-        unsubscribe_on_success = TRUE;
-    }
-    
+    pok_message_t* msg = NULL;
+
+    pok_preemption_disable();
+
     n_used = channel_queuing_cyclic_sub(channel,
         channel->s_end, ACCESS_ONCE(channel->border));
-    
+
     if(n_used < channel->max_nb_message_send)
     {
-        // Reverting temporal subscription doesn't require barriers.
-        if(unsubscribe_on_success) channel->notify_sender = FALSE;
-        
-        return channel_queuing_message_at(channel, channel->s_end);
+        msg = channel_queuing_message_at(channel, channel->s_end);
     }
+    else if(subscribe)
+    {
+        channel->notify_sender = TRUE;
+    }
+
+    __pok_preemption_enable();
     
-    return NULL;
+    return msg;
 }
 
 void pok_channel_queuing_s_produce_message(
@@ -239,17 +217,36 @@ void pok_channel_queuing_s_produce_message(
 
     assert(channel_queuing_message_at(channel, channel->s_end)->size
         <= channel->max_message_size);
+
+    pok_preemption_disable();
     
-    barrier();
     channel->s_end = channel_queuing_cyclic_add(channel, channel->s_end, 1);
     
-    if(ACCESS_ONCE(channel->notify_receiver))
+    if(channel->receiver->partition_generation == channel->receiver_generation)
     {
-        ACCESS_ONCE(channel->notify_receiver) = FALSE;
+        // Receiver is ready.
+        pok_message_range_t nb_message_receive = channel_queuing_cyclic_sub(
+            channel, channel->border, channel->r_start);
         
-        barrier();
-        channel->receiver->on_message_sent(channel->receiver);
+        if(nb_message_receive < channel->max_nb_message_receive)
+        {
+            // Move message to the receiver buffer
+            channel->border = channel->s_end;
+            // And notify receiver, if requested.
+            if(channel->notify_receiver)
+            {
+                channel->notify_receiver = FALSE;
+                channel->receiver->state.bytes.outer_notification = 1;
+            }
+        }
     }
+    else
+    {
+        // Just drop the message and all previous ones which have been received.
+        channel->border = channel->s_end;
+    }
+
+    __pok_preemption_enable();
 }
 
 pok_message_range_t pok_channel_queuing_s_n_messages(pok_channel_queuing_t* channel)

@@ -22,12 +22,43 @@ Import('env')
 kernel_env = env.Clone()
 kernel_env.Append(CFLAGS = ' -Werror')
 
+kernel_env['CPPPATH'] = kernel_env['KERNEL_CPPPATH']
+
 Export('kernel_env')
 
 core = SConscript('core/SConscript')
 libc = SConscript('libc/SConscript')
 arch = SConscript('arch/SConscript')
 
-kernel_env.Program(target = 'core.lo', source = [arch, core, libc])
+kernel_objects=[core, libc, arch]
+
+kernel_env.Program(target = 'core.lo', source = kernel_objects)
+
+if env.get('jdeveloper'):
+    import sys
+    import os
+    sys.path.insert(1, os.path.join(os.environ["POK_PATH"], "misc"))
+    import generate_syscalls
+
+    source_dir = kernel_env['POK_PATH'] + 'kernel/include/uapi/'
+    target_dir = kernel_env['POK_PATH'] + 'kernel/include/uapi/'
+
+    (uapi_headers, uapi_headers_syscall) = SConscript(source_dir + 'SConscript')
+
+    # <source-dir> and <target-dir> are the same.
+    #
+    # No needs to simply copy files. Only files generation takes a place.
+    kernel_syscall_headers = []
+    for uapi_header_syscall in uapi_headers_syscall:
+        kernel_syscall_headers.extend(kernel_env.Command(
+            target = target_dir + uapi_header_syscall,
+            source = source_dir + uapi_header_syscall + '.in',
+            action = generate_syscalls.generate_syscalls_declaration_kernel))
+
+    kernel_headers = env.Alias("kernel-headers", kernel_syscall_headers)
+
+    kernel_env.Depends(kernel_objects, kernel_headers)
+
+    kernel_env.NoClean(kernel_syscall_headers)
 
 # EOF

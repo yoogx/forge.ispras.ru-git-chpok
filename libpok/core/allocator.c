@@ -64,14 +64,14 @@ typedef struct
 {
    size_t   start;
    size_t   size;
-   bool_t   allocated;
+   pok_bool_t   allocated;
 } pok_allocator_space_t;
 
 
 uint8_t                 pok_allocator_memspace[POK_CONFIG_ALLOCATOR_MEMORY_SIZE];
 pok_allocator_space_t   pok_allocator_spaces[POK_CONFIG_ALLOCATOR_NB_SPACES];
 uint32_t                pok_allocator_used_spaces = 0;
-bool_t                  pok_allocator_initialized = 0;
+pok_bool_t              pok_allocator_initialized = 0;
 
 #ifdef POK_NEEDS_DEBUG
 void pok_allocator_print_spaces ()

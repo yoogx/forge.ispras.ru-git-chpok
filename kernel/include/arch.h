@@ -26,6 +26,13 @@
 // TODO: Where should be that definition?
 #define KERNEL_STACK_SIZE_DEFAULT 8192
 
+/* 
+ * TODO: Actually, this is architecture-dependent structure which
+ * is used only in arch-specific code.
+ * 
+ * The only reason it is included here: `spaces` array should be
+ * defined in the deployment.c (kernel).
+ */
 struct pok_space
 {
     uintptr_t     phys_base;
@@ -34,26 +41,22 @@ struct pok_space
 
 extern struct pok_space spaces[];
 
-/**
- * Return current partition id
- */
-int current_segment(void);
 
 
 /**
  * Function that initializes architecture concerns.
  */
-pok_ret_t   pok_arch_init ();
+pok_ret_t   pok_arch_init (void);
 
 /**
  * Disable interruptions
  */
-pok_ret_t   pok_arch_preempt_disable ();
+pok_ret_t   pok_arch_preempt_disable (void);
 
 /**
  * Enable interruptions
  */
-pok_ret_t   pok_arch_preempt_enable ();
+pok_ret_t   pok_arch_preempt_enable (void);
 
 /**
  * Returns true if interrupts are enabled
@@ -63,7 +66,7 @@ pok_bool_t pok_arch_preempt_enabled(void);
 /**
  * Function that do nothing. Useful for the idle task for example.
  */
-pok_ret_t   pok_arch_idle ();
+pok_ret_t   pok_arch_idle (void);
 
 /**
  * Register an event (for example, an interruption)
@@ -83,35 +86,10 @@ void pok_trap();
 void pok_arch_cpu_reset();
 
 
-/**
- * Initialize `context` on the given stack.
- * 
- * Return stack pointer, which can be used by pok_context_switch() to
- * jump into given entry with given stack.
- */
-uint32_t pok_context_init(uint32_t sp, void (*entry)(void));
+#include <asp/cswitch.h>
 
-
-/**
- * pok_stack_alloc + pok_context_init.
- */
-/*uint32_t pok_context_create (uint32_t thread_id,
-                                uint32_t stack_size,
-                                void (*entry)(void))
-{
-    uint32_t sp = pok_stack_alloc(stack_size);
-    (void)thread_id;
-    
-    return pok_context_init(sp, entry);
-}*/
-
-/**
- * Switch to context, stored in @new_sp.
- * 
- * Pointer to the current context will stored in @old_sp.
- */
-void pok_context_switch (uint32_t* old_sp, uint32_t new_sp);
-
+#define pok_context_init ja_context_init
+#define pok_context_switch ja_context_switch
 
 /**
  * DEV: It should be simple uint32_t eventually.
@@ -173,67 +151,16 @@ static inline void pok_context_restart(struct dStack* d,
     pok_context_jump(*new_sp_p);
 }
 
-// Unused
-void			pok_context_reset(uint32_t stack_size,
-					  uint32_t stack_addr);
+#include <asp/space.h>
 
-/**
- * Create TLB descriptor, which maps physical addresses in range
- * 
- * [addr;addr+size)
- * 
- * into user space.
- * 
- * Descriptor will be accessible via its identificator (@space_id).
- */
-pok_ret_t   pok_create_space (uint8_t space_id, uintptr_t addr, size_t size);
+#define pok_create_space ja_space_create
+#define pok_space_base_vaddr ja_space_base_vaddr
+#define pok_space_context_init ja_space_context_init
 
-/**
- * Return base virtual address for space mapping.
- * 
- * @addr is currently unused.
- * 
- */
-uintptr_t	   pok_space_base_vaddr (uintptr_t addr);
+#define pok_space_switch ja_space_switch
+#define pok_space_get_current() ja_space_get_current();
 
-/**
- * Initialize context which can be used with pok_context_switch()
- * 
- * for jump into user space.
- */
-uint32_t pok_space_context_init(
-        uint32_t sp,
-        uint8_t space_id,
-        uint32_t entry_rel,
-        uint32_t stack_rel,
-        uint32_t arg1,
-        uint32_t arg2);
-
-/*
- * Basically the same as above(pok_space_context_create), but don't allocate new stack,
- * and reuse existing one.
- *
- * sp should be the value returned by 
- * pok_space_context_create earlier.
- * 
- * TODO: pok_space_context_init() should be used instead.
- */
-void pok_space_context_restart(
-        uint32_t sp,
-        uint8_t space_id,
-        uint32_t entry_rel,
-        uint32_t stack_rel,
-        uint32_t arg1,
-        uint32_t arg2);
-
-/**
- * Switch to given (user) space.
- * 
- * Space with index 0 is kernel space.
- */
-pok_ret_t   pok_space_switch (uint8_t new_space_id);
-
-uint8_t pok_space_get_current (void);
+#define pok_thread_stack_addr ja_thread_stack_addr
 
 /**
  * Jump to the user space.
@@ -261,54 +188,8 @@ static inline void pok_context_user_jump (
         pok_context_jump(sp);
 }
 
-/**
- * Returns the stack address for the thread in a partition.
- *
- * @arg space_id indicates space for the partition that contains
- * the thread.
- * 
- * @arg stack_size indicates size of requested stack.
- *
- * @arg state should either
- * 
- *    - points to 0, which denotes first allocation request
- *                (all previous allocations are invalidated)
- *    - be value, passed to previous call to the function.
- *
- * On success function returns head to the stack and update value
- * pointed by @state.
- * 
- * On fail (e.g., insufficient space for requested stack) function
- * returns 0 and leave value pointed by @state unchanged.
- */
-uint32_t    pok_thread_stack_addr   (uint8_t    space_id,
-                                     uint32_t stack_size,
-                                     uint32_t* state);
+#define pok_arch_load_partition ja_load_partition
 
-/*
- * Load given elf into given user space to given ARINC partition.
- * 
- * After the call @entry will be filled with address of start function.
- */
-struct _pok_patition_arinc;
-void pok_arch_load_partition(struct _pok_patition_arinc* part,
-        uint8_t elf_id,
-        uint8_t space_id,
-        uintptr_t *entry);
-
-//#ifdef POK_ARCH_PPC
-#ifdef __PPC__
-#include <arch/ppc/spinlock.h>
-#endif
-
-//#ifdef POK_ARCH_X86
-#ifdef __i386__
-#include <arch/x86/spinlock.h>
-#endif
-
-//#ifdef POK_ARCH_SPARC
-#ifdef __sparc__
-#include <arch/sparc/spinlock.h>
-#endif
+#include <asp/spinlock.h>
 
 #endif /* !__POK_ARCH_H__ */

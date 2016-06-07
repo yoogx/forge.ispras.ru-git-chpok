@@ -28,12 +28,9 @@
  */
 
 /*
- * Create thread.
+ * Initialize thread structure.
  * 
- * After this operation thread can be accessed from any thread
- * of partition.
- * 
- * Should be executed with local preemption disabled.
+ * Return TRUE on success, FALSE if failed to allocate stack.
  * 
  * Before given function, next fields should be initialized manually:
  * 
@@ -45,6 +42,7 @@
  * - deadline [DEADLINE]
  * - user_stack_size [STACK_SIZE]
  * 
+ * Should be executed with local preemption disabled.
  */
 pok_bool_t thread_create(pok_thread_t* t);
 
@@ -146,6 +144,17 @@ void thread_wake_up(pok_thread_t* t);
  * Thread shouldn't be suspended already.
  */
 void thread_suspend(pok_thread_t* t);
+
+
+/* 
+ * Suspend given thread for given period of time.
+ * 
+ * ARINC allows timed suspension only for current thread, so
+ * suspended thead doesn't wait for anything else.
+ * 
+ * Thread shouldn't be suspended already.
+ */
+void thread_suspend_timed(pok_thread_t* t, pok_time_t time);
 
 
 /* 
