@@ -86,6 +86,8 @@ for pdir in partition_build_dirs:
 	if not os.path.exists(pdir):
 		os.makedirs(pdir)
 
+env.Append(GENERATE_TITLE = template_generation.generate_title_c_no_track)
+
 # Generate "deployment.c" for kernel
 env.TemplateRender(
 	target = os.path.join(build_dir, "deployment.c"),
