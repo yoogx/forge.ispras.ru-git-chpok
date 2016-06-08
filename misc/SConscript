@@ -168,7 +168,6 @@ env.Append(QEMU_FLAGS = bsp_qemu_dict[env['BSP']])
 env.Append(QEMU_FLAGS = ' -kernel '+env['BUILD_DIR']+'pok.elf')
 
 #env.Append(QEMU_FLAGS = ' -display none')
-
 env.Command('run_cmd', [], env['QEMU']+env['QEMU_FLAGS'])
 env.Alias('run', 'run_cmd')
 
@@ -193,6 +192,17 @@ gdb_commands_file = env['BUILD_DIR'] + '/GDB_commands'
 command_debug_gdb = env.Command('debug_gdb', [gdb_commands_file,], env['GDB']+' '+env['BUILD_DIR']+'pok.elf -ex "source '+gdb_commands_file+'" \
                                                                             -ex "target extended-remote 127.0.0.1:8000"')
 env.Alias('debug-gdb', 'debug_gdb')
+
+import SCons.Node.Alias
+if env.GetOption('help'):
+    aliases = SCons.Node.Alias.default_ans.keys()
+    aliases.sort()
+
+    print('---------------')
+    print('Alias list:')
+    for x in aliases:
+        print(x)
+    print('---------------')
 
 Export('env')
 
