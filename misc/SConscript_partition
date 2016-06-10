@@ -44,13 +44,13 @@ def get_pok_partition_definitions(source, env):
 
 env.TemplateRender(
     target = os.path.join(part_build_dir, "deployment.c"),
-    source = os.path.join(part_dir, part_xml),
+    source = part_xml,
     create_definitions_func = get_pok_partition_definitions,
     template_main = "deployment_user",
     template_dir = env['POK_PATH'] + "/misc/templates"
     )
 
-root = etree.parse(os.path.join(part_dir, part_xml))
+root = etree.parse(part_xml)
 definition_attrib = root.find("Definition").attrib
 part_is_system = ("System" in definition_attrib) and (arinc653_xml_conf.parse_bool(definition_attrib["System"]))
 
@@ -74,7 +74,7 @@ if part_is_system:
 
 objs = []
 for d in src_dirs:
-    sources = Glob(d + '*.c')
+    sources = Glob(d + '/*.c')
     for src in sources:
         objs += part_env.Object(part_build_dir + os.path.basename(str(src))[:-2], src)
 

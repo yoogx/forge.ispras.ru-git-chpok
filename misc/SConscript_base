@@ -63,7 +63,7 @@ for pdir in env['PARTITION_BUILD_DIRS']:
 part_elf_list = [os.path.join(p, 'part.elf') for p in env['PARTITION_BUILD_DIRS']]
 part_xml_list = []
 
-root = etree.parse(os.path.join(env['SCONSTRUCT_DIR'], env['XML']))
+root = etree.parse(env['XML'])
 part_xmls = root.find("Partitions")
 
 for xml in part_xmls.findall(etree.QName(part_xmls[0], 'include')):
@@ -76,7 +76,7 @@ for i in range(len(env['PARTITIONS'])):
 # Generate "deployment.c" for kernel
 env.TemplateRender(
 	target = os.path.join(env['BUILD_DIR'], "deployment.c"),
-	source = [os.path.join(env['SCONSTRUCT_DIR'], env['XML'])] +
+	source = [env['XML']] +
 		[os.path.join(env['SCONSTRUCT_DIR'], part_xml) for part_xml in part_xml_list],
 	create_definitions_func = get_pok_definitions,
 	template_main = "deployment_kernel",
@@ -86,7 +86,7 @@ env.TemplateRender(
 # Generate file with commands for GDB for possible debugging
 env.TemplateRender(
 	target = env['BUILD_DIR'] + "/GDB_commands",
-	source = [os.path.join(env['SCONSTRUCT_DIR'], env['XML'])] +
+	source = [env['XML']] +
 		[os.path.join(env['SCONSTRUCT_DIR'], part_xml) for part_xml in part_xml_list],
 	create_definitions_func = get_pok_gdb_definitions,
 	template_main = "GDB_commands",
