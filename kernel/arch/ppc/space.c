@@ -276,7 +276,7 @@ void pok_arch_space_init (void)
      */
     unsigned limit = pok_ppc_tlb_get_nentry(1);
     pok_ppc_tlb_write(1,
-            pok_bsp.ccsrbar_base, pok_bsp.ccsrbar_base_phys, E500MC_PGSIZE_16M,
+            pok_bsp.ccsrbar_base, pok_bsp.ccsrbar_base_phys, E500MC_PGSIZE_256M,
             //MAS3_SW | MAS3_SR | MAS3_SX,
             MAS3_SW | MAS3_SR | MAS3_SX | MAS3_UW | MAS3_UR,
             MAS2_W | MAS2_I | MAS2_M | MAS2_G,
@@ -304,6 +304,31 @@ void pok_arch_space_init (void)
 #define MPC8544_PCI_IO_SIZE      0x10000ULL
 #define MPC8544_PCI_IO           0xE1000000ULL
 
+#define SPIN_IO 0xFEF000000ULL
+#define SPIN_IO_SIZE 0x400ULL
+#define SPIN_IO_VIRTUAL 0xEF000000UL
+
+struct spin_table
+{
+    uint32_t entry_addr_h;
+    uint32_t entry_addr_l;
+    uint32_t r3_h;
+    uint32_t r3_l;
+    uint32_t unused;
+    uint32_t pir;
+};
+
+#include <ioports.h>
+void pok_arch_cpu_second_run(void (*entry)(void* private), void* private)
+{
+    struct spin_table* stable = (void*)(SPIN_IO_VIRTUAL + 0x20);
+    
+    outw((uint32_t)&stable->r3_l, (uint32_t)private);
+    outw((uint32_t)&stable->entry_addr_l, (uint32_t)&entry);
+    
+    asm("dcbf 0, %0, 0" : : "r"(SPIN_IO_VIRTUAL));
+}
+
 void pok_arch_handle_page_fault(
         volatile_context_t *vctx,
         uintptr_t faulting_address,
@@ -317,7 +342,7 @@ void pok_arch_handle_page_fault(
         pok_insert_tlb1(
             pok_bsp.ccsrbar_base, 
             pok_bsp.ccsrbar_base_phys, 
-            E500MC_PGSIZE_16M, 
+            E500MC_PGSIZE_256M, 
             //MAS3_SW | MAS3_SR,
             MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,
             MAS2_W | MAS2_I | MAS2_M | MAS2_G,

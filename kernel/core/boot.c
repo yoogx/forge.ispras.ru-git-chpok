@@ -37,6 +37,14 @@
 
 #include <core/instrumentation.h>
 
+#include <ioports.h>
+
+static void second_core(void* private)
+{
+   printf("!!Second core is READY(%p)!!\n", private);
+   wait_infinitely();
+}
+
 void pok_boot ()
 {
    kernel_state = POK_SYSTEM_STATE_OS_MOD; // TODO: is this choice for state right?
@@ -90,6 +98,10 @@ void pok_boot ()
   printf("\n");
   pok_trap();
 #endif
+  // Second core -- begin
+  pok_arch_cpu_second_run(&second_core, (void*)0x12345678);
+  // Second core -- end
+
   pok_sched_start();
 #else
   pok_arch_preempt_enable();
