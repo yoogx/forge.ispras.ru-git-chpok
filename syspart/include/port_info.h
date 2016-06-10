@@ -85,13 +85,13 @@ typedef struct
 static inline sys_queuing_data_t* utils_queue_tail(sys_queuing_port_t *port)
 {
     uint32_t index = (port->queue_head + port->nb_message) % port->max_nb_messages;
-    return (sys_queuing_data_t *) (port->data + port->data_stride * index);
+    return (sys_queuing_data_t *) ((uintptr_t)port->data + port->data_stride * index);
 }
 
 static inline sys_queuing_data_t* utils_queue_head(sys_queuing_port_t *port)
 {
     uint32_t index = port->queue_head;
-    return (sys_queuing_data_t *) (port->data + port->data_stride * index);
+    return (sys_queuing_data_t *) ((uintptr_t)port->data + port->data_stride * index);
 }
 
 static inline pok_bool_t utils_queue_empty(sys_queuing_port_t *port)
