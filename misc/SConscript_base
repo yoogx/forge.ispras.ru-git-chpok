@@ -63,10 +63,15 @@ for pdir in env['PARTITION_BUILD_DIRS']:
 part_elf_list = [os.path.join(p, 'part.elf') for p in env['PARTITION_BUILD_DIRS']]
 part_xml_list = []
 
-for x in env['PARTITIONS']:
-    SConscript(os.path.join(env['SCONSTRUCT_DIR'], x, 'SConscript'), exports = 'env')
-    Import('part_xml')
-    part_xml_list.append(os.path.join(x, part_xml))
+root = etree.parse(os.path.join(env['SCONSTRUCT_DIR'], env['XML']))
+part_xmls = root.find("Partitions")
+
+for xml in part_xmls.findall(etree.QName(part_xmls[0], 'include')):
+    part_xml_list.append(xml.attrib["href"])
+
+for i in range(len(env['PARTITIONS'])):
+    if not os.path.exists(part_elf_list[i]):
+        SConscript(os.path.join(env['SCONSTRUCT_DIR'], env['PARTITIONS'][i], 'SConscript'), exports = 'env')
 
 # Generate "deployment.c" for kernel
 env.TemplateRender(
