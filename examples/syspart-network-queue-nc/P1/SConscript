@@ -23,9 +23,9 @@ Import('env')
 
 part_dir = Dir('.').abspath
 part_build_dir = os.path.join(part_dir, 'build', env['BSP'], '')
-src_dir = os.path.join(part_dir, 'src', '')
+src_dirs = [os.path.join(part_dir, 'src', '')]
 
 part_xml = 'config.xml'
 
 SConscript(env['POK_PATH']+'/misc/SConscript_partition',
-    exports = ['part_dir', 'part_build_dir', 'src_dir', 'part_xml'])
+    exports = ['part_dir', 'part_build_dir', 'src_dirs', 'part_xml'])
