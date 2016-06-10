@@ -86,6 +86,8 @@ void pok_trap();
 void pok_arch_cpu_reset();
 
 
+void pok_arch_cpu_second_run(void (*entry)(void* private), void* private);
+
 #include <asp/cswitch.h>
 
 #define pok_context_init ja_context_init
