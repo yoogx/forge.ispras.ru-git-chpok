@@ -37,7 +37,7 @@ sys_queuing_port_t sys_queuing_ports[] = {
     {%for port_queueing in part.ports_queueing_system%}
     {
         .header = {
-            .kind = POK_PORT_KIND_QUEUEING,
+            //.kind = POK_PORT_KIND_QUEUEING,
             .name = "{{port_queueing.name}}",
             .direction = {%if port_queueing.is_src()%}SOURCE{%else%}DESTINATION{%endif%},
             .overhead = POK_NETWORK_{{port_queueing.protocol}},
