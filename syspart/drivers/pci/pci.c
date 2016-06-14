@@ -213,35 +213,29 @@ void pci_init()
                     pci_write_dword(&pci_dev, PCI_REG_BAR0, VGA_ADDR);
                     pci_write_word(&pci_dev, PCI_REG_COMMAND, PCI_COMMAND_MEMORY);
 
-                    out_8((void *) 0xe10003c0, 0);
+                    //out_8((void *) 0xe10003c0, 0);
 
                     out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX), 4);
                     out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 0);
 
                     out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX), 1);
-                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 0x320);
+                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 800);
 
                     out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX), 2);
-                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 0x258);
+                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 600);
 
                     out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX), 3);
-                    //out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 0x20);
-                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 0x08);
+                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 0x20);
+                    //out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 0x08);
 
                     out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX), 4);
                     out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 1);
 
-                    out_8((void *) 0xe10003c0, 0);
+                    //out_8((void *) 0xe10003c0, 0);
                     out_8((void *) 0xe10003c0, 0x20);
 
-                    for (int i = 0; i < 512; i++) {
-                        *(char *)(VGA_ADDR + i) = 127;
-                    }
-                    for (int i = 512; i < 1024; i++) {
-                        *(char *)(VGA_ADDR + i) = 0;
-                    }
-                    for (int i = 1024; i < 2024; i++) {
-                        *(char *)(VGA_ADDR + i) = 255;
+                    for (int i = 0; i < 800*600; i++) {
+                        out_be32((uint32_t *)VGA_ADDR + i, 0x00FF0000);
                     }
 
                     //pci_write_dword(&pci_dev, PCI_REG_BAR0, 0x2000);
