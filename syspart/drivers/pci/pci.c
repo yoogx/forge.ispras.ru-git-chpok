@@ -149,6 +149,30 @@ void pci_list()
 #define WAR_RTT_IO     0x00080000
 #define WAR_WTT_IO     0x00008000
 #define WAR_OWS_8K     0xC
+
+//addr should be 16MB aligned (this is the size of qemu vga mem arrea)
+//and 3rd bit equal to 1 means prefetchable memory
+#define VGA_ADDR 0xee000008
+
+#define VBE_DISPI_IOPORT_INDEX 0x01CE
+#ifdef __PPC__
+#define VBE_DISPI_IOPORT_DATA 0x01D0
+#else
+#define VBE_DISPI_IOPORT_DATA 0x01CF
+#endif
+enum {
+    VBE_DISPI_INDEX_ID, // (0)
+    VBE_DISPI_INDEX_XRES, // (1)
+    VBE_DISPI_INDEX_YRES, // (2)
+    VBE_DISPI_INDEX_BPP, // (3)
+    VBE_DISPI_INDEX_ENABLE, // (4)
+    VBE_DISPI_INDEX_BANK, // (5)
+    VBE_DISPI_INDEX_VIRT_WIDTH, // (6)
+    VBE_DISPI_INDEX_VIRT_HEIGHT, // (7)
+    VBE_DISPI_INDEX_X_OFFSET, // (8)
+    VBE_DISPI_INDEX_Y_OFFSET, // (9)
+};
+
 void pci_init()
 {
     printf("\nPCI initializing\n");
@@ -177,6 +201,56 @@ void pci_init()
             // Currently we do not handle type 1 or 2 PCI configuration spaces
             if ((pci_read(bus, dev, fun, PCI_REG_HEADERTYPE) & 0xFF) != 0)
                 continue;
+            printf(">>>%02x:%02x:%02x \n", bus, dev, fun);
+            if (dev == 1) {
+
+                printf("initializing BAR0 for 1 dev\n");
+                    struct pci_device pci_dev;
+                    pci_dev.bus = bus;
+                    pci_dev.dev = dev;
+                    pci_dev.fun = fun;
+
+                    pci_write_dword(&pci_dev, PCI_REG_BAR0, VGA_ADDR);
+                    pci_write_word(&pci_dev, PCI_REG_COMMAND, PCI_COMMAND_MEMORY);
+
+                    out_8((void *) 0xe10003c0, 0);
+
+                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX), 4);
+                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 0);
+
+                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX), 1);
+                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 0x320);
+
+                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX), 2);
+                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 0x258);
+
+                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX), 3);
+                    //out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 0x20);
+                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 0x08);
+
+                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX), 4);
+                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 1);
+
+                    out_8((void *) 0xe10003c0, 0);
+                    out_8((void *) 0xe10003c0, 0x20);
+
+                    for (int i = 0; i < 512; i++) {
+                        *(char *)(VGA_ADDR + i) = 127;
+                    }
+                    for (int i = 512; i < 1024; i++) {
+                        *(char *)(VGA_ADDR + i) = 0;
+                    }
+                    for (int i = 1024; i < 2024; i++) {
+                        *(char *)(VGA_ADDR + i) = 255;
+                    }
+
+                    //pci_write_dword(&pci_dev, PCI_REG_BAR0, 0x2000);
+                    //pci_write_word(&pci_dev, PCI_REG_COMMAND, PCI_COMMAND_IO);
+
+                    //pci_dev.bar[0] = bridge.iorange + bar0_addr;
+                    //pci_dev.ioaddr = pci_dev.bar[0] & BAR_IOADDR_MASK;
+                continue;
+            }
             struct pci_device pci_dev;
             pci_dev.bus = bus;
             pci_dev.dev = dev;
