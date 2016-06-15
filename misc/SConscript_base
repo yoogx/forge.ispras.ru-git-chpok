@@ -73,6 +73,8 @@ for i in range(len(env['PARTITIONS'])):
     if not os.path.exists(part_elf_list[i]):
         SConscript(os.path.join(env['SCONSTRUCT_DIR'], env['PARTITIONS'][i], 'SConscript'), exports = 'env')
 
+env.Append(GENERATE_TITLE = template_generation.generate_title_c_no_track)
+
 # Generate "deployment.c" for kernel
 env.TemplateRender(
 	target = os.path.join(env['BUILD_DIR'], "deployment.c"),
@@ -93,15 +95,14 @@ env.TemplateRender(
 	template_dir = env['POK_PATH'] + "/misc/templates"
 	)
 
+pok_env = env.Clone()
 
+env.Append(CPPPATH = env['KERNEL_CPPPATH'])
 
 env.Program(target = env['BUILD_DIR']+'kernel.lo', source = [
 env['POK_PATH']+'/build/'+env['BSP']+'/kernel/core.lo',
 env['POK_PATH']+'/build/'+env['BSP']+'/boards/bsp.lo',
 env['BUILD_DIR']+'deployment.c'])
-
-pok_env = env.Clone()
-pok_env.Append(CPPPATH = pok_env['POK_PATH']+'/kernel/include')
 
 ldscript = pok_env['POK_PATH']+'/boards/'+pok_env['BSP']+'/ldscripts/kernel.lds'
 pok_env['LINKFLAGS'] = str(' -T '+ldscript+' -Map build/'+pok_env['BSP']+'/pok.elf.map')

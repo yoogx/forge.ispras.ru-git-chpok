@@ -1,5 +1,7 @@
 #include <config.h>
 
+#ifdef POK_NEEDS_GDB
+
 #include <libc.h>
 #include <bsp_common.h>
 #include <arch.h>
@@ -45,7 +47,7 @@ void gdb_process_error(pok_system_state_t partition_state,
         uint8_t state_byte_preempt_local,
         void* failed_address)
 {
-    pok_fatal("Error in monitor");
+    pok_fatal("Error in gdb");
 }
 
 
@@ -56,14 +58,11 @@ static const struct pok_partition_operations gdb_operations =
 };
 
 
-void pok_gdb_thread_init()
+void pok_gdb_thread_init(void)
 {
-    
-#ifdef POK_NEEDS_GDB
     partition_gdb.part_sched_ops = &partition_sched_ops_kernel;
     partition_gdb.part_ops = &gdb_operations;
     pok_dstack_alloc(&partition_gdb.initial_sp, 4096);
-#endif
 }
 
-
+#endif /* POK_NEEDS_GDB */

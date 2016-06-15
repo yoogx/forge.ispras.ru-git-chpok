@@ -36,7 +36,7 @@
 #include "core/partition_arinc.h"
 #include "core/error.h"
 
-pok_ret_t pok_create_space (uint8_t space_id,
+pok_ret_t ja_space_create (uint8_t space_id,
                             uintptr_t addr,
                             size_t size)
 {
@@ -49,20 +49,20 @@ pok_ret_t pok_create_space (uint8_t space_id,
   return (POK_ERRNO_OK);
 }
 
-pok_ret_t pok_space_switch (uint8_t space_id)
+pok_ret_t ja_space_switch (uint8_t space_id)
 {
     mtspr(SPRN_PID, space_id + 1);
 
     return POK_ERRNO_OK;
 }
 
-uint8_t pok_space_get_current (void)
+uint8_t ja_space_get_current (void)
 {
     return ((uint8_t)mfspr(SPRN_PID)) - 1;
 }
 
 
-uintptr_t pok_space_base_vaddr(uintptr_t addr)
+uintptr_t ja_space_base_vaddr(uintptr_t addr)
 {
     (void) addr;
     return POK_PARTITION_MEMORY_BASE;
@@ -95,7 +95,7 @@ pok_space_context_init0(
     ctx->sp      = (uintptr_t) &vctx->sp;
 }
 
-uint32_t pok_space_context_init(
+uint32_t ja_space_context_init(
         uint32_t sp,
         uint8_t space_id,
         uint32_t entry_rel,
@@ -110,69 +110,6 @@ uint32_t pok_space_context_init(
     
     return (uint32_t)ctx;
 }
-
-
-uint32_t pok_space_context_create (
-        uint8_t space_id,
-        uint32_t entry_rel,
-        uint32_t stack_rel,
-        uint32_t arg1,
-        uint32_t arg2)
-{
-  volatile_context_t* vctx;
-  context_t* ctx;
-  char*      stack_addr;
-
-  stack_addr = pok_bsp_mem_alloc (KERNEL_STACK_SIZE);
-  
-  vctx = (volatile_context_t *)
-    (stack_addr + KERNEL_STACK_SIZE - sizeof (volatile_context_t));
-  
-  ctx = (context_t *)(((char*)vctx) - sizeof(context_t) + 8);
-  
-  pok_space_context_init0(vctx, ctx, space_id, entry_rel, stack_rel, arg1, arg2);
-
-#ifdef POK_NEEDS_DEBUG
-  printf ("space_context_create %lu: entry=%lx stack=%lx arg1=%lx arg2=%lx ksp=%p\n",
-          (unsigned long) space_id, 
-          (unsigned long) entry_rel, 
-          (unsigned long) stack_rel, 
-          (unsigned long) arg1, 
-          (unsigned long) arg2, 
-          vctx);
-#endif
-
-  return (uint32_t)ctx;
-}
-
-void pok_space_context_restart(
-        uint32_t sp, 
-        uint8_t  space_id,
-        uint32_t entry_rel,
-        uint32_t stack_rel,
-        uint32_t arg1,
-        uint32_t arg2)
-{
-    // it's the same sp that was 
-    // returned by pok_space_context_create earlier
-    // 
-    // we don't need to allocate anything here, we only have to 
-    // reset some values
-
-    volatile_context_t *vctx = (volatile_context_t*)(sp + sizeof(context_t) - 8);
-    context_t *ctx = (context_t*) sp;
-
-    pok_space_context_init0(
-        vctx,
-        ctx, 
-        space_id,
-        entry_rel,
-        stack_rel,
-        arg1,
-        arg2
-    );
-}
-
 
 static unsigned next_resident = 0;
 static unsigned next_non_resident = 0;

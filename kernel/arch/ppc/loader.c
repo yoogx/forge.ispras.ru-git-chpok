@@ -4,6 +4,7 @@
 #include <types.h>
 #include <libc.h>
 #include <core/loader.h>
+#include <asp/space.h>
 #include <core/partition_arinc.h>
 #include <core/error_arinc.h>
 
@@ -13,7 +14,7 @@
 
 extern size_t pok_elf_sizes[];
 
-void pok_arch_load_partition(pok_partition_arinc_t* part,
+void ja_load_partition(pok_partition_arinc_t* part,
     uint8_t elf_id,
     uint8_t space_id,
     uintptr_t *entry)

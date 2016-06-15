@@ -23,6 +23,7 @@
 #include <core/thread.h>
 
 /************************* Buffer *************************************/
+#include <uapi/buffer_types.h>
 
 typedef struct {
     char name[MAX_NAME_LENGTH];
@@ -42,13 +43,6 @@ typedef struct {
     pok_thread_wq_t waiters;
     
 } pok_buffer_t;
-
-typedef struct {
-    pok_message_range_t nb_message;
-    pok_message_range_t max_nb_message;
-    pok_message_size_t max_message_size;
-    pok_range_t waiting_processes;
-} pok_buffer_status_t;
 
 /* (Re)initialize buffer structure. */
 void pok_buffer_reset(pok_buffer_t* buffer);
@@ -77,6 +71,8 @@ pok_ret_t pok_buffer_status(pok_buffer_id_t id,
     pok_buffer_status_t* __user status);
 
 /**************************** Blackboard ******************************/
+#include <uapi/blackboard_types.h>
+
 typedef struct {
     char name[MAX_NAME_LENGTH];
     
@@ -87,14 +83,6 @@ typedef struct {
     
     pok_thread_wq_t waiters;
 } pok_blackboard_t;
-
-typedef struct
-{
-   pok_message_size_t   max_message_size;
-   pok_bool_t           is_empty;
-   pok_range_t          waiting_processes;
-}pok_blackboard_status_t;
-
 
 pok_ret_t pok_blackboard_create (const char* __user             name,
                                  const pok_message_size_t       max_message_size,
@@ -118,6 +106,8 @@ pok_ret_t pok_blackboard_status (pok_blackboard_id_t                id,
                                  pok_blackboard_status_t* __user    status);
 
 /**************************** Semaphore *******************************/
+#include <uapi/semaphore_types.h>
+
 typedef struct {
     char name[MAX_NAME_LENGTH];
     
@@ -128,12 +118,6 @@ typedef struct {
     
     pok_thread_wq_t waiters;
 } pok_semaphore_t;
-
-typedef struct {
-    pok_sem_value_t current_value;
-    pok_sem_value_t maximum_value;
-    pok_range_t waiting_processes;
-} pok_semaphore_status_t;
 
 pok_ret_t pok_semaphore_create(const char* __user name,
     pok_sem_value_t value,
@@ -154,6 +138,8 @@ pok_ret_t pok_semaphore_status(pok_sem_id_t id,
     pok_semaphore_status_t* __user status);
 
 /******************************* Event ********************************/
+#include <uapi/event_types.h>
+
 typedef struct {
     char name[MAX_NAME_LENGTH];
     
@@ -161,12 +147,6 @@ typedef struct {
     
     pok_thread_wq_t waiters;
 } pok_event_t;
-
-typedef struct {
-    pok_bool_t is_up;
-    pok_range_t waiting_processes;
-} pok_event_status_t;
-
 
 pok_ret_t pok_event_create(const char* __user name,
     pok_event_id_t* __user id);

@@ -33,6 +33,17 @@
 //!    Every syscall definition is transformed in some manner.
 //!
 
+#include <uapi/types.h>
+#include <uapi/thread_types.h>
+#include <uapi/partition_types.h>
+#include <uapi/partition_arinc_types.h>
+#include <uapi/port_types.h>
+#include <uapi/buffer_types.h>
+#include <uapi/blackboard_types.h>
+#include <uapi/semaphore_types.h>
+#include <uapi/event_types.h>
+#include <uapi/error_arinc_types.h>
+
 SYSCALL_DECLARE(POK_SYSCALL_THREAD_CREATE, pok_thread_create,
    const char*, name,
    void*, entry,
@@ -260,7 +271,7 @@ SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_SAMPLING_READ, pok_port_sampling_read,
    pok_port_id_t, id,
    void*, data,
    pok_port_size_t*, len,
-   bool_t*, valid)
+   pok_bool_t*, valid)
 
 SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_SAMPLING_ID, pok_port_sampling_id,
    const char*, name,

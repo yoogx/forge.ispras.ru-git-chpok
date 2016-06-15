@@ -21,41 +21,7 @@
 #include <core/port.h>
 #include <core/intra_arinc.h>
 
-/**
- * \enum pok_partition_mode_t
- * \brief The different modes of a partition
- */
-typedef enum
-{ 
-   /*
-    * In init mode, only main thread (process) is run.
-    * This's the only mode where one can create various resources.
-    *
-    * There's really no difference between cold and warm init.
-    *   
-    * When partition is initially started, it's in cold init.
-    *
-    * HM table and set_partition_mode function may restart 
-    * partition into either cold or warm init mode.
-    *
-    * The exact type of init can be introspected by an application,
-    * but otherwise, it makes no difference.
-    */
-   POK_PARTITION_MODE_INIT_COLD = 1, 
-   POK_PARTITION_MODE_INIT_WARM = 2,
-
-   /*
-    * In normal mode, all threads except main can be run.
-    *
-    * No resources can be allocated.
-    */
-   POK_PARTITION_MODE_NORMAL    = 3, 
-
-   /*
-    * Partition is stopped.
-    */
-   POK_PARTITION_MODE_IDLE      = 4,
-}pok_partition_mode_t;
+#include <uapi/partition_arinc_types.h>
 
 /*!
  * \struct pok_partition_t
@@ -227,16 +193,6 @@ typedef struct _pok_patition_arinc
 #define current_partition_arinc container_of(current_partition, pok_partition_arinc_t, base_part)
 #define current_thread (current_partition_arinc->thread_current)
 
-typedef struct {
-   pok_partition_id_t id;
-   pok_time_t period;
-   pok_time_t duration;
-   int32_t lock_level;
-   pok_partition_mode_t mode;
-   pok_start_condition_t  start_condition;
-} pok_partition_status_t;
-
-
 /* 
  * Array of ARINC partitions.
  * 
@@ -322,13 +278,13 @@ pok_ret_t pok_current_partition_dec_lock_level(int32_t *lock_level);
 
 #ifdef __i386__
 #define POK_CHECK_PTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= pok_partitions[pid].base_addr && \
-                                             ((uintptr_t)(ptr)) <  pok_partitions[pid].base_addr + pok_partitions[pid].size\
+                                             ((uintptr_t)(ptr)) >= current_partition_arinc->base_addr && \
+                                             ((uintptr_t)(ptr)) <  current_partition_arinc->base_addr + current_partition_arinc->size\
                                              )
 
 #define POK_CHECK_VPTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= pok_partitions[pid].base_vaddr && \
-                                             ((uintptr_t)(ptr)) <  pok_partitions[pid].base_vaddr + pok_partitions[pid].size\
+                                             ((uintptr_t)(ptr)) >= current_partition_arinc->base_vaddr && \
+                                             ((uintptr_t)(ptr)) <  current_partition_arinc->base_vaddr + current_partition_arinc->size\
                                              )
 #elif defined(__PPC__)
 #define POK_CHECK_PTR_IN_PARTITION(pid,ptr) (\
