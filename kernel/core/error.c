@@ -13,9 +13,11 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-
 #include <core/error.h>
 #include <core/sched.h>
+
+pok_error_level_selector_t* pok_hm_module_selector;
+pok_error_module_action_table_t* pok_hm_module_table;
 
 // TODO: this should be modified somewhere
 pok_system_state_t kernel_state = POK_SYSTEM_STATE_INIT_PARTOS;
@@ -85,7 +87,7 @@ static pok_bool_t process_error_module(pok_system_state_t system_state,
 {
     pok_error_module_action_t action;
     
-    if(pok_error_level_select(&pok_hm_module_selector, system_state, error_id))
+    if(pok_error_level_select(pok_hm_module_selector, system_state, error_id))
     {
         // Partition level error
         pok_partition_t* part = current_partition;
@@ -101,7 +103,7 @@ static pok_bool_t process_error_module(pok_system_state_t system_state,
     }
     else
     {
-        action = get_module_action(&pok_hm_module_table,
+        action = get_module_action(pok_hm_module_table,
             system_state, error_id);
     }
     

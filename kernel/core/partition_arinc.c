@@ -23,6 +23,8 @@
 #include <uaccess.h>
 #include <system_limits.h>
 
+pok_partition_arinc_t* pok_partitions_arinc;
+uint8_t pok_partitions_arinc_n;
 
 /*
  * Function which is executed in kernel-only partition's context when

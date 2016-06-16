@@ -240,28 +240,28 @@ void pok_channel_sampling_s_clear_message(pok_channel_sampling_t* channel);
 /* 
  * Array of queuing channels.
  * 
- * Should be set in deployment.c.
+ * Should be set in module's config.
  */
-extern pok_channel_queuing_t pok_channels_queuing[];
+extern pok_channel_queuing_t* pok_channels_queuing;
 
 /*
  * Number of queuing channels.
  * 
- * Should be set in deployment.c.
+ * Should be set in module's config.
  */
 extern uint8_t pok_channels_queuing_n;
 
 /* 
  * Array of sampling channels.
  * 
- * Should be set in deployment.c.
+ * Should be set in module's config.
  */
-extern pok_channel_sampling_t pok_channels_sampling[];
+extern pok_channel_sampling_t* pok_channels_sampling;
 
 /*
  * Number of sampling channels.
  * 
- * Should be set in deployment.c.
+ * Should be set in module's config.
  */
 extern uint8_t pok_channels_sampling_n;
 

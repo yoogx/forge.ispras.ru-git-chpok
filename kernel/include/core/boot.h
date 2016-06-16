@@ -30,6 +30,8 @@
  * system requirements (the POK_NEEDS_* maccro).
  */
 
-void pok_boot();
+void pok_boot(void);
+
+void pok_boot_additional_cpu(void);
 
 #endif

@@ -171,10 +171,10 @@ struct T_breakpoint{
 
 void handle_exception (int exceptionVector, struct regs * ea);
 
-void pok_monitor_thread(void);
-void pok_monitor_thread_init(void);
-void pok_gdb_thread(void);
-void pok_gdb_thread_init(void);
+struct _pok_partition;
+
+void pok_monitor_thread_init(struct _pok_partition* partition_monitor);
+void pok_gdb_thread_init(struct _pok_partition* partition_gdb);
 #endif /* NEEDS_CONSOLE or NEEDS_DEBUG */
 
 #endif

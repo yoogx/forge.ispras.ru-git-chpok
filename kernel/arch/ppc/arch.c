@@ -27,15 +27,16 @@
 #include "devtree.h"
 #include <bsp_common.h>
 
-pok_ret_t pok_arch_init ()
+//TODO: move that declaration into header
+void pok_bsp_init(void);
+
+void pok_arch_init ()
 {
   mtmsr(MSR_IP | MSR_FP);
 
-#if POK_NEEDS_PARTITIONS
   pok_arch_space_init();
-#endif
 
-  return (POK_ERRNO_OK);
+  pok_bsp_init();
 }
 
 pok_ret_t pok_arch_preempt_disable()

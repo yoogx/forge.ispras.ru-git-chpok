@@ -21,6 +21,11 @@
 
 #include <core/sched.h>
 
+pok_channel_queuing_t* pok_channels_queuing;
+uint8_t pok_channels_queuing_n;
+pok_channel_sampling_t* pok_channels_sampling;
+uint8_t pok_channels_sampling_n;
+
 /*********************** Queuing channel ******************************/
 
 void pok_channel_queuing_init(pok_channel_queuing_t* channel)

@@ -432,12 +432,12 @@ static const struct pok_partition_operations monitor_operations =
     .process_partition_error = monitor_process_error
 };
 
-void pok_monitor_thread_init()
+void pok_monitor_thread_init(pok_partition_t* partition_monitor)
 {
 #ifdef POK_NEEDS_MONITOR
-    partition_monitor.part_sched_ops = &partition_sched_ops_kernel;
-    partition_monitor.part_ops = &monitor_operations;
-    pok_dstack_alloc(&partition_monitor.initial_sp, 4096);
+    partition_monitor->part_sched_ops = &partition_sched_ops_kernel;
+    partition_monitor->part_ops = &monitor_operations;
+    pok_dstack_alloc(&partition_monitor->initial_sp, 4096);
 #endif
 }
 

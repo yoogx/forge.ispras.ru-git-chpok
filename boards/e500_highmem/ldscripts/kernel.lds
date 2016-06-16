@@ -7,7 +7,7 @@ SECTIONS
   /* Read-only sections, merged into text segment: */
   . = 0x10000;
 
-  .text           :
+  .text :
   {
     *(.start)
     *(.text .text.* .gnu.linkonce.t.*)
@@ -92,7 +92,7 @@ SECTIONS
 
    /* Allocate the main stack area.  Make sure it starts 16bytes aligned
       to accommodate any possible program expectation.  */
-   _stack = ALIGN(16) + 0x1000;
-   _end = _stack;
+   _jet_stacks = ALIGN(16) + 2 * 0x1000;
+   _end = _jet_stacks;
   }
 }

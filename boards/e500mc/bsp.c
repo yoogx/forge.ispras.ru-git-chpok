@@ -44,15 +44,13 @@ pok_bsp_t pok_bsp = {
 
 extern char _end[];
 
-int pok_bsp_init (void)
+void pok_bsp_init (void)
 {
    pok_cons_init ();
 
    //devtree_dummy_dump();
    if ((uintptr_t) _end > 0x4000000ULL)
        pok_fatal("Kernel size is more than 64 megabytes");
-
-   return (POK_ERRNO_OK);
 }
 
 

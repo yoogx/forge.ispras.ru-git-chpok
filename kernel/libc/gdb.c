@@ -58,11 +58,11 @@ static const struct pok_partition_operations gdb_operations =
 };
 
 
-void pok_gdb_thread_init(void)
+void pok_gdb_thread_init(pok_partition_t* partition_gdb)
 {
-    partition_gdb.part_sched_ops = &partition_sched_ops_kernel;
-    partition_gdb.part_ops = &gdb_operations;
-    pok_dstack_alloc(&partition_gdb.initial_sp, 4096);
+    partition_gdb->part_sched_ops = &partition_sched_ops_kernel;
+    partition_gdb->part_ops = &gdb_operations;
+    pok_dstack_alloc(&partition_gdb->initial_sp, 4096);
 }
 
 #endif /* POK_NEEDS_GDB */

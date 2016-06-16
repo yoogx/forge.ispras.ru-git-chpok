@@ -442,6 +442,15 @@ pok_trap:
 
 failed: b failed
 
+        .globl _ja_cpu_reset_additional
+_ja_cpu_reset_additional:
+        # Assume %r3 to contain cpu id.
+        bl ja_cpu_init
+
+        /* Call C function */
+        bl pok_boot_additional_cpu
+1:      b  1b
+
 
         . = base + 0x350
         .globl _pok_reset
@@ -452,9 +461,76 @@ _pok_reset:
         ori %r1,%r1,(devtree_address)@l
         stw %r3, 0(r1)
 
+        xor %r3,%r3,%r3 # Form 0 as argument for next call.
+
+        bl ja_cpu_init
+
+        /* Call C function */
+        bl pok_boot
+1:      b  1b
+
+
+/* Setup first tlb entry for access data and stack. */
+        .globl jet_tlb_set_first_entry
+jet_tlb_set_first_entry:
+/*  Equivalent for:
+ *
+ *   pok_insert_tlb1(
+ *       0,
+ *       0,
+ *       E500MC_PGSIZE_256M,  //TODO make smaller
+ *       MAS3_SW | MAS3_SR | MAS3_SX,
+ *       0,
+ *       0, // any pid
+ *       TRUE
+ *   );
+ *
+ * But do not access global variables and stack, because them
+ * may be inaccessible at that moment.
+ */
+
+        xor %r4, %r4, %r4
+        lis %r4, 0x1000
+
+        mtspr 0x270, %r4 # mas0 <- 0x10000000
+
+        lis %r4, 0x8000
+        ori %r4, %r4, 0x900
+
+        mtspr 0x271, %r4 # mas1 <- 0x80000900
+
+        xor %r4, %r4, %r4
+
+        mtspr 0x272, %r4 # mas2 <- 0
+        mtspr 0x3b0, %r4 # mas7 <- 0
+
+        xor %r4, %r4, %r4
+        ori %r4, %r4, 0x15
+
+        mtspr 0x273, %r4 # mas3 <- 0x15
+
+        isync; tlbwe; isync
+
+        blr
+
+
+/* Common initialization for cpu. */
+        .globl ja_cpu_init
+ja_cpu_init:
+        mflr %r13 # Store link because we have come calls
         /* Setup stack */
-        lis %r1,(pok_stack_end-4)@h
-        ori %r1,%r1,(pok_stack_end-4)@l
+        lis %r1,(_jet_stacks-0x1000-4)@h
+        ori %r1,%r1,(_jet_stacks-0x1000-4)@l
+
+        /* Adjust stack for current CPU. Assume %r3 to contain cpu id. */
+        slwi %r3, %r3, 12
+        add %r1, %r1, %r3
+
+        /* Second CPU initially has only 256K memory mapped.
+          Need to expand this mapping for access data and stack segments.
+        */
+        bl jet_tlb_set_first_entry
+
 
         bl pok_setup_interrupts
 
@@ -462,26 +538,10 @@ _pok_reset:
         xor %r0,%r0,%r0
         stw %r0,4(%r1)
 
-        /* TODO: copy .sdata, clear .bss */
-        /* Copy .data */
-/*
-        lis %r3,(__data_start-4)@h
-        ori %r3,%r3,(__data_start-4)@l
-        lis %r4,(__data_load-4)@h
-        ori %r4,%r4,(__data_load-4)@l
-        lis %r5,__data_end@h
-        ori %r5,%r5,__data_end@l
-        cmplw %r3,%r5
-        bge 2f
-1:      lwzu %r6,4(%r4)
-        stwu %r6,4(%r3)
-        cmplw %r3,%r5
-        blt 1b
-2:
-*/
-        /* Call C function */
-        bl pok_boot
-1:      b  1b
+        bl pok_arch_init
+
+        mtlr %r13 # Restore link before return
+        blr
 
 /* Interrupt vectors */
 /* TODO handle kernel / user stack transition correctly */
@@ -636,11 +696,13 @@ pok_setup_interrupts:
 
         blr
 
-        .section ".bss", "aw"
-pok_stack:
-		.global pok_stack_end
+pok_stack_additional_cpu:
+		.global pok_stack_additional_cpu_end
         .space 8 * 1024
-pok_stack_end:
+pok_stack_additional_cpu_end:
+
+        .section ".bss", "aw"
+
 
 pok_save_area:
         .space 4 * 8

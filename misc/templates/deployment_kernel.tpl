@@ -19,12 +19,13 @@
 #include <core/error_arinc.h>
 #include <core/partition_arinc.h>
 #include <core/partition.h>
+#include <module.h>
 
 /*********************** HM module tables *****************************/
 /*
  * HM module selector.
  */
-pok_error_level_selector_t pok_hm_module_selector = {
+static pok_error_level_selector_t conf_hm_module_selector = {
     .levels = {
 {%for error_id in conf.error_ids_all%}
         {{conf.module_hm_table.level_selector_total(error_id)}}, /* POK_ERROR_ID_{{error_id}} */
@@ -37,7 +38,7 @@ pok_error_level_selector_t pok_hm_module_selector = {
  * 
  * SHUTDOWN for all errors.
  */
-pok_error_module_action_table_t pok_hm_module_table = {
+static pok_error_module_action_table_t conf_hm_module_table = {
     .actions = {
 {%for system_state in conf.system_states_all%}
     /* POK_SYSTEM_STATE_{{system_state}} */
@@ -50,16 +51,26 @@ pok_error_module_action_table_t pok_hm_module_table = {
     }
 };
 
+/*
+ * Forward declaration of array of partitions.
+ * 
+ * This declaration is needed because channels refers to partitions.
+ * 
+ * Because forward declaration for static variable is impossible,
+ * make variable non-static.
+ */
+extern pok_partition_arinc_t conf_partitions_arinc[];
+
 {%macro connection_partition(connection)%}
 {%if connection.get_kind_constant() == 'Local'%}
-&pok_partitions_arinc[{{connection.port.partition.part_index}}].base_part
+&conf_partitions_arinc[{{connection.port.partition.part_index}}].base_part
 {%-elif connection.get_kind_constant() == 'UDP'%}
 error("UDP connection for the channel doesn't supported yet")
 {%-endif%}
 {%-endmacro%}
 
 /**************** Setup queuing channels ****************************/
-pok_channel_queuing_t pok_channels_queuing[{{ conf.channels_queueing | length }}] = {
+static pok_channel_queuing_t conf_channels_queuing[{{ conf.channels_queueing | length }}] = {
     {%for channel_queueing in conf.channels_queueing%}
     {
         .max_message_size = {{channel_queueing.max_message_size}},
@@ -71,18 +82,14 @@ pok_channel_queuing_t pok_channels_queuing[{{ conf.channels_queueing | length }}
     {%endfor%}
 };
 
-uint8_t pok_channels_queuing_n = {{ conf.channels_queueing | length }};
-
 /****************** Setup sampling channels ***************************/
-pok_channel_sampling_t pok_channels_sampling[{{ conf.channels_sampling | length }}] = {
+static pok_channel_sampling_t conf_channels_sampling[{{ conf.channels_sampling | length }}] = {
     {%for channel_sampling in conf.channels_sampling%}
     {
         .max_message_size = {{channel_sampling.max_message_size}},
     },
     {%endfor%}
 };
-
-uint8_t pok_channels_sampling_n = {{ conf.channels_sampling | length }};
 
 {%for part in conf.partitions%}
 /****************** Setup partition{{loop.index0}} (auxiliary) **********************/
@@ -132,7 +139,7 @@ static pok_port_queuing_t partition_ports_queuing_{{loop.index0}}[{{part.ports_q
 {%for port_queueing in part.ports_queueing%}
     {
         .name = "{{port_queueing.name}}",
-        .channel = &pok_channels_queuing[{{port_queueing.channel_id}}],
+        .channel = &conf_channels_queuing[{{port_queueing.channel_id}}],
         .direction = {%if port_queueing.is_src()%}POK_PORT_DIRECTION_OUT{%else%}POK_PORT_DIRECTION_IN{%endif%},
     },
 {%endfor%}
@@ -143,7 +150,7 @@ static pok_port_sampling_t partition_ports_sampling_{{loop.index0}}[{{part.ports
 {%for port_sampling in part.ports_sampling%}
     {
         .name = "{{port_sampling.name}}",
-        .channel = &pok_channels_sampling[{{port_sampling.channel_id}}],
+        .channel = &conf_channels_sampling[{{port_sampling.channel_id}}],
         .direction = {%if port_sampling.is_src()%}POK_PORT_DIRECTION_OUT{%else%}POK_PORT_DIRECTION_IN{%endif%},
     },
 {%endfor%}
@@ -163,7 +170,7 @@ static pok_event_t partition_events_{{loop.index0}}[{{part.num_arinc653_events}}
 {%endfor%}{#partitions loop#}
 
 /*************** Setup partitions array *******************************/
-pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
+pok_partition_arinc_t conf_partitions_arinc[{{conf.partitions | length}}] = {
 {%for part in conf.partitions%}
     {
         .base_part = {
@@ -215,11 +222,9 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
 {%endfor%}{#partitions loop#}
 };
 
-const uint8_t pok_partitions_arinc_n = {{conf.partitions | length}};
-
 #ifdef POK_NEEDS_MONITOR
 /**************************** Monitor *********************************/
-pok_partition_t partition_monitor =
+pok_partition_t conf_partition_monitor =
 {
     .name = "Monitor",
     
@@ -233,7 +238,7 @@ pok_partition_t partition_monitor =
 #endif /* POK_NEEDS_MONITOR*/
 #ifdef POK_NEEDS_GDB
 /******************************* GDB **********************************/
-pok_partition_t partition_gdb =
+pok_partition_t conf_partition_gdb =
 {
     .name = "GDB",
 
@@ -247,24 +252,24 @@ pok_partition_t partition_gdb =
 #endif /* POK_NEEDS_GDB*/
 
 /************************* Setup time slots ***************************/
-const pok_sched_slot_t pok_module_sched[{{conf.slots | length}}] = {
+const pok_sched_slot_t conf_module_sched[{{conf.slots | length}}] = {
 {%for slot in conf.slots%}
     {
         .duration = {{slot.duration}},
         .offset = 0,{#TODO: precalculate somehow#}{{''}}
     {%if slot.get_kind_constant() == 'POK_SLOT_PARTITION' %}
-        .partition = &pok_partitions_arinc[{{slot.partition.part_index}}].base_part,
+        .partition = &conf_partitions_arinc[{{slot.partition.part_index}}].base_part,
         .periodic_processing_start = {%if slot.periodic_processing_start%}TRUE{%else%}FALSE{%endif%},
     {%elif slot.get_kind_constant() == 'POK_SLOT_MONITOR' %}
 #ifdef POK_NEEDS_MONITOR
-        .partition = &partition_monitor,
+        .partition = &conf_partition_monitor,
 #else /* POK_NEEDS_MONITOR */
         .partition = &partition_idle,
 #endif /* POK_NEEDS_MONITOR */
         .periodic_processing_start = FALSE,
     {%elif slot.get_kind_constant() == 'POK_SLOT_GDB' %}
 #ifdef POK_NEEDS_GDB
-        .partition = &partition_gdb,
+        .partition = &conf_partition_gdb,
 #else /* POK_NEEDS_GDB */
         .partition = &partition_idle,
 #endif /* POK_NEEDS_GDB */
@@ -275,9 +280,33 @@ const pok_sched_slot_t pok_module_sched[{{conf.slots | length}}] = {
 {%endfor%}
 };
 
-const uint8_t pok_module_sched_n = {{conf.slots | length}};
+/*************************** Module's configuration *******************/
+struct jet_module_conf jet_module_conf_array[1] =
+{
+    {
+#ifdef POK_NEEDS_MONITOR
+        .partition_monitor = &conf_partition_monitor,
+#endif
+#ifdef POK_NEEDS_GDB
+        .partition_gdb = &conf_partition_gdb,
+#endif
+        .module_sched = conf_module_sched,
+        .module_sched_n = {{conf.slots | length}},
+        .major_time_frame = {{conf.major_frame}},
 
-const pok_time_t pok_config_scheduling_major_frame = {{conf.major_frame}};
+        .partitions_arinc = conf_partitions_arinc,
+        .partitions_arinc_n = {{conf.partitions | length}},
+
+        .channels_queuing = conf_channels_queuing,
+        .channels_queuing_n = {{ conf.channels_queueing | length }},
+
+        .channels_sampling = conf_channels_sampling,
+        .channels_sampling_n = {{ conf.channels_sampling | length }},
+
+        .hm_module_selector = &conf_hm_module_selector,
+        .hm_module_table = &conf_hm_module_table,
+    }
+};
 
 /************************ Setup address spaces ************************/
 struct pok_space spaces[{{conf.partitions | length}}]; // As many as partitions

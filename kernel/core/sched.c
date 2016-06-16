@@ -32,6 +32,19 @@
 
 #include <assert.h>
 
+pok_partition_t partition_idle;
+#ifdef POK_NEEDS_MONITOR
+pok_partition_t* partition_monitor;
+#endif
+#ifdef POK_NEEDS_GDB
+pok_partition_t* partition_gdb;
+#endif
+
+const pok_sched_slot_t* pok_module_sched;
+uint8_t pok_module_sched_n;
+pok_time_t pok_config_scheduling_major_frame;
+
+
 static pok_time_t first_frame_starts; // Time when first major frame is started.
 
 static pok_time_t            pok_sched_next_deadline;

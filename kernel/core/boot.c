@@ -39,17 +39,26 @@
 
 #include <ioports.h>
 
-static void second_core(void* private)
+#include <module.h>
+
+void pok_boot_additional_cpu(void)
 {
-   printf("!!Second core is READY(%p)!!\n", private);
+   printf("!!Second core is READY!!\n");
    wait_infinitely();
 }
 
-void pok_boot ()
+/*
+ * Array of configurations per modules.
+ * 
+ * The only global variable which is defined in deployment.c.
+ */ 
+extern struct jet_module_conf jet_module_conf_array[];
+
+void pok_boot (void)
 {
    kernel_state = POK_SYSTEM_STATE_OS_MOD; // TODO: is this choice for state right?
-   pok_arch_init();
-   pok_bsp_init();
+
+   jet_module_setup(&jet_module_conf_array[0]);
 
 #ifdef POK_NEEDS_NETWORKING
    pok_network_init();
@@ -62,10 +71,10 @@ void pok_boot ()
    pok_partition_arinc_init_all();
 #endif
 #ifdef POK_NEEDS_MONITOR
-   pok_monitor_thread_init();
+   if(partition_monitor) pok_monitor_thread_init(partition_monitor);
 #endif
 #ifdef POK_NEEDS_GDB
-   pok_gdb_thread_init();
+   if(partition_gdb) pok_gdb_thread_init(partition_gdb);
 #endif
 
 #if defined (POK_NEEDS_SCHED) || defined (POK_NEEDS_THREADS)
@@ -99,7 +108,7 @@ void pok_boot ()
   pok_trap();
 #endif
   // Second core -- begin
-  pok_arch_cpu_second_run(&second_core, (void*)0x12345678);
+  ja_cpu_start_additional(1);
   // Second core -- end
 
   pok_sched_start();

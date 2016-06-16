@@ -104,9 +104,9 @@ static inline pok_bool_t pok_error_level_select(
  * 
  * In this selector 0 value means module level, 1 - partition level.
  * 
- * Should be defined in deployment.c.
+ * Should be defined in module's config.
  */
-extern pok_error_level_selector_t pok_hm_module_selector;
+extern pok_error_level_selector_t* pok_hm_module_selector;
 
 
 typedef uint8_t pok_error_module_action_t;
@@ -133,9 +133,9 @@ typedef struct {
 } pok_error_module_action_table_t ;
 
 /*
- * Module HM table. Should be defined in deployment.c.
+ * Module HM table. Should be defined in module's config.
  */
-extern pok_error_module_action_table_t pok_hm_module_table;
+extern pok_error_module_action_table_t* pok_hm_module_table;
 
 /* 
  * Raise error with given identificator.

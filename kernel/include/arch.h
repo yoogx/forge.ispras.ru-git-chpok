@@ -46,7 +46,7 @@ extern struct pok_space spaces[];
 /**
  * Function that initializes architecture concerns.
  */
-pok_ret_t   pok_arch_init (void);
+//pok_ret_t   pok_arch_init (void);
 
 /**
  * Disable interruptions
@@ -86,7 +86,7 @@ void pok_trap();
 void pok_arch_cpu_reset();
 
 
-void pok_arch_cpu_second_run(void (*entry)(void* private), void* private);
+void ja_cpu_start_additional(int cpu);
 
 #include <asp/cswitch.h>
 

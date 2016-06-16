@@ -196,16 +196,16 @@ typedef struct _pok_patition_arinc
 /* 
  * Array of ARINC partitions.
  * 
- * Set in deployment.c.
+ * Set in module's config.
  */
-extern pok_partition_arinc_t pok_partitions_arinc[];
+extern pok_partition_arinc_t* pok_partitions_arinc;
 
 /*
  * Number of ARINC partitions.
  * 
- * Set in deployment.c
+ * Set in module's config.
  */
-extern const uint8_t pok_partitions_arinc_n;
+extern uint8_t pok_partitions_arinc_n;
 
 /* 
  * Get chunk of `intra_memory` with given size and alignment.

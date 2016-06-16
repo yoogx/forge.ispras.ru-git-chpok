@@ -259,6 +259,7 @@ static void pok_ppc_tlb_print(unsigned tlbsel) {
 
 void pok_arch_space_init (void)
 {
+/* Already done in jet_tlb_set_first_entry.
     // overwrites first TLB1 entry
     // we just need to change access bits for the kernel,
     // so user won't be able to access it
@@ -270,7 +271,7 @@ void pok_arch_space_init (void)
         0,
         0, // any pid 
         TRUE
-    );
+    );*/
     /*
      * Clear all other mappings. For instance, those created by u-boot.
      */
@@ -319,13 +320,21 @@ struct spin_table
 };
 
 #include <ioports.h>
-void pok_arch_cpu_second_run(void (*entry)(void* private), void* private)
+
+void _ja_cpu_reset_additional(int cpu);
+
+void ja_cpu_start_additional(int cpu)
 {
-    struct spin_table* stable = (void*)(SPIN_IO_VIRTUAL + 0x20);
-    
-    outw((uint32_t)&stable->r3_l, (uint32_t)private);
-    outw((uint32_t)&stable->entry_addr_l, (uint32_t)&entry);
-    
+    assert(cpu != 0);
+
+    struct spin_table* stable = (void*)(SPIN_IO_VIRTUAL + 0x20 * cpu);
+
+    out_be32(&stable->r3_l, (uint32_t)cpu);
+
+    printf("_pok_reset_cpu_second: %p\n", _ja_cpu_reset_additional);
+
+    out_be32(&stable->entry_addr_l, (uint32_t)_ja_cpu_reset_additional);
+
     asm("dcbf 0, %0, 0" : : "r"(SPIN_IO_VIRTUAL));
 }
 

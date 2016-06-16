@@ -41,12 +41,12 @@ extern pok_partition_t partition_idle;
 /*
  * Monitor partition.
  * 
- * It should be defined in core/libc/monitor.c.
+ * Set in module's config. May be NULL if not used.
  * 
  * For take effect, this partition should be assigned to a slot
  * in deployment.c.
  */
-extern pok_partition_t partition_monitor;
+extern pok_partition_t* partition_monitor;
 #endif /* POK_NEEDS_MONITOR */
 
 #ifdef POK_NEEDS_GDB
@@ -54,9 +54,12 @@ extern pok_partition_t partition_monitor;
 /*
  * GDB partition.
  * 
- * It should be defined in deployment.c and slot should be assigned to it.
+ * Set in module's config. May be NULL if not used.
+ * 
+ * For take effect, this partition should be assigned to a slot
+ * in deployment.c.
  */
-extern pok_partition_t partition_gdb;
+extern pok_partition_t* partition_gdb;
 #endif /* POK_NEEDS_GDB */
 
 typedef struct
@@ -74,23 +77,23 @@ typedef struct
 /*
  * Array of schedule slots.
  * 
- * Set in deployment.c.
+ * Set in module's config.
  */
-extern const pok_sched_slot_t pok_module_sched[];
+extern const pok_sched_slot_t* pok_module_sched;
 
 /*
  * Number of schedule slots.
  * 
- * Set in deployment.c.
+ * Set in module's config.
  */
-extern const uint8_t pok_module_sched_n;
+extern uint8_t pok_module_sched_n;
 
 /*
  * Major time frame.
  * 
- * Set in deployment.c.
+ * Set in module's config.
  */
-extern const pok_time_t pok_config_scheduling_major_frame;
+extern pok_time_t pok_config_scheduling_major_frame;
 
 void pok_sched_init(void); /* Initialize scheduling stuff */
 
