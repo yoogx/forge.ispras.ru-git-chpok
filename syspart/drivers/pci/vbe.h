@@ -1,0 +1,31 @@
+#ifndef __VBE_H__
+#define __VBE_H__
+
+#define VBE_DISPI_IOPORT_INDEX 0x01CE
+#ifdef __PPC__
+#define VBE_DISPI_IOPORT_DATA 0x01D0
+#else
+#define VBE_DISPI_IOPORT_DATA 0x01CF
+#endif
+enum {
+    VBE_DISPI_INDEX_ID, // (0)
+    VBE_DISPI_INDEX_XRES, // (1)
+    VBE_DISPI_INDEX_YRES, // (2)
+    VBE_DISPI_INDEX_BPP, // (3)
+    VBE_DISPI_INDEX_ENABLE, // (4)
+    VBE_DISPI_INDEX_BANK, // (5)
+    VBE_DISPI_INDEX_VIRT_WIDTH, // (6)
+    VBE_DISPI_INDEX_VIRT_HEIGHT, // (7)
+    VBE_DISPI_INDEX_X_OFFSET, // (8)
+    VBE_DISPI_INDEX_Y_OFFSET, // (9)
+};
+
+enum {
+    VBE_DISPI_BPP_4 = 0x04,
+    VBE_DISPI_BPP_8 = 0x08,
+    VBE_DISPI_BPP_15 = 0x0F,
+    VBE_DISPI_BPP_16 = 0x10,
+    VBE_DISPI_BPP_24 = 0x18,
+    VBE_DISPI_BPP_32 = 0x20,
+};
+#endif //__VBE_H__
