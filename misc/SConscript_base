@@ -85,14 +85,19 @@ env.TemplateRender(
 	template_dir = env['POK_PATH'] + "/misc/templates"
 	)
 
+
+gdb_env = env.Clone()
+AddMethod(gdb_env, template_generation.TemplateRender)
+gdb_env['GENERATE_TITLE'] = template_generation.generate_title_python
+
 # Generate file with commands for GDB for possible debugging
-env.TemplateRender(
-	target = env['BUILD_DIR'] + "/GDB_commands",
-	source = [env['XML']] +
-		[os.path.join(env['SCONSTRUCT_DIR'], part_xml) for part_xml in part_xml_list],
+gdb_env.TemplateRender(
+	target = gdb_env['BUILD_DIR'] + "/GDB_commands",
+	source = [gdb_env['XML']] +
+		[os.path.join(gdb_env['SCONSTRUCT_DIR'], part_xml) for part_xml in part_xml_list],
 	create_definitions_func = get_pok_gdb_definitions,
 	template_main = "GDB_commands",
-	template_dir = env['POK_PATH'] + "/misc/templates"
+	template_dir = gdb_env['POK_PATH'] + "/misc/templates"
 	)
 
 pok_env = env.Clone()
