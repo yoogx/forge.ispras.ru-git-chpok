@@ -89,7 +89,7 @@ pok_space_context_init0(
     vctx->r4     = arg2;
     vctx->sp     = stack_rel - 12;
     vctx->srr0   = entry_rel;
-    vctx->srr1   = MSR_EE | MSR_IP | MSR_PR | MSR_FP;
+    vctx->srr1   = MSR_EE | MSR_IP | MSR_PR | MSR_FP | MSR_FE0 | MSR_FE1;
     ctx->lr      = (uintptr_t) pok_arch_rfi;
 
     ctx->sp      = (uintptr_t) &vctx->sp;
@@ -312,6 +312,7 @@ void pok_arch_handle_page_fault(
 {
     int tlb_miss = (type == PF_INST_TLB_MISS || type == PF_DATA_TLB_MISS);
     unsigned pid = mfspr(SPRN_PID);
+    pok_bool_t user_space;
 
     if (tlb_miss && faulting_address >= pok_bsp.ccsrbar_base && faulting_address < pok_bsp.ccsrbar_base + pok_bsp.ccsrbar_size) {
         pok_insert_tlb1(
@@ -355,8 +356,10 @@ void pok_arch_handle_page_fault(
     } else {
         if (vctx->srr1&MSR_PR) {
             printf("USER ");
+            user_space = 1;
         } else {
             printf("KERNEL ");
+            user_space = 0;
         }
 
         if (type == PF_DATA_TLB_MISS || type == PF_DATA_STORAGE) {
@@ -364,11 +367,11 @@ void pok_arch_handle_page_fault(
         } else {
             printf("code at %p address tried to execute code at %p address\n", (void *)vctx->lr, (void*)vctx->srr0);
         }
-#ifdef PARTITION_DEBUG_MODE
+#ifndef PARTITION_DEBUG_MODE
         pok_fatal("page fault");
 #else
         printf("raising error in pagefault addr %p  syndrome 0x%lx\n", (void*) faulting_address, syndrome);
-        POK_ERROR_CURRENT_THREAD(POK_ERROR_KIND_MEMORY_VIOLATION);
+        pok_raise_error(POK_ERROR_KIND_MEMORY_VIOLATION, user_space, (void*) vctx->srr0);
 #endif
         //pok_fatal("bad memory access");
     }

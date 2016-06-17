@@ -24,6 +24,7 @@
 #include <core/debug.h>
 #include <core/sched.h>
 #include <core/error.h>
+#include <core/error_arinc.h>
 #include <libc.h>
 #include <bsp_common.h>
 #include "reg.h"
@@ -46,32 +47,12 @@ void pok_int_machine_check(uintptr_t ea) {
     pok_fatal("Machine check interrupt"); 
 }
 
-/*void pok_int_data_storage(uintptr_t ea, uintptr_t dear, unsigned long esr) {
-    (void) ea;
-    if (dear == (uintptr_t) NULL) {
-		POK_ERROR_CURRENT_THREAD(POK_ERROR_KIND_MEMORY_VIOLATION);
-		return;
-	}
-    pok_arch_handle_page_fault(dear, esr);
-}
-
-void pok_int_inst_storage(uintptr_t ea, uintptr_t dear, unsigned long esr) {
-    (void) ea;
-    if (ea == (uintptr_t) NULL) {
-		POK_ERROR_CURRENT_THREAD(POK_ERROR_KIND_MEMORY_VIOLATION);
-		return;
-	}
-    pok_arch_handle_page_fault(dear, esr);
-}*/
-
 void pok_int_data_storage(volatile_context_t *vctx, uintptr_t dear, unsigned long esr) {
     pok_arch_handle_page_fault(vctx, dear, esr, PF_DATA_STORAGE);
-
 }
 
 void pok_int_inst_storage(volatile_context_t *vctx, uintptr_t dear, unsigned long esr) {
     pok_arch_handle_page_fault(vctx, dear, esr, PF_INST_STORAGE);
-
 }
 
 void pok_int_ext_interrupt(uintptr_t ea) {
@@ -87,37 +68,25 @@ void pok_int_alignment(uintptr_t ea) {
 int k=0;
 
 extern void * pok_trap_addr;
-//extern void * pok_trap;
 void write_on_screen();
 
-/*void pok_int_program(struct regs * ea, unsigned long esr) {
-	printf("%s: ea->fpscr: 0x%lx\n", __func__, ea->fpscr);
+void pok_int_program(struct regs * ea) {
+    printf("%s: ea->fpscr: 0x%lx\n", __func__, ea->fpscr);
 	printf("%s: ea->xer: 0x%lx\n", __func__, ea->xer);
-	printf("%s: esr: 0x%lx\n", __func__, esr);
-	
-	if ((esr & ESR_PIL) || (esr & ESR_PTR)) {
-		printf("%s: esr: illegal instruction exception\n", __func__);
-		POK_ERROR_CURRENT_THREAD(POK_ERROR_KIND_ILLEGAL_REQUEST);
-		return;
-	}
-	
-	if (((ea->fpscr & FPSCR_ZE) && (ea->fpscr & FPSCR_ZX)) ||
+
+    if (((ea->fpscr & FPSCR_ZE) && (ea->fpscr & FPSCR_ZX)) ||
 		((ea->fpscr & FPSCR_OE) && (ea->fpscr & FPSCR_OX)) ||
 		((ea->fpscr & FPSCR_UE) && (ea->fpscr & FPSCR_UX)) ||
 		((ea->fpscr & FPSCR_VE) && (ea->fpscr & FPSCR_VX)) ||
 		((ea->fpscr & FPSCR_XE) && (ea->fpscr & FPSCR_XX)))
 	{
 		printf("%s: numeric exception!\n", __func__);
-		POK_ERROR_CURRENT_THREAD(POK_ERROR_KIND_NUMERIC_ERROR);
+        pok_raise_error(POK_ERROR_KIND_NUMERIC_ERROR, 1, NULL);
 		// Step over the instruction that caused exception
         // so that CPU won't retry it
-        //
 		ea->srr0 += 4;
 		return;
 	}
-*/
-
-void pok_int_program(struct regs * ea) {
 
 //// pok_trap_addr = address of pok_trap in entry.S
 #ifdef DEBUG_GDB
