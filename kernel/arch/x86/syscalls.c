@@ -25,6 +25,7 @@
 #include <errno.h>
 #include <core/debug.h>
 #include <core/partition.h>
+#include <core/partition_arinc.h>
 #include <core/syscall.h>
 
 #include "gdt.h"
@@ -44,8 +45,8 @@ INTERRUPT_HANDLER_syscall(syscall_gate)
     * initiates the syscall, the base addr of the partition and so on.
     */
    syscall_info.partition = PARTITION_ID (frame->cs);
-   syscall_info.base_addr = pok_partitions[syscall_info.partition].base_addr;
-   syscall_info.thread    = POK_SCHED_CURRENT_THREAD;
+   syscall_info.base_addr = current_partition_arinc->base_addr;
+   syscall_info.thread    = 0; // Has no sence with new scheduler
 
    syscall_args = (pok_syscall_args_t*) (frame->ebx + syscall_info.base_addr);
 

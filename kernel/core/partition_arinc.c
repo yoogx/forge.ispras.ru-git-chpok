@@ -21,6 +21,7 @@
 #include <common.h>
 #include <arch.h>
 #include <uaccess.h>
+#include <system_limits.h>
 
 
 /*
@@ -76,10 +77,16 @@ static void thread_init(pok_thread_t* t)
 // This name is not accessible for user space
 static char main_thread_name[MAX_NAME_LENGTH] = "main";
 
-/* Common start function for partition. Do not change mode. */
-static void partition_arinc_start_common(void)
+/* Start function for partition. */
+static void partition_arinc_start(void)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
+
+	if(part->base_part.restarted_externally)
+	{
+		part->base_part.restarted_externally = FALSE;
+		current_partition_arinc->mode = POK_PARTITION_MODE_INIT_COLD;
+	}
 
 	for(int i = 0; i < part->nports_queuing; i++)
 	{
@@ -90,7 +97,7 @@ static void partition_arinc_start_common(void)
 	{
 		pok_port_sampling_init(&part->ports_sampling[i]);
 	}
-	
+
 	INIT_LIST_HEAD(&part->eligible_threads);
 	delayed_event_queue_init(&part->queue_deadline);
 	delayed_event_queue_init(&part->queue_delayed);
@@ -116,7 +123,7 @@ static void partition_arinc_start_common(void)
 #endif
 
     pok_thread_t* thread_main = &part->threads[POK_PARTITION_ARINC_MAIN_THREAD_ID];
-    
+
 	thread_main->entry = (void* __user)part->main_entry;
 	thread_main->base_priority = 0;
 	thread_main->period = POK_TIME_INFINITY;
@@ -125,7 +132,7 @@ static void partition_arinc_start_common(void)
 	strncpy(thread_main->name, main_thread_name, MAX_NAME_LENGTH);
 	thread_main->user_stack_size = part->main_user_stack_size;
 
-    thread_create(thread_main);
+    if(!thread_create(thread_main)) unreachable(); // Configurator should check stack size for main thread.
 
 	part->nthreads_used = POK_PARTITION_ARINC_MAIN_THREAD_ID + 1;
 
@@ -136,33 +143,11 @@ static void partition_arinc_start_common(void)
 	 */
 }
 
-/* 
- * Start function called from outside (as partition's .start callback).
- * 
- * Mode is set to INIT_COLD.
- */
-static void partition_arinc_start(void)
-{
-	current_partition_arinc->mode = POK_PARTITION_MODE_INIT_COLD;
-	partition_arinc_start_common();
-}
-
-/* 
- * Start function called by partition itself.
- * 
- * Mode should be set before.
- */
-static void partition_arinc_restart(void)
-{
-	partition_arinc_start_common();
-}
-
 void pok_partition_arinc_reset(pok_partition_mode_t mode)
 {
 	pok_partition_arinc_t* part = current_partition_arinc;
 	
 	part->base_part.preempt_local_disabled = 1;
-	part->base_part.state.bytes_all = 0; // Just for the case.
 	
 	assert(mode == POK_PARTITION_MODE_INIT_WARM
 		|| mode == POK_PARTITION_MODE_INIT_COLD);
@@ -172,11 +157,7 @@ void pok_partition_arinc_reset(pok_partition_mode_t mode)
 
 	part->mode = mode;
 
-	// Do not change partition's sp - it is only for global scheduler.
-	uint32_t fake_sp;
-	
-	pok_context_restart(&part->base_part.initial_sp,
-		&partition_arinc_restart, &fake_sp);
+	pok_partition_restart();
 }
 
 static int pok_sched_arinc_get_number_of_threads(pok_partition_t* part)
@@ -320,7 +301,7 @@ void pok_partition_arinc_init(pok_partition_arinc_t* part)
 
 	// TODO: this should be performed on restart too.
 	pok_arch_load_partition(part,
-		part->partition_id, /* elf_id*/
+		part->base_part.space_id, /* elf_id*/
 		part->base_part.space_id,
 		&part->main_entry);
 
@@ -487,54 +468,17 @@ pok_ret_t pok_partition_set_mode_current (const pok_partition_mode_t mode)
 /**
  * Get partition information. Used for ARINC GET_PARTITION_STATUS function.
  */
-pok_ret_t pok_current_partition_get_id(pok_partition_id_t *id)
+pok_ret_t pok_current_partition_get_status(pok_partition_status_t * __user status)
 {
-    *id = current_partition_arinc->partition_id;
-    return POK_ERRNO_OK;
-}
-
-pok_ret_t pok_current_partition_get_period (pok_time_t* __user period)
-{
-    if(!check_user_write(period)) return POK_ERRNO_EFAULT;
+    if(!check_user_write(status)) return POK_ERRNO_EFAULT;
     
-    __put_user(period, current_partition_arinc->period);
-    return POK_ERRNO_OK;
-}
-
-pok_ret_t pok_current_partition_get_duration (pok_time_t* __user duration)
-{
-	if(!check_user_write(duration)) return POK_ERRNO_EFAULT;
+    __put_user_f(status, id, current_partition->partition_id);
+    __put_user_f(status, period, current_partition->period);
+    __put_user_f(status, duration, current_partition->duration);
+    __put_user_f(status, mode, current_partition_arinc->mode);
+    __put_user_f(status, lock_level, current_partition_arinc->lock_level);
+    __put_user_f(status, start_condition, current_partition->start_condition);
     
-    __put_user(duration, current_partition_arinc->duration);
-
-    return POK_ERRNO_OK;
-}
-
-pok_ret_t pok_current_partition_get_operating_mode (pok_partition_mode_t* __user op_mode)
-{
-    if(!check_user_write(op_mode)) return POK_ERRNO_EFAULT;
-    
-    __put_user(op_mode, current_partition_arinc->mode);
-
-    return POK_ERRNO_OK;
-}
-
-pok_ret_t pok_current_partition_get_lock_level (int32_t* __user lock_level)
-{
-	if(!check_user_write(lock_level)) return POK_ERRNO_EFAULT;
-
-    __put_user(lock_level, current_partition_arinc->lock_level);
-    
-    return POK_ERRNO_OK;
-}
-
-pok_ret_t pok_current_partition_get_start_condition (pok_start_condition_t *start_condition)
-{
-    if(!check_user_write(start_condition)) return POK_ERRNO_EFAULT;
-    
-    __put_user(start_condition,
-		current_partition_arinc->base_part.start_condition);
-
     return POK_ERRNO_OK;
 }
 
@@ -552,21 +496,23 @@ static pok_bool_t is_lock_level_blocked(void)
 
 pok_ret_t pok_current_partition_inc_lock_level(int32_t * __user lock_level)
 {
-    if(!is_lock_level_blocked())
+    pok_partition_arinc_t* part = current_partition_arinc;
+
+    if(is_lock_level_blocked())
 		return POK_ERRNO_PARTITION_MODE;
-    if(current_partition_arinc->lock_level == 16)
+    if(part->lock_level == MAX_LOCK_LEVEL)
 		return POK_ERRNO_EINVAL;
 	if(!check_user_write(lock_level))
 		return POK_ERRNO_EFAULT;
 
-    
     pok_preemption_local_disable();
-	++current_partition_arinc->lock_level;
+	part->lock_level++;
+	part->thread_locked = part->thread_current;
 	// Note: this doesn't invalidate any scheduling event.
 	pok_preemption_local_enable();
-	
+
 	__put_user(lock_level, current_partition_arinc->lock_level);
-	
+
 	return POK_ERRNO_OK;
 }
 
@@ -578,7 +524,7 @@ pok_ret_t pok_current_partition_dec_lock_level(int32_t * __user lock_level)
 		return POK_ERRNO_EINVAL;
 	if(!check_user_write(lock_level))
 		return POK_ERRNO_EFAULT;
-    
+
     pok_preemption_local_disable();
     if(--current_partition_arinc->lock_level == 0)
     {

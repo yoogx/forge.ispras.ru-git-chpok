@@ -20,18 +20,11 @@
 
 #include <types.h>
 #include <errno.h>
+#include <core/partition_arinc.h>
 
 #include "gdt.h"
 #include "sysdesc.h"
 #include "tss.h"
-
-#ifndef POK_NEEDS_THREADS
-#define POK_CONFIG_NB_THREADS 0
-#endif
-
-#ifndef POK_NEEDS_PARTITIONS
-#define POK_CONFIG_NB_PARTITIONS 0
-#endif
 
 #define GDT_SIZE 256
 
@@ -162,7 +155,7 @@ int current_segment()
 {
     if (pok_gdt[GDT_CORE_CODE_SEGMENT].present == 1)
         return 0;
-    for(int i = 1; i < POK_CONFIG_NB_PARTITIONS; i++)
+    for(int i = 1; i < pok_partitions_arinc_n; i++)
         if (pok_gdt[GDT_PARTITION_CODE_SEGMENT(i - 1)].present == 1){
             return i;
         }

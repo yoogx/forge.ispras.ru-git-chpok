@@ -85,7 +85,8 @@ if not os.path.exists(build_dir):
 for pdir in partition_build_dirs:
 	if not os.path.exists(pdir):
 		os.makedirs(pdir)
-#chpok_configuration.write_configuration(conf, env['BUILD_DIR'], env['PARTITION_BUILD_DIRS'])
+
+env.Append(GENERATE_TITLE = template_generation.generate_title_c_no_track)
 
 # Generate "deployment.c" for kernel
 env.TemplateRender(
@@ -117,15 +118,14 @@ env.TemplateRender(
 	template_dir = env['POK_PATH'] + "/misc/templates"
 	)
 
+pok_env = env.Clone()
 
+env.Append(CPPPATH = env['KERNEL_CPPPATH'])
 
 env.Program(target = env['BUILD_DIR']+'kernel.lo', source = [
 env['POK_PATH']+'/build/'+env['BSP']+'/kernel/core.lo',
 env['POK_PATH']+'/build/'+env['BSP']+'/boards/bsp.lo',
 env['BUILD_DIR']+'deployment.c'])
-
-pok_env = env.Clone()
-pok_env.Append(CPPPATH = pok_env['POK_PATH']+'/kernel/include')
 
 ldscript = pok_env['POK_PATH']+'/boards/'+pok_env['BSP']+'/ldscripts/kernel.lds'
 pok_env['LINKFLAGS'] = str(' -T '+ldscript+' -Map build/'+pok_env['BSP']+'/pok.elf.map')

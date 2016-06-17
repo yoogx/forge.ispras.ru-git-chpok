@@ -25,6 +25,18 @@
 #include <core/partition.h>
 #include <common.h>
 
+/* 
+ * Partition which does nothing.
+ * 
+ * It may be used in scheduling for time intervals which are not assigned
+ * to other partitions.
+ * 
+ * This partition is used in deployment.c instead of special partition
+ * (like GDB or monitor) which support is not enabled in the config.
+ */
+extern pok_partition_t partition_idle;
+
+
 #ifdef POK_NEEDS_MONITOR
 /*
  * Monitor partition.
@@ -230,5 +242,14 @@ void pok_partition_return_user(void);
  * need to store 'global_thread_stack' localy.
  */
 extern volatile pok_bool_t pok_in_user_space;
+
+/** 
+ * Restart current partition.
+ * 
+ * Because this function is called by partition itself,
+ * '.restarted_externally' flag is not set.
+ */
+void pok_partition_restart(void);
+
 
 #endif /* !__POK_SCHED_H__ */

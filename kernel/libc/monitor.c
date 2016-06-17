@@ -208,13 +208,13 @@ int info_partition(int argc,char **argv){
     printf("size = 0x%lx\n", part->size);
     printf("name = %s\n", part->base_part.name);
     printf("nthreads = %lu\n", part->nthreads);
-    printf("priority = 0x%x\n", part->base_part.priority);
     printf("period = %lu\n", part->base_part.period);
+    printf("duration = %lu\n", part->base_part.duration);
     //printf("activation = %llu\n", part->base_part.activation);
     printf("lock_level = %u\n", (unsigned) part->lock_level);
-    printf("prev_thread = %u\n", part->lock_level ? part->thread_locked - part->threads : (unsigned)-1);
-    printf("current_thread = %u\n", part->thread_current - part->threads);
-    printf("thread_main = %d\n", POK_PARTITION_ARINC_MAIN_THREAD_ID);
+    printf("prev_thread = %u\n", part->lock_level ? (unsigned)(part->thread_locked - part->threads) : (unsigned)-1);
+    printf("current_thread = %u\n", (unsigned)(part->thread_current - part->threads));
+    printf("thread_main = %u\n", POK_PARTITION_ARINC_MAIN_THREAD_ID);
 #ifdef POK_NEEDS_IO
     //printf("io_min = %d\n",pok_partitions[number].io_min);        
     //printf("io_max = %d\n",pok_partitions[number].io_max);        

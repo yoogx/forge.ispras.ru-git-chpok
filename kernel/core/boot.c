@@ -39,6 +39,7 @@
 
 void pok_boot ()
 {
+   kernel_state = POK_SYSTEM_STATE_OS_MOD; // TODO: is this choice for state right?
    pok_arch_init();
    pok_bsp_init();
 

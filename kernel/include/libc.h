@@ -172,9 +172,9 @@ struct T_breakpoint{
 void handle_exception (int exceptionVector, struct regs * ea);
 
 void pok_monitor_thread(void);
-void pok_monitor_thread_init();
+void pok_monitor_thread_init(void);
 void pok_gdb_thread(void);
-void pok_gdb_thread_init();
+void pok_gdb_thread_init(void);
 #endif /* NEEDS_CONSOLE or NEEDS_DEBUG */
 
 #endif

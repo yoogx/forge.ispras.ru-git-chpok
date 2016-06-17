@@ -38,7 +38,7 @@
 
 #include <arinc653/types.h>
 #include <arinc653/blackboard.h>
-#include <middleware/blackboard.h>
+#include <core/blackboard.h>
 #include <utils.h>
 
 #define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
@@ -59,10 +59,10 @@ void CREATE_BLACKBOARD (
 
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-      MAP_ERROR(POK_ERRNO_READY, NO_ACTION);
+      MAP_ERROR(POK_ERRNO_EXISTS, NO_ACTION);
       MAP_ERROR(POK_ERRNO_SIZE, INVALID_PARAM);
-      MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG);
-      MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
+      MAP_ERROR(POK_ERRNO_EINVAL, INVALID_PARAM);
+      MAP_ERROR(POK_ERRNO_PARTITION_MODE, INVALID_MODE);
       MAP_ERROR_DEFAULT(INVALID_CONFIG);
    }
 
@@ -150,6 +150,7 @@ void GET_BLACKBOARD_ID (
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
       MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG);
+      MAP_ERROR(POK_ERRNO_UNAVAILABLE, INVALID_CONFIG);
       MAP_ERROR_DEFAULT(INVALID_PARAM);
    }
    if (core_ret == POK_ERRNO_OK) {
@@ -171,8 +172,8 @@ void GET_BLACKBOARD_STATUS (
     }
 
     if (core_ret == POK_ERRNO_OK) {
-        BLACKBOARD_STATUS->EMPTY_INDICATOR = status.empty ? EMPTY : OCCUPIED;
-        BLACKBOARD_STATUS->MAX_MESSAGE_SIZE = status.msg_size;
+        BLACKBOARD_STATUS->EMPTY_INDICATOR = status.is_empty ? EMPTY : OCCUPIED;
+        BLACKBOARD_STATUS->MAX_MESSAGE_SIZE = status.max_message_size;
         BLACKBOARD_STATUS->WAITING_PROCESSES = status.waiting_processes;
 
         *RETURN_CODE = NO_ERROR;

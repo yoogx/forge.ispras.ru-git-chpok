@@ -70,6 +70,12 @@ static void idle_function(void)
 static void pok_partition_reset(pok_partition_t* part)
 {
     part->sp = 0;
+    part->restarted_externally = TRUE;
+    part->partition_generation++;
+    if(part->partition_generation == 0)
+    {
+        part->partition_generation = 1;
+    }
 }
 
 
@@ -202,7 +208,7 @@ static void inter_partition_switch(pok_partition_t* part)
 void pok_sched_restart (void)
 {
     uint32_t* new_sp;
-    
+
     first_frame_starts = POK_GETTICK();
 #ifdef POK_NEEDS_MONITOR
     idle_sp = pok_context_init(idle_stack, &idle_function);
@@ -237,6 +243,7 @@ void pok_sched_restart (void)
     else
         pok_space_switch(0xff); // TODO: This should disable all user space tables
 
+    kernel_state = POK_SYSTEM_STATE_OS_PART;
     pok_context_jump(*new_sp);
 }
 
@@ -446,7 +453,29 @@ void pok_partition_jump_user(void* __user entry,
         0xbeaf);
 }
 
+void pok_partition_restart(void)
+{
+	pok_partition_t* part = current_partition;
+    assert(part);
+
+    pok_preemption_disable();
+
+    // Assign new generation for partition.
+    part->partition_generation++;
+    // For the case of overflow.
+    if(part->partition_generation == 0) part->partition_generation = 1;
+
+	part->sp = 0;
+    sched_need_recheck = TRUE;
+
+    pok_preemption_enable();
+
+    unreachable();
+}
+
+
 void pok_sched_init(void)
 {
+    pok_dstack_alloc(&partition_idle.initial_sp, 4096);
     // TODO: It looks like nothing should be done there.
 }

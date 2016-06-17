@@ -66,18 +66,20 @@ static pok_port_queuing_t* get_port_queuing(pok_port_id_t id)
 void port_queuing_receive(pok_port_queuing_t* port, pok_thread_t* t)
 {
     void* __user data = t->wait_private;
-    pok_message_t* m = pok_channel_queuing_r_get_message(port->channel, 0);
+    pok_message_t* m = pok_channel_queuing_r_get_message(port->channel, FALSE);
+    assert(m);
     
     __copy_to_user(data, m->content, m->size);
     t->wait_private = (void*)(unsigned long)m->size;
     
-    pok_channel_queuing_r_consume_messages(port->channel, 1);
+    pok_channel_queuing_r_consume_message(port->channel);
 }
 
 void port_queuing_send(pok_port_queuing_t* port, pok_thread_t* t)
 {
     pok_message_send_t* m_send = t->wait_private;
     pok_message_t* m = pok_channel_queuing_s_get_message(port->channel, FALSE);
+    assert(m);
     
     __copy_from_user(m->content, m_send->data, m_send->size);
     m->size = m_send->size;
@@ -87,43 +89,11 @@ void port_queuing_send(pok_port_queuing_t* port, pok_thread_t* t)
     pok_channel_queuing_s_produce_message(port->channel);
 }
 
-// Callbacks for receive and send ports.
-static void port_on_message_sent(pok_channel_queuing_reciever_t* receiver)
-{
-    pok_port_queuing_t* port_queuing
-        = container_of(receiver, pok_port_queuing_t, receiver);
-
-    barrier();
-    port_queuing->is_notified = TRUE; // Release semantic
-
-    pok_sched_local_invalidate();
-}
-
-static void port_on_message_received(pok_channel_queuing_sender_t* sender)
-{
-    pok_port_queuing_t* port_queuing
-        = container_of(sender, pok_port_queuing_t, sender);
-
-    barrier();
-    port_queuing->is_notified = TRUE; // Release semantic
-
-    pok_sched_local_invalidate();
-}
-
-
 void pok_port_queuing_init(pok_port_queuing_t* port_queuing)
 {
     pok_thread_wq_init(&port_queuing->waiters);
     
     port_queuing->is_created = FALSE;
-
-    if(port_queuing->direction == POK_PORT_DIRECTION_IN) {
-        port_queuing->receiver.on_message_sent = &port_on_message_sent;
-    }
-    else {
-        /* port_queuing->direction == POK_PORT_DIRECTION_OUT */
-        port_queuing->sender.on_message_received = &port_on_message_received;
-    }
 }
 
 
@@ -170,18 +140,14 @@ pok_ret_t pok_port_queuing_create(
         return POK_ERRNO_MODE;
 
     port_queuing->is_created = TRUE;
-    port_queuing->is_notified = FALSE;
-    port_queuing->partition = current_partition_arinc;
     port_queuing->discipline = discipline;
     
     if(direction == POK_PORT_DIRECTION_IN) {
-        pok_channel_queuing_set_receiver(
-            port_queuing->channel, &port_queuing->receiver);
+        pok_channel_queuing_r_init(port_queuing->channel);
     }
     else {
         /* direction == POK_PORT_DIRECTION_OUT */
-        pok_channel_queuing_set_sender(
-            port_queuing->channel, &port_queuing->sender);
+        pok_channel_queuing_s_init(port_queuing->channel);
     }
     
     __put_user(id, port_queuing - current_partition_arinc->ports_queuing);
@@ -236,51 +202,48 @@ pok_ret_t pok_port_queuing_receive(
     pok_preemption_local_disable();
 
     t = current_thread;
-    
-    if(!pok_channel_queuing_r_n_messages(port_queuing->channel))
+
+    /*
+     * We need to specify notification flag when trying get message
+     * from the channel.
+     * 
+     * One possible way is to not specify flag first time, and,
+     * if receive fails, calculate flag for the second receive attempt.
+     * 
+     * But here we calculate flag for the first (and the only) receive attempt.
+     * 
+     * If ret is not POK_ERRNO_OK, it contains error code to be returned
+     * if channel is currently empty. Otherwise waiting is allowed.
+     */
+
+    if(kernel_timeout == 0)
+        ret = POK_ERRNO_EMPTY;
+    else if(!thread_is_waiting_allowed())
+        ret = POK_ERRNO_MODE;
+    else
+        ret = POK_ERRNO_OK;
+
+    if(!pok_thread_wq_is_empty(&port_queuing->waiters) ||
+        !pok_channel_queuing_r_get_message(port_queuing->channel, ret == POK_ERRNO_OK))
     {
-        /*
-         * We need to specify notification flag when trying receive message
-         * from the channel.
-         * 
-         * One possible way is to not specify flag first time, and,
-         * if receive fails, calculate flag for the second receive attempt.
-         * 
-         * But here we calculate flag for the first (and the only) receive attempt.
-         * 
-         * If ret is not POK_ERRNO_OK, it contains error code to be returned
-         * if channel is currently empty. Otherwise waiting is allowed.
-         */
-
-        if(kernel_timeout == 0)
-            ret = POK_ERRNO_EMPTY;
-        else if(!thread_is_waiting_allowed())
-            ret = POK_ERRNO_MODE;
-        else
-            ret = POK_ERRNO_OK;
-
-
-        if(!pok_thread_wq_is_empty(&port_queuing->waiters) ||
-            !pok_channel_queuing_receive(port_queuing->channel, ret == POK_ERRNO_OK))
+        if(ret)
         {
-            if(ret)
-            {
-                // Waiting is not allowed, but it is needed.
-                __put_user(len, 0);
-                goto err;
-            }
-                
-            // Prepare to wait.
-            t->wait_private = data;
-            
-            pok_thread_wq_add_common(&port_queuing->waiters, t,
-                port_queuing->discipline);
-            
-            thread_wait_common(t, kernel_timeout);
-            
-            goto out;
+            // Waiting is not allowed, but it is needed.
+            __put_user(len, 0);
+            goto err;
         }
+
+        // Prepare to wait.
+        t->wait_private = data;
+
+        pok_thread_wq_add_common(&port_queuing->waiters, t,
+            port_queuing->discipline);
+
+        thread_wait_common(t, kernel_timeout);
+
+        goto out;
     }
+
     /* Message is ready in the buffer. */
     t->wait_private = data;
     port_queuing_receive(port_queuing, t);
@@ -359,7 +322,7 @@ pok_ret_t pok_port_queuing_send(
      */
 
     if(kernel_timeout == 0)
-        ret = POK_ERRNO_EMPTY;
+        ret = POK_ERRNO_FULL;
     else if(!thread_is_waiting_allowed())
         ret = POK_ERRNO_MODE;
     else
@@ -617,7 +580,7 @@ pok_ret_t pok_port_sampling_read(
     pok_port_id_t           id,
     void __user             *data,
     pok_port_size_t __user  *len,
-    bool_t __user           *valid)
+    pok_bool_t __user       *valid)
 {
     pok_port_sampling_t* port_sampling;
     pok_ret_t ret;

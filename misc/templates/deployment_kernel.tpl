@@ -13,7 +13,7 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-
+#include <config.h>
 #include <types.h>
 #include <core/error.h>
 #include <core/error_arinc.h>
@@ -22,96 +22,51 @@
 
 /*********************** HM module tables *****************************/
 /*
- * Default HM module selector.
- * 
- * For common errors id select partition only in partition-related
- * states (0x70).
- * 
- * Note, that some errors are handled by the module even in
- * partition-related states (0).
+ * HM module selector.
  */
-
 pok_error_level_selector_t pok_hm_module_selector = {
     .levels = {
-        0,      /* POK_ERROR_ID_MODPOSTPROCEVENT_ELIST */
-        0x70,   /* POK_ERROR_ID_ILLEGAL_REQUEST */
-        0x70,   /* POK_ERROR_ID_APPLICATION_ERROR */
-        0,      /* POK_ERROR_ID_PARTLOAD_ERROR */
-        0x70,   /* POK_ERROR_ID_NUMERIC_ERROR */
-        0x70,   /* POK_ERROR_ID_MEMORY_VIOLATION */
-        0x70,   /* POK_ERROR_ID_DEADLINE_MISSED */
-        0,      /* POK_ERROR_ID_HARDWARE_FAULT */
-        0,      /* POK_ERROR_ID_POWER_FAIL */
-        0x70,   /* POK_ERROR_ID_STACK_OVERFLOW */
-        0,      /* POK_ERROR_ID_PROCINIT_ERROR */
-        0,      /* POK_ERROR_ID_NOMEMORY_PROCDATA */
-        0,      /* POK_ERROR_ID_ASSERT */
-        0,      /* POK_ERROR_ID_CONFIG_ERROR */
-        0,      /* POK_ERROR_ID_CHECK_POOL */
-        0,      /* POK_ERROR_ID_UNHANDLED_INT */
+{%for error_id in conf.error_ids_all%}
+        {{conf.module_hm_table.level_selector_total(error_id)}}, /* POK_ERROR_ID_{{error_id}} */
+{%endfor%}
     }
 };
 
 /*
- * Default HM module table.
+ * HM module table.
  * 
  * SHUTDOWN for all errors.
  */
 pok_error_module_action_table_t pok_hm_module_table = {
     .actions = {
-        {POK_ERROR_MODULE_ACTION_SHUTDOWN, }, /* POK_SYSTEM_STATE_INIT_PARTOS */
-        {POK_ERROR_MODULE_ACTION_SHUTDOWN, }, /* POK_SYSTEM_STATE_INIT_PARTUSER */
-        {POK_ERROR_MODULE_ACTION_SHUTDOWN, }, /* POK_SYSTEM_STATE_INTERRUPT_HANDLER */
-        {POK_ERROR_MODULE_ACTION_SHUTDOWN, }, /* POK_SYSTEM_STATE_OS_MOD */
-        {POK_ERROR_MODULE_ACTION_SHUTDOWN, }, /* POK_SYSTEM_STATE_OS_PART */
-        {POK_ERROR_MODULE_ACTION_SHUTDOWN, }, /* POK_SYSTEM_STATE_ERROR_HANDLER */
-        {POK_ERROR_MODULE_ACTION_SHUTDOWN, }, /* POK_SYSTEM_STATE_USER */
+{%for system_state in conf.system_states_all%}
+    /* POK_SYSTEM_STATE_{{system_state}} */
+    {
+{%for error_id in conf.error_ids_all%}
+        POK_ERROR_MODULE_ACTION_{{conf.module_hm_table.get_action(system_state, error_id)}}, /* POK_ERROR_ID_{{error_id}}*/
+{%endfor%}
+    },
+{%endfor%}
     }
 };
 
-/********************* HM Multi-partition tables **********************/
-// Default HM multi-partition selector - all errors are partition-level.
-pok_error_level_selector_t hm_multi_partition_selector_default = {
-    .levels = {
-        0x7f,   /* POK_ERROR_ID_MODPOSTPROCEVENT_ELIST */
-        0x7f,   /* POK_ERROR_ID_ILLEGAL_REQUEST */
-        0x7f,   /* POK_ERROR_ID_APPLICATION_ERROR */
-        0x7f,   /* POK_ERROR_ID_PARTLOAD_ERROR */
-        0x7f,   /* POK_ERROR_ID_NUMERIC_ERROR */
-        0x7f,   /* POK_ERROR_ID_MEMORY_VIOLATION */
-        0x7f,   /* POK_ERROR_ID_DEADLINE_MISSED */
-        0x7f,   /* POK_ERROR_ID_HARDWARE_FAULT */
-        0x7f,   /* POK_ERROR_ID_POWER_FAIL */
-        0x7f,   /* POK_ERROR_ID_STACK_OVERFLOW */
-        0x7f,   /* POK_ERROR_ID_PROCINIT_ERROR */
-        0x7f,   /* POK_ERROR_ID_NOMEMORY_PROCDATA */
-        0x7f,   /* POK_ERROR_ID_ASSERT */
-        0x7f,   /* POK_ERROR_ID_CONFIG_ERROR */
-        0x7f,   /* POK_ERROR_ID_CHECK_POOL */
-        0x7f,   /* POK_ERROR_ID_UNHANDLED_INT */
-    }
-};
+{%macro connection_partition(connection)%}
+{%if connection.get_kind_constant() == 'Local'%}
+&pok_partitions_arinc[{{connection.port.partition.part_index}}].base_part
+{%-elif connection.get_kind_constant() == 'UDP'%}
+error("UDP connection for the channel doesn't supported yet")
+{%-endif%}
+{%-endmacro%}
 
-// Default HM multi-partition table - shutdown for all errors.
-pok_error_module_action_table_t hm_multi_partition_table_default = {
-    .actions = {
-        {POK_ERROR_MODULE_ACTION_SHUTDOWN, }, /* POK_SYSTEM_STATE_INIT_PARTOS */
-        {POK_ERROR_MODULE_ACTION_SHUTDOWN, }, /* POK_SYSTEM_STATE_INIT_PARTUSER */
-        {POK_ERROR_MODULE_ACTION_SHUTDOWN, }, /* POK_SYSTEM_STATE_INTERRUPT_HANDLER */
-        {POK_ERROR_MODULE_ACTION_SHUTDOWN, }, /* POK_SYSTEM_STATE_OS_MOD */
-        {POK_ERROR_MODULE_ACTION_SHUTDOWN, }, /* POK_SYSTEM_STATE_OS_PART */
-        {POK_ERROR_MODULE_ACTION_SHUTDOWN, }, /* POK_SYSTEM_STATE_ERROR_HANDLER */
-        {POK_ERROR_MODULE_ACTION_SHUTDOWN, }, /* POK_SYSTEM_STATE_USER */
-    }
-};
-
-/****************** Setup queuing channels ****************************/
+/**************** Setup queuing channels ****************************/
 pok_channel_queuing_t pok_channels_queuing[{{ conf.channels_queueing | length }}] = {
     {%for channel_queueing in conf.channels_queueing%}
     {
         .max_message_size = {{channel_queueing.max_message_size}},
         .max_nb_message_send = {{channel_queueing.max_nb_message_send}},
         .max_nb_message_receive = {{channel_queueing.max_nb_message_receive}},
+        .receiver = {{connection_partition(channel_queueing.dst)}},
+        .sender = {{connection_partition(channel_queueing.src)}},
     },
     {%endfor%}
 };
@@ -131,117 +86,41 @@ uint8_t pok_channels_sampling_n = {{ conf.channels_sampling | length }};
 
 {%for part in conf.partitions%}
 /****************** Setup partition{{loop.index0}} (auxiliary) **********************/
-{# TODO: Parse errors from input #}
 // HM partition level selector.
 static const pok_error_level_selector_t partition_hm_selector_{{loop.index0}} = {
     .levels = {
-        0,      /* POK_ERROR_ID_MODPOSTPROCEVENT_ELIST */
-        0x40,   /* POK_ERROR_ID_ILLEGAL_REQUEST */
-        0x40,   /* POK_ERROR_ID_APPLICATION_ERROR */
-        0,      /* POK_ERROR_ID_PARTLOAD_ERROR */
-        0x40,   /* POK_ERROR_ID_NUMERIC_ERROR */
-        0x40,   /* POK_ERROR_ID_MEMORY_VIOLATION */
-        0x40,   /* POK_ERROR_ID_DEADLINE_MISSED */
-        0,      /* POK_ERROR_ID_HARDWARE_FAULT */
-        0,      /* POK_ERROR_ID_POWER_FAIL */
-        0x40,   /* POK_ERROR_ID_STACK_OVERFLOW */
-        0,      /* POK_ERROR_ID_PROCINIT_ERROR */
-        0,      /* POK_ERROR_ID_NOMEMORY_PROCDATA */
-        0,      /* POK_ERROR_ID_ASSERT */
-        0,      /* POK_ERROR_ID_CONFIG_ERROR */
-        0,      /* POK_ERROR_ID_CHECK_POOL */
-        0,      /* POK_ERROR_ID_UNHANDLED_INT */
+{%for error_id in conf.error_ids_all %}
+        {{part.hm_table.level_selector_total(error_id)}}, /*POK_ERROR_ID_{{error_id}}*/
+{%endfor%}
     }
 };
-{# TODO: Parse errors from input #}
-// Mapping of thread-level errors information.
+// Mapping of process-level errors information.
 static const pok_thread_error_map_t partition_thread_error_info_{{loop.index0}} = {
     .map = {
-        {POK_ERROR_KIND_INVALID, NULL},                             /* POK_ERROR_ID_MODPOSTPROCEVENT_ELIST */
-        {POK_ERROR_KIND_ILLEGAL_REQUEST, "Illegal Request"},        /* POK_ERROR_ID_ILLEGAL_REQUEST */
-        {POK_ERROR_KIND_APPLICATION_ERROR, "Application Error"},    /* POK_ERROR_ID_APPLICATION_ERROR */
-        {POK_ERROR_KIND_INVALID, NULL},                             /* POK_ERROR_ID_PARTLOAD_ERROR */
-        {POK_ERROR_KIND_NUMERIC_ERROR, "Numeric Error"},            /* POK_ERROR_ID_NUMERIC_ERROR */
-        {POK_ERROR_KIND_MEMORY_VIOLATION, "Memory Violation"},      /* POK_ERROR_ID_MEMORY_VIOLATION */
-        {POK_ERROR_KIND_DEADLINE_MISSED, "Deadline Missed"},        /* POK_ERROR_ID_DEADLINE_MISSED */
-        {POK_ERROR_KIND_HARDWARE_FAULT, "Hardware Fault"},          /* POK_ERROR_ID_HARDWARE_FAULT */
-        {POK_ERROR_KIND_POWER_FAIL, "Power Fail"},                  /* POK_ERROR_ID_POWER_FAIL */
-        {POK_ERROR_KIND_STACK_OVERFLOW, "Stack Overflow"},          /* POK_ERROR_ID_STACK_OVERFLOW */
-        {POK_ERROR_KIND_INVALID, NULL},                             /* POK_ERROR_ID_PROCINIT_ERROR */
-        {POK_ERROR_KIND_INVALID, NULL},                             /* POK_ERROR_ID_NOMEMORY_PROCDATA */
-        {POK_ERROR_KIND_INVALID, NULL},                             /* POK_ERROR_ID_ASSERT */
-        {POK_ERROR_KIND_PARTITION_CONFIGURATION, "Config Error"},   /* POK_ERROR_ID_CONFIG_ERROR */
-        {POK_ERROR_KIND_INVALID, NULL},                             /* POK_ERROR_ID_CHECK_POOL */
-        {POK_ERROR_KIND_INVALID, NULL},                             /* POK_ERROR_ID_UNHANDLED_INT */
+{%for error_id in conf.error_ids_all %}
+{%if error_id in part.hm_table.user_level_codes%}
+{%set error_code, error_description = part.hm_table.user_level_codes[error_id] %}
+        {POK_ERROR_KIND_{{error_code}}, "{{error_description}}"},        /* POK_ERROR_ID_{{error_id}} */
+{%else%}
+        {POK_ERROR_KIND_INVALID, NULL}, /*POK_ERROR_ID_{{error_id}}*/
+{%endif%}
+{%endfor%}
     }
 };
 
-{# TODO: Parse errors from input #}
 /* 
  * Pointer to partition HM table.
- * 
- * Actions which are not set in `xml` are IDLE.
  */
 static const pok_error_hm_partition_t partition_hm_table_{{loop.index0}} = {
     .actions = {
-        {POK_ERROR_ACTION_IDLE, }, /* POK_SYSTEM_STATE_INIT_PARTOS */
-        {POK_ERROR_ACTION_IDLE, }, /* POK_SYSTEM_STATE_INIT_PARTUSER */
-        {POK_ERROR_ACTION_IDLE, }, /* POK_SYSTEM_STATE_INTERRUPT_HANDLER */
-        {POK_ERROR_ACTION_IDLE, }, /* POK_SYSTEM_STATE_OS_MOD */
-        { /* POK_SYSTEM_STATE_OS_PART */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_MODPOSTPROCEVENT_ELIST */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_ILLEGAL_REQUEST */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_APPLICATION_ERROR */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_PARTLOAD_ERROR */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_NUMERIC_ERROR */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_MEMORY_VIOLATION */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_DEADLINE_MISSED */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_HARDWARE_FAULT */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_POWER_FAIL */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_STACK_OVERFLOW */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_PROCINIT_ERROR */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_NOMEMORY_PROCDATA */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_ASSERT */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_CONFIG_ERROR */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_CHECK_POOL */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_UNHANDLED_INT */
-        }, 
-        { /* POK_SYSTEM_STATE_ERROR_HANDLER */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_MODPOSTPROCEVENT_ELIST */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_ILLEGAL_REQUEST */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_APPLICATION_ERROR */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_PARTLOAD_ERROR */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_NUMERIC_ERROR */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_MEMORY_VIOLATION */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_DEADLINE_MISSED */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_HARDWARE_FAULT */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_POWER_FAIL */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_STACK_OVERFLOW */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_PROCINIT_ERROR */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_NOMEMORY_PROCDATA */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_ASSERT */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_CONFIG_ERROR */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_CHECK_POOL */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_UNHANDLED_INT */
-        }, 
-        { /* POK_SYSTEM_STATE_USER */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_MODPOSTPROCEVENT_ELIST */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_ILLEGAL_REQUEST */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_APPLICATION_ERROR */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_PARTLOAD_ERROR */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_NUMERIC_ERROR */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_MEMORY_VIOLATION */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_DEADLINE_MISSED */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_HARDWARE_FAULT */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_POWER_FAIL */
-            POK_ERROR_ACTION_COLD_START,    /* POK_ERROR_ID_STACK_OVERFLOW */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_PROCINIT_ERROR */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_NOMEMORY_PROCDATA */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_ASSERT */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_CONFIG_ERROR */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_CHECK_POOL */
-            POK_ERROR_ACTION_IDLE,          /* POK_ERROR_ID_UNHANDLED_INT */
-        }, 
+{%for s in conf.system_states_all %}
+    /* POK_SYSTEM_STATE_{{s}} */
+    {
+{%for error_id in conf.error_ids_all %}
+        POK_ERROR_ACTION_{{part.hm_table.get_action(s, error_id)}}, /* POK_ERROR_ID_{{error_id}} */
+{%endfor%}
+    },
+{%endfor%}
     }
 };
 
@@ -255,7 +134,6 @@ static pok_port_queuing_t partition_ports_queuing_{{loop.index0}}[{{part.ports_q
         .name = "{{port_queueing.name}}",
         .channel = &pok_channels_queuing[{{port_queueing.channel_id}}],
         .direction = {%if port_queueing.is_src()%}POK_PORT_DIRECTION_OUT{%else%}POK_PORT_DIRECTION_IN{%endif%},
-        .partition = &pok_partitions_arinc[{{loop.index0}}],
     },
 {%endfor%}
 };
@@ -291,12 +169,14 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
         .base_part = {
             .name = "{{part.name}}",
             
-            .period = {{conf.major_frame}}, {#TODO: Where it is stored in conf?#}
+            .period = {%if part.period is not none%}{{part.period}}{%else%}{{conf.major_frame}}{%endif%},
+            .duration = {%if part.duration is not none%}{{part.duration}}{%else%}{{part.total_time}}{%endif%},
+            .partition_id = {{part.part_id}},
             
             .space_id = {{loop.index0}},
             
-            .multi_partition_hm_selector = &hm_multi_partition_selector_default,
-            .multi_partition_hm_table = &hm_multi_partition_table_default,
+            .multi_partition_hm_selector = &pok_hm_multi_partition_selector_default,
+            .multi_partition_hm_table = &pok_hm_multi_partition_table_default,
         },
         
         .size = {{part.size}},
@@ -331,14 +211,13 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
         .thread_error_info = &partition_thread_error_info_{{loop.index0}},
 
         .partition_hm_table = &partition_hm_table_{{loop.index0}},
-
-		.partition_id = {{loop.index0}},
     },
 {%endfor%}{#partitions loop#}
 };
 
 const uint8_t pok_partitions_arinc_n = {{conf.partitions | length}};
 
+#ifdef POK_NEEDS_MONITOR
 /**************************** Monitor *********************************/
 pok_partition_t partition_monitor =
 {
@@ -348,10 +227,11 @@ pok_partition_t partition_monitor =
     
     .space_id = 0xff,
     
-    .multi_partition_hm_selector = &hm_multi_partition_selector_default,
-    .multi_partition_hm_table = &hm_multi_partition_table_default,
+    .multi_partition_hm_selector = &pok_hm_multi_partition_selector_default,
+    .multi_partition_hm_table = &pok_hm_multi_partition_table_default,
 };
-
+#endif /* POK_NEEDS_MONITOR*/
+#ifdef POK_NEEDS_GDB
 /******************************* GDB **********************************/
 pok_partition_t partition_gdb =
 {
@@ -361,30 +241,35 @@ pok_partition_t partition_gdb =
 
     .space_id = 0xff,
 
-    .multi_partition_hm_selector = &hm_multi_partition_selector_default,
-    .multi_partition_hm_table = &hm_multi_partition_table_default,
+    .multi_partition_hm_selector = &pok_hm_multi_partition_selector_default,
+    .multi_partition_hm_table = &pok_hm_multi_partition_table_default,
 };
-
+#endif /* POK_NEEDS_GDB*/
 
 /************************* Setup time slots ***************************/
 const pok_sched_slot_t pok_module_sched[{{conf.slots | length}}] = {
 {%for slot in conf.slots%}
     {
         .duration = {{slot.duration}},
-        .offset = 0, {#TODO: precalculate somehow#}
-        {%-if slot.get_kind_constant() == 'POK_SLOT_PARTITION' %}
-
+        .offset = 0,{#TODO: precalculate somehow#}{{''}}
+    {%if slot.get_kind_constant() == 'POK_SLOT_PARTITION' %}
         .partition = &pok_partitions_arinc[{{slot.partition.part_index}}].base_part,
         .periodic_processing_start = {%if slot.periodic_processing_start%}TRUE{%else%}FALSE{%endif%},
-        {%elif slot.get_kind_constant() == 'POK_SLOT_MONITOR' %}
-
+    {%elif slot.get_kind_constant() == 'POK_SLOT_MONITOR' %}
+#ifdef POK_NEEDS_MONITOR
         .partition = &partition_monitor,
+#else /* POK_NEEDS_MONITOR */
+        .partition = &partition_idle,
+#endif /* POK_NEEDS_MONITOR */
         .periodic_processing_start = FALSE,
-        {%elif slot.get_kind_constant() == 'POK_SLOT_GDB' %}
-
+    {%elif slot.get_kind_constant() == 'POK_SLOT_GDB' %}
+#ifdef POK_NEEDS_GDB
         .partition = &partition_gdb,
+#else /* POK_NEEDS_GDB */
+        .partition = &partition_idle,
+#endif /* POK_NEEDS_GDB */
         .periodic_processing_start = FALSE,
-        {%endif-%}
+    {%endif%}
         .id = {{loop.index0}}
     },
 {%endfor%}

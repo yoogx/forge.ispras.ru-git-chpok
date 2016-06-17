@@ -90,11 +90,10 @@ void GET_ERROR_STATUS (ERROR_STATUS_TYPE  *ERROR_STATUS,
     pok_error_status_t   core_status;
     pok_ret_t            core_ret;
 
-    core_ret = pok_error_get (&core_status);
+    core_ret = pok_error_get (&core_status, ERROR_STATUS->MESSAGE);
 
     if (core_ret == POK_ERRNO_OK) {
         ERROR_STATUS->ERROR_CODE = error_pok_to_arinc(core_status.error_kind);
-        memcpy (ERROR_STATUS->MESSAGE, core_status.msg, MAX_ERROR_MESSAGE_SIZE);
         ERROR_STATUS->LENGTH = core_status.msg_size;
         ERROR_STATUS->FAILED_PROCESS_ID = core_status.failed_thread + 1; // ARINC process IDs are one higher
         ERROR_STATUS->FAILED_ADDRESS = (SYSTEM_ADDRESS_TYPE)core_status.failed_addr;

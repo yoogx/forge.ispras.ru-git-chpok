@@ -21,6 +21,6 @@
 
 void pok_arch_idle (void);
 
-void pok_arch_yield ();
+void pok_arch_yield (void);
 
 #endif /* __LIBPOK_ARCH_H__ */

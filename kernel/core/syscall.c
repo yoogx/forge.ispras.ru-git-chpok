@@ -139,12 +139,7 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
 
 #ifdef POK_NEEDS_PARTITIONS
    SYSCALL_ENTRY(POK_SYSCALL_PARTITION_SET_MODE)
-   SYSCALL_ENTRY(POK_SYSCALL_PARTITION_GET_ID)
-   SYSCALL_ENTRY(POK_SYSCALL_PARTITION_GET_PERIOD)
-   SYSCALL_ENTRY(POK_SYSCALL_PARTITION_GET_DURATION)
-   SYSCALL_ENTRY(POK_SYSCALL_PARTITION_GET_LOCK_LEVEL)
-	SYSCALL_ENTRY(POK_SYSCALL_PARTITION_GET_OPERATING_MODE)
-   SYSCALL_ENTRY(POK_SYSCALL_PARTITION_GET_START_CONDITION)
+   SYSCALL_ENTRY(POK_SYSCALL_PARTITION_GET_STATUS)
    SYSCALL_ENTRY(POK_SYSCALL_PARTITION_INC_LOCK_LEVEL)
    SYSCALL_ENTRY(POK_SYSCALL_PARTITION_DEC_LOCK_LEVEL)
 #endif
@@ -278,8 +273,6 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
 
    return POK_ERRNO_EINVAL; // TODO: Unreachable?
 }
-
-extern uintptr_t global_thread_stack;
 
 pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
                             const pok_syscall_args_t*    args,

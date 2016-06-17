@@ -19,6 +19,8 @@
 #include <core/sched_arinc.h>
 #include "thread_internal.h"
 
+#include <system_limits.h>
+
 /*
  * Find object of given type with given name.
  * 
@@ -120,11 +122,14 @@ pok_ret_t pok_buffer_create(char* __user name,
     if(part->mode == POK_PARTITION_MODE_NORMAL) return POK_ERRNO_PARTITION_MODE;
     // No needs in critical section - init process cannot be preempted.
 
-    if(discipline != POK_QUEUEING_DISCIPLINE_FIFO
-        && discipline != POK_QUEUEING_DISCIPLINE_PRIORITY) return POK_ERRNO_EINVAL;
-    
+    if(discipline != POK_QUEUING_DISCIPLINE_FIFO
+        && discipline != POK_QUEUING_DISCIPLINE_PRIORITY) return POK_ERRNO_EINVAL;
+
     if(max_message_size == 0) return POK_ERRNO_EINVAL;
-    
+    if(max_message_size > SYSTEM_LIMIT_MESSAGE_SIZE) return POK_ERRNO_EINVAL;
+
+    if(max_nb_message > SYSTEM_LIMIT_NUMBER_OF_MESSAGES) return POK_ERRNO_EINVAL;
+
     if(!check_access_read(name, MAX_NAME_LENGTH)) return POK_ERRNO_EFAULT;
     if(!check_user_write(id)) return POK_ERRNO_EFAULT;
     
@@ -184,18 +189,18 @@ pok_ret_t pok_buffer_send(pok_buffer_id_t id,
     const pok_time_t* __user timeout)
 {
     pok_ret_t ret;
-    long wait_result;    
+    long wait_result;
 
     pok_buffer_t* buffer = get_buffer(id);
-    
+
     if(!buffer) return POK_ERRNO_UNAVAILABLE;
 
     if(length <= 0 || length > buffer->max_message_size) return POK_ERRNO_EINVAL;
     if(!check_access_read(data, length)) return POK_ERRNO_EFAULT;
     if(!check_user_read(timeout)) return POK_ERRNO_EFAULT;
-    
+
     pok_preemption_local_disable();
-    
+
     if(buffer->nb_message == 0
         && !pok_thread_wq_is_empty(&buffer->waiters)
         && (buffer->max_nb_message || buffer->message_stride == WAITERS_ARE_RECEIVERS))
@@ -218,7 +223,7 @@ pok_ret_t pok_buffer_send(pok_buffer_id_t id,
         pok_time_t timeout_kernel = __get_user(timeout);
         if(timeout_kernel == 0)
         {
-            ret = POK_ERRNO_UNAVAILABLE;
+            ret = POK_ERRNO_FULL;
             goto out;
         }
         else if(!thread_is_waiting_allowed())
@@ -281,15 +286,15 @@ pok_ret_t pok_buffer_receive(pok_buffer_id_t id,
     long wait_result;
 
     pok_buffer_t* buffer = get_buffer(id);
-    
+
     if(!buffer) return POK_ERRNO_UNAVAILABLE;
 
     if(!check_access_write(data, buffer->max_message_size)) return POK_ERRNO_EFAULT;
     if(!check_user_write(length)) return POK_ERRNO_EFAULT;
     if(!check_user_read(timeout)) return POK_ERRNO_EFAULT;
-    
+
     pok_preemption_local_disable();
-    
+
     if(buffer->nb_message > 0)
     {
         // Copy message from the array of messages
@@ -310,12 +315,14 @@ pok_ret_t pok_buffer_receive(pok_buffer_id_t id,
             pok_message_send_t* message_send = sender_thread->wait_private;
             
             __copy_from_user(message->content, message_send->data, message_send->size);
+            message->size = message_send->size;
             
             sender_thread->wait_private = NULL;
         }
         else
         {
-            buffer->nb_message--; // No senders await
+            // No senders await
+            buffer->nb_message --;
         }
         
         ret = POK_ERRNO_OK;
@@ -330,7 +337,7 @@ pok_ret_t pok_buffer_receive(pok_buffer_id_t id,
         if(timeout_kernel == 0)
         {
             __put_user(length, 0);
-            ret = POK_ERRNO_UNAVAILABLE;
+            ret = POK_ERRNO_EMPTY;
             goto out;
         }
         else if(!thread_is_waiting_allowed())
@@ -437,28 +444,28 @@ pok_ret_t pok_blackboard_create (const char* __user             name,
                                  pok_blackboard_id_t* __user    id)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
-    
+
     if(!check_access_read(name, MAX_NAME_LENGTH)) return POK_ERRNO_EFAULT;
     if(!check_user_write(id)) return POK_ERRNO_EFAULT;
-    
+
     if(part->mode == POK_PARTITION_MODE_NORMAL) return POK_ERRNO_PARTITION_MODE;
-    
+
     if(part->nblackboards_used == part->nblackboards) return POK_ERRNO_TOOMANY;
-    
+
     pok_blackboard_t* blackboard = &part->blackboards[part->nblackboards_used];
-    
+
     __copy_from_user(blackboard->name, name, MAX_NAME_LENGTH);
-    
+
     if(find_blackboard(blackboard->name)) return POK_ERRNO_EXISTS;
-    
+
     if(max_message_size == 0) return POK_ERRNO_EINVAL;
-    
-    // TODO: check upper limit of max_message_size.
+    if(max_message_size > SYSTEM_LIMIT_MESSAGE_SIZE) return POK_ERRNO_EINVAL;
+
     pok_message_size_t message_stride = POK_MESSAGE_STRUCT_SIZE(max_message_size);
     pok_message_t* message = partition_arinc_im_get(message_stride, sizeof(unsigned long));
-    
+
     if(!message) return POK_ERRNO_UNAVAILABLE;
-    
+
     blackboard->message_stride = message_stride;
     blackboard->max_message_size = max_message_size;
     blackboard->message = message;
@@ -468,9 +475,9 @@ pok_ret_t pok_blackboard_create (const char* __user             name,
     pok_thread_wq_init(&blackboard->waiters);
     
     __put_user(id, part->nblackboards_used);
-    
+
     part->nblackboards_used++;
-    
+
     return POK_ERRNO_OK;
 }
 
@@ -484,14 +491,14 @@ pok_ret_t pok_blackboard_read (pok_blackboard_id_t          id,
 
     pok_blackboard_t* blackboard = get_blackboard(id);
     if(!blackboard) return POK_ERRNO_UNAVAILABLE;
-    
+
     if(!check_access_write(data, blackboard->max_message_size)) return POK_ERRNO_EFAULT;
     if(!check_user_read(timeout)) return POK_ERRNO_EFAULT;
     if(!check_user_write(len)) return POK_ERRNO_EFAULT;
-    
+
     pok_time_t kernel_timeout = __get_user(timeout);
     pok_message_t* message = blackboard->message;
-    
+
     pok_preemption_local_disable();
     if(message->size)
     {
@@ -513,28 +520,28 @@ pok_ret_t pok_blackboard_read (pok_blackboard_id_t          id,
             ret = POK_ERRNO_MODE;
             goto out;
         }
-        
+
         t = current_thread;
-        
+
         t->wait_private = data;
         pok_thread_wq_add(&blackboard->waiters, t);
-        
+
         thread_wait_common(t, kernel_timeout);
         goto out_wait;
     }
 out:
     pok_preemption_local_enable();
-    
+
     return ret;
 
 out_wait:
     pok_preemption_local_enable();
-    
-    unsigned long wait_result = (unsigned long)t->wait_private;
+
+    long wait_result = (long)t->wait_private;
     if(wait_result < 0) return (pok_ret_t)(-wait_result);
-    
+
     __put_user(len, wait_result);
-    
+
     return POK_ERRNO_OK;
 }
 
@@ -559,7 +566,7 @@ pok_ret_t pok_blackboard_display (pok_blackboard_id_t   id,
         t = pok_thread_wq_wake_up(&blackboard->waiters))
     {
         char* __user recv_data = (char* __user)t->wait_private;
-        
+
         __copy_user(recv_data, message, len);
         t->wait_private = (void*)(unsigned long)len;
     }
@@ -612,8 +619,8 @@ pok_ret_t pok_blackboard_status (pok_blackboard_id_t                id,
     __put_user_f(status, max_message_size, blackboard->max_message_size);
 
     pok_preemption_local_disable();
-    __put_user_f(status, empty_indicator,
-        blackboard->message->size? POK_BLACKBOARD_OCCUPIED : POK_BLACKBOARD_EMPTY);
+    __put_user_f(status, is_empty,
+        blackboard->message->size? FALSE : TRUE);
     __put_user_f(status, waiting_processes,
         pok_thread_wq_get_nwaits(&blackboard->waiters));
     pok_preemption_local_enable();
@@ -646,12 +653,13 @@ pok_ret_t pok_semaphore_create(const char* __user name,
     if(!check_access_read(name, MAX_NAME_LENGTH)) return POK_ERRNO_EFAULT;
     if(!check_user_write(id)) return POK_ERRNO_EFAULT;
     
+    if(max_value > MAX_SEMAPHORE_VALUE) return POK_ERRNO_EINVAL;
     if(value > max_value) return POK_ERRNO_EINVAL;
     
     // TODO: check whether max_value is out of range.
     
-    if(discipline != POK_QUEUEING_DISCIPLINE_FIFO
-        && discipline != POK_QUEUEING_DISCIPLINE_PRIORITY) return POK_ERRNO_EINVAL;
+    if(discipline != POK_QUEUING_DISCIPLINE_FIFO
+        && discipline != POK_QUEUING_DISCIPLINE_PRIORITY) return POK_ERRNO_EINVAL;
 
     if(part->nsemaphores_used == part->nsemaphores) return POK_ERRNO_TOOMANY;
     
@@ -667,7 +675,9 @@ pok_ret_t pok_semaphore_create(const char* __user name,
     pok_thread_wq_init(&semaphore->waiters);
     
     __put_user(id, semaphore - part->semaphores);
-    
+
+    part->nsemaphores_used++;
+
     return POK_ERRNO_OK;
 }
 
@@ -730,7 +740,6 @@ pok_ret_t pok_semaphore_signal(pok_sem_id_t id)
     if(!pok_thread_wq_is_empty(&semaphore->waiters))
     {
         pok_thread_t* t = pok_thread_wq_wake_up(&semaphore->waiters);
-        
         t->wait_private = NULL;
     }
     else if(semaphore->value == semaphore->max_value)
@@ -743,7 +752,7 @@ pok_ret_t pok_semaphore_signal(pok_sem_id_t id)
     }
 
     pok_preemption_local_enable();
-    
+
     return ret;
 }
 
@@ -751,15 +760,17 @@ pok_ret_t pok_semaphore_id(const char* __user name,
     pok_sem_id_t* __user id)
 {
     char kernel_name[MAX_NAME_LENGTH];
-    
-    if(check_access_read(name, MAX_NAME_LENGTH)) return POK_ERRNO_EFAULT;
-    if(check_user_read(id)) return POK_ERRNO_EFAULT;
-    
+
+    if(!check_access_read(name, MAX_NAME_LENGTH)) return POK_ERRNO_EFAULT;
+    if(!check_user_write(id)) return POK_ERRNO_EFAULT;
+
+    __copy_from_user(kernel_name, name, MAX_NAME_LENGTH);
+
     pok_semaphore_t* semaphore = find_semaphore(kernel_name);
     if(!semaphore) return POK_ERRNO_UNAVAILABLE;
-    
+
     __put_user(id, semaphore - current_partition_arinc->semaphores);
-    
+
     return POK_ERRNO_OK;
 }
 
@@ -798,28 +809,29 @@ pok_ret_t pok_event_create(const char* __user name,
     pok_event_id_t* __user id)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
-    
+
     if(part->mode == POK_PARTITION_MODE_NORMAL) return POK_ERRNO_PARTITION_MODE;
-    
+
     if(!check_access_read(name, MAX_NAME_LENGTH)) return POK_ERRNO_EFAULT;
     if(!check_user_write(id)) return POK_ERRNO_EFAULT;
 
     if(part->nevents_used == part->nevents) return POK_ERRNO_TOOMANY;
-    
+
     pok_event_t* event = &part->events[part->nevents_used];
-    
+
     __copy_from_user(event->name, name, MAX_NAME_LENGTH);
-    
+
     if(find_event(event->name)) return POK_ERRNO_EXISTS;
-    
-    event->value = POK_EVENT_DOWN;
+
+    event->is_up = FALSE;
 
     pok_thread_wq_init(&event->waiters);
-    
-    __put_user(id, event - part->events);
-    
-    return POK_ERRNO_OK;
 
+    __put_user(id, event - part->events);
+
+    part->nevents_used++;
+
+    return POK_ERRNO_OK;
 }
 
 pok_ret_t pok_event_set(pok_event_id_t id)
@@ -828,7 +840,7 @@ pok_ret_t pok_event_set(pok_event_id_t id)
     if(!event) return POK_ERRNO_UNAVAILABLE;
     
     pok_preemption_local_disable();
-    event->value = POK_EVENT_UP;
+    event->is_up = TRUE;
     
     for(pok_thread_t* t = pok_thread_wq_wake_up(&event->waiters);
         t;
@@ -847,7 +859,7 @@ pok_ret_t pok_event_reset(pok_event_id_t id)
     if(!event) return POK_ERRNO_UNAVAILABLE;
     
     pok_preemption_local_disable();
-    event->value = POK_EVENT_DOWN;
+    event->is_up = FALSE;
     pok_preemption_local_enable();
     
     return POK_ERRNO_OK;
@@ -868,13 +880,13 @@ pok_ret_t pok_event_wait(pok_event_id_t id,
     pok_thread_t* t = current_thread;
     
     pok_preemption_local_disable();
-    if(event->value == POK_EVENT_UP)
+    if(event->is_up)
     {
         ret = POK_ERRNO_OK;
     }
     else if(kernel_timeout == 0)
     {
-        ret = POK_ERRNO_UNAVAILABLE;
+        ret = POK_ERRNO_EMPTY;
     }
     else if(!thread_is_waiting_allowed())
     {
@@ -928,7 +940,7 @@ pok_ret_t pok_event_status(pok_event_id_t id,
     if(!check_user_write(status)) return POK_ERRNO_EFAULT;
 
     pok_preemption_local_disable();
-    __put_user_f(status, event_state, event->value);
+    __put_user_f(status, is_up, event->is_up);
     __put_user_f(status, waiting_processes,
         pok_thread_wq_get_nwaits(&event->waiters));
     pok_preemption_local_enable();
