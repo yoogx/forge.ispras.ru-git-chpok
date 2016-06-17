@@ -36,9 +36,9 @@ def get_pok_definitions(source, env):
     root.xinclude()
 
     parser = arinc653_xml_conf.ArincConfigParser()
-    conf = parser.parse(root)
+    system_conf = parser.parse(root)
 
-    return dict(conf=conf)
+    return dict(system_conf=system_conf)
 
 def get_pok_partition_definitions(source, env):
     source = source[0]
@@ -53,8 +53,9 @@ def get_pok_partition_definitions(source, env):
     return dict(part = conf.partitions[0])
 
 def get_pok_gdb_definitions(source, env):
-	defs = get_pok_definitions(source, env)
+	system_defs = get_pok_definitions(source, env)
 
+	defs = dict(conf = system_defs['system_conf'].modules[0]) # GDB loads information for the first module.
 	defs['partition_build_dirs'] = env['PARTITION_BUILD_DIRS']
 
 	return defs

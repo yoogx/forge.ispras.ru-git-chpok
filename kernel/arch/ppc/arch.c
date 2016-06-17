@@ -30,7 +30,12 @@
 //TODO: move that declaration into header
 void pok_bsp_init(void);
 
-void pok_arch_init ()
+// TODO: This is declared in *arch-independed* arch.h.
+struct pok_space* spaces;
+uint8_t spaces_n;
+
+// Called from entry.S
+void pok_arch_init (void)
 {
   mtmsr(MSR_IP | MSR_FP);
 
@@ -60,21 +65,10 @@ pok_bool_t pok_arch_preempt_enabled(void)
 
 void pok_arch_inf_loop()
 {
-   pok_arch_preempt_disable();
-
-   while (1)
-   {}
-}
-
-pok_ret_t pok_arch_idle()
-{
-   pok_arch_preempt_enable();
-
    while (1)
    {
+      asm("wait": : :"memory");
    }
-
-   return (POK_ERRNO_OK);	
 }
 
 pok_ret_t pok_arch_event_register (uint8_t vector, void (*handler)(void))

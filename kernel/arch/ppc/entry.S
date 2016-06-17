@@ -445,10 +445,16 @@ failed: b failed
         .globl _ja_cpu_reset_additional
 _ja_cpu_reset_additional:
         # Assume %r3 to contain cpu id.
+        # Because we also need that value later, we need to store it somewhere.
+        # Assume, that %r20 isn't used by ja_cpu_init and in functions which it calls...
+        mr %r20, %r3
+
         bl ja_cpu_init
 
         /* Call C function */
-        bl pok_boot_additional_cpu
+        mr %r3, %r20 # Restore %r3
+        bl pok_boot
+
 1:      b  1b
 
 
@@ -466,22 +472,27 @@ _pok_reset:
         bl ja_cpu_init
 
         /* Call C function */
-        bl pok_boot
+        bl ja_single_run
+
 1:      b  1b
 
 
-/* Setup first tlb entry for access data and stack. */
+/* Setup first tlb entry for access data and stack.
+ *
+ * %r3: offset of the kernel's memory.
+ */
         .globl jet_tlb_set_first_entry
 jet_tlb_set_first_entry:
 /*  Equivalent for:
  *
- *   pok_insert_tlb1(
+ *   pok_ppc_tlb_write(1,
  *       0,
- *       0,
+ *       0 + kernel_offset,
  *       E500MC_PGSIZE_256M,  //TODO make smaller
  *       MAS3_SW | MAS3_SR | MAS3_SX,
  *       0,
  *       0, // any pid
+ *       0, // The first entry. While on QEMU default table for second CPU is contained in the 2nd entry.
  *       TRUE
  *   );
  *
@@ -507,9 +518,19 @@ jet_tlb_set_first_entry:
         xor %r4, %r4, %r4
         ori %r4, %r4, 0x15
 
-        mtspr 0x273, %r4 # mas3 <- 0x15
+        add %r4, %r4, %r3
 
-        isync; tlbwe; isync
+        mtspr 0x273, %r4 # mas3 <- 0x15 + kernel_offset
+
+        isync
+        tlbwe
+        isync
+
+        # Store kernel offset for futher use.
+        lis %r4, kernel_offset@h
+        ori %r4, %r4, kernel_offset@l
+
+        stw %r3, 0(%r4)
 
         blr
 
@@ -517,20 +538,14 @@ jet_tlb_set_first_entry:
 /* Common initialization for cpu. */
         .globl ja_cpu_init
 ja_cpu_init:
-        mflr %r13 # Store link because we have come calls
+        mflr %r13 # Store link because we have some calls
         /* Setup stack */
-        lis %r1,(_jet_stacks-0x1000-4)@h
-        ori %r1,%r1,(_jet_stacks-0x1000-4)@l
+        lis %r1,(_jet_stack-0x1000-4)@h
+        ori %r1,%r1,(_jet_stack-0x1000-4)@l
 
-        /* Adjust stack for current CPU. Assume %r3 to contain cpu id. */
-        slwi %r3, %r3, 12
-        add %r1, %r1, %r3
-
-        /* Second CPU initially has only 256K memory mapped.
-          Need to expand this mapping for access data and stack segments.
-        */
+        /* Adjust mapping for concrete module. */
+        slwi %r3, %r3, 28 # cpu * 256M
         bl jet_tlb_set_first_entry
-
 
         bl pok_setup_interrupts
 

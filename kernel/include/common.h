@@ -20,6 +20,7 @@
 #define __POK_COMMON_H__
 
 #include <compiler.h>
+#include <arch.h>
 
 /*
  * Mark pointer as pointer to user space.
@@ -62,12 +63,9 @@ static inline unsigned long ALIGN_SIZE(unsigned long size, unsigned long align)
 
 /*
  * Infinite loop using some CPU relaxing features.
+ *
+ * TODO: Is this alias actually needed?
  */
-// TODO: This should be arch-specific asm code.
-static inline void wait_infinitely(void)
-{
-    while(1) 
-        barrier();
-}
+#define wait_infinitely pok_arch_inf_loop
 
 #endif /* !__POK_COMMON_H__ */

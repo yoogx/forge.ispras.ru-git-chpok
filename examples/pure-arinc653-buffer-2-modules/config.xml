@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<chpok-configuration xmlns:xi="http://www.w3.org/2001/XInclude">
+    <Module id="0">
+        <Partitions>
+            <xi:include href="P1/config.xml" parse="xml"/>
+        </Partitions>
+
+        <Schedule>
+            <Slot Type="Partition" PartitionNameRef="P1" Duration="15ms" PeriodicProcessingStart="true" />
+            <Slot Type="Monitor" Duration="10ms" />
+            <Slot Type="GDB" Duration="10ms" />
+        </Schedule>
+    </Module>
+
+    <Module id="1">
+        <Partitions>
+            <xi:include href="P2/config.xml" parse="xml"/>
+        </Partitions>
+
+        <Schedule>
+            <Slot Type="Partition" PartitionNameRef="P2" Duration="15ms" PeriodicProcessingStart="true" />
+            <Slot Type="Monitor" Duration="10ms" />
+            <Slot Type="GDB" Duration="10ms" />
+        </Schedule>
+    </Module>
+
+
+</chpok-configuration>

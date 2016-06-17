@@ -47,4 +47,7 @@ void jet_module_setup(const struct jet_module_conf* conf)
     pok_hm_module_selector = conf->hm_module_selector;
     // Module HM table.
     pok_hm_module_table = conf->hm_module_table;
+
+    spaces = conf->spaces;
+    spaces_n = conf->spaces_n;
 }

@@ -180,6 +180,11 @@ def template_render_action(target, source, env):
                 with open(deps_file_path, "w") as deps_file:
                     for f in used_list:
                         deps_file.write("%s: %s\n" % (target_single.abspath, f))
+        except jinja2.TemplateSyntaxError as e:
+            print "Syntax error while rendering templates: " + e.message
+            print "At %s:%d" % (e.filename, e.lineno)
+            return 1
+
         except jinja2.TemplateError as e:
             print "Error while rendering templates: " + e.message
             return 1
@@ -381,6 +386,11 @@ def syscall_build_action(target, source, env):
 
         try:
             output_f.write(template.render(sd = sd))
+        except jinja2.TemplateSyntaxError as e:
+            print "Syntax error while rendering templates: " + e.message
+            print "At %s:%d" % (e.filename, e.lineno)
+            return 1
+
         except jinja2.TemplateError as e:
             print_error("Failed to render syscall definition at %s: %s" % (pc.syscall_lineno, e.message))
             return 1

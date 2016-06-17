@@ -45,6 +45,15 @@ typedef struct _pok_patition_arinc
     uint32_t               base_addr;    /**< The base address inside the whole memory (where the segment is in the whole memory ?) */
     uint32_t               base_vaddr;   /**< The virtual address of the partition. The address the threads sees when they are executed */
     
+    /* 
+     * Image index for partition.
+     * 
+     * Unlike to many other identificators, this index should be unique in all modules.
+     * 
+     * Set in deployment.c
+     */
+    uint8_t                elf_id;
+
     uint32_t               user_stack_state; /* State of the use-space allocation. */
 
     pok_time_t             activation; // Not used now

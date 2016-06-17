@@ -65,20 +65,9 @@ pok_bool_t pok_arch_preempt_enabled(void)
 
 void pok_arch_inf_loop()
 {
-   pok_arch_preempt_disable();
    while (1) {
       asm ("hlt");
    }
-}
-
-pok_ret_t pok_arch_idle()
-{
-   while (1)
-   {
-      asm ("hlt");
-   }
-
-   return (POK_ERRNO_OK);	
 }
 
 pok_ret_t pok_arch_event_register  (uint8_t vector,
@@ -111,5 +100,5 @@ void pok_arch_cpu_reset()
     while (good & 0x02)
         good = inb(0x64);
     outb(0x64, 0xFE);
-    pok_arch_idle();
+    pok_arch_inf_loop();
 }

@@ -1,0 +1,13 @@
+Two similar ARINC653 applications are run on different modules, each module
+uses its own CPU.
+
+It needs additional configuration options:
+
+    #define JET_CONFIG_SMP 1
+    #define JET_CONFIG_SMP_NR_CPUS 2
+
+and additional QEMU options for run this example:
+
+    -smp 2 -m 512
+
+Currently, there is no inter-module communication.

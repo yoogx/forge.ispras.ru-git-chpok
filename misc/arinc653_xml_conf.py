@@ -79,8 +79,16 @@ class ArincConfigParser:
         Return list of 'part_layout' objects.
         """
         partitions_layout = []
+        partitions_list = []
 
-        for part_root in root.find("Partitions").findall("Partition"):
+        if root.find("Schedule"):
+            # Single-module version.
+            partitions_list = root.find("Partitions").findall("Partition")
+        else:
+            for module_conf in root.findall("Module"):
+                partitions_list.extend(module_conf.find("Partitions").findall("Partition"))
+
+        for part_root in partitions_list:
             part_name = part_root.find("Definition").attrib["Name"]
             part_is_system = False
             if "System" in part_root.find("Definition").attrib:
@@ -93,21 +101,40 @@ class ArincConfigParser:
 
     def parse(self, root):
         """
+        Returns chpok_configuration.SystemConfiguration object.
+        """
+        system_conf = chpok_configuration.SystemConfiguration()
+
+        if root.find("Schedule"):
+            # Single-module version.
+            conf = self.parse_module(root)
+            system_conf.add_module(conf)
+
+            return system_conf
+
+        for module_conf in root.findall("Module"):
+            conf = self.parse_module(module_conf)
+            system_conf.add_module(conf)
+
+        return system_conf
+
+    def parse_module(self, module):
+        """
         Returns chpok_configuration.Configuration object.
         """
 
         conf = chpok_configuration.Configuration()
 
-        for part_root in root.find("Partitions").findall("Partition"):
+        for part_root in module.find("Partitions").findall("Partition"):
             self.parse_partition(conf, part_root)
 
-        self.parse_schedule(conf, root.find("Schedule"))
+        self.parse_schedule(conf, module.find("Schedule"))
 
-        connection_table = root.find("Connection_Table")
+        connection_table = module.find("Connection_Table")
         if connection_table is not None:
             self.parse_channels(conf, connection_table)
 
-        conf.network = self.parse_network(root.find("Network"))
+        conf.network = self.parse_network(module.find("Network"))
 
         # Use some default value for module HM table.
         module_error_level_selector_per_state = {error_id: 1 for error_id in conf.error_ids_all }

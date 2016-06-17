@@ -20,6 +20,7 @@
 #include <core/partition.h>
 #include <core/partition_arinc.h>
 #include <core/error.h>
+#include <arch.h>
 
 /* Configuration of the module. */
 struct jet_module_conf
@@ -54,6 +55,11 @@ struct jet_module_conf
     pok_error_level_selector_t* hm_module_selector;
     // Module HM table.
     pok_error_module_action_table_t* hm_module_table;
+
+    // Pointer to array of spaces for partitions. TODO: This should be arch-specific part
+    struct pok_space* spaces;
+    uint8_t spaces_n;
+
 };
 
 // Setup module according to configuration.

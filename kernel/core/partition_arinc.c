@@ -303,7 +303,7 @@ void pok_partition_arinc_init(pok_partition_arinc_t* part)
 
 	// TODO: this should be performed on restart too.
 	pok_arch_load_partition(part,
-		part->base_part.space_id, /* elf_id*/
+		part->elf_id,
 		part->base_part.space_id,
 		&part->main_entry);
 

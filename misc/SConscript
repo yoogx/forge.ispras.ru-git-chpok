@@ -169,7 +169,7 @@ env.Append(CFLAGS = bsp_cpu_dict[env['BSP']])
 
 bsp_qemu_dict = {
     'e500mc':          ' -M ppce500 -cpu e500mc',
-    'e500_highmem':    ' -M ppce500 -cpu e500mc -smp 2',
+    'e500_highmem':    ' -M ppce500 -cpu e500mc -smp 2 -m 512M',
     'p3041':           ' -M ppce500 -cpu e500mc',
     'x86-qemu':        ''
 }

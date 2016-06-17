@@ -39,7 +39,8 @@ struct pok_space
     size_t        size;
 };
 
-extern struct pok_space spaces[];
+extern struct pok_space* spaces;
+extern uint8_t spaces_n; // Currently unused
 
 
 
@@ -64,17 +65,12 @@ pok_ret_t   pok_arch_preempt_enable (void);
 pok_bool_t pok_arch_preempt_enabled(void);
 
 /**
- * Function that do nothing. Useful for the idle task for example.
- */
-pok_ret_t   pok_arch_idle (void);
-
-/**
  * Register an event (for example, an interruption)
  */
 pok_ret_t   pok_arch_event_register (uint8_t vector, void (*handler)(void));
 
 /**
- *  Disable interrupts and loop
+ *  Function that do nothing. Useful for the idle task for example.
  */
 void pok_arch_inf_loop();
 
@@ -84,9 +80,6 @@ void pok_trap();
  * reset cpu
  */
 void pok_arch_cpu_reset();
-
-
-void ja_cpu_start_additional(int cpu);
 
 #include <asp/cswitch.h>
 

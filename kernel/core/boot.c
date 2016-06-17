@@ -41,12 +41,6 @@
 
 #include <module.h>
 
-void pok_boot_additional_cpu(void)
-{
-   printf("!!Second core is READY!!\n");
-   wait_infinitely();
-}
-
 /*
  * Array of configurations per modules.
  * 
@@ -54,11 +48,11 @@ void pok_boot_additional_cpu(void)
  */ 
 extern struct jet_module_conf jet_module_conf_array[];
 
-void pok_boot (void)
+void pok_boot (int module)
 {
    kernel_state = POK_SYSTEM_STATE_OS_MOD; // TODO: is this choice for state right?
 
-   jet_module_setup(&jet_module_conf_array[0]);
+   jet_module_setup(&jet_module_conf_array[module]);
 
 #ifdef POK_NEEDS_NETWORKING
    pok_network_init();
@@ -107,9 +101,6 @@ void pok_boot (void)
   printf("\n");
   pok_trap();
 #endif
-  // Second core -- begin
-  ja_cpu_start_additional(1);
-  // Second core -- end
 
   pok_sched_start();
 #else

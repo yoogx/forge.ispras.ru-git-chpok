@@ -18,6 +18,21 @@ void pok_arch_handle_page_fault(
         uint32_t syndrome,
         pf_type_t type);
 
+/* 
+ * Offset of "large" part of the kernel from the "natural" one.
+ * 
+ * Set based on module's config.
+ * (Currently is just 512M * cpu).
+ */
+extern unsigned long kernel_offset;
+
+/* 
+ * This function is called on CPU 0.
+ * 
+ * It should prepare memory for all modules and should start them.
+ */
+void ja_single_run(void);
+
 void pok_arch_space_init (void);
 
 

@@ -28,10 +28,10 @@
  *
  * This function load every service according to 
  * system requirements (the POK_NEEDS_* maccro).
+ * 
+ * 'module' is the index of the module in multimodule environment.
+ * Otherwise it is 0.
  */
-
-void pok_boot(void);
-
-void pok_boot_additional_cpu(void);
+void pok_boot(int module);
 
 #endif

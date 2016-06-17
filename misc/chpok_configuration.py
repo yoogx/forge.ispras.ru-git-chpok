@@ -570,6 +570,7 @@ class NetworkConfiguration:
     #def mac_to_string(self):
     #    return "{%s}" % ", ".join(hex(i) for i in self.mac)
 
+# Configuration for single module
 class Configuration:
     system_states_all = system_states
     error_ids_all = error_ids
@@ -608,6 +609,10 @@ class Configuration:
 
         self.next_channel_id_sampling = 0
         self.next_channel_id_queueing = 0
+
+        # This value is used for compute 'elf_id' for partitions.
+        # Filled when module is added into system configuration.
+        self.elf_id_base = None
 
     def add_partition(self, part_name, part_size, part_id = None):
         if part_name in self.partition_names_map:
@@ -746,3 +751,20 @@ class Configuration:
 
     def get_all_channels(self):
         return self.channels
+
+# Configuration of the whole system
+class SystemConfiguration:
+    def __init__(self):
+        self.modules = []
+        # When module is added, it will receive this value as 'elf_id_base' field.
+        self.elf_id_base = 0
+
+    def add_module(self, module_conf):
+        """
+        Adds module's configuration.
+
+        NOTE: Module's configuration should be completely(!) filled before addition.
+        """
+        self.modules.append(module_conf)
+        module_conf.elf_id_base = self.elf_id_base
+        self.elf_id_base += len(module_conf.partitions)

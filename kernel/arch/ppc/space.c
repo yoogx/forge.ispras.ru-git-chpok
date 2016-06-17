@@ -24,6 +24,7 @@
 #include <bsp_common.h>
 #include <core/sched.h>
 #include <core/debug.h>
+#include <core/boot.h>
 
 #include <arch.h>
 #include "thread.h"
@@ -35,6 +36,8 @@
 #include "core/partition.h"
 #include "core/partition_arinc.h"
 #include "core/error.h"
+
+unsigned long kernel_offset;
 
 pok_ret_t ja_space_create (uint8_t space_id,
                             uintptr_t addr,
@@ -230,6 +233,7 @@ void pok_insert_tlb0();
 
 static int pok_ccsrbar_ready = 0;
 
+#if 0
 static void pok_ppc_tlb_print(unsigned tlbsel) {
     unsigned limit = pok_ppc_tlb_get_nentry(1);
 
@@ -244,34 +248,22 @@ static void pok_ppc_tlb_print(unsigned tlbsel) {
                 &epn,
                 &rpn
                 );
-        //~ if (valid) {
-            //~ printf("DEBUG: tlb entry %d:%d:\r\n", tlbsel, i);
-            //~ printf("DEBUG:   Valid\r\n");
-            //~ printf("DEBUG:   Effective: %p\r\n", (void*)epn);
-            //~ // FIXME This is wrong. We print only 32 bits out of 36
-            //~ printf("DEBUG:   Physical: %x:%p\r\n", 
-                    //~ (unsigned)(rpn>>32), (void*)(unsigned)rpn);
-            //~ printf("DEBUG:   Size: %s\r\n", pok_ppc_tlb_size(tsize));
-//~ 
-        //~ }
+         if (valid) {
+             printf("DEBUG: tlb entry %d:%d:\r\n", tlbsel, i);
+             printf("DEBUG:   Valid\r\n");
+             printf("DEBUG:   Effective: %p\r\n", (void*)epn);
+             // FIXME This is wrong. We print only 32 bits out of 36
+             printf("DEBUG:   Physical: %x:%p\r\n",
+                    ~ (unsigned)(rpn>>32), (void*)(unsigned)rpn);
+             printf("DEBUG:   Size: %s\r\n", pok_ppc_tlb_size(tsize));
+
+         }
     }
 }
+#endif /* 0 */
 
 void pok_arch_space_init (void)
 {
-/* Already done in jet_tlb_set_first_entry.
-    // overwrites first TLB1 entry
-    // we just need to change access bits for the kernel,
-    // so user won't be able to access it
-    pok_insert_tlb1(
-        0,
-        0,
-        E500MC_PGSIZE_256M,  //TODO make smaller
-        MAS3_SW | MAS3_SR | MAS3_SX,
-        0,
-        0, // any pid 
-        TRUE
-    );*/
     /*
      * Clear all other mappings. For instance, those created by u-boot.
      */
@@ -287,8 +279,8 @@ void pok_arch_space_init (void)
             );
     pok_ccsrbar_ready = 1;
 
-    pok_ppc_tlb_print(0);
-    pok_ppc_tlb_print(1);
+    //pok_ppc_tlb_print(0);
+    //pok_ppc_tlb_print(1);
 //    pok_ppc_tlb_clear_entry(1, 2);
     for (unsigned i = 1; i < limit-1; i++) {
         pok_ppc_tlb_clear_entry(1, i);
@@ -305,6 +297,62 @@ void pok_arch_space_init (void)
 #define MPC8544_PCI_IO_SIZE      0x10000ULL
 #define MPC8544_PCI_IO           0xE1000000ULL
 
+#ifdef JET_CONFIG_SMP
+// Copy memoty from 'start' to 'end' into 'shift'ed area.
+void copy_area(void* start, void* end, unsigned long shift)
+{
+    memcpy(start + shift, start, end - start);
+}
+
+// Fill 'shift'ed area from 'start' to 'end' with zeros.
+void fill_area(void* start, void* end, unsigned long shift)
+{
+    memset(start + shift, 0, end - start);
+}
+
+// Symbols provided by the linker
+extern char __data_end[];
+extern char __bss_end[];
+extern char __eh_frame_start[];
+extern char __eh_frame_end[];
+
+// Fill areas for all modules.
+void jet_fill_modules_area(void)
+{
+    // Temporary expand mapping
+    pok_ppc_tlb_write(1,
+        0,
+        0,
+        E500MC_PGSIZE_1G,
+        MAS3_SW | MAS3_SR | MAS3_SX,
+        0,
+        0, // any pid,
+        0,
+        TRUE
+    );
+
+    const unsigned long base_shift = 0x10000000; //256M
+
+    for(int i = 1; i < JET_CONFIG_SMP_NR_CPUS; i++)
+    {
+        copy_area((void*)0x10000, __data_end, base_shift * i);
+        fill_area(__data_end, __bss_end, base_shift * i);
+        copy_area(__eh_frame_start, __eh_frame_end, base_shift * i);
+    }
+    // Restore mapping
+    pok_ppc_tlb_write(1,
+        0,
+        0,
+        E500MC_PGSIZE_256M,
+        MAS3_SW | MAS3_SR | MAS3_SX,
+        0,
+        0, // any pid,
+        0,
+        TRUE
+    );
+}
+
+/* Spin table for start other CPU's. */
 #define SPIN_IO 0xFEF000000ULL
 #define SPIN_IO_SIZE 0x400ULL
 #define SPIN_IO_VIRTUAL 0xEF000000UL
@@ -321,7 +369,7 @@ struct spin_table
 
 #include <ioports.h>
 
-void _ja_cpu_reset_additional(int cpu);
+void _ja_cpu_reset_additional(int cpu); // Defined in entry.S
 
 void ja_cpu_start_additional(int cpu)
 {
@@ -330,12 +378,22 @@ void ja_cpu_start_additional(int cpu)
     struct spin_table* stable = (void*)(SPIN_IO_VIRTUAL + 0x20 * cpu);
 
     out_be32(&stable->r3_l, (uint32_t)cpu);
-
-    printf("_pok_reset_cpu_second: %p\n", _ja_cpu_reset_additional);
-
     out_be32(&stable->entry_addr_l, (uint32_t)_ja_cpu_reset_additional);
 
+    // Flush spin memory. Assume it fits into single block (which size?).
     asm("dcbf 0, %0, 0" : : "r"(SPIN_IO_VIRTUAL));
+}
+
+#endif /* JET_CONFIG_SMP */
+
+void ja_single_run(void)
+{
+#ifdef JET_CONFIG_SMP
+    jet_fill_modules_area();
+    for(int i = 1; i < JET_CONFIG_SMP_NR_CPUS; i++)
+        ja_cpu_start_additional(i);
+#endif /* JET_CONFIG_SMP */
+    pok_boot(0);
 }
 
 void pok_arch_handle_page_fault(
@@ -379,7 +437,7 @@ void pok_arch_handle_page_fault(
 
         pok_insert_tlb1( 
             POK_PARTITION_MEMORY_BASE,
-            spaces[space_id].phys_base,
+            spaces[space_id].phys_base + kernel_offset,
             E500MC_PGSIZE_16M,
             MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
             0,

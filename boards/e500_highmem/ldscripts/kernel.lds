@@ -77,9 +77,11 @@ SECTIONS
   .eh_frame :
   {
   .eh_frame_start = .;
+  __eh_frame_start = .;
   *(.eh_frame*)
   . = ALIGN (4);
   .eh_frame_end = .;
+  __eh_frame_end = .;
   }
   .bss  :
   {
@@ -92,7 +94,7 @@ SECTIONS
 
    /* Allocate the main stack area.  Make sure it starts 16bytes aligned
       to accommodate any possible program expectation.  */
-   _jet_stacks = ALIGN(16) + 2 * 0x1000;
-   _end = _jet_stacks;
+   _jet_stack = ALIGN(16) + 0x1000;
+   _end = _jet_stack;
   }
 }
