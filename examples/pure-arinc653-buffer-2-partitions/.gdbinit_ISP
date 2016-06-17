@@ -1,0 +1,2 @@
+source build/e500mc/GDB_commands
+target extended-remote 127.0.0.1:8000
