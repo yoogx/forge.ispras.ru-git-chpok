@@ -41,6 +41,8 @@ static char *get_pci_class_name(int classcode) {
     return "Unknown";
 }
 
+
+
 int pci_match_device(const struct pci_device_id *id, const struct pci_device *dev)
 {
     if ((id->vendor == PCI_ANY_ID || id->vendor == dev->vendorid) &&
@@ -196,12 +198,10 @@ int pci_write_config_dword(struct pci_device *dev, int where, uint32_t val)
     return OK;
 }
 
-
 void pci_enumerate()
 {
     struct pci_device pci_dev;
     uint16_t vendor, device;
-    uint8_t progifid;
     for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
       for (unsigned int dev = 0; dev < PCI_DEV_MAX; dev++)
         for (unsigned int fun = 0; fun < PCI_FUN_MAX; fun++)
@@ -210,38 +210,29 @@ void pci_enumerate()
             pci_dev.dev = dev;
             pci_dev.fun = fun;
 
-            pci_read_config_word(&pci_dev, PCI_REG_VENDORID, &vendor);
+            pci_read_config_word(&pci_dev, PCI_VENDOR_ID, &vendor);
             if (vendor != 0xFFFF) {
-                uint16_t tmp;
-                pci_read_config_word(&pci_dev, PCI_REG_DEVICEID, &device);
-                pci_read_config_word(&pci_dev, 0x8, &tmp);
-                uint32_t classcode = tmp;
-                pci_read_config_dword(&pci_dev, 0x8, &classcode);
-
-                uint8_t b1, b2, b3, b4;
-                pci_read_config_byte(&pci_dev, 0x8, &b1);
-                pci_read_config_byte(&pci_dev, 0x9, &b2);
-                pci_read_config_byte(&pci_dev, 0x10, &b3);
-                pci_read_config_byte(&pci_dev, 0x11, &b4);
+                uint32_t tmp;
+                pci_read_config_dword(&pci_dev, 0x8, &tmp);
+                uint32_t classcode = tmp >> 8;
                 printf("classcode  %x\n",classcode);
 
-                printf("%x %x %x %x \n", b1, b2, b3, b4);
                 printf("%02x:%02x:%02x ", bus, dev, fun);
                 printf("%s:\n", get_pci_class_name(classcode));
                 printf("\t PCI device %04x:%04x (header 0x%02lx)\n",
                         vendor,
                         device,
-                        0xFF & pci_read(bus, dev, fun, PCI_REG_HEADERTYPE));
+                        0xFF & pci_read(bus, dev, fun, PCI_HEADER_TYPE));
 
                 uint32_t bar0;
-                pci_read_config_dword(&pci_dev, PCI_REG_BAR0, &bar0);
+                pci_read_config_dword(&pci_dev, PCI_BASE_ADDRESS_0, &bar0);
                 if (bar0) {
                     printf("\t BAR0: 0x%lx", bar0);
 
                     {
 
-                        pci_write_dword(&pci_dev, PCI_REG_BAR0, 0xffffffff);
-                        bar0 = pci_read(bus, dev, fun, PCI_REG_BAR0);
+                        pci_write_dword(&pci_dev, PCI_BASE_ADDRESS_0, 0xffffffff);
+                        bar0 = pci_read(bus, dev, fun, PCI_BASE_ADDRESS_0);
                         printf("\t BAR0 size: 0x%lx", bar0);
                     }
 
@@ -269,20 +260,20 @@ void pci_list()
       for (unsigned int dev = 0; dev < PCI_DEV_MAX; dev++)
         for (unsigned int fun = 0; fun < PCI_FUN_MAX; fun++)
         {
-            uint16_t vendor = (uint16_t) pci_read(bus, dev, fun, PCI_REG_VENDORID);
-            uint16_t device = (uint16_t) pci_read(bus, dev, fun, PCI_REG_DEVICEID);
+            uint16_t vendor = (uint16_t) pci_read(bus, dev, fun, PCI_VENDOR_ID);
+            uint16_t device = (uint16_t) pci_read(bus, dev, fun, PCI_DEVICE_ID);
 
             if (vendor != 0xFFFF) {
-                uint32_t classcode = 0xFFFFFF & pci_read(bus, dev, fun, PCI_REG_PROGIFID);
+                uint32_t classcode = 0xFFFFFF & pci_read(bus, dev, fun, PCI_CLASS_PROG);
                 printf("classcode  %x\n",classcode);
                 printf("%02x:%02x:%02x ", bus, dev, fun);
                 printf("%s:\n", get_pci_class_name(classcode));
                 printf("\t PCI device %04x:%04x (header 0x%02lx)\n",
                         vendor,
                         device,
-                        0xFF & pci_read(bus, dev, fun, PCI_REG_HEADERTYPE));
+                        0xFF & pci_read(bus, dev, fun, PCI_HEADER_TYPE));
 
-                uint32_t bar0 = pci_read(bus, dev, fun, PCI_REG_BAR0);
+                uint32_t bar0 = pci_read(bus, dev, fun, PCI_BASE_ADDRESS_0);
                 if (bar0) {
                     printf("\t BAR0: 0x%lx", bar0);
 
@@ -292,8 +283,8 @@ void pci_list()
                         pci_dev.dev = dev;
                         pci_dev.fun = fun;
 
-                        pci_write_dword(&pci_dev, PCI_REG_BAR0, 0xffffffff);
-                        bar0 = pci_read(bus, dev, fun, PCI_REG_BAR0);
+                        pci_write_dword(&pci_dev, PCI_BASE_ADDRESS_0, 0xffffffff);
+                        bar0 = pci_read(bus, dev, fun, PCI_BASE_ADDRESS_0);
                         printf("\t BAR0 size: 0x%lx", bar0);
                     }
 
@@ -365,7 +356,7 @@ void pci_init()
       {
             int fun = 0;
             // Currently we do not handle type 1 or 2 PCI configuration spaces
-            if ((pci_read(bus, dev, fun, PCI_REG_HEADERTYPE) & 0xFF) != 0)
+            if ((pci_read(bus, dev, fun, PCI_HEADER_TYPE) & 0xFF) != 0)
                 continue;
             printf(">>>%02x:%02x:%02x \n", bus, dev, fun);
             if (dev == 1) {
@@ -377,8 +368,8 @@ void pci_init()
                     pci_dev.dev = dev;
                     pci_dev.fun = fun;
 
-                    pci_write_dword(&pci_dev, PCI_REG_BAR0, VGA_ADDR);
-                    pci_write_word(&pci_dev, PCI_REG_COMMAND, PCI_COMMAND_MEMORY);
+                    pci_write_dword(&pci_dev, PCI_BASE_ADDRESS_0, VGA_ADDR);
+                    pci_write_word(&pci_dev, PCI_COMMAND, PCI_COMMAND_MEMORY);
 
                     out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX), VBE_DISPI_INDEX_ENABLE);
                     out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 0);
@@ -422,8 +413,8 @@ void pci_init()
             pci_dev.bus = bus;
             pci_dev.dev = dev;
             pci_dev.fun = fun;
-            pci_dev.vendorid  = (uint16_t) pci_read(bus, dev, fun, PCI_REG_VENDORID);
-            pci_dev.deviceid  = (uint16_t) pci_read(bus, dev, fun, PCI_REG_DEVICEID);
+            pci_dev.vendorid  = (uint16_t) pci_read(bus, dev, fun, PCI_VENDOR_ID);
+            pci_dev.deviceid  = (uint16_t) pci_read(bus, dev, fun, PCI_DEVICE_ID);
             //pci_dev.classcode = (uint16_t) pci_read(bus, dev, fun, PCI_REG_PROGIFID);
 
             for (int i = 0; i < pci_driver_table_used_cnt; i++) {
@@ -431,13 +422,13 @@ void pci_init()
                 if (pci_match_device(pci_driver->id_table, &pci_dev)) {
                     printf("MATCH %s\n", pci_driver->name);
 #ifdef __PPC__
-                    pci_write_dword(&pci_dev, PCI_REG_BAR0, bar0_addr);
-                    pci_write_word(&pci_dev, PCI_REG_COMMAND, PCI_COMMAND_IO);
+                    pci_write_dword(&pci_dev, PCI_BASE_ADDRESS_0, bar0_addr);
+                    pci_write_word(&pci_dev, PCI_COMMAND, PCI_COMMAND_IO);
                     pci_dev.bar[0] = bridge.iorange + bar0_addr;
                     pci_dev.ioaddr = pci_dev.bar[0] & BAR_IOADDR_MASK;
                     bar0_addr += BAR0_SIZE;
 #else
-                    pci_dev.bar[0] = pci_read(bus, dev, fun, PCI_REG_BAR0) & BAR_IOADDR_MASK; //TODO!!!!
+                    pci_dev.bar[0] = pci_read(bus, dev, fun, PCI_BASE_ADDRESS_0) & BAR_IOADDR_MASK; //TODO!!!!
                     pci_dev.ioaddr = pci_dev.bar[0] & BAR_IOADDR_MASK;
 #endif
                     pci_driver->probe(&pci_dev);
