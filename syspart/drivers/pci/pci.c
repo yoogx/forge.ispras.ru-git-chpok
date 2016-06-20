@@ -198,6 +198,37 @@ int pci_write_config_dword(struct pci_device *dev, int where, uint32_t val)
     return OK;
 }
 
+static uint32_t rom(struct pci_device *dev)
+{
+    uint32_t rom, size;
+    int where = PCI_ROM_ADDRESS;
+    printf("\t ROM ");
+    pci_read_config_dword(dev, where, &rom);
+    printf("0x%lx ", rom);
+    if ((rom & PCI_ROM_ADDRESS_ENABLE) == 0) {
+        printf("\n");
+        return 0;
+    }
+    pci_write_dword(dev, where, 0xffffffff);
+    pci_read_config_dword(dev, where, &size);
+    pci_write_dword(dev, where, rom);
+
+    if (size == 0 || size == 0xffffffff) {
+        printf("\n");
+        return 0;
+    }
+
+    size &= PCI_ROM_ADDRESS_MASK;
+    printf("%s bit memory %s",
+            (rom & PCI_BASE_ADDRESS_MEM_TYPE_MASK) == PCI_BASE_ADDRESS_MEM_TYPE_32?
+                "32": "<UNSUPPORTED YET> 64",
+            rom & PCI_BASE_ADDRESS_MEM_PREFETCH? "prefetchable":"");
+
+    size = (size & ~(size-1));
+    printf(" [size=0x%lx]\n", size);
+
+    return size;
+}
 static uint32_t pci_bar(struct pci_device *dev, int where)
 {
     uint32_t bar, size;
@@ -267,6 +298,7 @@ void pci_enumerate()
                 printf("\t BAR%d: ", i);
                 pci_bar(&pci_dev, reg);
             }
+            rom(&pci_dev);
         }
 }
 

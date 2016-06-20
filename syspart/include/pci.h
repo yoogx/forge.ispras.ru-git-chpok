@@ -70,6 +70,10 @@
 #define  PCI_BASE_ADDRESS_MEM_MASK      (~0x0fUL)
 #define  PCI_BASE_ADDRESS_IO_MASK       (~0x03UL)
 
+#define PCI_ROM_ADDRESS         0x30    /* Bits 31..11 are address, 10..1 reserved */
+#define  PCI_ROM_ADDRESS_ENABLE 0x01
+#define PCI_ROM_ADDRESS_MASK    (~0x7ffUL)
+
 /*
  * Useful defines...
  */
