@@ -213,8 +213,8 @@ void pci_enumerate()
             pci_read_config_word(&pci_dev, PCI_VENDOR_ID, &vendor);
             if (vendor != 0xFFFF) {
                 uint32_t tmp;
-                pci_read_config_dword(&pci_dev, 0x8, &tmp);
-                uint32_t classcode = tmp >> 8;
+                uint16_t classcode;
+                pci_read_config_word(&pci_dev, PCI_CLASS_DEVICE, &classcode);
                 printf("classcode  %x\n",classcode);
 
                 printf("%02x:%02x:%02x ", bus, dev, fun);
@@ -224,31 +224,16 @@ void pci_enumerate()
                         device,
                         0xFF & pci_read(bus, dev, fun, PCI_HEADER_TYPE));
 
-                uint32_t bar0;
-                pci_read_config_dword(&pci_dev, PCI_BASE_ADDRESS_0, &bar0);
-                if (bar0) {
-                    printf("\t BAR0: 0x%lx", bar0);
-
+                uint32_t bar;
+                pci_read_config_dword(&pci_dev, PCI_BASE_ADDRESS_0, &bar);
+                if (bar) {
+                    printf("\t BAR0: 0x%lx", bar);
                     {
-
                         pci_write_dword(&pci_dev, PCI_BASE_ADDRESS_0, 0xffffffff);
-                        bar0 = pci_read(bus, dev, fun, PCI_BASE_ADDRESS_0);
-                        printf("\t BAR0 size: 0x%lx", bar0);
+                        bar = pci_read(bus, dev, fun, PCI_BASE_ADDRESS_0);
+                        printf("\t BAR0 size: 0x%lx", bar);
                     }
-
-#ifdef __PPC__
-                    printf("(addr = %lx)\n", (bar0 & BAR_IOADDR_MASK) + bridge.iorange);
-#else
-                    printf("(addr = %lx)\n", bar0 & BAR_IOADDR_MASK);
-#endif
                 }
-
-                /*
-                if (classcode == 0x20000) {
-                    usigned addr = bar0;
-                    printf("MAC addr = ");
-                }
-                */
             }
         }
 }
