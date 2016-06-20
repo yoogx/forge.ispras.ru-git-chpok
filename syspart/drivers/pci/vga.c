@@ -15,6 +15,15 @@ struct gimp_image {
 };
 extern const struct gimp_image gimp_image;
 
+void vbe_write(struct pci_device *dev, uint16_t reg, uint16_t val)
+{
+    (void) dev;
+    iowrite16(reg, (void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX));
+    iowrite16(val, (void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA));
+}
+
+#define SCREEN_WIDTH 800
+#define SCREEN_HIGHT 600
 void vga_init()
 {
 #ifdef __PPC__
@@ -25,22 +34,14 @@ void vga_init()
     pci_dev.fun = 0;
 
 
-    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX), VBE_DISPI_INDEX_ENABLE);
-    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 0);
+    vbe_write(&pci_dev, VBE_DISPI_INDEX_ENABLE, 0);
+    vbe_write(&pci_dev, VBE_DISPI_INDEX_XRES, SCREEN_WIDTH);
+    vbe_write(&pci_dev, VBE_DISPI_INDEX_YRES, SCREEN_HIGHT);
+    vbe_write(&pci_dev, VBE_DISPI_INDEX_BPP, VBE_DISPI_BPP_16);
+    vbe_write(&pci_dev, VBE_DISPI_INDEX_ENABLE, 1);
 
-    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX), VBE_DISPI_INDEX_XRES);
-    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 800);
-
-    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX), VBE_DISPI_INDEX_YRES);
-    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 600);
-
-    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX), VBE_DISPI_INDEX_BPP);
-    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), VBE_DISPI_BPP_16);
-
-    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX), VBE_DISPI_INDEX_ENABLE);
-    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 1);
-
-    out_8((void *) 0xe10003c0, 0x20); // PAS
+    //TODO this is mmio bar
+    iowrite8(0x20, (void *) 0xe10003c0); // PAS
 
     /*
        for (int i = 0; i < 800*600; i++) {
@@ -54,8 +55,9 @@ void vga_init()
             //    out_8((uint8_t *) VGA_ADDR + (y*800+x)*2 + i,
             //            gimp_image.pixel_data[(y*gimp_image.width + x)*2 + 1-i]);
             //}
-            out_le16((uint16_t *) VGA_ADDR + y*800+x,
-                    ((uint16_t*)gimp_image.pixel_data)[y*gimp_image.width + x]);
+            iowrite16(
+                    ((uint16_t*)gimp_image.pixel_data)[y*gimp_image.width + x],
+                    (uint16_t *) VGA_ADDR + y*SCREEN_WIDTH + x);
         }
     }
 #endif
