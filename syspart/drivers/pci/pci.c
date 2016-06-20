@@ -363,17 +363,6 @@ void pci_list()
 //and 3rd bit equal to 1 means prefetchable memory
 #define VGA_ADDR 0xee000008
 
-#include "vbe.h"
-
-
-struct gimp_image {
-  unsigned int 	 width;
-  unsigned int 	 height;
-  unsigned int 	 bytes_per_pixel; /* 2:RGB16, 3:RGB, 4:RGBA */ 
-  unsigned char	 pixel_data[];
-};
-extern const struct gimp_image gimp_image;
-
 void pci_init()
 {
     printf("\nPCI initializing\n");
@@ -406,56 +395,6 @@ void pci_init()
             if ((pci_read(bus, dev, fun, PCI_HEADER_TYPE) & 0xFF) != 0)
                 continue;
             printf(">>>%02x:%02x:%02x \n", bus, dev, fun);
-            if (dev == 1) {
-
-#ifdef __PPC__
-                printf("initializing BAR0 for 1 dev\n");
-                    struct pci_device pci_dev;
-                    pci_dev.bus = bus;
-                    pci_dev.dev = dev;
-                    pci_dev.fun = fun;
-
-                    pci_write_dword(&pci_dev, PCI_BASE_ADDRESS_0, VGA_ADDR);
-                    pci_write_word(&pci_dev, PCI_COMMAND, PCI_COMMAND_MEMORY);
-
-                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX), VBE_DISPI_INDEX_ENABLE);
-                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 0);
-
-                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX), VBE_DISPI_INDEX_XRES);
-                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 800);
-
-                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX), VBE_DISPI_INDEX_YRES);
-                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 600);
-
-                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX), VBE_DISPI_INDEX_BPP);
-                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), VBE_DISPI_BPP_16);
-
-                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX), VBE_DISPI_INDEX_ENABLE);
-                    out_le16((void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA), 1);
-
-                    out_8((void *) 0xe10003c0, 0x20); // PAS
-
-                    /*
-                    for (int i = 0; i < 800*600; i++) {
-                        out_be32((uint32_t *) VGA_ADDR + i, 0x00FF0000);
-                    //    out_be16((uint16_t *) VGA_ADDR + i, 0xe000);
-                    }*/
-                    for (int y = 0; y < gimp_image.height; y++) {
-                        for (int x = 0; x < gimp_image.width; x++) {
-                            //out_be16((uint16_t *) VGA_ADDR + y * 800 + x, 0xe000);
-                            //for (int i = 0; i<2; i++) {
-                            //    out_8((uint8_t *) VGA_ADDR + (y*800+x)*2 + i,
-                            //            gimp_image.pixel_data[(y*gimp_image.width + x)*2 + 1-i]);
-                            //}
-                            out_le16((uint16_t *) VGA_ADDR + y*800+x,
-                                ((uint16_t*)gimp_image.pixel_data)[y*gimp_image.width + x]);
-                        }
-                    }
-#endif
-
-                    // bridge.iorange
-                continue;
-            }
             struct pci_device pci_dev;
             pci_dev.bus = bus;
             pci_dev.dev = dev;
@@ -463,6 +402,11 @@ void pci_init()
             pci_dev.vendorid  = (uint16_t) pci_read(bus, dev, fun, PCI_VENDOR_ID);
             pci_dev.deviceid  = (uint16_t) pci_read(bus, dev, fun, PCI_DEVICE_ID);
             //pci_dev.classcode = (uint16_t) pci_read(bus, dev, fun, PCI_REG_PROGIFID);
+            if (dev == 1) {
+                pci_write_dword(&pci_dev, PCI_BASE_ADDRESS_0, VGA_ADDR);
+                pci_write_word(&pci_dev, PCI_COMMAND, PCI_COMMAND_MEMORY);
+                vga_init();
+            }
 
             for (int i = 0; i < pci_driver_table_used_cnt; i++) {
                 struct pci_driver *pci_driver = &pci_driver_table[i];
