@@ -348,6 +348,7 @@ void pci_enumerate()
 
 void pci_list()
 {
+    printf("lspci\n");
     for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
       for (unsigned int dev = 0; dev < PCI_DEV_MAX; dev++)
         for (unsigned int fun = 0; fun < PCI_FUN_MAX; fun++)
@@ -367,31 +368,12 @@ void pci_list()
                 uint32_t bar0 = pci_read(bus, dev, fun, PCI_BASE_ADDRESS_0);
                 if (bar0) {
                     printf("\t BAR0: 0x%lx", bar0);
-
-                    {
-                        struct pci_device pci_dev;
-                        pci_dev.bus = bus;
-                        pci_dev.dev = dev;
-                        pci_dev.fun = fun;
-
-                        pci_write_dword(&pci_dev, PCI_BASE_ADDRESS_0, 0xffffffff);
-                        bar0 = pci_read(bus, dev, fun, PCI_BASE_ADDRESS_0);
-                        printf("\t BAR0 size: 0x%lx", bar0);
-                    }
-
 #ifdef __PPC__
                     printf("(addr = %lx)\n", (bar0 & BAR_IOADDR_MASK) + bridge.iorange);
 #else
                     printf("(addr = %lx)\n", bar0 & BAR_IOADDR_MASK);
 #endif
                 }
-
-                /*
-                if (classcode == 0x20000) {
-                    usigned addr = bar0;
-                    printf("MAC addr = ");
-                }
-                */
             }
         }
 }
@@ -450,6 +432,7 @@ void pci_init()
                 pci_write_dword(&pci_dev, PCI_BASE_ADDRESS_0, VGA_ADDR);
                 pci_write_word(&pci_dev, PCI_COMMAND, PCI_COMMAND_MEMORY);
                 vga_init();
+                continue;
             }
 
             for (int i = 0; i < pci_driver_table_used_cnt; i++) {
@@ -470,6 +453,6 @@ void pci_init()
                 }
             }
         }
-    pci_list();
+    //pci_list();
     printf("\n");
 }
