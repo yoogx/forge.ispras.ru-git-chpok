@@ -198,6 +198,50 @@ int pci_write_config_dword(struct pci_device *dev, int where, uint32_t val)
     return OK;
 }
 
+
+
+uint8_t  ioread8 (uint8_t  *addr)
+{
+#ifdef __PPC__
+    return in_8(addr);
+#endif
+}
+
+uint16_t ioread16(uint16_t *addr)
+{
+#ifdef __PPC__
+    return in_le16(addr);
+#endif
+}
+
+uint32_t ioread32(uint32_t *addr)
+{
+#ifdef __PPC__
+    return in_le32(addr);
+#endif
+}
+
+void iowrite8(uint8_t value, uint8_t *addr)
+{
+#ifdef __PPC__
+    out_8(addr, value);
+#endif
+}
+
+void iowrite16(uint16_t value, uint16_t *addr)
+{
+#ifdef __PPC__
+    out_le16(addr, value);
+#endif
+}
+
+void iowrite32(uint32_t value, uint32_t *addr)
+{
+#ifdef __PPC__
+    out_le32(addr, value);
+#endif
+}
+
 static uint32_t rom(struct pci_device *dev)
 {
     uint32_t rom, size;

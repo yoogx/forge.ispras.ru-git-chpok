@@ -130,12 +130,23 @@ typedef struct pci_device
 void pci_init(void);
 void pci_list(void);
 
+//result == 0 when no error
 int pci_read_config_byte(struct pci_device *dev, int where, uint8_t *val);
 int pci_read_config_word(struct pci_device *dev, int where, uint16_t *val);
 int pci_read_config_dword(struct pci_device *dev, int where, uint32_t *val);
 int pci_write_config_byte(struct pci_device *dev, int where, uint8_t val);
 int pci_write_config_word(struct pci_device *dev, int where, uint16_t val);
 int pci_write_config_dword(struct pci_device *dev, int where, uint32_t val);
+
+uint8_t  ioread8 (uint8_t  *addr);
+uint16_t ioread16(uint16_t *addr);
+uint32_t ioread32(uint32_t *addr);
+
+void iowrite8 (uint8_t value,  uint8_t  *addr);
+void iowrite16(uint16_t value, uint16_t *addr);
+void iowrite32(uint32_t value, uint32_t *addr);
+
+
 
 /* These was got from Linux kernel */
 #define PCI_ANY_ID (uint16_t)(~0)
