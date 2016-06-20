@@ -24,6 +24,7 @@
 #include "pci_internal.h"
 #include <depl.h>
 
+#define OK 0
 unsigned pci_driver_table_used_cnt = 0;
 
 #ifdef __PPC__
@@ -53,6 +54,7 @@ void register_pci_driver(struct pci_driver *driver)
     pci_driver_table[pci_driver_table_used_cnt++] = *driver;
 }
 
+//Depricated
 uint32_t pci_read(
         uint32_t bus,
         uint32_t dev,
@@ -73,7 +75,6 @@ uint32_t pci_read(
 
     return (val >> ((reg & 3) << 3));
 }
-
 
 void pci_write_word(s_pci_device *d, uint32_t reg, uint16_t val)
 {
@@ -105,6 +106,163 @@ void pci_write_dword(s_pci_device *d, uint32_t reg, uint32_t val)
 }
 
 
+int pci_read_config_byte(struct pci_device *dev, int where, uint8_t *val)
+{
+    uint32_t addr = (uint32_t) (1 << 31) | (dev->bus << 16) | (dev->dev << 11) |
+        (dev->fun << 8) | (where & 0xfc);
+
+#ifdef __PPC__
+    out_be32((uint32_t *) bridge.cfg_addr, addr);
+    *val = in_8((void *) (bridge.cfg_data) + (where & 3));
+#else
+    outl(PCI_CONFIG_ADDRESS, addr);
+    *val = inb(PCI_CONFIG_DATA + (where & 3));
+#endif
+    return OK;
+}
+
+int pci_read_config_word(struct pci_device *dev, int where, uint16_t *val)
+{
+    uint32_t addr = (uint32_t) (1 << 31) | (dev->bus << 16) | (dev->dev << 11) |
+        (dev->fun << 8) | (where & 0xfc);
+
+#ifdef __PPC__
+    out_be32((uint32_t *) bridge.cfg_addr, addr);
+    *val = in_le16((void *) (bridge.cfg_data) + (where & 3));
+#else
+    outl(PCI_CONFIG_ADDRESS, addr);
+    *val = inw(PCI_CONFIG_DATA + (where & 2));
+#endif
+    return OK;
+}
+
+int pci_read_config_dword(struct pci_device *dev, int where, uint32_t *val)
+{
+    uint32_t addr = (uint32_t) (1 << 31) | (dev->bus << 16) | (dev->dev << 11) |
+        (dev->fun << 8) | (where & 0xfc);
+
+#ifdef __PPC__
+    out_be32((uint32_t *) bridge.cfg_addr, addr);
+    *val = in_le32((void *) bridge.cfg_data + (where & 3));
+#else
+    outl(PCI_CONFIG_ADDRESS, addr);
+    *val = inl(PCI_CONFIG_DATA);
+#endif
+    return OK;
+}
+
+int pci_write_config_byte(struct pci_device *dev, int where, uint8_t val)
+{
+    uint32_t addr = (uint32_t) (1 << 31) | (dev->bus << 16) | (dev->dev << 11) |
+        (dev->fun << 8) | (where & 0xfc);
+
+#ifdef __PPC__
+    out_be32((uint32_t *) bridge.cfg_addr, addr);
+    out_8((void *) (bridge.cfg_data) + (where & 3), val);
+#else
+    outl(PCI_CONFIG_ADDRESS, addr);
+    outb(val, PCI_CONFIG_DATA + (where & 3));
+#endif
+    return OK;
+}
+
+int pci_write_config_word(struct pci_device *dev, int where, uint16_t val)
+{
+    uint32_t addr = (uint32_t) (1 << 31) | (dev->bus << 16) | (dev->dev << 11) |
+        (dev->fun << 8) | (where & 0xfc);
+
+#ifdef __PPC__
+    out_be32((uint32_t *) bridge.cfg_addr, addr);
+    out_le16((void *) (bridge.cfg_data) + (where & 3), val);
+#else
+    outl(PCI_CONFIG_ADDRESS, addr);
+    outw(val, PCI_CONFIG_DATA + (where & 2));
+#endif
+    return OK;
+}
+
+int pci_write_config_dword(struct pci_device *dev, int where, uint32_t val)
+{
+    uint32_t addr = (uint32_t) (1 << 31) | (dev->bus << 16) | (dev->dev << 11) |
+        (dev->fun << 8) | (where & 0xfc);
+
+#ifdef __PPC__
+    out_be32((uint32_t *) bridge.cfg_addr, addr);
+    out_le32((void *) (bridge.cfg_data) + (where & 3), val);
+#else
+    outl(PCI_CONFIG_ADDRESS, addr);
+    *val = inl(PCI_CONFIG_DATA);
+#endif
+    return OK;
+}
+
+
+void pci_enumerate()
+{
+    struct pci_device pci_dev;
+    uint16_t vendor, device;
+    uint8_t progifid;
+    for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
+      for (unsigned int dev = 0; dev < PCI_DEV_MAX; dev++)
+        for (unsigned int fun = 0; fun < PCI_FUN_MAX; fun++)
+        {
+            pci_dev.bus = bus;
+            pci_dev.dev = dev;
+            pci_dev.fun = fun;
+
+            pci_read_config_word(&pci_dev, PCI_REG_VENDORID, &vendor);
+            if (vendor != 0xFFFF) {
+                uint16_t tmp;
+                pci_read_config_word(&pci_dev, PCI_REG_DEVICEID, &device);
+                pci_read_config_word(&pci_dev, 0x8, &tmp);
+                uint32_t classcode = tmp;
+                pci_read_config_dword(&pci_dev, 0x8, &classcode);
+
+                uint8_t b1, b2, b3, b4;
+                pci_read_config_byte(&pci_dev, 0x8, &b1);
+                pci_read_config_byte(&pci_dev, 0x9, &b2);
+                pci_read_config_byte(&pci_dev, 0x10, &b3);
+                pci_read_config_byte(&pci_dev, 0x11, &b4);
+                printf("classcode  %x\n",classcode);
+
+                printf("%x %x %x %x \n", b1, b2, b3, b4);
+                printf("%02x:%02x:%02x ", bus, dev, fun);
+                printf("%s:\n", get_pci_class_name(classcode));
+                printf("\t PCI device %04x:%04x (header 0x%02lx)\n",
+                        vendor,
+                        device,
+                        0xFF & pci_read(bus, dev, fun, PCI_REG_HEADERTYPE));
+
+                uint32_t bar0;
+                pci_read_config_dword(&pci_dev, PCI_REG_BAR0, &bar0);
+                if (bar0) {
+                    printf("\t BAR0: 0x%lx", bar0);
+
+                    {
+
+                        pci_write_dword(&pci_dev, PCI_REG_BAR0, 0xffffffff);
+                        bar0 = pci_read(bus, dev, fun, PCI_REG_BAR0);
+                        printf("\t BAR0 size: 0x%lx", bar0);
+                    }
+
+#ifdef __PPC__
+                    printf("(addr = %lx)\n", (bar0 & BAR_IOADDR_MASK) + bridge.iorange);
+#else
+                    printf("(addr = %lx)\n", bar0 & BAR_IOADDR_MASK);
+#endif
+                }
+
+                /*
+                if (classcode == 0x20000) {
+                    usigned addr = bar0;
+                    printf("MAC addr = ");
+                }
+                */
+            }
+        }
+}
+
+
 void pci_list()
 {
     for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
@@ -116,6 +274,7 @@ void pci_list()
 
             if (vendor != 0xFFFF) {
                 uint32_t classcode = 0xFFFFFF & pci_read(bus, dev, fun, PCI_REG_PROGIFID);
+                printf("classcode  %x\n",classcode);
                 printf("%02x:%02x:%02x ", bus, dev, fun);
                 printf("%s:\n", get_pci_class_name(classcode));
                 printf("\t PCI device %04x:%04x (header 0x%02lx)\n",
@@ -198,6 +357,9 @@ void pci_init()
 
 #endif
 
+    printf("\nPCI enumeration:\n");
+    pci_enumerate();
+
     for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
       for (unsigned int dev = 0; dev < PCI_DEV_MAX; dev++)
       {
@@ -208,6 +370,7 @@ void pci_init()
             printf(">>>%02x:%02x:%02x \n", bus, dev, fun);
             if (dev == 1) {
 
+#ifdef __PPC__
                 printf("initializing BAR0 for 1 dev\n");
                     struct pci_device pci_dev;
                     pci_dev.bus = bus;
@@ -250,6 +413,7 @@ void pci_init()
                                 ((uint16_t*)gimp_image.pixel_data)[y*gimp_image.width + x]);
                         }
                     }
+#endif
 
                     // bridge.iorange
                 continue;
