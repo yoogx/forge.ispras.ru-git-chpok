@@ -95,8 +95,20 @@
 #define  PCI_COMMAND_INTX_DISABLE 0x400 /* INTx Emulation Disable */
 
 //This from wiki.osdev.org/Pci
-#define BAR_IOADDR_MASK 0xFFFFFFFC
+#define BAR_IOADDR_MASK 0xFFFFFFFC //depricated
 
+enum PCI_RESOURCE_TYPE {
+  PCI_RESOURCE_BAR_IO,
+  PCI_RESOURCE_BAR_MEM_PREFETCH,
+  PCI_RESOURCE_BAR_MEM_NON_PREFETCH,
+  PCI_RESOURCE_ROM
+};
+
+struct pci_resource {
+    uintptr_t addr;
+    size_t size;
+    enum PCI_RESOURCE_TYPE type;
+};
 /*
  * Structure to holds some device information
  */
@@ -109,7 +121,8 @@ typedef struct pci_device
     uint16_t    deviceid;
     uint16_t    irq_line;
     uint16_t    io_range;
-    uint32_t    bar[6];
+    struct pci_resource resourses;
+    uint32_t    bar[6]; //depricated!!
     uint32_t    ioaddr;
     void       *irq_handler;
 } s_pci_device;
@@ -117,26 +130,12 @@ typedef struct pci_device
 void pci_init(void);
 void pci_list(void);
 
-uint32_t pci_read(
-        uint32_t bus,
-        uint32_t dev,
-        uint32_t fun,
-        uint32_t reg);
-
-//stupid workaround. pci_write should be added in x86
-#ifdef __PPC__
-
-void pci_write_word(s_pci_device *d, uint32_t reg, uint16_t val);
-
-#endif
-
-#if 0
-unsigned int pci_read_reg(s_pci_device* d,
-			  unsigned int reg);
-
-pok_ret_t pci_register(s_pci_device* dev);
-
-#endif
+int pci_read_config_byte(struct pci_device *dev, int where, uint8_t *val);
+int pci_read_config_word(struct pci_device *dev, int where, uint16_t *val);
+int pci_read_config_dword(struct pci_device *dev, int where, uint32_t *val);
+int pci_write_config_byte(struct pci_device *dev, int where, uint8_t val);
+int pci_write_config_word(struct pci_device *dev, int where, uint16_t val);
+int pci_write_config_dword(struct pci_device *dev, int where, uint32_t val);
 
 /* These was got from Linux kernel */
 #define PCI_ANY_ID (uint16_t)(~0)

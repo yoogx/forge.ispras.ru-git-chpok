@@ -293,7 +293,6 @@ void pci_enumerate()
             }
 
             for (int i = 0; i < 6; i++) {
-            //for (int i = 0; i < 1; i++) {
                 int reg = PCI_BASE_ADDRESS_0 + i*4;
                 printf("\t BAR%d: ", i);
                 pci_bar(&pci_dev, reg);
