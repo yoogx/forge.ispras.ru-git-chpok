@@ -79,7 +79,7 @@
  */
 #  define PCI_BUS_MAX		8
 #  define PCI_DEV_MAX		32
-#  define PCI_FUN_MAX		8
+#  define PCI_FN_MAX		8
 
 /* Command regs*/
 #define  PCI_COMMAND_IO           0x1     /* Enable response in I/O space */
@@ -125,14 +125,15 @@ typedef struct pci_dev
     uint16_t    bus;
     uint16_t    dev;
     uint16_t    fn;
-    uint16_t    vendorid;
-    uint16_t    deviceid;
-    uint16_t    irq_line;
-    uint16_t    io_range;
+    uint16_t    vendor_id;
+    uint16_t    device_id;
     struct pci_resource resourses[PCI_NUM_RESOURCES];
+
     uint32_t    bar[6]; //depricated!!
-    uint32_t    ioaddr;
-    void       *irq_handler;
+    uint32_t    ioaddr; //depricated!!
+    uint16_t    irq_line;//depricated!!
+    uint16_t    io_range; //depricated!!
+    void       *irq_handler; //depricated!!
 } s_pci_device;
 
 void pci_init(void);

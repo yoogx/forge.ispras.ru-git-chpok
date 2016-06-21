@@ -45,8 +45,8 @@ static char *get_pci_class_name(int classcode) {
 
 int pci_match_device(const struct pci_dev_id *id, const struct pci_dev *dev)
 {
-    if ((id->vendor == PCI_ANY_ID || id->vendor == dev->vendorid) &&
-            (id->device == PCI_ANY_ID || id->device == dev->deviceid))
+    if ((id->vendor == PCI_ANY_ID || id->vendor == dev->vendor_id) &&
+            (id->device == PCI_ANY_ID || id->device == dev->device_id))
         return 1;
     return 0;
 }
@@ -345,6 +345,31 @@ void pci_enumerate()
         }
 }
 
+/*
+ * pci_dev is pointer to uninitialized 'struct pci_dev'
+ * This function fill dev fields
+ * May work incorrectly for pci bridges
+ */
+void pci_get_dev_by_bdf(uint8_t bus, uint8_t dev, uint8_t fn, struct pci_dev *pci_dev)
+{
+    pci_dev->bus = bus;
+    pci_dev->dev = dev;
+    pci_dev->fn = fn;
+
+    pci_read_config_word(pci_dev, PCI_VENDOR_ID, &pci_dev->vendor_id);
+    pci_read_config_word(pci_dev, PCI_DEVICE_ID, &pci_dev->device_id);
+
+
+    //for (int i = 0; i < 6; i++) {
+    //    int reg = PCI_BASE_ADDRESS_0 + i*4;
+    //    pci_resource[i] = pci_bar(&pci_dev, reg);
+
+    //}
+
+    //rom(&pci_dev);
+
+}
+
 
 void pci_list()
 {
@@ -388,6 +413,7 @@ void pci_list()
 //addr should be 16MB aligned (this is the size of qemu vga mem arrea)
 //and 3rd bit equal to 1 means prefetchable memory
 #define VGA_ADDR 0xee000008
+void vga_init(void);
 
 void pci_init()
 {
@@ -425,8 +451,8 @@ void pci_init()
             pci_dev.bus = bus;
             pci_dev.dev = dev;
             pci_dev.fn = fn;
-            pci_dev.vendorid  = (uint16_t) pci_read(bus, dev, fn, PCI_VENDOR_ID);
-            pci_dev.deviceid  = (uint16_t) pci_read(bus, dev, fn, PCI_DEVICE_ID);
+            pci_dev.vendor_id  = (uint16_t) pci_read(bus, dev, fn, PCI_VENDOR_ID);
+            pci_dev.device_id  = (uint16_t) pci_read(bus, dev, fn, PCI_DEVICE_ID);
             //pci_dev.classcode = (uint16_t) pci_read(bus, dev, fn, PCI_REG_PROGIFID);
             if (dev == 1) {
                 pci_write_dword(&pci_dev, PCI_BASE_ADDRESS_0, VGA_ADDR);
