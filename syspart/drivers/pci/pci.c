@@ -248,43 +248,39 @@ static uint32_t rom(struct pci_dev *dev)
     int where = PCI_ROM_ADDRESS;
     printf("\t ROM ");
     pci_read_config_dword(dev, where, &rom);
-    printf("0x%lx ", rom);
-    if ((rom & PCI_ROM_ADDRESS_ENABLE) == 0) {
-        printf("\n");
-        return 0;
-    }
-    pci_write_dword(dev, where, 0xffffffff);
+
+    pci_write_dword(dev, where, PCI_ROM_ADDRESS_MASK);
     pci_read_config_dword(dev, where, &size);
     pci_write_dword(dev, where, rom);
 
-    if (size == 0 || size == 0xffffffff) {
-        printf("\n");
-        return 0;
-    }
-
     size &= PCI_ROM_ADDRESS_MASK;
-    printf("%s bit memory %s",
-            (rom & PCI_BASE_ADDRESS_MEM_TYPE_MASK) == PCI_BASE_ADDRESS_MEM_TYPE_32?
-                "32": "<UNSUPPORTED YET> 64",
-            rom & PCI_BASE_ADDRESS_MEM_PREFETCH? "prefetchable":"");
 
     size = (size & ~(size-1));
     printf(" [size=0x%lx]\n", size);
 
     return size;
 }
+
 static uint32_t pci_bar(struct pci_dev *dev, int where)
 {
+    //TODO :
+    // 1. Decode (I/O or memory) of a register is disabled via the command
+    //       register before sizing a Base Address register.
+    // 2. The original value in the Base Address register is restored before re-enabling
+    //       decode in the command register of the device.
+    // 3. "Note that the upper 16 bits of the result is ignored if the Base
+    //       Address register is for I/O and bits 16-31 returned zero upon read."
+    // 4. 64 bits bars
     uint32_t bar, size;
     pci_read_config_dword(dev, where, &bar);
+    if (bar == 0) {
+        printf("\n");
+        return 0;
+    }
     pci_write_dword(dev, where, 0xffffffff);
     pci_read_config_dword(dev, where, &size);
     pci_write_dword(dev, where, bar);
 
-    if (size == 0 || size == 0xffffffff) {
-        printf("\n");
-        return 0;
-    }
 
     if ((bar&PCI_BASE_ADDRESS_SPACE) == PCI_BASE_ADDRESS_SPACE_IO) {
         printf("I/O");
@@ -297,7 +293,7 @@ static uint32_t pci_bar(struct pci_dev *dev, int where)
         size &= PCI_BASE_ADDRESS_MEM_MASK;
     }
 
-    size = (size & ~(size-1));
+    size = (size & ~(size-1)); // 1 + ~size
     printf(" [size=0x%lx]\n", size);
 
     return size;
@@ -457,6 +453,7 @@ void pci_init()
             if (dev == 1) {
                 pci_write_dword(&pci_dev, PCI_BASE_ADDRESS_0, VGA_ADDR);
                 pci_write_word(&pci_dev, PCI_COMMAND, PCI_COMMAND_MEMORY);
+                pci_write_dword(&pci_dev, PCI_ROM_ADDRESS, 0xedf00000|PCI_ROM_ADDRESS_ENABLE);
                 vga_init();
                 continue;
             }

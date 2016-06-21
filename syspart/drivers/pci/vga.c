@@ -6,6 +6,7 @@
 #define VGA_ADDR 0xee000008
 
 #include "vbe.h"
+void vga_draw(void);
 
 struct gimp_image {
   unsigned int 	 width;
@@ -34,6 +35,9 @@ void vga_init()
     pci_dev.fn = 0;
 
 
+    printf("vga bios[0] 0x%x\n", ioread8((uint8_t *)0xedf00000));
+    printf("vga bios[1] 0x%x\n", ioread8((uint8_t *)0xedf00001));
+
     vbe_write(&pci_dev, VBE_DISPI_INDEX_ENABLE, 0);
     vbe_write(&pci_dev, VBE_DISPI_INDEX_XRES, SCREEN_WIDTH);
     vbe_write(&pci_dev, VBE_DISPI_INDEX_YRES, SCREEN_HIGHT);
@@ -48,7 +52,7 @@ void vga_init()
     vga_draw();
 }
 
-void vga_draw()
+void vga_draw(void)
 {
 
     /*
