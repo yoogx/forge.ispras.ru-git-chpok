@@ -56,8 +56,9 @@ env.Alias('clean', 'clean_cmd')
 if not COMMAND_LINE_TARGETS and not env.GetOption('clean') and not env.GetOption('help'):
 	if not os.path.exists(env['BUILD_DIR']):
 		os.makedirs(env['BUILD_DIR'])
-	# chpok_configuration.write_partition_configuration(conf, env['BUILD_DIR'], 0)
-	
+
+	env.Append(GENERATE_TITLE = template_generation.generate_title_c_no_track)
+
 	env.TemplateRender(
         target = os.path.join(env['BUILD_DIR'], "deployment.c"),
         source = os.path.join(env['SCONSTRUCT_DIR'], env['xml']),
