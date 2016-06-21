@@ -255,7 +255,7 @@ static uint32_t rom(struct pci_dev *dev)
 
     size &= PCI_ROM_ADDRESS_MASK;
 
-    size = (size & ~(size-1));
+    size = ~size + 1;
     printf(" [size=0x%lx]\n", size);
 
     return size;
@@ -293,7 +293,7 @@ static uint32_t pci_bar(struct pci_dev *dev, int where)
         size &= PCI_BASE_ADDRESS_MEM_MASK;
     }
 
-    size = (size & ~(size-1)); // 1 + ~size
+    size = ~size + 1;
     printf(" [size=0x%lx]\n", size);
 
     return size;
