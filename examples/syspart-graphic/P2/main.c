@@ -28,9 +28,22 @@
 
 #define SECOND 1000000000LL
 
+void vga_set_y_offset();
+
+static void first_process(void)
+{
+    RETURN_CODE_TYPE ret;
+    int y = 0;
+    while (y < 400) {
+        TIMED_WAIT(SECOND/20, &ret);
+        vga_set_y_offset(y);
+        y++;
+    }
+    STOP_SELF();
+}
+
 static int real_main(void)
 {
-#if 0
     RETURN_CODE_TYPE ret;
     PROCESS_ID_TYPE pid;
     PROCESS_ATTRIBUTE_TYPE process_attrs = {
@@ -60,13 +73,11 @@ static int real_main(void)
     } else {
         printf("process 1 \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
     }
-#endif
 
     printf("System partition is starting\n");
     pci_init();
 
 
-#if 0
     // transition to NORMAL operating mode
     // N.B. if everything is OK, this never returns
     printf("going to NORMAL mode...\n");
@@ -75,7 +86,6 @@ static int real_main(void)
     if (ret != NO_ERROR) {
         printf("couldn't transit to normal operating mode: %d\n", (int) ret);
     }
-#endif
 
     STOP_SELF();
     return 0;
