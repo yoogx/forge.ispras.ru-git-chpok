@@ -120,7 +120,7 @@ struct pci_resource {
 /*
  * Structure to holds some device information
  */
-typedef struct pci_device
+typedef struct pci_dev
 {
     uint16_t    bus;
     uint16_t    dev;
@@ -139,12 +139,12 @@ void pci_init(void);
 void pci_list(void);
 
 //result == 0 when no error
-int pci_read_config_byte(struct pci_device *dev, int where, uint8_t *val);
-int pci_read_config_word(struct pci_device *dev, int where, uint16_t *val);
-int pci_read_config_dword(struct pci_device *dev, int where, uint32_t *val);
-int pci_write_config_byte(struct pci_device *dev, int where, uint8_t val);
-int pci_write_config_word(struct pci_device *dev, int where, uint16_t val);
-int pci_write_config_dword(struct pci_device *dev, int where, uint32_t val);
+int pci_read_config_byte(struct pci_dev *dev, int where, uint8_t *val);
+int pci_read_config_word(struct pci_dev *dev, int where, uint16_t *val);
+int pci_read_config_dword(struct pci_dev *dev, int where, uint32_t *val);
+int pci_write_config_byte(struct pci_dev *dev, int where, uint8_t val);
+int pci_write_config_word(struct pci_dev *dev, int where, uint16_t val);
+int pci_write_config_dword(struct pci_dev *dev, int where, uint32_t val);
 
 uint8_t  ioread8 (uint8_t  *addr);
 uint16_t ioread16(uint16_t *addr);
@@ -159,15 +159,15 @@ void iowrite32(uint32_t value, uint32_t *addr);
 /* These was got from Linux kernel */
 #define PCI_ANY_ID (uint16_t)(~0)
 
-struct pci_device_id {
+struct pci_dev_id {
     uint16_t vendor;
     uint16_t device;
 };
 
 struct pci_driver {
     const char *name;
-    pok_bool_t (*probe) (struct pci_device *dev);
-    const struct pci_device_id *id_table;
+    pok_bool_t (*probe) (struct pci_dev *dev);
+    const struct pci_dev_id *id_table;
 };
 
 

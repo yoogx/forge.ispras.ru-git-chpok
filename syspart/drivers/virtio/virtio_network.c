@@ -395,7 +395,7 @@ static const pok_network_driver_ops_t driver_ops = {
  * PCI part
  */
 
-static pok_bool_t probe_device(struct pci_device *pci_dev)
+static pok_bool_t probe_device(struct pci_dev *pci_dev)
 {
     static int dev_count = 0;
     struct virtio_network_device *dev = smalloc(sizeof(*dev));
@@ -461,7 +461,7 @@ static pok_bool_t probe_device(struct pci_device *pci_dev)
     return TRUE;
 }
 
-const struct pci_device_id virtio_pci_devid_tbl[] = {
+const struct pci_dev_id virtio_pci_devid_tbl[] = {
     { VIRTIO_PCI_VENDORID, PCI_ANY_ID},
 };
 

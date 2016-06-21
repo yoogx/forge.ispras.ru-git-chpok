@@ -43,7 +43,7 @@ static char *get_pci_class_name(int classcode) {
 
 
 
-int pci_match_device(const struct pci_device_id *id, const struct pci_device *dev)
+int pci_match_device(const struct pci_dev_id *id, const struct pci_dev *dev)
 {
     if ((id->vendor == PCI_ANY_ID || id->vendor == dev->vendorid) &&
             (id->device == PCI_ANY_ID || id->device == dev->deviceid))
@@ -108,7 +108,7 @@ void pci_write_dword(s_pci_device *d, uint32_t reg, uint32_t val)
 }
 
 
-int pci_read_config_byte(struct pci_device *dev, int where, uint8_t *val)
+int pci_read_config_byte(struct pci_dev *dev, int where, uint8_t *val)
 {
     uint32_t addr = (uint32_t) (1 << 31) | (dev->bus << 16) | (dev->dev << 11) |
         (dev->fun << 8) | (where & 0xfc);
@@ -123,7 +123,7 @@ int pci_read_config_byte(struct pci_device *dev, int where, uint8_t *val)
     return OK;
 }
 
-int pci_read_config_word(struct pci_device *dev, int where, uint16_t *val)
+int pci_read_config_word(struct pci_dev *dev, int where, uint16_t *val)
 {
     uint32_t addr = (uint32_t) (1 << 31) | (dev->bus << 16) | (dev->dev << 11) |
         (dev->fun << 8) | (where & 0xfc);
@@ -138,7 +138,7 @@ int pci_read_config_word(struct pci_device *dev, int where, uint16_t *val)
     return OK;
 }
 
-int pci_read_config_dword(struct pci_device *dev, int where, uint32_t *val)
+int pci_read_config_dword(struct pci_dev *dev, int where, uint32_t *val)
 {
     uint32_t addr = (uint32_t) (1 << 31) | (dev->bus << 16) | (dev->dev << 11) |
         (dev->fun << 8) | (where & 0xfc);
@@ -153,7 +153,7 @@ int pci_read_config_dword(struct pci_device *dev, int where, uint32_t *val)
     return OK;
 }
 
-int pci_write_config_byte(struct pci_device *dev, int where, uint8_t val)
+int pci_write_config_byte(struct pci_dev *dev, int where, uint8_t val)
 {
     uint32_t addr = (uint32_t) (1 << 31) | (dev->bus << 16) | (dev->dev << 11) |
         (dev->fun << 8) | (where & 0xfc);
@@ -168,7 +168,7 @@ int pci_write_config_byte(struct pci_device *dev, int where, uint8_t val)
     return OK;
 }
 
-int pci_write_config_word(struct pci_device *dev, int where, uint16_t val)
+int pci_write_config_word(struct pci_dev *dev, int where, uint16_t val)
 {
     uint32_t addr = (uint32_t) (1 << 31) | (dev->bus << 16) | (dev->dev << 11) |
         (dev->fun << 8) | (where & 0xfc);
@@ -183,7 +183,7 @@ int pci_write_config_word(struct pci_device *dev, int where, uint16_t val)
     return OK;
 }
 
-int pci_write_config_dword(struct pci_device *dev, int where, uint32_t val)
+int pci_write_config_dword(struct pci_dev *dev, int where, uint32_t val)
 {
     uint32_t addr = (uint32_t) (1 << 31) | (dev->bus << 16) | (dev->dev << 11) |
         (dev->fun << 8) | (where & 0xfc);
@@ -242,7 +242,7 @@ void iowrite32(uint32_t value, uint32_t *addr)
 #endif
 }
 
-static uint32_t rom(struct pci_device *dev)
+static uint32_t rom(struct pci_dev *dev)
 {
     uint32_t rom, size;
     int where = PCI_ROM_ADDRESS;
@@ -273,7 +273,7 @@ static uint32_t rom(struct pci_device *dev)
 
     return size;
 }
-static uint32_t pci_bar(struct pci_device *dev, int where)
+static uint32_t pci_bar(struct pci_dev *dev, int where)
 {
     uint32_t bar, size;
     pci_read_config_dword(dev, where, &bar);
@@ -308,7 +308,7 @@ void pci_enumerate()
     uint16_t vendor_id, device_id, classcode;
     uint8_t header_type;
 
-    struct pci_device pci_dev;
+    struct pci_dev pci_dev;
     for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
       for (unsigned int dev = 0; dev < PCI_DEV_MAX; dev++)
         for (unsigned int fun = 0; fun < PCI_FUN_MAX; fun++)
@@ -421,7 +421,7 @@ void pci_init()
             if ((pci_read(bus, dev, fun, PCI_HEADER_TYPE) & 0xFF) != 0)
                 continue;
             printf(">>>%02x:%02x:%02x \n", bus, dev, fun);
-            struct pci_device pci_dev;
+            struct pci_dev pci_dev;
             pci_dev.bus = bus;
             pci_dev.dev = dev;
             pci_dev.fun = fun;

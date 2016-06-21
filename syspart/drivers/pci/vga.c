@@ -15,7 +15,7 @@ struct gimp_image {
 };
 extern const struct gimp_image gimp_image;
 
-void vbe_write(struct pci_device *dev, uint16_t reg, uint16_t val)
+void vbe_write(struct pci_dev *dev, uint16_t reg, uint16_t val)
 {
     (void) dev;
     iowrite16(reg, (void *)(0xe1000000 + VBE_DISPI_IOPORT_INDEX));
@@ -25,7 +25,7 @@ void vbe_write(struct pci_device *dev, uint16_t reg, uint16_t val)
 
 #define SCREEN_WIDTH 800
 #define SCREEN_HIGHT 600
-struct pci_device pci_dev;
+struct pci_dev pci_dev;
 void vga_init()
 {
     printf("initializing vga\n");

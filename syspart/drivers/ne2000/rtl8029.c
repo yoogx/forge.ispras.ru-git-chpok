@@ -229,7 +229,7 @@ POLL_END:
  *  Seeks and registers PCI interface, set configuration and fills the
  *  dev structure.
  */
-static int rtl8029_init (struct pci_device *pci_dev, s_ne2000_dev *drv_info)
+static int rtl8029_init (struct pci_dev *pci_dev, s_ne2000_dev *drv_info)
 {
     // dev.pci.vendorid = 0x10ec;
     // dev.pci.deviceid = 0x8029;
@@ -398,7 +398,7 @@ static const pok_network_driver_ops_t driver_ops = {
     .flush_send = flush_send,
 };
 
-static pok_bool_t probe_device(struct pci_device *pci_dev)
+static pok_bool_t probe_device(struct pci_dev *pci_dev)
 {
     static int dev_count = 0;
     s_ne2000_dev *drv_info =  smalloc(sizeof(*drv_info));
@@ -418,7 +418,7 @@ static pok_bool_t probe_device(struct pci_device *pci_dev)
 }
 
 
-const struct pci_device_id ne2000_pci_tbl[] = {
+const struct pci_dev_id ne2000_pci_tbl[] = {
     { 0x10ec, 0x8029},
     //Here may be others cards from ne2000 family
 };
