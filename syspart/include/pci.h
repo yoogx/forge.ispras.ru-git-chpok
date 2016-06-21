@@ -104,18 +104,36 @@
  *  6  expansion ROM
  */
 #define PCI_NUM_RESOURCES 7
+#define PCI_RESOURCE_ROM_IDX 6
 
 enum PCI_RESOURCE_TYPE {
   PCI_RESOURCE_BAR_IO,
-  PCI_RESOURCE_BAR_MEM_PREFETCH,
-  PCI_RESOURCE_BAR_MEM_NON_PREFETCH,
+  PCI_RESOURCE_BAR_MEM,
   PCI_RESOURCE_ROM
+};
+
+enum PCI_RESOURCE_MEM_FLAG_MASKS{
+    /* if this bit is
+     *      0 than resource is 64bit region
+     *      1 than resource is 32bit region
+     */
+    PCI_RESOURCE_MASK_32 = 1,
+
+    /* if this bit is
+     *      0 than resource has prefetchable memory region
+     *      1 than resource has non-prefetchable memory region
+     */
+    PCI_RESOURCE_MASK_PREFETCH = 2,
 };
 
 struct pci_resource {
     uintptr_t addr;
     size_t size;
     enum PCI_RESOURCE_TYPE type;
+
+    //sets only when type == PCI_RESOURCE_BAR_MEM.
+    //For values meaning see enum PCI_RESOURCE_MEM_FLAG_MASKS
+    uint8_t mem_flags;
 };
 /*
  * Structure to holds some device information
@@ -127,7 +145,7 @@ typedef struct pci_dev
     uint16_t    fn;
     uint16_t    vendor_id;
     uint16_t    device_id;
-    struct pci_resource resourses[PCI_NUM_RESOURCES];
+    struct pci_resource resources[PCI_NUM_RESOURCES];
 
     uint32_t    bar[6]; //depricated!!
     uint32_t    ioaddr; //depricated!!

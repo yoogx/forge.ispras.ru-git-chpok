@@ -24,6 +24,8 @@
 #include "pci_internal.h"
 #include <depl.h>
 
+#include <libc/string.h>
+
 #define OK 0
 unsigned pci_driver_table_used_cnt = 0;
 
@@ -242,26 +244,8 @@ void iowrite32(uint32_t value, uint32_t *addr)
 #endif
 }
 
-static uint32_t rom(struct pci_dev *dev)
-{
-    uint32_t rom, size;
-    int where = PCI_ROM_ADDRESS;
-    printf("\t ROM ");
-    pci_read_config_dword(dev, where, &rom);
 
-    pci_write_dword(dev, where, PCI_ROM_ADDRESS_MASK);
-    pci_read_config_dword(dev, where, &size);
-    pci_write_dword(dev, where, rom);
-
-    size &= PCI_ROM_ADDRESS_MASK;
-
-    size = ~size + 1;
-    printf(" [size=0x%lx]\n", size);
-
-    return size;
-}
-
-static uint32_t pci_bar(struct pci_dev *dev, int where)
+static void pci_resource_fill(struct pci_dev *dev, int res_idx)
 {
     //TODO :
     // 1. Decode (I/O or memory) of a register is disabled via the command
@@ -271,32 +255,51 @@ static uint32_t pci_bar(struct pci_dev *dev, int where)
     // 3. "Note that the upper 16 bits of the result is ignored if the Base
     //       Address register is for I/O and bits 16-31 returned zero upon read."
     // 4. 64 bits bars
-    uint32_t bar, size;
-    pci_read_config_dword(dev, where, &bar);
-    if (bar == 0) {
-        printf("\n");
-        return 0;
-    }
-    pci_write_dword(dev, where, 0xffffffff);
-    pci_read_config_dword(dev, where, &size);
-    pci_write_dword(dev, where, bar);
+    //
+    int reg;
+    uint32_t val, size, mask;
+
+    struct pci_resource * resource = &dev->resources[res_idx];
+    memset(resource, 0, sizeof(*resource));
 
 
-    if ((bar&PCI_BASE_ADDRESS_SPACE) == PCI_BASE_ADDRESS_SPACE_IO) {
-        printf("I/O");
-        size &= PCI_BASE_ADDRESS_IO_MASK;
+    if (res_idx !=PCI_RESOURCE_ROM_IDX) {
+        reg = PCI_BASE_ADDRESS_0 + res_idx*4;
+        mask =  0xffffffff;
     } else {
-        printf("%s bit memory %s",
-                (bar & PCI_BASE_ADDRESS_MEM_TYPE_MASK) == PCI_BASE_ADDRESS_MEM_TYPE_32?
-                    "32": "<UNSUPPORTED YET> 64",
-                bar & PCI_BASE_ADDRESS_MEM_PREFETCH? "prefetchable":"");
+        reg = PCI_ROM_ADDRESS;
+        mask = PCI_ROM_ADDRESS_MASK;
+    }
+
+    pci_read_config_dword(dev, reg, &val);
+    pci_write_config_dword(dev, reg, mask);
+    pci_read_config_dword(dev, reg, &size);
+    pci_write_config_dword(dev, reg, val);
+
+    if (res_idx == PCI_RESOURCE_ROM_IDX)  {
+        resource->type = PCI_RESOURCE_ROM;
+        resource->addr = val & PCI_ROM_ADDRESS_MASK;
+        size &= PCI_ROM_ADDRESS_MASK;
+
+    } else if ((val&PCI_BASE_ADDRESS_SPACE) == PCI_BASE_ADDRESS_SPACE_IO) {
+        resource->type = PCI_RESOURCE_BAR_IO;
+        resource->addr = val & PCI_BASE_ADDRESS_IO_MASK;
+        size &= PCI_BASE_ADDRESS_IO_MASK;
+
+    } else {
+        if ((val & PCI_BASE_ADDRESS_MEM_TYPE_MASK) == PCI_BASE_ADDRESS_MEM_TYPE_32) {
+            resource->mem_flags |= PCI_RESOURCE_MASK_32;
+        }
+        if (val & PCI_BASE_ADDRESS_MEM_PREFETCH) {
+            resource->mem_flags |= PCI_RESOURCE_MASK_PREFETCH;
+        }
+        resource->type = PCI_RESOURCE_BAR_MEM;
+        resource->addr = val & PCI_BASE_ADDRESS_MEM_MASK;
         size &= PCI_BASE_ADDRESS_MEM_MASK;
     }
 
     size = ~size + 1;
     printf(" [size=0x%lx]\n", size);
-
-    return size;
 }
 
 void pci_enumerate()
@@ -332,12 +335,13 @@ void pci_enumerate()
                 continue;
             }
 
-            for (int i = 0; i < 6; i++) {
-                int reg = PCI_BASE_ADDRESS_0 + i*4;
+            for (int i = 0; i < 7; i++) {
                 printf("\t BAR%d: ", i);
-                pci_bar(&pci_dev, reg);
+                pci_resource_fill(&pci_dev, i);
+        //        if (bar & PCI_BASE_ADDRESS_MEM_TYPE_MASK) == PCI_BASE_ADDRESS_MEM_TYPE_32?
+        //            "32": "<UNSUPPORTED YET> 64",
+        //        bar & PCI_BASE_ADDRESS_MEM_PREFETCH? "prefetchable":"");
             }
-            rom(&pci_dev);
         }
 }
 
