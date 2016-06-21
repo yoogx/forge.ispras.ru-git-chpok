@@ -31,7 +31,7 @@ void vga_init()
     printf("initializing vga\n");
     pci_dev.bus = 0;
     pci_dev.dev = 1;
-    pci_dev.fun = 0;
+    pci_dev.fn = 0;
 
 
     vbe_write(&pci_dev, VBE_DISPI_INDEX_ENABLE, 0);

@@ -124,7 +124,7 @@ typedef struct pci_dev
 {
     uint16_t    bus;
     uint16_t    dev;
-    uint16_t    fun;
+    uint16_t    fn;
     uint16_t    vendorid;
     uint16_t    deviceid;
     uint16_t    irq_line;
