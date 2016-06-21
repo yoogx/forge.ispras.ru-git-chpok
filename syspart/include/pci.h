@@ -97,6 +97,14 @@
 //This from wiki.osdev.org/Pci
 #define BAR_IOADDR_MASK 0xFFFFFFFC //depricated
 
+
+/*
+ * For pci devices resources numbers are
+ *  0-5  BAR (base address)
+ *  6  expansion ROM
+ */
+#define PCI_NUM_RESOURCES 7
+
 enum PCI_RESOURCE_TYPE {
   PCI_RESOURCE_BAR_IO,
   PCI_RESOURCE_BAR_MEM_PREFETCH,
@@ -121,7 +129,7 @@ typedef struct pci_device
     uint16_t    deviceid;
     uint16_t    irq_line;
     uint16_t    io_range;
-    struct pci_resource resourses;
+    struct pci_resource resourses[PCI_NUM_RESOURCES];
     uint32_t    bar[6]; //depricated!!
     uint32_t    ioaddr;
     void       *irq_handler;
