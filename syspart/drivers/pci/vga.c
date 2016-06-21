@@ -22,13 +22,13 @@ void vbe_write(struct pci_device *dev, uint16_t reg, uint16_t val)
     iowrite16(val, (void *)(0xe1000000 + VBE_DISPI_IOPORT_DATA));
 }
 
+
 #define SCREEN_WIDTH 800
 #define SCREEN_HIGHT 600
+struct pci_device pci_dev;
 void vga_init()
 {
-#ifdef __PPC__
     printf("initializing vga\n");
-    struct pci_device pci_dev;
     pci_dev.bus = 0;
     pci_dev.dev = 1;
     pci_dev.fun = 0;
@@ -43,11 +43,20 @@ void vga_init()
     //TODO this is mmio bar
     iowrite8(0x20, (void *) 0xe10003c0); // PAS
 
+    vbe_write(&pci_dev, VBE_DISPI_INDEX_VIRT_WIDTH, SCREEN_WIDTH);
+
+    vga_draw();
+}
+
+void vga_draw()
+{
+
     /*
        for (int i = 0; i < 800*600; i++) {
        out_be32((uint32_t *) VGA_ADDR + i, 0x00FF0000);
     //    out_be16((uint16_t *) VGA_ADDR + i, 0xe000);
     }*/
+    int start = 400;
     for (int y = 0; y < gimp_image.height; y++) {
         for (int x = 0; x < gimp_image.width; x++) {
             //out_be16((uint16_t *) VGA_ADDR + y * 800 + x, 0xe000);
@@ -57,8 +66,10 @@ void vga_init()
             //}
             iowrite16(
                     ((uint16_t*)gimp_image.pixel_data)[y*gimp_image.width + x],
-                    (uint16_t *) VGA_ADDR + y*SCREEN_WIDTH + x);
+                    (uint16_t *) VGA_ADDR + (y+start)*SCREEN_WIDTH + x);
         }
     }
-#endif
+}
+void vga_set_y_offset(int offset){
+    vbe_write(&pci_dev, VBE_DISPI_INDEX_Y_OFFSET, offset);
 }
