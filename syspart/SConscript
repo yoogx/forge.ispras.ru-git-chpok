@@ -21,10 +21,9 @@ Import('env')
 
 syspart_env = env.Clone()
 
-syspart_env['CPPPATH'] = [env['POK_PATH']+'/build/libpok/include',
-                          env['POK_PATH']+'/libpok/include',
-                          env['POK_PATH']+'/syspart/include',
-                          ]
+syspart_env['CPPPATH'] = env['LIBPOK_CPPPATH'] + [
+        env['POK_PATH']+'/syspart/include',
+        ]
 
 Export('syspart_env')
 
