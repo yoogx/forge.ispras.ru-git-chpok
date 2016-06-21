@@ -114,7 +114,7 @@ enum PCI_RESOURCE_TYPE {
 
 enum PCI_RESOURCE_MEM_FLAG_MASKS{
     /* if this bit is
-     *      0 than resource is 64bit region
+     *      0 than resource is 64bit region //UNSUPPORTED yet!!
      *      1 than resource is 32bit region
      */
     PCI_RESOURCE_MASK_32 = 1,

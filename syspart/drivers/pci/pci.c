@@ -298,8 +298,7 @@ static void pci_resource_fill(struct pci_dev *dev, int res_idx)
         size &= PCI_BASE_ADDRESS_MEM_MASK;
     }
 
-    size = ~size + 1;
-    printf(" [size=0x%lx]\n", size);
+    resource->size = ~size + 1;
 }
 
 void pci_enumerate()
@@ -336,11 +335,26 @@ void pci_enumerate()
             }
 
             for (int i = 0; i < 7; i++) {
-                printf("\t BAR%d: ", i);
                 pci_resource_fill(&pci_dev, i);
-        //        if (bar & PCI_BASE_ADDRESS_MEM_TYPE_MASK) == PCI_BASE_ADDRESS_MEM_TYPE_32?
-        //            "32": "<UNSUPPORTED YET> 64",
-        //        bar & PCI_BASE_ADDRESS_MEM_PREFETCH? "prefetchable":"");
+                struct pci_resource *res = &pci_dev.resources[i];
+                if (res->size == 0)
+                    continue;
+
+                if (res->type != PCI_RESOURCE_ROM){
+                    printf("\t BAR%d: ", i);
+                    if (res->type == PCI_RESOURCE_BAR_IO) {
+                        printf("I/O ");
+                    } else {
+                        printf("%s bit %smemory ",
+                            res->mem_flags & PCI_RESOURCE_MASK_32 ? "32": "<UNSUPPORTED> 64",
+                            res->mem_flags & PCI_RESOURCE_MASK_PREFETCH ? "prefetchable ":"");
+                    }
+                }
+                else {
+                    printf("\t ROM: ");
+                }
+                printf("[size=0x%zx]\n", res->size);
+
             }
         }
 }
