@@ -61,7 +61,7 @@ generate_title_c = """/*
  */
 """
 
-generate_title_c_no_track = '/* GENERATED! DO NOT MODIFY! */\n'
+generate_title_c_no_track = '#/* GENERATED! DO NOT MODIFY! */\n'
 
 def CopyWithTitle(target, source, env):
     """
