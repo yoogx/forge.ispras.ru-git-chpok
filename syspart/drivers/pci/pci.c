@@ -245,7 +245,7 @@ void iowrite32(uint32_t value, uint32_t *addr)
 }
 
 
-static void pci_resource_fill(struct pci_dev *dev, int res_idx)
+static void pci_fill_resource(struct pci_dev *dev, int res_idx)
 {
     //TODO :
     // 1. Decode (I/O or memory) of a register is disabled via the command
@@ -301,41 +301,60 @@ static void pci_resource_fill(struct pci_dev *dev, int res_idx)
     resource->size = ~size + 1;
 }
 
+/*
+ * Find pci device by triple (bus, dev, fn) and fill info
+ * about the device to struct pointed by pci_dev.
+ * 'resources' field is not filled for pci bridges
+ */
+void pci_get_dev_by_bdf(uint8_t bus, uint8_t dev, uint8_t fn, struct pci_dev *pci_dev)
+{
+    memset(pci_dev, 0, sizeof(*pci_dev));
+
+    pci_dev->bus = bus;
+    pci_dev->dev = dev;
+    pci_dev->fn = fn;
+
+    pci_read_config_word(pci_dev, PCI_VENDOR_ID, &pci_dev->vendor_id);
+    //if (vendor_id == 0xFFFF) {
+    //}
+    pci_read_config_word(pci_dev, PCI_DEVICE_ID,    &pci_dev->device_id);
+    pci_read_config_word(pci_dev, PCI_CLASS_DEVICE, &pci_dev->class_code);
+    pci_read_config_byte(pci_dev, PCI_HEADER_TYPE,  &pci_dev->hdr_type);
+
+    if (pci_dev->hdr_type != 0)
+        return;
+
+    for (int i = 0; i < PCI_NUM_RESOURCES; i++) {
+        pci_fill_resource(pci_dev, i);
+    }
+
+}
+
 void pci_enumerate()
 {
-    uint16_t vendor_id, device_id, classcode;
-    uint8_t header_type;
-
     struct pci_dev pci_dev;
     for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
       for (unsigned int dev = 0; dev < PCI_DEV_MAX; dev++)
         for (unsigned int fn = 0; fn < PCI_FN_MAX; fn++)
         {
-            pci_dev.bus = bus;
-            pci_dev.dev = dev;
-            pci_dev.fn = fn;
+            pci_get_dev_by_bdf(bus, dev, fn, &pci_dev);
 
-            pci_read_config_word(&pci_dev, PCI_VENDOR_ID, &vendor_id);
-            if (vendor_id == 0xFFFF) {
+            if (pci_dev.vendor_id == 0xFFFF) {
                 continue;
             }
 
-            pci_read_config_word(&pci_dev, PCI_DEVICE_ID, &device_id);
-            pci_read_config_word(&pci_dev, PCI_CLASS_DEVICE, &classcode);
-            pci_read_config_byte(&pci_dev, PCI_HEADER_TYPE, &header_type);
-
-            printf("%02x:%02x:%02x %s\n", bus, dev, fn, get_pci_class_name(classcode));
+            printf("%02x:%02x:%02x %s\n",
+                    bus, dev, fn, get_pci_class_name(pci_dev.class_code));
             printf("\t PCI device %04x:%04x (header 0x%02x)\n",
-                    vendor_id,
-                    device_id,
-                    header_type);
+                    pci_dev.vendor_id,
+                    pci_dev.device_id,
+                    pci_dev.hdr_type);
 
-            if (header_type != 0) {
+            if (pci_dev.hdr_type != 0) {
                 continue;
             }
 
-            for (int i = 0; i < 7; i++) {
-                pci_resource_fill(&pci_dev, i);
+            for (int i = 0; i < PCI_NUM_RESOURCES; i++) {
                 struct pci_resource *res = &pci_dev.resources[i];
                 if (res->size == 0)
                     continue;
@@ -357,31 +376,6 @@ void pci_enumerate()
 
             }
         }
-}
-
-/*
- * pci_dev is pointer to uninitialized 'struct pci_dev'
- * This function fill dev fields
- * May work incorrectly for pci bridges
- */
-void pci_get_dev_by_bdf(uint8_t bus, uint8_t dev, uint8_t fn, struct pci_dev *pci_dev)
-{
-    pci_dev->bus = bus;
-    pci_dev->dev = dev;
-    pci_dev->fn = fn;
-
-    pci_read_config_word(pci_dev, PCI_VENDOR_ID, &pci_dev->vendor_id);
-    pci_read_config_word(pci_dev, PCI_DEVICE_ID, &pci_dev->device_id);
-
-
-    //for (int i = 0; i < 6; i++) {
-    //    int reg = PCI_BASE_ADDRESS_0 + i*4;
-    //    pci_resource[i] = pci_bar(&pci_dev, reg);
-
-    //}
-
-    //rom(&pci_dev);
-
 }
 
 

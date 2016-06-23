@@ -145,6 +145,8 @@ typedef struct pci_dev
     uint16_t    fn;
     uint16_t    vendor_id;
     uint16_t    device_id;
+    uint16_t    class_code; //class code and sub class
+    uint8_t     hdr_type;
     struct pci_resource resources[PCI_NUM_RESOURCES];
 
     uint32_t    bar[6]; //depricated!!
