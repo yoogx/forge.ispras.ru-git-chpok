@@ -263,7 +263,7 @@ static void pci_fill_resource(struct pci_dev *dev, int res_idx)
     memset(resource, 0, sizeof(*resource));
 
 
-    if (res_idx !=PCI_RESOURCE_ROM_IDX) {
+    if (res_idx !=PCI_RESOURCE_ROM) {
         reg = PCI_BASE_ADDRESS_0 + res_idx*4;
         mask =  0xffffffff;
     } else {
@@ -276,24 +276,24 @@ static void pci_fill_resource(struct pci_dev *dev, int res_idx)
     pci_read_config_dword(dev, reg, &size);
     pci_write_config_dword(dev, reg, val);
 
-    if (res_idx == PCI_RESOURCE_ROM_IDX)  {
-        resource->type = PCI_RESOURCE_ROM;
+    if (res_idx == PCI_RESOURCE_ROM)  {
+        resource->type = PCI_RESOURCE_TYPE_ROM;
         resource->addr = val & PCI_ROM_ADDRESS_MASK;
         size &= PCI_ROM_ADDRESS_MASK;
 
     } else if ((val&PCI_BASE_ADDRESS_SPACE) == PCI_BASE_ADDRESS_SPACE_IO) {
-        resource->type = PCI_RESOURCE_BAR_IO;
+        resource->type = PCI_RESOURCE_TYPE_BAR_IO;
         resource->addr = val & PCI_BASE_ADDRESS_IO_MASK;
         size &= PCI_BASE_ADDRESS_IO_MASK;
 
     } else {
         if ((val & PCI_BASE_ADDRESS_MEM_TYPE_MASK) == PCI_BASE_ADDRESS_MEM_TYPE_32) {
-            resource->mem_flags |= PCI_RESOURCE_MASK_32;
+            resource->mem_flags |= PCI_RESOURCE_MEM_MASK_32;
         }
         if (val & PCI_BASE_ADDRESS_MEM_PREFETCH) {
-            resource->mem_flags |= PCI_RESOURCE_MASK_PREFETCH;
+            resource->mem_flags |= PCI_RESOURCE_MEM_MASK_PREFETCH;
         }
-        resource->type = PCI_RESOURCE_BAR_MEM;
+        resource->type = PCI_RESOURCE_TYPE_BAR_MEM;
         resource->addr = val & PCI_BASE_ADDRESS_MEM_MASK;
         size &= PCI_BASE_ADDRESS_MEM_MASK;
     }
@@ -357,14 +357,14 @@ void pci_enumerate()
                 if (res->size == 0)
                     continue;
 
-                if (res->type != PCI_RESOURCE_ROM){
+                if (res->type != PCI_RESOURCE_TYPE_ROM){
                     printf("\t BAR%d: ", i);
-                    if (res->type == PCI_RESOURCE_BAR_IO) {
+                    if (res->type == PCI_RESOURCE_TYPE_BAR_IO) {
                         printf("I/O ");
                     } else {
                         printf("%s bit %smemory ",
-                            res->mem_flags & PCI_RESOURCE_MASK_32 ? "32": "<UNSUPPORTED> 64",
-                            res->mem_flags & PCI_RESOURCE_MASK_PREFETCH ? "prefetchable ":"");
+                            res->mem_flags & PCI_RESOURCE_MEM_MASK_32 ? "32": "<UNSUPPORTED> 64",
+                            res->mem_flags & PCI_RESOURCE_MEM_MASK_PREFETCH ? "prefetchable ":"");
                     }
                 }
                 else {
@@ -406,14 +406,14 @@ void pci_list()
                 if (res->size == 0)
                     continue;
 
-                if (res->type != PCI_RESOURCE_ROM){
+                if (res->type != PCI_RESOURCE_TYPE_ROM){
                     printf("\t BAR%d: ", i);
-                    if (res->type == PCI_RESOURCE_BAR_IO) {
+                    if (res->type == PCI_RESOURCE_TYPE_BAR_IO) {
                         printf("I/O ");
                     } else {
                         printf("%s bit %smem ",
-                            res->mem_flags & PCI_RESOURCE_MASK_32 ? "32": "<UNSUPPORTED> 64",
-                            res->mem_flags & PCI_RESOURCE_MASK_PREFETCH ? "prefetch ":"");
+                            res->mem_flags & PCI_RESOURCE_MEM_MASK_32 ? "32": "<UNSUPPORTED> 64",
+                            res->mem_flags & PCI_RESOURCE_MEM_MASK_PREFETCH ? "prefetch ":"");
                     }
                 }
                 else {
@@ -425,7 +425,7 @@ void pci_list()
                 if (bar0) {
                     printf("0x%lx ", bar0);
 #ifdef __PPC__
-                    if(res->type == PCI_RESOURCE_BAR_IO) {
+                    if(res->type == PCI_RESOURCE_TYPE_BAR_IO) {
                         printf("(addr = 0x%lx) ", res->addr + bridge.iorange);
                     }
 #endif

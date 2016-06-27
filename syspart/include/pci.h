@@ -101,12 +101,20 @@
  *  6  expansion ROM
  */
 #define PCI_NUM_RESOURCES 7
-#define PCI_RESOURCE_ROM_IDX 6
+enum PCI_RESOURCE_INDEX {
+    PCI_RESOURCE_BAR0,
+    PCI_RESOURCE_BAR1,
+    PCI_RESOURCE_BAR2,
+    PCI_RESOURCE_BAR3,
+    PCI_RESOURCE_BAR4,
+    PCI_RESOURCE_BAR5,
+    PCI_RESOURCE_ROM
+};
 
 enum PCI_RESOURCE_TYPE {
-  PCI_RESOURCE_BAR_IO,
-  PCI_RESOURCE_BAR_MEM,
-  PCI_RESOURCE_ROM
+  PCI_RESOURCE_TYPE_BAR_IO,
+  PCI_RESOURCE_TYPE_BAR_MEM,
+  PCI_RESOURCE_TYPE_ROM
 };
 
 enum PCI_RESOURCE_MEM_FLAG_MASKS{
@@ -114,13 +122,13 @@ enum PCI_RESOURCE_MEM_FLAG_MASKS{
      *      0 than resource is 64bit region //UNSUPPORTED yet!!
      *      1 than resource is 32bit region
      */
-    PCI_RESOURCE_MASK_32 = 1,
+    PCI_RESOURCE_MEM_MASK_32 = 1,
 
     /* if this bit is
      *      0 than resource has prefetchable memory region
      *      1 than resource has non-prefetchable memory region
      */
-    PCI_RESOURCE_MASK_PREFETCH = 2,
+    PCI_RESOURCE_MEM_MASK_PREFETCH = 2,
 };
 
 struct pci_resource {
@@ -156,7 +164,7 @@ typedef struct pci_dev
 void pci_init(void);
 void pci_list(void);
 
-//result == 0 when no error
+//result == 0 means no error
 int pci_read_config_byte(struct pci_dev *dev, int where, uint8_t *val);
 int pci_read_config_word(struct pci_dev *dev, int where, uint16_t *val);
 int pci_read_config_dword(struct pci_dev *dev, int where, uint32_t *val);
