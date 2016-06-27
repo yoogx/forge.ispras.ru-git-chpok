@@ -131,6 +131,9 @@ enum PCI_RESOURCE_MEM_FLAG_MASKS{
     PCI_RESOURCE_MEM_MASK_PREFETCH = 2,
 };
 
+/* size == 0  means that BAR (ROM) is not enabled/supported by device
+ * size != 0 && addr = 0  means that BAR (ROM) is not initialized.
+ */
 struct pci_resource {
     uintptr_t addr;
     size_t size;

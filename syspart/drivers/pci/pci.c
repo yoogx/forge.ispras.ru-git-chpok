@@ -429,6 +429,9 @@ void pci_list()
                         printf("(addr = 0x%lx) ", res->addr + bridge.iorange);
                     }
 #endif
+                } else {
+                    printf("_ ");
+
                 }
 
                 printf("[size=0x%zx]\n", res->size);
@@ -481,8 +484,8 @@ void pci_init()
 
 #endif
 
-    printf("PCI enumeration:\n");
-    pci_enumerate();
+    //printf("PCI enumeration:\n");
+    //pci_enumerate();
 
     printf("PCI initialization\n");
     for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
