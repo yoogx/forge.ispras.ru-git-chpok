@@ -81,10 +81,8 @@ void vga_draw(void)
             //    out_8((uint8_t *) VGA_ADDR + (y*800+x)*2 + i,
             //            gimp_image.pixel_data[(y*gimp_image.width + x)*2 + 1-i]);
             //}
-            //This is not IO! TODO: use out_xx16 instead
-            iowrite16(
-                    ((uint16_t*)gimp_image.pixel_data)[y*gimp_image.width + x],
-                    (uint16_t *) VGA_ADDR + (y+start)*SCREEN_WIDTH + x);
+            out_le16((uint16_t *) VGA_ADDR + (y+start)*SCREEN_WIDTH + x,
+                    ((uint16_t*)gimp_image.pixel_data)[y*gimp_image.width + x]);
         }
     }
 }
