@@ -162,7 +162,7 @@ typedef struct pci_dev
     uint16_t    irq_line;//depricated!!
     uint16_t    io_range; //depricated!!
     void       *irq_handler; //depricated!!
-} s_pci_device;
+} s_pci_dev;
 
 void pci_init(void);
 void pci_list(void);

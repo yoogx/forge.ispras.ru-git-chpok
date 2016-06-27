@@ -80,7 +80,7 @@ uint32_t pci_read(
     return (val >> ((reg & 3) << 3));
 }
 
-void pci_write_word(s_pci_device *d, uint32_t reg, uint16_t val)
+void pci_write_word(s_pci_dev *d, uint32_t reg, uint16_t val)
 {
     uint32_t addr = (1 << 31) | (d->bus << 16) | (d->dev << 11) | 
         (d->fn << 8) | (reg & 0xfc);
@@ -94,7 +94,7 @@ void pci_write_word(s_pci_device *d, uint32_t reg, uint16_t val)
 #endif
 
 }
-void pci_write_dword(s_pci_device *d, uint32_t reg, uint32_t val)
+void pci_write_dword(s_pci_dev *d, uint32_t reg, uint32_t val)
 {
     uint32_t addr = (1 << 31) | (d->bus << 16) | (d->dev << 11) | 
         (d->fn << 8) | (reg & 0xfc);

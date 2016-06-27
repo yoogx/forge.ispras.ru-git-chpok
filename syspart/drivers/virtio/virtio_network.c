@@ -55,7 +55,7 @@ struct receive_buffer {
 } __attribute__((packed));
 
 struct virtio_network_device {
-    s_pci_device pci_device;
+    s_pci_dev pci_device;
 
     struct virtio_virtqueue rx_vq, tx_vq;
 
@@ -123,7 +123,7 @@ static void setup_virtqueue(
 
 }
 
-static void set_status_bit(s_pci_device *pcidev, uint8_t bit)
+static void set_status_bit(s_pci_dev *pcidev, uint8_t bit)
 {
     bit |= inb(pcidev->bar[0] + VIRTIO_PCI_STATUS);
     outb(pcidev->bar[0] + VIRTIO_PCI_STATUS, bit);
