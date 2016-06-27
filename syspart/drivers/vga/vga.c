@@ -67,20 +67,9 @@ void vga_init()
 
 void vga_draw(void)
 {
-
-    /*
-       for (int i = 0; i < 800*600; i++) {
-       out_be32((uint32_t *) VGA_ADDR + i, 0x00FF0000);
-    //    out_be16((uint16_t *) VGA_ADDR + i, 0xe000);
-    }*/
     int start = 400;
     for (int y = 0; y < gimp_image.height; y++) {
         for (int x = 0; x < gimp_image.width; x++) {
-            //out_be16((uint16_t *) VGA_ADDR + y * 800 + x, 0xe000);
-            //for (int i = 0; i<2; i++) {
-            //    out_8((uint8_t *) VGA_ADDR + (y*800+x)*2 + i,
-            //            gimp_image.pixel_data[(y*gimp_image.width + x)*2 + 1-i]);
-            //}
             out_le16((uint16_t *) VGA_ADDR + (y+start)*SCREEN_WIDTH + x,
                     ((uint16_t*)gimp_image.pixel_data)[y*gimp_image.width + x]);
         }
