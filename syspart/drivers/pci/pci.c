@@ -381,32 +381,60 @@ void pci_enumerate()
 
 void pci_list()
 {
-    printf("lspci\n");
+    struct pci_dev pci_dev;
     for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
       for (unsigned int dev = 0; dev < PCI_DEV_MAX; dev++)
         for (unsigned int fn = 0; fn < PCI_FN_MAX; fn++)
         {
-            uint16_t vendor = (uint16_t) pci_read(bus, dev, fn, PCI_VENDOR_ID);
-            uint16_t device = (uint16_t) pci_read(bus, dev, fn, PCI_DEVICE_ID);
+            pci_get_dev_by_bdf(bus, dev, fn, &pci_dev);
 
-            if (vendor != 0xFFFF) {
-                uint32_t classcode = 0xFFFFFF & pci_read(bus, dev, fn, PCI_CLASS_PROG);
-                printf("%02x:%02x:%02x ", bus, dev, fn);
-                printf("%s:\n", get_pci_class_name(classcode));
-                printf("\t PCI device %04x:%04x (header 0x%02lx)\n",
-                        vendor,
-                        device,
-                        0xFF & pci_read(bus, dev, fn, PCI_HEADER_TYPE));
+            if (pci_dev.vendor_id == 0xFFFF) {
+                continue;
+            }
 
-                uint32_t bar0 = pci_read(bus, dev, fn, PCI_BASE_ADDRESS_0);
+            printf("%02x:%02x:%02x %s\n",
+                    bus, dev, fn, get_pci_class_name(pci_dev.class_code));
+            printf("\t PCI device %04x:%04x (header 0x%02x)\n",
+                    pci_dev.vendor_id,
+                    pci_dev.device_id,
+                    pci_dev.hdr_type);
+
+            if (pci_dev.hdr_type != 0) {
+                continue;
+            }
+
+            for (int i = 0; i < PCI_NUM_RESOURCES; i++) {
+                struct pci_resource *res = &pci_dev.resources[i];
+                if (res->size == 0)
+                    continue;
+
+                if (res->type != PCI_RESOURCE_ROM){
+                    printf("\t BAR%d: ", i);
+                    if (res->type == PCI_RESOURCE_BAR_IO) {
+                        printf("I/O ");
+                    } else {
+                        printf("%s bit %smem ",
+                            res->mem_flags & PCI_RESOURCE_MASK_32 ? "32": "<UNSUPPORTED> 64",
+                            res->mem_flags & PCI_RESOURCE_MASK_PREFETCH ? "prefetch ":"");
+                    }
+                }
+                else {
+                    printf("\t ROM: ");
+                }
+
+
+                uint32_t bar0 = res->addr;
                 if (bar0) {
-                    printf("\t BAR0: 0x%lx", bar0);
+                    printf("0x%lx ", bar0);
 #ifdef __PPC__
-                    printf("(addr = %lx)\n", (bar0 & BAR_IOADDR_MASK) + bridge.iorange);
-#else
-                    printf("(addr = %lx)\n", bar0 & BAR_IOADDR_MASK);
+                    if(res->type == PCI_RESOURCE_BAR_IO) {
+                        printf("(addr = 0x%lx) ", res->addr + bridge.iorange);
+                    }
 #endif
                 }
+
+                printf("[size=0x%zx]\n", res->size);
+
             }
         }
 }
@@ -425,7 +453,7 @@ void vga_init(void);
 
 void pci_init()
 {
-    printf("\nPCI initializing\n");
+    printf("\nPCI\n");
 
 #ifdef __PPC__
     pok_bsp_t pok_bsp;
@@ -444,9 +472,10 @@ void pci_init()
 
 #endif
 
-    printf("\nPCI enumeration:\n");
+    printf("PCI enumeration:\n");
     pci_enumerate();
 
+    printf("PCI initialization\n");
     for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
       for (unsigned int dev = 0; dev < PCI_DEV_MAX; dev++)
       {
@@ -488,6 +517,7 @@ void pci_init()
                 }
             }
         }
-    //pci_list();
+    printf("PCI init result:\n");
+    pci_list();
     printf("\n");
 }
