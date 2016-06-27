@@ -302,9 +302,7 @@ static void pci_fill_resource(struct pci_dev *dev, int res_idx)
 }
 
 /*
- * Find pci device by triple (bus, dev, fn) and fill info
- * about the device to struct pointed by pci_dev.
- * 'resources' field is not filled for pci bridges
+ * see comment in pci.h
  */
 void pci_get_dev_by_bdf(uint8_t bus, uint8_t dev, uint8_t fn, struct pci_dev *pci_dev)
 {
@@ -439,6 +437,17 @@ void pci_list()
         }
 }
 
+//dev will be usefull when bridge is not hardcoded
+uintptr_t pci_convert_legacy_port(struct pci_dev *dev, uint16_t port)
+{
+    (void) dev;
+#ifdef __PPC__
+    return bridge.iorange + port;
+#else
+    return port;
+#endif
+}
+
 #define PEX1_PEXOWBAR1 0xc28
 #define PEX1_PEXOWAR1  0xc30
 #define WAR_EN         0x80000000
@@ -495,6 +504,11 @@ void pci_init()
                 pci_write_dword(&pci_dev, PCI_BASE_ADDRESS_0, VGA_ADDR);
                 pci_write_word(&pci_dev, PCI_COMMAND, PCI_COMMAND_MEMORY);
                 pci_write_dword(&pci_dev, PCI_ROM_ADDRESS, 0xedf00000|PCI_ROM_ADDRESS_ENABLE);
+                {
+                    pci_write_dword(&pci_dev, PCI_BASE_ADDRESS_2, 0xede00000);
+                    pci_write_word(&pci_dev, PCI_COMMAND, PCI_COMMAND_MEMORY);
+                }
+
                 vga_init();
                 continue;
             }

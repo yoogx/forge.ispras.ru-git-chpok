@@ -48,9 +48,6 @@
 
 /*
  * Base addresses specify locations in memory or I/O space.
- * Decoded size can be determined by writing a value of
- * 0xffffffff to the register, and reading it back.  Only
- * 1 bits are decoded.
  */
 #define PCI_BASE_ADDRESS_0      0x10    /* 32 bits */
 #define PCI_BASE_ADDRESS_1      0x14    /* 32 bits [htype 0,1 only] */
@@ -177,7 +174,22 @@ void iowrite32(uint32_t value, uint32_t *addr);
 
 
 
-/* These was got from Linux kernel */
+/*
+ * Finds pci device by triple (bus, dev, fn) and fill info
+ * about the device to struct pointed by pci_dev.
+ * 'resources' field is not filled for pci bridges
+ *
+ *  pci_dev->vendor_id == 0xFFFF means that device does not exist
+ */
+void pci_get_dev_by_bdf(uint8_t bus, uint8_t dev, uint8_t fn, struct pci_dev *pci_dev);
+
+//convert legacy port to mem address that can be used in ioread/iowrite functions
+uintptr_t pci_convert_legacy_port(struct pci_dev *dev, uint16_t port);
+
+
+
+
+/* depricated  */
 #define PCI_ANY_ID (uint16_t)(~0)
 
 struct pci_dev_id {
