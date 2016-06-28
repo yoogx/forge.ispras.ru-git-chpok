@@ -119,14 +119,14 @@ enum PCI_RESOURCE_TYPE {
 
 enum PCI_RESOURCE_MEM_FLAG_MASKS{
     /* if this bit is
-     *      0 than resource is 64bit region //UNSUPPORTED yet!!
-     *      1 than resource is 32bit region
+     *      0 then resource is 64bit region //UNSUPPORTED yet!!
+     *      1 then resource is 32bit region
      */
     PCI_RESOURCE_MEM_MASK_32 = 1,
 
     /* if this bit is
-     *      0 than resource has prefetchable memory region
-     *      1 than resource has non-prefetchable memory region
+     *      0 then resource has prefetchable memory region
+     *      1 then resource has non-prefetchable memory region
      */
     PCI_RESOURCE_MEM_MASK_PREFETCH = 2,
 };
