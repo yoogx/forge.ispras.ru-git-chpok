@@ -18,8 +18,6 @@
 #include <stdio.h>
 
 //TODO DELETE
-#define VGA_ADDR 0xee000008
-
 #include "vbe.h"
 void vga_draw(void);
 
@@ -70,7 +68,7 @@ void vga_draw(void)
     int start = 400;
     for (int y = 0; y < gimp_image.height; y++) {
         for (int x = 0; x < gimp_image.width; x++) {
-            out_le16((uint16_t *) VGA_ADDR + (y+start)*SCREEN_WIDTH + x,
+            out_le16((uint16_t *) vga_dev.resources[PCI_RESOURCE_BAR0].addr + (y+start)*SCREEN_WIDTH + x,
                     ((uint16_t*)gimp_image.pixel_data)[y*gimp_image.width + x]);
         }
     }
