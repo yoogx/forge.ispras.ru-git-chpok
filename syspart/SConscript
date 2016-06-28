@@ -29,10 +29,12 @@ Export('syspart_env')
 
 drivers = SConscript('drivers/SConscript')
 net     = SConscript('net/SConscript')
+afdx     = SConscript('afdx/SConscript')
 
 syspart_program = syspart_env.Program(target = 'syspart.lo', source = [
     net,
     drivers,
+    afdx,
     'config.c',
     'mem.c'
 ])

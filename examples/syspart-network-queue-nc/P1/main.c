@@ -35,19 +35,6 @@ static void first_process(void)
     snprintf(msg, 64, "Hello \n");
     SEND_QUEUING_MESSAGE(QP1, (MESSAGE_ADDR_TYPE) &msg, sizeof(msg), INFINITE_TIME_VALUE, &ret);
 
-    while (1) {
-        MESSAGE_SIZE_TYPE len;
-        //VALIDITY_TYPE validity;
-
-        RECEIVE_QUEUING_MESSAGE(QP2, INFINITE_TIME_VALUE, (MESSAGE_ADDR_TYPE) &msg, &len, &ret);
-
-        if (ret == NO_ERROR) {
-            msg[len] = '\0';
-            printf("%s", msg);
-        } else {
-            printf("PR1: qp error: %u\n", ret);
-        }
-    }
 }
 
 
