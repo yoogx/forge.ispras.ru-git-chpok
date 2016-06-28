@@ -21,25 +21,28 @@
 #include "vbe.h"
 void vga_draw(void);
 
+struct pci_dev vga_dev;
+
 struct gimp_image {
   unsigned int  width;
   unsigned int  height;
   unsigned int  bytes_per_pixel; /* 2:RGB16, 3:RGB, 4:RGBA */
   unsigned char pixel_data[];
 };
+
 extern const struct gimp_image gimp_image;
 
-void vbe_write(struct pci_dev *dev, uint16_t reg, uint16_t val)
+void vbe_write(uint16_t reg, uint16_t val)
 {
-    iowrite16(reg, (void *)pci_convert_legacy_port(dev, VBE_DISPI_IOPORT_INDEX));
-    iowrite16(val, (void *)pci_convert_legacy_port(dev, VBE_DISPI_IOPORT_DATA));
+    iowrite16(reg, (void *)pci_convert_legacy_port(&vga_dev, VBE_DISPI_IOPORT_INDEX));
+    iowrite16(val, (void *)pci_convert_legacy_port(&vga_dev, VBE_DISPI_IOPORT_DATA));
 }
 
 #define VGA_PAS 0x20 //palette address source. val 1 enables display.
 
 #define SCREEN_WIDTH 800
 #define SCREEN_HIGHT 600
-struct pci_dev vga_dev;
+
 void vga_init()
 {
     printf("initializing vga\n");
@@ -49,16 +52,16 @@ void vga_init()
     printf("vga bios[0] 0x%x\n", ioread8((uint8_t *)vga_dev.resources[6].addr));
     printf("vga bios[1] 0x%x\n", ioread8((uint8_t *)vga_dev.resources[6].addr + 1));
 
-    vbe_write(&vga_dev, VBE_DISPI_INDEX_ENABLE, 0);
-    vbe_write(&vga_dev, VBE_DISPI_INDEX_XRES, SCREEN_WIDTH);
-    vbe_write(&vga_dev, VBE_DISPI_INDEX_YRES, SCREEN_HIGHT);
-    vbe_write(&vga_dev, VBE_DISPI_INDEX_BPP, VBE_DISPI_BPP_16);
-    vbe_write(&vga_dev, VBE_DISPI_INDEX_ENABLE, 1);
+    vbe_write(VBE_DISPI_INDEX_ENABLE, 0);
+    vbe_write(VBE_DISPI_INDEX_XRES, SCREEN_WIDTH);
+    vbe_write(VBE_DISPI_INDEX_YRES, SCREEN_HIGHT);
+    vbe_write(VBE_DISPI_INDEX_BPP, VBE_DISPI_BPP_16);
+    vbe_write(VBE_DISPI_INDEX_ENABLE, 1);
 
     //TODO this is mmio bar
     iowrite8(VGA_PAS, (uint8_t *) pci_convert_legacy_port(&vga_dev, 0x3c0));
 
-    vbe_write(&vga_dev, VBE_DISPI_INDEX_VIRT_WIDTH, SCREEN_WIDTH);
+    vbe_write(VBE_DISPI_INDEX_VIRT_WIDTH, SCREEN_WIDTH);
 
     vga_draw();
 }
@@ -75,5 +78,5 @@ void vga_draw(void)
 }
 
 void vga_set_y_offset(int offset){
-    vbe_write(&vga_dev, VBE_DISPI_INDEX_Y_OFFSET, offset);
+    vbe_write(VBE_DISPI_INDEX_Y_OFFSET, offset);
 }
