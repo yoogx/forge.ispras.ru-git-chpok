@@ -17,6 +17,7 @@
  */
 
 #include <pci.h>
+#include <pci_config.h>
 #include <ioports.h>
 #include <stdio.h>
 
@@ -473,8 +474,8 @@ void pci_init()
     bridge = pok_bsp.pci_bridge;
 
     //TODO add pci_bridge too?
-    static uint32_t bar0_addr = 0x1001;
-    const uint32_t BAR0_SIZE = 0x100;
+    //static uint32_t bar0_addr = 0x1001;
+    //const uint32_t BAR0_SIZE = 0x100;
 
     printf("bridge cfg_addr: %p cfg_data: %p\n",
             (void *)bridge.cfg_addr, (void *)bridge.cfg_data);
@@ -488,52 +489,40 @@ void pci_init()
     //pci_enumerate();
 
     printf("PCI initialization\n");
-    for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
-      for (unsigned int dev = 0; dev < PCI_DEV_MAX; dev++)
-      {
-            int fn = 0;
-            // Currently we do not handle type 1 or 2 PCI configuration spaces
-            if ((pci_read(bus, dev, fn, PCI_HEADER_TYPE) & 0xFF) != 0)
-                continue;
-            printf(">>>%02x:%02x:%02x \n", bus, dev, fn);
-            struct pci_dev pci_dev;
-            pci_dev.bus = bus;
-            pci_dev.dev = dev;
-            pci_dev.fn = fn;
-            pci_dev.vendor_id  = (uint16_t) pci_read(bus, dev, fn, PCI_VENDOR_ID);
-            pci_dev.device_id  = (uint16_t) pci_read(bus, dev, fn, PCI_DEVICE_ID);
-            //pci_dev.classcode = (uint16_t) pci_read(bus, dev, fn, PCI_REG_PROGIFID);
-            if (dev == 1) {
-                pci_write_dword(&pci_dev, PCI_BASE_ADDRESS_0, VGA_ADDR);
-                pci_write_word(&pci_dev, PCI_COMMAND, PCI_COMMAND_MEMORY);
-                pci_write_dword(&pci_dev, PCI_ROM_ADDRESS, 0xedf00000|PCI_ROM_ADDRESS_ENABLE);
-                {
-                    pci_write_dword(&pci_dev, PCI_BASE_ADDRESS_2, 0xede00000);
-                    pci_write_word(&pci_dev, PCI_COMMAND, PCI_COMMAND_MEMORY);
-                }
 
-                vga_init();
-                continue;
-            }
+    for (int i = 0; i < pci_configs_nb; i++) {
+        struct pci_dev_config *dev_config = &pci_configs[i];
+        struct pci_dev pci_dev;
 
-            for (int i = 0; i < pci_driver_table_used_cnt; i++) {
-                struct pci_driver *pci_driver = &pci_driver_table[i];
-                if (pci_match_device(pci_driver->id_table, &pci_dev)) {
-                    printf("MATCH %s\n", pci_driver->name);
-#ifdef __PPC__
-                    pci_write_dword(&pci_dev, PCI_BASE_ADDRESS_0, bar0_addr);
-                    pci_write_word(&pci_dev, PCI_COMMAND, PCI_COMMAND_IO);
-                    pci_dev.bar[0] = bridge.iorange + bar0_addr;
-                    pci_dev.ioaddr = pci_dev.bar[0] & BAR_IOADDR_MASK;
-                    bar0_addr += BAR0_SIZE;
-#else
-                    pci_dev.bar[0] = pci_read(bus, dev, fn, PCI_BASE_ADDRESS_0) & BAR_IOADDR_MASK; //TODO!!!!
-                    pci_dev.ioaddr = pci_dev.bar[0] & BAR_IOADDR_MASK;
-#endif
-                    pci_driver->probe(&pci_dev);
-                }
-            }
+        printf("%d %d %d\n",
+                dev_config->bus,
+                dev_config->dev,
+                dev_config->fn);
+
+        pci_dev.bus = dev_config->bus;
+        pci_dev.dev = dev_config->dev;
+        pci_dev.fn =  dev_config->fn;
+
+        int command = 0;
+        for (int i = 0; i < PCI_RESOURCE_ROM; i++) {
+            if (dev_config->resources[i].addr == 0)
+                continue;
+
+            pci_write_config_dword(&pci_dev, PCI_BASE_ADDRESS_0,
+                    dev_config->resources[i].addr);
+
+            if (dev_config->resources[i].type == PCI_RESOURCE_TYPE_BAR_MEM)
+                command |= PCI_COMMAND_MEMORY;
+            else if (dev_config->resources[i].type == PCI_RESOURCE_TYPE_BAR_IO)
+                command |= PCI_COMMAND_IO;
         }
+        pci_write_config_word(&pci_dev, PCI_COMMAND, command);
+
+        if (dev_config->resources[PCI_RESOURCE_ROM].addr != 0) {
+            pci_write_config_dword(&pci_dev, PCI_ROM_ADDRESS,
+                    dev_config->resources[PCI_RESOURCE_ROM].addr|PCI_ROM_ADDRESS_ENABLE);
+        }
+    }
     printf("PCI init result:\n");
     pci_list();
     printf("\n");

@@ -15,7 +15,7 @@
 #include <depl.h>
 #include <channel_driver.h>
 #include <net/network.h>
-
+#include <pci_config.h>
 
 const uint32_t pok_network_ip_address;
 unsigned sys_queuing_channels_nb;
@@ -29,3 +29,22 @@ sys_channel_t sys_queuing_channels[] = {};
 sys_channel_t sys_sampling_channels[] = {};
 struct mac_ip mac_addr_mapping[] = {};
 channel_driver_t * channel_drivers[] = {};
+
+struct pci_dev_config pci_configs[] = {
+    {
+        .bus = 0,
+        .dev = 1,
+        .fn  = 0,
+        .resources = {
+            [PCI_RESOURCE_BAR0] = {
+                .addr = 0xee000000,
+                .type = PCI_RESOURCE_TYPE_BAR_MEM
+            },
+            [PCI_RESOURCE_ROM] = {
+                .addr = 0xedf00000,
+                .type = PCI_RESOURCE_TYPE_ROM
+            }
+        }
+    }
+};
+unsigned pci_configs_nb = ARRAY_SIZE(pci_configs);
