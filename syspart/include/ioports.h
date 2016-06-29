@@ -16,6 +16,7 @@
 #ifndef __JET__IOPORTS_H__
 #define __JET__IOPORTS_H__
 
+#include <libc/string.h>
 #ifdef __PPC__
 #include <arch/ppc/ioports.h>
 #endif
@@ -70,6 +71,21 @@ static inline void iowrite32(uint32_t value, uint32_t *addr)
 #ifdef __PPC__
     out_le32(addr, value);
 #endif
+}
+
+static inline void memset_io(volatile void *addr, unsigned char val, size_t count)
+{
+    memset((void *)addr, val, count);
+}
+
+static inline void memcpy_fromio(void *dst, const volatile void *src, size_t count)
+{
+    memcpy(dst, (const void *)src, count);
+}
+
+static inline void memcpy_toio(volatile void *dst, const void *src, size_t count)
+{
+    memcpy((void *)dst, src, count);
 }
 
 #endif
