@@ -196,54 +196,13 @@ int pci_write_config_dword(struct pci_dev *dev, int where, uint32_t val)
     out_le32((void *) (bridge.cfg_data) + (where & 3), val);
 #else
     outl(PCI_CONFIG_ADDRESS, addr);
-    *val = inl(PCI_CONFIG_DATA);
+    outl(PCI_CONFIG_DATA, val);
 #endif
     return OK;
 }
 
 
 
-uint8_t  ioread8 (uint8_t  *addr)
-{
-#ifdef __PPC__
-    return in_8(addr);
-#endif
-}
-
-uint16_t ioread16(uint16_t *addr)
-{
-#ifdef __PPC__
-    return in_le16(addr);
-#endif
-}
-
-uint32_t ioread32(uint32_t *addr)
-{
-#ifdef __PPC__
-    return in_le32(addr);
-#endif
-}
-
-void iowrite8(uint8_t value, uint8_t *addr)
-{
-#ifdef __PPC__
-    out_8(addr, value);
-#endif
-}
-
-void iowrite16(uint16_t value, uint16_t *addr)
-{
-#ifdef __PPC__
-    out_le16(addr, value);
-#endif
-}
-
-void iowrite32(uint32_t value, uint32_t *addr)
-{
-#ifdef __PPC__
-    out_le32(addr, value);
-#endif
-}
 
 
 static void pci_fill_resource(struct pci_dev *dev, int res_idx)

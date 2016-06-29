@@ -24,6 +24,7 @@
 # define __POK__PCI_H__
 
 #include <types.h>
+#include <ioports.h>
 
 /*
  * PCI configuration registers
@@ -174,15 +175,6 @@ int pci_read_config_dword(struct pci_dev *dev, int where, uint32_t *val);
 int pci_write_config_byte(struct pci_dev *dev, int where, uint8_t val);
 int pci_write_config_word(struct pci_dev *dev, int where, uint16_t val);
 int pci_write_config_dword(struct pci_dev *dev, int where, uint32_t val);
-
-uint8_t  ioread8 (uint8_t  *addr);
-uint16_t ioread16(uint16_t *addr);
-uint32_t ioread32(uint32_t *addr);
-
-void iowrite8 (uint8_t value,  uint8_t  *addr);
-void iowrite16(uint16_t value, uint16_t *addr);
-void iowrite32(uint32_t value, uint32_t *addr);
-
 
 
 /*

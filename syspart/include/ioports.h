@@ -13,7 +13,9 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-//#ifdef POK_ARCH_PPC
+#ifndef __JET__IOPORTS_H__
+#define __JET__IOPORTS_H__
+
 #ifdef __PPC__
 #include <arch/ppc/ioports.h>
 #endif
@@ -26,4 +28,48 @@
 //#ifdef POK_ARCH_SPARC
 #ifdef __sparc__
 #include <arch/sparc/ioports.h>
+#endif
+
+static inline uint8_t  ioread8 (uint8_t  *addr)
+{
+#ifdef __PPC__
+    return in_8(addr);
+#endif
+}
+
+static inline uint16_t ioread16(uint16_t *addr)
+{
+#ifdef __PPC__
+    return in_le16(addr);
+#endif
+}
+
+static inline uint32_t ioread32(uint32_t *addr)
+{
+#ifdef __PPC__
+    return in_le32(addr);
+#endif
+}
+
+static inline void iowrite8(uint8_t value, uint8_t *addr)
+{
+#ifdef __PPC__
+    out_8(addr, value);
+#endif
+}
+
+static inline void iowrite16(uint16_t value, uint16_t *addr)
+{
+#ifdef __PPC__
+    out_le16(addr, value);
+#endif
+}
+
+static inline void iowrite32(uint32_t value, uint32_t *addr)
+{
+#ifdef __PPC__
+    out_le32(addr, value);
+#endif
+}
+
 #endif
