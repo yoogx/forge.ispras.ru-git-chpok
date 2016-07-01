@@ -208,6 +208,63 @@ void pok_insert_tlb1(
 // XXX not implemented
 void pok_insert_tlb0();
 
+
+struct tlb_entry {
+    uint32_t virt_addr;
+    uint64_t phys_addr;
+    unsigned size;
+    unsigned permissions;
+    unsigned cache_policy;
+    unsigned pid;
+};
+
+struct tlb_entry tlb_entries[] = {
+    {
+        .virt_addr = 0xedf00000,
+        .phys_addr = 0xedf00000,
+        .size = E500MC_PGSIZE_64K,
+        .permissions = MAS3_SW | MAS3_SR | MAS3_SX | MAS3_UW | MAS3_UR,
+        .cache_policy = MAS2_W | MAS2_I | MAS2_M | MAS2_G,
+        .pid = 0,
+    },
+    {
+        .virt_addr = 0xe0000000,
+        .phys_addr = 0xe0000000,
+        .size = E500MC_PGSIZE_1M,
+        .permissions = MAS3_SW | MAS3_SR | MAS3_SX | MAS3_UW | MAS3_UR,
+        .cache_policy = MAS2_W | MAS2_I | MAS2_M | MAS2_G,
+        .pid = 0,
+    },
+    {
+
+        .virt_addr = 0xe1000000,
+        .phys_addr = 0xe1000000,
+        .size = E500MC_PGSIZE_64K,
+        .permissions = MAS3_SW | MAS3_SR | MAS3_SX | MAS3_UW | MAS3_UR,
+        .cache_policy = MAS2_W | MAS2_I | MAS2_M | MAS2_G,
+        .pid = 0,
+
+    },
+    {
+        .virt_addr = 0xee000000,
+        .phys_addr = 0xee000000,
+        .size = E500MC_PGSIZE_16M,
+        .permissions = MAS3_SW | MAS3_SR | MAS3_SX | MAS3_UW | MAS3_UR,
+        .cache_policy = MAS2_W | MAS2_I | MAS2_M | MAS2_G,
+        .pid = 0,
+
+    },
+    {
+        .virt_addr = 0xedf00000,
+        .phys_addr = 0xedf00000,
+        .size = E500MC_PGSIZE_64K,
+        .permissions = MAS3_SW | MAS3_SR | MAS3_SX | MAS3_UW | MAS3_UR,
+        .cache_policy = MAS2_W | MAS2_I | MAS2_M | MAS2_G,
+        .pid = 0,
+    }
+
+};
+
 void pok_arch_space_init (void)
 {
     // overwrites first TLB1 entry
@@ -237,17 +294,17 @@ void pok_arch_space_init (void)
     // Preserve it, let's POK write it's entries starting 2
     next_non_resident = next_resident = 2;
 
-
-    pok_insert_tlb1(
-            pok_bsp.ccsrbar_base,
-            pok_bsp.ccsrbar_base_phys,
-            E500MC_PGSIZE_256M,
-            //MAS3_SW | MAS3_SR | MAS3_SX,
-            MAS3_SW | MAS3_SR | MAS3_SX | MAS3_UW | MAS3_UR,
-            MAS2_W | MAS2_I | MAS2_M | MAS2_G,
-            0,
-            TRUE
-            );
+    for (int i = 0; i < sizeof(tlb_entries)/sizeof(tlb_entries[0]); i++) {
+        pok_insert_tlb1(
+                tlb_entries[i].virt_addr,
+                tlb_entries[i].phys_addr,
+                tlb_entries[i].size,
+                tlb_entries[i].permissions,
+                tlb_entries[i].cache_policy,
+                tlb_entries[i].pid,
+                TRUE
+                );
+    }
 
     //pok_ppc_tlb_print(0);
     //pok_ppc_tlb_print(1);
