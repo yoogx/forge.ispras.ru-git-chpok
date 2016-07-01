@@ -570,6 +570,33 @@ class NetworkConfiguration:
     #def mac_to_string(self):
     #    return "{%s}" % ", ".join(hex(i) for i in self.mac)
 
+
+class Memory_block:
+    __slots__ = [
+        "name",
+        "size",
+        "virt_addr",
+        "phys_addr",
+        "cache_policy",
+        "system_access"
+    ]
+
+    def __init__(self, name, size):
+        self.name = name
+        self.size = size
+
+        self.virt_addr = 0
+        self.phys_addr = 0
+
+        self.cache_policy = "DEFAULT"
+        self.system_access = "READ_WRITE"
+
+
+    def __repr__(self):
+        return self.name + ": " + hex(self.virt_addr) + " -> " + hex(self.phys_addr) + " [" +\
+                hex(self.size) + "], " + str(self.cache_policy) + ", " + str(self.system_access)
+
+
 class Configuration:
     system_states_all = system_states
     error_ids_all = error_ids
@@ -580,6 +607,7 @@ class Configuration:
         "channels_queueing", # queueing port channels (connections)
         "channels_sampling", # sampling port channels (connections)
         "network", # NetworkConfiguration object (or None)
+        "memory_blocks"
 
         # if this is set, POK writes a special string once 
         # there are no more schedulable threads
@@ -596,6 +624,7 @@ class Configuration:
         self.channels_queueing = []
         self.channels_sampling = []
         self.network = None
+        self.memory_blocks = []
 
         self.test_support_print_when_all_threads_stopped = False
 
@@ -605,6 +634,8 @@ class Configuration:
         self.partition_names_map = dict()
         self.partition_ids_map = dict()
         self.next_partition_id = 0
+
+        self.memory_block_names_map = dict()
 
         self.next_channel_id_sampling = 0
         self.next_channel_id_queueing = 0
@@ -698,6 +729,17 @@ class Configuration:
 
         self.slots.append(slot)
         self.major_frame += slot.duration
+
+    def add_memory_block(self, name, size):
+        if name in self.memory_block_names_map:
+            raise RuntimeError("Adding already existed partition '%s'" % part_name)
+
+        mblock = Memory_block(name, size)
+
+        self.memory_blocks.append(mblock)
+        self.memory_block_names_map[name] = mblock
+
+        return mblock
 
     def get_all_ports(self):
         return sum((part.get_all_ports() for part in self.partitions), [])

@@ -109,6 +109,9 @@ class ArincConfigParser:
 
         conf.network = self.parse_network(root.find("Network"))
 
+        for mem_block_root in root.find("Memory_Blocks").findall("Memory_Block"):
+            self.parse_memory_block(conf, mem_block_root)
+
         # Use some default value for module HM table.
         module_error_level_selector_per_state = {error_id: 1 for error_id in conf.error_ids_all }
         for s in ['ERROR_HANDLER', 'USER']:
@@ -117,7 +120,7 @@ class ArincConfigParser:
         conf.validate()
 
         return conf
-    
+
     def parse_partition(self, conf, part_root):
         part_name = part_root.find("Definition").attrib["Name"]
 
@@ -248,6 +251,24 @@ class ArincConfigParser:
         #    res.mac = None
 
         return res
+
+    def parse_memory_block(self, conf, mroot):
+        name = mroot.attrib["Name"]
+        size = int(mroot.attrib["Size"], 0)
+
+        mblock = conf.add_memory_block(name, size)
+
+        mblock.virt_addr = int(mroot.attrib["VirtualAddress"], 0)
+        mblock.phys_addr = int(mroot.attrib["PhysicalAddress"], 0)
+
+        if "CachePolicy" in mroot.attrib:
+            mblock.cache_policy = mroot.attrib["CachePolicy"]
+        if "SystemAccess" in mroot.attrib:
+            mblock.system_access = mroot.attrib["SystemAccess"]
+        print("found memblock", mblock)
+
+        #if "System" in part_root.find("Definition").attrib:
+        #    part.is_system = parse_bool(part_root.find("Definition").attrib["System"])
 
     def parse_hm(self, table, root):
         if root is None:

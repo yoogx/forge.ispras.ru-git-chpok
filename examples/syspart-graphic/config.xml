@@ -44,4 +44,26 @@
             </Destination>
         </Channel>
     </Connection_Table>
+
+
+    <Memory_Blocks>
+        <Memory_Block
+            Name="ccsrbar"
+            VirtualAddress ="0xe0000000"
+            PhysicalAddress="0xe0000000"
+            Size="0x1000000"
+            CachePolicy="IO"
+            SystemAccess="READ_WRITE"
+            />
+        <Memory_Block
+            Name="vga-framebuffer"
+            VirtualAddress ="0xee000000"
+            PhysicalAddress="0xee000000"
+            Size="0x1000000"
+            />
+            <!--
+            CachePolicy="DEFAULT"
+            SystemAcess="READ_WRITE"
+            -->
+    </Memory_Blocks>
 </chpok-configuration>
