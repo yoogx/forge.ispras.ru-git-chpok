@@ -228,14 +228,13 @@ static inline const char* pok_ppc_tlb_size(unsigned size)
 // XXX not implemented
 void pok_insert_tlb0();
 
-static int pok_ccsrbar_ready = 0;
-
-static void pok_ppc_tlb_print(unsigned tlbsel) {
+void pok_ppc_tlb_print(unsigned tlbsel)
+{
     unsigned limit = pok_ppc_tlb_get_nentry(1);
 
     for (unsigned i = 0; i < limit; i++) {
         unsigned valid;
-        unsigned tsize; 
+        unsigned tsize;
         uint32_t epn;
         uint64_t rpn;
         pok_ppc_tlb_read_entry(tlbsel, i,
@@ -244,16 +243,15 @@ static void pok_ppc_tlb_print(unsigned tlbsel) {
                 &epn,
                 &rpn
                 );
-        //~ if (valid) {
-            //~ printf("DEBUG: tlb entry %d:%d:\r\n", tlbsel, i);
-            //~ printf("DEBUG:   Valid\r\n");
-            //~ printf("DEBUG:   Effective: %p\r\n", (void*)epn);
-            //~ // FIXME This is wrong. We print only 32 bits out of 36
-            //~ printf("DEBUG:   Physical: %x:%p\r\n", 
-                    //~ (unsigned)(rpn>>32), (void*)(unsigned)rpn);
-            //~ printf("DEBUG:   Size: %s\r\n", pok_ppc_tlb_size(tsize));
-//~ 
-        //~ }
+        if (valid) {
+            printf("DEBUG: tlb entry %d:%d:\r\n", tlbsel, i);
+            printf("DEBUG:   Valid\r\n");
+            printf("DEBUG:   Effective: %p\r\n", (void*)epn);
+            // FIXME This is wrong. We print only 32 bits out of 36
+            printf("DEBUG:   Physical: %x:%p\r\n",
+                    (unsigned)(rpn>>32), (void*)(unsigned)rpn);
+            printf("DEBUG:   Size: %s\r\n", pok_ppc_tlb_size(tsize));
+        }
     }
 }
 
@@ -268,28 +266,16 @@ void pok_arch_space_init (void)
         E500MC_PGSIZE_256M,  //TODO make smaller
         MAS3_SW | MAS3_SR | MAS3_SX,
         0,
-        0, // any pid 
+        0, // any pid
         TRUE
     );
+
     /*
      * Clear all other mappings. For instance, those created by u-boot.
      */
     unsigned limit = pok_ppc_tlb_get_nentry(1);
-    pok_ppc_tlb_write(1,
-            pok_bsp.ccsrbar_base, pok_bsp.ccsrbar_base_phys, E500MC_PGSIZE_256M,
-            //MAS3_SW | MAS3_SR | MAS3_SX,
-            MAS3_SW | MAS3_SR | MAS3_SX | MAS3_UW | MAS3_UR,
-            MAS2_W | MAS2_I | MAS2_M | MAS2_G,
-            0,
-            limit-1,
-            TRUE
-            );
-    pok_ccsrbar_ready = 1;
-
-    pok_ppc_tlb_print(0);
-    pok_ppc_tlb_print(1);
 //    pok_ppc_tlb_clear_entry(1, 2);
-    for (unsigned i = 1; i < limit-1; i++) {
+    for (unsigned i = 1; i < limit; i++) {
         pok_ppc_tlb_clear_entry(1, i);
     }
 
@@ -297,7 +283,21 @@ void pok_arch_space_init (void)
     // By some reason P3041 DUART blocks when TLB entry #1 is overrriden.
     // Preserve it, let's POK write it's entries starting 2
     next_non_resident = next_resident = 2;
-    //
+
+    pok_insert_tlb1(
+            pok_bsp.ccsrbar_base,
+            pok_bsp.ccsrbar_base_phys,
+            E500MC_PGSIZE_256M,
+            //MAS3_SW | MAS3_SR | MAS3_SX,
+            MAS3_SW | MAS3_SR | MAS3_SX | MAS3_UW | MAS3_UR,
+            MAS2_W | MAS2_I | MAS2_M | MAS2_G,
+            0,
+            TRUE
+            );
+
+    //pok_ppc_tlb_print(0);
+    //pok_ppc_tlb_print(1);
+
 }
 
 //TODO get this values from devtree!
@@ -312,30 +312,7 @@ void pok_arch_handle_page_fault(
 {
     int tlb_miss = (type == PF_INST_TLB_MISS || type == PF_DATA_TLB_MISS);
     unsigned pid = mfspr(SPRN_PID);
-
-    if (tlb_miss && faulting_address >= pok_bsp.ccsrbar_base && faulting_address < pok_bsp.ccsrbar_base + pok_bsp.ccsrbar_size) {
-        pok_insert_tlb1(
-            pok_bsp.ccsrbar_base, 
-            pok_bsp.ccsrbar_base_phys, 
-            E500MC_PGSIZE_256M,
-            //MAS3_SW | MAS3_SR,
-            MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,
-            MAS2_W | MAS2_I | MAS2_M | MAS2_G,
-            0, /* any pid */
-            TRUE 
-        );
-    } else if (tlb_miss && faulting_address >= MPC8544_PCI_IO && faulting_address < MPC8544_PCI_IO + MPC8544_PCI_IO_SIZE) {
-        pok_insert_tlb1(
-            MPC8544_PCI_IO,
-            MPC8544_PCI_IO,
-            E500MC_PGSIZE_64K,
-            //MAS3_SW | MAS3_SR,
-            MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,
-            MAS2_W | MAS2_I | MAS2_M | MAS2_G,
-            0, /* any pid */
-            TRUE
-        );
-    } else if (
+    if (
             tlb_miss &&
             pid != 0 &&
             faulting_address >= POK_PARTITION_MEMORY_BASE &&
