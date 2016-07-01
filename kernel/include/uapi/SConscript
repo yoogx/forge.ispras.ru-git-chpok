@@ -1,0 +1,42 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+# List of headers which are used both by kernel and user.
+uapi_headers = [
+    'blackboard_types.h',
+    'buffer_types.h',
+    'errno.h',
+    'error_arinc_types.h',
+    'event_types.h',
+    'partition_arinc_types.h',
+    'partition_types.h',
+    'port_types.h',
+    'semaphore_types.h',
+    'syscall_types.h',
+    'thread_types.h',
+    'types.h',
+]
+
+# List of headers files, described syscalls, for generate.
+# Filenames do not include `.in` suffix.
+uapi_headers_syscall = [
+    'syscall_map_arinc.h'
+]
+
+Return('uapi_headers', 'uapi_headers_syscall')

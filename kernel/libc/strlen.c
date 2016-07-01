@@ -15,6 +15,7 @@
  */
 
 #include <config.h>
+#include <libc.h>
 
 #ifdef POK_NEEDS_DEBUG
 

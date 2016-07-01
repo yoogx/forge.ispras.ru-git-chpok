@@ -159,7 +159,7 @@ void GET_EVENT_STATUS (EVENT_ID_TYPE EVENT_ID,
 
    if(core_ret == POK_ERRNO_OK)
    {
-      EVENT_STATUS->EVENT_STATE = core_status.up ? UP : DOWN;
+      EVENT_STATUS->EVENT_STATE = core_status.is_up ? UP : DOWN;
       EVENT_STATUS->WAITING_PROCESSES = core_status.waiting_processes;
    }
 }

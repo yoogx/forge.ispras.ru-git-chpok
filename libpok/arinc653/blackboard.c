@@ -38,7 +38,7 @@
 
 #include <arinc653/types.h>
 #include <arinc653/blackboard.h>
-#include <middleware/blackboard.h>
+#include <core/blackboard.h>
 #include <utils.h>
 
 #define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
@@ -172,8 +172,8 @@ void GET_BLACKBOARD_STATUS (
     }
 
     if (core_ret == POK_ERRNO_OK) {
-        BLACKBOARD_STATUS->EMPTY_INDICATOR = status.empty ? EMPTY : OCCUPIED;
-        BLACKBOARD_STATUS->MAX_MESSAGE_SIZE = status.msg_size;
+        BLACKBOARD_STATUS->EMPTY_INDICATOR = status.is_empty ? EMPTY : OCCUPIED;
+        BLACKBOARD_STATUS->MAX_MESSAGE_SIZE = status.max_message_size;
         BLACKBOARD_STATUS->WAITING_PROCESSES = status.waiting_processes;
 
         *RETURN_CODE = NO_ERROR;

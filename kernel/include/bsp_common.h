@@ -63,9 +63,9 @@ pok_ret_t pok_bsp_time_init ();
 void pok_bsp_get_info(void *addr);
 
 
-bool_t pok_cons_write (const char* s,
+pok_bool_t pok_cons_write (const char* s,
                        size_t length);
-bool_t pok_cons_write_1 (const char* s,
+pok_bool_t pok_cons_write_1 (const char* s,
                        size_t length);
 
 

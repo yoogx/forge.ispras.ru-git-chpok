@@ -26,34 +26,12 @@
 #include <types.h>
 #include <errno.h>
 
-typedef enum
-{
-   POK_PARTITION_MODE_INIT_COLD = 1,
-   POK_PARTITION_MODE_INIT_WARM = 2,
-   POK_PARTITION_MODE_NORMAL    = 3,
-   POK_PARTITION_MODE_IDLE      = 4,
-}pok_partition_mode_t;
-
-typedef enum
-{
-  POK_START_CONDITION_NORMAL_START          = 0,
-  POK_START_CONDITION_PARTITION_RESTART     = 1,
-  POK_START_CONDITION_HM_MODULE_RESTART     = 2,
-  POK_START_CONDITION_HM_PARTITION_RESTART  = 3
-}pok_start_condition_t;
-
-typedef struct {
-   pok_partition_id_t id;
-   pok_time_t period;
-   pok_time_t duration;
-   int32_t lock_level;
-   pok_partition_mode_t mode;
-   pok_start_condition_t  start_condition;
-} pok_partition_status_t;
+#include <uapi/partition_types.h>
+#include <uapi/partition_arinc_types.h>
 
 #include <core/syscall.h>
 
-// Rename syscall
+// Rename some syscalls
 #define pok_partition_set_mode pok_partition_set_mode_current
 #define pok_partition_inc_lock_level pok_current_partition_inc_lock_level
 #define pok_partition_dec_lock_level pok_current_partition_dec_lock_level

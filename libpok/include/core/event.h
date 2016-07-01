@@ -20,14 +20,9 @@
 
 #include <core/dependencies.h>
 
-#include <types.h>
 #include <errno.h>
 
-typedef struct {
-    pok_bool_t up;
-    pok_range_t waiting_processes;
-} pok_event_status_t;
-
+#include <uapi/event_types.h>
 
 // All event-related functions are already defined as syscalls.
 #include <core/syscall.h>

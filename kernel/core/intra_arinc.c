@@ -122,8 +122,8 @@ pok_ret_t pok_buffer_create(char* __user name,
     if(part->mode == POK_PARTITION_MODE_NORMAL) return POK_ERRNO_PARTITION_MODE;
     // No needs in critical section - init process cannot be preempted.
 
-    if(discipline != POK_QUEUEING_DISCIPLINE_FIFO
-        && discipline != POK_QUEUEING_DISCIPLINE_PRIORITY) return POK_ERRNO_EINVAL;
+    if(discipline != POK_QUEUING_DISCIPLINE_FIFO
+        && discipline != POK_QUEUING_DISCIPLINE_PRIORITY) return POK_ERRNO_EINVAL;
 
     if(max_message_size == 0) return POK_ERRNO_EINVAL;
     if(max_message_size > SYSTEM_LIMIT_MESSAGE_SIZE) return POK_ERRNO_EINVAL;
@@ -658,8 +658,8 @@ pok_ret_t pok_semaphore_create(const char* __user name,
     
     // TODO: check whether max_value is out of range.
     
-    if(discipline != POK_QUEUEING_DISCIPLINE_FIFO
-        && discipline != POK_QUEUEING_DISCIPLINE_PRIORITY) return POK_ERRNO_EINVAL;
+    if(discipline != POK_QUEUING_DISCIPLINE_FIFO
+        && discipline != POK_QUEUING_DISCIPLINE_PRIORITY) return POK_ERRNO_EINVAL;
 
     if(part->nsemaphores_used == part->nsemaphores) return POK_ERRNO_TOOMANY;
     

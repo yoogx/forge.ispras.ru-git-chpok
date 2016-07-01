@@ -26,7 +26,8 @@
 #include <types.h>
 #include <errno.h>
 
-#include <core/syscall_types.h>
+#include <uapi/syscall_types.h>
+
 
 #include <asp/syscall.h>
 
@@ -37,15 +38,7 @@
 #define pok_syscall4 lja_syscall4
 #define pok_syscall5 lja_syscall5
 
-#include <core/thread.h>
-#include <core/partition.h>
-#include <middleware/port.h>
-#include <middleware/buffer.h>
-#include <middleware/blackboard.h>
-#include <core/semaphore.h>
-#include <core/event.h>
-#include <core/error.h>
-
-#include <pok/syscall_map_arinc.h>
+// This should come after pok_syscall* definitions
+#include <uapi/syscall_map_arinc.h>
 
 #endif /* __LIBPOK_SYSCALL_H__ */

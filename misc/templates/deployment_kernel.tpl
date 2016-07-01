@@ -13,7 +13,7 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-
+#include <config.h>
 #include <types.h>
 #include <core/error.h>
 #include <core/error_arinc.h>
@@ -27,7 +27,7 @@
 pok_error_level_selector_t pok_hm_module_selector = {
     .levels = {
 {%for error_id in conf.error_ids_all%}
-    {{conf.module_hm_table.level_selector_total(error_id)}}, /* POK_ERROR_ID_{{error_id}} */
+        {{conf.module_hm_table.level_selector_total(error_id)}}, /* POK_ERROR_ID_{{error_id}} */
 {%endfor%}
     }
 };
@@ -251,29 +251,25 @@ const pok_sched_slot_t pok_module_sched[{{conf.slots | length}}] = {
 {%for slot in conf.slots%}
     {
         .duration = {{slot.duration}},
-        .offset = 0, {#TODO: precalculate somehow#}
-        {%-if slot.get_kind_constant() == 'POK_SLOT_PARTITION' %}
-
+        .offset = 0,{#TODO: precalculate somehow#}{{''}}
+    {%if slot.get_kind_constant() == 'POK_SLOT_PARTITION' %}
         .partition = &pok_partitions_arinc[{{slot.partition.part_index}}].base_part,
         .periodic_processing_start = {%if slot.periodic_processing_start%}TRUE{%else%}FALSE{%endif%},
-        {%elif slot.get_kind_constant() == 'POK_SLOT_MONITOR' %}
-
+    {%elif slot.get_kind_constant() == 'POK_SLOT_MONITOR' %}
 #ifdef POK_NEEDS_MONITOR
         .partition = &partition_monitor,
 #else /* POK_NEEDS_MONITOR */
         .partition = &partition_idle,
 #endif /* POK_NEEDS_MONITOR */
         .periodic_processing_start = FALSE,
-        {%elif slot.get_kind_constant() == 'POK_SLOT_GDB' %}
-
+    {%elif slot.get_kind_constant() == 'POK_SLOT_GDB' %}
 #ifdef POK_NEEDS_GDB
         .partition = &partition_gdb,
 #else /* POK_NEEDS_GDB */
         .partition = &partition_idle,
 #endif /* POK_NEEDS_GDB */
-
         .periodic_processing_start = FALSE,
-        {%endif-%}
+    {%endif%}
         .id = {{loop.index0}}
     },
 {%endfor%}

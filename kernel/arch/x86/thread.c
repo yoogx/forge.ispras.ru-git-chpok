@@ -44,7 +44,18 @@ uint32_t		ja_context_init (uint32_t sp, void (*entry)(void))
   start_ctx->ctx.__esp   = (uint32_t) (&start_ctx->ctx.eip); /* for pusha */
   start_ctx->ctx.eip     = (uint32_t) entry;
   start_ctx->ctx.cs      = GDT_CORE_CODE_SEGMENT << 3;
-  start_ctx->ctx.eflags  = 1 << 9;
+  /*
+   * TODO: Current implementation of context switching requires
+   * Interrupt Enabled flag to be specified when context for the switch
+   * is created.
+   * 
+   * Currently we use hardcoded guess, that flag for the switched context
+   * should be same as current flag.
+   * 
+   * In the future Interrupt Enabled flag should be same as one for
+   * context we switched from.
+   */
+  start_ctx->ctx.eflags  = pok_arch_preempt_enabled()? 1 << 9 : 0;
 
   start_ctx->entry       = 0; /* Was: entry */
   start_ctx->id          = 0; /* Was: thread_id */

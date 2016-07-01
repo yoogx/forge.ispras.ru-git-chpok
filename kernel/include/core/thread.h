@@ -28,15 +28,8 @@
 #ifdef POK_NEEDS_THREADS
 
 // Note: Should come before possible inclusion of <core/partition.h>
-// must match libpok/include/core/thread.h
-typedef enum
-{
-  // comments describe to what states of ARINC653 these correspond to
-  POK_STATE_STOPPED = 0, // DORMANT (must be started first)
-  POK_STATE_RUNNABLE = 1, // READY or RUNNING. When return status to user space it means READY.
-  POK_STATE_WAITING = 2, // WAITING for any event except resuming(but for timed suspend exactly this state is used).
-  POK_STATE_RUNNING = 3, // RUNNING. Used only for return status to user space.
-} pok_state_t;
+
+#include <uapi/thread_types.h>
 
 #include <types.h>
 #include <errno.h>
@@ -95,11 +88,6 @@ typedef enum
 #ifndef POK_USER_STACK_SIZE
 #define POK_USER_STACK_SIZE 8192
 #endif
-
-typedef enum {
-    DEADLINE_SOFT,
-    DEADLINE_HARD
-} pok_deadline_t;
 
 #ifdef POK_NEEDS_ERROR_HANDLING
 
@@ -363,26 +351,6 @@ typedef struct _pok_thread
     char 		    name [MAX_NAME_LENGTH];
 } pok_thread_t;
 
-/*
- * Attributes given to create a thread
- */
-typedef struct
-{
-    uint8_t         priority;         /* Priority is from 0 to 255 */
-    pok_time_t      period;
-    pok_deadline_t  deadline;
-    pok_time_t      time_capacity;
-    uint32_t        stack_size;
-} pok_thread_attr_t;
-
-typedef struct 
-{
-    pok_thread_attr_t   attributes;
-    pok_time_t          deadline_time;
-	pok_state_t         state;
-    uint8_t             current_priority;
-} pok_thread_status_t;
-
 /**
  * Queue of threads, waited for specific event.
  * 
@@ -413,7 +381,7 @@ void pok_thread_wq_add_prio(pok_thread_wq_t* wq, pok_thread_t* t);
 static inline void pok_thread_wq_add_common(pok_thread_wq_t* wq,
     pok_thread_t* t, pok_queuing_discipline_t discipline)
 {
-    if(discipline == POK_QUEUEING_DISCIPLINE_FIFO)
+    if(discipline == POK_QUEUING_DISCIPLINE_FIFO)
         pok_thread_wq_add(wq, t);
     else
         pok_thread_wq_add_prio(wq, t);

@@ -448,7 +448,7 @@ pok_ret_t pok_error_get (pok_error_status_t* __user status,
     }
     
     __put_user_f(status, failed_thread, thread - part->threads);
-    __put_user_f(status, failed_addr, failed_addr);
+    __put_user_f(status, failed_addr, (uintptr_t)failed_addr);
    
     return POK_ERRNO_OK;
 }
