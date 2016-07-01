@@ -195,26 +195,6 @@ void pok_insert_tlb1(
         TRUE);
 }
 
-static inline const char* pok_ppc_tlb_size(unsigned size)
-{
-    switch (size) {
-#define CASE(x) case E500MC_PGSIZE_##x: return #x; 
-        CASE(4K);
-        CASE(16K);
-        CASE(64K);
-        CASE(256K);
-        CASE(1M);
-        CASE(4M);
-        CASE(16M);
-        CASE(64M);
-        CASE(256M);
-        CASE(1G);
-        CASE(4G);
-#undef CASE
-        default:
-        return "Unknown";
-    }
-}
 
 /*
  *  Quote from the manual:
@@ -227,33 +207,6 @@ static inline const char* pok_ppc_tlb_size(unsigned size)
  */
 // XXX not implemented
 void pok_insert_tlb0();
-
-void pok_ppc_tlb_print(unsigned tlbsel)
-{
-    unsigned limit = pok_ppc_tlb_get_nentry(1);
-
-    for (unsigned i = 0; i < limit; i++) {
-        unsigned valid;
-        unsigned tsize;
-        uint32_t epn;
-        uint64_t rpn;
-        pok_ppc_tlb_read_entry(tlbsel, i,
-                &valid,
-                &tsize,
-                &epn,
-                &rpn
-                );
-        if (valid) {
-            printf("DEBUG: tlb entry %d:%d:\r\n", tlbsel, i);
-            printf("DEBUG:   Valid\r\n");
-            printf("DEBUG:   Effective: %p\r\n", (void*)epn);
-            // FIXME This is wrong. We print only 32 bits out of 36
-            printf("DEBUG:   Physical: %x:%p\r\n",
-                    (unsigned)(rpn>>32), (void*)(unsigned)rpn);
-            printf("DEBUG:   Size: %s\r\n", pok_ppc_tlb_size(tsize));
-        }
-    }
-}
 
 void pok_arch_space_init (void)
 {
@@ -283,6 +236,7 @@ void pok_arch_space_init (void)
     // By some reason P3041 DUART blocks when TLB entry #1 is overrriden.
     // Preserve it, let's POK write it's entries starting 2
     next_non_resident = next_resident = 2;
+
 
     pok_insert_tlb1(
             pok_bsp.ccsrbar_base,
@@ -320,7 +274,7 @@ void pok_arch_handle_page_fault(
     {
         uint8_t space_id = pid - 1;
 
-        pok_insert_tlb1( 
+        pok_insert_tlb1(
             POK_PARTITION_MEMORY_BASE,
             spaces[space_id].phys_base,
             E500MC_PGSIZE_16M,
