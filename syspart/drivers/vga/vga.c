@@ -16,6 +16,7 @@
 #include <pci.h>
 #include <ioports.h>
 #include <stdio.h>
+#include <byteorder.h>
 
 //TODO DELETE
 #include "vbe.h"
@@ -68,11 +69,12 @@ void vga_init()
 
 void vga_draw(void)
 {
+    uint16_t *addr;
     int start = 400;
     for (int y = 0; y < gimp_image.height; y++) {
         for (int x = 0; x < gimp_image.width; x++) {
-            out_le16((uint16_t *) vga_dev.resources[PCI_RESOURCE_BAR0].addr + (y+start)*SCREEN_WIDTH + x,
-                    ((uint16_t*)gimp_image.pixel_data)[y*gimp_image.width + x]);
+            addr = (uint16_t *) vga_dev.resources[PCI_RESOURCE_BAR0].addr + (y+start)*SCREEN_WIDTH + x;
+            *addr = le16_to_cpu(((uint16_t*)gimp_image.pixel_data)[y*gimp_image.width + x]);
         }
     }
 }
