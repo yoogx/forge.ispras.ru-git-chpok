@@ -281,3 +281,58 @@ const pok_time_t pok_config_scheduling_major_frame = {{conf.major_frame}};
 
 /************************ Setup address spaces ************************/
 struct pok_space spaces[{{conf.partitions | length}}]; // As many as partitions
+
+/************************ Memory mapping ************************/
+#ifdef __PPC__
+
+#include <arch/ppc/tlb_config.h>
+
+struct tlb_entry jet_tlb_entries[] = {
+    {
+        .virt_addr = 0xedf00000,
+        .phys_addr = 0xedf00000,
+        .size = E500MC_PGSIZE_64K,
+        .permissions = MAS3_SW | MAS3_SR | MAS3_SX | MAS3_UW | MAS3_UR,
+        .cache_policy = MAS2_W | MAS2_I | MAS2_M | MAS2_G,
+        .pid = 0,
+    },
+    {
+        .virt_addr = 0xe0000000,
+        .phys_addr = 0xe0000000,
+        .size = E500MC_PGSIZE_1M,
+        .permissions = MAS3_SW | MAS3_SR | MAS3_SX | MAS3_UW | MAS3_UR,
+        .cache_policy = MAS2_W | MAS2_I | MAS2_M | MAS2_G,
+        .pid = 0,
+    },
+    {
+
+        .virt_addr = 0xe1000000,
+        .phys_addr = 0xe1000000,
+        .size = E500MC_PGSIZE_64K,
+        .permissions = MAS3_SW | MAS3_SR | MAS3_SX | MAS3_UW | MAS3_UR,
+        .cache_policy = MAS2_W | MAS2_I | MAS2_M | MAS2_G,
+        .pid = 0,
+
+    },
+    {
+        .virt_addr = 0xee000000,
+        .phys_addr = 0xee000000,
+        .size = E500MC_PGSIZE_16M,
+        .permissions = MAS3_SW | MAS3_SR | MAS3_SX | MAS3_UW | MAS3_UR,
+        .cache_policy = MAS2_W | MAS2_I | MAS2_M | MAS2_G,
+        .pid = 0,
+
+    },
+    {
+        .virt_addr = 0xedf00000,
+        .phys_addr = 0xedf00000,
+        .size = E500MC_PGSIZE_64K,
+        .permissions = MAS3_SW | MAS3_SR | MAS3_SX | MAS3_UW | MAS3_UR,
+        .cache_policy = MAS2_W | MAS2_I | MAS2_M | MAS2_G,
+        .pid = 0,
+    }
+
+};
+
+size_t jet_tlb_entries_n = 5; //{{ conf.channels_queueing | length }};
+#endif
