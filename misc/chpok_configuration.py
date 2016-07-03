@@ -32,6 +32,7 @@ import json
 import functools
 import collections
 import ipaddr
+import math
 
 
 class PartitionLayout():
@@ -571,10 +572,18 @@ class NetworkConfiguration:
     #    return "{%s}" % ", ".join(hex(i) for i in self.mac)
 
 
+def size_to_str(num):
+    for unit in ['','K','M','G']:
+        if abs(num) < 1024:
+            return "%d%s" % (num, unit)
+        num /= 1024
+    raise RuntimeError("wrong size of memory block")
+
 class Memory_block:
     __slots__ = [
         "name",
         "size",
+        "str_size",
         "virt_addr",
         "phys_addr",
         "cache_policy",
@@ -584,6 +593,8 @@ class Memory_block:
     def __init__(self, name, size):
         self.name = name
         self.size = size
+        aligned_size = max(4**math.ceil(math.log(size, 4)), 0x1000)
+        self.str_size = size_to_str(aligned_size)
 
         self.virt_addr = 0
         self.phys_addr = 0
@@ -594,7 +605,7 @@ class Memory_block:
 
     def __repr__(self):
         return self.name + ": " + hex(self.virt_addr) + " -> " + hex(self.phys_addr) + " [" +\
-                hex(self.size) + "], " + str(self.cache_policy) + ", " + str(self.system_access)
+                hex(self.size) + " = " + self.str_size + "], " + str(self.cache_policy) + ", " + str(self.system_access)
 
 
 class Configuration:

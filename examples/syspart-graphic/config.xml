@@ -51,15 +51,27 @@
             Name="ccsrbar"
             VirtualAddress ="0xe0000000"
             PhysicalAddress="0xe0000000"
-            Size="0x1000000"
+            Size="0x100000"
             CachePolicy="IO"
             SystemAccess="READ_WRITE"
+            />
+        <Memory_Block
+            Name="PCI_IO"
+            VirtualAddress ="0xe1000000"
+            PhysicalAddress="0xe1000000"
+            Size="0x10000"
             />
         <Memory_Block
             Name="vga-framebuffer"
             VirtualAddress ="0xee000000"
             PhysicalAddress="0xee000000"
             Size="0x1000000"
+            />
+        <Memory_Block
+            Name="vga-rom"
+            VirtualAddress ="0xedf00000"
+            PhysicalAddress="0xedf00000"
+            Size="0x10000"
             />
             <!--
             CachePolicy="DEFAULT"
