@@ -67,14 +67,14 @@ __attribute__ ((aligned (MM_LVL2_ENTRIES_NBR * sizeof (pte))));
 /**
  * Set ptd and pte for the given partition.
  */
-pok_ret_t pok_create_space (uint8_t partition_id,
+pok_ret_t pok_create_space (uint8_t space_id,
                             uint32_t addr,
                             uint32_t size)
 {
   if (size > SPARC_PARTITION_SIZE)
   {
 #ifdef POK_NEEDS_DEBUG
-    printf ("pok_create_space: %d: partition size too big 0x%x\n", partition_id, size);
+    printf ("pok_create_space: %d: space size too big 0x%x\n", space_id, size);
 #endif
     return (POK_ERRNO_SIZE);
   }
@@ -82,12 +82,12 @@ pok_ret_t pok_create_space (uint8_t partition_id,
   if ((addr & (SPARC_PAGE_SIZE - 1)) != 0)
   {
 #ifdef POK_NEEDS_DEBUG
-    printf ("pok_create_space: %d: partition address not aligned 0x%x\n", partition_id, addr);
+    printf ("pok_create_space: %d: space address not aligned 0x%x\n", space_id, addr);
 #endif
     return (POK_ERRNO_EFAULT);
   }
 #ifdef POK_NEEDS_DEBUG
-  printf ("pok_create_space: %d: %x %x\n", partition_id, addr, size);
+  printf ("pok_create_space: %d: %x %x\n", space_id, addr, size);
 #endif
   spaces[partition_id].phys_base = addr;
   spaces[partition_id].size = size;
@@ -95,9 +95,9 @@ pok_ret_t pok_create_space (uint8_t partition_id,
   unsigned int as_ptd = mm_index1(SPARC_PARTITION_BASE_VADDR);
   unsigned int as_pte = mm_index2(SPARC_PARTITION_BASE_VADDR);
 
-  mmu_level1_tab[partition_id][as_ptd] = ((unsigned int) &(mmu_level2_tab[partition_id]) >> 4) | MM_ET_PTD;
+  mmu_level1_tab[space_id][as_ptd] = ((unsigned int) &(mmu_level2_tab[space_id]) >> 4) | MM_ET_PTD;
   /* partition as */
-  mmu_level2_tab[partition_id][as_pte] = ((addr) >> 4) | MM_ACC_RWE | MM_ET_PTE | MM_CACHEABLE;
+  mmu_level2_tab[space_id][as_pte] = ((addr) >> 4) | MM_ACC_RWE | MM_ET_PTE | MM_CACHEABLE;
 
   return (POK_ERRNO_OK);
 }
@@ -105,15 +105,12 @@ pok_ret_t pok_create_space (uint8_t partition_id,
 /**
  * Switch adress space in MMU (context register).
  */
-pok_ret_t pok_space_switch (uint8_t old_partition_id,
-                            uint8_t new_partition_id)
+pok_ret_t pok_space_switch (uint8_t space_id)
 {
-  (void) old_partition_id;
-
   asm volatile ("flush\n"
                 "sta %0, [%1] %2;\n"
                 : /* no output */
-                : "r" (new_partition_id), "r" (MMU_CTX_REG), "i" (ASI_M_MMUREGS)
+                : "r" (space_id), "r" (MMU_CTX_REG), "i" (ASI_M_MMUREGS)
                 : "memory");
   return (POK_ERRNO_OK);
 }

@@ -19,6 +19,7 @@
 #define __POK_PPC_THREAD_H__
 
 #include <types.h>
+#include <asp/cswitch.h>
 
 typedef struct
 {
@@ -88,12 +89,6 @@ typedef struct
   uint32_t pad1;
 } volatile_context_t;
 
-uint32_t		pok_context_create(uint32_t id,
-					   uint32_t stack_size,
-					   uint32_t entry);
-
-void			pok_context_switch(uint32_t* old_sp,
-					   uint32_t new_sp);
 
 
 #endif /* !__POK_PPC_THREAD_H__ */

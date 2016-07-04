@@ -1,7 +1,0 @@
-# -*- Mode: Python -*-
-
-Import('kernel_env')
-
-kernel_env.Program(target = 'virtio.lo', source = Glob('*.c'))
-
-# EOF

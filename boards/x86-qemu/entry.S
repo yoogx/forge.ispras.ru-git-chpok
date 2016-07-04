@@ -35,3 +35,9 @@ loop:
 .comm	pok_multiboot_magic, 4
 .comm	pok_multiboot_info, 4
 
+        .global pok_trap_addr
+pok_trap_addr:
+        .global pok_trap
+pok_trap:
+        int3
+        ret

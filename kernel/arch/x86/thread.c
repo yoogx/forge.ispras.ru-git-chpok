@@ -22,7 +22,7 @@
 
 #include <config.h>
 
-#include <bsp.h>
+#include <bsp_common.h>
 #include <libc.h>
 #include <errno.h>
 #include <core/thread.h>
@@ -33,35 +33,41 @@
 
 #ifdef POK_NEEDS_THREADS
 
-uint32_t		pok_context_create (uint32_t thread_id,
-                                uint32_t stack_size,
-                                uint32_t entry)
+uint32_t		ja_context_init (uint32_t sp, void (*entry)(void))
 {
-  start_context_t* sp;
-  char*            stack_addr;
+  start_context_t* start_ctx;
 
-  stack_addr = pok_bsp_mem_alloc (stack_size);
+  start_ctx = (start_context_t *) (sp - 4 - sizeof (start_context_t));
 
-  sp = (start_context_t *) (stack_addr + stack_size - 4 - sizeof (start_context_t));
+  memset (start_ctx, 0, sizeof (start_context_t));
 
-  memset (sp, 0, sizeof (start_context_t));
+  start_ctx->ctx.__esp   = (uint32_t) (&start_ctx->ctx.eip); /* for pusha */
+  start_ctx->ctx.eip     = (uint32_t) entry;
+  start_ctx->ctx.cs      = GDT_CORE_CODE_SEGMENT << 3;
+  /*
+   * TODO: Current implementation of context switching requires
+   * Interrupt Enabled flag to be specified when context for the switch
+   * is created.
+   * 
+   * Currently we use hardcoded guess, that flag for the switched context
+   * should be same as current flag.
+   * 
+   * In the future Interrupt Enabled flag should be same as one for
+   * context we switched from.
+   */
+  start_ctx->ctx.eflags  = pok_arch_preempt_enabled()? 1 << 9 : 0;
 
-  sp->ctx.__esp   = (uint32_t) (&sp->ctx.eip); /* for pusha */
-  sp->ctx.eip     = (uint32_t) pok_thread_start;
-  sp->ctx.cs      = GDT_CORE_CODE_SEGMENT << 3;
-  sp->ctx.eflags  = 1 << 9;
+  start_ctx->entry       = 0; /* Was: entry */
+  start_ctx->id          = 0; /* Was: thread_id */
 
-  sp->entry       = entry;
-  sp->id          = thread_id;
-
-  return ((uint32_t)sp);
+  return ((uint32_t)start_ctx);
 }
 
 
-void			pok_context_switch (uint32_t* old_sp,
+void			ja_context_switch (uint32_t* old_sp,
                                 uint32_t new_sp);
-asm (".global pok_context_switch	\n"
-     "pok_context_switch:		\n"
+asm (".global ja_context_switch	\n"
+     "ja_context_switch:		\n"
      "pushf				\n"
      "pushl %cs				\n"
      "pushl $1f				\n"
@@ -74,25 +80,5 @@ asm (".global pok_context_switch	\n"
      "1:				\n"
      "ret"
      );
-
-void			pok_context_reset(uint32_t stack_size,
-					  uint32_t stack_addr)
-{
-  start_context_t* sp;
-  uint32_t id;
-  uint32_t entry;
-  
-  sp = (start_context_t *) (stack_addr + stack_size - 4 - sizeof (start_context_t));
-
-  id = sp->id;
-  entry = sp->entry;
-  memset (sp, 0, sizeof (start_context_t));
-  sp->ctx.__esp   = (uint32_t) (&sp->ctx.eip);
-  sp->ctx.eip     = (uint32_t) pok_thread_start;
-  sp->ctx.cs      = GDT_CORE_CODE_SEGMENT << 3;
-  sp->ctx.eflags  = 1 << 9;
-  sp->entry       = entry;
-  sp->id          = id;
-}
 
 #endif

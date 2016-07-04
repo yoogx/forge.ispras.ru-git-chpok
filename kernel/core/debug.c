@@ -1,17 +1,20 @@
+
 /*
- *                               POK header
- * 
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *                                      Copyright (c) 2007-2009 POK team 
+ * See the GNU General Public License version 3 for more details.
  *
- * Created by julien on Thu Jan 15 23:34:13 2009 
+ * This file also incorporates work covered by POK License.
+ * Copyright (c) 2007-2009 POK team
  */
 
 #include <config.h>
@@ -40,7 +43,7 @@ int debug_strlen (const char* str)
 
 void pok_debug_print_current_state ()
 {
-   uint32_t i;
+   /*uint32_t i;
    printf ("\nCurrent state\n");
    printf ("-------------\n");
    printf ("Kernel thread        : %d\n", KERNEL_THREAD);
@@ -72,7 +75,7 @@ void pok_debug_print_current_state ()
    printf ("Partition         : %d\n", POK_CURRENT_THREAD.partition);
    printf ("sp                : 0x%lx\n", (unsigned long) POK_CURRENT_THREAD.sp);
    printf ("init_stack_addr   : 0x%lx\n", (unsigned long) POK_CURRENT_THREAD.init_stack_addr);
-   printf ("entry             : 0x%p\n", POK_CURRENT_THREAD.entry);
+   printf ("entry             : 0x%p\n", POK_CURRENT_THREAD.entry);*/
 }
 
 void pok_fatal (const char* message)
@@ -87,7 +90,7 @@ void pok_fatal (const char* message)
   pok_write (message , debug_strlen(message));
 
   POK_DEBUG_PRINT_CURRENT_STATE
-  pok_arch_idle ();
+  pok_arch_inf_loop();
 
   __builtin_unreachable();
 }

@@ -1,3 +1,18 @@
+/*
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
+ *
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ * See the GNU General Public License version 3 for more details.
+ */
+
 #include <libc/gcov.h>
 #include <core/syscall.h>
 
@@ -16,7 +31,7 @@ void pok_gcov_init(void) {
     uint32_t end = (uint32_t)(&__PARTITION_CTOR_END__ - 1);
     printf("start 0x%lx, end 0x%lx\n", start, end);
     void (**p)(void);
-    
+
     while(start < end) {
         p = (void(**)(void))start; // get function pointer
         (*p)(); // call constructor

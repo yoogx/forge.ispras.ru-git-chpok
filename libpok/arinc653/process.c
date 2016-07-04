@@ -63,7 +63,11 @@ void GET_PROCESS_ID(
 {
 	strtoupper(process_name);
     pok_thread_id_t id;
-    if (get_process_id(process_name, &id)) {
+    pok_ret_t core_ret;
+    
+    core_ret = pok_thread_find(process_name, &id);
+    
+    if (core_ret == POK_ERRNO_OK) {
         *process_id = id + 1;
         *return_code = NO_ERROR;
     } else {
@@ -91,14 +95,12 @@ void GET_PROCESS_STATUS (
     PROCESS_STATUS_TYPE *process_status,
     RETURN_CODE_TYPE    *return_code)
 {
-
-    strtoupper(process_status->ATTRIBUTES.NAME);
     pok_thread_status_t status;
     pok_ret_t           core_ret;
 
-    CHECK_PROCESS_ID();
-	
-    core_ret = pok_thread_status(process_id - 1, &status);
+    core_ret = pok_thread_get_status(process_id - 1,
+        process_status->ATTRIBUTES.NAME, &process_status->ATTRIBUTES.ENTRY_POINT,
+        &status);
 
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
@@ -115,26 +117,18 @@ void GET_PROCESS_STATUS (
         MAP_STATUS(POK_STATE_STOPPED, DORMANT);
         MAP_STATUS(POK_STATE_RUNNABLE, READY);
         MAP_STATUS(POK_STATE_WAITING, WAITING);
-        MAP_STATUS(POK_STATE_LOCK, WAITING);
-        MAP_STATUS(POK_STATE_WAIT_NEXT_ACTIVATION, WAITING);
-        MAP_STATUS(POK_STATE_DELAYED_START, WAITING);
-    }
-    if (status.suspended) {
-        process_status->PROCESS_STATE = WAITING;
+        MAP_STATUS(POK_STATE_RUNNING, RUNNING);
     }
 #undef MAP_STATUS
-    strcpy(process_status->ATTRIBUTES.NAME, arinc_process_attribute[process_id - 1].NAME);
     process_status->ATTRIBUTES.BASE_PRIORITY = status.attributes.priority;
-    if (status.attributes.deadline == DEADLINE_SOFT) {
-        process_status->ATTRIBUTES.DEADLINE = SOFT;
-    } else {
-        process_status->ATTRIBUTES.DEADLINE = HARD;
-    }
+    process_status->ATTRIBUTES.DEADLINE =
+        (status.attributes.deadline == DEADLINE_SOFT)
+            ? SOFT : HARD;
     process_status->CURRENT_PRIORITY = status.current_priority;
     process_status->ATTRIBUTES.PERIOD = ms_to_arinc_time(status.attributes.period);
     process_status->ATTRIBUTES.TIME_CAPACITY = ms_to_arinc_time(status.attributes.time_capacity);
-    process_status->ATTRIBUTES.ENTRY_POINT = status.attributes.entry;
     process_status->ATTRIBUTES.STACK_SIZE = status.attributes.stack_size;
+    process_status->DEADLINE_TIME = ms_to_arinc_time(status.deadline_time);
 }
 
 void CREATE_PROCESS (
@@ -153,19 +147,7 @@ void CREATE_PROCESS (
         return;
     }
 
-    if (get_process_id(attributes->NAME, NULL)) {
-        // already created
-        *return_code = NO_ACTION;
-        return;
-    }
-    if (attributes->BASE_PRIORITY > MAX_PRIORITY_VALUE || 
-        attributes->BASE_PRIORITY < MIN_PRIORITY_VALUE)
-    {
-        *return_code = INVALID_PARAM;
-        return;
-    }
     core_attr.priority        = (uint8_t) attributes->BASE_PRIORITY;
-    core_attr.entry           = attributes->ENTRY_POINT;
     core_attr.period          = arinc_time_to_ms(attributes->PERIOD);
     if (attributes->DEADLINE == SOFT) {
         core_attr.deadline = DEADLINE_SOFT;
@@ -177,29 +159,29 @@ void CREATE_PROCESS (
     }
     core_attr.time_capacity   = arinc_time_to_ms(attributes->TIME_CAPACITY);
     core_attr.stack_size      = attributes->STACK_SIZE;
+    
+    core_ret = pok_thread_create (attributes->NAME, attributes->ENTRY_POINT,
+        &core_attr, &core_process_id);
 
-    core_ret = pok_thread_create (&core_process_id, &core_attr);
-    if (core_ret == POK_ERRNO_OK) {
-        arinc_process_attribute[core_process_id].BASE_PRIORITY = attributes->BASE_PRIORITY;
-        strcpy(arinc_process_attribute[core_process_id].NAME, attributes->NAME);
-        
-        *process_id = core_process_id + 1;
-        // ARINC specifies that threads shall be created in the DORMANT state
-        pok_thread_stop(core_process_id);
-    }
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR(POK_ERRNO_EXISTS, NO_ACTION);
         MAP_ERROR(POK_ERRNO_PARAM, INVALID_PARAM);
         MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG);
+        MAP_ERROR(POK_ERRNO_UNAVAILABLE, INVALID_CONFIG);
         MAP_ERROR(POK_ERRNO_TOOMANY, INVALID_CONFIG);
         MAP_ERROR(POK_ERRNO_PARTITION_MODE, INVALID_MODE);
         MAP_ERROR_DEFAULT(INVALID_PARAM);
     }
+
+    if (core_ret != POK_ERRNO_OK) return;
+    
+    *process_id = core_process_id + 1;
 }
 
 void STOP_SELF ()
 {
-    pok_thread_stop_self ();
+    pok_thread_stop ();
 }
 
 
@@ -227,7 +209,8 @@ void SUSPEND_SELF (
     SYSTEM_TIME_TYPE time_out,
     RETURN_CODE_TYPE *return_code)
 {
-    pok_ret_t core_ret = pok_thread_suspend(arinc_time_to_ms(time_out));
+    pok_time_t ms = arinc_time_to_ms(time_out);
+    pok_ret_t core_ret = pok_thread_suspend(&ms);
 
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
@@ -235,7 +218,6 @@ void SUSPEND_SELF (
         MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
         MAP_ERROR_DEFAULT(INVALID_PARAM);
     }
-
 }
 
 void SUSPEND (
@@ -281,7 +263,7 @@ void STOP(
 {
     CHECK_PROCESS_ID();
 
-    pok_ret_t core_ret = pok_thread_stop(process_id - 1);
+    pok_ret_t core_ret = pok_thread_stop_target(process_id - 1);
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
         MAP_ERROR(POK_ERRNO_UNAVAILABLE, NO_ACTION);
@@ -296,7 +278,8 @@ void DELAYED_START(
 {
     CHECK_PROCESS_ID();
 
-    pok_ret_t core_ret = pok_thread_delayed_start(process_id - 1, arinc_time_to_ms(delay_time));
+    pok_time_t ms = arinc_time_to_ms(delay_time);
+    pok_ret_t core_ret = pok_thread_delayed_start(process_id - 1, &ms);
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
         MAP_ERROR(POK_ERRNO_UNAVAILABLE, NO_ACTION);
@@ -309,7 +292,7 @@ void LOCK_PREEMPTION (LOCK_LEVEL_TYPE *LOCK_LEVEL, RETURN_CODE_TYPE *return_code
     pok_ret_t ret = pok_partition_inc_lock_level(LOCK_LEVEL);
     switch (ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-        MAP_ERROR(POK_ERRNO_MODE, NO_ACTION);
+        MAP_ERROR(POK_ERRNO_PARTITION_MODE, NO_ACTION);
         MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG); // yes, it's an error here...
         MAP_ERROR_DEFAULT(INVALID_PARAM); // shouldn't happen
     }
@@ -320,7 +303,7 @@ void UNLOCK_PREEMPTION (LOCK_LEVEL_TYPE *LOCK_LEVEL, RETURN_CODE_TYPE *return_co
     pok_ret_t ret = pok_partition_dec_lock_level(LOCK_LEVEL);
     switch (ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-        MAP_ERROR(POK_ERRNO_MODE, NO_ACTION);
+        MAP_ERROR(POK_ERRNO_PARTITION_MODE, NO_ACTION);
         MAP_ERROR(POK_ERRNO_EINVAL, NO_ACTION); // ...but here it's just NO_ACTION
         MAP_ERROR_DEFAULT(INVALID_PARAM); // shouldn't happen
     }

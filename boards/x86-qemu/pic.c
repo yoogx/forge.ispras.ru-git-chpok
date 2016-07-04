@@ -18,7 +18,7 @@
 #include <types.h>
 #include <errno.h>
 
-#include <arch/x86/ioports.h>
+#include <ioports.h>
 
 #include "pic.h"
 

@@ -2,8 +2,22 @@
 #define __POK_PPC_SPACE_H__
 
 #include <types.h>
+#include "thread.h"
 
-void pok_arch_handle_page_fault(uintptr_t faulting_address, uint32_t syndrome);
+typedef enum {
+    PF_DATA_TLB_MISS,
+    PF_INST_TLB_MISS,
+    PF_DATA_STORAGE,
+    PF_INST_STORAGE
+} pf_type_t;
+
+
+void pok_arch_handle_page_fault(
+        volatile_context_t *vctx,
+        uintptr_t faulting_address,
+        uint32_t syndrome,
+        pf_type_t type);
+
 void pok_arch_space_init (void);
 
 

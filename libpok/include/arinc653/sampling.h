@@ -76,6 +76,9 @@ extern void GET_SAMPLING_PORT_STATUS (
        /*out*/ SAMPLING_PORT_STATUS_TYPE  *SAMPLING_PORT_STATUS, 
        /*out*/ RETURN_CODE_TYPE           *RETURN_CODE ); 
  
+
+extern pok_bool_t SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(
+        /*in */ SAMPLING_PORT_ID_TYPE      SAMPLING_PORT_ID);
 #endif 
 
 #endif

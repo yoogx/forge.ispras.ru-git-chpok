@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE doc [
+<!ENTITY P1 SYSTEM "P1/config.xml">
+]>
+<chpok-configuration>
+    <Partitions>
+		&P1;
+    </Partitions>
+
+    <Schedule>
+        <!--
+            Slot element is close to A653_PartitionTimeWindowType defined
+            in the standard, but is not quite it.
+
+            As extension, we allow to specify time in other units,
+            such as milliseconds (for convenience).
+        -->
+        <Slot Type="Partition" PartitionNameRef="P1" Duration="15ms" PeriodicProcessingStart="true" />
+        <Slot Type="Network" Duration="10ms" />
+        <Slot Type="Spare" Duration="5ms" />
+    </Schedule>
+
+    <!--
+        This looks like Connection_Table 
+        found in schema in older ARINC-653 standard,
+        but it's somewhat different (because that old thing
+        is very inconsistent).
+
+        Recent standard doesn't define this at all.
+    -->
+    <Connection_Table>
+        <Channel>
+            <Source>
+                <Standard_Partition PartitionName="P1" PortName="QP1"/>
+            </Source>
+            <Destination>
+                <UDP IP="10.0.0.1" Port="10042" />
+            </Destination>
+        </Channel>
+
+        <Channel>
+            <Source>
+                <UDP IP="0.0.0.0" Port="10000" />
+            </Source>
+            <Destination>
+                <Standard_Partition PartitionName="P1" PortName="SP1" />
+            </Destination>
+        </Channel>
+    </Connection_Table>
+
+    <Network IP="10.0.0.2" />
+</chpok-configuration>

@@ -1,19 +1,20 @@
 /*
- *                               POK header
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * See the GNU General Public License version 3 for more details.
  *
- *                                      Copyright (c) 2007-2009 POK team
- *
- * Created by julien on Thu Jan 15 23:34:13 2009
+ * This file also incorporates work covered by POK License.
+ * Copyright (c) 2007-2009 POK team
  */
-
 
 #include <types.h>
 #include <core/syscall.h>
@@ -34,7 +35,13 @@ struct s_file
     size_t    pos;
 };
 
-typedef void (*t_putc)(char val, void *out);
+struct s_sprintf
+{
+    char  *ptr;
+    size_t size;
+};
+
+typedef void (*t_putc)(int val, void *out);
 
 /*
  * buffered I/O
@@ -54,13 +61,32 @@ static struct s_file* init_buffered_output(void)
     return &res;
 }
 
-static void buf_putc(char c, void *out)
+static void buf_putc(int c, void *out)
 {
     struct s_file * file = out;
     file->buff[file->pos++] = c;
 
     if (file->pos == BUF_SIZE)
         buf_flush(file);
+}
+
+static void sprintf_putc(int c, void *out)
+{
+    if (c < 0) 
+        return;
+
+    struct s_sprintf *out_s = out;
+
+    switch (out_s->size)
+    {
+        case 1:
+            c = 0;
+        default:
+            *(out_s->ptr++) = c;
+             out_s->size--;
+        case 0:
+            break;
+    }
 }
 
 static void close_buffered_output(struct s_file *file)
@@ -291,5 +317,17 @@ int printf(const char *format, ...)
 
     close_buffered_output(out_file);
     return 0;
+}
+
+void snprintf(char *dst, unsigned size, const char *format, ...)
+{
+    struct s_sprintf out;
+    out.ptr = dst;
+    out.size = size;
+
+    va_list args;
+    va_start(args, format);
+    vprintf(sprintf_putc, &out, format, &args);
+    va_end(args);
 }
 

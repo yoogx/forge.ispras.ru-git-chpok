@@ -54,6 +54,6 @@
 /*
  * The Ceasar crypto protocol
  */
-#include <protocols/ceasar.h>
+#include <protocols/caesar.h>
 
 #endif

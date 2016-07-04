@@ -1,16 +1,36 @@
-#define SAVE_FP(num) stfd %f##num,(92+8*num)(%r1)
-#define LOAD_FP(num) lfd %f##num,(92+8*num)(%r1)
-//352 = 0x160 = align_up(96(old) + (31+1)*8)
+/*
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
+ *
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ * See the GNU General Public License version 3 for more details.
+ *
+ * This file also incorporates work covered by POK License.
+ * Copyright (c) 2007-2009 POK team
+ */
+
+/* FP_START must be equal to offsetof(context_t, fp0) */
+#define FP_START 96
+#define SAVE_FP(num) stfd %f##num,(96+8*num)(%r1)
+#define LOAD_FP(num) lfd %f##num,(96+8*num)(%r1)
+/* FRAME_SIZE must be equal to offsetof(context_t, back_chain) */
 #define FRAME_SIZE 352
         .text
-        .globl pok_context_switch
-pok_context_switch:
+        .globl ja_context_switch
+ja_context_switch:
         /* r3: *old_sp, r4: new_sp */
 
         /* Save registers.  */
-        mflr    %r0
-        stw     %r0,4(%r1)
         stwu    %r1,-FRAME_SIZE(%r1)
+        mflr    %r0
+        stw     %r0,FRAME_SIZE+4(%r1)
         mfcr    %r0
         stw     %r0,8(%r1)
         stw     %r2,12(%r1)
@@ -130,15 +150,4 @@ pok_context_switch:
         mtlr    %r0
         blr
 
-        .size pok_context_switch, . - pok_context_switch
-
-        .globl pok_arch_thread_start
-pok_arch_thread_start:
-        mr      %r3, %r14
-        mr      %r4, %r15
-        
-        xor     %r0,%r0,%r0
-        stw     %r0,4(%r1)
-        bl      pok_thread_start
-
-        .size pol_arch_thread_start, . - pok_arch_thread_start
+        .size ja_context_switch, . - ja_context_switch

@@ -32,27 +32,17 @@
 void GET_PARTITION_STATUS (PARTITION_STATUS_TYPE *partition_status,
                            RETURN_CODE_TYPE      *return_code)
 {
-  uint64_t period, duration;
-  pok_partition_id_t identifier;
-  pok_partition_mode_t mode;
+  pok_partition_status_t core_status;
 
-  pok_current_partition_get_id(&identifier);
-  partition_status->IDENTIFIER = identifier;
+  pok_current_partition_get_status(&core_status);
 
-  pok_current_partition_get_period(&period);
-  partition_status->PERIOD = ms_to_arinc_time(period);
-
-  pok_current_partition_get_duration(&duration);
-  partition_status->DURATION = ms_to_arinc_time(duration);
-
-  uint32_t lock_level;
-  pok_current_partition_get_lock_level(&lock_level);
-  partition_status->LOCK_LEVEL = lock_level;
-
-  pok_current_partition_get_operating_mode(&mode);
+  partition_status->IDENTIFIER = core_status.id;
+  partition_status->PERIOD = ms_to_arinc_time(core_status.period);
+  partition_status->DURATION = ms_to_arinc_time(core_status.duration);
+  partition_status->LOCK_LEVEL = core_status.lock_level;
 
 #define MAP(from, to) case (from): partition_status->OPERATING_MODE = (to); break
-  switch (mode) {
+  switch (core_status.mode) {
     MAP(POK_PARTITION_MODE_IDLE, IDLE);
     MAP(POK_PARTITION_MODE_NORMAL, NORMAL);
     MAP(POK_PARTITION_MODE_INIT_COLD, COLD_START);
@@ -60,9 +50,7 @@ void GET_PARTITION_STATUS (PARTITION_STATUS_TYPE *partition_status,
   }
 #undef MAP
 
-  pok_start_condition_t start_condition;
-  pok_current_partition_get_start_condition(&start_condition);
-  partition_status->START_CONDITION = start_condition; // TODO proper conversion
+  partition_status->START_CONDITION = core_status.start_condition; // TODO proper conversion
 
   *return_code = NO_ERROR;
 }

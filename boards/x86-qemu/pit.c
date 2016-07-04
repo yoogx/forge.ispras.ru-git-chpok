@@ -16,11 +16,11 @@
 
 
 #include <errno.h>
-#include <bsp.h>
+#include <bsp_common.h>
 #include <core/time.h>
 #include <core/sched.h>
-#include <arch/x86/ioports.h>
-#include <arch/x86/interrupt.h>
+#include <ioports.h>
+#include <interrupt.h>
 
 #include "pic.h"
 

@@ -1,140 +1,181 @@
 /*
- *                               POK header
- * 
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *                                      Copyright (c) 2007-2009 POK team 
- *
- * Created by julien on Mon Jan 19 10:51:40 2009 
+ * See the GNU General Public License version 3 for more details.
  */
-
-#include <config.h>
-
-#ifdef POK_NEEDS_ERROR_HANDLING
 
 #ifndef __POK_CORE_ERROR_H__
 #define __POK_CORE_ERROR_H__
 
-#include <types.h>
-#include <core/sched.h>
+#include <assert.h>
 
-#define POK_ERROR_MAX_MSG_SIZE                  250
+/* Global error processing. */
 
-typedef uint8_t pok_error_kind_t;
-#define POK_ERROR_KIND_INVALID                   0 // this is "NULL" error - that is, no error
-#define POK_ERROR_KIND_DEADLINE_MISSED          10
-#define POK_ERROR_KIND_APPLICATION_ERROR        11
-#define POK_ERROR_KIND_NUMERIC_ERROR            12
-#define POK_ERROR_KIND_ILLEGAL_REQUEST          13
-#define POK_ERROR_KIND_STACK_OVERFLOW           14
-#define POK_ERROR_KIND_MEMORY_VIOLATION         15
-#define POK_ERROR_KIND_HARDWARE_FAULT           16
-#define POK_ERROR_KIND_POWER_FAIL               17
-#define POK_ERROR_KIND_PARTITION_CONFIGURATION  30 
-#define POK_ERROR_KIND_PARTITION_INIT           31
-#define POK_ERROR_KIND_PARTITION_SCHEDULING     32
-#define POK_ERROR_KIND_PARTITION_HANDLER        33
-#define POK_ERROR_KIND_PARTITION_PROCESS        34
-#define POK_ERROR_KIND_KERNEL_INIT              50
-#define POK_ERROR_KIND_KERNEL_SCHEDULING        51
-#define POK_ERROR_KIND_KERNEL_CONFIG            52
+typedef uint8_t pok_error_id_t;
+
+/* Possible error identificators */
+#define POK_ERROR_ID_MODPOSTPROCEVENT_ELIST 0
+#define POK_ERROR_ID_ILLEGAL_REQUEST        1
+#define POK_ERROR_ID_APPLICATION_ERROR      2
+#define POK_ERROR_ID_PARTLOAD_ERROR         3
+#define POK_ERROR_ID_NUMERIC_ERROR          4
+#define POK_ERROR_ID_MEMORY_VIOLATION       5
+#define POK_ERROR_ID_DEADLINE_MISSED        6
+#define POK_ERROR_ID_HARDWARE_FAULT         7
+#define POK_ERROR_ID_POWER_FAIL             8
+#define POK_ERROR_ID_STACK_OVERFLOW         9
+#define POK_ERROR_ID_PROCINIT_ERROR         10
+#define POK_ERROR_ID_NOMEMORY_PROCDATA      11
+#define POK_ERROR_ID_ASSERT                 12
+#define POK_ERROR_ID_CONFIG_ERROR           13
+#define POK_ERROR_ID_CHECK_POOL             14
+#define POK_ERROR_ID_UNHANDLED_INT          15
+
+// Not an error. This special value may be used somewhere.
+#define POK_ERROR_ID_NONE                   255
+/* Maximum error identificator */
+#define POK_ERROR_ID_MAX 15
+
+typedef uint8_t pok_system_state_t;
+
+/* Possible system states */
+#define POK_SYSTEM_STATE_INIT_PARTOS        0
+#define POK_SYSTEM_STATE_INIT_PARTUSER      1
+#define POK_SYSTEM_STATE_INTERRUPT_HANDLER  2
+#define POK_SYSTEM_STATE_OS_MOD             3
+// This is a partition state while it is in kernel space.
+#define POK_SYSTEM_STATE_OS_PART            4
+/* 
+ * This is a partition state while it is in user space
+ * and .is_error_handler field is set.
+ */
+#define POK_SYSTEM_STATE_ERROR_HANDLER      5
+/* 
+ * This is a partition state while it is in user space
+ * and .is_error_handler field is NOT set.
+ */
+#define POK_SYSTEM_STATE_USER               6
 
 
-typedef uint8_t pok_error_action_t;
-#define POK_ERROR_ACTION_IGNORE 1
-#define POK_ERROR_ACTION_IDLE 2
-#define POK_ERROR_ACTION_COLD_START 3
-#define POK_ERROR_ACTION_WARM_START 4
+/* Maximum system state. Should be less than 7. */
+#define POK_SYSTEM_STATE_MAX                6
+/* 
+ * Minimum system state identificator, which can be used for raise error
+ * by partition.
+ */
+#define POK_SYSTEM_STATE_MIN_PARTITION  POK_SYSTEM_STATE_OS_PART
 
-typedef uint8_t pok_error_level_t;
-#define POK_ERROR_LEVEL_PARTITION 1 // fixed recovery action is taken
-#define POK_ERROR_LEVEL_PROCESS 2 // error can be dealt with by error handler
+/* 
+ * Selector for error level.
+ */
+typedef struct {
+    // Bit levels[ID]:STATE selects one of two error levels.
+    uint8_t levels[POK_ERROR_ID_MAX + 1];
+} pok_error_level_selector_t;
 
-typedef struct
+/* 
+ * Return classification of the error according to the selector
+ * (FALSE - 0, TRUE - 1).
+ */
+static inline pok_bool_t pok_error_level_select(
+    const pok_error_level_selector_t* selector,
+    pok_system_state_t system_state,
+    pok_error_id_t error_id)
 {
-   pok_error_kind_t     error_kind;
-   pok_thread_id_t      failed_thread;
-   uintptr_t            failed_addr;
-   size_t               msg_size;
-   char                 msg[POK_ERROR_MAX_MSG_SIZE];
-} pok_error_status_t;
+    assert(system_state < 8);
 
-typedef struct 
-{
-    pok_error_kind_t kind; // error code
-    pok_error_level_t level; // can it be passed to error handler OR action should be taken immediately?
-    pok_error_action_t action; // action to take if level is 'partition' OR if error handler is not created
-    pok_error_kind_t target_error_code; // error code to pass to error handler process (has to be defined only if level is 'process')
-} pok_error_hm_partition_t;
+    uint8_t level_val = selector->levels[error_id];
+    
+    return level_val & (1 << system_state)? TRUE: FALSE;
+}
 
-extern const pok_error_hm_partition_t * const pok_partition_hm_tables[];
 
 /*
- * Creates an error-handler thread for the current partition.
- *
- * It's created in stopped state.
+ * Module-level error selector.
+ * 
+ * In this selector 0 value means module level, 1 - partition level.
+ * 
+ * Should be defined in deployment.c.
  */
-pok_ret_t   pok_error_thread_create (uint32_t stack_size, void* entry);
+extern pok_error_level_selector_t pok_hm_module_selector;
+
+
+typedef uint8_t pok_error_module_action_t;
+
+#define POK_ERROR_MODULE_ACTION_IGNORE      0
+#define POK_ERROR_MODULE_ACTION_SHUTDOWN    1 
+#define POK_ERROR_MODULE_ACTION_RESET       2
+// Platform-specific actions could be added there.
+
+
 
 /*
- * Raises a thread-level error
- * (which might be promoted to partition error in some circumstances).
- *
- * If everything is OK, this automatically resets the context of error handler
- * and marks it as runnable.
- *
- * Caller is expected to call pok_sched() afterwards, which will
- * then switch to the error handler.
- *
- * Note: cannot be called when there's another error being
- * handled (TODO remove this limitation?)
+ * Table of actions for module-level errors.
+ * 
  */
-pok_ret_t  pok_error_raise_thread(
-        pok_error_kind_t error, 
-        pok_thread_id_t thread_id, 
-        const char *message,
-        size_t message_length);
+typedef struct {
+    /* 
+     * actions[STATE][ID] give action, which should be taken on module level.
+     * 
+     * Only those [STATE][ID] cells are used, which corresponds to
+     * module-level errors.
+     */
+    pok_error_module_action_t actions[POK_SYSTEM_STATE_MAX + 1][POK_ERROR_ID_MAX + 1];
+} pok_error_module_action_table_t ;
 
 /*
- * Used for simple synchronous errors without error messages and that stuff.
+ * Module HM table. Should be defined in deployment.c.
  */
-#define POK_ERROR_CURRENT_THREAD(error) pok_error_raise_thread(error, POK_SCHED_CURRENT_THREAD, NULL, 0)
+extern pok_error_module_action_table_t pok_hm_module_table;
+
+/* 
+ * Raise error with given identificator.
+ * 
+ * Error level will be determined using generic mechanism,
+ * and action will be taken.
+ * 
+ * @arg user_space: True if error is originated in user space, false otherwise.
+ * 
+ * @arg failed_address: May contain address of failed instruction,
+ * if it is applicable for given error.
+ */
+void pok_raise_error(pok_error_id_t error_id, pok_bool_t user_space, void* failed_address);
 
 /*
- * Returns: POK_ERRNO_OK, if current thread is the error handler for the current partition.
- *          POK_ERRNO_UNAVAILABLE, otherwise.
+ * Raise error from the partition.
+ * 
+ * @arg system_state: One of the *partition state*
+ * (at least, POK_SYSTEM_STATE_MIN_PARTITION).
+ * 
+ * Returns TRUE if error is module-level, and it is ignored.
+ * 
+ * Do not return, if error is module-level and appropriate action
+ * is taken for module except ignoring.
+ * 
+ * Returns FALSE if error is partition-level. In this case partition
+ * may process error in partition-specific manner.
  */
-pok_ret_t pok_error_is_handler(void);
+pok_bool_t pok_raise_error_by_partition(pok_system_state_t system_state,
+    pok_error_id_t error_id);
 
-/*
- * Raises partition-level error.
- */
-void        pok_error_raise_partition(pok_partition_id_t partition, pok_error_kind_t error);
 
-/*
- * Raises kernel (system) error.
- */
-void        pok_error_raise_kernel(pok_error_kind_t error);
+// Current state of the module or POK_SYSTEM_STATE_OS_PART.
+extern pok_system_state_t kernel_state;
 
-/*
- * Raise thread-level application error.
- *
- * This's a system call, it validates a couple of parameters
- * and passes them to pok_thread_error almost verbatim.
- */
-pok_ret_t   pok_error_raise_application_error (const char* msg, size_t msg_size);
+/********************* Default HM Multi-partition tables **********************/
+// Default HM multi-partition selector - all errors are partition-level.
+extern pok_error_level_selector_t pok_hm_multi_partition_selector_default;
 
-/*
- * Pops an error from partition error queue.
- */
-pok_ret_t   pok_error_get (pok_error_status_t* status);
+// Default HM multi-partition table - shutdown for all errors.
+extern pok_error_module_action_table_t pok_hm_multi_partition_table_default;
 
-#endif
-
-#endif
+#endif /* __POK_CORE_ERROR_H__ */

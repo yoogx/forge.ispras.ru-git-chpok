@@ -1,255 +1,296 @@
 /*
- *                               POK header
- * 
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2013-2014, 2016 ISPRAS
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *                                      Copyright (c) 2007-2009 POK team 
+ * See the GNU General Public License version 3 for more details.
  *
- * This file also incorporates work covered by the following 
- * copyright and license notice:
- *
- *  Copyright (C) 2013-2014 Maxim Malkov, ISPRAS <malkov@ispras.ru> 
- *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Created by julien on Thu Jan 15 23:34:13 2009 
+ * This file also incorporates work covered by POK License.
+ * Copyright (c) 2007-2009 POK team
  */
 
-/**
- * \file    partition.h
- * \brief   Definition of structure for partitioning services.
- * \author  Julien Delange
- */
 
 #ifndef __POK_PARTITION_H__
 #define __POK_PARTITION_H__
 
 #include <config.h>
 
-#ifdef POK_NEEDS_PARTITIONS
-
 #include <types.h>
 #include <errno.h>
 #include <core/error.h>
-#include <core/thread.h>
-#include <core/sched.h>
+#include <arch.h>
 
+#include <gdb.h>
 
-/**
- * \enum pok_partition_mode_t
- * \brief The different modes of a partition
- */
-typedef enum
-{ 
-   /*
-    * In init mode, only main thread (process) is run.
-    * This's the only mode where one can create various resources.
-    *
-    * There's really no difference between cold and warm init.
-    *   
-    * When partition is initially started, it's in cold init.
-    *
-    * HM table and set_partition_mode function may restart 
-    * partition into either cold or warm init mode.
-    *
-    * The exact type of init can be introspected by an application,
-    * but otherwise, it makes no difference.
-    */
-   POK_PARTITION_MODE_INIT_COLD = 1, 
-   POK_PARTITION_MODE_INIT_WARM = 2,
+#include <uapi/partition_types.h>
 
-   /*
-    * In normal mode, all threads except main can be run.
-    *
-    * No resources can be allocated.
-    */
-   POK_PARTITION_MODE_NORMAL    = 3, 
+struct _pok_partition;
 
-   /*
-    * Partition is stopped.
-    */
-   POK_PARTITION_MODE_IDLE      = 4,
-}pok_partition_mode_t;
-
-typedef enum
+/* Scheduling operations specific for given partition. */
+struct pok_partition_sched_operations
 {
-  POK_START_CONDITION_NORMAL_START          = 0,
-  POK_START_CONDITION_PARTITION_RESTART     = 1,
-  POK_START_CONDITION_HM_MODULE_RESTART     = 2,
-  POK_START_CONDITION_HM_PARTITION_RESTART  = 3
-}pok_start_condition_t;
+    /*
+     * Called when some async event about partition occures.
+     * Event is encoded into partition's `.state` bits(bytes).
+     *
+     * During call to this handler, local preemption is disabled.
+     *
+     * The handler should either clear `.state` bytes, or enable local
+     * preemption. Otherwise the handler will be called again.
+     *
+     * If local preemption is already disabled, handler is not called.
+     * But corresponded `.state` bytes are set nevetheless.
+     */
+    void (*on_event)(void);
 
+    /* 
+     * Return number of threads for given partition.
+     *
+     * NOTE: Called (possibly) outside of partition's timeslot, so
+     * 'current_partition' doesn't correspond to given partition.
+     */
+    int (*get_number_of_threads)(struct _pok_partition* part);
+
+    /*
+     * Return index of current thread within partition.
+     *
+     * Returning negative value means that no current thread(is it possible?).
+     *
+     * If partition doesn't work with user space, never called.
+     *
+     * NOTE: Called (possibly) outside of partition's timeslot, so
+     * 'current_partition' doesn't correspond to given partition.
+     */
+    int (*get_current_thread_index)(struct _pok_partition* part);
+
+    /* 
+     * Return 0 if thread with given index exists. Fill 'private' with
+     * value, which will be passed for callbacks below.
+     */
+    int (*get_thread_at_index)(struct _pok_partition* part,
+        int index, void** private);
+
+    /*
+     * Get information about thread with given index.
+     *
+     * Information is written using 'print_cb' callback.
+     *
+     * NOTE: Called (possibly) outside of partition's timeslot, so
+     * 'current_partition' doesn't correspond to given partition.
+     */
+    void (*get_thread_info)(struct _pok_partition* part, int index, void* private,
+        print_cb_t print_cb, void* cb_data);
+
+    /*
+     * Get (architecture-specific) registers for non-current thread.
+     *
+     * Returning NULL means that thread has no registers assosiated with it.
+     */
+    struct regs* (*get_thread_registers)(struct _pok_partition* part, int index, void* private);
+};
+
+struct pok_partition_operations
+{
+    /* 
+     * Called when partition is (re)started.
+     * 
+     * Local preemption is disabled.
+     * 
+     * Cannot be NULL.
+     */
+    void (*start)(void);  /**< The entry-point for the partition's thread. */
+
+    /* 
+     * Process sync error related to given partition.
+     * 
+     * Local preemption is disabled.
+     * 
+     * Previous local preemption state is passed as parameter.
+     * 
+     * Cannot be NULL.
+     */
+    void (*process_partition_error)(pok_system_state_t partition_state,
+        pok_error_id_t error_id,
+        uint8_t state_byte_preempt_local,
+        void* failed_address);
+};
+
+/* Non-zero number, which is incremented every time partition is started. */
+typedef uint32_t pok_partition_generation_t;
 
 /*!
  * \struct pok_partition_t
  * \brief This structure contains all needed information for partition management
  */
-typedef struct
+typedef struct _pok_partition
 {
-   pok_bool_t               is_paused;      /*Partition paused or not*/
-   uint32_t                 base_addr;    /**< The base address inside the whole memory (where the segment is in the whole memory ?) */
-   uint32_t                 base_vaddr;   /**< The virtual address of the partition. The address the threads sees when they are
-                                        *    executed
-                                       */
-
-   uint32_t                 size;           /**< Size of the allocated memory segment */
-
-   const char               *name;          /**< Name of the partition */
-
-   uint32_t                 nthreads;       /**< Number of threads inside the partition */
-
-   uint8_t                  priority;       /**< Priority of the partition (unused at this time */
-   uint32_t                 period;         /**< Period of the partition, unused at this time */
-   uint32_t                 duration;       /**< Duration of the partition */
-
-   const pok_scheduler_ops  *scheduler;     /**< The scheduler of this partition */
-
-   uint64_t                 activation;     /**< Last activation time of the partition */
-   uint32_t                 prev_thread;    /**< member for the scheduler (previous scheduled real thread inside the partition,i.e not the idle thread */
-   uint32_t                 current_thread; /**< member for the scheduler (current executed thread inside the partition */
-
-   uint32_t                 thread_index_low;    /**< The low index in the threads table */
-   uint32_t                 thread_index_high;   /**< The high index in the threads table */
-   uint32_t                 thread_index;        /**< The thread index */
-
-#if defined(POK_NEEDS_LOCKOBJECTS) || defined(POK_NEEDS_ERROR_HANDLING)
-   uint8_t                  lockobj_index_low;   /**< The low bound in the lockobject array. */
-   uint8_t                  lockobj_index_high;  /**< The high bound in the lockobject array */
-   uint8_t                  nlockobjs;           /**< The amount of lockobjects reserved for the partition */
+#ifdef POK_NEEDS_MONITOR
+    pok_bool_t               is_paused;      /*Partition paused or not*/
 #endif
 
-#ifdef POK_NEEDS_ERROR_HANDLING
-   pok_bool_t               thread_error_created; /**< If true, this partition has error handler created */
-   pok_thread_id_t          thread_error;       /**< The thread identifier used for error handling */
-   pok_error_status_t       error_status;       /**< A pointer used to store information about errors */
-#endif
-   pok_thread_id_t          thread_main;        /**< The thread identifier of the main thread (initialization thread) */
-   uintptr_t                thread_main_entry;  /**< The entry-point of the main thread (useful for re-init) */
-   pok_partition_mode_t     mode;               /**< Current mode of the partition */
+    const struct pok_partition_sched_operations* part_sched_ops;
+    const struct pok_partition_operations* part_ops;
+    
+    /* 
+     * State of the partition.
+     * 
+     * This is like "state register" notion used for architectures.
+     */
+    union {
+        /* 
+         * State flags (bytes). Can be 0 or 1.
+         * 
+         * Because flags are bytes (not bits), they can be (re)set
+         * atomically without locked operations.
+         */
+        struct {
+            /*
+             * Set when time is changed.
+             */
+            uint8_t time_changed;
+            /*
+             * Set after time slot is changed from other partition to given one.
+             */
+            uint8_t control_returned;
+            /*
+             * Set when some event in out-of-partition time is generated.
+             * E.g., when receive message on the port we are waited on.
+             */
+            uint8_t outer_notification;
+
+            uint8_t unused;
+        } bytes;
+        /* 
+         * All flags at once.
+         * 
+         * This value may be checked by partition after enabling preemption
+         * for ensure, that it hasn't miss other flags.
+         */
+        uint32_t bytes_all;
+    } state;
+
+    /*
+     * Whether local preemption is disabled.
+     * 
+     * Flag can be read, modified or cleared by the partition itself.
+     * 
+     * Flag is set and checked by the global scheduler,
+     * when it need to call partition's callbacks.
+     */
+    uint8_t preempt_local_disabled;
+    
+    pok_partition_generation_t partition_generation;
+
+    /* 
+     * Whether currently executed *user space* process is error handler.
+     * 
+     * This field is used for determine system level in case when
+     * error is catched via interrupt.
+     * 
+     * Reseted to false when partition starts.
+     */
+    pok_bool_t               is_error_handler;
+
+    const char               *name;          /**< Name of the partition */
+
+    // Should be set in deployment.c.
+    uint32_t                 period;         /**< Period of the partition, unused at this time */
+    uint32_t                 duration;       /**< Duration of the partition, unused at this time */
+    pok_partition_id_t       partition_id;
+
+    /*
+     * Kernel stack address which is used for enter into the partition.
+     * 
+     * 0 value in this field means that partition needs to be (re)started.
+     *
+     */
+    uint32_t	        	 sp; 
+
+    /*
+     * Initial value of kernel stack (when it was allocated).
+     *
+     * Used for restarting partition.
+     * 
+     * Set by particular partition's implementation.
+     */
+    struct dStack            initial_sp;
+
+    /* 
+     * Identificator of (user) space, corresponded to given partition.
+     * Special value 0xff means that no user space is used by this partition.
+     * 
+     * Set in deployment.c
+     * 
+     * Used by scheduler when it switch into partition.
+     */
+    uint8_t                  space_id;
+
+    /*
+     * Pointer to the user space registers array, stored for given partition.
+     * 
+     * Set by global scheduler, used (may be cleared) by partition.
+     */
+    uint32_t                entry_sp_user;
+
+    /*
+     * Pointer to the registers array, stored for given partition when switched off.
+     * 
+     * Used only by global scheduler.
+     */
+    uint32_t                entry_sp;
 
 #ifdef POK_NEEDS_IO
   uint16_t		    io_min;             /**< If the partition is allowed to perform I/O, the lower bound of the I/O */
   uint16_t		    io_max;             /**< If the partition is allowed to perform I/O, the uppder bound of the I/O */
 #endif
 
-  uint32_t		    lock_level;
   pok_start_condition_t	    start_condition;
+
+  /* Set if partition is restarted by outside.
+   * 
+   * Partition may clear this flag in its `start()` callback. */
+  pok_bool_t restarted_externally;
+
+  /* 
+   * Pointer to Multi partition HM selector.
+   * 
+   * Bit's value 0 means module level error, 1 - partition level error.
+   * 
+   * Set in deployment.c
+   */
+  const pok_error_level_selector_t* multi_partition_hm_selector;
+  /*
+   * Pointer to Multi partition HM table.
+   * 
+   * Set in deployment.c
+   */
+  const pok_error_module_action_table_t* multi_partition_hm_table;
 } pok_partition_t;
 
-extern pok_partition_t pok_partitions[];
+/**
+ * Pointer to the current partition.
+ * 
+ * DEV: Readonly for all except scheduler-related stuff.
+ */
+extern pok_partition_t* current_partition;
 
 /**
- * Access to the current partition variable.
- * With that, you can do POK_CURRENT_PARTITION.nthreads of POK_CURRENT_PARTITION.mode
- * It avoids tedious syntax like pok_partitions[my_partition].blablabla
+ * Execute given function for each partition.
  */
-#define POK_CURRENT_PARTITION pok_partitions[POK_SCHED_CURRENT_PARTITION]
+void for_each_partition(void (*f)(pok_partition_t* part));
 
-/**
- * Chech that pointer \a ptr is located in the address space of partition
- * \a pid
+/* 
+ * Ready-made scheduler operations for partition with single kernel thread.
+ * 
+ * '.start' function for such partition shouldn't enable local preemption.
  */
-
-/* TODO dirty as hell */
-
-#ifdef __i386__
-#define POK_CHECK_PTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= pok_partitions[pid].base_addr && \
-                                             ((uintptr_t)(ptr)) <  pok_partitions[pid].base_addr + pok_partitions[pid].size\
-                                             )
-
-#define POK_CHECK_VPTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= pok_partitions[pid].base_vaddr && \
-                                             ((uintptr_t)(ptr)) <  pok_partitions[pid].base_vaddr + pok_partitions[pid].size\
-                                             )
-#elif defined(__PPC__)
-#define POK_CHECK_PTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= 0x80000000 && \
-                                             ((uintptr_t)(ptr)) <  0x80000000 + 0x1000000ULL\
-                                             )
-
-#define POK_CHECK_VPTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= 0x80000000 && \
-                                             ((uintptr_t)(ptr)) <  0x80000000 + 0x1000000ULL\
-                                             )
-#else
-#error "POK_CHECK_PTR macros are not implemented for this arch, do it now!"
-#endif
-
-/**
- * Initialize all partitions
- */
-pok_ret_t pok_partition_init();
-
-pok_ret_t pok_partition_set_mode (pok_partition_id_t pid, const pok_partition_mode_t mode);
-pok_ret_t pok_partition_set_mode_current (const pok_partition_mode_t mode);
-
-
-void pok_partition_reinit (pok_partition_id_t);
-
-void pok_partition_setup_main_thread (pok_partition_id_t);
-
-void pok_partition_setup_scheduler (pok_partition_id_t pid);
-
-pok_ret_t pok_partition_restart_thread (pok_thread_id_t tid);
-
-pok_ret_t pok_current_partition_get_id (pok_partition_id_t *id);
-
-pok_ret_t pok_current_partition_get_period (uint64_t *period);
-
-pok_ret_t pok_current_partition_get_duration (uint64_t *duration);
-
-pok_ret_t pok_current_partition_get_operating_mode (pok_partition_mode_t *op_mode);
-
-pok_ret_t pok_current_partition_get_lock_level (uint32_t *lock_level);
-
-pok_ret_t pok_current_partition_get_start_condition (pok_start_condition_t *start_condition);
-
-pok_ret_t pok_current_partition_inc_lock_level(uint32_t *lock_level);
-
-pok_ret_t pok_current_partition_dec_lock_level(uint32_t *lock_level);
-
-// utility macro-like functions
-
-#ifdef POK_NEEDS_ERROR_HANDLING
-static inline 
-pok_bool_t pok_thread_is_error_handling(const pok_thread_t *thread)
-{
-    return pok_partitions[thread->partition].thread_error_created && 
-           pok_partitions[thread->partition].thread_error == pok_thread_get_id(thread);
-}
-#else
-static inline
-pok_bool_t pok_thread_is_error_handling(const pok_thread_t *thread)
-{
-    return FALSE;
-}
-#endif
-
-static inline pok_bool_t
-pok_thread_is_valid_and_created(const pok_thread_t *thread, const pok_partition_t *part)
-{
-    pok_thread_id_t id = pok_thread_get_id(thread);
-    return id >= part->thread_index_low && id < part->thread_index;
-}
-
-#endif /* __POK_NEEDS_PARTITIONS */
+extern const struct pok_partition_sched_operations partition_sched_ops_kernel;
 
 #endif /* __POK_PARTITION_H__ */

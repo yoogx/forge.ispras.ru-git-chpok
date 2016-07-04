@@ -1,35 +1,19 @@
 /*
- *                               POK header
- * 
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *                                      Copyright (c) 2007-2009 POK team 
+ * See the GNU General Public License version 3 for more details.
  *
- * This file also incorporates work covered by the following 
- * copyright and license notice:
- *
- *  Copyright (C) 2013-2014 Maxim Malkov, ISPRAS <malkov@ispras.ru> 
- *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Created by julien on Thu Jan 15 23:34:13 2009 
+ * This file also incorporates work covered by POK License.
+ * Copyright (c) 2007-2009 POK team
  */
 
 #include <config.h>
@@ -38,8 +22,7 @@
 #include <arinc653/types.h>
 #include <arinc653/buffer.h>
 #include <types.h>
-#include <middleware/port.h>
-#include <middleware/buffer.h>
+#include <core/buffer.h>
 #include <utils.h>
 
 
@@ -59,25 +42,16 @@ void CREATE_BUFFER (
    strtoupper(BUFFER_NAME);
    pok_ret_t                  core_ret;
    pok_buffer_id_t            core_id;
-   pok_queueing_discipline_t  core_discipline;
+   pok_queuing_discipline_t   core_discipline;
    
-#ifdef POK_NEEDS_PARTITIONS
-   pok_partition_mode_t operating_mode;
-   pok_current_partition_get_operating_mode(&operating_mode);
-   if (operating_mode == POK_PARTITION_MODE_NORMAL) {
-      *RETURN_CODE = INVALID_MODE;
-      return;
-   }
-#endif 
-
    switch (QUEUING_DISCIPLINE)
    {
      case PRIORITY:
-         core_discipline = POK_QUEUEING_DISCIPLINE_PRIORITY;
+         core_discipline = POK_QUEUING_DISCIPLINE_PRIORITY;
          break;
 
      case FIFO:
-         core_discipline = POK_QUEUEING_DISCIPLINE_FIFO;
+         core_discipline = POK_QUEUING_DISCIPLINE_FIFO;
          break;
 
       default:
@@ -100,14 +74,15 @@ void CREATE_BUFFER (
        return;
    }
 
-   core_ret = pok_buffer_create (BUFFER_NAME, MAX_NB_MESSAGE, MAX_MESSAGE_SIZE, core_discipline, &core_id);
+   core_ret = pok_buffer_create (BUFFER_NAME, MAX_MESSAGE_SIZE, MAX_NB_MESSAGE, core_discipline, &core_id);
    
    *BUFFER_ID = core_id + 1;
 
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-      MAP_ERROR(POK_ERRNO_READY, NO_ACTION);
+      MAP_ERROR(POK_ERRNO_EXISTS, NO_ACTION);
       MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG);
+      MAP_ERROR(POK_ERRNO_PARTITION_MODE, INVALID_MODE);
       MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
    }
 }
@@ -125,7 +100,8 @@ void SEND_BUFFER (
    }
 
    pok_ret_t core_ret;
-   core_ret = pok_buffer_send (BUFFER_ID - 1, MESSAGE_ADDR, LENGTH, TIME_OUT);
+   pok_time_t ms = TIME_OUT < 0 ? INFINITE_TIME_VALUE : arinc_time_to_ms(TIME_OUT);
+   core_ret = pok_buffer_send (BUFFER_ID - 1, MESSAGE_ADDR, LENGTH, &ms);
 
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
@@ -150,9 +126,12 @@ void RECEIVE_BUFFER (
    }
 
    pok_ret_t core_ret;
-   pok_port_size_t core_size;
-   core_ret = pok_buffer_receive (BUFFER_ID - 1, TIME_OUT, MESSAGE_ADDR, &core_size);
+   pok_message_size_t core_size;
+   pok_time_t ms = TIME_OUT < 0 ? INFINITE_TIME_VALUE : arinc_time_to_ms(TIME_OUT);
+   
+   core_ret = pok_buffer_receive (BUFFER_ID - 1, &ms, MESSAGE_ADDR, &core_size);
    *LENGTH = (APEX_INTEGER) core_size;
+
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
       MAP_ERROR(POK_ERRNO_EINVAL, INVALID_PARAM);
@@ -170,7 +149,7 @@ void GET_BUFFER_ID (
 {
    strtoupper(BUFFER_NAME);
    pok_buffer_id_t id;
-   pok_ret_t core_ret = pok_buffer_id(BUFFER_NAME, &id);
+   pok_ret_t core_ret = pok_buffer_get_id(BUFFER_NAME, &id);
 
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
@@ -194,9 +173,9 @@ void GET_BUFFER_STATUS (
 
    *RETURN_CODE = pok_buffer_status(BUFFER_ID - 1, &status);
     
-   BUFFER_STATUS->NB_MESSAGE = status.nb_messages;
-   BUFFER_STATUS->MAX_NB_MESSAGE = status.max_messages;
-   BUFFER_STATUS->MAX_MESSAGE_SIZE = status.message_size;
+   BUFFER_STATUS->NB_MESSAGE = status.nb_message;
+   BUFFER_STATUS->MAX_NB_MESSAGE = status.max_nb_message;
+   BUFFER_STATUS->MAX_MESSAGE_SIZE = status.max_message_size;
    BUFFER_STATUS->WAITING_PROCESSES = status.waiting_processes;
 }
  

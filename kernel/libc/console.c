@@ -1,20 +1,20 @@
 #include <libc.h>
-#include <bsp.h>
+#include <bsp_common.h>
 
 
 /*
 *   Function described in cons.c:
-*   data_to_read() - return 1 if there is data to read, or 0 otherwise
-*   read_serial()  - read and return 1 word from receiver buffer
+*   data_to_read_0() - return 1 if there is data to read, or 0 otherwise
+*   read_serial_0()  - read and return 1 word from receiver buffer
 */
 
 
 static int
 serial_proc_data(void) //Read data from DUART (1 word)
 {
-    if (!data_to_read())
+    if (!data_to_read_0())
         return -1;
-    return read_serial();
+    return read_serial_0();
 }
 
 

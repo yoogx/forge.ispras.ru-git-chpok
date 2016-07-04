@@ -15,6 +15,7 @@
  */
 
 #include <config.h>
+#include <libc.h>
 
 #ifdef POK_NEEDS_DEBUG
 
@@ -31,6 +32,34 @@ int strlen (const char* str)
    }
 
    return i;
+}
+
+// TODO: move into own file?
+int strnlen (const char* str, size_t n)
+{
+   int i;
+
+   i = 0;
+
+   while (i < (int)n && *str != '\0')
+   {
+      str++;
+      i++;
+   }
+
+   return i;
+}
+
+// TODO: move into own file?
+char* strncpy(char* dest, const char* src, size_t n)
+{
+   int m = strnlen(src, n);
+
+   if(m < n) m++;
+   
+   memcpy(dest, src, m);
+   
+   return dest;
 }
 
 #endif

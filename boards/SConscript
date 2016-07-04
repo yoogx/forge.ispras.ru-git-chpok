@@ -1,11 +1,29 @@
-# -*- Mode: Python -*-
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 Import('env')
 
 bsp_env = env.Clone()
+bsp_env.Append(CPPPATH = bsp_env['KERNEL_CPPPATH'])
 bsp_env.Append(CPPPATH = [
-    bsp_env['POK_PATH']+'/kernel/arch/'+bsp_env['ARCH'],
-    bsp_env['POK_PATH']+'/boards/include'
+    bsp_env['POK_PATH']+'/boards/include',
+    bsp_env['POK_PATH']+'kernel/arch/' + bsp_env['ARCH']
 ])
 
 bsp_env.Program(target = 'bsp.lo', source = Glob(bsp_env['BSP']+'/*.[Sc]'))

@@ -1,0 +1,41 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+Import('env')
+
+syspart_env = env.Clone()
+
+syspart_env['CPPPATH'] = env['LIBPOK_CPPPATH'] + [
+        env['POK_PATH']+'/syspart/include',
+        ]
+
+Export('syspart_env')
+
+drivers = SConscript('drivers/SConscript')
+net     = SConscript('net/SConscript')
+
+syspart_program = syspart_env.Program(target = 'syspart.lo', source = [
+    net,
+    drivers,
+    'config.c',
+    'mem.c'
+])
+syspart_env.Depends(syspart_program, env['POK_PATH']+'/libpok/')
+
+# EOF

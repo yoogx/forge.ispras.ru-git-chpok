@@ -23,6 +23,7 @@
 
 #include <types.h>
 #include <errno.h>
+#include <common.h>
 
 /**
  * The rate of the clock in POK
@@ -32,7 +33,7 @@
 extern uint64_t pok_tick_counter;
 
 #define CLOCK_HANDLER \
-    do { pok_tick_counter += 1; pok_sched (); } \
+    do { pok_tick_counter += 1; pok_sched_on_time_changed(); } \
     while (0)
 
 #define POK_GETTICK() pok_tick_counter
@@ -57,7 +58,7 @@ typedef enum
 void        pok_time_init (void);
 pok_ret_t   pok_clock_gettime (pok_clockid_t clk_id, struct timespec *tp);
 uint64_t    pok_gettick (void);
-pok_ret_t   pok_gettick_by_pointer (uint64_t* clk_val);
+pok_ret_t   pok_gettick_by_pointer (pok_time_t* __user clk_val);
 
 #endif  /* __POK_TIME_H__ */
 #endif /* Needs clauses */
