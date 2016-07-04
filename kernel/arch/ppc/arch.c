@@ -90,10 +90,28 @@ __ppc_get_timebase (void)
     return (((uint64_t) __tbu << 32) | __tbl);
 }
 
+/* Measure time for given action, assuming it is divisible by 'n_iter' iterations. */
+void measure_time(const char* title, int n_iters, void (*action)(void* arg), void* arg)
+{
+  uint64_t start = __ppc_get_timebase();
+
+  action(arg);
+
+  uint64_t end = __ppc_get_timebase();
+  uint64_t delta = end - start;
+  unsigned delta_div = delta/(n_iters/1000);
+
+  printf("%s: %llu ticks for %d iterations %u.%03u ticks per iteration\n",
+    title, delta, n_iters, delta_div/1000, delta_div%1000);
+}
+
+
 #define COUNT 2000000
 #define TLB_NB 50
 #define START 0x400000
-void make_measurement ( void (*func) (
+
+// Run given tlb-processing function in cycle.
+void action_tlb_by_func ( void (*func) (
                 unsigned tlbsel,
                 uint32_t virtual,
                 uint64_t physical,
@@ -106,8 +124,6 @@ void make_measurement ( void (*func) (
                 )
     )
   {
-      uint64_t start = __ppc_get_timebase();
-
       for (int j = 0; j < COUNT; j++) {
           for (int i = 1; i < 1 + TLB_NB; i++) {
               func(
@@ -124,14 +140,128 @@ void make_measurement ( void (*func) (
 
           }
       }
-
-      uint64_t end = __ppc_get_timebase();
-      uint64_t delta = end - start;
-      unsigned delta_div = delta/(TLB_NB*COUNT/1000);
-
-      printf("%llu ticks for %d iterations %u.%03u ticks per iteration\n\n", delta, TLB_NB*COUNT,
-              delta_div/1000, delta_div%1000);
   }
+
+// Run given tlb-function in cycle and measure time.
+void measure_tlb_time_by_func(const char* title, void (*func) (
+                unsigned tlbsel,
+                uint32_t virtual,
+                uint64_t physical,
+                unsigned pgsize_enum,
+                unsigned permissions,
+                unsigned wimge,
+                unsigned pid,
+                unsigned entry,
+                bool_t   valid
+                )
+    )
+{
+  printf("(by func ptr) ");
+  measure_time(title, COUNT * TLB_NB, (void (*)(void*))action_tlb_by_func, func);
+}
+
+//
+void action_empty(void* unused)
+{
+  (void)unused;
+  for (int j = 0; j < COUNT; j++) {
+      for (int i = 1; i < 1 + TLB_NB; i++) {
+          pok_ppc_tlb_write_empty(
+                  1,
+                  START + i*0x1000,
+                  START + i*0x1000,
+                  E500MC_PGSIZE_4K,
+                  MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
+                  0,
+                  0,
+                  i,
+                  TRUE
+                  );
+
+      }
+  }
+}
+
+void action_write_reg(void* unused)
+{
+  (void)unused;
+  for (int j = 0; j < COUNT; j++) {
+      for (int i = 1; i < 1 + TLB_NB; i++) {
+          pok_ppc_tlb_only_write_reg(
+                  1,
+                  START + i*0x1000,
+                  START + i*0x1000,
+                  E500MC_PGSIZE_4K,
+                  MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
+                  0,
+                  0,
+                  i,
+                  TRUE
+                  );
+
+      }
+  }
+}
+
+
+void action_tlb_no_sync(void* unused)
+{
+  (void)unused;
+  for (int j = 0; j < COUNT; j++) {
+      for (int i = 1; i < 1 + TLB_NB; i++) {
+          pok_ppc_tlb_write_nosync(
+                  1,
+                  START + i*0x1000,
+                  START + i*0x1000,
+                  E500MC_PGSIZE_4K,
+                  MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
+                  0,
+                  0,
+                  i,
+                  TRUE
+                  );
+
+      }
+  }
+}
+
+void action_tlb_full(void* unused)
+{
+  (void)unused;
+  for (int j = 0; j < COUNT; j++) {
+      for (int i = 1; i < 1 + TLB_NB; i++) {
+          pok_ppc_tlb_write(
+                  1,
+                  START + i*0x1000,
+                  START + i*0x1000,
+                  E500MC_PGSIZE_4K,
+                  MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
+                  0,
+                  0,
+                  i,
+                  TRUE
+                  );
+
+      }
+  }
+}
+
+
+/* Display blackboard for N_WAITERS threads and message size MESSAGE_SIZE. */
+#define N_WAITERS 128
+#define MESSAGE_SIZE 8192
+static char buffers[N_WAITERS][MESSAGE_SIZE];
+static char buffer_origin[MESSAGE_SIZE] = {0, };
+
+void action_display_bloackboard(void* unused)
+{
+  (void)unused;
+  for(int i = 0; i < N_WAITERS; i++)
+  {
+    memcpy(buffers[i], buffer_origin, MESSAGE_SIZE);
+  }
+  
+}
 
 pok_ret_t pok_arch_init ()
 {
@@ -144,133 +274,17 @@ pok_ret_t pok_arch_init ()
 
   printf("----------------------------------------\n");
 
-  {
-      uint64_t start = __ppc_get_timebase();
-
-      for (int j = 0; j < COUNT; j++) {
-          for (int i = 1; i < 1 + TLB_NB; i++) {
-              pok_ppc_tlb_write_empty(
-                      1,
-                      START + i*0x1000,
-                      START + i*0x1000,
-                      E500MC_PGSIZE_4K,
-                      MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
-                      0,
-                      0,
-                      i,
-                      TRUE
-                      );
-
-          }
-      }
-
-      uint64_t end = __ppc_get_timebase();
-      uint64_t delta = end - start;
-      unsigned delta_div = delta/(TLB_NB*COUNT/1000);
-
-      printf("empty function: ");
-      printf("%llu ticks for %d iterations %u.%03u ticks per iteration\n", delta, TLB_NB*COUNT,
-              delta_div/1000, delta_div%1000);
-  }
-      printf("by func ptr: ");
-      make_measurement(pok_ppc_tlb_write_empty);
-      printf("\n");
-
-  {
-      uint64_t start = __ppc_get_timebase();
-
-      for (int j = 0; j < COUNT; j++) {
-          for (int i = 1; i < 1 + TLB_NB; i++) {
-              pok_ppc_tlb_only_write_reg(
-                      1,
-                      START + i*0x1000,
-                      START + i*0x1000,
-                      E500MC_PGSIZE_4K,
-                      MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
-                      0,
-                      0,
-                      i,
-                      TRUE
-                      );
-
-          }
-      }
-
-      uint64_t end = __ppc_get_timebase();
-      uint64_t delta = end - start;
-      unsigned delta_div = delta/(TLB_NB*COUNT/1000);
-
-      printf("only write to reg: ");
-      printf("%llu ticks for %d iterations %u.%03u ticks per iteration\n", delta, TLB_NB*COUNT,
-              delta_div/1000, delta_div%1000);
-  }
-      printf("by func ptr: ");
-      make_measurement(pok_ppc_tlb_only_write_reg);
-      printf("\n");
-
-
-  {
-      uint64_t start = __ppc_get_timebase();
-
-      for (int j = 0; j < COUNT; j++) {
-          for (int i = 1; i < 1 + TLB_NB; i++) {
-              pok_ppc_tlb_write_nosync(
-                      1,
-                      START + i*0x1000,
-                      START + i*0x1000,
-                      E500MC_PGSIZE_4K,
-                      MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
-                      0,
-                      0,
-                      i,
-                      TRUE
-                      );
-
-          }
-      }
-
-      uint64_t end = __ppc_get_timebase();
-      uint64_t delta = end - start;
-      unsigned delta_div = delta/(TLB_NB*COUNT/1000);
-
-      printf("without sync op: ");
-      printf("%llu ticks for %d iterations %u.%03u ticks per iteration\n", delta, TLB_NB*COUNT,
-              delta_div/1000, delta_div%1000);
-  }
-      printf("by func ptr: ");
-      make_measurement(pok_ppc_tlb_write_nosync);
-      printf("\n");
-  {
-      uint64_t start = __ppc_get_timebase();
-
-      for (int j = 0; j < COUNT; j++) {
-          for (int i = 1; i < 1 + TLB_NB; i++) {
-              pok_ppc_tlb_write(
-                      1,
-                      START + i*0x1000,
-                      START + i*0x1000,
-                      E500MC_PGSIZE_4K,
-                      MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
-                      0,
-                      0,
-                      i,
-                      TRUE
-                      );
-
-          }
-      }
-
-      uint64_t end = __ppc_get_timebase();
-      uint64_t delta = end - start;
-      unsigned delta_div = delta/(TLB_NB*COUNT/1000);
-
-      printf("full : ");
-      printf("%llu ticks for %d iterations %u.%03u ticks per iteration\n", delta, TLB_NB*COUNT,
-              delta_div/1000, delta_div%1000);
-      printf("by func ptr: ");
-      make_measurement(pok_ppc_tlb_write);
-      printf("\n");
-  }
+  // Uncomment test(s) which you want to run
+  //measure_time("empty_function", TLB_NB * COUNT, action_empty, NULL);
+  //measure_tlb_time_by_func("empty_function", pok_ppc_tlb_write_empty);
+  //measure_time("only write to reg", TLB_NB * COUNT, action_write_reg, NULL);
+  //measure_tlb_time_by_func("only write to reg", pok_ppc_tlb_only_write_reg);
+  //measure_time("without sync op", TLB_NB * COUNT, action_write_reg, NULL);
+  //measure_tlb_time_by_func("without sync op", pok_ppc_tlb_write_nosync);
+  //measure_time("full", TLB_NB * COUNT, action_write_reg, NULL);
+  //measure_tlb_time_by_func("full", pok_ppc_tlb_write);
+  
+  measure_time("display blackboard", MESSAGE_SIZE * N_WAITERS, action_display_bloackboard, NULL);
 
   for (unsigned i = 1; i < 63; i++) {
       pok_ppc_tlb_clear_entry(1, i);
