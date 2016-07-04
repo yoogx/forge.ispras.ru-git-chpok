@@ -15,6 +15,7 @@
         -->
         <Slot Type="Partition" PartitionNameRef="P1" Duration="15ms" PeriodicProcessingStart="true" />
         <Slot Type="Partition" PartitionNameRef="P2" Duration="15ms" PeriodicProcessingStart="true" />
+        <Slot Type="Monitor" Duration="10ms" />
     </Schedule>
 
     <!--
