@@ -109,8 +109,10 @@ class ArincConfigParser:
 
         conf.network = self.parse_network(root.find("Network"))
 
-        for mem_block_root in root.find("Memory_Blocks").findall("Memory_Block"):
-            self.parse_memory_block(conf, mem_block_root)
+        mem_blocks = root.find("Memory_Blocks")
+        if mem_blocks:
+            for mem_block_root in mem_blocks.findall("Memory_Block"):
+                self.parse_memory_block(conf, mem_block_root)
 
         # Use some default value for module HM table.
         module_error_level_selector_per_state = {error_id: 1 for error_id in conf.error_ids_all }
