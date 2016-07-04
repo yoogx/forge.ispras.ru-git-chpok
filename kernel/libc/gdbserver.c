@@ -1065,11 +1065,20 @@ static char* write_thread_id(char* ptr, const struct gdb_thread* t)
 {
 #ifdef MULTIPROCESS
     *ptr++ = 'p';
+#ifdef __PPC__
     ptr = mem2hex( (char *)(&t->inferior_id), ptr, 4);
+#endif
+#ifdef __i386__
+    ptr = mem2hex( (char *)(&t->inferior_id), ptr, 1);
+#endif
     *ptr++ = '.';
 #endif
+#ifdef __PPC__
     ptr = mem2hex( (char *)(&t->thread_id), ptr, 4);
-
+#endif
+#ifdef __i386__
+    ptr = mem2hex( (char *)(&t->thread_id), ptr, 1);
+#endif
     return ptr;
 }
 
@@ -1363,7 +1372,7 @@ err:
 
 void remove_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t){
 #ifdef DEBUG_GDB
-    printf("            Z0, breakpoint[0].addr = 0x%x\n",breakpoints[0].addr);
+    //~ printf("            Z0, breakpoint[0].addr = 0x%x\n",breakpoints[0].addr);
 #endif
     int i = 0;
     int old_pid = pok_space_get_current();
@@ -1393,7 +1402,7 @@ void remove_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t)
 
     strcpy(remcomOutBuffer, "OK");
 #ifdef DEBUG_GDB
-    printf("hex2mem: addr = 0x%x; instr = 0x%lx", addr, *(uint32_t *)addr);
+    //~ printf("hex2mem: addr = 0x%x; instr = 0x%lx", addr, *(uint32_t *)addr);
 #endif
 
     pok_space_switch(old_pid);
@@ -1746,7 +1755,6 @@ handle_exception (int exceptionVector, struct regs * ea)
                 }
 
                 *ptr++ = 'm';
-
                 ptr = write_thread_id(ptr, &t);
                 *ptr++ = 0;
                 break;
@@ -2102,6 +2110,7 @@ handle_exception (int exceptionVector, struct regs * ea)
 
     switch (*ptr++)
     {
+
             /*
              * Insert (‘Z’) or remove (‘z’) a type breakpoint or watchpoint starting at address address of kind kind.
              */
@@ -2160,7 +2169,7 @@ handle_exception (int exceptionVector, struct regs * ea)
         case 'T':               /*Find out if the thread thread-id is alive*/
             ptr = &remcomInBuffer[1];
             ptr = read_thread_id(ptr, &t);
-
+            
             if(!gdb_thread_find(&t)) {
                 remcomOutBuffer[0] = 'O';
                 remcomOutBuffer[1] = 'K';
@@ -2189,29 +2198,53 @@ handle_exception (int exceptionVector, struct regs * ea)
                         //ea->srr0 = addr;
                     }
                     
-                    ea->eip = ea->eip - 4;
+                    ea->eip--;
                     return;
                 }
 
                 break;
             }
             if (strncmp(ptr, "Offsets", 7) == 0){
-                //~ strcpy(remcomOutBuffer,"OK");
-                //~ break;
                 ptr = remcomOutBuffer;
-            //~ sprintf(ptr, "Text=%8.8x;Data=%8.8x;Bss=%8.8x",
-                //~ &_start, &sdata, &__bss_start);
+                *ptr++ = 0;
+
+                break;
+            }
+            if (strncmp(ptr, "Attached:", 9) == 0){
+                ptr += 9;
+                int part_id;
+                hexToInt(&ptr, (uintptr_t *)(&part_id));
+                ptr = remcomOutBuffer;
+                    *ptr++ = '1';
+                *ptr = 0;
+                break;
+            }
+            if (strncmp(ptr, "Symbol::", 8) == 0){
+
+                ptr = remcomOutBuffer;
+                remcomOutBuffer[0] = 'O';
+                remcomOutBuffer[1] = 'K';
+                remcomOutBuffer[2] = 0;
                 break;
             }
             if (strncmp(ptr, "Supported", 9) == 0){
-                /*FIX IT*/
-                //~ char * answer = "multiprocess+";
-                //~ ptr = remcomOutBuffer;
-                //~ for (int i=0; i < 13; i++)
-                    //~ *ptr++ = answer[i];
-                //~ *ptr++ = 0;
+#ifdef MULTIPROCESS
+                ptr+= (9 + 1); //qSupported:
+                while  (strncmp(ptr, "multiprocess", 9) != 0){
+                    ptr++;
+                    if (*ptr == '+' && *(ptr+1) != ';'){
+                        break;
+                    }
+                }
+                if (strncmp(ptr, "multiprocess", 9) == 0){
+                    char * answer = "multiprocess+";
+                    ptr = remcomOutBuffer;
+                    for (int i = 0; i < 13; i++)
+                    *ptr++ = answer[i];
+                }
                 
-                
+                *ptr++ = 0;
+#endif
                 break;
                 
             }
@@ -2230,6 +2263,7 @@ handle_exception (int exceptionVector, struct regs * ea)
                 break;
             }
             if (strncmp(ptr, "sThreadInfo", 11) == 0){
+
                 ptr = remcomOutBuffer;
 
                 if(gdb_thread_get_next(&t))
@@ -2243,6 +2277,7 @@ handle_exception (int exceptionVector, struct regs * ea)
 
                 ptr = write_thread_id(ptr, &t);
                 *ptr++ = 0;
+
                 break;
              }
              if (strncmp(ptr, "ThreadExtraInfo", 15) == 0){
@@ -2271,10 +2306,12 @@ handle_exception (int exceptionVector, struct regs * ea)
             remcomOutBuffer[3] = 0;
             break;
         case 'g':       /* return the value of the CPU registers */
+            gdb_state_fill_registers(&tc);
             mem2hex ((char *) registers, remcomOutBuffer, NUMREGBYTES);
             break;
         case 'G':       /* set the value of the CPU registers - return OK */
             hex2mem (ptr, (char *) registers, NUMREGBYTES, 0);
+            gdb_state_store_registers(&tc);
             strcpy (remcomOutBuffer, "OK");
             break;
         case 'P':       /* set the value of a single CPU register - return OK */
@@ -2440,13 +2477,62 @@ handle_exception (int exceptionVector, struct regs * ea)
             }
             break;
         }
-    /* cAA..AA    Continue at address AA..AA(optional) */
+#ifdef MULTIPROCESS
+        case 'v':               /*
+                                 * Packets starting with ‘v’ are identified by a multi-letter name, up to the first ‘;’ or ‘?’ (or the end of the packet). 
+                                 */
+            {
+#ifdef DEBUG_GDB
+            printf("IN V\n");
+            printf("String = %s, %d\n", remcomOutBuffer, remcomOutBuffer[0]);
+#endif
+            ptr = &remcomInBuffer[1];
+            if (strncmp(ptr, "Attach;", 7) == 0)   {
+#ifdef DEBUG_GDB
+                printf("Added reply\n");
+#endif
+                strcpy(remcomOutBuffer, "Any stop packet");
+            }
+            if (strncmp(ptr, "Cont;c", 6) == 0) {
+                ptr = &remcomInBuffer[1];
+                if (hexToInt(&ptr, &addr)) {
+                    registers[PC] = addr;
+                }
+                return;
+            }         
+            Connect_to_new_inferior = 1;
+
+            break;
+            //~ putpacket((unsigned char *)remcomOutBuffer);            
+            //~ return;
+        }
+        case 'D':               /*
+                                 * The first form of the packet is used to detach gdb from the remote system
+                                 * It is sent to the remote target before gdb disconnects via the detach command.
+                                 */
+            {
+#ifdef DEBUG_GDB
+            printf("HERE\n");
+#endif
+            ptr = &remcomInBuffer[2];
+            int part_id;
+            hexToInt(&ptr, (uintptr_t *)(&part_id));
+            remcomOutBuffer[0] = 'O';
+            remcomOutBuffer[1] = 'K';
+            remcomOutBuffer[2] = 0;
+            
+            /*If it is last detaching process - continue*/
+            if (part_id != 1) break;
+            putpacket((unsigned char *)remcomOutBuffer);            
+        }
+#endif
+      /* cAA..AA    Continue at address AA..AA(optional) */
       /* sAA..AA   Step one instruction from AA..AA(optional) */
         case 's':
             stepping = TRUE;
         case 'k':       /* do nothing */
         case 'c':
-
+            gdb_state_fill_registers(&tc);
       /* try to read optional parameter, pc unchanged if no parm */
             ptr = &remcomInBuffer[1];
             if (hexToInt(&ptr, &addr)) {

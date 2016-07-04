@@ -203,8 +203,10 @@ pok_bool_t was_breakpoint=TRUE;
 INTERRUPT_HANDLER (exception_breakpoint)
 {
   (void)frame;
+#ifdef DEBUG_GDB
    printf("EXEPTION breakpoint\n");
    dump_registers(frame);
+#endif
    frame->eip --;
 //// pok_trap_addr = address of pok_trap in entry.S
    if (frame->eip == (unsigned) (&pok_trap_addr)){
@@ -213,6 +215,7 @@ INTERRUPT_HANDLER (exception_breakpoint)
    }else{
         handle_exception(3,(struct regs *) frame);
     }   
+#ifdef DEBUG_GDB
     printf("es = 0x%lx\n",frame->es);
     printf("ds = 0x%lx\n",frame->ds);
     printf("edi = 0x%lx\n",frame->edi);
@@ -229,11 +232,14 @@ INTERRUPT_HANDLER (exception_breakpoint)
     printf("eflags = 0x%lx\n",frame->eflags);
     printf("esp = 0x%lx\n",frame->esp);
     printf("ss = 0x%lx\n",frame->ss);
+#endif
     if (!was_breakpoint){
         frame->eip++;
     }
     was_breakpoint=TRUE;
+#ifdef DEBUG_GDB
     printf("Exit from GDBserver\n");
+#endif
 }
 
 INTERRUPT_HANDLER (exception_overflow)
