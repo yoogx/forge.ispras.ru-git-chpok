@@ -45,6 +45,17 @@ struct pci_dev_config pci_configs[] = {
                 .type = PCI_RESOURCE_TYPE_ROM
             }
         }
+    },
+    {
+        .bus = 1,
+        .dev = 0,
+        .fn  = 0,
+        .resources = {
+            [PCI_RESOURCE_ROM] = {
+                .addr = 0xfedf0000,
+                .type = PCI_RESOURCE_TYPE_ROM
+            }
+        }
     }
 };
 unsigned pci_configs_nb = ARRAY_SIZE(pci_configs);
