@@ -113,7 +113,7 @@ jet_pt_node_type_t jet_pt_get_node_type(jet_pt_tree_t tree, jet_pt_node_t node);
  *   буфера слишком мал.  В этом случае в переменную *len записывается требуемый 
  *   размер.
  */
-pok_ret_t jet_get_string_value(jet_pt_tree_t tree, jet_pt_node_t node, 
+pok_ret_t jet_pt_get_string_value(jet_pt_tree_t tree, jet_pt_node_t node, 
 	const char ** result, size_t * len);
 
 /** Возвращает размер строкового значения, хранящегося в узле.
@@ -130,7 +130,7 @@ pok_ret_t jet_get_string_value(jet_pt_tree_t tree, jet_pt_node_t node,
  *   (например, является промежуточным узлом или листовым узлом с целочисленным или 
  *   вещественным значением).
  */
-pok_ret_t jet_get_string_value_size(jet_pt_tree_t tree, jet_pt_node_t node, 
+pok_ret_t jet_pt_get_string_value_size(jet_pt_tree_t tree, jet_pt_node_t node, 
 	size_t * result);
 
 /** Возвращает целое число, хранящееся в узле.
@@ -146,7 +146,7 @@ pok_ret_t jet_get_string_value_size(jet_pt_tree_t tree, jet_pt_node_t node,
  *   (например, является промежуточным узлом или листовым узлом со строковым или 
  *   вещественным значением). 
  */
-pok_ret_t jet_get_integer_value(jet_pt_tree_t tree, jet_pt_node_t node, int* result);
+pok_ret_t jet_pt_get_integer_value(jet_pt_tree_t tree, jet_pt_node_t node, int* result);
 
 /** Возвращает вещественное число, хранящееся в узле.
  * 
@@ -161,5 +161,5 @@ pok_ret_t jet_get_integer_value(jet_pt_tree_t tree, jet_pt_node_t node, int* res
  *   (например, является промежуточным узлом или листовым узлом со строковым или 
  *   целочисленным значением). 
  */
-pok_ret_t jet_get_double_value(jet_pt_tree_t tree, jet_pt_node_t node, double* result);
+pok_ret_t jet_pt_get_double_value(jet_pt_tree_t tree, jet_pt_node_t node, double* result);
 
