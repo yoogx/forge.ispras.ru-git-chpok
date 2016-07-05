@@ -23,6 +23,7 @@
 void vga_draw(void);
 
 struct pci_dev vga_dev;
+char initialized = 0;
 
 struct gimp_image {
   unsigned int  width;
@@ -49,6 +50,11 @@ void vga_init()
     printf("initializing vga\n");
 
     pci_get_dev_by_bdf(0, 1, 0, &vga_dev);
+    if (vga_dev.vendor_id == 0xFFFF) {
+        printf("have not found vga device\n");
+        return;
+    }
+
 
     printf("vga bios[0] 0x%x\n", ioread8((uint8_t *)vga_dev.resources[6].addr));
     printf("vga bios[1] 0x%x\n", ioread8((uint8_t *)vga_dev.resources[6].addr + 1));
@@ -63,12 +69,15 @@ void vga_init()
     iowrite8(VGA_PAS, (uint8_t *) pci_convert_legacy_port(&vga_dev, 0x3c0));
 
     vbe_write(VBE_DISPI_INDEX_VIRT_WIDTH, SCREEN_WIDTH);
+    initialized = 1;
 
     vga_draw();
 }
 
 void vga_draw(void)
 {
+    if (!initialized)
+        return;
     uint16_t *addr;
     int start = 400;
     for (int y = 0; y < gimp_image.height; y++) {
@@ -79,6 +88,9 @@ void vga_draw(void)
     }
 }
 
-void vga_set_y_offset(int offset){
+void vga_set_y_offset(int offset)
+{
+    if (!initialized)
+        return;
     vbe_write(VBE_DISPI_INDEX_Y_OFFSET, offset);
 }
