@@ -19,13 +19,8 @@
 
 Import('syspart_env')
 
-ne2000 = SConscript('ne2000/SConscript')
-p3041  = SConscript('p3041/SConscript')
-pci    = SConscript('pci/SConscript')
-virtio = SConscript('virtio/SConscript')
-vga    = SConscript('vga/SConscript')
-p3041_vga  = SConscript('p3041-vga/SConscript')
+p3041_vga = syspart_env.StaticObject(source = Glob('*.c'))
 
-Return('ne2000', 'p3041', 'pci', 'virtio', 'vga', 'p3041_vga')
+Return('p3041_vga')
 
 # EOF

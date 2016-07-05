@@ -77,6 +77,7 @@ static int real_main(void)
     printf("System partition is starting\n");
     pci_init();
     vga_init();
+    p3041_test();
 
 
     // transition to NORMAL operating mode
