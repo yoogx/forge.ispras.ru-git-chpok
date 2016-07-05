@@ -2,20 +2,24 @@
 
 typedef pok_bool_t jet_bool_t;
 
-
 struct jet_pt_header_struct;
+
+/** Тип указателя на дерево параметров */
 typedef struct jet_pt_header_struct * jet_pt_tree_t;
 
+/** Тип для представления идентификатора узла дерева */
 typedef size_t jet_pt_node_t;
 
+/** Недопустимый идентификатор узла дерева */
 #define JET_PT_INVALID_NODE (size_t)(-1)
 
+/** Тип узла дерева */
 typedef enum {
-	JET_PT_STRING,
-	JET_PT_INTEGER,
-	JET_PT_FLOAT,
-	JET_PT_TREE,
-	JET_PT_INVALID_NODE_TYPE
+	JET_PT_STRING,	/**< Узел дерева содержит строковый параметр */
+	JET_PT_INTEGER, /**< Узел дерева содержит целочисленный параметр */
+	JET_PT_FLOAT,   /**< Узел дерева содержит вещественный параметр */
+	JET_PT_TREE,    /**< Узел является промежуточным в дереве. Не содержит значение */
+	JET_PT_INVALID_NODE_TYPE /**< Недопустимый тип дерева */
 } jet_pt_node_type_t;
 
 /** Возвращает идентификатор корневого узла дерева.
