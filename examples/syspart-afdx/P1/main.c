@@ -1,0 +1,122 @@
+/*
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
+ *
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ * See the GNU General Public License version 3 for more details.
+ */
+#include <stdio.h>
+#include <string.h>
+#include <arinc653/buffer.h>
+#include <arinc653/partition.h>
+#include <arinc653/time.h>
+#include <arinc653/queueing.h>
+#include <arinc653/sampling.h>
+
+#define SECOND 1000000000LL
+
+#define MAX_AFDX_FRAME_SIZE	114
+#define MAX_AFDX_PAYLOAD_SIZE 64
+#define MAX_NB_MESSAGE 10
+
+QUEUING_PORT_ID_TYPE QP1, QP2;
+
+
+static void check_ret(RETURN_CODE_TYPE ret)
+{
+    if (ret != NO_ERROR) {
+        printf("check_ret_error: %d\n", (int) ret);
+    }
+}
+
+
+static void second_process(void)
+{
+    // send messages in bursts of 10 (maximum queued amount)
+	char	afdx_payload[MAX_AFDX_PAYLOAD_SIZE];
+	int i = 0;
+    RETURN_CODE_TYPE ret;
+
+    
+    while (1) {
+			if (i == 0){
+			strcpy(afdx_payload, "Hello World!");
+			printf("P1_test message: %s\n", afdx_payload);
+			SEND_QUEUING_MESSAGE(QP1, (MESSAGE_ADDR_TYPE) &afdx_payload, strlen(afdx_payload), 0, &ret);
+			}
+			if (i == 1){
+			strcpy(afdx_payload, "How are you?");
+			printf("P1_test message: %s\n", afdx_payload);
+			SEND_QUEUING_MESSAGE(QP1, (MESSAGE_ADDR_TYPE) &afdx_payload, strlen(afdx_payload), 0, &ret);
+			}
+            
+            check_ret(ret);
+            i++;
+            if (i > 1)
+				i = 0;   
+            
+			TIMED_WAIT(5 * SECOND, &ret);
+    }
+}
+
+static int real_main(void)
+{
+    RETURN_CODE_TYPE ret;
+    PROCESS_ID_TYPE pid;
+    PROCESS_ATTRIBUTE_TYPE process_attrs = {
+        .PERIOD = INFINITE_TIME_VALUE,
+        .TIME_CAPACITY = INFINITE_TIME_VALUE,
+        .STACK_SIZE = 8096, // the only accepted stack size!
+        .BASE_PRIORITY = MIN_PRIORITY_VALUE,
+        .DEADLINE = SOFT,
+    };
+
+  // create process 2
+    process_attrs.ENTRY_POINT = second_process;
+    strncpy(process_attrs.NAME, "process 2", sizeof(PROCESS_NAME_TYPE));
+
+    CREATE_PROCESS(&process_attrs, &pid, &ret);
+    if (ret != NO_ERROR) {
+        printf("P1_couldn't create process 2: %d\n", (int) ret);
+        return 1;
+    } else {
+        printf("P1_process 2 created\n");
+    }
+    
+    START(pid, &ret);
+    if (ret != NO_ERROR) {
+        printf("P1_couldn't start process 2: %d\n", (int) ret);
+        return 1;
+    } else {
+        printf("P1_process 2 \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
+    }
+    
+    CREATE_QUEUING_PORT("QP1", MAX_AFDX_PAYLOAD_SIZE, MAX_NB_MESSAGE, SOURCE , FIFO, &QP1, &ret);
+	if (ret != NO_ERROR) {
+        printf("P2_couldn't create port QP1, ret %d\n", (int) ret);
+    }  
+
+    // transition to NORMAL operating mode
+    // N.B. if everything is OK, this never returns
+    printf("going to NORMAL mode...\n");
+    SET_PARTITION_MODE(NORMAL, &ret);
+
+    if (ret != NO_ERROR) {
+        printf("couldn't transit to normal operating mode: %d\n", (int) ret);
+    } 
+
+    STOP_SELF();
+    return 0;
+}
+
+void main(void) {
+    real_main();
+    STOP_SELF();
+}
