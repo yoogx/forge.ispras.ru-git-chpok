@@ -23,5 +23,8 @@
 #define ASSERT_RET(ret) if (ret != POK_ERRNO_OK) { printf ("ASSERTION FAILED, ret=%d, file=%s, line=%d\n", ret, __FILE__, __LINE__);}
 #define ASSERT_RET_WITH_EXCEPTION(ret,but) if ((ret != POK_ERRNO_OK)&&(ret != but)) { printf ("ASSERTION FAILED, ret=%d, file=%s, line=%d\n", ret, __FILE__, __LINE__);}
 
+#define assert(cond)
+
+
 #endif
 

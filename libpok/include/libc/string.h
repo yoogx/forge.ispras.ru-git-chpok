@@ -30,6 +30,11 @@ char     *strcpy(char *dest, const char *str);
 char		*strncpy(char *dest, const char *str, size_t size);
 int      memcmp (const void* v1, const void* v2, size_t n);
 
+char *strchr(const char *s, int c);
+char *strrchr(const char *s, int c);
+
+void *memchr(const void *s, int c, size_t n);
+
 /*
 ** XXX: TO REMOVE
 */
