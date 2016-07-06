@@ -46,4 +46,11 @@
         <Error Code="POK_ERROR_KIND_HARDWARE_FAULT" Level="PROCESS" ErrorCode="HARDWARE_FAULT" Action="COLD_START" />
         <Error Code="POK_ERROR_KIND_POWER_FAIL" Level="PROCESS" ErrorCode="POWER_FAIL" Action="COLD_START" />
     </HM_Table>
+
+    <Memory_Blocks>
+        <Memory_Block NameRef="PCI_IO" UserAccess="READ_WRITE"/>
+        <Memory_Block NameRef="vga-framebuffer" UserAccess="READ_WRITE"/>
+        <Memory_Block NameRef="vga-rom"/>
+    </Memory_Blocks>
+
 </Partition>
