@@ -47,17 +47,27 @@ void vbe_write(uint16_t reg, uint16_t val)
 
 void vga_init()
 {
-    printf("initializing vga\n");
+    printf("qemu-vga: initializing\n");
 
     pci_get_dev_by_bdf(0, 1, 0, &vga_dev);
     if (vga_dev.vendor_id == 0xFFFF) {
-        printf("have not found vga device\n");
+        printf("qemu-vga: have not found vga device\n");
         return;
     }
 
+    if (vga_dev.resources[PCI_RESOURCE_BAR0].addr == 0) {
+        printf("qemu-vga: BAR0 not mapped\n");
+        return;
+    }
 
-    printf("vga bios[0] 0x%x\n", ioread8((uint8_t *)vga_dev.resources[6].addr));
-    printf("vga bios[1] 0x%x\n", ioread8((uint8_t *)vga_dev.resources[6].addr + 1));
+    if (vga_dev.resources[PCI_RESOURCE_ROM].addr == 0) {
+        printf("qemu-vga: ROM not mapped\n");
+        return;
+    }
+
+    printf("qemu-vga: bios[0] 0x%x\n", ioread8((uint8_t *)vga_dev.resources[PCI_RESOURCE_ROM].addr));
+    printf("qemu-vga: bios[1] 0x%x\n", ioread8((uint8_t *)vga_dev.resources[PCI_RESOURCE_ROM].addr + 1));
+
 
     vbe_write(VBE_DISPI_INDEX_ENABLE, 0);
     vbe_write(VBE_DISPI_INDEX_XRES, SCREEN_WIDTH);
