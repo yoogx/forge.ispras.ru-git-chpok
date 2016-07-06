@@ -58,7 +58,6 @@ except:
 
     # If bsp isn't specified on the command line,
     # try to get it from bash environment
-    #if 'bsp' not in COMMAND_LINE_TARGETS:
     if ARGUMENTS.get('bsp'):
         env['BSP'] = env['bsp']
     else:
@@ -70,6 +69,8 @@ except:
     env['POK_PATH'] = os.path.join(os.environ['POK_PATH'], '')
     env['SCONSTRUCT_DIR'] = GetLaunchDir()
     env['BUILD_DIR'] = os.path.join(env['SCONSTRUCT_DIR'], 'build', env['BSP'], '')
+    env['COVERAGE_DIR'] = os.path.join(env['SCONSTRUCT_DIR'], 'coverage', env['BSP'], '')
+    env['LCOV_LAUNCH_DIR'] = env['SCONSTRUCT_DIR']
 
 log_file_opened = False
 
@@ -202,15 +203,15 @@ env.Alias('rundbg', 'run_debug_cmd')
 
 env.Command('debug_cmd', [], env['GDB']+' '+env['BUILD_DIR']+"pok.elf -ex 'target remote :1234' \
 -ex 'set $$BSP=\""+env['BSP']+"\"' \
+-ex 'set $$GCOV_DIR=\""+env['BUILD_DIR']+"gcov\"' \
 -x "+env['POK_PATH']+"/misc/gdb_gcov_script")
 env.Alias('debug', 'debug_cmd')
 
 env.Command('coverage_cmd', [],
-[Delete('coverage/'+env['BSP']),
-Mkdir('coverage/'+env['BSP']),
-'lcov -q --gcov-tool '+env['GCOV']+' -c -d '+env['POK_PATH']+'/build/'+env['BSP']+
-' -d . -o coverage/'+env['BSP']+'/'+env['BSP']+'.info',
-'genhtml -q coverage/'+env['BSP']+'/'+env['BSP']+'.info -o coverage/'+env['BSP']])
+[Delete(env['COVERAGE_DIR']),
+Mkdir(env['COVERAGE_DIR']),
+'lcov -q --gcov-tool '+env['GCOV']+' -c -d '+env['LCOV_LAUNCH_DIR']+' -o '+env['COVERAGE_DIR']+env['BSP']+'.info',
+'genhtml -q '+env['COVERAGE_DIR']+env['BSP']+'.info -o '+env['COVERAGE_DIR']])
 env.AlwaysBuild('coverage')
 env.Alias('coverage', 'coverage_cmd')
 
