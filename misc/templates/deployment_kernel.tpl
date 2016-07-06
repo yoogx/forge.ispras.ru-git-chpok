@@ -304,5 +304,5 @@ struct tlb_entry jet_tlb_entries[] = {
 
 };
 
-size_t jet_tlb_entries_n = 5; //{{ conf.channels_queueing | length }};
+size_t jet_tlb_entries_n = {{ conf.memory_blocks | length }};
 #endif
