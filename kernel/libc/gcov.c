@@ -215,8 +215,6 @@ void gcov_dump(void)
             sz = dump_gcov_entry(data + size, info);
             size += sz; // total size
             entry[i].data_end = entry[i].data_start + sz;
-
-            //printf("%s 0x%lx 0x%lx\n", entry[i].filename, entry[i].data_start, entry[i].data_end);
         }
     }
     printf("total size:   %zu\n", size);
@@ -230,13 +228,12 @@ void gcov_dump(void)
 void __gcov_init(struct gcov_info *info)
 {
     if (info == NULL) {
-        printf("%s: NULL info\n", __func__);
+        printf("kernel: %s: NULL info\n", __func__);
         return;
     }
-    //printf("%s filename '%s'\n", __func__, info->filename);
 
     if (num_used_gcov_entries >= DEFAULT_GCOV_ENTRY_COUNT) {
-        printf("%s: gcov_info_head is full, all %zd entries used\n",
+        printf("kernel: %s: gcov_info_head is full, all %zd entries used\n",
                 __func__, num_used_gcov_entries);
         return;
     }

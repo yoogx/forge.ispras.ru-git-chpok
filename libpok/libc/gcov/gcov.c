@@ -42,13 +42,12 @@ void pok_gcov_init(void) {
 
 void __gcov_init(struct gcov_info *info) {
     if (info == NULL) {
-        printf("%s: NULL info\n", __func__);
+        printf("libpok: %s: NULL info\n", __func__);
         return;
     }
-    //printf("%s filename '%s'\n", __func__, info->filename);
 
     if (num_used_gcov_entries >= DEFAULT_GCOV_ENTRY_COUNT) {
-        printf("%s: gcov_info_head is full, all %zd entries used\n",
+        printf("libpok: %s: gcov_info_head is full, all %zd entries used\n",
                 __func__, num_used_gcov_entries);
         return;
     }
