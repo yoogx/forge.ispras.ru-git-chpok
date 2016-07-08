@@ -133,7 +133,7 @@ static size_t convert_to_gcda(unsigned char *buffer, struct gcov_info *info)
     return pos;
 }
 
-#define DEFAULT_GCOV_ENTRY_COUNT 200
+#define DEFAULT_GCOV_ENTRY_COUNT 400
 #define GCOV_HEXDUMP_BUF_SIZE 10000
 
 #define GCOV_MAX_DATA_SIZE GCOV_HEXDUMP_BUF_SIZE * DEFAULT_GCOV_ENTRY_COUNT
