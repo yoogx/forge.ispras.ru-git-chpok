@@ -11,6 +11,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
  * See the GNU General Public License version 3 for more details.
+ *
+ * This file also incorporates the following work:
+ * Copyright IBM Corp. 2009
+ * Author(s): Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
  */
 
 #ifndef __POK_KERNEL_GCOV_H__
