@@ -501,14 +501,14 @@ void pci_init()
             else if (dev_config->resources[i].type == PCI_RESOURCE_TYPE_BAR_IO)
                 command |= PCI_COMMAND_IO;
         }
-        //pci_write_config_word(&pci_dev, PCI_COMMAND, command);
 
-        pci_write_config_word(&pci_dev, PCI_COMMAND, PCI_COMMAND_MEMORY);
         if (dev_config->resources[PCI_RESOURCE_ROM].pci_addr != 0) {
             pci_write_config_dword(&pci_dev, PCI_ROM_ADDRESS,
                     dev_config->resources[PCI_RESOURCE_ROM].pci_addr|PCI_ROM_ADDRESS_ENABLE);
+            command |= PCI_COMMAND_MEMORY;
         }
-        //pci_write_config_word(&pci_dev, PCI_COMMAND, PCI_COMMAND_MEMORY);
+
+        pci_write_config_word(&pci_dev, PCI_COMMAND, command);
     }
     printf("PCI init result:\n");
     pci_list();
