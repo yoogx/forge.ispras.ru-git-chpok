@@ -435,6 +435,7 @@ uintptr_t pci_convert_legacy_port(struct pci_dev *dev, uint16_t port)
 #define WAR_WTT_IO     0x00008000
 #define WAR_WTT_MEM    0x00004000
 #define WAR_OWS_8K     0xC
+#define WAR_OWS_4G     0x1f
 
 //addr should be 16MB aligned (this is the size of qemu vga mem arrea)
 ////and 3rd bit equal to 1 means prefetchable memory
@@ -463,7 +464,7 @@ void pci_init()
 #define tmp 0x6000000
     out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWBAR2), tmp >> 12);
     out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOTAR2), 0xedf00000 >> 12);
-    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR2), WAR_EN|WAR_RTT_MEM|WAR_WTT_MEM|WAR_OWS_8K);
+    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR2), WAR_EN|WAR_RTT_MEM|WAR_WTT_MEM|WAR_OWS_4G);
 
 #endif
 
