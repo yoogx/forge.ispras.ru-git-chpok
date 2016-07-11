@@ -474,11 +474,6 @@ void pci_init()
     //pci_enumerate();
 
     printf("PCI initialization\n");
-#define TADDR 0x20000000
-    memset((void *)TADDR, 1, 20);
-    *(uint32_t *)TADDR = 3;
-    iowrite8(1,(void *)TADDR);
-    hexdump(TADDR, 20);
 
     for (int i = 0; i < pci_configs_nb; i++) {
         struct pci_dev_config *dev_config = &pci_configs[i];
@@ -517,6 +512,5 @@ void pci_init()
     }
     printf("PCI init result:\n");
     pci_list();
-    hexdump(TADDR, 20);
     printf("\n");
 }
