@@ -32,6 +32,13 @@ unsigned pci_driver_table_used_cnt = 0;
 
 #ifdef __PPC__
 struct pci_bridge bridge;
+
+struct legacy_io {
+    uint32_t virt_addr;
+    uint64_t phys_addr; //system physical addr
+    // uint32_t pci_addr; always zero
+} legacy_io;
+
 #endif
 
 static char *get_pci_class_name(int classcode) {
@@ -416,7 +423,7 @@ uintptr_t pci_convert_legacy_port(struct pci_dev *dev, uint16_t port)
 {
     (void) dev;
 #ifdef __PPC__
-    return bridge.iorange + port;
+    return legacy_io.virt_addr + port;
 #else
     return port;
 #endif
@@ -458,8 +465,13 @@ void pci_init()
     printf("bridge cfg_addr: %p cfg_data: %p\n",
             (void *)bridge.cfg_addr, (void *)bridge.cfg_data);
 
-    //out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWBAR1), bridge.iorange>>12);
-    //out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR1), WAR_EN|WAR_RTT_IO|WAR_WTT_IO|WAR_OWS_8K);
+
+    legacy_io.virt_addr = 0x21100000;
+    legacy_io.phys_addr = 0x7100000;
+
+    //for legacy ports
+    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWBAR1), legacy_io.phys_addr>>12);
+    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR1), WAR_EN|WAR_RTT_IO|WAR_WTT_IO|WAR_OWS_8K);
 
 #define tmp 0x6000000
     out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWBAR2), tmp >> 12);
