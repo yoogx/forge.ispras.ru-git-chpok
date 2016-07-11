@@ -65,8 +65,10 @@ void vga_init()
         return;
     }
 
-    printf("qemu-vga: bios[0] 0x%x\n", ioread8((uint8_t *)vga_dev.resources[PCI_RESOURCE_ROM].addr));
-    printf("qemu-vga: bios[1] 0x%x\n", ioread8((uint8_t *)vga_dev.resources[PCI_RESOURCE_ROM].addr + 1));
+    //printf("qemu-vga: bios[0] 0x%x\n", ioread8((uint8_t *)vga_dev.resources[PCI_RESOURCE_ROM].addr));
+    //printf("qemu-vga: bios[1] 0x%x\n", ioread8((uint8_t *)vga_dev.resources[PCI_RESOURCE_ROM].addr + 1));
+    printf("qemu-vga: bios[0] 0x%x\n", ioread8((uint8_t *)0x20000000));
+    printf("qemu-vga: bios[1] 0x%x\n", ioread8((uint8_t *)0x20000000 + 1));
 
 
     vbe_write(VBE_DISPI_INDEX_ENABLE, 0);

@@ -413,15 +413,22 @@ uintptr_t pci_convert_legacy_port(struct pci_dev *dev, uint16_t port)
 
 #define PEX1_PEXOWBAR1 0xc28
 #define PEX1_PEXOWAR1  0xc30
+
+#define PEX1_PEXOTAR2  0xc40
+#define PEX1_PEXOWBAR2 0xc48
+#define PEX1_PEXOWAR2  0xc50
+
 #define WAR_EN         0x80000000
 #define WAR_RTT_IO     0x00080000
+#define WAR_RTT_MEM    0x00040000
 #define WAR_WTT_IO     0x00008000
+#define WAR_WTT_MEM    0x00004000
 #define WAR_OWS_8K     0xC
 
 //addr should be 16MB aligned (this is the size of qemu vga mem arrea)
-//and 3rd bit equal to 1 means prefetchable memory
-#define VGA_ADDR 0xee000008
-void vga_init(void);
+////and 3rd bit equal to 1 means prefetchable memory
+//#define VGA_ADDR 0xee000008
+//void vga_init(void);
 
 void pci_init()
 {
@@ -439,8 +446,13 @@ void pci_init()
     printf("bridge cfg_addr: %p cfg_data: %p\n",
             (void *)bridge.cfg_addr, (void *)bridge.cfg_data);
 
-    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWBAR1), bridge.iorange>>12);
-    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR1), WAR_EN|WAR_RTT_IO|WAR_WTT_IO|WAR_OWS_8K);
+    //out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWBAR1), bridge.iorange>>12);
+    //out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR1), WAR_EN|WAR_RTT_IO|WAR_WTT_IO|WAR_OWS_8K);
+
+#define tmp 0x6000000
+    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWBAR2), tmp >> 12);
+    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOTAR2), 0xedf00000 >> 12);
+    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR2), WAR_EN|WAR_RTT_MEM|WAR_WTT_MEM|WAR_OWS_8K);
 
 #endif
 
@@ -448,6 +460,11 @@ void pci_init()
     //pci_enumerate();
 
     printf("PCI initialization\n");
+#define TADDR 0x20000000
+    memset((void *)TADDR, 1, 20);
+    *(uint32_t *)TADDR = 3;
+    iowrite8(1,(void *)TADDR);
+    hexdump(TADDR, 20);
 
     for (int i = 0; i < pci_configs_nb; i++) {
         struct pci_dev_config *dev_config = &pci_configs[i];
@@ -475,14 +492,17 @@ void pci_init()
             else if (dev_config->resources[i].type == PCI_RESOURCE_TYPE_BAR_IO)
                 command |= PCI_COMMAND_IO;
         }
-        pci_write_config_word(&pci_dev, PCI_COMMAND, command);
+        //pci_write_config_word(&pci_dev, PCI_COMMAND, command);
 
+        pci_write_config_word(&pci_dev, PCI_COMMAND, PCI_COMMAND_MEMORY);
         if (dev_config->resources[PCI_RESOURCE_ROM].addr != 0) {
             pci_write_config_dword(&pci_dev, PCI_ROM_ADDRESS,
                     dev_config->resources[PCI_RESOURCE_ROM].addr|PCI_ROM_ADDRESS_ENABLE);
         }
+        //pci_write_config_word(&pci_dev, PCI_COMMAND, PCI_COMMAND_MEMORY);
     }
     printf("PCI init result:\n");
     pci_list();
+    hexdump(TADDR, 20);
     printf("\n");
 }

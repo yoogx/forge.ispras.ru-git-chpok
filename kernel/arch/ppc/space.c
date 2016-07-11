@@ -298,6 +298,15 @@ void pok_arch_space_init (void)
     // Preserve it, let's POK write it's entries starting 2
     next_non_resident = next_resident = 2;
     //
+    pok_insert_tlb1(
+        0x20000000,
+        0x6000000,
+        E500MC_PGSIZE_16M,
+        MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
+        0,
+        0,
+        FALSE
+    );
 }
 
 //TODO get this values from devtree!
