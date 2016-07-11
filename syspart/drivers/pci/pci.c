@@ -395,13 +395,10 @@ void pci_list()
                 }
 
 
-                uint32_t bar0 = res->addr;
-                if (bar0) {
-                    printf("0x%lx ", bar0);
+                if (res->pci_addr) {
+                    printf("0x%llx ", res->pci_addr);
 #ifdef __PPC__
-                    if(res->type == PCI_RESOURCE_TYPE_BAR_IO) {
-                        printf("(addr = 0x%lx) ", res->addr + bridge.iorange);
-                    }
+                    printf("(addr = 0x%x) ", res->addr);
 #endif
                 } else {
                     printf("_ ");
