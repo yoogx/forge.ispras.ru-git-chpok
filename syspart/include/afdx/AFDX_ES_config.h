@@ -28,6 +28,9 @@
 
 #include <afdx/AFDX_ES.h>
 #include <stdlib.h>
+#include <arinc653/buffer.h>
+#include <arinc653/queueing.h>
+#include <arinc653/sampling.h>
 
 
 #define SUBNETWORKS_COUNT  2
@@ -62,9 +65,13 @@
  * next_out_seq_number    	-the sequence number of the outgoing message
  *   The frame sequence number should be one octet long with a range of 0 to 255.
  * last_sending_BAG_number  -the number of the BAG, in which last message was sent
- * integrity_check          -struct of arrays which consist information for integrity check
  * skew_max					-is given by configuration per VL, shows the difference
  * 							between time of subnetworks
+ * afdx_buf_name			-is given by configuration per VL, shows the name of the VL buffer
+ * afdx_buf_id				-is given by configuration per VL, shows the id of the  VL buffer
+ *************************************************************************************
+ * 
+ * integrity_check          -struct of arrays which consist information for integrity check
  */
 typedef struct
 {
@@ -76,6 +83,8 @@ typedef struct
     uint8_t                 next_out_seq_numb;
     uint64_t                last_sending_BAG_numb;
     const pok_time_t        skew_max;
+    char					afdx_buf_name[12];
+    BUFFER_ID_TYPE			afdx_buf_id;
 
 /*
  * this data is needed for receive ES
@@ -128,6 +137,8 @@ typedef struct
     size_t          vl_data_index;
     uint8_t         dst_partition_id;
     PACKET_TYPE     type_of_packet;
+	QUEUING_PORT_NAME_TYPE	qp_name; //make union?
+    
 } afdx_dst_info_t;
 
 

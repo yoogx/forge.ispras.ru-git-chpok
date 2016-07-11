@@ -27,11 +27,11 @@
  #include <stdio.h>
  #include <afdx/hexDump.h>
  
-#define MAC_CONST_DST 	0x3000000
-#define MAC_CONST_SRC_1 0x2
-#define MAC_CONST_SRC_2 0
-#define MAC_CONST_SRC_3 0
-#define MAC_NETWOK_ID	0
+#define MAC_CONST_DST 		0x3000000
+#define MAC_CONST_SRC_1 	0x2
+#define MAC_CONST_SRC_2 	0
+#define MAC_CONST_SRC_3 	0
+#define MAC_NETWOK_ID		0
 #define MAC_INTERFACE_ID_A	0x1	// (001 b) for the network A
 #define MAC_INTERFACE_ID_B	0x2	// (010 b) for the network B						
 								
@@ -48,8 +48,8 @@
 #define FRAGMENT_ID			0
 #define IHL					0x14		// 20 bytes IP Header
 
-#define HEADER_LENGTH	42
-#define FCS_LENGTH		4
+#define HEADER_LENGTH		42
+#define FCS_LENGTH			4
 
 /*
  * UDP (User Datagram Protocol) packet type.

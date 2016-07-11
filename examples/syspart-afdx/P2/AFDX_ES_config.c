@@ -34,6 +34,8 @@
 			.next_out_seq_numb = 1,
 			.last_sending_BAG_numb = 0,
 			.skew_max = 200,
+			.afdx_buf_name = "afdx_buf_1",
+			.afdx_buf_id = (int) NULL,
 		},
 		{
 			.vl_id = 2,
@@ -44,6 +46,8 @@
 			.next_out_seq_numb = 1,
 			.last_sending_BAG_numb = 0,
 			.skew_max = 200,
+			.afdx_buf_name = "afdx_buf_2",
+			.afdx_buf_id = (int) NULL,
 		}
 	};
 
@@ -56,6 +60,7 @@ afdx_dst_info_t queuing_arinc_to_afdx_ports[ES_QUEUING_ARINC_PORTS_COUNT]= {
 	    .vl_data_index = 0,
 	    .dst_partition_id = 2,
 	    .type_of_packet = UNICAST_PACKET,
+	    .qp_name = "QP1",
     },//vl 1 port 1
 	{
 		.src_partition_id = 1,
@@ -63,7 +68,8 @@ afdx_dst_info_t queuing_arinc_to_afdx_ports[ES_QUEUING_ARINC_PORTS_COUNT]= {
 	    .dst_afdx_port = 4,
 	    .vl_data_index = 1,
 	    .dst_partition_id = 2,
-	    .type_of_packet = UNICAST_PACKET
+	    .type_of_packet = UNICAST_PACKET,
+	    .qp_name = "QP2",
 	}, //vl2 port 2
 	{
 		.src_partition_id = 2,
@@ -72,6 +78,7 @@ afdx_dst_info_t queuing_arinc_to_afdx_ports[ES_QUEUING_ARINC_PORTS_COUNT]= {
 	    .vl_data_index = 0,
 	    .dst_partition_id = 1,
 	    .type_of_packet = UNICAST_PACKET,
+	    .qp_name = "QP3",
 	 }, //vl 1 port 3
 	{
 		.src_partition_id = 2,
@@ -80,7 +87,8 @@ afdx_dst_info_t queuing_arinc_to_afdx_ports[ES_QUEUING_ARINC_PORTS_COUNT]= {
 	    .vl_data_index = 1,
 	    .dst_partition_id = 1,
 	    .type_of_packet = UNICAST_PACKET,
-	 }
+	    .qp_name = "QP4",
+	 }	//vl2 port 4
 	};
 	
 
