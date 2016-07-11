@@ -379,6 +379,16 @@ void pci_list()
                     pci_dev.hdr_type);
 
             if (pci_dev.hdr_type != 0) {
+                uint16_t tmp;
+                pci_read_config_word(&pci_dev, 0x10, &tmp);
+                printf("\t bar0: 0x%x\n", tmp);
+
+                pci_read_config_word(&pci_dev, 0x20, &tmp);
+                printf("\t mem base: 0x%x\n", tmp);
+
+                pci_read_config_word(&pci_dev, 0x22, &tmp);
+                printf("\t mem limit: 0x%x\n", tmp);
+
                 continue;
             }
 
@@ -429,8 +439,16 @@ uintptr_t pci_convert_legacy_port(struct pci_dev *dev, uint16_t port)
 #endif
 }
 
+#define PEX1_PEXOTAR0  0xc00
+#define PEX1_PEXOTEAR0 0xc04
+#define PEX1_PEXOWAR0  0xc10
+
+#define PEX1_PEXOTAR1  0xc20
+#define PEX1_PEXOTEAR1 0xc24
 #define PEX1_PEXOWBAR1 0xc28
 #define PEX1_PEXOWAR1  0xc30
+
+#define PEX_SHIFT      0x20
 
 #define PEX1_PEXOTAR2  0xc40
 #define PEX1_PEXOWBAR2 0xc48
@@ -444,10 +462,27 @@ uintptr_t pci_convert_legacy_port(struct pci_dev *dev, uint16_t port)
 #define WAR_OWS_8K     0xC
 #define WAR_OWS_4G     0x1f
 
-//addr should be 16MB aligned (this is the size of qemu vga mem arrea)
-////and 3rd bit equal to 1 means prefetchable memory
-//#define VGA_ADDR 0xee000008
-//void vga_init(void);
+void pci_outbound_window_list()
+{
+#ifdef __PPC__
+    printf("outbound windows:\n");
+    {
+        uint32_t tar = in_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOTAR0));
+        uint32_t tear = in_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOTEAR0));
+        uint32_t war = in_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR0));
+        printf("\t window 0   0 -> %lx:%lx [%lx]\n",
+                tear, tar, war);
+    }
+    for (int i = 1; i < 5; i++) {
+        uint32_t wbar = in_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWBAR1 + 0x20*i));
+        uint32_t tar = in_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOTAR1 + 0x20*i));
+        uint32_t tear =in_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOTEAR1 +0x20*i));
+        uint32_t war = in_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR1 + 0x20*i));
+        printf("\t window %d   %lx -> %lx:%lx [%lx]\n", i,
+                wbar, tear, tar, war);
+    }
+#endif
+}
 
 void pci_init()
 {
@@ -464,6 +499,8 @@ void pci_init()
 
     printf("bridge cfg_addr: %p cfg_data: %p\n",
             (void *)bridge.cfg_addr, (void *)bridge.cfg_data);
+
+    pci_outbound_window_list();
 
 
     legacy_io.virt_addr = 0x21100000;
