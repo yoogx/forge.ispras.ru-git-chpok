@@ -380,14 +380,35 @@ void pci_list()
 
             if (pci_dev.hdr_type != 0) {
                 uint16_t tmp;
+                uint32_t tmp32;
+
                 pci_read_config_word(&pci_dev, 0x10, &tmp);
                 printf("\t bar0: 0x%x\n", tmp);
+                pci_write_config_dword(&pci_dev, 0x20, 0x7000);
 
                 pci_read_config_word(&pci_dev, 0x20, &tmp);
                 printf("\t mem base: 0x%x\n", tmp);
 
+                pci_write_config_dword(&pci_dev, 0x22, 0x9000);
                 pci_read_config_word(&pci_dev, 0x22, &tmp);
                 printf("\t mem limit: 0x%x\n", tmp);
+
+
+                pci_read_config_word(&pci_dev, 0x24, &tmp);
+                printf("\t pr mem base: 0x%x\n", tmp);
+
+
+                pci_read_config_word(&pci_dev, 0x26, &tmp);
+                printf("\t pr mem limit: 0x%x\n", tmp);
+
+                pci_read_config_dword(&pci_dev, 0x28, &tmp32);
+                printf("\t pr mem base upp: 0x%x\n", tmp);
+
+                pci_read_config_dword(&pci_dev, 0x2C, &tmp32);
+                printf("\t pr limit upp: 0x%x\n", tmp);
+
+                pci_read_config_dword(&pci_dev, 0x38, &tmp32);
+                printf("\t exp rom : 0x%lx\n", tmp32);
 
                 continue;
             }
@@ -454,6 +475,9 @@ uintptr_t pci_convert_legacy_port(struct pci_dev *dev, uint16_t port)
 #define PEX1_PEXOWBAR2 0xc48
 #define PEX1_PEXOWAR2  0xc50
 
+#define PEX1_PEXITAR3  0xd80
+#define PEX1_PEXIWBAR3 0xd8c
+
 #define WAR_EN         0x80000000
 #define WAR_RTT_IO     0x00080000
 #define WAR_RTT_MEM    0x00040000
@@ -462,25 +486,71 @@ uintptr_t pci_convert_legacy_port(struct pci_dev *dev, uint16_t port)
 #define WAR_OWS_8K     0xC
 #define WAR_OWS_4G     0x1f
 
-void pci_outbound_window_list()
+//TODO move to fsl_pci.h
+/* PCI/PCI Express outbound window reg */
+struct pci_outbound_window_regs {
+    uint32_t potar;  /* 0x.0 - Outbound translation address register */
+    uint32_t potear; /* 0x.4 - Outbound translation extended address register */
+    uint32_t powbar; /* 0x.8 - Outbound window base address register */
+    uint8_t  pad1[4];
+    uint32_t powar;  /* 0x.10 - Outbound window attributes register */
+    uint8_t  pad2[12];
+};
+
+/* PCI/PCI Express inbound window reg */
+struct pci_inbound_window_regs {
+    uint32_t pitar;  /* 0x.0 - Inbound translation address register */
+    uint8_t  pad1[4];
+    uint32_t piwbar; /* 0x.8 - Inbound window base address register */
+    uint32_t piwbear; /* 0x.c - Inbound window base extended address register */
+    uint32_t piwar;  /* 0x.10 - Inbound window attributes register */
+    uint8_t  pad2[12];
+};
+
+struct pci_atmu_windows {
+    /* PCI/PCI Express outbound window 0-4
+     * Window 0 is the default window and is the only window enabled upon reset.
+     * The default outbound register set is used when a transaction misses
+     * in all of the other outbound windows.
+     */
+    struct pci_outbound_window_regs pow[5];
+    uint8_t res14[96];
+    struct pci_inbound_window_regs pmit;   /* 0xd00 - 0xd9c Inbound MSI */
+    uint8_t res6[96];
+    /* PCI/PCI Express inbound window 3-0
+     * inbound window 1 supports only a 32-bit base address and does not
+     * define an inbound window base extended address register.
+     */
+    struct pci_inbound_window_regs piw[4];
+};
+
+void pci_ATMU_windows_list()
 {
 #ifdef __PPC__
-    printf("outbound windows:\n");
-    {
-        uint32_t tar = in_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOTAR0));
-        uint32_t tear = in_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOTEAR0));
-        uint32_t war = in_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR0));
-        printf("\t window 0   0 -> %lx:%lx [%lx]\n",
-                tear, tar, war);
-    }
-    for (int i = 1; i < 5; i++) {
-        uint32_t wbar = in_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWBAR1 + 0x20*i));
-        uint32_t tar = in_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOTAR1 + 0x20*i));
-        uint32_t tear =in_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOTEAR1 +0x20*i));
-        uint32_t war = in_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR1 + 0x20*i));
+
+    struct pci_atmu_windows *atmu = (struct pci_atmu_windows *)(bridge.cfg_addr + PEX1_PEXOTAR0);
+
+    printf("ATMU:\n");
+    printf("   outbound windows:\n");
+    for (int i = 0; i < 5; i++) {
         printf("\t window %d   %lx -> %lx:%lx [%lx]\n", i,
-                wbar, tear, tar, war);
+                atmu->pow[i].powbar,
+                atmu->pow[i].potear, atmu->pow[i].potar,
+                atmu->pow[i].powar);
     }
+    printf("   MSI window\n");
+    printf("\t window %lx -> %lx:%lx [%lx]\n",
+            atmu->pmit.pitar,
+            atmu->pmit.piwbar, atmu->pmit.piwbear,
+            atmu->pmit.piwar);
+    printf("   inbound windows:\n");
+    for (int i = 0; i < 4; i++) {
+        printf("\t window %d   %lx -> %lx:%lx [%lx]\n", i,
+                atmu->piw[i].pitar,
+                atmu->piw[i].piwbar, atmu->piw[i].piwbear,
+                atmu->piw[i].piwar);
+    }
+
 #endif
 }
 
@@ -500,7 +570,7 @@ void pci_init()
     printf("bridge cfg_addr: %p cfg_data: %p\n",
             (void *)bridge.cfg_addr, (void *)bridge.cfg_data);
 
-    pci_outbound_window_list();
+    pci_ATMU_windows_list();
 
 
     legacy_io.virt_addr = 0x21100000;
