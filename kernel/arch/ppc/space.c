@@ -300,19 +300,10 @@ void pok_arch_space_init (void)
     //
     pok_insert_tlb1(
         0x20000000,
-        0x6000000,
-        E500MC_PGSIZE_16M,
+        0x80000000,
+        E500MC_PGSIZE_256M,
         MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
-        0,
-        0,
-        FALSE
-    );
-    pok_insert_tlb1(
-        0x21000000,
-        0x7000000,
-        E500MC_PGSIZE_16M,
-        MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
-        0,
+        MAS2_W | MAS2_I | MAS2_M | MAS2_G,
         0,
         FALSE
     );

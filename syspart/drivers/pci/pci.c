@@ -384,12 +384,10 @@ void pci_list()
 
                 pci_read_config_word(&pci_dev, 0x10, &tmp);
                 printf("\t bar0: 0x%x\n", tmp);
-                pci_write_config_dword(&pci_dev, 0x20, 0x7000);
 
                 pci_read_config_word(&pci_dev, 0x20, &tmp);
                 printf("\t mem base: 0x%x\n", tmp);
 
-                pci_write_config_dword(&pci_dev, 0x22, 0x9000);
                 pci_read_config_word(&pci_dev, 0x22, &tmp);
                 printf("\t mem limit: 0x%x\n", tmp);
 
@@ -570,20 +568,22 @@ void pci_init()
     printf("bridge cfg_addr: %p cfg_data: %p\n",
             (void *)bridge.cfg_addr, (void *)bridge.cfg_data);
 
-    pci_ATMU_windows_list();
-
-
     legacy_io.virt_addr = 0x21100000;
     legacy_io.phys_addr = 0x7100000;
 
+    /*
     //for legacy ports
     out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWBAR1), legacy_io.phys_addr>>12);
     out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR1), WAR_EN|WAR_RTT_IO|WAR_WTT_IO|WAR_OWS_8K);
+#define tmp 0x00000000
+    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWBAR1), tmp >> 12);
+    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOTAR1),  tmp >> 12);
+    //out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR1), WAR_EN|WAR_RTT_MEM|WAR_WTT_MEM|WAR_OWS_4G);
+    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR1), WAR_EN|WAR_RTT_MEM|WAR_WTT_MEM|WAR_OWS_4G);
+    */
 
-#define tmp 0x6000000
-    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWBAR2), tmp >> 12);
-    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOTAR2), 0xedf00000 >> 12);
-    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR2), WAR_EN|WAR_RTT_MEM|WAR_WTT_MEM|WAR_OWS_4G);
+
+    pci_ATMU_windows_list();
 
 #endif
 
@@ -618,6 +618,7 @@ void pci_init()
             else if (dev_config->resources[i].type == PCI_RESOURCE_TYPE_BAR_IO)
                 command |= PCI_COMMAND_IO;
         }
+        pci_write_config_dword(&pci_dev, PCI_BASE_ADDRESS_0, 0);
 
         if (dev_config->resources[PCI_RESOURCE_ROM].pci_addr != 0) {
             pci_write_config_dword(&pci_dev, PCI_ROM_ADDRESS,
