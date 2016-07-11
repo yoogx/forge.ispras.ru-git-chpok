@@ -75,5 +75,5 @@ int radeon_tst_atom_magic_simple(int b, int d, int f)
 
 int p3041_test()
 {
-    radeon_tst_atom_magic_simple(RADEON_BUS, RADEON_DEV, RADEON_FUN);
+    return radeon_tst_atom_magic_simple(RADEON_BUS, RADEON_DEV, RADEON_FUN);
 }

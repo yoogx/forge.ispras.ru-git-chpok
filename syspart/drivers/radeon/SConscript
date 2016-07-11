@@ -19,8 +19,8 @@
 
 Import('syspart_env')
 
-p3041_vga = syspart_env.StaticObject(source = Glob('*.c'))
+objs = syspart_env.StaticObject(source = Glob('*.c'))
 
-Return('p3041_vga')
+Return('objs')
 
 # EOF
