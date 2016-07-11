@@ -307,6 +307,15 @@ void pok_arch_space_init (void)
         0,
         FALSE
     );
+    pok_insert_tlb1(
+        0x21000000,
+        0x7000000,
+        E500MC_PGSIZE_16M,
+        MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
+        0,
+        0,
+        FALSE
+    );
 }
 
 //TODO get this values from devtree!

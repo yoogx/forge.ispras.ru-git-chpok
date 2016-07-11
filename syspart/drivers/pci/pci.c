@@ -202,10 +202,23 @@ int pci_write_config_dword(struct pci_dev *dev, int where, uint32_t val)
 }
 
 
+// zero means that device config is not found
+static uintptr_t get_resource_addr_from_config(uint8_t bus, uint8_t dev, uint8_t fn, enum PCI_RESOURCE_INDEX idx)
+{
+    //TODO optimize this linear search
+    struct pci_dev_config *d;
+    for (int i = 0; i < pci_configs_nb; i++) {
+        d = &pci_configs[i];
+        if (d->bus == bus && d->dev == dev && d->fn == fn)
+            return d->resources[idx].addr;
+    }
+
+    return 0;
+}
 
 
 
-static void pci_fill_resource(struct pci_dev *dev, int res_idx)
+static void pci_fill_resource(struct pci_dev *dev, enum PCI_RESOURCE_INDEX res_idx)
 {
     //TODO :
     // 1. Decode (I/O or memory) of a register is disabled via the command
@@ -238,12 +251,12 @@ static void pci_fill_resource(struct pci_dev *dev, int res_idx)
 
     if (res_idx == PCI_RESOURCE_ROM)  {
         resource->type = PCI_RESOURCE_TYPE_ROM;
-        resource->addr = val & PCI_ROM_ADDRESS_MASK;
+        resource->pci_addr = val & PCI_ROM_ADDRESS_MASK;
         size &= PCI_ROM_ADDRESS_MASK;
 
     } else if ((val&PCI_BASE_ADDRESS_SPACE) == PCI_BASE_ADDRESS_SPACE_IO) {
         resource->type = PCI_RESOURCE_TYPE_BAR_IO;
-        resource->addr = val & PCI_BASE_ADDRESS_IO_MASK;
+        resource->pci_addr = val & PCI_BASE_ADDRESS_IO_MASK;
         size &= PCI_BASE_ADDRESS_IO_MASK;
 
     } else {
@@ -254,11 +267,12 @@ static void pci_fill_resource(struct pci_dev *dev, int res_idx)
             resource->mem_flags |= PCI_RESOURCE_MEM_MASK_PREFETCH;
         }
         resource->type = PCI_RESOURCE_TYPE_BAR_MEM;
-        resource->addr = val & PCI_BASE_ADDRESS_MEM_MASK;
+        resource->pci_addr = val & PCI_BASE_ADDRESS_MEM_MASK;
         size &= PCI_BASE_ADDRESS_MEM_MASK;
     }
 
     resource->size = ~size + 1;
+    resource->addr = get_resource_addr_from_config(dev->bus, dev->dev, dev->fn, res_idx);
 }
 
 /*
@@ -481,11 +495,11 @@ void pci_init()
 
         int command = 0;
         for (int i = 0; i < PCI_RESOURCE_ROM; i++) {
-            if (dev_config->resources[i].addr == 0)
+            if (dev_config->resources[i].pci_addr == 0)
                 continue;
 
             pci_write_config_dword(&pci_dev, PCI_BASE_ADDRESS_0,
-                    dev_config->resources[i].addr);
+                    dev_config->resources[i].pci_addr);
 
             if (dev_config->resources[i].type == PCI_RESOURCE_TYPE_BAR_MEM)
                 command |= PCI_COMMAND_MEMORY;
@@ -495,9 +509,9 @@ void pci_init()
         //pci_write_config_word(&pci_dev, PCI_COMMAND, command);
 
         pci_write_config_word(&pci_dev, PCI_COMMAND, PCI_COMMAND_MEMORY);
-        if (dev_config->resources[PCI_RESOURCE_ROM].addr != 0) {
+        if (dev_config->resources[PCI_RESOURCE_ROM].pci_addr != 0) {
             pci_write_config_dword(&pci_dev, PCI_ROM_ADDRESS,
-                    dev_config->resources[PCI_RESOURCE_ROM].addr|PCI_ROM_ADDRESS_ENABLE);
+                    dev_config->resources[PCI_RESOURCE_ROM].pci_addr|PCI_ROM_ADDRESS_ENABLE);
         }
         //pci_write_config_word(&pci_dev, PCI_COMMAND, PCI_COMMAND_MEMORY);
     }

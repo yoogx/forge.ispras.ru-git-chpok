@@ -17,12 +17,18 @@
 
 #include <pci.h>
 
+struct pci_resource_config {
+    uintptr_t addr; //virtual addr
+    uint64_t  pci_addr; //"physical" addr in pci address space
+    enum PCI_RESOURCE_TYPE type;
+};
+
 struct pci_dev_config
 {
     uint16_t    bus;
     uint16_t    dev;
     uint16_t    fn;
-    struct pci_resource resources[PCI_NUM_RESOURCES];
+    struct pci_resource_config resources[PCI_NUM_RESOURCES];
 };
 
 extern struct pci_dev_config pci_configs[];

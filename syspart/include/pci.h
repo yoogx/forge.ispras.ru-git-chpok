@@ -136,7 +136,8 @@ enum PCI_RESOURCE_MEM_FLAG_MASKS{
  * size != 0 && addr = 0  means that BAR (ROM) is not initialized.
  */
 struct pci_resource {
-    uintptr_t addr;
+    uintptr_t addr; //virtual address
+    uint64_t  pci_addr; //"physical" addr in pci address space
     size_t size;
     enum PCI_RESOURCE_TYPE type;
 
@@ -144,6 +145,8 @@ struct pci_resource {
     //For values meaning see enum PCI_RESOURCE_MEM_FLAG_MASKS
     uint8_t mem_flags;
 };
+
+
 /*
  * Structure to holds some device information
  */

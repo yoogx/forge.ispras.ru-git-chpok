@@ -37,11 +37,13 @@ struct pci_dev_config pci_configs[] = {
         .fn  = 0,
         .resources = {
             [PCI_RESOURCE_BAR0] = {
-                .addr = 0xee000000,
+                .addr = 0x21000000,
+                .pci_addr = 0xee000000,
                 .type = PCI_RESOURCE_TYPE_BAR_MEM
             },
             [PCI_RESOURCE_ROM] = {
-                .addr = 0xedf00000,
+                .addr = 0x20000000,
+                .pci_addr = 0xedf00000,
                 .type = PCI_RESOURCE_TYPE_ROM
             }
         }
