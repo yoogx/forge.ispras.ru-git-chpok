@@ -13,23 +13,11 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __JET_ASP_IOPORTS_H__
-#define __JET_ASP_IOPORTS_H__
+#define DEFINE(sym, val) asm volatile("\n-> " #sym " %0 " #val "\n" : : "i" (val))
+#define OFFSETOF(s, m) \
+    DEFINE(OFFSETOF_##s##_##m, offsetof(struct s, m));
 
-#include <stdint.h>
-#include <arch/ioports.h>
+#define SIZEOF_STRUCT(s) \
+    DEFINE(SIZEOF_##s, sizeof(struct s));
 
-#ifndef JET_ARCH_DECLARE_IO_PORT
-
-void ja_outb(unsigned int port, uint8_t value);
-uint8_t ja_inb(unsigned int port);
-
-void ja_outw(unsigned int port, uint16_t value);
-uint16_t ja_inw(unsigned int port);
-
-void ja_outl(unsigned int port, uint32_t value);
-uint32_t ja_inl(unsigned int port);
-
-#endif /* JET_ARCH_DECLARE_IO_PORT */
-
-#endif // __JET_ASP_IOPORTS_H__
+#define AS_IS(str) asm volatile("\n->#" str)

@@ -190,6 +190,4 @@ static inline void pok_context_user_jump (
 
 #define pok_arch_load_partition ja_load_partition
 
-#include <asp/spinlock.h>
-
 #endif /* !__POK_ARCH_H__ */

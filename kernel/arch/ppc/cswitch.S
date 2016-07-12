@@ -16,6 +16,8 @@
  * Copyright (c) 2007-2009 POK team
  */
 
+#include "asm_offsets.h"
+
 /* FP_START must be equal to offsetof(context_t, fp0) */
 #define FP_START 96
 #define SAVE_FP(num) stfd %f##num,(96+8*num)(%r1)

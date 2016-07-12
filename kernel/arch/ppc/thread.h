@@ -21,7 +21,7 @@
 #include <types.h>
 #include <asp/cswitch.h>
 
-typedef struct
+typedef struct jet_context
 {
   uint32_t sp;
   uint32_t unused_lr;

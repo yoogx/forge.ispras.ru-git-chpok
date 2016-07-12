@@ -23,6 +23,20 @@ libfdt = SConscript('libfdt/SConscript')
 
 arch = arch_env.StaticObject(source = Glob('*.[Sc]'))
 
+if arch_env.get('jdeveloper'):
+    import sys
+    import os
+    sys.path.insert(1, os.path.join(os.environ["POK_PATH"], "misc"))
+    import template_generation
+    AddMethod(arch_env, template_generation.BuildAsmOffsets)
+
+    current_source_dir = arch_env.Dir('.').srcnode().path
+
+    asm_offsets = arch_env.BuildAsmOffsets(current_source_dir + "/asm_offsets.h", "asm_offsets.def",
+        GENERATE_TITLE = template_generation.generate_title_c)
+
+    arch_env.Depends(arch, asm_offsets)
+
 Return('arch', 'libfdt')
 
 # EOF
