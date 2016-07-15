@@ -1,4 +1,4 @@
-JetOS project was started as a fork of [POK](http://pok.tuxfamily.org/) that is an open source ARINC-653 compliant real-time operating system. All the changes made are provided as open source software under GPLv3 license.
+JetOS is a real-time operating system for avionics applications. It was started as a fork of [POK](http://pok.tuxfamily.org/) that is an open source ARINC-653 compliant real-time operating system. All the changes made are provided as open source software under GPLv3 license.
 
 Since then, code has been significantly rewritten and the new operating system have got a new name: *JetOS*.
 
