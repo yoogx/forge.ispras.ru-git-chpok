@@ -637,6 +637,7 @@ pok_setup_interrupts:
         blr
 
         .section ".bss", "aw"
+        .align 4 # 4 words = 16 bytes
 pok_stack:
 		.global pok_stack_end
         .space 8 * 1024
