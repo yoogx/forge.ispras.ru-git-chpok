@@ -608,9 +608,7 @@ class Memory_block:
         self.phys_addr = 0
 
         self.cache_policy = "DEFAULT"
-        self.system_access = "NONE"
         self.access = dict()
-        self.access[0] = self.system_access
         for part in conf.partitions:
             if name in part.memory_blocks_map:
                 self.access[part.part_index + 1] = part.memory_blocks_map[name]
@@ -620,6 +618,10 @@ class Memory_block:
         return self.name + ": " + hex(self.virt_addr) + " -> " + hex(self.phys_addr) + " [" +\
                 hex(self.actual_size) + " = " + self.str_size + "], " + str(self.cache_policy) + ", " +\
                 str(self.access)
+
+    def set_kernel_access(self, kaccess):
+        if kaccess != 'NONE':
+            self.access[0] = kaccess
 
 
 class Configuration:

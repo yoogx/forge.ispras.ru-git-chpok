@@ -282,12 +282,11 @@ class ArincConfigParser:
 
         if "CachePolicy" in mroot.attrib:
             mblock.cache_policy = mroot.attrib["CachePolicy"]
-        #if "SystemAccess" in mroot.attrib:
-        #    mblock.system_access = mroot.attrib["SystemAccess"]
-        print("found memblock", mblock)
 
-        #if "System" in part_root.find("Definition").attrib:
-        #    part.is_system = parse_bool(part_root.find("Definition").attrib["System"])
+        if "KernelAccess" in mroot.attrib:
+            mblock.set_kernel_access(mroot.attrib["KernelAccess"])
+
+        print("found memblock", mblock)
 
     def parse_hm(self, table, root):
         if root is None:
