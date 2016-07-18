@@ -246,6 +246,8 @@ class Partition:
 
         "ports_queueing_system", # list of queuing ports with non-empty protocol set
         "ports_sampling_system", # list of sampling ports with non-empty protocol set
+
+        "part_index" # index of the partition in the array. Filled automatically. part_index+1 is used as PID
     ]
 
     def __init__(self, part_id, name, size):
@@ -285,6 +287,8 @@ class Partition:
         self.part_index = None # Not set yet
         self.port_names_map = dict() # Map `port_name` => `port`
 
+        self.memory_blocks_map = dict() # Map 'mem_block_name' => 'user_access'
+
         self.total_time = 0 # Incremented every time timeslot is added.
         # When timeslot with periodic processing start is added, this is set to True.
         self.has_periodic_processing_start = False
@@ -314,6 +318,10 @@ class Partition:
         if port.protocol is not None:
             self.ports_sampling_system.append(port)
 
+    def add_mem_block(self, name, user_access):
+        if user_access is None:
+            user_access = "READ_ONLY"
+        self.memory_blocks_map[name] = user_access
 
     def get_all_sampling_ports(self):
         return ports_sampling
@@ -590,9 +598,9 @@ class Memory_block:
         "system_access"
     ]
 
-    def __init__(self, name, size):
+    def __init__(self, name, size, conf):
         self.name = name
-        self.size = size
+        self.actual_size = size
         aligned_size = max(4**math.ceil(math.log(size, 4)), 0x1000)
         self.str_size = size_to_str(aligned_size)
 
@@ -600,12 +608,18 @@ class Memory_block:
         self.phys_addr = 0
 
         self.cache_policy = "DEFAULT"
-        self.system_access = "READ_WRITE"
+        self.system_access = "NONE"
+        self.access = dict()
+        self.access[0] = self.system_access
+        for part in conf.partitions:
+            if name in part.memory_blocks_map:
+                self.access[part.part_index + 1] = part.memory_blocks_map[name]
 
 
     def __repr__(self):
         return self.name + ": " + hex(self.virt_addr) + " -> " + hex(self.phys_addr) + " [" +\
-                hex(self.size) + " = " + self.str_size + "], " + str(self.cache_policy) + ", " + str(self.system_access)
+                hex(self.actual_size) + " = " + self.str_size + "], " + str(self.cache_policy) + ", " +\
+                str(self.access)
 
 
 class Configuration:
@@ -745,7 +759,7 @@ class Configuration:
         if name in self.memory_block_names_map:
             raise RuntimeError("Adding already existed partition '%s'" % part_name)
 
-        mblock = Memory_block(name, size)
+        mblock = Memory_block(name, size, self)
 
         self.memory_blocks.append(mblock)
         self.memory_block_names_map[name] = mblock
