@@ -31,7 +31,9 @@ pok_bool_t thread_create(pok_thread_t* t)
      * Do not modify stack here: it will be filled when thread will run.
      */
     t->sp = 0;
-    t->entry_sp_user = 0;
+#ifdef POK_NEEDS_GDB
+    t->entry_sp_user = NULL;
+#endif
     
     t->priority = t->base_priority;
     t->state = POK_STATE_STOPPED;

@@ -17,6 +17,7 @@
 #define __JET_ASP_SPACE_H__
 
 #include <types.h>
+#include <asp/cswitch.h>
 
 /**
  * Return current partition id
@@ -47,7 +48,7 @@ uintptr_t	   ja_space_base_vaddr (uintptr_t addr);
  * 
  * for jump into user space.
  */
-uint32_t ja_space_context_init(
+struct jet_context* ja_space_context_init(
         uint32_t sp,
         uint8_t space_id,
         uint32_t entry_rel,

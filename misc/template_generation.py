@@ -64,6 +64,12 @@ generate_title_c = """/*
 
 generate_title_c_no_track = '/* GENERATED! DO NOT MODIFY! */\n'
 
+generate_title_python = """# GENERATED! DO NOT MODIFY!
+#
+# Instead of modifying this file, modify the one it generated from (%source%).
+"""
+
+
 def CopyWithTitle(target, source, env):
     """
     Copy source file into target with appended title.
@@ -508,7 +514,7 @@ def asm_offsets_build_c_action(target, source, env):
             func_name = pc.start_function()
             output_f.write("void %s(void)\n{\n" % func_name)
 
-        if not is_multiline_comment and re.match("^(DEFINE|OFFSET|SIZE_STRUCT)", line):
+        if not is_multiline_comment and re.match("^(DEFINE|OFFSETOF|SIZEOF_STRUCT)", line):
             # DEFINE or DEFINE-like definition
             directive = line.rstrip("\n")
             output_f.write("    %s;\n" % directive)
@@ -595,8 +601,8 @@ def asm_offsets_build_asm_action(target, source, env):
                 define_match.group(2)
             ))
             continue
-        comment_match = re.match("->#(.+)", line)
-        if comment_match:
+        comment_match = re.match("->#(.*)", line)
+        if comment_match is not None:
             comment = comment_match.group(1)
             output_f.write("%s\n" % comment)
             continue
@@ -642,12 +648,11 @@ def BuildAsmOffsets(env, target, source, **kargs):
 
     source_dir = os.path.dirname(source_node.srcnode().abspath)
 
-    if not os.path.samefile(source_dir, build_dir):
-        # Directory with C-file itself is included automatically.
-        #
-        # But in case when C-file is in build directory, but source one is
-        # in source directory, we need to include source directory explicitely
-        precompile_env.Append(CPPPATH = source_dir)
+    # Directory with C-file itself is included automatically.
+    #
+    # But in case when C-file is in build directory, but source one is
+    # in source directory, we need to include source directory explicitely
+    precompile_env.Append(CPPPATH = source_dir)
 
     c_file = precompile_env.Command(c_filename,
                 source,

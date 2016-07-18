@@ -16,19 +16,24 @@
 #ifndef __JET_ASP_CSWITCH_H__
 #define __JET_ASP_CSWITCH_H__
 
+/* Opaque (kernel thread) context for switch to. */
+struct jet_context;
+
 /**
  * Initialize `context` on the given stack.
  * 
  * Return stack pointer, which can be used by pok_context_switch() to
  * jump into given entry with given stack.
+ * 
+ * Never returns NULL.
  */
-uint32_t ja_context_init(uint32_t sp, void (*entry)(void));
+struct jet_context* ja_context_init(uint32_t sp, void (*entry)(void));
 
 /**
  * Switch to context, stored in @new_sp.
  * 
- * Pointer to the current context will stored in @old_sp.
+ * Pointer (non-NULL) to the current context will stored in @old_sp.
  */
-void ja_context_switch (uint32_t* old_sp, uint32_t new_sp);
+void ja_context_switch (struct jet_context** old_sp, struct jet_context* new_sp);
 
 #endif /* __JET_ASP_CSWITCH_H__ */

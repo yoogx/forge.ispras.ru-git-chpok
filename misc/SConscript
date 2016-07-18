@@ -167,6 +167,13 @@ bsp_cpu_dict = {
 }
 env.Append(CFLAGS = bsp_cpu_dict[env['BSP']])
 
+# Additional compile flags for kernel-only
+arch_kernel_flags_dict = {
+    'ppc':    '-msoft-float',
+}
+
+env['CFLAGS_KERNEL'] = arch_kernel_flags_dict.get(env['ARCH'], "")
+
 bsp_qemu_dict = {
     'e500mc':          ' -M ppce500 -cpu e500mc',
     'e500_highmem':    ' -M ppce500 -cpu e500mc',

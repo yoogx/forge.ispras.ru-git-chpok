@@ -36,9 +36,9 @@ void sched_arinc_start(void)
 
     pok_thread_t* thread_main
         = &part->threads[POK_PARTITION_ARINC_MAIN_THREAD_ID];
-
-    thread_main->entry_sp_user = 0;
-
+#ifdef POK_NEEDS_GDB
+    thread_main->entry_sp_user = NULL;
+#endif
     part->lock_level = 1;
 	part->thread_locked = thread_main;
 
@@ -191,7 +191,7 @@ static void sched_arinc(void)
         new_thread = part->thread_error;
         
         new_thread->priority = new_thread->base_priority;
-        new_thread->sp = 0;
+        new_thread->sp = NULL;
       
         new_thread->state = POK_STATE_RUNNABLE;
         
@@ -226,8 +226,10 @@ static void sched_arinc(void)
          * error list is not empty, error handler is automatically restarted.
          */
         assert(new_thread == part->thread_error);
-        
-        new_thread->entry_sp_user = 0;
+
+#ifdef POK_NEEDS_GDB
+        new_thread->entry_sp_user = NULL;
+#endif
         pok_context_restart(&new_thread->initial_sp, &thread_start_func,
             &new_thread->sp);
     }
@@ -235,13 +237,13 @@ static void sched_arinc(void)
     // Switch between different threads
     part->thread_current = new_thread;
     
-    uint32_t* old_sp = old_thread? &old_thread->sp : &part->idle_sp;
-    uint32_t new_sp;
+    struct jet_context** old_sp = old_thread? &old_thread->sp : &part->idle_sp;
+    struct jet_context* new_sp;
     
     if(new_thread)
     {
         new_sp = new_thread->sp;
-        if(new_sp == 0)
+        if(new_sp == NULL)
         {
             new_sp = pok_context_init(
                 pok_dstack_get_stack(&new_thread->initial_sp),
@@ -253,7 +255,7 @@ static void sched_arinc(void)
     {
         // New thread is "do_nothing"
         new_sp = part->idle_sp;
-        if(new_sp ==0)
+        if(new_sp == NULL)
         {
             new_sp = pok_context_init(
                 pok_dstack_get_stack(&part->base_part.initial_sp),
@@ -266,8 +268,9 @@ static void sched_arinc(void)
      * If old_thread->sp is 0, this should be processed upon
      * returning to given thread, not now.
      */
-    if(*old_sp == 0) old_sp = NULL;
+    if(*old_sp == NULL) old_sp = NULL;
 
+#ifdef POK_NEEDS_GDB
     if(old_thread && part->base_part.entry_sp_user)
     {
         /*
@@ -275,9 +278,9 @@ static void sched_arinc(void)
          * and clear original.
          */
         old_thread->entry_sp_user = part->base_part.entry_sp_user;
-        part->base_part.entry_sp_user = 0;
+        part->base_part.entry_sp_user = NULL;
     }
-    
+#endif /* POK_NEEDS_GDB */
     if(old_sp)
     {
         pok_context_switch(old_sp, new_sp);

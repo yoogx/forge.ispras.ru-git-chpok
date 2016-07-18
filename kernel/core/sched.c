@@ -40,9 +40,10 @@ static uint8_t               pok_sched_current_slot = 0; /* Which slot are we ex
 
 pok_partition_t* current_partition = NULL;
 
+#if POK_NEEDS_GDB
+struct jet_interrupt_context* global_thread_stack = NULL;
 volatile pok_bool_t pok_in_user_space = 0;
-
-uintptr_t global_thread_stack = 0;
+#endif
 
 #ifdef POK_NEEDS_MONITOR
 /* 
@@ -54,7 +55,7 @@ uintptr_t global_thread_stack = 0;
  */
 pok_bool_t current_partition_is_paused;
 
-uint32_t idle_sp;
+struct jet_context* idle_sp;
 uint32_t idle_stack;
 
 static void idle_function(void)
@@ -100,10 +101,10 @@ static void start_partition(void)
 /* Switch within current partition, if needed. */
 static void intra_partition_switch(void)
 {
-    uint32_t* old_sp = &current_partition->sp;
+    struct jet_context** old_sp = &current_partition->sp;
     
 #ifdef POK_NEEDS_MONITOR
-    uint32_t* new_sp = old_sp;
+    struct jet_context** new_sp = old_sp;
     if(current_partition_is_paused) old_sp = &idle_sp;
     if(current_partition->is_paused) new_sp = &idle_sp;
     
@@ -112,7 +113,7 @@ static void intra_partition_switch(void)
         /* Need to switch context */
         current_partition_is_paused = current_partition->is_paused;
         
-        if(*old_sp == 0)
+        if(*old_sp == NULL)
         {
             /* 
              * Restart is requested by currently executed context.
@@ -123,7 +124,7 @@ static void intra_partition_switch(void)
              pok_context_jump(*new_sp);
              return;
         }
-        else if(*new_sp == 0)
+        else if(*new_sp == NULL)
         {
             /* 
              * Restart is requested by new context.
@@ -141,7 +142,7 @@ static void intra_partition_switch(void)
     
 #endif /* POK_NEEDS_MONITOR */
     // old_sp == new_sp
-    if(*old_sp == 0) /* Same context, restart requested. */
+    if(*old_sp == NULL) /* Same context, restart requested. */
     {
         pok_context_restart(&current_partition->initial_sp,
             &start_partition,
@@ -152,11 +153,11 @@ static void intra_partition_switch(void)
 /* Switch to the new partition. */
 static void inter_partition_switch(pok_partition_t* part)
 {
-    uint32_t* old_sp = &current_partition->sp;
-    uint32_t* new_sp = &part->sp;
-    
+    struct jet_context** old_sp = &current_partition->sp;
+    struct jet_context** new_sp = &part->sp;
+#if POK_NEEDS_GDB
     current_partition->entry_sp = global_thread_stack;
-
+#endif
     current_partition = part;
 
     if(part->space_id != 0xff)
@@ -181,7 +182,7 @@ static void inter_partition_switch(pok_partition_t* part)
 #endif /* POK_NEEDS_MONITOR */
     // old_sp != new_sp
 
-    if(*new_sp == 0)
+    if(*new_sp == NULL)
     {
         /* 
          * Restart is requested by new context.
@@ -194,7 +195,7 @@ static void inter_partition_switch(pok_partition_t* part)
             &start_partition);
     }
     
-    if(*old_sp == 0)
+    if(*old_sp == NULL)
     {
         pok_context_jump(*new_sp);
     }
@@ -207,7 +208,7 @@ static void inter_partition_switch(pok_partition_t* part)
 
 void pok_sched_restart (void)
 {
-    uint32_t* new_sp;
+    struct jet_context** new_sp;
 
     first_frame_starts = POK_GETTICK();
 #ifdef POK_NEEDS_MONITOR
@@ -378,6 +379,7 @@ void pok_sched_on_time_changed(void)
     pok_partition_t* part = current_partition;
     sched_need_recheck = TRUE;
 
+#if POK_NEEDS_GDB
     pok_bool_t in_user_space = pok_in_user_space;
 
     if(in_user_space)
@@ -385,7 +387,7 @@ void pok_sched_on_time_changed(void)
         part->entry_sp_user = global_thread_stack;
         pok_in_user_space = FALSE;
     }
-
+#endif /* POK_NEEDS_GDB */
     pok_sched();
 
     if(current_partition_is_paused) goto out;
@@ -410,8 +412,12 @@ void pok_sched_on_time_changed(void)
     // Still with disabled preemption. It is needed for returning from interrupt.
 
 out:
+#if POK_NEEDS_GDB
     // Restore user space indicator on return
     pok_in_user_space = in_user_space;
+#else
+    return;
+#endif
 }
 
 void pok_partition_return_user(void)
@@ -431,8 +437,9 @@ void pok_partition_return_user(void)
     }
 
     part->preempt_local_disabled = 0;
-
+#if POK_NEEDS_GDB
     pok_in_user_space = TRUE;
+#endif
 }
 
 

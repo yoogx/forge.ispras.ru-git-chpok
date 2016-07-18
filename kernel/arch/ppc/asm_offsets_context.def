@@ -12,17 +12,13 @@
  *
  * See the GNU General Public License version 3 for more details.
  */
-#include "thread.h"
+#include "context.h"
 /* Fields of jet_context structure. */
-OFFSETOF(jet_context, sp)
-OFFSETOF(jet_context, unused_lr)
-
 OFFSETOF(jet_context, cr)
 OFFSETOF(jet_context, r2)
 OFFSETOF(jet_context, r13)
 OFFSETOF(jet_context, r14)
 OFFSETOF(jet_context, r15)
-
 OFFSETOF(jet_context, r16)
 OFFSETOF(jet_context, r17)
 OFFSETOF(jet_context, r18)
@@ -40,6 +36,4 @@ OFFSETOF(jet_context, r29)
 OFFSETOF(jet_context, r30)
 OFFSETOF(jet_context, r31)
 
-  /* Previous frame.  */
-OFFSETOF(jet_context, back_chain)
-OFFSETOF(jet_context, lr)
+SIZEOF_STRUCT(jet_context)

@@ -33,12 +33,12 @@
 
 #include <types.h>
 #include <errno.h>
-//#include <core/sched.h>
+
 #include <core/delayed_event.h>
 #include <arch.h>
 #include <list.h>
 
-
+#include <asp/cswitch.h>
 
 /*
  * In POK, we add a kernel thread and an idle thread. The kernel
@@ -293,7 +293,7 @@ typedef struct _pok_thread
      * and updated by pok_context_switch.
      *
      */
-    uint32_t	        sp; 
+    struct jet_context*	        sp;
 
     /*
      * Initial value of kernel stack (when it was allocated).
@@ -335,14 +335,14 @@ typedef struct _pok_thread
     // Whether thread is in unrecoverable error state.
     pok_bool_t is_unrecoverable;
 
+#ifdef POK_NEEDS_GDB
     /*
-     * Stack from entry.S for PPC and from interrupt.h for i386
-     * where all user space registers have been saved.
+     * Interrupt context where all user space registers have been saved.
      * 
      * If user space has never been called yet, this is 0.
      */
-    uint32_t            entry_sp_user;
-
+    struct jet_interrupt_context* entry_sp_user;
+#endif /* POK_NEEDS_GDB */
     /* 
      * Name of the process.
      * 

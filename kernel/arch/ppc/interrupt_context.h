@@ -13,13 +13,12 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <stddef.h>
+/* Context for store on interrupt. */
 
-#define DEFINE(sym, val) asm volatile("\n-> " #sym " %0 " #val "\n" : : "i" (val))
-#define OFFSETOF(s, m) \
-    DEFINE(OFFSETOF_##s##_##m, offsetof(struct s, m));
+#ifndef __JET_PPC_INTERRUPT_CONTEXT_H__
+#define __JET_PPC_INTERRUPT_CONTEXT_H__
 
-#define SIZEOF_STRUCT(s) \
-    DEFINE(SIZEOF_##s, sizeof(struct s));
+#include <config.h>
+#include "interrupt_context_noconfig.h"
 
-#define AS_IS(str) asm volatile("\n->#" str)
+#endif /* __JET_PPC_INTERRUPT_CONTEXT_H__ */

@@ -115,7 +115,8 @@ env.TemplateRender(
 		[os.path.join(env['SCONSTRUCT_DIR'], part_dir, env['xml']) for part_dir in partition_build_dirs],
 	create_definitions_func = get_pok_gdb_definitions,
 	template_main = "GDB_commands",
-	template_dir = env['POK_PATH'] + "/misc/templates"
+	template_dir = env['POK_PATH'] + "/misc/templates",
+	GENERATE_TITLE = template_generation.generate_title_python
 	)
 
 pok_env = env.Clone()

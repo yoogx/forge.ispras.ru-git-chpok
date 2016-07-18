@@ -31,6 +31,8 @@
 
 #include <uapi/partition_types.h>
 
+#include <asp/cswitch.h>
+
 struct _pok_partition;
 
 /* Scheduling operations specific for given partition. */
@@ -50,6 +52,7 @@ struct pok_partition_sched_operations
      */
     void (*on_event)(void);
 
+#ifdef POK_NEEDS_GDB
     /* 
      * Return number of threads for given partition.
      *
@@ -89,11 +92,14 @@ struct pok_partition_sched_operations
         print_cb_t print_cb, void* cb_data);
 
     /*
-     * Get (architecture-specific) registers for non-current thread.
+     * Get interrupt context for non-current thread. It is used for extract registers.
      *
      * Returning NULL means that thread has no registers assosiated with it.
+     * 
+     * TODO: naming is bad.
      */
-    struct regs* (*get_thread_registers)(struct _pok_partition* part, int index, void* private);
+    struct jet_interrupt_context* (*get_thread_registers)(struct _pok_partition* part, int index, void* private);
+#endif /* POK_NEEDS_GDB */
 };
 
 struct pok_partition_operations
@@ -211,7 +217,7 @@ typedef struct _pok_partition
      * 0 value in this field means that partition needs to be (re)started.
      *
      */
-    uint32_t	        	 sp; 
+    struct jet_context*     sp;
 
     /*
      * Initial value of kernel stack (when it was allocated).
@@ -232,19 +238,21 @@ typedef struct _pok_partition
      */
     uint8_t                  space_id;
 
+#ifdef POK_NEEDS_GDB
     /*
      * Pointer to the user space registers array, stored for given partition.
      * 
      * Set by global scheduler, used (may be cleared) by partition.
      */
-    uint32_t                entry_sp_user;
+    struct jet_interrupt_context* entry_sp_user;
 
     /*
      * Pointer to the registers array, stored for given partition when switched off.
      * 
      * Used only by global scheduler.
      */
-    uint32_t                entry_sp;
+    struct jet_interrupt_context* entry_sp;
+#endif /* POK_NEEDS_GDB */
 
 #ifdef POK_NEEDS_IO
   uint16_t		    io_min;             /**< If the partition is allowed to perform I/O, the lower bound of the I/O */

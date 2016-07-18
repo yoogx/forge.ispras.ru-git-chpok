@@ -19,6 +19,10 @@
 #include "msr.h"
 #include "reg.h"
 
+#include "asm_offsets_interrupt_context.h"
+#include "asm_offsets_context.h"
+#include "asm_offsets_stack_frame.h"
+
 /*
     SPRG (software use special-purpose register) designations:
 
@@ -36,398 +40,289 @@ reserved_0000:
         /* fails */
 1:      b 1b 
 
-/* FP_START must be equal to offsetof(volatile_context_t, fp0) */
-#define FP_START 80
-#define SAVE_FP(num) stfd %f##num,(FP_START + 8*num)(%r1)
-#define LOAD_FP(num) lfd %f##num,(FP_START + 8*num)(%r1)
+#define FRAME_SIZE SIZEOF_jet_interrupt_context
 
-/* FRAME_SIZE must be equal to offsetof(volatile_context_t, back_chain) */
-#define FRAME_SIZE 96
-        /* r4 is available, r1 is set, r3 contains cr,
-           sprg3 contains r3 and sprg2 contains r2.  */
-#define SAVE_REGS                                \
-        /* Establish new frame.  */              \
-        mflr    %r4;                             \
-        stw     %r4,FRAME_SIZE+4(%r1);  /* lr */ \
-        mfctr   %r4;                             \
-        stw     %r4,64(%r1);  /* ctr */          \
-        mfxer   %r4;                             \
-        stw     %r4,68(%r1);  /* xer */          \
-        stw     %r3,8(%r1);   /* cr */           \
-        stw     %r0,12(%r1);  /* r0 */           \
-        stw     %r2,16(%r1);  /* r2 */           \
-        mfsprg  %r0,3;                           \
-        stw     %r0,20(%r1);  /* r3 */           \
-        mfsprg  %r0,2;                           \
-        stw     %r0,24(%r1);  /* r4 */           \
-        stw     %r5,28(%r1);  /* r5 */           \
-        stw     %r6,32(%r1);  /* r6 */           \
-        stw     %r7,36(%r1);  /* r7 */           \
-        stw     %r8,40(%r1);  /* r8 */           \
-        stw     %r9,44(%r1);  /* r9 */           \
-        stw     %r10,48(%r1); /* r10 */          \
-        stw     %r11,52(%r1); /* r11 */          \
-        stw     %r12,56(%r1); /* r12 */          \
-        stw     %r13,60(%r1); /* r13 */          \
-        SAVE_FP(0); /* f0 */                     \
-        mfsrr0  %r3;                             \
-        stw     %r3,72(%r1);  /* srr0 */         \
-        mfsrr1  %r4;                             \
-        stw     %r4,76(%r1)  /* srr1 */         
-        
-        
-        
-        /* Restore registers */
+/*
+ * Store registers to interrupt frame.
+ * This is GDB-unaware version.
+ *
+ * Before the call:
+ *
+ * - r1 is adjusted to the beginning of the interrupt frame.
+ * - cr is already stored to the frame.
+ * - r3 contains old r1.
+ *
+ * After the call:
+ * - srr0, srr1, r3, r4 are stored outside of the macro
+ * - sprg3 contains old r3.
+ * - sprg2 contains old r4.
+ */
+.macro SAVE_REGS_COMMON_BASE
+        mflr    %r4
+        stw     %r4,OFFSETOF_jet_interrupt_context_lr(%r1)
+        mfctr   %r4
+        stw     %r4,OFFSETOF_jet_interrupt_context_ctr(%r1)
+        mfxer   %r4
+        stw     %r4,OFFSETOF_jet_interrupt_context_xer(%r1)
+        stw     %r0,OFFSETOF_jet_interrupt_context_r0(%r1)
+        stw     %r3,OFFSETOF_jet_interrupt_context_r1(%r1)
+        stw     %r2,OFFSETOF_jet_interrupt_context_r2(%r1)
+        stw     %r5,OFFSETOF_jet_interrupt_context_r5(%r1)
+        stw     %r6,OFFSETOF_jet_interrupt_context_r6(%r1)
+        stw     %r7,OFFSETOF_jet_interrupt_context_r7(%r1)
+        stw     %r8,OFFSETOF_jet_interrupt_context_r8(%r1)
+        stw     %r9,OFFSETOF_jet_interrupt_context_r9(%r1)
+        stw     %r10,OFFSETOF_jet_interrupt_context_r10(%r1)
+        stw     %r11,OFFSETOF_jet_interrupt_context_r11(%r1)
+        stw     %r12,OFFSETOF_jet_interrupt_context_r12(%r1)
+.endm
+
+#ifndef POK_NEEDS_GDB
+#define SAVE_REGS_COMMON SAVE_REGS_COMMON_BASE
+#else
+.macro SAVE_REGS_COMMON
+        SAVE_REGS_COMMON_BASE
+        /* For GDB store non-volatile registers too. */
+        stw     %r13,OFFSETOF_jet_interrupt_context_r13(%r1)
+        stw     %r14,OFFSETOF_jet_interrupt_context_r14(%r1)
+        stw     %r15,OFFSETOF_jet_interrupt_context_r15(%r1)
+        stw     %r16,OFFSETOF_jet_interrupt_context_r16(%r1)
+        stw     %r17,OFFSETOF_jet_interrupt_context_r17(%r1)
+        stw     %r18,OFFSETOF_jet_interrupt_context_r18(%r1)
+        stw     %r19,OFFSETOF_jet_interrupt_context_r19(%r1)
+        stw     %r20,OFFSETOF_jet_interrupt_context_r20(%r1)
+        stw     %r21,OFFSETOF_jet_interrupt_context_r21(%r1)
+        stw     %r22,OFFSETOF_jet_interrupt_context_r22(%r1)
+        stw     %r23,OFFSETOF_jet_interrupt_context_r23(%r1)
+        stw     %r24,OFFSETOF_jet_interrupt_context_r24(%r1)
+        stw     %r25,OFFSETOF_jet_interrupt_context_r25(%r1)
+        stw     %r26,OFFSETOF_jet_interrupt_context_r26(%r1)
+        stw     %r27,OFFSETOF_jet_interrupt_context_r27(%r1)
+        stw     %r28,OFFSETOF_jet_interrupt_context_r28(%r1)
+        stw     %r29,OFFSETOF_jet_interrupt_context_r29(%r1)
+        stw     %r30,OFFSETOF_jet_interrupt_context_r30(%r1)
+        stw     %r31,OFFSETOF_jet_interrupt_context_r31(%r1)
+        /*
+         * Also store pointer to the interrupt context.
+         *
+         * TODO: This is needed only for user space context, which always
+         * at the beginning of the stack.
+         */
+        lis %r5, global_thread_stack@ha
+        addi %r5, %r5, global_thread_stack@l
+        stw %r1, 0(r5)
+.endm
+#endif /* POK_NEEDS_GDB */
+
+/*
+ * Restore registers from interrupt frame.
+ * This is GDB-unaware version.
+ *
+ * Before the call:
+ *
+ * srr0, srr1 are already restored to their final location.
+ * r3, r4 are already restored into temporary locations.
+ *
+ * After the call:
+ *
+ * - r1 remains pointed to the beginning of the interrupt frame.
+ * - r3 contains restored r1
+ * - cr is not restored yet.
+ */
+.macro RESTORE_REGS_COMMON_BASE
+        lwz     %r12,OFFSETOF_jet_interrupt_context_r12(%r1)
+        lwz     %r11,OFFSETOF_jet_interrupt_context_r11(%r1)
+        lwz     %r10,OFFSETOF_jet_interrupt_context_r10(%r1)
+        lwz     %r9,OFFSETOF_jet_interrupt_context_r9(%r1)
+        lwz     %r8,OFFSETOF_jet_interrupt_context_r8(%r1)
+        lwz     %r7,OFFSETOF_jet_interrupt_context_r7(%r1)
+        lwz     %r6,OFFSETOF_jet_interrupt_context_r6(%r1)
+        lwz     %r5,OFFSETOF_jet_interrupt_context_r5(%r1)
+        lwz     %r2,OFFSETOF_jet_interrupt_context_r2(%r1)
+        lwz     %r3,OFFSETOF_jet_interrupt_context_r1(%r1)
+        lwz     %r0,OFFSETOF_jet_interrupt_context_r0(%r1)
+        lwz     %r4,OFFSETOF_jet_interrupt_context_xer(%r1)
+        mtxer   %r4
+        lwz     %r4,OFFSETOF_jet_interrupt_context_ctr(%r1)
+        mtctr   %r4
+        lwz     %r4,OFFSETOF_jet_interrupt_context_lr(%r1)
+        mtlr    %r4
+.endm
+
+#ifndef POK_NEEDS_GDB
+#define RESTORE_REGS_COMMON RESTORE_REGS_COMMON_BASE
+#else
+.macro RESTORE_REGS_COMMON
+        /* For GDB restore non-volatile registers too, they could be changed. */
+        lwz     %r31,OFFSETOF_jet_interrupt_context_r31(%r1)
+        lwz     %r30,OFFSETOF_jet_interrupt_context_r30(%r1)
+        lwz     %r29,OFFSETOF_jet_interrupt_context_r29(%r1)
+        lwz     %r28,OFFSETOF_jet_interrupt_context_r28(%r1)
+        lwz     %r27,OFFSETOF_jet_interrupt_context_r27(%r1)
+        lwz     %r26,OFFSETOF_jet_interrupt_context_r26(%r1)
+        lwz     %r25,OFFSETOF_jet_interrupt_context_r25(%r1)
+        lwz     %r24,OFFSETOF_jet_interrupt_context_r24(%r1)
+        lwz     %r23,OFFSETOF_jet_interrupt_context_r23(%r1)
+        lwz     %r22,OFFSETOF_jet_interrupt_context_r22(%r1)
+        lwz     %r21,OFFSETOF_jet_interrupt_context_r21(%r1)
+        lwz     %r20,OFFSETOF_jet_interrupt_context_r20(%r1)
+        lwz     %r19,OFFSETOF_jet_interrupt_context_r19(%r1)
+        lwz     %r18,OFFSETOF_jet_interrupt_context_r18(%r1)
+        lwz     %r17,OFFSETOF_jet_interrupt_context_r17(%r1)
+        lwz     %r16,OFFSETOF_jet_interrupt_context_r16(%r1)
+        lwz     %r15,OFFSETOF_jet_interrupt_context_r15(%r1)
+        lwz     %r14,OFFSETOF_jet_interrupt_context_r14(%r1)
+        lwz     %r13,OFFSETOF_jet_interrupt_context_r13(%r1)
+        RESTORE_REGS_COMMON_BASE
+.endm
+#endif /* POK_NEEDS_GDB */
+
+/*
+ * Common part of interrupt epilogue.
+ *
+ * Prepare everything except srr0, srr1, r3, r4.
+ */
+.macro EXCEPTION_EPILOGUE_COMMON
+        RESTORE_REGS_COMMON
+        /* Determine whether we return to user space. */
+        lwz %r4, OFFSETOF_jet_interrupt_context_srr1(%r1)
+        andi.   %r4,%r4,MSR_PR
+        beq     1f
+        /* Return to user - need to set SPRG1. */
+        lwz %r4, OFFSETOF_jet_interrupt_context_cr(%r1) // Restore everything else from interrupt frame.
+        mtcr %r4
+        mtsprg 1, %r1
+        b 2f
+1:
+        /* Return to kernel. */
+        lwz %r4, OFFSETOF_jet_interrupt_context_cr(%r1) // Restore everything else from interrupt frame.
+        mtcr %r4
+2:
+        mr %r1, %r3
+.endm
+
+/*
+ * Common exception prologue.
+ *
+ * Before the call:
+ *     r3 and r4 are stored to some temporary locations before.
+ *
+ * After the call:
+ *     r1 points to interrupt frame, where r3, r4, srr0 and srr1 should be stored.
+ */
+.macro EXCEPTION_PROLOGUE_COMMON
+        mfcr    %r3
+        /* Enable floating point bit in msr */
+        mfmsr %r4
+        ori %r4,%r4,MSR_FP
+        mtmsr %r4
+        /* Check whether kernel stack is usable. */
+        mfsprg %r4, 1
+        andi.   %r4, %r4, 1 /* Valid stack is always 16-byte aligned. */
+        beq     1f
+        /* Come from kernel and kernel stack is ready */
+        stwu %r1, -FRAME_SIZE-JET_STACK_RED_ZONE(%r1)
+        stw %r3, OFFSETOF_jet_interrupt_context_cr(%r1)
+        /* Store lr to previous backchain. */
+        mflr %r3
+        stw %r3, FRAME_SIZE + JET_STACK_RED_ZONE + OFFSETOF_jet_stack_frame_lr(%r1)
+        addi %r3, %r1, FRAME_SIZE + JET_STACK_RED_ZONE
+        b       2f
+1:      /* Come from user or interrupted handler hasn't adjust stack yet. */
+        mfsprg %r4, 1
+        mtcr %r3 /* Restore cr, so possible highlevel interrupt will see the same as we.*/
+        /* Store cr before updating stack pointer! It can be overwritting by highlevel interrupt... but to the same value(see above). */
+        stw %r3, OFFSETOF_jet_interrupt_context_cr(%r4)
+        mr %r3, %r1
+        mr %r1, %r4 /* Back chain is already set to 0. */
+        /* Mark kernel stack as ready for highlevel interrupts. */
+        li %r4, 1
+        mtsprg 1, %r4
+2:      SAVE_REGS_COMMON
+.endm
+
+/* Return from non-critical interrupt. */
         .globl pok_arch_rfi
 pok_arch_rfi:
-        LOAD_FP(0)
-        lwz     %r13,60(%r1)
-        lwz     %r12,56(%r1)
-        lwz     %r11,52(%r1)
-        lwz     %r10,48(%r1)
-        lwz     %r9,44(%r1)
-        lwz     %r8,40(%r1)
-        lwz     %r7,36(%r1)
-        lwz     %r6,32(%r1)
-        lwz     %r5,28(%r1)
-        lwz     %r4,24(%r1)
-        lwz     %r3,20(%r1)
-        lwz     %r2,16(%r1)
-        lwz     %r0,FRAME_SIZE+4(%r1)
-        mtlr    %r0
-        lwz     %r0,64(%r1)
-        mtctr   %r0
-        lwz     %r0,68(%r1)
-        mtxer   %r0
-        lwz     %r0,72(%r1)
-        mtsrr0  %r0
-        lwz     %r0,76(%r1)
-        mtsrr1  %r0
-        andi.   %r0,%r0,MSR_PR
-        beq     1f
-        /* If user mode, restore kernel stack and save it to SPRG1 */
-        addi    %r0,%r1,FRAME_SIZE
-        mtsprg  1,%r0
-1:      lwz     %r0,8(%r1)
-        mtcr    %r0
-        lwz     %r0,12(%r1)
-        lwz     %r1,0(%r1)
+        /* r4 <-> sprg2, r3 <-> sprg3 */
+        lwz     %r4,OFFSETOF_jet_interrupt_context_r4(%r1)
+        mtsprg  2,%r4
+        lwz     %r3,OFFSETOF_jet_interrupt_context_r3(%r1)
+        mtsprg  3,%r3
+
+        /* srr0->srr0, srr1->srr1. */
+        lwz     %r4,OFFSETOF_jet_interrupt_context_srr1(%r1)
+        mtsrr1  %r4
+        lwz     %r3,OFFSETOF_jet_interrupt_context_srr0(%r1)
+        mtsrr0  %r3
+
+        EXCEPTION_EPILOGUE_COMMON
+
+        mfsprg %r3, 3
+        mfsprg %r4, 2
+
         rfi
 
-#define EXCEPTION_PROLOGUE                      \
-        mtsprg  3,%r3;                          \
-        mtsprg  2,%r4;                          \
-        mfcr    %r3;                            \
-        /* Enable floating point bit in msr */  \
-        mfmsr %r4;                              \
-        ori %r4,%r4,MSR_FP;                     \
-        mtmsr %r4;                              \
-        mfsrr1  %r4;                            \
-        andi.   %r4,%r4,MSR_PR;                 \
-        bne     1f;                             \
-        /* Already on kernel stack */           \
-        stwu %r1, -FRAME_SIZE(%r1);             \
-        b       2f;                             \
-1:      /* User stack right now          */     \
-        mr %r4, %r1;                            \
-        mfsprg %r1, 1;                          \
-        stwu %r4, -FRAME_SIZE(%r1);/*save it*/  \
-2:      SAVE_REGS;                              \
-        lis %r5, global_thread_stack@ha;      \
-        addi %r5, %r5, global_thread_stack@l; \
-        stw %r1, 0(r5);                         \
-        mfsrr0 %r3; /* EA of exception */
 
+/* Exception prologue for non-critical interrupts. */
+.macro EXCEPTION_PROLOGUE
+        /* r3 <-> sprg3, r4 <-> sprg2*/
+        mtsprg  3,%r3
+        mtsprg  2,%r4
+        EXCEPTION_PROLOGUE_COMMON
 
-#define SAVE_FP_FOR_INT(num) stfd %f##num,(152+8*num)(%r1)
-#define LOAD_FP_FOR_INT(num) lfd %f##num,(152+8*num)(%r1)
+        /* srr0<-srr0, srr1<-srr1. */
+        mfsrr0  %r3
+        stw     %r3,OFFSETOF_jet_interrupt_context_srr0(%r1)
+        mfsrr1  %r4
+        stw     %r4,OFFSETOF_jet_interrupt_context_srr1(%r1)
 
-#define FRAME_SIZE_FOR_INT 168 /*96+72*/
-        /* r4 is available, r1 is set, r3 contains cr,
-           sprg3 contains r3 and sprg2 contains r2.  */
-#define SAVE_REGS_FOR_INT                               \
-        /* Establish new frame.  */                     \
-        mflr    %r4;                                    \
-        stw     %r4,FRAME_SIZE_FOR_INT+4(%r1); /* lr */ \
-        mfctr   %r4;                                    \
-        stw     %r4,64(%r1);  /* ctr */                 \
-        mfxer   %r4;                                    \
-        stw     %r4,68(%r1);  /* xer */                 \
-        stw     %r3,8(%r1);   /* cr */                  \
-        stw     %r0,12(%r1);  /* r0 */                  \
-        stw     %r2,16(%r1);  /* r2 */                  \
-        mfsprg  %r0,3;                                  \
-        stw     %r0,20(%r1);  /* r3 */                  \
-        mfsprg  %r0,2;                                  \
-        stw     %r0,24(%r1);  /* r4 */                  \
-        stw     %r5,28(%r1);  /* r5 */                  \
-        stw     %r6,32(%r1);  /* r6 */                  \
-        stw     %r7,36(%r1);  /* r7 */                  \
-        stw     %r8,40(%r1);  /* r8 */                  \
-        stw     %r9,44(%r1);  /* r9 */                  \
-        stw     %r10,48(%r1); /* r10 */                 \
-        stw     %r11,52(%r1); /* r11 */                 \
-        stw     %r12,56(%r1); /* r12 */                 \
-        stw     %r13,60(%r1); /* r13 */                 \
-        SAVE_FP_FOR_INT(0); /* f0 */                    \
-        mfsrr0  %r3;                                    \
-        stw     %r3,72(%r1);  /* srr0 */                \
-        mfsrr1  %r4;                                    \
-        stw     %r4,76(%r1);  /* srr1 */                \
-        stw     %r14,80(%r1); /* r14 */                 \
-        stw     %r15,84(%r1); /* r15 */                 \
-        stw     %r16,88(%r1); /* r16 */                 \
-        stw     %r17,92(%r1); /* r17 */                 \
-        stw     %r18,96(%r1); /* r18 */                 \
-        stw     %r19,100(%r1); /* r19 */                \
-        stw     %r20,104(%r1); /* r20 */                \
-        stw     %r21,108(%r1); /* r21 */                \
-        stw     %r22,112(%r1); /* r22 */                \
-        stw     %r23,116(%r1); /* r23 */                \
-        stw     %r24,120(%r1); /* r24 */                \
-        stw     %r25,124(%r1); /* r25 */                \
-        stw     %r26,128(%r1); /* r26 */                \
-        stw     %r27,132(%r1); /* r27 */                \
-        stw     %r28,136(%r1); /* r28 */                \
-        stw     %r29,140(%r1); /* r29 */                \
-        stw     %r30,144(%r1); /* r30 */                \
-        stw     %r31,148(%r1); /* r31 */
-        
-
+        mfsprg  %r4,2
+        stw     %r4,OFFSETOF_jet_interrupt_context_r4(%r1)
+        mfsprg  %r3,3
+        stw     %r3,OFFSETOF_jet_interrupt_context_r3(%r1)
+.endm
         
         
-        /* Restore registers */
-        .globl pok_arch_rfi_for_int
-pok_arch_rfi_for_int:
-        LOAD_FP_FOR_INT(0)
-        lwz     %r31,148(%r1)         
-        lwz     %r30,144(%r1)          
-        lwz     %r29,140(%r1)          
-        lwz     %r28,136(%r1)
-        lwz     %r27,132(%r1)       
-        lwz     %r26,128(%r1)          
-        lwz     %r25,124(%r1)          
-        lwz     %r24,120(%r1)          
-        lwz     %r23,116(%r1)          
-        lwz     %r22,112(%r1)          
-        lwz     %r21,108(%r1)          
-        lwz     %r20,104(%r1)          
-        lwz     %r19,100(%r1)           
-        lwz     %r18,96(%r1)           
-        lwz     %r17,92(%r1)           
-        lwz     %r16,88(%r1)          
-        lwz     %r15,84(%r1)          
-        lwz     %r14,80(%r1)           
-        lwz     %r13,60(%r1)
-        lwz     %r12,56(%r1)
-        lwz     %r11,52(%r1)
-        lwz     %r10,48(%r1)
-        lwz     %r9,44(%r1)
-        lwz     %r8,40(%r1)
-        lwz     %r7,36(%r1)
-        lwz     %r6,32(%r1)
-        lwz     %r5,28(%r1)
-        lwz     %r4,24(%r1)
-        lwz     %r3,20(%r1)
-        lwz     %r2,16(%r1)
-        lwz     %r0,FRAME_SIZE_FOR_INT+4(%r1)
-        mtlr    %r0
-        lwz     %r0,64(%r1)
-        mtctr   %r0
-        lwz     %r0,68(%r1)
-        mtxer   %r0
-        lwz     %r0,72(%r1)
-        mtsrr0  %r0
-        lwz     %r0,76(%r1)
-        mtsrr1  %r0
-        andi.   %r0,%r0,MSR_PR
-        beq     1f
-        /* If user mode, restore kernel stack and save it to SPRG1 */
-        addi    %r0,%r1,FRAME_SIZE_FOR_INT
-        mtsprg  1,%r0
-1:      lwz     %r0,8(%r1)
-        mtcr    %r0
-        lwz     %r0,12(%r1)
-        lwz     %r1,0(%r1)
-        rfi
-
-        /* Restore registers */
+/* Return from debug interrupt. */
         .globl pok_arch_rfdi_for_debug
 pok_arch_rfdi_for_debug:
-        LOAD_FP_FOR_INT(0)
-        lwz     %r31,148(%r1)         
-        lwz     %r30,144(%r1)          
-        lwz     %r29,140(%r1)          
-        lwz     %r28,136(%r1)
-        lwz     %r27,132(%r1)       
-        lwz     %r26,128(%r1)          
-        lwz     %r25,124(%r1)          
-        lwz     %r24,120(%r1)          
-        lwz     %r23,116(%r1)          
-        lwz     %r22,112(%r1)          
-        lwz     %r21,108(%r1)          
-        lwz     %r20,104(%r1)          
-        lwz     %r19,100(%r1)           
-        lwz     %r18,96(%r1)           
-        lwz     %r17,92(%r1)           
-        lwz     %r16,88(%r1)          
-        lwz     %r15,84(%r1)          
-        lwz     %r14,80(%r1)           
-        lwz     %r13,60(%r1)
-        lwz     %r12,56(%r1)
-        lwz     %r11,52(%r1)
-        lwz     %r10,48(%r1)
-        lwz     %r9,44(%r1)
-        lwz     %r8,40(%r1)
-        lwz     %r7,36(%r1)
-        lwz     %r6,32(%r1)
-        lwz     %r5,28(%r1)
-        lwz     %r4,24(%r1)
-        lwz     %r3,20(%r1)
-        lwz     %r2,16(%r1)
-        lwz     %r0,FRAME_SIZE_FOR_INT+4(%r1)
-        mtlr    %r0
-        lwz     %r0,64(%r1)
-        mtctr   %r0
-        lwz     %r0,68(%r1)
-        mtxer   %r0
-        lwz     %r0,72(%r1)
-        mtspr  574,%r0
-        lwz     %r0,76(%r1)
-        mtspr  575,%r0
-        andi.   %r0,%r0,MSR_PR
-        beq     1f
-        /* If user mode, restore kernel stack and save it to SPRG1 */
-        addi    %r0,%r1,FRAME_SIZE_FOR_INT
-        mtsprg  1,%r0
-1:      lwz     %r0,8(%r1)
-        mtcr    %r0
-        lwz     %r0,12(%r1)
-        lwz     %r1,0(%r1)
+        /* r4 <-> sprg2, r3 <-> sprg3. TODO: other temporary locations should be used. */
+        lwz     %r4,OFFSETOF_jet_interrupt_context_r4(%r1)
+        mtsprg  2,%r4
+        lwz     %r3,OFFSETOF_jet_interrupt_context_r3(%r1)
+        mtsprg  2,%r3
+
+        /* srr0->dsrr0, srr1->dsrr1. */
+        lwz     %r4,OFFSETOF_jet_interrupt_context_srr1(%r1)
+        mtspr   SPRN_DSRR1, %r4
+        lwz     %r3,OFFSETOF_jet_interrupt_context_srr0(%r1)
+        mtspr   SPRN_DSRR0, %r3
+
+        EXCEPTION_EPILOGUE_COMMON
+
+        mfsprg  %r4, 2
+        mfsprg  %r3, 3
+
         rfdi
 
-#define SAVE_REGS_FOR_DEBUG                             \
-        /* Establish new frame.  */                     \
-        mflr    %r4;                                    \
-        stw     %r4,FRAME_SIZE_FOR_INT+4(%r1); /* lr */ \
-        mfctr   %r4;                                    \
-        stw     %r4,64(%r1);  /* ctr */                 \
-        mfxer   %r4;                                    \
-        stw     %r4,68(%r1);  /* xer */                 \
-        stw     %r3,8(%r1);   /* cr */                  \
-        stw     %r0,12(%r1);  /* r0 */                  \
-        stw     %r2,16(%r1);  /* r2 */                  \
-        mfsprg  %r0,3;                                  \
-        stw     %r0,20(%r1);  /* r3 */                  \
-        mfsprg  %r0,2;                                  \
-        stw     %r0,24(%r1);  /* r4 */                  \
-        stw     %r5,28(%r1);  /* r5 */                  \
-        stw     %r6,32(%r1);  /* r6 */                  \
-        stw     %r7,36(%r1);  /* r7 */                  \
-        stw     %r8,40(%r1);  /* r8 */                  \
-        stw     %r9,44(%r1);  /* r9 */                  \
-        stw     %r10,48(%r1); /* r10 */                 \
-        stw     %r11,52(%r1); /* r11 */                 \
-        stw     %r12,56(%r1); /* r12 */                 \
-        stw     %r13,60(%r1); /* r13 */                 \
-        SAVE_FP_FOR_INT(0); /* f0 */                    \
-        mfspr  %r3,574;                                    \
-        stw     %r3,72(%r1);  /* dsrr0 */                \
-        mfspr %r4,575;                                    \
-        stw     %r4,76(%r1);  /* dsrr1 */                \
-        stw     %r14,80(%r1); /* r14 */                 \
-        stw     %r15,84(%r1); /* r15 */                 \
-        stw     %r16,88(%r1); /* r16 */                 \
-        stw     %r17,92(%r1); /* r17 */                 \
-        stw     %r18,96(%r1); /* r18 */                 \
-        stw     %r19,100(%r1); /* r19 */                \
-        stw     %r20,104(%r1); /* r20 */                \
-        stw     %r21,108(%r1); /* r21 */                \
-        stw     %r22,112(%r1); /* r22 */                \
-        stw     %r23,116(%r1); /* r23 */                \
-        stw     %r24,120(%r1); /* r24 */                \
-        stw     %r25,124(%r1); /* r25 */                \
-        stw     %r26,128(%r1); /* r26 */                \
-        stw     %r27,132(%r1); /* r27 */                \
-        stw     %r28,136(%r1); /* r28 */                \
-        stw     %r29,140(%r1); /* r29 */                \
-        stw     %r30,144(%r1); /* r30 */                \
-        stw     %r31,148(%r1); /* r31 */				\
-        mffs	%f1;		   /* FPSCR */				\
-        SAVE_FP_FOR_INT(1);    /* f1 */					\
-        lwz		%r0,168(%r1);							\
-        stw     %r0,152(%r1);  /* FPSCR */				\
+.macro EXCEPTION_PROLOGUE_DEBUG
+        /* r3 <-> sprg3, r4 <-> sprg2. TODO: use different temporaries. */
+        mtsprg  3,%r3
+        mtsprg  2,%r4
+        EXCEPTION_PROLOGUE_COMMON
 
+        /* srr0<-dsrr0, srr1<-dsrr1. */
+        mtspr   SPRN_DSRR0, %r3
+        stw     %r3,OFFSETOF_jet_interrupt_context_srr0(%r1)
+        mtspr   SPRN_DSRR0, %r4
+        stw     %r4,OFFSETOF_jet_interrupt_context_srr1(%r1)
 
-#define EXCEPTION_PROLOGUE_FOR_DEBUG                    \
-        mtsprg  3,%r3;                                  \
-        mtsprg  2,%r4;                                  \
-        mfcr    %r3;                                    \
-        /* Enable floating point bit in msr */          \
-        mfmsr %r4;                                      \
-        ori %r4,%r4,MSR_FP;                             \
-        mtmsr %r4;                                      \
-        mfsrr1  %r4;                                    \
-        andi.   %r4,%r4,MSR_PR;                         \
-        bne     1f;                                     \
-        /* Already on kernel stack */                   \
-        stwu %r1, -FRAME_SIZE_FOR_INT(%r1);             \
-        b       2f;                                     \
-1:      /* User stack right now          */             \
-        mr %r4, %r1;                                    \
-        mfsprg %r1, 1;                                  \
-        stwu %r4, -FRAME_SIZE_FOR_INT(%r1);/*save it*/  \
-2:      SAVE_REGS_FOR_DEBUG;                            \
-        lis %r5, global_thread_stack@ha;              \
-        addi %r5, %r5, global_thread_stack@l;         \
-        stw %r1, 0(r5);                                 \
-        mr	%r3, %r1;
-
-#define EXCEPTION_PROLOGUE_FOR_INT                      \
-        mtsprg  3,%r3;                                  \
-        mtsprg  2,%r4;                                  \
-        mfcr    %r3;                                    \
-        /* Enable floating point bit in msr */          \
-        mfmsr %r4;                                      \
-        ori %r4,%r4,MSR_FP;                             \
-        mtmsr %r4;                                      \
-        mfsrr1  %r4;                                    \
-        andi.   %r4,%r4,MSR_PR;                         \
-        bne     1f;                                     \
-        /* Already on kernel stack */                   \
-        stwu %r1, -FRAME_SIZE_FOR_INT(%r1);             \
-        b       2f;                                     \
-1:      /* User stack right now          */             \
-        mr %r4, %r1;                                    \
-        mfsprg %r1, 1;                                  \
-        stwu %r4, -FRAME_SIZE_FOR_INT(%r1);/*save it*/  \
-2:      SAVE_REGS_FOR_INT;                              \
-        mfsrr0 %r3; /* EA of exception */               \
-        mr	%r3, %r1;
-
-#define EXCEPTION_PROLOGUE_FOR_GDB                      \
-        mtsprg  3,%r3;                                  \
-        mtsprg  2,%r4;                                  \
-        mfcr    %r3;                                    \
-        /* Enable floating point bit in msr */          \
-        mfmsr %r4;                                      \
-        ori %r4,%r4,MSR_FP;                             \
-        mtmsr %r4;                                      \
-        mfsrr1  %r4;                                    \
-        andi.   %r4,%r4,MSR_PR;                         \
-        bne     1f;                                     \
-        /* Already on kernel stack */                   \
-        stwu %r1, -FRAME_SIZE_FOR_INT(%r1);             \
-        b       2f;                                     \
-1:      /* User stack right now          */             \
-        mr %r4, %r1;                                    \
-        mfsprg %r1, 1;                                  \
-        stwu %r4, -FRAME_SIZE_FOR_INT(%r1);/*save it*/  \
-2:      SAVE_REGS_FOR_INT;                              \
-        lis %r5, global_thread_stack@ha;              \
-        addi %r5, %r5, global_thread_stack@l;         \
-        stw %r1, 0(r5);                                 \
-        mfsrr0 %r3; /* EA of exception */               
+        mfsprg  %r3,3
+        stw     %r3,OFFSETOF_jet_interrupt_context_r3(%r1)
+        mfsprg  %r4,2
+        stw     %r4,OFFSETOF_jet_interrupt_context_r4(%r1)
+.endm
 
         . = base + 0x300
         .global pok_trap_addr
@@ -455,6 +350,11 @@ _pok_reset:
         /* Setup stack */
         lis %r1,(pok_stack_end-4)@h
         ori %r1,%r1,(pok_stack_end-4)@l
+
+        /* Mark kernel stack as ready for interrupts. */
+        li %r4, 1
+        mtsprg 1, %r4
+
 
         bl pok_setup_interrupts
 
@@ -498,113 +398,123 @@ label##_asm:
 
 // Handlers themselves:
 
+    /* TODO: shouldn't critical interrupt level should be used there? */
     START_EXCEPTION(pok_int_critical_input)
-        EXCEPTION_PROLOGUE_FOR_GDB
+        EXCEPTION_PROLOGUE
+        mr %r3, %r1
         bl pok_int_critical_input
-        b pok_arch_rfi_for_int
+        b pok_arch_rfi
 
+    /* TODO: shouldn't machine check interrupt level should be used there? */
     START_EXCEPTION(pok_int_machine_check)
-        EXCEPTION_PROLOGUE_FOR_GDB
+        EXCEPTION_PROLOGUE
+        mr %r3, %r1
         bl pok_int_machine_check
-        b pok_arch_rfi_for_int
+        b pok_arch_rfi
 
     START_EXCEPTION(pok_int_data_storage)
-        EXCEPTION_PROLOGUE_FOR_GDB
+        EXCEPTION_PROLOGUE
         mr %r3, %r1
 
         mfspr %r4, SPRN_DEAR // DEAR - faulting address
         mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
         bl pok_int_data_storage
-        b  pok_arch_rfi_for_int
+        b  pok_arch_rfi
 
     START_EXCEPTION(pok_int_inst_storage)
-        EXCEPTION_PROLOGUE_FOR_GDB
+        EXCEPTION_PROLOGUE
         mr %r3, %r1
         mfspr %r4, SPRN_DEAR // DEAR - faulting address
         mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
         bl pok_int_inst_storage
-        b  pok_arch_rfi_for_int
+        b  pok_arch_rfi
 
     START_EXCEPTION(pok_int_ext_interrupt)
-        EXCEPTION_PROLOGUE_FOR_GDB
-
+        EXCEPTION_PROLOGUE
+        mr %r3, %r1
         bl pok_int_ext_interrupt
-        b pok_arch_rfi_for_int
+        b pok_arch_rfi
 
     START_EXCEPTION(pok_int_alignment)
-        EXCEPTION_PROLOGUE_FOR_GDB
+        EXCEPTION_PROLOGUE
+        mr %r3, %r1
 
         bl pok_int_alignment
-        b pok_arch_rfi_for_int
+        b pok_arch_rfi
 
     START_EXCEPTION(pok_int_program)
-        EXCEPTION_PROLOGUE_FOR_INT
+        EXCEPTION_PROLOGUE
+        mr %r3, %r1
 
         bl pok_int_program
-        b pok_arch_rfi_for_int
+        b pok_arch_rfi
 
     START_EXCEPTION(pok_int_fp_unavail)
-        EXCEPTION_PROLOGUE_FOR_GDB
+        EXCEPTION_PROLOGUE
+        mr %r3, %r1
 
         bl pok_int_fp_unavail
-        b pok_arch_rfi_for_int
+        b pok_arch_rfi
 
     START_EXCEPTION(pok_int_system_call)
-        EXCEPTION_PROLOGUE_FOR_GDB
-
-        /* load system call arguments back from the stack */
-        lwz     %r4,20(%r1)
-        lwz     %r5,24(%r1)
-        lwz     %r6,28(%r1)
-        lwz     %r7,32(%r1)
-        lwz     %r8,36(%r1)
-        lwz     %r9,40(%r1)
+        EXCEPTION_PROLOGUE
+        mr %r3, %r1
+        /* load system call arguments back from the interrupt frame */
+        lwz     %r4,OFFSETOF_jet_interrupt_context_r3(%r1)
+        lwz     %r5,OFFSETOF_jet_interrupt_context_r4(%r1)
+        lwz     %r6,OFFSETOF_jet_interrupt_context_r5(%r1)
+        lwz     %r7,OFFSETOF_jet_interrupt_context_r6(%r1)
+        lwz     %r8,OFFSETOF_jet_interrupt_context_r7(%r1)
+        lwz     %r9,OFFSETOF_jet_interrupt_context_r8(%r1)
 
         bl      pok_int_system_call 
-        stw     %r3,20(%r1)
-        
-        b       pok_arch_rfi_for_int       
+        stw     %r3,OFFSETOF_jet_interrupt_context_r3(%r1)
+
+        b       pok_arch_rfi
 
     START_EXCEPTION(pok_int_decrementer)
-        EXCEPTION_PROLOGUE_FOR_GDB
+        EXCEPTION_PROLOGUE
+        mr %r3, %r1
 
         bl      pok_int_decrementer 
-        b       pok_arch_rfi_for_int
+        b       pok_arch_rfi
 
     START_EXCEPTION(pok_int_interval_timer)
-        EXCEPTION_PROLOGUE_FOR_GDB
+        EXCEPTION_PROLOGUE
+        mr %r3, %r1
 
         bl      pok_int_interval_timer
-        b       pok_arch_rfi_for_int
+        b       pok_arch_rfi
 
     START_EXCEPTION(pok_int_watchdog)
-        EXCEPTION_PROLOGUE_FOR_GDB
+        EXCEPTION_PROLOGUE
+        mr %r3, %r1
 
         bl      pok_int_watchdog
-        b       pok_arch_rfi_for_int
+        b       pok_arch_rfi
 
     START_EXCEPTION(pok_int_data_tlb_miss)
-        EXCEPTION_PROLOGUE_FOR_GDB
+        EXCEPTION_PROLOGUE
         mr %r3, %r1
         mfspr %r4, SPRN_DEAR // DEAR - faulting address
         mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
         bl      pok_int_data_tlb_miss
-        b       pok_arch_rfi_for_int
+        b       pok_arch_rfi
 
     START_EXCEPTION(pok_int_inst_tlb_miss)
-        EXCEPTION_PROLOGUE_FOR_GDB
+        EXCEPTION_PROLOGUE
         mr %r3, %r1
         mfspr %r4, SPRN_DEAR // DEAR - faulting address
         mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
         bl      pok_int_inst_tlb_miss
-        b       pok_arch_rfi_for_int
+        b       pok_arch_rfi
         
     START_EXCEPTION(pok_int_debug)
-        EXCEPTION_PROLOGUE_FOR_DEBUG
+        EXCEPTION_PROLOGUE_DEBUG
 
         bl      pok_int_debug
         b       pok_arch_rfdi_for_debug

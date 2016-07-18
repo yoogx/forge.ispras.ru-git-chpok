@@ -2,7 +2,7 @@
 #define __POK_PPC_SPACE_H__
 
 #include <types.h>
-#include "thread.h"
+#include "interrupt_context.h"
 
 typedef enum {
     PF_DATA_TLB_MISS,
@@ -13,7 +13,7 @@ typedef enum {
 
 
 void pok_arch_handle_page_fault(
-        volatile_context_t *vctx,
+        struct jet_interrupt_context *vctx,
         uintptr_t faulting_address,
         uint32_t syndrome,
         pf_type_t type);

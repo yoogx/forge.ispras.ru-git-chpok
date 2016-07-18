@@ -123,9 +123,9 @@ static inline uint32_t pok_dstack_get_stack(struct dStack* d)
  * 
  * Current context will be lost.
  */
-static inline void pok_context_jump(uint32_t new_sp)
+static inline void pok_context_jump(struct jet_context* new_sp)
 {
-    uint32_t fake_sp;
+    struct jet_context* fake_sp;
     pok_context_switch(&fake_sp, new_sp);
 }
 
@@ -142,7 +142,7 @@ static inline void pok_context_jump(uint32_t new_sp)
  */
 static inline void pok_context_restart(struct dStack* d,
         void (*entry)(void),
-        uint32_t* new_sp_p)
+        struct jet_context** new_sp_p)
 {
     int index = d->index;
     int index_other = index ^ 1;
@@ -178,14 +178,14 @@ static inline void pok_context_user_jump (
         int index_other = d->index ^ 1;
         d->index = index_other;
         
-        uint32_t sp = pok_space_context_init(d->stacks[index_other],
+        struct jet_context* ctx = pok_space_context_init(d->stacks[index_other],
                 space_id,
                 entry_rel,
                 stack_rel,
                 arg1,
                 arg2);
                 
-        pok_context_jump(sp);
+        pok_context_jump(ctx);
 }
 
 #define pok_arch_load_partition ja_load_partition

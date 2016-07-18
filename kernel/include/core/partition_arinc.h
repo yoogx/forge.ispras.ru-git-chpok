@@ -187,7 +187,7 @@ typedef struct _pok_patition_arinc
      * 
      * This is context pointer for switch to it.
      */
-    uint32_t               idle_sp;
+    struct jet_context*               idle_sp;
 } pok_partition_arinc_t;
 
 #define current_partition_arinc container_of(current_partition, pok_partition_arinc_t, base_part)

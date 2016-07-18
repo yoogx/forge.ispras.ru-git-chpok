@@ -26,7 +26,8 @@
 #include <core/debug.h>
 
 #include <arch.h>
-#include "thread.h"
+#include "context.h"
+#include "interrupt_context.h"
 #include "msr.h"
 #include "reg.h"
 #include "mmu.h"
@@ -68,34 +69,7 @@ uintptr_t ja_space_base_vaddr(uintptr_t addr)
     return POK_PARTITION_MEMORY_BASE;
 }
     
-static void
-pok_space_context_init0(
-        volatile_context_t *vctx,
-        context_t *ctx,
-        uint8_t space_id,
-        uintptr_t entry_rel,
-        uintptr_t stack_rel,
-        uint32_t arg1,
-        uint32_t arg2)
-{
-    (void) space_id;
-
-    memset (ctx, 0, sizeof(*ctx));
-    memset (vctx, 0, sizeof(*vctx));
-
-    extern void pok_arch_rfi (void);
-
-    vctx->r3     = arg1;
-    vctx->r4     = arg2;
-    vctx->sp     = stack_rel - 12;
-    vctx->srr0   = entry_rel;
-    vctx->srr1   = MSR_EE | MSR_IP | MSR_PR | MSR_FP;
-    ctx->lr      = (uintptr_t) pok_arch_rfi;
-
-    ctx->sp      = (uintptr_t) &vctx->sp;
-}
-
-uint32_t ja_space_context_init(
+struct jet_context* ja_space_context_init(
         uint32_t sp,
         uint8_t space_id,
         uint32_t entry_rel,
@@ -103,12 +77,27 @@ uint32_t ja_space_context_init(
         uint32_t arg1,
         uint32_t arg2)
 {
-    volatile_context_t *vctx = (volatile_context_t*) (sp - sizeof (volatile_context_t));
-    context_t *ctx = (context_t*)((char*)vctx - sizeof(context_t) + 8);
-    
-    pok_space_context_init0(vctx, ctx, space_id, entry_rel, stack_rel, arg1, arg2);
-    
-    return (uint32_t)ctx;
+    struct jet_interrupt_context *vctx = (struct jet_interrupt_context*)
+        (sp - sizeof (*vctx));
+    struct jet_context *ctx = (struct jet_context*)
+        (sp - (sizeof (*vctx) + sizeof(*ctx)));
+
+    memset (ctx, 0, sizeof(*ctx));
+    memset (vctx, 0, sizeof(*vctx));
+
+    extern void pok_arch_rfi (void);
+
+    /* Fill interrupt frame */
+    vctx->r3     = arg1;
+    vctx->r4     = arg2;
+    vctx->r1     = stack_rel - 12;
+    vctx->srr0   = entry_rel;
+    vctx->srr1   = MSR_EE | MSR_IP | MSR_PR | MSR_FP;
+
+    // Linkage between frames
+    jet_stack_frame_link(&vctx->stack_frame, &ctx->stack_frame, pok_arch_rfi);
+
+    return ctx;
 }
 
 static unsigned next_resident = 0;
@@ -305,7 +294,7 @@ void pok_arch_space_init (void)
 #define MPC8544_PCI_IO           0xE1000000ULL
 
 void pok_arch_handle_page_fault(
-        volatile_context_t *vctx,
+        struct jet_interrupt_context *vctx,
         uintptr_t faulting_address,
         uint32_t syndrome,
         pf_type_t type)
@@ -353,7 +342,7 @@ void pok_arch_handle_page_fault(
             FALSE
         );
     } else {
-        if (vctx->srr1&MSR_PR) {
+        if (vctx->srr1 & MSR_PR) {
             printf("USER ");
         } else {
             printf("KERNEL ");

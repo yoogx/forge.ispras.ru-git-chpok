@@ -279,14 +279,16 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
                             const pok_syscall_info_t*    infos)
 {
     pok_ret_t ret;
-
+#ifdef POK_NEEDS_GDB
     current_partition->entry_sp_user = global_thread_stack;
-
     pok_in_user_space = FALSE;
+#endif
 
     ret = pok_core_syscall_internal(syscall_id, args, infos);
 
-    return ret;
-
+#if POK_NEEDS_GDB
     pok_in_user_space = TRUE;
+#endif
+
+    return ret;
 }

@@ -13,13 +13,16 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <stddef.h>
+#ifndef __JET_PPC_ASM_OFFSETS_INTERRUPT_CONTEXT_H__
+#define __JET_PPC_ASM_OFFSETS_INTERRUPT_CONTEXT_H__
 
-#define DEFINE(sym, val) asm volatile("\n-> " #sym " %0 " #val "\n" : : "i" (val))
-#define OFFSETOF(s, m) \
-    DEFINE(OFFSETOF_##s##_##m, offsetof(struct s, m));
+#include <config.h>
+#ifdef POK_NEEDS_GDB
+#include "asm_offsets_interrupt_context_gdb_on.h"
+#else /* POK_NEEDS_GDB */
+#include "asm_offsets_interrupt_context_gdb_off.h"
+#endif
 
-#define SIZEOF_STRUCT(s) \
-    DEFINE(SIZEOF_##s, sizeof(struct s));
+#define JET_STACK_RED_ZONE 128
 
-#define AS_IS(str) asm volatile("\n->#" str)
+#endif /* __JET_PPC_ASM_OFFSETS_CONTEXT_H__ */

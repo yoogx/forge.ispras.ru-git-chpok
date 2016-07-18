@@ -41,7 +41,7 @@ static void idle_func(void)
 void pok_partition_arinc_idle(void)
 {
 	pok_partition_arinc_t* part = current_partition_arinc;
-	uint32_t fake_sp;
+	struct jet_context* fake_sp;
 	
 	// Unconditionally off preemption.
 	part->base_part.preempt_local_disabled = 1;
@@ -160,6 +160,7 @@ void pok_partition_arinc_reset(pok_partition_mode_t mode)
 	pok_partition_restart();
 }
 
+#if POK_NEEDS_GDB
 static int pok_sched_arinc_get_number_of_threads(pok_partition_t* part)
 {
 	pok_partition_arinc_t* part_arinc = container_of(part,
@@ -245,7 +246,7 @@ static void pok_sched_arinc_get_thread_info(pok_partition_t* part, int index, vo
 #undef WRITE_STR
 }
 
-static struct regs* pok_sched_arinc_get_thread_registers(pok_partition_t* part,
+static struct jet_interrupt_context* pok_sched_arinc_get_thread_registers(pok_partition_t* part,
 	int index, void* private)
 {
 	pok_thread_t* t = private;
@@ -258,7 +259,7 @@ static struct regs* pok_sched_arinc_get_thread_registers(pok_partition_t* part,
 	}
 	else if(index < part_arinc->nthreads_used && t->entry_sp_user)
 	{
-		return (struct regs*) t->entry_sp_user;
+		return t->entry_sp_user;
 	}
 	else
 	{
@@ -266,15 +267,17 @@ static struct regs* pok_sched_arinc_get_thread_registers(pok_partition_t* part,
 		return NULL;
 	}
 }
-
+#endif /* POK_NEEDS_GDB */
 
 static const struct pok_partition_sched_operations arinc_sched_ops = {
 	.on_event = &pok_sched_arinc_on_event,
+#if POK_NEEDS_GDB
 	.get_number_of_threads = &pok_sched_arinc_get_number_of_threads,
 	.get_current_thread_index = &pok_sched_arinc_get_current_thread_index,
 	.get_thread_at_index = &pok_sched_arinc_get_thread_at_index,
 	.get_thread_info = &pok_sched_arinc_get_thread_info,
 	.get_thread_registers = &pok_sched_arinc_get_thread_registers,
+#endif /* POK_NEEDS_GDB */
 };
 
 static const struct pok_partition_operations arinc_ops = {

@@ -29,34 +29,34 @@
 #include "space.h"
 #include "timer.h"
 #include "syscalls.h"
-#include "thread.h"
+#include "interrupt_context.h"
 
 
 
-void pok_int_critical_input(uintptr_t ea) {
+void pok_int_critical_input(struct jet_interrupt_context* ea) {
     (void) ea;
     pok_fatal("Critical input interrupt"); 
 }
 
-void pok_int_machine_check(uintptr_t ea) {
+void pok_int_machine_check(struct jet_interrupt_context* ea) {
     (void) ea;
     pok_fatal("Machine check interrupt"); 
 }
 
-void pok_int_data_storage(volatile_context_t *vctx, uintptr_t dear, unsigned long esr) {
+void pok_int_data_storage(struct jet_interrupt_context *vctx, uintptr_t dear, unsigned long esr) {
     pok_arch_handle_page_fault(vctx, dear, esr, PF_DATA_STORAGE);
 }
 
-void pok_int_inst_storage(volatile_context_t *vctx, uintptr_t dear, unsigned long esr) {
+void pok_int_inst_storage(struct jet_interrupt_context* vctx, uintptr_t dear, unsigned long esr) {
     pok_arch_handle_page_fault(vctx, dear, esr, PF_INST_STORAGE);
 }
 
-void pok_int_ext_interrupt(uintptr_t ea) {
+void pok_int_ext_interrupt(struct jet_interrupt_context* ea) {
     (void) ea;
     pok_fatal("External interrupt");
 }
 
-void pok_int_alignment(uintptr_t ea) {
+void pok_int_alignment(struct jet_interrupt_context* ea) {
     (void) ea;
     pok_fatal("Alignment interrupt");
 }
@@ -68,7 +68,7 @@ extern void * pok_trap;
 void write_on_screen();
 
 
-void pok_int_program(struct regs * ea) {
+void pok_int_program(struct jet_interrupt_context* ea) {
 
 ////printf("ea = 0x%lx\n", ea);
 //// pok_trap_addr = address of pok_trap in entry.S
@@ -168,40 +168,41 @@ void pok_int_program(struct regs * ea) {
 ////    pok_fatal("Program interrupt");
 }
 
-void pok_int_fp_unavail(uintptr_t ea) {
+void pok_int_fp_unavail(struct jet_interrupt_context* ea) {
     (void) ea;
     pok_fatal("FP unavailable interrupt");
 }
 
-unsigned long pok_int_system_call(uintptr_t ea, unsigned long arg1, unsigned long arg2, unsigned long arg3, unsigned long arg4, unsigned long arg5, unsigned long arg6) {
+unsigned long pok_int_system_call(struct jet_interrupt_context* ea,
+    unsigned long arg1, unsigned long arg2, unsigned long arg3, unsigned long arg4, unsigned long arg5, unsigned long arg6) {
     (void) ea;
     return pok_arch_sc_int(arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
-void pok_int_decrementer(uintptr_t ea) {
+void pok_int_decrementer(struct jet_interrupt_context* ea) {
     (void) ea;
     pok_arch_decr_int();
 }
 
-void pok_int_interval_timer(uintptr_t ea) {
+void pok_int_interval_timer(struct jet_interrupt_context* ea) {
     (void) ea;
     pok_fatal("Inteval timer interrupt");
 }
 
-void pok_int_watchdog(uintptr_t ea) {
+void pok_int_watchdog(struct jet_interrupt_context* ea) {
     (void) ea;
     pok_fatal("Watchdog interrupt");
 }
 
-void pok_int_data_tlb_miss(volatile_context_t *vctx, uintptr_t dear, unsigned long esr) {
+void pok_int_data_tlb_miss(struct jet_interrupt_context* vctx, uintptr_t dear, unsigned long esr) {
     pok_arch_handle_page_fault(vctx, dear, esr, PF_DATA_TLB_MISS);
 }
 
-void pok_int_inst_tlb_miss(volatile_context_t *vctx, uintptr_t dear, unsigned long esr) {
+void pok_int_inst_tlb_miss(struct jet_interrupt_context* vctx, uintptr_t dear, unsigned long esr) {
     pok_arch_handle_page_fault(vctx, dear, esr, PF_INST_TLB_MISS);
 }
 
-void pok_int_debug(struct regs * ea) {
+void pok_int_debug(struct jet_interrupt_context* ea) {
 #ifdef DEBUG_GDB
     printf("    DEBUG EVENT!\n");
     printf("DBSR = %lx\n", mfspr(SPRN_DBSR));

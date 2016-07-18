@@ -1,7 +1,6 @@
 #include <config.h>
 
 #ifdef POK_NEEDS_GDB
-
 #include <gdb.h>
 
 #define PC_REGNUM 64
@@ -409,19 +408,19 @@ void gdb_thread_print_name(const struct gdb_thread* t,
 /* 
  * Return registers(arch-specific) for non-current thread.
  */
-static struct regs* gdb_thread_get_regs(const struct gdb_thread* t)
+static struct jet_interrupt_context* gdb_thread_get_regs(const struct gdb_thread* t)
 {
     if(t->inferior_id == 1)
     {
         // Kernel threads always current for partition.
-        return (struct regs*)t->part->entry_sp;
+        return t->part->entry_sp;
     }
 
     int current_thread_id = t->part->part_sched_ops->get_current_thread_index(t->part) + 1;
 
     if(current_thread_id == t->thread_id)
     {
-        return (struct regs*)t->part->entry_sp;
+        return t->part->entry_sp;
     }
     else
     {
@@ -985,21 +984,6 @@ static int pok_thread_info(pok_state_t State, int * info_offset){
 }*/
 
 
-struct regs  null_ea = {
-#ifdef __PPC__
-    0,    0,    0,    0,    0,    0,    0,    0,    0,
-    0,    0,    0,    0,    0,    0,    0,    0,    0,
-    0,    0,    0,    0,    0,    0,    0,    0,    0,
-    0,    0,    0,    0,    0,    0,    0,    0,    0,
-    0,    0,    0,    0,    0,    0,    0,    0
-#endif
-#ifdef __i386__
-    0,    0,    0,    0,    0,    0,    0,    0,    0,
-    0,    0,    0,    0,    0,    0,    0
-#endif     
-};
-
-
 /*int   POK_CHECK_ADDR_IN_PARTITION(int pid,uintptr_t address){
     if (pid > 0)
         return ((POK_CHECK_VPTR_IN_PARTITION(pid - 1,address)) || (address >= 0x0 && address <  pok_partitions[0].base_addr));
@@ -1106,7 +1090,7 @@ struct gdb_state
 {
     struct gdb_thread t; // processed thread
 
-    struct regs* current_ea; // These regs should be used when processed thread is actually the current one.
+    struct jet_interrupt_context* current_ea; // These regs should be used when processed thread is actually the current one.
 };
 
 /*
@@ -1115,7 +1099,7 @@ struct gdb_state
  * Initially processed thread is current one.
  */
 static void gdb_state_init(struct gdb_state* tc,
-    struct regs* current_ea)
+    struct jet_interrupt_context* current_ea)
 {
     gdb_thread_copy(&tc->t, &gdb_thread_current);
 
@@ -1125,12 +1109,11 @@ static void gdb_state_init(struct gdb_state* tc,
 /* Make processed thread state uptodate. */
 static void gdb_state_store_registers(struct gdb_state* tc)
 {
-    struct regs* ea;
+    struct jet_interrupt_context* ea;
 
     if(!gdb_thread_equal(&tc->t, &gdb_thread_current))
     {
         ea = gdb_thread_get_regs(&tc->t);
-        if(!ea) ea = &null_ea;
 
         gdb_thread_set_fp_regs(&tc->t, fp_registers);
     }
@@ -1146,12 +1129,11 @@ static void gdb_state_store_registers(struct gdb_state* tc)
 /* Make exposed registers for processed state up-to-date. */
 static void gdb_state_fill_registers(struct gdb_state* tc)
 {
-    struct regs* ea;
+    struct jet_interrupt_context* ea;
 
     if(!gdb_thread_equal(&tc->t, &gdb_thread_current))
     {
         ea = gdb_thread_get_regs(&tc->t);
-        if(!ea) ea = &null_ea;
 
         gdb_thread_get_fp_regs(&tc->t, fp_registers);
     }
@@ -1160,7 +1142,8 @@ static void gdb_state_fill_registers(struct gdb_state* tc)
         ea = tc->current_ea;
     }
 
-    gdb_set_regs(ea, registers);
+    if(ea)
+        gdb_set_regs(ea, registers);
 }
 
 /*
@@ -1260,7 +1243,7 @@ void remove_watchpoint(uintptr_t addr, int length, const struct gdb_thread* t, i
 #ifdef DEBUG_GDB
     printf("Before set MSR DBCR0 = 0x%lx\n", DBCR0);
 #endif
-    struct regs * MSR = (struct regs *)pok_threads[*using_thread].entry_sp;
+    struct jet_interrupt_context* MSR = pok_threads[*using_thread].entry_sp;
     MSR->srr1 &= (~0x200);
     DBCR0 = mfspr(SPRN_DBCR0);    
 #ifdef DEBUG_GDB
@@ -1396,7 +1379,7 @@ err:
  * This function does all command procesing for interfacing to gdb.
  */
 void
-handle_exception (int exceptionVector, struct regs * ea)
+handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
 {
     Connect_to_new_inferior = -1;
     /*Add regs*/
@@ -2504,7 +2487,7 @@ handle_exception (int exceptionVector, struct regs * ea)
 #else /* POK_NEEDS_GDB */
 #include <core/debug.h>
 void
-handle_exception (int exceptionVector, struct regs * ea)
+handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
 {
     pok_fatal("Exception without GDB enabled");
 }
