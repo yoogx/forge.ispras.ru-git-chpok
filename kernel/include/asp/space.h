@@ -18,6 +18,7 @@
 
 #include <types.h>
 #include <asp/cswitch.h>
+#include <common.h>
 
 /**
  * Return current partition id
@@ -44,17 +45,15 @@ pok_ret_t   ja_space_create (uint8_t space_id, uintptr_t addr, size_t size);
 uintptr_t	   ja_space_base_vaddr (uintptr_t addr);
 
 /**
- * Initialize context which can be used with pok_context_switch()
+ * Jump to the user space.
  * 
- * for jump into user space.
+ * Kernel stack passed as 'sp' will be used in interrupts/syscalls.
  */
-struct jet_context* ja_space_context_init(
-        uint32_t sp,
-        uint8_t space_id,
-        uint32_t entry_rel,
-        uint32_t stack_rel,
-        uint32_t arg1,
-        uint32_t arg2);
+void ja_user_space_jump(
+        jet_stack_t sp,
+        uint8_t space_id, /* Actually, unused (should already be set with pok_space_switch). */
+        void (__user * entry_user)(void),
+        uint32_t stack_user);
 
 /**
  * Switch to given (user) space.

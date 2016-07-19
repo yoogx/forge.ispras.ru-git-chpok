@@ -32,6 +32,9 @@
 
 #include <assert.h>
 
+#include <cswitch.h>
+#include <core/space.h>
+
 static pok_time_t first_frame_starts; // Time when first major frame is started.
 
 static pok_time_t            pok_sched_next_deadline;
@@ -121,7 +124,7 @@ static void intra_partition_switch(void)
              * 
              * Perform jump instead of switch.
              */ 
-             pok_context_jump(*new_sp);
+             jet_context_jump(*new_sp);
              return;
         }
         else if(*new_sp == NULL)
@@ -132,11 +135,11 @@ static void intra_partition_switch(void)
              * 
              * Need to initialize new context before switch.
              */ 
-            *new_sp = pok_context_init(
-                pok_dstack_get_stack(&current_partition->initial_sp),
+            *new_sp = jet_context_init(
+                current_partition->initial_sp,
                 &start_partition);
         }
-        pok_context_switch(old_sp, *new_sp);
+        jet_context_switch(old_sp, *new_sp);
         return;
     }
     
@@ -144,7 +147,7 @@ static void intra_partition_switch(void)
     // old_sp == new_sp
     if(*old_sp == NULL) /* Same context, restart requested. */
     {
-        pok_context_restart(&current_partition->initial_sp,
+        jet_context_restart_and_save(current_partition->initial_sp,
             &start_partition,
             old_sp);
     }
@@ -190,18 +193,16 @@ static void inter_partition_switch(pok_partition_t* part)
          * 
          * Need to initialize new context before switch.
          */
-        *new_sp = pok_context_init(
-            pok_dstack_get_stack(&part->initial_sp),
-            &start_partition);
+        *new_sp = jet_context_init(part->initial_sp, &start_partition);
     }
     
     if(*old_sp == NULL)
     {
-        pok_context_jump(*new_sp);
+        jet_context_jump(*new_sp);
     }
     else
     {
-        pok_context_switch(old_sp, *new_sp);
+        jet_context_switch(old_sp, *new_sp);
     }
 }
 
@@ -212,7 +213,7 @@ void pok_sched_restart (void)
 
     first_frame_starts = POK_GETTICK();
 #ifdef POK_NEEDS_MONITOR
-    idle_sp = pok_context_init(idle_stack, &idle_function);
+    idle_sp = jet_context_init(idle_stack, &idle_function);
 #endif /*POK_NEEDS_MONITOR */
 
     for_each_partition(&pok_partition_reset);
@@ -234,8 +235,7 @@ void pok_sched_restart (void)
 #endif /*POK_NEEDS_MONITOR */
     if(*new_sp == 0)
     {
-        *new_sp = pok_context_init(
-            pok_dstack_get_stack(&current_partition->initial_sp),
+        *new_sp = jet_context_init(current_partition->initial_sp,
             &start_partition);
     }
 
@@ -245,7 +245,7 @@ void pok_sched_restart (void)
         pok_space_switch(0xff); // TODO: This should disable all user space tables
 
     kernel_state = POK_SYSTEM_STATE_OS_PART;
-    pok_context_jump(*new_sp);
+    jet_context_jump(*new_sp);
 }
 
 void pok_sched_start (void)
@@ -445,19 +445,17 @@ void pok_partition_return_user(void)
 
 void pok_partition_jump_user(void* __user entry,
     void* __user stack_addr,
-    struct dStack* stack_kernel)
+    jet_stack_t stack_kernel)
 {
     pok_partition_return_user();
     
     pok_partition_t* part = current_partition;
 
-    pok_context_user_jump(
+    jet_user_space_jump(
         stack_kernel,
         part->space_id,
-        (unsigned long)entry,
-        (unsigned long)stack_addr,
-        0xdead,
-        0xbeaf);
+        entry,
+        (unsigned long)stack_addr);
 }
 
 void pok_partition_restart(void)
@@ -483,6 +481,5 @@ void pok_partition_restart(void)
 
 void pok_sched_init(void)
 {
-    pok_dstack_alloc(&partition_idle.initial_sp, 4096);
-    // TODO: It looks like nothing should be done there.
+    partition_idle.initial_sp = pok_stack_alloc(4096);
 }

@@ -2,21 +2,22 @@
  * Institute for System Programming of the Russian Academy of Sciences
  * Copyright (C) 2016 ISPRAS
  *
- * This program is free software) you can redistribute it and/or
+ * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation, Version 3.
  *
  * This program is distributed in the hope # that it will be useful,
- * but WITHOUT ANY WARRANTY) without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
  * See the GNU General Public License version 3 for more details.
  */
 
-#include "stack_frame.h"
-/* Fields of jet_stack_frame structure. */
-OFFSETOF(jet_stack_frame, back_chain)
-OFFSETOF(jet_stack_frame, lr)
+/* Stack for the (kernel) thread. */
 
-/* Size of empty stack frame */
-SIZEOF_STRUCT(jet_stack_frame_null)
+#ifndef __JET_PPC_STACK_H__
+#define __JET_PPC_STACK_H__
+
+typedef uint32_t jet_stack_t;
+
+#endif /* __JET_PPC_STACK_H__ */

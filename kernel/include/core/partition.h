@@ -33,6 +33,8 @@
 
 #include <asp/cswitch.h>
 
+#include <asp/space.h>
+
 struct _pok_partition;
 
 /* Scheduling operations specific for given partition. */
@@ -226,7 +228,7 @@ typedef struct _pok_partition
      * 
      * Set by particular partition's implementation.
      */
-    struct dStack            initial_sp;
+    jet_stack_t            initial_sp;
 
     /* 
      * Identificator of (user) space, corresponded to given partition.

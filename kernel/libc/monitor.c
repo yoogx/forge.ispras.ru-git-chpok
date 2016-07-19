@@ -437,7 +437,7 @@ void pok_monitor_thread_init()
 #ifdef POK_NEEDS_MONITOR
     partition_monitor.part_sched_ops = &partition_sched_ops_kernel;
     partition_monitor.part_ops = &monitor_operations;
-    pok_dstack_alloc(&partition_monitor.initial_sp, 4096);
+    partition_monitor.initial_sp = pok_stack_alloc(4096);
 #endif
 }
 

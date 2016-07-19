@@ -18,6 +18,9 @@
 #include <core/thread.h>
 #include "thread_internal.h"
 
+#include <cswitch.h>
+#include <core/space.h>
+
 static void thread_start_func(void)
 {
     pok_thread_t* thread_current = current_thread;
@@ -25,7 +28,7 @@ static void thread_start_func(void)
     pok_partition_jump_user(
         thread_current->entry,
         thread_current->init_stack_addr,
-        &thread_current->initial_sp);
+        thread_current->initial_sp);
 }
 
 void sched_arinc_start(void)
@@ -46,8 +49,8 @@ void sched_arinc_start(void)
     part->thread_current = thread_main;
 
 	// Direct jump into main thread.
-	pok_context_restart(&thread_main->initial_sp, &thread_start_func,
-        &thread_main->sp);
+	jet_context_restart_and_save(thread_main->initial_sp,
+        &thread_start_func, &thread_main->sp);
 }
 
 static void thread_deadline_occured(struct delayed_event* event)
@@ -230,8 +233,8 @@ static void sched_arinc(void)
 #ifdef POK_NEEDS_GDB
         new_thread->entry_sp_user = NULL;
 #endif
-        pok_context_restart(&new_thread->initial_sp, &thread_start_func,
-            &new_thread->sp);
+        jet_context_restart_and_save(new_thread->initial_sp,
+            &thread_start_func, &new_thread->sp);
     }
 
     // Switch between different threads
@@ -245,8 +248,7 @@ static void sched_arinc(void)
         new_sp = new_thread->sp;
         if(new_sp == NULL)
         {
-            new_sp = pok_context_init(
-                pok_dstack_get_stack(&new_thread->initial_sp),
+            new_sp = jet_context_init(new_thread->initial_sp,
                 &thread_start_func);
             new_thread->sp = new_sp;
         }
@@ -257,8 +259,7 @@ static void sched_arinc(void)
         new_sp = part->idle_sp;
         if(new_sp == NULL)
         {
-            new_sp = pok_context_init(
-                pok_dstack_get_stack(&part->base_part.initial_sp),
+            new_sp = jet_context_init(part->base_part.initial_sp,
                 &do_nothing_func);
             part->idle_sp = new_sp;
         }
@@ -283,11 +284,11 @@ static void sched_arinc(void)
 #endif /* POK_NEEDS_GDB */
     if(old_sp)
     {
-        pok_context_switch(old_sp, new_sp);
+        jet_context_switch(old_sp, new_sp);
     }
     else
     {
-        pok_context_jump(new_sp);
+        jet_context_jump(new_sp);
     }
 }
 

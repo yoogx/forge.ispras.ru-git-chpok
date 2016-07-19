@@ -15,6 +15,7 @@
 
 #include "thread_internal.h"
 #include <core/sched_arinc.h>
+#include <core/space.h>
 
 pok_bool_t thread_create(pok_thread_t* t)
 {

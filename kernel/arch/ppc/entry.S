@@ -42,6 +42,60 @@ reserved_0000:
 
 #define FRAME_SIZE SIZEOF_jet_interrupt_context
 
+        .globl ja_user_space_jump
+ja_user_space_jump:
+        /* r3 - kernel stack for return,
+         * r4 - user space id,
+         * r5 - entry point
+         * r6 - user stack
+         */
+        // Prepare kernel stack for return
+        sub %r7, %r3, %r1
+        subi %r7, %r7, FRAME_SIZE
+        li %r8, 0
+        stwux %r8, %r1, %r7
+        mtsprg 1, %r1
+        // Prepare user stack, srr1 and srr0 for rfi
+        subi %r1, %r6, 12
+        mtsrr0 %r5
+        lis %r9, (MSR_EE | MSR_IP | MSR_PR | MSR_FP)@ha
+        addi %r9, %r9, (MSR_EE | MSR_IP | MSR_PR | MSR_FP)@l
+        mtsrr1 %r9
+
+        // Nullify other registers (0, 2-7, 9-31)
+        mr %r0, %r8
+        mr %r2, %r8
+        mr %r3, %r8
+        mr %r4, %r8
+        mr %r5, %r8
+        mr %r6, %r8
+        mr %r7, %r8
+        mr %r9, %r8
+        mr %r10, %r8
+        mr %r11, %r8
+        mr %r12, %r8
+        mr %r13, %r8
+        mr %r14, %r8
+        mr %r15, %r8
+        mr %r16, %r8
+        mr %r17, %r8
+        mr %r18, %r8
+        mr %r19, %r8
+        mr %r20, %r8
+        mr %r21, %r8
+        mr %r22, %r8
+        mr %r23, %r8
+        mr %r24, %r8
+        mr %r25, %r8
+        mr %r26, %r8
+        mr %r27, %r8
+        mr %r28, %r8
+        mr %r29, %r8
+        mr %r30, %r8
+        mr %r31, %r8
+
+        rfi
+
 /*
  * Store registers to interrupt frame.
  * This is GDB-unaware version.

@@ -21,3 +21,6 @@
 /* Fields of jet_stack_frame structure. */
 #define OFFSETOF_jet_stack_frame_back_chain 0
 #define OFFSETOF_jet_stack_frame_lr 4
+
+/* Size of empty stack frame */
+#define SIZEOF_jet_stack_frame_null 16

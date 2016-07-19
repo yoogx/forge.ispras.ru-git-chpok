@@ -23,6 +23,8 @@
 #include <uaccess.h>
 #include <system_limits.h>
 
+#include <cswitch.h>
+#include <core/space.h>
 
 /*
  * Function which is executed in kernel-only partition's context when
@@ -41,15 +43,11 @@ static void idle_func(void)
 void pok_partition_arinc_idle(void)
 {
 	pok_partition_arinc_t* part = current_partition_arinc;
-	struct jet_context* fake_sp;
 	
 	// Unconditionally off preemption.
 	part->base_part.preempt_local_disabled = 1;
 	
-	pok_context_restart(
-		&part->base_part.initial_sp,
-		&idle_func,
-		&fake_sp);
+	jet_context_restart(part->base_part.initial_sp, &idle_func);
 }
 
 /* Helpers */
@@ -71,7 +69,7 @@ static void thread_reset(pok_thread_t* t)
  */
 static void thread_init(pok_thread_t* t)
 {
-    pok_dstack_alloc(&t->initial_sp, KERNEL_STACK_SIZE_DEFAULT);
+    t->initial_sp = pok_stack_alloc(KERNEL_STACK_SIZE_DEFAULT);
 }
 
 // This name is not accessible for user space
@@ -289,7 +287,7 @@ void pok_partition_arinc_init(pok_partition_arinc_t* part)
 {
 	size_t size = part->size;
 
-	pok_dstack_alloc(&part->base_part.initial_sp, DEFAULT_STACK_SIZE);
+	part->base_part.initial_sp = pok_stack_alloc(DEFAULT_STACK_SIZE);
 
 	uintptr_t base_addr = (uintptr_t) pok_bsp_alloc_partition(part->size);
 	uintptr_t base_vaddr = pok_space_base_vaddr(base_addr);

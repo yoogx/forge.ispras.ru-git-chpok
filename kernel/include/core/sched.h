@@ -218,7 +218,7 @@ pok_time_t get_next_periodic_processing_start(void);
  */
 void pok_partition_jump_user(void* __user entry,
     void* __user stack_addr,
-    struct dStack* stack_kernel);
+    jet_stack_t stack_kernel);
 
 /*
  * Return to the user space.

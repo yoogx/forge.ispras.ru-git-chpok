@@ -302,7 +302,7 @@ typedef struct _pok_thread
      * 
      * Final after thread's initialization.
      */
-    struct dStack       initial_sp;
+    jet_stack_t         initial_sp;
 
     /*
      * ???
