@@ -523,9 +523,24 @@ struct pci_atmu_windows {
     struct pci_inbound_window_regs piw[4];
 };
 
+void pci_ATMU_windows_clear()
+{
+    struct pci_atmu_windows *atmu = (struct pci_atmu_windows *)(bridge.cfg_addr + PEX1_PEXOTAR0);
+//FIXME
+    struct pci_atmu_windows *atmu2 = (struct pci_atmu_windows *)(0xfe201000 + PEX1_PEXOTAR0);
+
+    for(int i = 1; i < 5; i++) {
+        out_be32(&atmu->pow[i].powar, 0);
+        out_be32(&atmu2->pow[i].powar, 0);
+    }
+    for(int i = 1; i < 4; i++) {
+        out_be32(&atmu->piw[i].piwar, 0);
+        out_be32(&atmu2->piw[i].piwar, 0);
+    }
+}
+
 void pci_ATMU_windows_list()
 {
-
     struct pci_atmu_windows *atmu = (struct pci_atmu_windows *)(bridge.cfg_addr + PEX1_PEXOTAR0);
 
     printf("ATMU:\n");
