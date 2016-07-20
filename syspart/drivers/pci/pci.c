@@ -618,12 +618,13 @@ void pci_init()
     //for legacy ports
     out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWBAR1), legacy_io.phys_addr>>12);
     out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR1), WAR_EN|WAR_RTT_IO|WAR_WTT_IO|WAR_OWS_8K);
-#define tmp 0x00000000
-    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWBAR1), tmp >> 12);
-    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOTAR1),  tmp >> 12);
-    //out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR1), WAR_EN|WAR_RTT_MEM|WAR_WTT_MEM|WAR_OWS_4G);
-    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR1), WAR_EN|WAR_RTT_MEM|WAR_WTT_MEM|WAR_OWS_4G);
     */
+
+#if 0
+    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWBAR1), 0x80000000 >> 12);
+    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOTAR1),  0x40000000 >> 12);
+    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR1), WAR_EN|WAR_RTT_MEM|WAR_WTT_MEM|WAR_OWS_8K);
+#endif
 
 
     pci_ATMU_windows_list();
