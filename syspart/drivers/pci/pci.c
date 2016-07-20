@@ -484,6 +484,7 @@ uintptr_t pci_convert_legacy_port(struct pci_dev *dev, uint16_t port)
 #define WAR_OWS_8K     0xC
 #define WAR_OWS_4G     0x1f
 
+#ifdef __PPC__
 //TODO move to fsl_pci.h
 /* PCI/PCI Express outbound window reg */
 struct pci_outbound_window_regs {
@@ -512,9 +513,9 @@ struct pci_atmu_windows {
      * in all of the other outbound windows.
      */
     struct pci_outbound_window_regs pow[5];
-    uint8_t res14[96];
+    uint8_t pad1[96];
     struct pci_inbound_window_regs pmit;   /* 0xd00 - 0xd9c Inbound MSI */
-    uint8_t res6[96];
+    uint8_t pad2[96];
     /* PCI/PCI Express inbound window 3-0
      * inbound window 1 supports only a 32-bit base address and does not
      * define an inbound window base extended address register.
@@ -524,7 +525,6 @@ struct pci_atmu_windows {
 
 void pci_ATMU_windows_list()
 {
-#ifdef __PPC__
 
     struct pci_atmu_windows *atmu = (struct pci_atmu_windows *)(bridge.cfg_addr + PEX1_PEXOTAR0);
 
@@ -547,6 +547,34 @@ void pci_ATMU_windows_list()
                 atmu->piw[i].pitar,
                 atmu->piw[i].piwbar, atmu->piw[i].piwbear,
                 atmu->piw[i].piwar);
+    }
+
+}
+
+struct LAW_regs {
+    uint32_t barh;
+    uint32_t barl;
+    uint32_t ar;
+    uint32_t pad;
+};
+
+void LAW_list()
+{
+
+    //FIXME
+    uint32_t ccsr_bar = 0xfe000000;
+
+    struct LAW_regs *law = (struct LAW_regs *)(ccsr_bar + 0xC00);
+
+    //law[6].barl = 0x40000000;
+    asm("isync");
+    printf("LAW (local access windows):\n");
+
+    for (int i = 0; i < 32; i++) {
+        printf("\t law %d  %lx:%lx [%lx]\n", i,
+                law[i].barh,
+                law[i].barl,
+                law[i].ar);
     }
 
 #endif
@@ -585,6 +613,7 @@ void pci_init()
 
     pci_ATMU_windows_list();
 
+    LAW_list();
 #endif
 
     //printf("PCI enumeration:\n");
