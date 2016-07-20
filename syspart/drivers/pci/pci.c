@@ -635,13 +635,13 @@ void pci_init()
     //printf("PCI enumeration:\n");
     //pci_enumerate();
 
-    printf("PCI initialization\n");
+    printf("PCI initialization using configuration\n");
 
     for (int i = 0; i < pci_configs_nb; i++) {
         struct pci_dev_config *dev_config = &pci_configs[i];
         struct pci_dev pci_dev;
 
-        printf("%d %d %d\n",
+        printf("%02x:%02x:%02x  ",
                 dev_config->bus,
                 dev_config->dev,
                 dev_config->fn);
@@ -649,6 +649,15 @@ void pci_init()
         pci_dev.bus = dev_config->bus;
         pci_dev.dev = dev_config->dev;
         pci_dev.fn =  dev_config->fn;
+
+        uint16_t vendor_id;
+        pci_read_config_word(&pci_dev, PCI_VENDOR_ID, &vendor_id);
+
+        if (vendor_id == 0xFFFF) {
+            printf("Not found\n");
+            continue;
+        }
+        printf("OK\n");
 
         int command = 0;
         for (int i = 0; i < PCI_RESOURCE_ROM; i++) {
