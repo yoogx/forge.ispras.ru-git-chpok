@@ -239,11 +239,11 @@ static void pci_fill_resource(struct pci_dev *dev, enum PCI_RESOURCE_INDEX res_i
     int reg;
     uint32_t val, size, mask;
 
-    struct pci_resource * resource = &dev->resources[res_idx];
+    struct pci_resource *resource = &dev->resources[res_idx];
     memset(resource, 0, sizeof(*resource));
 
 
-    if (res_idx !=PCI_RESOURCE_ROM) {
+    if (res_idx != PCI_RESOURCE_ROM) {
         reg = PCI_BASE_ADDRESS_0 + res_idx*4;
         mask =  0xffffffff;
     } else {
