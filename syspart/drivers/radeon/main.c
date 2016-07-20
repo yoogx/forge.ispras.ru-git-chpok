@@ -73,7 +73,48 @@ int radeon_tst_atom_magic_simple(int b, int d, int f)
     return res;
 }
 
-int p3041_test()
+#define rreg(base, size, reg) (((reg) < (size)) ? \
+        ioread32((uint32_t*)(base) + (reg)) : \
+        (iowrite32((reg), (uint32_t*)(base)), ioread32((uint32_t*)(base) + 0x4)))
+
+int radeon_get_temp(int b, int d, int f)
 {
-    return radeon_tst_atom_magic_simple(RADEON_BUS, RADEON_DEV, RADEON_FUN);
+    struct pci_dev radeon_pci_dev;
+    uint32_t radeon_rmmio_base;
+    size_t radeon_rmmio_size;
+    uint32_t temp;
+    int actual_temp;
+
+    printf("radeon temp test\n");
+
+    memset(&radeon_pci_dev, 0x0, sizeof(radeon_pci_dev));
+
+    pci_get_dev_by_bdf(b, d, f, &radeon_pci_dev);
+
+    radeon_rmmio_base = radeon_pci_dev.resources[PCI_RESOURCE_BAR2].addr;
+    radeon_rmmio_size = radeon_pci_dev.resources[PCI_RESOURCE_BAR2].size;
+
+    printf("radeon: rmmio: 0x%x, size: %zu\n", radeon_rmmio_base, radeon_rmmio_size);
+
+    temp = (rreg(radeon_rmmio_base, radeon_rmmio_size, 0x740) & 0x3FF0000) >> 16;
+
+    if (temp & 0x400)
+        actual_temp = -256;
+    else if (temp & 0x200)
+        actual_temp = 255;
+    else if (temp & 0x100) {
+        actual_temp = temp & 0x1ff;
+        actual_temp |= ~0x1ff;
+    } else
+        actual_temp = temp & 0xff;
+
+    printf("radeon temp: %d\n", (actual_temp * 1000) / 2);
+
+    return actual_temp;
+}
+
+void p3041_test()
+{
+    radeon_tst_atom_magic_simple(RADEON_BUS, RADEON_DEV, RADEON_FUN);
+    radeon_get_temp(RADEON_BUS, RADEON_DEV, RADEON_FUN);
 }
