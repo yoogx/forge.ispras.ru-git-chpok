@@ -54,8 +54,8 @@ struct pci_dev_config pci_configs[] = {
         .fn  = 0,
         .resources = {
             [PCI_RESOURCE_ROM] = {
-                .addr =     0x20000000,
-                .pci_addr = 0x80000000,
+                .addr =     0x30020000,
+                .pci_addr = 0x90020000,
                 .type = PCI_RESOURCE_TYPE_ROM
             }
         }

@@ -672,7 +672,6 @@ void pci_init()
             else if (dev_config->resources[i].type == PCI_RESOURCE_TYPE_BAR_IO)
                 command |= PCI_COMMAND_IO;
         }
-        pci_write_config_dword(&pci_dev, PCI_BASE_ADDRESS_0, 0);
 
         if (dev_config->resources[PCI_RESOURCE_ROM].pci_addr != 0) {
             pci_write_config_dword(&pci_dev, PCI_ROM_ADDRESS,
