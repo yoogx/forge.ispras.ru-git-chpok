@@ -235,6 +235,14 @@ void pok_arch_space_init (void)
     for (unsigned i = 1; i < limit; i++) {
         pok_ppc_tlb_clear_entry(1, i);
     }
+    pok_ppc_tlb_write(1,
+            pok_bsp.ccsrbar_base, pok_bsp.ccsrbar_base_phys, E500MC_PGSIZE_1M,
+            //MAS3_SW | MAS3_SR | MAS3_SX,
+            MAS3_SW | MAS3_SR | MAS3_SX | MAS3_UW | MAS3_UR,
+            MAS2_W | MAS2_I | MAS2_M | MAS2_G,
+            0,
+            limit-1,
+            TRUE);
 
     // DIRTY HACK
     // By some reason P3041 DUART blocks when TLB entry #1 is overrriden.

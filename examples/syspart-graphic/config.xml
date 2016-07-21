@@ -48,19 +48,10 @@
 
     <Memory_Blocks>
         <Memory_Block
-            Name="ccsrbar"
-            VirtualAddress ="0xe0000000"
-            PhysicalAddress="0xe0000000"
-            Size="0x100000"
-            CachePolicy="IO"
-            KernelAccess="READ_WRITE"
-            />
-        <Memory_Block
             Name="PCI_IO"
             VirtualAddress ="0xe1000000"
             PhysicalAddress="0xe1000000"
             Size="0x10000"
-            KernelAccess="READ_ONLY"
             />
         <Memory_Block
             Name="vga-framebuffer"
@@ -76,7 +67,6 @@
             />
             <!--
             CachePolicy="DEFAULT"
-            SystemAcess="READ_WRITE"
             -->
     </Memory_Blocks>
 </chpok-configuration>
