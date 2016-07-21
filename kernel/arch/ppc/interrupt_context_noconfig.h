@@ -16,7 +16,7 @@
 /* 
  * Context for store on interrupt.
  * 
- * This is '_noconfig' version of header.
+ * This is '_noconfig' version of the header.
  * 
  * Do not use it directly, include interrupt_context.h instead.
  */

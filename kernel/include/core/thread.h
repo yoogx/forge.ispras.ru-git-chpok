@@ -305,6 +305,13 @@ typedef struct _pok_thread
     jet_stack_t         initial_sp;
 
     /*
+     * Pointer to area for save floating point registers for given thread.
+     * It is allocated at partition's initialization.
+     */
+
+    struct jet_fp_store*    fp_store;
+
+    /*
      * ???
      *
      * Apparently, it's initial virtual address of user stack. 

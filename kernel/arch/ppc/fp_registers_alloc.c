@@ -13,13 +13,10 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-/* Stack for the (kernel) thread. */
+#include "fp_registers.h"
+#include <asp/alloc.h>
 
-#ifndef __JET_PPC_STACK_H__
-#define __JET_PPC_STACK_H__
-
-#include <stdint.h>
-
-typedef uint32_t jet_stack_t;
-
-#endif /* __JET_PPC_STACK_H__ */
+struct jet_fp_store* ja_alloc_fp_store(void)
+{
+    return ja_mem_alloc_aligned(sizeof(struct jet_fp_store), 8);
+}

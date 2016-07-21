@@ -67,8 +67,14 @@ static void idle_function(void)
     
     wait_infinitely();
 }
-
 #endif
+
+/* 
+ * Pointer to the store area for last executed (user) thread.
+ * 
+ * If no thread has been executed yet, or the last one dies, this is NULL.
+ */
+struct jet_fp_store* fp_store_last = NULL;
 
 // Reset partition state, so scheduler may restart.
 static void pok_partition_reset(pok_partition_t* part)
@@ -420,7 +426,7 @@ out:
 #endif
 }
 
-void pok_partition_return_user(void)
+static void pok_partition_return_user_common(void)
 {
     pok_partition_t* part = current_partition;
 
@@ -442,14 +448,43 @@ void pok_partition_return_user(void)
 #endif
 }
 
+void pok_partition_return_user(void)
+{
+    pok_partition_t* part = current_partition;
+
+    pok_partition_return_user_common();
+
+    assert(part->fp_store_current);
+
+    if(fp_store_last != part->fp_store_current)
+    {
+        if(fp_store_last)
+        {
+            ja_fp_save(fp_store_last);
+        }
+
+        fp_store_last = part->fp_store_current;
+        ja_fp_restore(fp_store_last);
+    }
+}
 
 void pok_partition_jump_user(void* __user entry,
     void* __user stack_addr,
     jet_stack_t stack_kernel)
 {
-    pok_partition_return_user();
-    
     pok_partition_t* part = current_partition;
+
+    pok_partition_return_user_common();
+
+    assert(part->fp_store_current);
+
+    if(fp_store_last && fp_store_last != part->fp_store_current)
+    {
+        ja_fp_save(fp_store_last);
+    }
+
+    fp_store_last = part->fp_store_current;
+    ja_fp_init();
 
     jet_user_space_jump(
         stack_kernel,

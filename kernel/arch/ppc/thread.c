@@ -23,7 +23,7 @@
 
 #include "context.h"
 
-struct jet_context* ja_context_init (uint32_t sp, void (*entry)(void))
+struct jet_context* ja_context_init (jet_stack_t sp, void (*entry)(void))
 {
   uint32_t id = 0; // Was: thread_id
   struct jet_stack_frame_null* stack_frame_null =

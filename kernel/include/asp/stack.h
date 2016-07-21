@@ -24,26 +24,14 @@
  */
 #include <arch/stack.h>
 
-
-
 /**
  * Alloc (kernel) stack of specified size.
  * 
  * Return pointer to the head of the stack, that is when stack is assumed
  * to be empty.
  * 
- * DEV: Because stacks are allocated from global pool, shared between
- * partitions, all stack's allocation should be done at initialization
- * stage. Such way partitions couldn't affect on each other during work.
- * 
- * TODO: implemenation via public function is temporary.
+ * May be called only during OS initialization.
  */
-#include <bsp_common.h>
-static inline jet_stack_t pok_stack_alloc(uint32_t stack_size)
-{
-    void* addr = pok_bsp_mem_alloc(stack_size);
-    return (uint32_t)addr + stack_size;
-}
-
+jet_stack_t pok_stack_alloc(uint32_t stack_size);
 
 #endif /* __JET_ASP_STACK_H__ */

@@ -49,6 +49,8 @@ void sched_arinc_start(void)
     part->thread_current = thread_main;
 
 	// Direct jump into main thread.
+    part->base_part.fp_store_current = thread_main->fp_store;
+
 	jet_context_restart_and_save(thread_main->initial_sp,
         &thread_start_func, &thread_main->sp);
 }
@@ -282,6 +284,8 @@ static void sched_arinc(void)
         part->base_part.entry_sp_user = NULL;
     }
 #endif /* POK_NEEDS_GDB */
+    part->base_part.fp_store_current = new_thread->fp_store;
+
     if(old_sp)
     {
         jet_context_switch(old_sp, new_sp);

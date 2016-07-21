@@ -13,13 +13,23 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-/* Stack for the (kernel) thread. */
+#include <asp/stack.h>
+#include <asp/alloc.h>
 
-#ifndef __JET_PPC_STACK_H__
-#define __JET_PPC_STACK_H__
-
-#include <stdint.h>
-
-typedef uint32_t jet_stack_t;
-
-#endif /* __JET_PPC_STACK_H__ */
+jet_stack_t pok_stack_alloc(uint32_t stack_size)
+{
+    /* 
+     * Align stack size.
+     * 
+     * This is needed because we need aligned stack head, not only stack
+     * tail.
+     */
+    const unsigned int alignment = 16;
+    const unsigned int mask = alignment - 1;
+    uint32_t stack_size_real = (stack_size + mask) & ~mask;
+    
+    char* stack_tail = ja_mem_alloc_aligned(stack_size_real, alignment);
+    char* stack_head = stack_tail + stack_size_real;
+    
+    return (uint32_t)stack_head;
+}

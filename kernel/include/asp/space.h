@@ -19,6 +19,7 @@
 #include <types.h>
 #include <asp/cswitch.h>
 #include <common.h>
+#include <errno.h>
 
 /**
  * Return current partition id
@@ -98,6 +99,31 @@ void ja_load_partition(struct _pok_patition_arinc* part,
         uint8_t elf_id,
         uint8_t space_id,
         uintptr_t *entry);
+
+/*
+ * Place for store floating point registers.
+ * 
+ * Kernel code doesn't use floating point operations,
+ * so floating point registers needs to be stored only when switching
+ * to other user space thread.
+ */
+struct jet_fp_store;
+
+/* 
+ * Allocate place for store floating point registers.
+ * 
+ * May be called only during OS init.
+ */
+struct jet_fp_store* ja_alloc_fp_store(void);
+
+/* Save floating point registers into given place. */
+void ja_fp_save(struct jet_fp_store* fp_store);
+
+/* Restore floating point registers into given place. */
+void ja_fp_restore(struct jet_fp_store* fp_store);
+
+/* Initialize floating point registers with zero. */
+void ja_fp_init(void);
 
 
 #endif /* __JET_ASP_SPACE_H__ */

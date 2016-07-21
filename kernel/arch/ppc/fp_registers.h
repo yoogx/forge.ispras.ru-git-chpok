@@ -13,13 +13,21 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-/* Stack for the (kernel) thread. */
+#ifndef __JET_PPC_FP_REGISTERS_H__
+#define __JET_PPC_FP_REGISTERS_H__
 
-#ifndef __JET_PPC_STACK_H__
-#define __JET_PPC_STACK_H__
+#include <asp/space.h>
 
-#include <stdint.h>
+/*
+ * Place for store floating point registers.
+ * 
+ * Kernel code doesn't use floating point operations,
+ * so floating point registers needs to be stored only when switching
+ * to other user space thread.
+ */
+struct jet_fp_store
+{
+  double fp_regs[32];
+};
 
-typedef uint32_t jet_stack_t;
-
-#endif /* __JET_PPC_STACK_H__ */
+#endif /* __JET_PPC_FP_REGISTERS_H__ */

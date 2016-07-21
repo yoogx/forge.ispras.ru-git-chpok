@@ -240,6 +240,15 @@ typedef struct _pok_partition
      */
     uint8_t                  space_id;
 
+    /*
+     * Pointer to area for save floating point registers for current
+     * (user) thread.
+     * 
+     * Local scheduler should set this field before jumping or returning
+     * into user space.
+     */
+    struct jet_fp_store*    fp_store_current;
+
 #ifdef POK_NEEDS_GDB
     /*
      * Pointer to the user space registers array, stored for given partition.

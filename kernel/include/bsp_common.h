@@ -35,11 +35,7 @@ pok_ret_t pok_bsp_irq_acknowledge (uint8_t irq);
 pok_ret_t pok_bsp_irq_register (uint8_t irq,
 				                    void    (*handler)(void));
 
-void  *pok_bsp_mem_alloc (size_t size);
-
 void  *pok_bsp_alloc_partition(size_t size);
-
-void  *pok_bsp_mem_alloc_aligned(size_t size, size_t alignment);
 
 pok_ret_t pok_bsp_time_init ();
 

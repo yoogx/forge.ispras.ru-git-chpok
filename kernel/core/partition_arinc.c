@@ -25,6 +25,7 @@
 
 #include <cswitch.h>
 #include <core/space.h>
+#include <asp/alloc.h>
 
 /*
  * Function which is executed in kernel-only partition's context when
@@ -70,6 +71,7 @@ static void thread_reset(pok_thread_t* t)
 static void thread_init(pok_thread_t* t)
 {
     t->initial_sp = pok_stack_alloc(KERNEL_STACK_SIZE_DEFAULT);
+    t->fp_store = ja_alloc_fp_store();
 }
 
 // This name is not accessible for user space
@@ -315,7 +317,7 @@ void pok_partition_arinc_init(pok_partition_arinc_t* part)
 	part->base_part.part_sched_ops = &arinc_sched_ops;
 	
 	part->intra_memory = part->intra_memory_size
-		? pok_bsp_mem_alloc(part->intra_memory_size)
+		? ja_mem_alloc(part->intra_memory_size)
 		: NULL;
 }
 
