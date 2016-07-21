@@ -283,22 +283,26 @@ const pok_time_t pok_config_scheduling_major_frame = {{conf.major_frame}};
 struct pok_space spaces[{{conf.partitions | length}}]; // As many as partitions
 
 /************************ Memory mapping ************************/
+//HACK
 #ifdef __PPC__
 
 #include <arch/ppc/tlb_config.h>
 
 struct tlb_entry jet_tlb_entries[] = {
     {%for mblock in conf.memory_blocks%}
+    //---
+    {%for pid, access_right in mblock.access.iteritems() %}
     {
         .virt_addr = {{mblock.virt_addr}},
         .phys_addr = {{mblock.phys_addr}},
         .size = E500MC_PGSIZE_{{mblock.str_size}},
-        .permissions = MAS3_SW | MAS3_SR | MAS3_SX | MAS3_UW | MAS3_UR,
+        .permissions = MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,
         {%if mblock.cache_policy == "IO"%}
         .cache_policy = MAS2_W | MAS2_I | MAS2_M | MAS2_G,
         {% endif %}
-        .pid = 0,
+        .pid = {{pid}},
     },
+    {%endfor%}
 
     {%endfor%}
 
