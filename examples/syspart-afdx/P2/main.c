@@ -22,6 +22,7 @@
 #include <arinc653/sampling.h>
 
 //==============================
+#include <afdx/AFDX_ES.h>
 #include <afdx/AFDX_ES_config.h>
 #include <afdx/hexDump.h>
 #include <afdx/AFDX_frame.h>
@@ -47,9 +48,9 @@ QUEUING_PORT_ID_TYPE QP1, QP2;
 #define SECOND 					1000000000LL
 
 #define MAX_AFDX_FRAME_SIZE		114
-#define MAX_AFDX_PAYLOAD_SIZE 	64
+//~ #define MAX_AFDX_PAYLOAD_SIZE 	64
 #define SIZE_OF_HEADER			42
-#define MAX_NB_MESSAGE 			10
+//~ #define MAX_NB_MESSAGE 			10
 
 //~ #define POK_NETWORK_UDP 		(14 + 20 + 8)
 //~ #define POK_NETWORK_OVERHEAD 	(POK_NETWORK_UDP)
@@ -67,6 +68,28 @@ int array_of_indexes[10]; //the array for transmitting information to process ab
 
 MESSAGE_SIZE_TYPE payload_size;
 uint16_t src_arinc_port = 1;
+
+
+// this struct consists information about ports and per VL
+//~ typedef struct
+//~ {
+	//~ QUEUING_PORT_ID_TYPE	id;
+//~ 
+//~ } ports_list_t;
+
+typedef struct
+{
+	uint16_t          		vl_id;			// vl identificator
+    BUFFER_ID_TYPE			afdx_buf_id;	// name of buffer for VL
+    uint16_t				ports_index;
+    uint16_t				ports_count;
+    QUEUING_PORT_ID_TYPE	*ports_list;
+	
+} vl_info_t;
+
+vl_info_t	vl_info[VIRTUAL_LINKS_COUNT];
+
+
 
 //pok_network_buffer_callback_t callback;
 void send_callback_m(void *pointer)
@@ -86,33 +109,38 @@ static void first_process(void)
     RETURN_CODE_TYPE ret;
     uint16_t frame_size;
     int i = -1;
+    int j;
     
     while (1) {
 		i++;
-		if (i >= VIRTUAL_LINKS_COUNT)
-		i = 0;
-		if (i == 0){
-        RECEIVE_QUEUING_MESSAGE(QP1, INFINITE_TIME_VALUE, (MESSAGE_ADDR_TYPE) &afdx_payload, &payload_size, &ret);
-		}else{
-        RECEIVE_QUEUING_MESSAGE(QP1, INFINITE_TIME_VALUE, (MESSAGE_ADDR_TYPE) &afdx_payload, &payload_size, &ret);
-		}
-        
-        if (ret == NO_ERROR) {
-			printf("Received queueing message: %s, length %d\n", afdx_payload, (int) payload_size);
+		if (i >= VIRTUAL_LINKS_COUNT) i = 0;
+		
+		for (j = 0; j < vl_info[i].ports_count; j++)
+		{
+			RECEIVE_QUEUING_MESSAGE(vl_info[i].ports_list[j],
+									INFINITE_TIME_VALUE,
+									(MESSAGE_ADDR_TYPE) &afdx_payload,
+									&payload_size,
+									&ret);
+			
+			
+			if (ret == NO_ERROR) {
+				printf("Received queueing message: %s, length %d\n", afdx_payload, (int) payload_size);
 
-			//filling the frame
-			frame_data_t *afdx_frame = data_buffer;
+				//filling the frame
+				frame_data_t *afdx_frame = data_buffer;
 
-			frame_size = fill_afdx_frame(afdx_frame, src_arinc_port, QUEUING, afdx_payload, payload_size);
-			 
-			SEND_BUFFER(vl_data[i].afdx_buf_id, (MESSAGE_ADDR_TYPE) afdx_frame, frame_size, 0, &ret);
-			if (ret != NO_ERROR) {
-				printf("couldn't send to the buffer: %d\n", (int) ret);
-				break;
-			} 	
-            
-        }else {
-            printf("P2_error %d\n", (int) ret);
+				frame_size = fill_afdx_frame(afdx_frame, src_arinc_port, QUEUING, afdx_payload, payload_size);
+				 
+				SEND_BUFFER(vl_info[i].afdx_buf_id, (MESSAGE_ADDR_TYPE) afdx_frame, frame_size, 0, &ret);
+				if (ret != NO_ERROR) {
+					printf("couldn't send to the buffer: %d\n", (int) ret);
+					break;
+				} 	
+				
+			} else {
+				printf("P2_error %d\n", (int) ret);
+			}
 		}
     }
 }
@@ -138,7 +166,7 @@ static void second_process(void)
 	printf("vl_id_index = %d\n", i);
    
     while (1) {
-		RECEIVE_BUFFER(vl_data[i].afdx_buf_id, 0, (MESSAGE_ADDR_TYPE) afdx_frame, &len, &ret_b);
+		RECEIVE_BUFFER(vl_info[i].afdx_buf_id, 0, (MESSAGE_ADDR_TYPE) afdx_frame, &len, &ret_b);
 
 		if (ret_b == NOT_AVAILABLE)
 		{
@@ -146,7 +174,7 @@ static void second_process(void)
 			PERIODIC_WAIT(&ret_per_w);
 			continue;
 			//break; if break will be here everething fals down
-		}else
+		} else
 			if (ret_b != NO_ERROR) {
 				printf("couldn'd receive from the %s: %d\n",vl_data[i].afdx_buf_name, (int) ret_b);
 				break; // необходимо проверить эту ситуацию, может все упасть
@@ -195,9 +223,32 @@ static int real_main(void)
         .BASE_PRIORITY = MIN_PRIORITY_VALUE,
         .DEADLINE = SOFT,
     };
+	int i;
+    
+    for (i = 0; i < VIRTUAL_LINKS_COUNT; i++)
+    {
+		int j;
+		vl_info[i].vl_id = vl_data[i].vl_id;
+		vl_info[i].ports_count = 0;
+		vl_info[i].ports_index = 0;
+		for (j = 0; j < ES_QUEUING_ARINC_PORTS_COUNT; j++)
+		{
+			if (queuing_arinc_to_afdx_ports[j].vl_data_index == i)
+			vl_info[i].ports_count++;
+		}
+		
+	}
+	
+	// malloc memmory for arrays of ports per VL
+	for (i = 0; i < VIRTUAL_LINKS_COUNT; i++)
+    {
+		vl_info[i].ports_list = malloc(vl_info[i].ports_count * sizeof(QUEUING_PORT_ID_TYPE));
+	}
+    
+    
     
     // create buffer
-    int i;
+
     for (i = 0; i < VIRTUAL_LINKS_COUNT; i++)
     {
 		CREATE_BUFFER(vl_data[i].afdx_buf_name, MAX_AFDX_FRAME_SIZE, MAX_NB_MESSAGE, FIFO, &id, &ret);
@@ -207,7 +258,7 @@ static int real_main(void)
 		} else {
 			printf("%s successfully created\n", vl_data[i].afdx_buf_name);
 		}
-		vl_data[i].afdx_buf_id = id;
+		vl_info[i].afdx_buf_id = id;
 		printf("buffer_id = %d\n", (int) id);
 	}
     
@@ -241,49 +292,63 @@ static int real_main(void)
      * 
      */ 
 	for (i = 0; i < VIRTUAL_LINKS_COUNT; i++)
-{
-    process_attrs.PERIOD = SECOND;
-    process_attrs.TIME_CAPACITY = SECOND / 2;
-    process_attrs.ENTRY_POINT = second_process;
-	
-	snprintf(name, sizeof(name), "process vl %d", vl_data[i].vl_id);
-	strncpy(process_attrs.NAME, name, sizeof(PROCESS_NAME_TYPE));
-	printf("process_attrs.NAME = %s\n", name);
-	
-   
-    CREATE_PROCESS(&process_attrs, &pid, &ret);
-    if (ret != NO_ERROR) {
-        printf("P2_couldn't create process for VL %d: %d\n", vl_data[i].vl_id ,(int) ret);
-        return 1;
-    } else {
-        printf("P2_process for VL %d created\n", vl_data[i].vl_id);
-    }
-	
-	array_of_indexes[pid] = i;	//try to send vl_id index to process, but no sucesses ((
-	
-    START(pid, &ret);
-    if (ret != NO_ERROR) {
-        printf("P2_couldn't start process for VL %d: %d\n", vl_data[i].vl_id, (int) ret);
-        return 1;
-    } else {
-        printf("P2_process for VL %d \"started\" (it won't actually run until operating mode becomes NORMAL)\n", vl_data[i].vl_id);
-    }
-}
+	{
+		process_attrs.PERIOD = SECOND;
+		process_attrs.TIME_CAPACITY = SECOND / 2;
+		process_attrs.ENTRY_POINT = second_process;
+		
+		snprintf(name, sizeof(name), "process vl %d", vl_data[i].vl_id);
+		strncpy(process_attrs.NAME, name, sizeof(PROCESS_NAME_TYPE));
+		printf("process_attrs.NAME = %s\n", name);
+		
+	   
+		CREATE_PROCESS(&process_attrs, &pid, &ret);
+		if (ret != NO_ERROR) {
+			printf("P2_couldn't create process for VL %d: %d\n", vl_data[i].vl_id, (int) ret);
+			return 1;
+		} else {
+			printf("P2_process for VL %d created\n", vl_data[i].vl_id);
+		}
+		
+		array_of_indexes[pid] = i;	//try to send vl_id index to process, but no sucesses ((
+		
+		START(pid, &ret);
+		if (ret != NO_ERROR) {
+			printf("P2_couldn't start process for VL %d: %d\n", vl_data[i].vl_id, (int) ret);
+			return 1;
+		} else {
+			printf("P2_process for VL %d \"started\" (it won't actually run until operating mode becomes NORMAL)\n", 
+					vl_data[i].vl_id);
+		}
+	}
 	
 	// create ports  1
-	CREATE_QUEUING_PORT("QP2", MAX_AFDX_PAYLOAD_SIZE, MAX_NB_MESSAGE, DESTINATION , FIFO, &QP1, &ret);
-	printf("P2_QP2 = %d\n", (int) QP1);
-	
-	if (ret != NO_ERROR) {
-        printf("P2_couldn't create port QP2, ret %d\n", (int) ret);
-	}  
-	// creat port 2
-	CREATE_QUEUING_PORT("QP4", MAX_AFDX_PAYLOAD_SIZE, MAX_NB_MESSAGE, DESTINATION , FIFO, &QP2, &ret);
-	printf("P2_QP4 = %d\n", (int) QP2);
-	
-	if (ret != NO_ERROR) {
-        printf("P2_couldn't create port QP4, ret %d\n", (int) ret);
-	}  
+	//create with information from depl.c and create struct in main, for dynamic information
+	for (i = 0; i < config_queuing_port_list_size; i ++)
+	{
+			size_t index_for_vl = queuing_arinc_to_afdx_ports[i].vl_data_index;
+			//~ printf("index_for_vl = %d\n", (int) index_for_vl);
+			//~ printf("ports_index = %d\n", (int) vl_info[index_for_vl].ports_index);
+			
+		
+			CREATE_QUEUING_PORT(config_queuing_port_list[i].name,
+								config_queuing_port_list[i].msg_size,
+								config_queuing_port_list[i].max_nb_msg,
+								config_queuing_port_list[i].port_dir,
+								config_queuing_port_list[i].que_disc,
+								&vl_info[index_for_vl].ports_list[vl_info[index_for_vl].ports_index],
+								&ret);
+			
+			printf("P2_%s = %d\n", config_queuing_port_list[i].name, vl_info[index_for_vl].ports_list[vl_info[index_for_vl].ports_index]);
+		
+			if (ret != NO_ERROR) {
+				printf("P2_couldn't create port %s, ret %d\n", config_queuing_port_list[i].name, (int) ret);
+			}
+			vl_info[index_for_vl].ports_index++;
+			if (vl_info[index_for_vl].ports_index > vl_info[index_for_vl].ports_count)
+						printf("ERROR\n");
+	}
+
 	
 	 drivers_init();
 	
@@ -294,6 +359,12 @@ static int real_main(void)
     if (ret != NO_ERROR) {
         printf("P2_couldn't transit to normal operating mode: %d\n", (int) ret);
     } 
+
+	for (i = 0; i < VIRTUAL_LINKS_COUNT; i++)
+    {
+		free(vl_info[i].ports_list);
+	}
+    
 
     STOP_SELF();
     return 0;

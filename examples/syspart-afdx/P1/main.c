@@ -20,6 +20,9 @@
 #include <arinc653/queueing.h>
 #include <arinc653/sampling.h>
 
+//~ #include <afdx/AFDX_ES.h>
+//~ #include <afdx/AFDX_ES_config.h>
+
 #define SECOND 1000000000LL
 
 #define MAX_AFDX_FRAME_SIZE	114
@@ -78,7 +81,7 @@ static int real_main(void)
         .DEADLINE = SOFT,
     };
 
-  // create process 2
+  // create process 1
     process_attrs.ENTRY_POINT = first_process;
     strncpy(process_attrs.NAME, "process 1", sizeof(PROCESS_NAME_TYPE));
 
