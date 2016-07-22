@@ -29,6 +29,7 @@ size_t   strlen(const char *s);
 char     *strcpy(char *dest, const char *str);
 char		*strncpy(char *dest, const char *str, size_t size);
 int      memcmp (const void* v1, const void* v2, size_t n);
+char     *strstr(const char *s1, const char *s2);
 
 /*
 ** XXX: TO REMOVE
