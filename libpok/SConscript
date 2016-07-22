@@ -32,9 +32,10 @@ libc        =  SConscript('libc/SConscript')
 libm        =  SConscript('libm/SConscript')
 middleware  =  SConscript('middleware/SConscript')
 protocols   =  SConscript('protocols/SConscript')
+unity       =  SConscript('unity/SConscript')
 utils       =  SConscript('utils/SConscript')
 
-user_objects = [arch, arinc653, core, libc, libm, middleware, protocols, utils]
+user_objects = [arch, arinc653, core, libc, libm, middleware, protocols, unity, utils]
 
 libpok_env.StaticLibrary(target = 'pok',
     source = user_objects)
