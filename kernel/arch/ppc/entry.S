@@ -433,8 +433,12 @@ _pok_reset:
         blt 1b
 2:
 */
-        /* Call C function */
-        bl pok_boot
+        /* Call C functions */
+        bl pok_arch_init
+        bl pok_bsp_init
+        bl pok_bsp_time_init
+
+        bl jet_boot /* shouldn't return */
 1:      b  1b
 
 /* Interrupt vectors */

@@ -28,16 +28,12 @@
 
 #include <arch/bsp.h>
 
-int pok_bsp_init(void);
-
 pok_ret_t pok_bsp_irq_acknowledge (uint8_t irq);
 
 pok_ret_t pok_bsp_irq_register (uint8_t irq,
 				                    void    (*handler)(void));
 
 void  *pok_bsp_alloc_partition(size_t size);
-
-pok_ret_t pok_bsp_time_init ();
 
 void pok_bsp_get_info(void *addr);
 

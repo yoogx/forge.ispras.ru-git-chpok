@@ -32,16 +32,14 @@
 #include <core/partition.h>
 #include <core/partition_arinc.h>
 #include <core/channel.h>
-#include <core/boot.h>
+#include <asp/entries.h>
 #include <libc.h>
 
 #include <core/instrumentation.h>
 
-void pok_boot ()
+void jet_boot (void)
 {
    kernel_state = POK_SYSTEM_STATE_OS_MOD; // TODO: is this choice for state right?
-   pok_arch_init();
-   pok_bsp_init();
 
 #ifdef POK_NEEDS_NETWORKING
    pok_network_init();

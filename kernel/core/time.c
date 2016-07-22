@@ -43,14 +43,10 @@ uint64_t pok_tick_counter = 0;
 
 /**
  * \brief Init the timing service.
- *
- * Call BSP-defined function to initialize
- * the timing service.
  */
 void pok_time_init (void)
 {
    pok_tick_counter = 0;
-   pok_bsp_time_init ();
 }
 
 

@@ -41,13 +41,6 @@ struct pok_space
 
 extern struct pok_space spaces[];
 
-
-
-/**
- * Function that initializes architecture concerns.
- */
-pok_ret_t   pok_arch_init (void);
-
 /**
  * Disable interruptions
  */

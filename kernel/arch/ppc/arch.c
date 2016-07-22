@@ -27,7 +27,12 @@
 #include "devtree.h"
 #include <bsp_common.h>
 
-pok_ret_t pok_arch_init ()
+/**
+ * Function that initializes architecture concerns.
+ * 
+ * Called from entry.S.
+ */
+pok_ret_t pok_arch_init (void)
 {
   mtmsr(MSR_IP | MSR_FP);
 
