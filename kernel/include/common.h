@@ -36,6 +36,13 @@
  */
 #define __user
 
+/*
+ * Kernel-space address of user memory area.
+ * 
+ * The address can be accessed only while being in corresponded space.
+ */
+#define __kuser
+
 /**
  * Casts pointer to member of structure to pointer to structure itself.
  * 

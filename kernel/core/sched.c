@@ -169,10 +169,10 @@ static void inter_partition_switch(pok_partition_t* part)
 #endif
     current_partition = part;
 
-    if(part->space_id != 0xff)
+    if(part->space_id != 0)
         pok_space_switch(part->space_id);
     else
-        pok_space_switch(0xff); // TODO: This should disable all user space tables
+        pok_space_switch(0); // TODO: This should disable all user space tables
 #ifdef POK_NEEDS_MONITOR
     if(current_partition_is_paused) old_sp = &idle_sp;
     if(part->is_paused)
@@ -468,8 +468,8 @@ void pok_partition_return_user(void)
     }
 }
 
-void pok_partition_jump_user(void* __user entry,
-    void* __user stack_addr,
+void pok_partition_jump_user(void (* __user entry)(void),
+    jet_ustack_t stack_user,
     jet_stack_t stack_kernel)
 {
     pok_partition_t* part = current_partition;
@@ -490,7 +490,7 @@ void pok_partition_jump_user(void* __user entry,
         stack_kernel,
         part->space_id,
         entry,
-        (unsigned long)stack_addr);
+        (unsigned long)stack_user);
 }
 
 void pok_partition_restart(void)

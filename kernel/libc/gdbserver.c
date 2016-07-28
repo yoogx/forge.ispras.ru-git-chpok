@@ -18,7 +18,7 @@
  */
 
 #include <core/partition_arinc.h>
-#include <uaccess.h>
+#include <core/uaccess.h>
 
 /****************************************************************************
 
@@ -132,7 +132,7 @@
  * For each kernel-only partition with (relative) index K there is thread
  * 1.(K+1)
  * 
- * For each partition with access to user space (space_id is not 0xff)
+ * For each partition with access to user space (space_id is not 0)
  * with (relative) index U there is inferior
  * (U+1). For each thread with index T within such partition there is
  * GDB thread (U+1).(T+1)
@@ -187,10 +187,10 @@ pok_bool_t _partition_is_kernel;
 static void _get_partition_at_index_cb(pok_partition_t* part)
 {
     if(_partition_is_kernel) {
-        if(part->space_id != 0xff) return;
+        if(part->space_id != 0) return;
     }
     else {
-        if(part->space_id == 0xff) return;
+        if(part->space_id == 0) return;
     }
 
     if(_partition_index_current == _partition_index)
@@ -310,10 +310,10 @@ int gdb_thread_find(struct gdb_thread* t)
 void _get_partition_index_cb(pok_partition_t* part)
 {
     if(_partition_is_kernel) {
-        if(part->space_id != 0xff) return;
+        if(part->space_id != 0) return;
     }
     else {
-        if(part->space_id == 0xff) return;
+        if(part->space_id == 0) return;
     }
 
     if(part == _partition_at_index)
@@ -326,7 +326,7 @@ int get_partition_index(pok_partition_t* part)
 {
     assert(part);
 
-    _partition_is_kernel = (part->space_id == 0xff);
+    _partition_is_kernel = (part->space_id == 0);
     _partition_at_index = current_partition;
     _partition_index = -1;
     _partition_index_current = 0;
@@ -343,7 +343,7 @@ void gdb_thread_get_current(void)
 {
     struct gdb_thread* t = &gdb_thread_current;
     t->part = current_partition;
-    if(t->part->space_id == 0xff)
+    if(t->part->space_id == 0)
     {
         t->inferior_id = 1;
         t->thread_id = get_partition_index(t->part) + 1;
@@ -360,31 +360,30 @@ void gdb_thread_get_current(void)
 /*
  * Return space identificator for given thread.
  */
-static uint8_t gdb_thread_get_space(const struct gdb_thread* t)
+static jet_space_id gdb_thread_get_space(const struct gdb_thread* t)
 {
     return t->part->space_id;
 }
 
 /*
- * Check whether given address range is accessible by the thread.
+ * Return address which can be used by GDB for
+ * r/w from/to given memory.
+ * 
+ * Access is garanteed only if switched to thread's space.
+ * 
+ * If given area doesn't belong to the given thread or cannot be written, returns NULL.
  *
- * Note: space should be switched already!
  */
-pok_bool_t gdb_thread_check_access(const struct gdb_thread* t, uintptr_t addr,
+uintptr_t gdb_thread_write_addr(const struct gdb_thread* t, uintptr_t addr,
     size_t size)
 {
-    // All threads have access to kernel part.
-    if(addr >= 0
-        && (addr + size) < pok_partitions_arinc[0].base_addr)
-        return TRUE;
+    return (uintptr_t)ja_addr_to_gdb((void*)addr, size, gdb_thread_get_space(t));
+}
 
-    // User partitions have access to their user space.
-    // Assume we are currently switched to that user space.
-    if(t->inferior_id >= 2
-        && (check_access_read((void*)addr, size) || check_access_exec((void*)addr)))
-        return TRUE;
-
-    return FALSE;
+uintptr_t gdb_thread_read_addr(const struct gdb_thread* t, uintptr_t addr,
+    size_t size)
+{
+    return (uintptr_t)ja_addr_to_gdb_ro((const void*)addr, size, gdb_thread_get_space(t));
 }
 
 /* Print name of the thread using given callback. */
@@ -1181,17 +1180,20 @@ void add_watchpoint(uintptr_t addr, int length, const struct gdb_thread* t, int 
         return;
     }
 
+    uintptr_t gdb_addr = gdb_thread_write_addr(t, addr, 4);
+
+    if (!gdb_addr){
+        strcpy (remcomOutBuffer, "E03");
+        goto out;
+    }
+
     int old_pid = pok_space_get_current();
     int new_pid = gdb_thread_get_space(t);
     pok_space_switch(new_pid);
 
-    if (!gdb_thread_check_access(t,m addr, 4)){
-        strcpy (remcomOutBuffer, "E03");
-        goto out;
-    }
     //~ addr = gdb_pok_virt_to_phys(addr, give_part_num_of_thread(*using_thread + 1));
 
-    mtspr(SPRN_DAC1, addr);
+    mtspr(SPRN_DAC1, addr); // Use original address, as it is not accessed immediately.
     mtspr(SPRN_DAC2, addr + length);
     uint32_t DBCR2 = mfspr(SPRN_DBCR2);
     DBCR2 |= 0x800000UL;
@@ -1217,7 +1219,7 @@ void add_watchpoint(uintptr_t addr, int length, const struct gdb_thread* t, int 
 #endif
 #ifndef QEMU
 out:
-    pok_space_switch(old_pid);
+    // pok_space_switch(old_pid); // Not needed
 #endif
 }
 
@@ -1280,6 +1282,11 @@ void add_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t){
 //    printf("New_pid = %d\n",new_pid);
 //    printf("Old_pid = %d\n",old_pid);
 //#endif
+
+    uintptr_t gdb_addr = gdb_thread_write_addr(t, addr, length);
+
+    if(!gdb_addr) goto err;
+
     uint8_t old_space_id = pok_space_get_current();
     uint8_t space_id = gdb_thread_get_space(t);
     pok_space_switch(space_id);
@@ -1290,8 +1297,6 @@ void add_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t){
 //#endif
         //switch_part_id(old_pid, new_pid);
     //}
-
-    if(!gdb_thread_check_access(t, addr, 4)) goto err;
 
     int i;
     for (i = 0; i < max_breakpoint; i++){
@@ -1306,8 +1311,8 @@ void add_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t){
     breakpoints[Head_of_breakpoints].P_num = t->inferior_id;
     breakpoints[Head_of_breakpoints].B_num = last_breakpoint;
     breakpoints[Head_of_breakpoints].Reason = 2;
-    breakpoints[Head_of_breakpoints].addr = addr;
-    if (!mem2hex((char *)addr, &(breakpoints[Head_of_breakpoints].Instr), length)) goto err;
+    breakpoints[Head_of_breakpoints].addr = gdb_addr;
+    if (!mem2hex((char *)gdb_addr, &(breakpoints[Head_of_breakpoints].Instr), length)) goto err;
         //strcpy (remcomOutBuffer, "E22");
         //switch_part_id(new_pid, old_pid);
         //return;
@@ -1319,7 +1324,7 @@ void add_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t){
         //~ return;
     //~ }
 
-    if (!hex2mem(trap, (char *)addr, length)) goto err;
+    if (!hex2mem(trap, (char *)gdb_addr, length)) goto err;
 
     strcpy(remcomOutBuffer, "OK");
 
@@ -1336,6 +1341,9 @@ void remove_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t)
 #ifdef DEBUG_GDB
     printf("            Z0, breakpoint[0].addr = 0x%x\n",breakpoints[0].addr);
 #endif
+    uintptr_t gdb_addr = gdb_thread_write_addr(t, addr, length);
+    if(!gdb_addr) goto err;
+
     int i = 0;
     int old_pid = pok_space_get_current();
     int new_pid = gdb_thread_get_space(t);
@@ -1345,7 +1353,6 @@ void remove_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t)
 #endif
     pok_space_switch(new_pid);
 
-    if(!gdb_thread_check_access(t, addr, length)) goto err;
 
     for (i = 0; i < max_breakpoint; i++){
         if ((breakpoints[i].addr == addr) && (breakpoints[i].P_num == t->inferior_id))
@@ -1360,7 +1367,7 @@ void remove_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t)
     breakpoints[i].Reason = 0;
     breakpoints[i].addr = 0;
 
-    if (!hex2mem(breakpoints[i].Instr, (char *)addr, length)) goto err;
+    if (!hex2mem(breakpoints[i].Instr, (char *)gdb_addr, length)) goto err;
 
     strcpy(remcomOutBuffer, "OK");
 #ifdef DEBUG_GDB
@@ -1852,7 +1859,8 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
                 if (hexToInt(&ptr, &addr)
                     && *ptr++ == ','
                     && hexToInt(&ptr, (uintptr_t *)(&length))) {
-                    if (!gdb_thread_check_access(&tc.t, addr, length)){
+                    uintptr_t gdb_addr = gdb_thread_read_addr(&tc.t, addr, length);
+                    if (!gdb_addr){
                         strcpy (remcomOutBuffer, "E03");
                         break;
                     }else{ 
@@ -1861,7 +1869,7 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
 #endif
                         pok_space_switch(new_pid);
                     }
-                    if (!mem2hex((char *)addr, remcomOutBuffer,length)){
+                    if (!mem2hex((char *)gdb_addr, remcomOutBuffer,length)){
                         strcpy (remcomOutBuffer, "E03");
                     }
                     pok_space_switch(old_pid);
@@ -1882,14 +1890,15 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
                     && hexToInt(&ptr, (uintptr_t *)(&length))
                     && *ptr++ == ':') {
 
-                    if (gdb_thread_check_access(&tc.t, addr, length))
+                    uintptr_t gdb_addr = gdb_thread_write_addr(&tc.t, addr, length);
+                    if (!gdb_addr)
                         strcpy (remcomOutBuffer, "E03");
                         break;
 
                     pok_space_switch(new_pid);
                     if (strncmp(ptr, "7d821008", 8) == 0) // TODO: Magic constant
                         ptr = trap;
-                    if (hex2mem(ptr, (char *)addr, length)) {
+                    if (hex2mem(ptr, (char *)gdb_addr, length)) {
                         strcpy(remcomOutBuffer, "OK");
                     } else {
                         strcpy(remcomOutBuffer, "E03");

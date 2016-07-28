@@ -13,8 +13,6 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <types.h>
-
 #define POK_NEEDS_LOCKOBJECTS  1
 #define POK_NEEDS_THREADS      1
 #define POK_NEEDS_PARTITIONS   1

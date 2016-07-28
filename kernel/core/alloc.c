@@ -13,40 +13,9 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <asp/alloc.h>
+#include <alloc.h>
 
-extern char _end[];
-static char *heap_end = _end;
-
-void *ja_mem_alloc_aligned (size_t size, unsigned int alignment)
+void* jet_mem_alloc (size_t size)
 {
-  char *res;
-  uintptr_t mask = alignment - 1;
-
-  res = (char *)(((unsigned int)heap_end + mask) & ~mask);
-  heap_end = res + size;
-  return res;
-}
-
-unsigned int ja_mem_get_alignment (size_t size)
-{
-  unsigned int alignment = 1;
-  if(size == 1)
-  {
-    alignment = 1;
-  }
-  else if(size < 4)
-  {
-    alignment = 2;
-  }
-  else if(size < 8)
-  {
-    alignment = 4;
-  }
-  else
-  {
-    alignment = 8;
-  }
-  
-  return alignment;
+    return ja_mem_alloc_aligned(size, ja_mem_get_alignment(size));
 }

@@ -83,7 +83,7 @@ void jet_boot (void)
 
 
 #ifdef POK_NEEDS_PARTITIONS
-#ifdef POK_NEEDS_WAIT_FOR_GDB
+#if defined(POK_NEEDS_GDB) && defined(POK_NEEDS_WAIT_FOR_GDB)
   printf("Waiting for GDB connection ...\n");
   printf("\n");
   pok_trap();

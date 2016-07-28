@@ -36,7 +36,7 @@
 #include <core/instrumentation.h>
 
 #include "thread_internal.h"
-#include <uaccess.h>
+#include <core/uaccess.h>
 
 #include <system_limits.h>
 
@@ -93,9 +93,9 @@ static pok_thread_t* get_thread_by_id(pok_thread_id_t id)
 
 
 pok_ret_t pok_thread_create (const char* __user name,
-    void* __user entry,
-    const pok_thread_attr_t  * __user attr,
-    pok_thread_id_t* __user thread_id)
+    void* __user                    entry,
+    const pok_thread_attr_t* __user attr,
+    pok_thread_id_t* __user         thread_id)
 {
     pok_thread_t* t;
     pok_partition_arinc_t* part = current_partition_arinc;
@@ -106,22 +106,27 @@ pok_ret_t pok_thread_create (const char* __user name,
     if (part->mode == POK_PARTITION_MODE_NORMAL) {
         return POK_ERRNO_PARTITION_MODE;
     }
-    
-    if(!check_user_read(attr)) return POK_ERRNO_EFAULT;
-    if(!check_user_write(thread_id)) return POK_ERRNO_EFAULT;
-    if(!check_access_read(name, MAX_NAME_LENGTH)) return POK_ERRNO_EFAULT;
-    
+
+    const pok_thread_attr_t* __kuser k_attr = jet_user_to_kernel_typed_ro(attr);
+    if(!k_attr) return POK_ERRNO_EFAULT;
+
+    pok_thread_id_t* __kuser k_thread_id = jet_user_to_kernel_typed(thread_id);
+    if(!k_thread_id) return POK_ERRNO_EFAULT;
+
+    const char* __kuser k_name = jet_user_to_kernel_ro(name, MAX_NAME_LENGTH);
+    if(!k_name) return POK_ERRNO_EFAULT;
+
     if (part->nthreads_used == part->nthreads) {
         return POK_ERRNO_TOOMANY;
     }
 
     t = &part->threads[part->nthreads_used];
-    
+
     t->entry = entry;
-    t->base_priority = __get_user_f(attr, priority);
-    t->period = __get_user_f(attr, period);
-    t->time_capacity = __get_user_f(attr, time_capacity);
-    t->deadline = __get_user_f(attr, deadline);
+    t->base_priority = k_attr->priority;
+    t->period = k_attr->period;
+    t->time_capacity = k_attr->time_capacity;
+    t->deadline = k_attr->deadline;
 
     if (t->base_priority > MAX_PRIORITY_VALUE ||
         t->base_priority < MIN_PRIORITY_VALUE) return POK_ERRNO_EINVAL;
@@ -139,7 +144,7 @@ pok_ret_t pok_thread_create (const char* __user name,
             // periodic process must have definite time capacity
             return POK_ERRNO_PARAM;
         }
-       
+
         if(t->time_capacity > t->period) {
             // for periodic process, time capacity <= period
             return POK_ERRNO_PARAM;
@@ -149,19 +154,19 @@ pok_ret_t pok_thread_create (const char* __user name,
    }
 
     // do at least basic check of entry point
-    if (!check_access_exec(t->entry)) {
+    if (!jet_check_access_exec(t->entry)) {
         return POK_ERRNO_PARAM;
     }
 
-    __copy_from_user(t->name, name, MAX_NAME_LENGTH);
+    memcpy(t->name, k_name, MAX_NAME_LENGTH);
 
     if(find_thread(t->name)) return POK_ERRNO_EXISTS;
 
-    t->user_stack_size = __get_user_f(attr, stack_size);
+    t->user_stack_size = k_attr->stack_size;
 
     if(!thread_create(t)) return POK_ERRNO_UNAVAILABLE;
 
-    __put_user(thread_id, part->nthreads_used);
+    *k_thread_id = part->nthreads_used;
 
     part->nthreads_used++;
 
@@ -179,8 +184,9 @@ pok_ret_t pok_thread_sleep(const pok_time_t* __user time)
 {
     if(!thread_is_waiting_allowed()) return POK_ERRNO_MODE;
     
-    if(!check_user_read(time)) return POK_ERRNO_EFAULT;
-    pok_time_t kernel_time = __get_user(time);
+    const pok_time_t* __kuser k_time = jet_user_to_kernel_typed_ro(time);
+    if(!k_time) return POK_ERRNO_EFAULT;
+    pok_time_t kernel_time = *k_time;
 
     pok_preemption_local_disable();
 
@@ -200,8 +206,9 @@ pok_ret_t pok_thread_sleep_until(const pok_time_t* __user time)
 {
 	if(!thread_is_waiting_allowed()) return POK_ERRNO_MODE;
     
-    if(!check_user_read(time))) return POK_ERRNO_EFAULT;
-    pok_time_t kernel_time = __get_user(time);
+    const pok_time_t* __kuser k_time = jet_user_to_kernel_typed_ro(time);
+    if(!k_time) return POK_ERRNO_EFAULT;
+    pok_time_t kernel_time = *k_time;
 
 	pok_preemption_local_disable();
 
@@ -280,11 +287,13 @@ pok_ret_t pok_thread_delayed_start (pok_thread_id_t id,
     const pok_time_t* __user delay_time)
 {
     pok_ret_t ret;
-    
+
     pok_thread_t *thread = get_thread_by_id(id);
     if(!thread) return POK_ERRNO_PARAM;
-    if(!check_user_read(delay_time)) return POK_ERRNO_EFAULT;
-    pok_time_t kernel_delay_time = __get_user(delay_time);
+
+    const pok_time_t* __kuser k_delay_time = jet_user_to_kernel_typed_ro(delay_time);
+    if(!k_delay_time) return POK_ERRNO_EFAULT;
+    pok_time_t kernel_delay_time = *k_delay_time;
 
     if (pok_time_is_infinity(kernel_delay_time))
         return POK_ERRNO_EINVAL;
@@ -292,7 +301,7 @@ pok_ret_t pok_thread_delayed_start (pok_thread_id_t id,
 	pok_preemption_local_disable();
 	ret = thread_delayed_start_internal(thread, kernel_delay_time);
 	pok_preemption_local_enable();
-	
+
 	return ret;
 }
 
@@ -319,39 +328,44 @@ pok_ret_t pok_thread_get_status (pok_thread_id_t id,
     pok_thread_t *t = get_thread_by_id(id);
     if(!t) return POK_ERRNO_PARAM;
 
-    if(!check_user_write(status)) return POK_ERRNO_EFAULT;
-    if(!check_user_write(entry)) return POK_ERRNO_EFAULT;
-    if(!check_access_write(name, MAX_NAME_LENGTH)) return POK_ERRNO_EFAULT;
+    pok_thread_status_t* __kuser k_status = jet_user_to_kernel_typed(status);
+    if(!k_status) return POK_ERRNO_EFAULT;
 
-    __copy_to_user(name, t->name, MAX_NAME_LENGTH);
-    __put_user(entry, t->entry);
+    void* __kuser *k_entry = jet_user_to_kernel_typed(entry);
+    if(!k_entry) return POK_ERRNO_EFAULT;
 
-    __put_user_f(status, attributes.priority, t->base_priority);
-	__put_user_f(status, attributes.period, t->period);
-	__put_user_f(status, attributes.deadline, t->deadline);
-	__put_user_f(status, attributes.time_capacity, t->time_capacity);
-	__put_user_f(status, attributes.stack_size, t->user_stack_size);
+    char* __kuser k_name = jet_user_to_kernel(name, MAX_NAME_LENGTH);
+    if(!k_name) return POK_ERRNO_EFAULT;
+
+    memcpy(k_name, t->name, MAX_NAME_LENGTH);
+    *k_entry = t->entry;
+
+    k_status->attributes.priority = t->base_priority;
+	k_status->attributes.period = t->period;
+	k_status->attributes.deadline = t->deadline;
+	k_status->attributes.time_capacity = t->time_capacity;
+	k_status->attributes.stack_size = t->user_stack_size;
 
     pok_preemption_local_disable();
 
-	__put_user_f(status, current_priority, t->priority);
+	k_status->current_priority = t->priority;
 
 	if(t->state == POK_STATE_RUNNABLE)
     {
         if(t->suspended)
-            __put_user_f(status, state, POK_STATE_WAITING);
+            k_status->state = POK_STATE_WAITING;
         else if(current_partition_arinc->thread_current == t)
-            __put_user_f(status, state, POK_STATE_RUNNING);
+            k_status->state = POK_STATE_RUNNING;
         else
-            __put_user_f(status, state, t->state);
+            k_status->state = t->state;
 	}
     else
-        __put_user_f(status, state, t->state);
+        k_status->state = t->state;
 
 	if(pok_time_is_infinity(t->time_capacity))
-		__put_user_f(status, deadline_time, POK_TIME_INFINITY);
+		k_status->deadline_time = POK_TIME_INFINITY;
 	else
-		__put_user_f(status, deadline_time, t->thread_deadline_event.timepoint);
+		k_status->deadline_time = t->thread_deadline_event.timepoint;
 
 	pok_preemption_local_enable();
 
@@ -457,9 +471,10 @@ pok_ret_t pok_thread_suspend(const pok_time_t* __user time)
 {
     pok_thread_t *t = current_thread;
 
-	if(!check_user_read(time)) return POK_ERRNO_EFAULT;
+	const pok_time_t* __kuser k_time = jet_user_to_kernel_typed_ro(time);
+    if(!k_time) return POK_ERRNO_EFAULT;
 
-    pok_time_t kernel_time = __get_user(time);
+    pok_time_t kernel_time = *k_time;
 
     // although periodic process can never be suspended anyway,
 	// ARINC-653 requires different error code
@@ -546,18 +561,21 @@ pok_ret_t pok_thread_find(const char* __user name, pok_thread_id_t* __user id)
 {
     char kernel_name[MAX_NAME_LENGTH];
     pok_thread_t* t;
-    
-    if(!check_access_read(name, MAX_NAME_LENGTH)) return POK_ERRNO_EFAULT;
-    if(!check_user_write(id)) return POK_ERRNO_EFAULT;
-    
-    __copy_from_user(kernel_name, name, MAX_NAME_LENGTH);
-    
+
+    const char* __kuser k_name = jet_user_to_kernel_ro(name, MAX_NAME_LENGTH);
+    if(!k_name) return POK_ERRNO_EFAULT;
+
+    pok_thread_id_t* __kuser k_id = jet_user_to_kernel_typed(id);
+    if(!k_id) return POK_ERRNO_EFAULT;
+
+    memcpy(kernel_name, k_name, MAX_NAME_LENGTH);
+
     t = find_thread(kernel_name);
-    
+
     if(!t) return POK_ERRNO_EINVAL; // TODO: INVALID_CONFIG for ARINC
-    
-    __put_user(id, t - current_partition_arinc->threads);
-    
+
+    *k_id = t - current_partition_arinc->threads;
+
 	return POK_ERRNO_OK;
 }
 
@@ -588,8 +606,9 @@ pok_ret_t pok_sched_replenish(const pok_time_t* __user budget)
 
     pok_partition_arinc_t* part = current_partition_arinc;
 
-    if(!check_user_read(budget)) return POK_ERRNO_EFAULT;
-    pok_time_t kernel_budget = __get_user(budget);
+    const pok_time_t* __kuser k_budget = jet_user_to_kernel_typed_ro(budget);
+    if(!k_budget) return POK_ERRNO_EFAULT;
+    pok_time_t kernel_budget = *k_budget;
     
     pok_thread_t* t = current_thread;
 
@@ -647,9 +666,10 @@ pok_ret_t pok_sched_get_current(pok_thread_id_t* __user thread_id)
 		return POK_ERRNO_THREAD;
 #endif
 
-    if(!check_user_write(thread_id)) return POK_ERRNO_EFAULT;
+    pok_thread_id_t* __kuser k_thread_id = jet_user_to_kernel_typed(thread_id);
+    if(!k_thread_id) return POK_ERRNO_EFAULT;
 
-	__put_user(thread_id, part->thread_current - part->threads);
+	*k_thread_id = part->thread_current - part->threads;
 
     return POK_ERRNO_OK;
 }

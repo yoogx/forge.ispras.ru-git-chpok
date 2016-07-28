@@ -13,16 +13,23 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __JET_SPACE_H__
-#define __JET_SPACE_H__
+#ifndef __JET_ALLOC_H__
+#define __JET_ALLOC_H__
 
-#include <asp/space.h>
+#include <asp/alloc.h>
 
-#define pok_create_space ja_space_create
+/* 
+ * Allocate memory chunk of given size.
+ * 
+ * Returned address should be suitably alignment for any type which fit
+ * into the requested size.
+ * 
+ * May be called only during OS initialization.
+ *
+ * Note: Failure to allocate memory is treated as error
+ * (that is function never returns NULL).
+ */
+void* jet_mem_alloc (size_t size);
 
-#define pok_space_switch ja_space_switch
-#define pok_space_get_current() ja_space_get_current()
 
-#define jet_user_space_jump ja_user_space_jump
-
-#endif /* __JET_ASP_SPACE_H__ */
+#endif /* __JET_ALLOC_H__ */

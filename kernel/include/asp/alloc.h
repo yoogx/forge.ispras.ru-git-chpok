@@ -25,22 +25,15 @@
  * 
  * 'alignment' should be power of 2.
  * 
- * Note: Failing to allocated memory is treated as error
+ * Note: Failure to allocate memory is treated as error
  * (that is function never returns NULL).
  */
 void* ja_mem_alloc_aligned(size_t size, unsigned int alignment);
 
 /* 
- * Allocate memory chunk of given size.
- * 
- * Returned address should be suitably alignment for any type which fit
- * into the requested size.
- * 
- * May be called only during OS initialization.
- *
- * Note: Failing to allocated memory is treated as error
- * (that is function never returns NULL).
+ * Returned alignment suitable for any type which fits into the
+ * requested size.
  */
-void* ja_mem_alloc (size_t size);
+unsigned int ja_mem_get_alignment(size_t size);
 
 #endif /* __JET_ASP_ALLOC_H__ */

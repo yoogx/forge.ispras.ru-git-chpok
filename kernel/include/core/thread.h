@@ -40,6 +40,8 @@
 
 #include <asp/cswitch.h>
 
+#include <core/space.h>
+
 /*
  * In POK, we add a kernel thread and an idle thread. The kernel
  * thread is used to execute kernel code while the idle thread
@@ -320,7 +322,7 @@ typedef struct _pok_thread
      * 
      * Final after create_process().
      */
-    void* __user        init_stack_addr;
+    jet_ustack_t        init_stack_addr;
     
     /*
      * Size of the user space stack.

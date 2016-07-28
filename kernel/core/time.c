@@ -33,7 +33,7 @@
 #include <core/thread.h>
 #include <core/sched.h>
 #include <core/partition.h>
-#include <uaccess.h>
+#include <core/uaccess.h>
 
 /**
  * A global variable that contains the number
@@ -57,11 +57,12 @@ void pok_time_init (void)
  * Returns POK_ERRNO_OK
  * Need the GETTICK service (POK_NEEDS_GETTICKS maccro)
  */
-pok_ret_t pok_gettick_by_pointer (pok_time_t* clk_val)
+pok_ret_t pok_gettick_by_pointer (pok_time_t* __user clk_val)
 {
-   if(!check_user_write(clk_val)) return POK_ERRNO_EFAULT;
+   pok_time_t* __kuser k_clk_val = jet_user_to_kernel_typed(clk_val);
+   if(!k_clk_val) return POK_ERRNO_EFAULT;
    
-   __put_user(clk_val, POK_GETTICK());
+   *k_clk_val = POK_GETTICK();
    return POK_ERRNO_OK;
 }
 #endif

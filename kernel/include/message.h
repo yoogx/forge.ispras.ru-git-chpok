@@ -33,7 +33,7 @@ typedef struct {
  */
 typedef struct
 {
-    const void* __user data;
+    const void* __kuser data;
     pok_message_size_t size;
 } pok_message_send_t;
 

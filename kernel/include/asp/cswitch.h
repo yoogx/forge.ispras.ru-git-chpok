@@ -16,10 +16,10 @@
 #ifndef __JET_ASP_CSWITCH_H__
 #define __JET_ASP_CSWITCH_H__
 
+#include <asp/stack.h>
+
 /* Opaque (kernel thread) context for switch to. */
 struct jet_context;
-
-#include <asp/stack.h>
 
 /**
  * Initialize `context` on the given stack.

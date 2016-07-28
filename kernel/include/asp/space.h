@@ -21,29 +21,40 @@
 #include <common.h>
 #include <errno.h>
 
-/**
- * Return current partition id
+/* 
+ * Arch header should define:
+ * 
+ * type 'jet_ustack_t' - pointer to allocated user stack.
+ *   Value 0 should be assignable and comparable to given type, and
+ *   never corresponds to allocated stack.
  */
-int ja_current_segment(void);
+#include <arch/space.h>
 
-/**
- * Create TLB descriptor, which maps physical addresses in range
+/* 
+ * Identificator for the (memory) space.
  * 
- * [addr;addr+size)
- * 
- * into user space.
- * 
- * Descriptor will be accessible via its identificator (@space_id).
+ * Value 0 corresponds to kernel space.
+ * Non-zero values correspond to user spaces.
  */
-pok_ret_t   ja_space_create (uint8_t space_id, uintptr_t addr, size_t size);
+typedef uint8_t jet_space_id;
 
-/**
- * Return base virtual address for space mapping.
- * 
- * @addr is currently unused.
- * 
- */
-uintptr_t	   ja_space_base_vaddr (uintptr_t addr);
+/* Layout of the user space for load partition's code and data. */
+struct jet_space_layout
+{
+    /* 
+     * Currently whole space is treated as single chunk.
+     * 
+     * TODO: There should be division for execute-only, read-only and
+     * other sections. But this requires arch support.
+     */
+    char* kernel_addr;
+    char* user_addr;
+    size_t size;
+};
+
+/* Fill layout for given user space. */
+void ja_space_layout_get(jet_space_id space_id,
+    struct jet_space_layout* space_layout);
 
 /**
  * Jump to the user space.
@@ -51,54 +62,36 @@ uintptr_t	   ja_space_base_vaddr (uintptr_t addr);
  * Kernel stack passed as 'sp' will be used in interrupts/syscalls.
  */
 void ja_user_space_jump(
-        jet_stack_t sp,
-        uint8_t space_id, /* Actually, unused (should already be set with pok_space_switch). */
-        void (__user * entry_user)(void),
-        uint32_t stack_user);
+    jet_stack_t stack_kernel,
+    jet_space_id space_id, /* Actually, unused (should already be set with ja_space_switch). */
+    void (__user * entry_user)(void),
+    jet_ustack_t stack_user);
 
 /**
- * Switch to given (user) space.
- * 
- * Space with index 0 is kernel space.
+ * Switch to given space.
  */
-pok_ret_t   ja_space_switch (uint8_t new_space_id);
-
-uint8_t ja_space_get_current (void);
-
-/**
- * Returns the stack address for the thread in a partition.
- *
- * @arg space_id indicates space for the partition that contains
- * the thread.
- * 
- * @arg stack_size indicates size of requested stack.
- *
- * @arg state should either
- * 
- *    - points to 0, which denotes first allocation request
- *                (all previous allocations are invalidated)
- *    - be value, passed to previous call to the function.
- *
- * On success function returns head to the stack and update value
- * pointed by @state.
- * 
- * On fail (e.g., insufficient space for requested stack) function
- * returns 0 and leave value pointed by @state unchanged.
- */
-uint32_t    ja_thread_stack_addr   (uint8_t    space_id,
-                                     uint32_t stack_size,
-                                     uint32_t* state);
+void   ja_space_switch (jet_space_id new_space_id);
 
 /*
- * Load given elf into given user space to given ARINC partition.
- * 
- * After the call @entry will be filled with address of start function.
+ * Return id of current space.
  */
-struct _pok_patition_arinc;
-void ja_load_partition(struct _pok_patition_arinc* part,
-        uint8_t elf_id,
-        uint8_t space_id,
-        uintptr_t *entry);
+jet_space_id ja_space_get_current (void);
+
+/* 
+ * (Re)initialize user stacks allocator for given space.
+ * 
+ * 'space_id' shouldn't be 0.
+ */
+void ja_ustack_init (jet_space_id space_id);
+
+/**
+ * Allocates user stack for given space.
+ * 
+ * In case of insufficient memory returns 0.
+ * 
+ * 'space_id' shouldn't be 0.
+ */
+jet_ustack_t ja_ustack_alloc (jet_space_id space_id, size_t stack_size);
 
 /*
  * Place for store floating point registers.

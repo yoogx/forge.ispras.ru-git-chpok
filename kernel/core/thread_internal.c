@@ -21,10 +21,9 @@ pok_bool_t thread_create(pok_thread_t* t)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
     
-    t->init_stack_addr = (void*)pok_thread_stack_addr(
+    t->init_stack_addr = ja_ustack_alloc(
         part->base_part.space_id,
-        t->user_stack_size,
-        &part->user_stack_state);
+        t->user_stack_size);
     
     if(t->init_stack_addr == 0) return FALSE;
     

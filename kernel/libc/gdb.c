@@ -62,7 +62,7 @@ void pok_gdb_thread_init(void)
 {
     partition_gdb.part_sched_ops = &partition_sched_ops_kernel;
     partition_gdb.part_ops = &gdb_operations;
-    pok_dstack_alloc(&partition_gdb.initial_sp, 4096);
+    partition_gdb.initial_sp = pok_stack_alloc(4096);
 }
 
 #endif /* POK_NEEDS_GDB */

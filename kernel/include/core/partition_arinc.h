@@ -37,15 +37,11 @@ typedef struct _pok_patition_arinc
     pok_partition_mode_t   mode;           /**< Current mode of the partition */
 
     /* 
-     * Size of the allocated memory segment.
+     * Index in the elf array where partition's image is contained.
      * 
      * Set in deployment.c.
      */
-    uint32_t               size;           
-    uint32_t               base_addr;    /**< The base address inside the whole memory (where the segment is in the whole memory ?) */
-    uint32_t               base_vaddr;   /**< The virtual address of the partition. The address the threads sees when they are executed */
-    
-    uint32_t               user_stack_state; /* State of the use-space allocation. */
+    uint8_t                 elf_id;
 
     pok_time_t             activation; // Not used now
 
@@ -73,7 +69,6 @@ typedef struct _pok_patition_arinc
     pok_port_sampling_t*   ports_sampling; /* List of sampling ports. Set in deployment.c. */
     size_t                 nports_sampling;
 
-
    /*
     * Size of memory pre-allocated for intra-partition communicaton
     * objects.
@@ -83,10 +78,10 @@ typedef struct _pok_patition_arinc
     * 
     * Set in deployment.c
     */
-   size_t                  intra_memory_size; 
+   size_t                  intra_memory_size;
    
    // Memory allocated at init for intra-partition communicaton objects.
-   void*                   intra_memory; 
+   void*                   intra_memory;
    
    /* Size of currently used `intra_memory`. Reseted at partition restart. */
    size_t                  intra_memory_size_used;
@@ -153,7 +148,7 @@ typedef struct _pok_patition_arinc
     uint32_t                nthreads_unrecoverable;
 
 
-    uintptr_t               main_entry;
+    void                    (*main_entry)(void);
     uint32_t                main_user_stack_size;
 
 

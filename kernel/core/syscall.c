@@ -33,7 +33,6 @@
 #include <memory.h>
 
 #include <core/port.h>
-#include <uaccess.h>
 
 /* Call given function without protection(with enabled interrupts). */
 static pok_ret_t unprotected_syscall(

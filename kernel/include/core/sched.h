@@ -21,7 +21,6 @@
 
 #include <types.h>
 #include <errno.h>
-#include <core/schedvalues.h>
 #include <core/partition.h>
 #include <common.h>
 
@@ -216,8 +215,8 @@ pok_time_t get_next_periodic_processing_start(void);
  * preemption-related things. Because of enabled local preemption
  * all pending callbacks for partition are triggered.
  */
-void pok_partition_jump_user(void* __user entry,
-    void* __user stack_addr,
+void pok_partition_jump_user(void (* __user entry)(void),
+    jet_ustack_t stack_user,
     jet_stack_t stack_kernel);
 
 /*

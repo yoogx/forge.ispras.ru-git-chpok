@@ -173,13 +173,12 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
             .duration = {%if part.duration is not none%}{{part.duration}}{%else%}{{part.total_time}}{%endif%},
             .partition_id = {{part.part_id}},
             
-            .space_id = {{loop.index0}},
+            .space_id = {{loop.index}},
             
             .multi_partition_hm_selector = &pok_hm_multi_partition_selector_default,
             .multi_partition_hm_table = &pok_hm_multi_partition_table_default,
         },
         
-        .size = {{part.size}},
         .nthreads = {{part.num_threads}} + 1 /*main thread*/ + 1 /* error thread */,
         .threads = partition_threads_{{loop.index0}},
         
@@ -225,7 +224,7 @@ pok_partition_t partition_monitor =
     
     .period = {{conf.major_frame}}, {#TODO: Where it is stored in conf?#}
     
-    .space_id = 0xff,
+    .space_id = 0,
     
     .multi_partition_hm_selector = &pok_hm_multi_partition_selector_default,
     .multi_partition_hm_table = &pok_hm_multi_partition_table_default,
@@ -239,7 +238,7 @@ pok_partition_t partition_gdb =
 
     .period = {{conf.major_frame}}, {#TODO: Where it is stored in conf?#}
 
-    .space_id = 0xff,
+    .space_id = 0,
 
     .multi_partition_hm_selector = &pok_hm_multi_partition_selector_default,
     .multi_partition_hm_table = &pok_hm_multi_partition_table_default,
@@ -280,4 +279,4 @@ const uint8_t pok_module_sched_n = {{conf.slots | length}};
 const pok_time_t pok_config_scheduling_major_frame = {{conf.major_frame}};
 
 /************************ Setup address spaces ************************/
-struct pok_space spaces[{{conf.partitions | length}}]; // As many as partitions
+{% include 'arch/' + conf.arch + '/deployment_kernel' %}

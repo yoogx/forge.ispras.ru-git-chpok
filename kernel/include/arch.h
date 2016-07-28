@@ -26,21 +26,6 @@
 // TODO: Where should be that definition?
 #define KERNEL_STACK_SIZE_DEFAULT 8192
 
-/* 
- * TODO: Actually, this is architecture-dependent structure which
- * is used only in arch-specific code.
- * 
- * The only reason it is included here: `spaces` array should be
- * defined in the deployment.c (kernel).
- */
-struct pok_space
-{
-    uintptr_t     phys_base;
-    size_t        size;
-};
-
-extern struct pok_space spaces[];
-
 /**
  * Disable interruptions
  */

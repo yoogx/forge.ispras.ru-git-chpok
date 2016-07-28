@@ -37,67 +37,48 @@
 #include "core/partition_arinc.h"
 #include "core/error.h"
 
-pok_ret_t ja_space_create (uint8_t space_id,
-                            uintptr_t addr,
-                            size_t size)
+void ja_space_layout_get(jet_space_id space_id,
+    struct jet_space_layout* space_layout)
 {
-#ifdef POK_NEEDS_DEBUG
-  printf ("pok_create_space space_id=%d: phys=%x size=%x\n", space_id, addr, size);
-#endif
-  spaces[space_id].phys_base = addr;
-  spaces[space_id].size = size;
+    assert(space_id != 0 && space_id <= ja_spaces_n);
 
-  return (POK_ERRNO_OK);
+    space_layout->kernel_addr = (char*) POK_PARTITION_MEMORY_BASE;
+    space_layout->user_addr = (char*) POK_PARTITION_MEMORY_BASE;
+    space_layout->size = ja_spaces[space_id - 1].size_normal;
 }
 
-pok_ret_t ja_space_switch (uint8_t space_id)
+void ja_space_switch (jet_space_id space_id)
 {
-    mtspr(SPRN_PID, space_id + 1);
-
-    return POK_ERRNO_OK;
+    mtspr(SPRN_PID, space_id);
 }
 
-uint8_t ja_space_get_current (void)
+jet_space_id ja_space_get_current (void)
 {
-    return ((uint8_t)mfspr(SPRN_PID)) - 1;
+    return (jet_space_id)mfspr(SPRN_PID);
 }
 
 
-uintptr_t ja_space_base_vaddr(uintptr_t addr)
+void ja_ustack_init (jet_space_id space_id)
 {
-    (void) addr;
-    return POK_PARTITION_MEMORY_BASE;
+    assert(space_id != 0);
+
+    ja_spaces[space_id - 1].ustack_state = POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE - 16;
 }
-    
-struct jet_context* ja_space_context_init(
-        uint32_t sp,
-        uint8_t space_id,
-        uint32_t entry_rel,
-        uint32_t stack_rel,
-        uint32_t arg1,
-        uint32_t arg2)
+
+jet_ustack_t ja_ustack_alloc (jet_space_id space_id, size_t stack_size)
 {
-    struct jet_interrupt_context *vctx = (struct jet_interrupt_context*)
-        (sp - sizeof (*vctx));
-    struct jet_context *ctx = (struct jet_context*)
-        (sp - (sizeof (*vctx) + sizeof(*ctx)));
+    assert(space_id != 0);
 
-    memset (ctx, 0, sizeof(*ctx));
-    memset (vctx, 0, sizeof(*vctx));
+    uint32_t* ustack_state_p = &ja_spaces[space_id - 1].ustack_state;
 
-    extern void pok_arch_rfi (void);
+    size_t size_real = ALIGN_SIZE(stack_size, 16);
 
-    /* Fill interrupt frame */
-    vctx->r3     = arg1;
-    vctx->r4     = arg2;
-    vctx->r1     = stack_rel - 12;
-    vctx->srr0   = entry_rel;
-    vctx->srr1   = MSR_EE | MSR_IP | MSR_PR | MSR_FP;
+    // TODO: Check boundaries.
+    jet_ustack_t result = *ustack_state_p;
 
-    // Linkage between frames
-    jet_stack_frame_link(&vctx->stack_frame, &ctx->stack_frame, pok_arch_rfi);
+    *ustack_state_p -= size_real;
 
-    return ctx;
+    return result;
 }
 
 static unsigned next_resident = 0;
@@ -286,7 +267,12 @@ void pok_arch_space_init (void)
     // By some reason P3041 DUART blocks when TLB entry #1 is overrriden.
     // Preserve it, let's POK write it's entries starting 2
     next_non_resident = next_resident = 2;
-    //
+
+    for(int i = 0; i < ja_spaces_n; i++)
+    {
+        // This should be checked when generate deployment.c too.
+        assert(ja_spaces[i].size_normal < POK_PARTITION_MEMORY_SIZE);
+    }
 }
 
 //TODO get this values from devtree!
@@ -330,11 +316,11 @@ void pok_arch_handle_page_fault(
             faulting_address >= POK_PARTITION_MEMORY_BASE &&
             faulting_address < POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE)
     {
-        uint8_t space_id = pid - 1;
+        jet_space_id space_id = pid;
 
         pok_insert_tlb1( 
             POK_PARTITION_MEMORY_BASE,
-            spaces[space_id].phys_base,
+            ja_spaces[space_id - 1].phys_base,
             E500MC_PGSIZE_16M,
             MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
             0,
@@ -374,14 +360,14 @@ uintptr_t pok_virt_to_phys(uintptr_t virt)
         pok_fatal("wrong pointer in pok_virt_to_phys\n");
     }
 
-    return virt - POK_PARTITION_MEMORY_BASE + spaces[partid].phys_base;
+    return virt - POK_PARTITION_MEMORY_BASE + ja_spaces[partid].phys_base;
 }
 
 uintptr_t pok_phys_to_virt(uintptr_t phys)
 {
     pok_partition_id_t partid = mfspr(SPRN_PID) - 1;
 
-    uintptr_t virt = phys - spaces[partid].phys_base + POK_PARTITION_MEMORY_BASE;
+    uintptr_t virt = phys - ja_spaces[partid].phys_base + POK_PARTITION_MEMORY_BASE;
     if (!POK_CHECK_PTR_IN_PARTITION(partid, virt)) {
         printf("pok_phys_to_virt: wrong virtual address %p\n", (void*)virt);
         pok_fatal("wrong pointer in pok_phys_to_virt\n");

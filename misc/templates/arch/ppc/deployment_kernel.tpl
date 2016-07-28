@@ -13,40 +13,16 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <asp/alloc.h>
+#include <arch/deployment.h>
 
-extern char _end[];
-static char *heap_end = _end;
-
-void *ja_mem_alloc_aligned (size_t size, unsigned int alignment)
+struct ja_ppc_space ja_spaces[{{conf.spaces | length}}] =
 {
-  char *res;
-  uintptr_t mask = alignment - 1;
+{%for space in conf.spaces%}
+    {
+        .phys_base = 0x4000000UL + {{loop.index0}} * POK_PARTITION_MEMORY_SIZE,
+        .size_normal = {{space.size}},
+    },
+{%endfor%}
+};
 
-  res = (char *)(((unsigned int)heap_end + mask) & ~mask);
-  heap_end = res + size;
-  return res;
-}
-
-unsigned int ja_mem_get_alignment (size_t size)
-{
-  unsigned int alignment = 1;
-  if(size == 1)
-  {
-    alignment = 1;
-  }
-  else if(size < 4)
-  {
-    alignment = 2;
-  }
-  else if(size < 8)
-  {
-    alignment = 4;
-  }
-  else
-  {
-    alignment = 8;
-  }
-  
-  return alignment;
-}
+int ja_spaces_n = {{conf.spaces | length}};

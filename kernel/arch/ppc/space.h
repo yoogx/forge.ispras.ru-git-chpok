@@ -3,6 +3,7 @@
 
 #include <types.h>
 #include "interrupt_context.h"
+#include <arch/deployment.h>
 
 typedef enum {
     PF_DATA_TLB_MISS,
@@ -24,8 +25,5 @@ void pok_arch_space_init (void);
 // various useful constants describing memory layout
 
 #define KERNEL_STACK_SIZE 8192
-
-#define POK_PARTITION_MEMORY_BASE 0x80000000ULL
-#define POK_PARTITION_MEMORY_SIZE 0x1000000ULL 
 
 #endif

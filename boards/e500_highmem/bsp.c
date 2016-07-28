@@ -54,24 +54,6 @@ void pok_bsp_init (void)
        pok_fatal("Kernel size is more than 64 megabytes");
 }
 
-
-void * pok_bsp_alloc_partition(size_t size)
-{
-    static uintptr_t last_base             = 0x4000000ULL; // 64 mebibytes
-    static const size_t max_partition_size = POK_PARTITION_MEMORY_SIZE; // 16 mebibytes
-    uintptr_t res;
-    
-    // TODO it should be more flexible than this
-    if (size > max_partition_size) pok_fatal("partition size is too big");
-
-    res = last_base;
-    last_base += max_partition_size;
-
-    // TODO check that we aren't out of RAM bounds
-
-    return (void *) res;
-}
-
 void pok_bsp_get_info(void *addr) {
     pok_bsp_t *data = addr;
     *data = pok_bsp;

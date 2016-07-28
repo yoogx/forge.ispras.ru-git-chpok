@@ -20,7 +20,7 @@
 #include <core/time.h>
 
 #include <core/sched.h>
-#include <asp/alloc.h>
+#include <alloc.h>
 
 /*********************** Queuing channel ******************************/
 
@@ -35,7 +35,7 @@ void pok_channel_queuing_init(pok_channel_queuing_t* channel)
     
     channel->message_stride = POK_MESSAGE_STRUCT_SIZE(channel->max_message_size);
     
-    channel->buffer = ja_mem_alloc(
+    channel->buffer = jet_mem_alloc(
         channel->message_stride * channel->max_nb_message);
     
     channel->notify_receiver = FALSE;
@@ -262,7 +262,7 @@ void pok_channel_sampling_init(pok_channel_sampling_t* channel)
 {
     channel->message_stride = POK_MESSAGE_STRUCT_SIZE(channel->max_message_size);
     
-    channel->buffer = ja_mem_alloc(3 * channel->message_stride);
+    channel->buffer = jet_mem_alloc(3 * channel->message_stride);
     
     channel->read_pos_next = 0;
     channel->read_pos = 0;

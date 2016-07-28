@@ -15,15 +15,16 @@
 
 #include <core/intra_arinc.h>
 #include <core/partition_arinc.h>
-#include <uaccess.h>
+#include <core/uaccess.h>
 #include <core/sched_arinc.h>
 #include "thread_internal.h"
+#include <libc.h>
 
 #include <system_limits.h>
 
 /*
  * Find object of given type with given name.
- * 
+ *
  * TYPE should be either: buffer, blackboard, semaphore, event.
  * name is `const char*` variable(in kernel space).
  */
@@ -38,7 +39,7 @@
 
 /*
  * Get object of given type with given id.
- * 
+ *
  * TYPE should be either: buffer, blackboard, semaphore, event.
  * id should have identificator type corresponded for the object's type.
  */
@@ -52,27 +53,27 @@
 /*
  * While we have single .waiters field for senders and receivers,
  * we can distinguish between them using .nb_message field:
- * 
+ *
  * 0 - receivers
  * max_nb_message - senders
- * 
+ *
  * But in case of 0-capacity of the buffer, .max_nb_message equals to 0.
  * So, it cannot longer be used for distinguish usage of .waiters field.
- * 
+ *
  * Instead, we store special constants in .message_stride field:
- * 
+ *
  * WAITERS_ARE_RECEIVERS - receivers
  * WAITERS_ARE_SENDERS - senders
- * 
+ *
  * Note, that .waiters queue may be emptied outside (because of timeout),
  * so we check .message_stride field only if queue is not empty.
  */
 #define WAITERS_ARE_RECEIVERS 0
 #define WAITERS_ARE_SENDERS 1
 
-/* 
+/*
  * Return sum of two message indecies.
- * 
+ *
  * Take into account circular nature of the messages array.
  */
 static pok_message_range_t buffer_add_index(pok_buffer_t* buffer,
@@ -80,9 +81,9 @@ static pok_message_range_t buffer_add_index(pok_buffer_t* buffer,
 {
     pok_message_range_t index = base + offset;
     assert(buffer->max_nb_message);
-    
+
     if(index >= buffer->max_nb_message) index -= buffer->max_nb_message;
-    
+
     return index;
 }
 
@@ -114,11 +115,11 @@ pok_ret_t pok_buffer_create(char* __user name,
     pok_buffer_t* b;
     char kernel_name[MAX_NAME_LENGTH];
     pok_partition_arinc_t* part = current_partition_arinc;
-    
+
     void* messages;
-    
+
     pok_message_size_t message_stride;
-    
+
     if(part->mode == POK_PARTITION_MODE_NORMAL) return POK_ERRNO_PARTITION_MODE;
     // No needs in critical section - init process cannot be preempted.
 
@@ -130,30 +131,33 @@ pok_ret_t pok_buffer_create(char* __user name,
 
     if(max_nb_message > SYSTEM_LIMIT_NUMBER_OF_MESSAGES) return POK_ERRNO_EINVAL;
 
-    if(!check_access_read(name, MAX_NAME_LENGTH)) return POK_ERRNO_EFAULT;
-    if(!check_user_write(id)) return POK_ERRNO_EFAULT;
-    
-    __copy_from_user(kernel_name, name, MAX_NAME_LENGTH);
-    
+    const char* __kuser k_name = jet_user_to_kernel_ro(name, MAX_NAME_LENGTH);
+    if(!k_name) return POK_ERRNO_EFAULT;
+
+    pok_buffer_id_t* __kuser k_id = jet_user_to_kernel_typed(id);
+    if(!k_id) return POK_ERRNO_EFAULT;
+
+    memcpy(kernel_name, k_name, MAX_NAME_LENGTH);
+
     if(find_buffer(kernel_name)) return POK_ERRNO_EXISTS;
-    
+
     if(part->nbuffers_used == part->nbuffers) return POK_ERRNO_TOOMANY;
 
     if(max_nb_message)
     {
         message_stride = POK_MESSAGE_STRUCT_SIZE(max_message_size);
         messages = partition_arinc_im_get(message_stride * max_nb_message, sizeof(unsigned long));
-        
+
         if(!messages) return POK_ERRNO_UNAVAILABLE;
     }
     else
     {
-        /* 
+        /*
          * Buffer with 0 capacity.
-         * 
+         *
          * Buffer is not used, messages are transmitted directly from
          * the sender to the receiver.
-         * 
+         *
          * .message_stride has special usage here.
          * .messages field isn't used at all, but we initialize it
          * in spite of this.
@@ -161,24 +165,24 @@ pok_ret_t pok_buffer_create(char* __user name,
         message_stride = WAITERS_ARE_RECEIVERS;
         messages = NULL;
     }
-    
+
     b = &part->buffers[part->nbuffers_used];
-    
+
     memcpy(b->name, kernel_name, MAX_NAME_LENGTH);
     b->max_message_size = max_message_size;
     b->max_nb_message = max_nb_message;
     b->message_stride = message_stride;
     b->messages = messages;
     b->discipline = discipline;
-    
+
     b->nb_message = 0;
     b->base_offset = 0;
     pok_thread_wq_init(&b->waiters);
-    
-    __put_user(id, part->nbuffers_used);
-    
+
+    *k_id = part->nbuffers_used;
+
     part->nbuffers_used++;
-    
+
     return POK_ERRNO_OK;
 }
 
@@ -196,8 +200,14 @@ pok_ret_t pok_buffer_send(pok_buffer_id_t id,
     if(!buffer) return POK_ERRNO_UNAVAILABLE;
 
     if(length <= 0 || length > buffer->max_message_size) return POK_ERRNO_EINVAL;
-    if(!check_access_read(data, length)) return POK_ERRNO_EFAULT;
-    if(!check_user_read(timeout)) return POK_ERRNO_EFAULT;
+
+    const void* __kuser k_data = jet_user_to_kernel_ro(data, buffer->max_message_size);
+
+    if(!k_data) return POK_ERRNO_EFAULT;
+
+    const pok_time_t* __kuser k_timeout = jet_user_to_kernel_typed_ro(timeout);
+
+    if(!k_timeout) return POK_ERRNO_EFAULT;
 
     pok_preemption_local_disable();
 
@@ -208,19 +218,19 @@ pok_ret_t pok_buffer_send(pok_buffer_id_t id,
         // Directly copy message to waiter process.
         pok_thread_t* t = pok_thread_wq_wake_up(&buffer->waiters);
         assert(t);
-        
-        void* __user data_receive = (void* __user) t->wait_private;
-        
-        __copy_user(data_receive, data, length);
+
+        void* __kuser data_receive = (void* __kuser) t->wait_private;
+
+        memcpy(data_receive, k_data, length);
         t->wait_private = (void*)(unsigned long)length;
-        
+
         ret = POK_ERRNO_OK;
     }
     else if(buffer->nb_message == buffer->max_nb_message)
     {
         // Need to wait
         pok_thread_t* t = current_thread;
-        pok_time_t timeout_kernel = __get_user(timeout);
+        pok_time_t timeout_kernel = *k_timeout;
         if(timeout_kernel == 0)
         {
             ret = POK_ERRNO_FULL;
@@ -231,10 +241,10 @@ pok_ret_t pok_buffer_send(pok_buffer_id_t id,
             ret = POK_ERRNO_MODE;
             goto out;
         }
-        
+
         pok_message_send_t message_send = {
             .size = length,
-            .data = data
+            .data = k_data
         };
 
         t->wait_private = &message_send;
@@ -243,9 +253,9 @@ pok_ret_t pok_buffer_send(pok_buffer_id_t id,
 
         if(!buffer->max_nb_message)
             buffer->message_stride = WAITERS_ARE_SENDERS;
-        
+
         thread_wait_common(t, timeout_kernel);
-        
+
         goto out_wait;
     }
     else
@@ -254,12 +264,12 @@ pok_ret_t pok_buffer_send(pok_buffer_id_t id,
         int index = buffer_add_index(buffer, buffer->base_offset,
             buffer->nb_message);
         pok_message_t* message = buffer_get_message(buffer, index);
-        
-        __copy_from_user(message->content, data, length);
+
+        memcpy(message->content, k_data, length);
         message->size = length;
-        
+
         buffer->nb_message++;
-        
+
         ret = POK_ERRNO_OK;
     }
 
@@ -270,7 +280,7 @@ out:
 
 out_wait:
     pok_preemption_local_enable();
-    
+
     wait_result = (unsigned long)current_thread->wait_private;
     if(wait_result < 0) return -wait_result;
 
@@ -289,9 +299,17 @@ pok_ret_t pok_buffer_receive(pok_buffer_id_t id,
 
     if(!buffer) return POK_ERRNO_UNAVAILABLE;
 
-    if(!check_access_write(data, buffer->max_message_size)) return POK_ERRNO_EFAULT;
-    if(!check_user_write(length)) return POK_ERRNO_EFAULT;
-    if(!check_user_read(timeout)) return POK_ERRNO_EFAULT;
+    void* __kuser k_data = jet_user_to_kernel(data, buffer->max_message_size);
+
+    if(!k_data) return POK_ERRNO_EFAULT;
+
+    pok_message_size_t* __kuser k_length = jet_user_to_kernel_typed(length);
+
+    if(!k_length) return POK_ERRNO_EFAULT;
+
+    const pok_time_t* __kuser k_timeout = jet_user_to_kernel_typed_ro(timeout);
+
+    if(!k_timeout) return POK_ERRNO_EFAULT;
 
     pok_preemption_local_disable();
 
@@ -300,23 +318,23 @@ pok_ret_t pok_buffer_receive(pok_buffer_id_t id,
         // Copy message from the array of messages
         pok_message_t* message = buffer_get_message(buffer,
             buffer->base_offset);
-        
-        __copy_to_user(data, message->content, message->size);
-        __put_user(length, message->size);
-        
+
+        memcpy(k_data, message->content, message->size);
+        *k_length =  message->size;
+
         // Move buffer's base position
         buffer->base_offset = buffer_add_index(buffer, buffer->base_offset, 1);
-        
+
         if(!pok_thread_wq_is_empty(&buffer->waiters))
         {
             // Copy message from waited sender into available cell.
             pok_thread_t* sender_thread = pok_thread_wq_wake_up(&buffer->waiters);
-            
+
             pok_message_send_t* message_send = sender_thread->wait_private;
-            
-            __copy_from_user(message->content, message_send->data, message_send->size);
+
+            memcpy(message->content, message_send->data, message_send->size);
             message->size = message_send->size;
-            
+
             sender_thread->wait_private = NULL;
         }
         else
@@ -324,7 +342,7 @@ pok_ret_t pok_buffer_receive(pok_buffer_id_t id,
             // No senders await
             buffer->nb_message --;
         }
-        
+
         ret = POK_ERRNO_OK;
     }
     else if(buffer->max_nb_message
@@ -333,42 +351,42 @@ pok_ret_t pok_buffer_receive(pok_buffer_id_t id,
     {
         // Need to wait
         pok_thread_t* t = current_thread;
-        pok_time_t timeout_kernel = __get_user(timeout);
+        pok_time_t timeout_kernel = *k_timeout;
         if(timeout_kernel == 0)
         {
-            __put_user(length, 0);
+            *k_length = 0;
             ret = POK_ERRNO_EMPTY;
             goto out;
         }
         else if(!thread_is_waiting_allowed())
         {
-            __put_user(length, 0);
+            *k_length = 0;
             ret = POK_ERRNO_MODE;
             goto out;
         }
-        
+
         t->wait_private = (void*)data;
-        
+
         pok_thread_wq_add_common(&buffer->waiters, t,
             buffer->discipline);
 
         if(!buffer->max_nb_message)
             buffer->message_stride = WAITERS_ARE_RECEIVERS;
-        
+
         thread_wait_common(t, timeout_kernel);
-        
+
         goto out_wait;
     }
     else
     {
         // 0-sise buffer and sender(s) waits. Directly copy message from sender thread.
         pok_thread_t* sender_thread = pok_thread_wq_wake_up(&buffer->waiters);
-        
+
         pok_message_send_t* message_send = sender_thread->wait_private;
-        
-        __copy_user(data, message_send->data, message_send->size);
-        __put_user(length, message_send->size);
-        
+
+        memcpy(k_data, message_send->data, message_send->size);
+        *length = message_send->size;
+
         sender_thread->wait_private = NULL;
         ret = POK_ERRNO_OK;
     }
@@ -380,11 +398,11 @@ out:
 
 out_wait:
     pok_preemption_local_enable();
-    
+
     wait_result = (unsigned long)current_thread->wait_private;
     if(wait_result < 0) return -wait_result;
 
-    __put_user(length, wait_result);
+    *k_length = wait_result;
 
     return POK_ERRNO_OK;
 }
@@ -393,18 +411,23 @@ pok_ret_t pok_buffer_get_id(char* __user name,
     pok_buffer_id_t* __user id)
 {
     char kernel_name[MAX_NAME_LENGTH];
-    
-    if(!check_access_read(name, MAX_NAME_LENGTH)) return POK_ERRNO_EFAULT;
-    if(!check_user_write(id)) return POK_ERRNO_EFAULT;
-    
-    __copy_from_user(kernel_name, name, MAX_NAME_LENGTH);
-    
+
+    const char* __kuser k_name = jet_user_to_kernel_ro(name, MAX_NAME_LENGTH);
+
+    if(!k_name) return POK_ERRNO_EFAULT;
+
+    pok_buffer_id_t* __kuser k_id = jet_user_to_kernel_typed(id);
+
+    if(!k_id) return POK_ERRNO_EFAULT;
+
+    memcpy(kernel_name, k_name, MAX_NAME_LENGTH);
+
     pok_buffer_t* buffer = find_buffer(kernel_name);
-    
+
     if(!buffer) return POK_ERRNO_UNAVAILABLE;
-    
-    __put_user(id, buffer - current_partition_arinc->buffers);
-    
+
+    *k_id = buffer - current_partition_arinc->buffers;
+
     return POK_ERRNO_OK;
 }
 
@@ -412,19 +435,21 @@ pok_ret_t pok_buffer_status(pok_buffer_id_t id,
     pok_buffer_status_t* __user status)
 {
     pok_buffer_t* buffer = get_buffer(id);
-    
+
     if(!buffer) return POK_ERRNO_UNAVAILABLE;
-    
-    if(!check_user_write(status)) return POK_ERRNO_EFAULT;
-    
-    __put_user_f(status, max_nb_message, buffer->max_nb_message);
-    __put_user_f(status, max_message_size, buffer->max_message_size);
-    
+
+    pok_buffer_status_t* __kuser k_status = jet_user_to_kernel_typed(status);
+
+    if(!k_status) return POK_ERRNO_EFAULT;
+
+    k_status->max_nb_message = buffer->max_nb_message;
+    k_status->max_message_size = buffer->max_message_size;
+
     pok_preemption_local_disable();
-    __put_user_f(status, nb_message, buffer->nb_message);
-    __put_user_f(status, waiting_processes, pok_thread_wq_get_nwaits(&buffer->waiters));
+    k_status->nb_message = buffer->nb_message;
+    k_status->waiting_processes = pok_thread_wq_get_nwaits(&buffer->waiters);
     pok_preemption_local_enable();
-    
+
     return POK_ERRNO_OK;
 }
 
@@ -445,8 +470,13 @@ pok_ret_t pok_blackboard_create (const char* __user             name,
 {
     pok_partition_arinc_t* part = current_partition_arinc;
 
-    if(!check_access_read(name, MAX_NAME_LENGTH)) return POK_ERRNO_EFAULT;
-    if(!check_user_write(id)) return POK_ERRNO_EFAULT;
+    const char* __kuser k_name = jet_user_to_kernel_ro(name, MAX_NAME_LENGTH);
+
+    if(!k_name) return POK_ERRNO_EFAULT;
+
+    pok_blackboard_id_t* __kuser k_id = jet_user_to_kernel_typed(id);
+
+    if(!k_id) return POK_ERRNO_EFAULT;
 
     if(part->mode == POK_PARTITION_MODE_NORMAL) return POK_ERRNO_PARTITION_MODE;
 
@@ -454,7 +484,7 @@ pok_ret_t pok_blackboard_create (const char* __user             name,
 
     pok_blackboard_t* blackboard = &part->blackboards[part->nblackboards_used];
 
-    __copy_from_user(blackboard->name, name, MAX_NAME_LENGTH);
+    memcpy(blackboard->name, k_name, MAX_NAME_LENGTH);
 
     if(find_blackboard(blackboard->name)) return POK_ERRNO_EXISTS;
 
@@ -469,12 +499,12 @@ pok_ret_t pok_blackboard_create (const char* __user             name,
     blackboard->message_stride = message_stride;
     blackboard->max_message_size = max_message_size;
     blackboard->message = message;
-    
+
     message->size = 0;
-    
+
     pok_thread_wq_init(&blackboard->waiters);
-    
-    __put_user(id, part->nblackboards_used);
+
+    *k_id = part->nblackboards_used;
 
     part->nblackboards_used++;
 
@@ -492,18 +522,23 @@ pok_ret_t pok_blackboard_read (pok_blackboard_id_t          id,
     pok_blackboard_t* blackboard = get_blackboard(id);
     if(!blackboard) return POK_ERRNO_UNAVAILABLE;
 
-    if(!check_access_write(data, blackboard->max_message_size)) return POK_ERRNO_EFAULT;
-    if(!check_user_read(timeout)) return POK_ERRNO_EFAULT;
-    if(!check_user_write(len)) return POK_ERRNO_EFAULT;
+    void* __kuser k_data = jet_user_to_kernel(data, blackboard->max_message_size);
+    if(!k_data) return POK_ERRNO_EFAULT;
 
-    pok_time_t kernel_timeout = __get_user(timeout);
+    const pok_time_t* __kuser k_timeout = jet_user_to_kernel_typed_ro(timeout);
+    if(!k_timeout) return POK_ERRNO_EFAULT;
+
+    pok_message_size_t* __kuser k_len = jet_user_to_kernel_typed(len);
+    if(!k_len) return POK_ERRNO_EFAULT;
+
+    pok_time_t kernel_timeout = *k_timeout;
     pok_message_t* message = blackboard->message;
 
     pok_preemption_local_disable();
     if(message->size)
     {
-        __copy_to_user(data, message->content, message->size);
-        __put_user(len, message->size);
+        memcpy(k_data, message->content, message->size);
+        *k_len = message->size;
         ret = POK_ERRNO_OK;
         goto out;
     }
@@ -511,19 +546,19 @@ pok_ret_t pok_blackboard_read (pok_blackboard_id_t          id,
     {
         // Need to wait
         if(kernel_timeout == 0) {
-            __put_user(len, 0);
+            *k_len = 0;
             ret = POK_ERRNO_UNAVAILABLE;
             goto out;
         }
         else if(!thread_is_waiting_allowed()) {
-            __put_user(len, 0);
+            *k_len = 0;
             ret = POK_ERRNO_MODE;
             goto out;
         }
 
         t = current_thread;
 
-        t->wait_private = data;
+        t->wait_private = k_data;
         pok_thread_wq_add(&blackboard->waiters, t);
 
         thread_wait_common(t, kernel_timeout);
@@ -540,7 +575,7 @@ out_wait:
     long wait_result = (long)t->wait_private;
     if(wait_result < 0) return (pok_ret_t)(-wait_result);
 
-    __put_user(len, wait_result);
+    *k_len = wait_result;
 
     return POK_ERRNO_OK;
 }
@@ -550,42 +585,44 @@ pok_ret_t pok_blackboard_display (pok_blackboard_id_t   id,
                                   pok_message_size_t    len)
 {
     pok_blackboard_t* blackboard = get_blackboard(id);
-    
+
     if(!blackboard) return POK_ERRNO_UNAVAILABLE;
-    
+
     if(len > blackboard->max_message_size || len == 0) return POK_ERRNO_EINVAL;
-    if(!check_access_read(message, len)) return POK_ERRNO_EFAULT;
-    
+
+    const void* __kuser k_message = jet_user_to_kernel_ro(message, len);
+    if(!k_message) return POK_ERRNO_EFAULT;
+
     pok_preemption_local_disable();
-    
-    __copy_from_user(blackboard->message->content, message, len);
+
+    memcpy(blackboard->message->content, k_message, len);
     blackboard->message->size = len;
-    
+
     for(pok_thread_t* t = pok_thread_wq_wake_up(&blackboard->waiters);
         t;
         t = pok_thread_wq_wake_up(&blackboard->waiters))
     {
-        char* __user recv_data = (char* __user)t->wait_private;
+        char* __kuser recv_data = (char* __user)t->wait_private;
 
-        __copy_user(recv_data, message, len);
+        memcpy(recv_data, k_message, len);
         t->wait_private = (void*)(unsigned long)len;
     }
-    
+
     pok_preemption_local_enable();
-    
+
     return POK_ERRNO_OK;
 }
 
 pok_ret_t pok_blackboard_clear (pok_blackboard_id_t id)
 {
     pok_blackboard_t* blackboard = get_blackboard(id);
-    
+
     if(!blackboard) return POK_ERRNO_UNAVAILABLE;
-    
+
     pok_preemption_local_disable();
     blackboard->message->size = 0;
     pok_preemption_local_enable();
-    
+
     return POK_ERRNO_OK;
 }
 
@@ -593,17 +630,21 @@ pok_ret_t pok_blackboard_id     (const char* __user             name,
                                  pok_blackboard_id_t* __user    id)
 {
     char kernel_name[MAX_NAME_LENGTH];
-    
-    if(!check_access_read(name, MAX_NAME_LENGTH)) return POK_ERRNO_EFAULT;
-    
-    __copy_from_user(kernel_name, name, MAX_NAME_LENGTH);
-    
+
+    const char* __kuser k_name = jet_user_to_kernel_ro(name, MAX_NAME_LENGTH);
+    if(!k_name) return POK_ERRNO_EFAULT;
+
+    pok_blackboard_id_t* __kuser k_id = jet_user_to_kernel_typed(id);
+    if(!k_id) return POK_ERRNO_EFAULT;
+
+    memcpy(kernel_name, k_name, MAX_NAME_LENGTH);
+
     pok_blackboard_t* blackboard = find_blackboard(kernel_name);
-    
+
     if(!blackboard) return POK_ERRNO_UNAVAILABLE;
-    
-    __put_user(id, blackboard - current_partition_arinc->blackboards);
-    
+
+    *k_id = blackboard - current_partition_arinc->blackboards;
+
     return POK_ERRNO_OK;
 }
 
@@ -611,20 +652,20 @@ pok_ret_t pok_blackboard_status (pok_blackboard_id_t                id,
                                  pok_blackboard_status_t* __user    status)
 {
     pok_blackboard_t* blackboard = get_blackboard(id);
-    
-    if(!blackboard) return POK_ERRNO_UNAVAILABLE;
-    
-    if(!check_user_write(status)) return POK_ERRNO_EFAULT;
 
-    __put_user_f(status, max_message_size, blackboard->max_message_size);
+    if(!blackboard) return POK_ERRNO_UNAVAILABLE;
+
+    pok_blackboard_status_t* __kuser k_status = jet_user_to_kernel_typed(status);
+    if(!k_status) return POK_ERRNO_EFAULT;
+
+    k_status->max_message_size = blackboard->max_message_size;
 
     pok_preemption_local_disable();
-    __put_user_f(status, is_empty,
-        blackboard->message->size? FALSE : TRUE);
-    __put_user_f(status, waiting_processes,
-        pok_thread_wq_get_nwaits(&blackboard->waiters));
+    k_status->is_empty = blackboard->message->size? FALSE : TRUE;
+    k_status->waiting_processes =
+        pok_thread_wq_get_nwaits(&blackboard->waiters);
     pok_preemption_local_enable();
-    
+
     return POK_ERRNO_OK;
 }
 
@@ -647,34 +688,37 @@ pok_ret_t pok_semaphore_create(const char* __user name,
     pok_sem_id_t* __user id)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
-    
+
     if(part->mode == POK_PARTITION_MODE_NORMAL) return POK_ERRNO_PARTITION_MODE;
-    
-    if(!check_access_read(name, MAX_NAME_LENGTH)) return POK_ERRNO_EFAULT;
-    if(!check_user_write(id)) return POK_ERRNO_EFAULT;
-    
+
+    const char* __kuser k_name = jet_user_to_kernel_ro(name, MAX_NAME_LENGTH);
+    if(!k_name) return POK_ERRNO_EFAULT;
+
+    pok_sem_id_t* __kuser k_id = jet_user_to_kernel_typed(id);
+    if(!k_id) return POK_ERRNO_EFAULT;
+
     if(max_value > MAX_SEMAPHORE_VALUE) return POK_ERRNO_EINVAL;
     if(value > max_value) return POK_ERRNO_EINVAL;
-    
+
     // TODO: check whether max_value is out of range.
-    
+
     if(discipline != POK_QUEUING_DISCIPLINE_FIFO
         && discipline != POK_QUEUING_DISCIPLINE_PRIORITY) return POK_ERRNO_EINVAL;
 
     if(part->nsemaphores_used == part->nsemaphores) return POK_ERRNO_TOOMANY;
-    
+
     pok_semaphore_t* semaphore = &part->semaphores[part->nsemaphores_used];
-    
-    __copy_from_user(semaphore->name, name, MAX_NAME_LENGTH);
-    
+
+    memcpy(semaphore->name, k_name, MAX_NAME_LENGTH);
+
     if(find_semaphore(semaphore->name)) return POK_ERRNO_EXISTS;
-    
+
     semaphore->value = value;
     semaphore->max_value = max_value;
     semaphore->discipline = discipline;
     pok_thread_wq_init(&semaphore->waiters);
-    
-    __put_user(id, semaphore - part->semaphores);
+
+    *k_id = semaphore - part->semaphores;
 
     part->nsemaphores_used++;
 
@@ -686,13 +730,14 @@ pok_ret_t pok_semaphore_wait(pok_sem_id_t id,
 {
     pok_semaphore_t* semaphore = get_semaphore(id);
     if(!semaphore) return POK_ERRNO_UNAVAILABLE;
-    
-    if(!check_user_read(timeout)) return POK_ERRNO_EFAULT;
-    pok_time_t kernel_timeout = __get_user(timeout);
-    
+
+    const pok_time_t* __kuser k_timeout = jet_user_to_kernel_typed_ro(timeout);
+    if(!k_timeout) return POK_ERRNO_EFAULT;
+    pok_time_t kernel_timeout = *k_timeout;
+
     pok_ret_t ret;
     pok_thread_t* t = current_thread;
-    
+
     pok_preemption_local_disable();
     if(semaphore->value)
     {
@@ -714,11 +759,11 @@ pok_ret_t pok_semaphore_wait(pok_sem_id_t id,
         thread_wait_common(t, kernel_timeout);
         goto out_wait;
     }
-    
+
     pok_preemption_local_enable();
 
     return ret;
-    
+
 out_wait:
     pok_preemption_local_enable();
 
@@ -761,15 +806,18 @@ pok_ret_t pok_semaphore_id(const char* __user name,
 {
     char kernel_name[MAX_NAME_LENGTH];
 
-    if(!check_access_read(name, MAX_NAME_LENGTH)) return POK_ERRNO_EFAULT;
-    if(!check_user_write(id)) return POK_ERRNO_EFAULT;
+    const char* __kuser k_name = jet_user_to_kernel_ro(name, MAX_NAME_LENGTH);
+    if(!k_name) return POK_ERRNO_EFAULT;
 
-    __copy_from_user(kernel_name, name, MAX_NAME_LENGTH);
+    pok_sem_id_t* __kuser k_id = jet_user_to_kernel_typed(id);
+    if(!k_id) return POK_ERRNO_EFAULT;
+
+    memcpy(kernel_name, k_name, MAX_NAME_LENGTH);
 
     pok_semaphore_t* semaphore = find_semaphore(kernel_name);
     if(!semaphore) return POK_ERRNO_UNAVAILABLE;
 
-    __put_user(id, semaphore - current_partition_arinc->semaphores);
+    *k_id = semaphore - current_partition_arinc->semaphores;
 
     return POK_ERRNO_OK;
 }
@@ -780,16 +828,17 @@ pok_ret_t pok_semaphore_status(pok_sem_id_t id,
     pok_semaphore_t* semaphore = get_semaphore(id);
     if(!semaphore) return POK_ERRNO_UNAVAILABLE;
 
-    if(!check_user_write(status)) return POK_ERRNO_EFAULT;
-    
-    __put_user_f(status, maximum_value, semaphore->max_value);
-    
+    pok_semaphore_status_t* __kuser k_status = jet_user_to_kernel_typed(status);
+    if(!k_status) return POK_ERRNO_EFAULT;
+
+    k_status->maximum_value = semaphore->max_value;
+
     pok_preemption_local_disable();
-    __put_user_f(status, current_value, semaphore->value);
-    __put_user_f(status, waiting_processes,
-        pok_thread_wq_get_nwaits(&semaphore->waiters));
+    k_status->current_value = semaphore->value;
+    k_status->waiting_processes =
+        pok_thread_wq_get_nwaits(&semaphore->waiters);
     pok_preemption_local_enable();
-    
+
     return POK_ERRNO_OK;
 }
 
@@ -812,14 +861,17 @@ pok_ret_t pok_event_create(const char* __user name,
 
     if(part->mode == POK_PARTITION_MODE_NORMAL) return POK_ERRNO_PARTITION_MODE;
 
-    if(!check_access_read(name, MAX_NAME_LENGTH)) return POK_ERRNO_EFAULT;
-    if(!check_user_write(id)) return POK_ERRNO_EFAULT;
+    const char* __kuser k_name = jet_user_to_kernel_ro(name, MAX_NAME_LENGTH);
+    if(!k_name) return POK_ERRNO_EFAULT;
+
+    pok_event_id_t* __kuser k_id = jet_user_to_kernel_typed(id);
+    if(!k_id) return POK_ERRNO_EFAULT;
 
     if(part->nevents_used == part->nevents) return POK_ERRNO_TOOMANY;
 
     pok_event_t* event = &part->events[part->nevents_used];
 
-    __copy_from_user(event->name, name, MAX_NAME_LENGTH);
+    memcpy(event->name, k_name, MAX_NAME_LENGTH);
 
     if(find_event(event->name)) return POK_ERRNO_EXISTS;
 
@@ -827,7 +879,7 @@ pok_ret_t pok_event_create(const char* __user name,
 
     pok_thread_wq_init(&event->waiters);
 
-    __put_user(id, event - part->events);
+    *k_id = event - part->events;
 
     part->nevents_used++;
 
@@ -838,30 +890,30 @@ pok_ret_t pok_event_set(pok_event_id_t id)
 {
     pok_event_t* event = get_event(id);
     if(!event) return POK_ERRNO_UNAVAILABLE;
-    
+
     pok_preemption_local_disable();
     event->is_up = TRUE;
-    
+
     for(pok_thread_t* t = pok_thread_wq_wake_up(&event->waiters);
         t;
         t = pok_thread_wq_wake_up(&event->waiters))
     {
         t->wait_private = NULL;
     }
-    
+
     pok_preemption_local_enable();
-    
+
     return POK_ERRNO_OK;
 }
 pok_ret_t pok_event_reset(pok_event_id_t id)
 {
     pok_event_t* event = get_event(id);
     if(!event) return POK_ERRNO_UNAVAILABLE;
-    
+
     pok_preemption_local_disable();
     event->is_up = FALSE;
     pok_preemption_local_enable();
-    
+
     return POK_ERRNO_OK;
 
 }
@@ -870,15 +922,16 @@ pok_ret_t pok_event_wait(pok_event_id_t id,
     const pok_time_t* __user timeout)
 {
     pok_ret_t ret;
-    
+
     pok_event_t* event = get_event(id);
     if(!event) return POK_ERRNO_UNAVAILABLE;
 
-    if(!check_user_read(timeout)) return POK_ERRNO_EFAULT;
-    pok_time_t kernel_timeout = __get_user(timeout);
+    const pok_time_t* __kuser k_timeout = jet_user_to_kernel_typed_ro(timeout);
+    if(!k_timeout) return POK_ERRNO_EFAULT;
+    pok_time_t kernel_timeout = *k_timeout;
 
     pok_thread_t* t = current_thread;
-    
+
     pok_preemption_local_disable();
     if(event->is_up)
     {
@@ -899,14 +952,14 @@ pok_ret_t pok_event_wait(pok_event_id_t id,
         thread_wait_common(t, kernel_timeout);
         goto out_wait;
     }
-    
+
     pok_preemption_local_enable();
 
     return ret;
-        
+
 out_wait:
     pok_preemption_local_enable();
-    
+
     long wait_result = (long)t->wait_private;
     if(wait_result) return (pok_ret_t)(-wait_result);
 
@@ -916,18 +969,21 @@ out_wait:
 pok_ret_t pok_event_id(const char* __user name,
     pok_event_id_t* __user id)
 {
-    if(!check_access_read(name, MAX_NAME_LENGTH)) return POK_ERRNO_EFAULT;
-    if(!check_user_write(id)) return POK_ERRNO_EFAULT;
-    
+    const char* __kuser k_name = jet_user_to_kernel_ro(name, MAX_NAME_LENGTH);
+    if(!k_name) return POK_ERRNO_EFAULT;
+
+    pok_event_id_t* __kuser k_id = jet_user_to_kernel_typed(id);
+    if(!k_id) return POK_ERRNO_EFAULT;
+
     char kernel_name[MAX_NAME_LENGTH];
-    
-    __copy_from_user(kernel_name, name, MAX_NAME_LENGTH);
-    
+
+    memcpy(kernel_name, k_name, MAX_NAME_LENGTH);
+
     pok_event_t* event = find_event(kernel_name);
     if(!event) return POK_ERRNO_UNAVAILABLE;
-    
-    __put_user(id, event - current_partition_arinc->events);
-    
+
+    *k_id = event - current_partition_arinc->events;
+
     return POK_ERRNO_OK;
 }
 
@@ -937,13 +993,14 @@ pok_ret_t pok_event_status(pok_event_id_t id,
     pok_event_t* event = get_event(id);
     if(!event) return POK_ERRNO_UNAVAILABLE;
 
-    if(!check_user_write(status)) return POK_ERRNO_EFAULT;
+    pok_event_status_t* __kuser k_status = jet_user_to_kernel_typed(status);
+    if(!k_status) return POK_ERRNO_EFAULT;
 
     pok_preemption_local_disable();
-    __put_user_f(status, is_up, event->is_up);
-    __put_user_f(status, waiting_processes,
-        pok_thread_wq_get_nwaits(&event->waiters));
+    k_status->is_up = event->is_up;
+    k_status->waiting_processes =
+        pok_thread_wq_get_nwaits(&event->waiters);
     pok_preemption_local_enable();
-    
+
     return POK_ERRNO_OK;
 }
