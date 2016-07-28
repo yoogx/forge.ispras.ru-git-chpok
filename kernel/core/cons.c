@@ -18,7 +18,6 @@
 
 #if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
 
-#include <arch.h>
 #include <errno.h>
 #include <core/cons.h>
 

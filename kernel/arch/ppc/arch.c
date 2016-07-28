@@ -32,67 +32,42 @@
  * 
  * Called from entry.S.
  */
-pok_ret_t pok_arch_init (void)
+void pok_arch_init (void)
 {
   mtmsr(MSR_IP | MSR_FP);
 
 #if POK_NEEDS_PARTITIONS
   pok_arch_space_init();
 #endif
-
-  return (POK_ERRNO_OK);
 }
 
-pok_ret_t pok_arch_preempt_disable()
+void ja_preempt_disable(void)
 {
   mtmsr(mfmsr() & ~MSR_EE);
-
-  return (POK_ERRNO_OK);
 }
 
-pok_ret_t pok_arch_preempt_enable()
+void ja_preempt_enable(void)
 {
   mtmsr(mfmsr() | MSR_EE);
-
-  return (POK_ERRNO_OK);
 }
 
-pok_bool_t pok_arch_preempt_enabled(void)
+pok_bool_t ja_preempt_enabled(void)
 {
   return !!(mfmsr() & MSR_EE);
 }
 
-void pok_arch_inf_loop()
+void ja_inf_loop(void)
 {
-   pok_arch_preempt_disable();
-
-   while (1)
-   {}
-}
-
-pok_ret_t pok_arch_idle()
-{
-   pok_arch_preempt_enable();
-
    while (1)
    {
+      asm("wait": : :"memory");
    }
-
-   return (POK_ERRNO_OK);	
-}
-
-pok_ret_t pok_arch_event_register (uint8_t vector, void (*handler)(void))
-{
-  (void) vector;
-  (void) handler;
-
-  return (POK_ERRNO_OK);
 }
 
 #include <arch/linux_io.h>
 #define DCFG_RSTCR 0xb0
 #define RSTCR_RESET_REQ 0x2
-void pok_arch_cpu_reset()
+void ja_cpu_reset(void)
 {
     uintptr_t addr = pok_bsp.ccsrbar_base + pok_bsp.dcfg_offset + DCFG_RSTCR;
     out_be32((void*)addr, RSTCR_RESET_REQ);

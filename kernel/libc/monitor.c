@@ -18,7 +18,7 @@
 
 #include <libc.h>
 #include <bsp_common.h>
-#include <arch.h>
+#include <asp/arch.h>
 #include <core/partition_arinc.h>
 
 
@@ -315,7 +315,7 @@ int cpu_reset(int argc, char **argv)
     (void) argc;
     (void) argv;
     printf("Rebooting\n");
-    pok_arch_cpu_reset();
+    ja_cpu_reset();
 
     return 0;
 }
@@ -395,7 +395,7 @@ void monitor_start_func(void)
     for (;;) {
         if (data_to_read_0() == 1) {
             /*
-             * Set all partition on pause
+             * Set all partitions on pause
              */
             pok_preemption_disable();
             for (int i=0; i < pok_partitions_arinc_n; i++){

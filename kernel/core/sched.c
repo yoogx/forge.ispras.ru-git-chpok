@@ -16,7 +16,7 @@
 #include <config.h>
 
 #include <types.h>
-#include <arch.h>
+#include <asp/arch.h>
 
 #include <core/time.h>
 #include <core/sched.h>
@@ -65,7 +65,7 @@ static void idle_function(void)
 {
     pok_preemption_enable();
     
-    wait_infinitely();
+    ja_inf_loop();
 }
 #endif
 
@@ -104,7 +104,7 @@ static void start_partition(void)
     if(current_partition->part_ops && current_partition->part_ops->start)
         current_partition->part_ops->start();
         
-    wait_infinitely();
+    ja_inf_loop();
 }
 
 /* Switch within current partition, if needed. */
@@ -302,22 +302,22 @@ same_partition:
 
 void pok_preemption_disable(void)
 {
-    assert(pok_arch_preempt_enabled());
+    assert(ja_preempt_enabled());
 
-    pok_arch_preempt_disable();
+    ja_preempt_disable();
 }
 
 
 void pok_preemption_enable(void)
 {
-    assert(!pok_arch_preempt_enabled());
+    assert(!ja_preempt_enabled());
     
     pok_sched();
     if(current_partition->preempt_local_disabled
         || !current_partition->state.bytes_all)
     {
         // Partition doesn't require notifications. Common case.
-        pok_arch_preempt_enable();
+        ja_preempt_enable();
         return;
     }
 
@@ -326,22 +326,22 @@ void pok_preemption_enable(void)
     // Until partition "consume" all state bits or enables preemption.
     do    
     {
-        pok_arch_preempt_enable();
+        ja_preempt_enable();
     
         current_partition->part_sched_ops->on_event();
         
-        pok_arch_preempt_disable();
+        ja_preempt_disable();
     } while(current_partition->preempt_local_disabled
         && current_partition->state.bytes_all);
     
     current_partition->preempt_local_disabled = 0;
-    pok_arch_preempt_enable();
+    ja_preempt_enable();
 }
 
 void __pok_preemption_enable(void)
 {
-    assert(!pok_arch_preempt_enabled());
-    pok_arch_preempt_enable();
+    assert(!ja_preempt_enabled());
+    ja_preempt_enable();
 }
 
 
@@ -408,9 +408,9 @@ void pok_sched_on_time_changed(void)
     do
     {
         part->preempt_local_disabled = 1;
-        pok_arch_preempt_enable();
+        ja_preempt_enable();
         part->part_sched_ops->on_event();
-        pok_arch_preempt_disable();
+        ja_preempt_disable();
     } while(part->preempt_local_disabled && part->state.bytes_all);
 
     part->preempt_local_disabled = 0;
@@ -437,9 +437,9 @@ static void pok_partition_return_user_common(void)
         && part->state.bytes_all)
     {
         part->preempt_local_disabled = 1;
-        pok_arch_preempt_enable();
+        ja_preempt_enable();
         part->part_sched_ops->on_event();
-        pok_arch_preempt_disable();
+        ja_preempt_disable();
     }
 
     part->preempt_local_disabled = 0;

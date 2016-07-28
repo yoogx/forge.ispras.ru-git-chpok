@@ -24,33 +24,19 @@
 #include <config.h>
 
 #include <types.h>
-#include <errno.h>
 
 #include <arch/bsp.h>
 
-pok_ret_t pok_bsp_irq_acknowledge (uint8_t irq);
-
-pok_ret_t pok_bsp_irq_register (uint8_t irq,
-				                    void    (*handler)(void));
-
 void pok_bsp_get_info(void *addr);
-
 
 pok_bool_t pok_cons_write (const char* s,
                        size_t length);
 pok_bool_t pok_cons_write_1 (const char* s,
                        size_t length);
 
-
-int data_to_read_0();
-int read_serial_0();
-int data_to_read_1();
-int read_serial_1();
-
-
-#ifdef POK_NEEDS_DEBUG
-void pok_bsp_debug();
-#endif
-
+int data_to_read_0(void);
+int read_serial_0(void);
+int data_to_read_1(void);
+int read_serial_1(void);
 
 #endif /* !BSP_H_ */

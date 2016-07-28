@@ -19,7 +19,7 @@
 #include <core/sched_arinc.h>
 #include "thread_internal.h"
 #include <common.h>
-#include <arch.h>
+#include <asp/arch.h>
 #include <core/uaccess.h>
 #include <system_limits.h>
 
@@ -39,7 +39,7 @@
  */
 static void idle_func(void)
 {
-    wait_infinitely();
+    ja_inf_loop();
 }
 
 void pok_partition_arinc_idle(void)

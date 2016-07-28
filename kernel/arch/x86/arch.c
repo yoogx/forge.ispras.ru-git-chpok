@@ -81,18 +81,6 @@ pok_ret_t pok_arch_idle()
    return (POK_ERRNO_OK);	
 }
 
-pok_ret_t pok_arch_event_register  (uint8_t vector,
-                                    void (*handler)(void))
-{
-   pok_idt_set_gate (vector,
-                     GDT_CORE_CODE_SEGMENT << 3,
-                     (uint32_t)handler,
-                     IDTE_INTERRUPT,
-                     3);
-
-   return (POK_ERRNO_OK);
-}
-
 uint32_t    ja_thread_stack_addr   (uint8_t    space_id,
                                      uint32_t stack_size,
                                      uint32_t* state)

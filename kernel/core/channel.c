@@ -15,7 +15,6 @@
 
 #include <core/channel.h>
 #include <types.h>
-#include <arch.h>
 #include <assert.h>
 #include <core/time.h>
 

@@ -21,7 +21,6 @@
 #ifdef POK_NEEDS_ERROR_HANDLING
 
 #include <types.h>
-#include <arch.h>
 #include <core/error_arinc.h>
 #include <core/partition_arinc.h>
 #include <core/debug.h>

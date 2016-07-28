@@ -11,59 +11,41 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
  * See the GNU General Public License version 3 for more details.
- *
- * This file also incorporates work covered by POK License.
- * Copyright (c) 2007-2009 POK team
  */
 
-#ifndef __POK_ARCH_H__
-#define __POK_ARCH_H__
+/* Unsorted arch-specific functions. */
+
+#ifndef __JET_ASP_ARCH_H__
+#define __JET_ASP_ARCH_H__
 
 #include <types.h>
-#include <errno.h>
-#include <bsp_common.h>
 
 // TODO: Where should be that definition?
 #define KERNEL_STACK_SIZE_DEFAULT 8192
 
 /**
- * Disable interruptions
+ * Disable interrupts
  */
-pok_ret_t   pok_arch_preempt_disable (void);
+void ja_preempt_disable (void);
 
 /**
- * Enable interruptions
+ * Enable interrupts
  */
-pok_ret_t   pok_arch_preempt_enable (void);
+void ja_preempt_enable (void);
 
 /**
  * Returns true if interrupts are enabled
  */
-pok_bool_t pok_arch_preempt_enabled(void);
+pok_bool_t ja_preempt_enabled(void);
 
 /**
  * Function that do nothing. Useful for the idle task for example.
  */
-pok_ret_t   pok_arch_idle (void);
-
-/**
- * Register an event (for example, an interruption)
- */
-pok_ret_t   pok_arch_event_register (uint8_t vector, void (*handler)(void));
-
-/**
- *  Disable interrupts and loop
- */
-void pok_arch_inf_loop();
-
-void pok_trap();
+void ja_inf_loop(void);
 
 /*
  * reset cpu
  */
-void pok_arch_cpu_reset();
-
-
-#include <asp/cswitch.h>
+void ja_cpu_reset(void);
 
 #endif /* !__POK_ARCH_H__ */

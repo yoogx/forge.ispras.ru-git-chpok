@@ -58,4 +58,6 @@ void gdb_set_regs(const struct jet_interrupt_context* ea, uint32_t* registers);
 /* Fill 'ea' array according to 'registers'. */
 void gdb_get_regs(struct jet_interrupt_context* ea, const uint32_t* registers);
 
+void pok_trap(void);
+
 #endif /* __JET_ASP_GDB_H__ */

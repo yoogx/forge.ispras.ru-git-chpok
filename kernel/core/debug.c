@@ -21,7 +21,7 @@
 
 #ifdef POK_NEEDS_DEBUG
 
-#include <arch.h>
+#include <asp/arch.h>
 #include <errno.h>
 #include <core/debug.h>
 #include <core/cons.h>
@@ -84,13 +84,13 @@ void pok_fatal (const char* message)
   // with preemption enabled
   // also, some bugs somehow reenable preemption
   // where it shouldn't be enabled
-  pok_arch_preempt_disable();
+  ja_preempt_disable();
 
   pok_write ("FATAL ERROR: \n", 13);
   pok_write (message , debug_strlen(message));
 
   POK_DEBUG_PRINT_CURRENT_STATE
-  pok_arch_inf_loop();
+  ja_inf_loop();
 
   __builtin_unreachable();
 }

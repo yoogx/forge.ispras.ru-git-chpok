@@ -25,7 +25,6 @@
 #include <types.h>
 #include <errno.h>
 #include <core/error.h>
-#include <arch.h>
 
 #include <gdb.h>
 

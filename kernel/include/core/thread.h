@@ -35,7 +35,6 @@
 #include <errno.h>
 
 #include <core/delayed_event.h>
-#include <arch.h>
 #include <list.h>
 
 #include <asp/cswitch.h>

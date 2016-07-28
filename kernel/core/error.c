@@ -16,6 +16,7 @@
 
 #include <core/error.h>
 #include <core/sched.h>
+#include <asp/arch.h>
 
 // TODO: this should be modified somewhere
 pok_system_state_t kernel_state = POK_SYSTEM_STATE_INIT_PARTOS;
@@ -32,7 +33,7 @@ static void perform_module_action(pok_error_module_action_t action)
 {
     if(action == POK_ERROR_MODULE_ACTION_IGNORE) return;
 
-    pok_arch_preempt_disable();
+    ja_preempt_disable();
 
     switch(action) {
 
@@ -116,7 +117,7 @@ void pok_raise_error(pok_error_id_t error_id, pok_bool_t user_space, void* faile
 
     pok_partition_t* part;
     pok_bool_t need_call_process_partition_error = FALSE;
-    uint8_t preempt_local_disabled_old = !pok_arch_preempt_enabled();
+    pok_bool_t preempt_local_disabled_old = !ja_preempt_enabled();
 
     if(!preempt_local_disabled_old)
         pok_preemption_disable();

@@ -20,6 +20,7 @@
 
 #include <cswitch.h>
 #include <core/space.h>
+#include <asp/arch.h>
 
 static void thread_start_func(void)
 {
@@ -122,7 +123,7 @@ static void do_nothing_func(void)
 {
     pok_preemption_local_enable();
     
-    wait_infinitely();
+    ja_inf_loop();
 }
 
 

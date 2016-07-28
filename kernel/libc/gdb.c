@@ -4,7 +4,7 @@
 
 #include <libc.h>
 #include <bsp_common.h>
-#include <arch.h>
+#include <asp/arch.h>
 #include <core/partition.h>
 #include <core/sched.h>
 
@@ -32,11 +32,11 @@ void pok_gdb_thread(void)
         //~ j++;
         //~ if (j % 1000 == 0) printf("Waiting...\n");
         if (data_to_read_1() == 1) {
-            pok_arch_preempt_disable();         
+            ja_preempt_disable();
             gdb();
-            pok_arch_preempt_enable();        
+            ja_preempt_enable();
             //~ printf();
-            
+
         }
     }
     printf("End of gdb func\n");

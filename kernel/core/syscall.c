@@ -18,6 +18,7 @@
 
 #include <config.h>
 
+#include <asp/arch.h>
 #include <bsp_common.h>
 #include <types.h>
 #include <libc.h>
@@ -40,7 +41,7 @@ static pok_ret_t unprotected_syscall(
    const pok_syscall_args_t*    args)
 {
    pok_ret_t ret;
-   pok_arch_preempt_enable();
+   ja_preempt_enable();
    ret = f(args);
    pok_partition_return_user();
    return ret;

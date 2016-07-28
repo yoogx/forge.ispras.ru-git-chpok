@@ -17,10 +17,11 @@
 
 #include <core/partition.h>
 #include <common.h>
+#include <asp/arch.h>
 
 static void partition_idle_thread(void)
 {
-    wait_infinitely();
+    ja_inf_loop();
 }
 
 static void partition_idle_process_error(pok_system_state_t partition_state,

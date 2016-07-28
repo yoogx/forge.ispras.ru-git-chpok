@@ -21,7 +21,7 @@
 #include <libc.h>
 #include <stdarg.h>
 #include <bsp_common.h>
-#include <arch.h>
+#include <asp/arch.h>
 
 static const char digits[] = "0123456789abcdef";
 
@@ -54,13 +54,13 @@ static void buf_flush(struct s_file *file)
      * 
      * Disable interrupts if they are not currently disabled.
      */
-    pok_bool_t need_critical_section = pok_arch_preempt_enabled();
+    pok_bool_t need_critical_section = ja_preempt_enabled();
     
     if(need_critical_section)
-        pok_arch_preempt_disable();
+        ja_preempt_disable();
     pok_cons_write (file->buff, file->pos);
     if(need_critical_section)
-        pok_arch_preempt_enable();
+        ja_preempt_enable();
 
     file->pos = 0;
 }

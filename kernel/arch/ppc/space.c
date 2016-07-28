@@ -25,7 +25,6 @@
 #include <core/sched.h>
 #include <core/debug.h>
 
-#include <arch.h>
 #include "context.h"
 #include "interrupt_context.h"
 #include "msr.h"

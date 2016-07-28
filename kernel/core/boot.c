@@ -23,7 +23,6 @@
 
 #include <config.h>
 
-#include <arch.h>
 #include <bsp_common.h>
 
 #include <core/time.h>
@@ -36,6 +35,10 @@
 #include <libc.h>
 
 #include <core/instrumentation.h>
+
+#ifdef POK_NEEDS_GDB
+#include <gdb.h>
+#endif
 
 void jet_boot (void)
 {

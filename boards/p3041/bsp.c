@@ -19,7 +19,6 @@
 #include <config.h>
 
 #include <errno.h>
-#include <arch.h>
 #include <core/debug.h>
 #include <bsp_common.h>
 #include "space.h"

@@ -24,7 +24,6 @@
 
 #include <types.h>
 
-#include <arch.h>
 #include <core/debug.h>
 #include <core/error.h>
 #include <core/thread.h>
