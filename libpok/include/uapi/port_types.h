@@ -1,4 +1,9 @@
 /*
+ * COPIED! DO NOT MODIFY!
+ *
+ * Instead of modifying this file, modify original one (kernel/include/uapi/port_types.h).
+ */
+/*
  * Institute for System Programming of the Russian Academy of Sciences
  * Copyright (C) 2016 ISPRAS
  *
