@@ -23,7 +23,6 @@
 #include <errno.h> 
 #include <core/debug.h>
 #include <libc.h>
-#include <bsp_common.h>
 #include "reg.h"
 
 #include "space.h"

@@ -20,9 +20,8 @@
 
 #include <errno.h>
 #include <core/debug.h>
-#include "cons.h"
-#include <bsp_common.h>
-#include "space.h"
+#include "bsp.h"
+#include <asp/entries.h>
 
 #include "devtree.h"
 
@@ -46,15 +45,10 @@ extern char _end[];
 /* Initialize bsp-related functionality. Called from entry.S. */
 void pok_bsp_init (void)
 {
-   pok_cons_init ();
+   jet_console_init_all ();
 
    //devtree_dummy_dump();
    if ((uintptr_t) _end > 0x4000000ULL)
        pok_fatal("Kernel size is more than 64 megabytes");
-}
-
-void pok_bsp_get_info(void *addr) {
-    pok_bsp_t *data = addr;
-    *data = pok_bsp;
 }
 

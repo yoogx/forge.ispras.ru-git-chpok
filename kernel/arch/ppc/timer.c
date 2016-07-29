@@ -14,7 +14,7 @@
  */
 
 #include <errno.h>
-#include <bsp_common.h>
+#include "bsp.h"
 #include <core/time.h>
 #include <core/sched.h>
 #include <core/debug.h>

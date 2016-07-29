@@ -32,5 +32,15 @@
  */
 void jet_boot(void);
 
+/* 
+ * Initialize main and debug consoles with their default values (provided by arch).
+ * 
+ * Any stream which is not supported by arch is set to 'jet_stream_null'.
+ * 
+ * Should be called before 'jet_boot'
+ */
+void jet_console_init_all(void);
+
+
 
 #endif /* __JET_ASP_ENTRIES_H__ */

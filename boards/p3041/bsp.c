@@ -20,9 +20,8 @@
 
 #include <errno.h>
 #include <core/debug.h>
-#include <bsp_common.h>
-#include "space.h"
-#include <cons.h>
+#include "bsp.h"
+#include <asp/entries.h>
 
 #include "devtree.h"
 
@@ -51,9 +50,3 @@ int pok_bsp_init (void)
 
    return (POK_ERRNO_OK);
 }
-
-void pok_bsp_get_info(void *addr) {
-    pok_bsp_t *data = addr;
-    *data = pok_bsp;
-}
-

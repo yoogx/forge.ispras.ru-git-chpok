@@ -110,13 +110,13 @@
  ****************************************************************************/
 
 #include <libc.h>
-#include <bsp_common.h>
 #include <core/thread.h>
 #include <core/partition.h>
 
 #include <core/time.h>
 #include <core/debug.h>
 #include <config.h>
+#include <cons.h>
 
 #include <gdb.h>
 

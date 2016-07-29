@@ -19,7 +19,7 @@
 #include <config.h>
 
 #include <asp/arch.h>
-#include <bsp_common.h>
+#include <asp/bsp_common.h>
 #include <types.h>
 #include <libc.h>
 #include <ioports.h>
@@ -33,6 +33,7 @@
 #include <core/error.h>
 #include <memory.h>
 
+#include <cons.h>
 #include <core/port.h>
 
 /* Call given function without protection(with enabled interrupts). */
@@ -65,7 +66,7 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
       case POK_SYSCALL_CONSWRITE:
          // TODO: It should be a call protected with global preemption disabled.
          POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg1 + infos->base_addr)
-         if (pok_cons_write ((const char*)args->arg1 + infos->base_addr, args->arg2))
+         if (jet_console_write ((const char*)args->arg1 + infos->base_addr, args->arg2))
          {
             return POK_ERRNO_OK;
          }

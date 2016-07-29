@@ -17,9 +17,9 @@
 #include <config.h>
 
 #include <libc.h>
-#include <bsp_common.h>
 #include <asp/arch.h>
 #include <core/partition_arinc.h>
+#include <cons.h>
 
 
 #ifdef POK_NEEDS_NETWORKING

@@ -25,7 +25,8 @@
 #include "msr.h"
 #include "space.h"
 #include "devtree.h"
-#include <bsp_common.h>
+#include "bsp.h"
+#include <asp/bsp_common.h>
 
 /**
  * Function that initializes architecture concerns.
@@ -71,4 +72,9 @@ void ja_cpu_reset(void)
 {
     uintptr_t addr = pok_bsp.ccsrbar_base + pok_bsp.dcfg_offset + DCFG_RSTCR;
     out_be32((void*)addr, RSTCR_RESET_REQ);
+}
+
+void pok_bsp_get_info(void *addr) {
+    pok_bsp_t *data = addr;
+    *data = pok_bsp;
 }

@@ -12,31 +12,11 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
  * See the GNU General Public License version 3 for more details.
- *
- * This file also incorporates work covered by POK License.
- * Copyright (c) 2007-2009 POK team
  */
 
 #ifndef __POK_BSP_COMMON_H__
 #define __POK_BSP_COMMON_H__
 
-
-#include <config.h>
-
-#include <types.h>
-
-#include <arch/bsp.h>
-
 void pok_bsp_get_info(void *addr);
 
-pok_bool_t pok_cons_write (const char* s,
-                       size_t length);
-pok_bool_t pok_cons_write_1 (const char* s,
-                       size_t length);
-
-int data_to_read_0(void);
-int read_serial_0(void);
-int data_to_read_1(void);
-int read_serial_1(void);
-
-#endif /* !BSP_H_ */
+#endif /* __POK_BSP_COMMON_H__ */

@@ -19,7 +19,6 @@
 #include <types.h>
 #include <errno.h>
 #include <libc.h>
-#include <bsp_common.h>
 #include <assert.h>
 
 #include <arch.h>

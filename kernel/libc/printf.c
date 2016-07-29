@@ -20,8 +20,8 @@
 #include <types.h>
 #include <libc.h>
 #include <stdarg.h>
-#include <bsp_common.h>
 #include <asp/arch.h>
+#include <cons.h>
 
 static const char digits[] = "0123456789abcdef";
 

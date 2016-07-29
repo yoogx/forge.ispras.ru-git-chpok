@@ -23,7 +23,7 @@
 
 #include <config.h>
 
-#include <bsp_common.h>
+#include <cons.h>
 
 #include <core/time.h>
 #include <core/thread.h>
@@ -93,7 +93,7 @@ void jet_boot (void)
 #endif
   pok_sched_start();
 #else
-  pok_arch_preempt_enable();
+  ja_preempt_enable();
 
   /**
    * If we don't use partitioning service, we execute a main

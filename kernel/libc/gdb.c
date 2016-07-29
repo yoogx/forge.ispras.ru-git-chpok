@@ -3,11 +3,10 @@
 #ifdef POK_NEEDS_GDB
 
 #include <libc.h>
-#include <bsp_common.h>
 #include <asp/arch.h>
 #include <core/partition.h>
 #include <core/sched.h>
-
+#include <cons.h>
 
 //static pok_bool_t *partiton_on_pause;
 

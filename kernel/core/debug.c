@@ -24,7 +24,7 @@
 #include <asp/arch.h>
 #include <errno.h>
 #include <core/debug.h>
-#include <core/cons.h>
+#include <cons.h>
 #include <core/sched.h>
 #include <core/thread.h>
 #include <core/partition.h>
@@ -86,8 +86,8 @@ void pok_fatal (const char* message)
   // where it shouldn't be enabled
   ja_preempt_disable();
 
-  pok_write ("FATAL ERROR: \n", 13);
-  pok_write (message , debug_strlen(message));
+  jet_console_write ("FATAL ERROR: \n", 13);
+  jet_console_write (message , debug_strlen(message));
 
   POK_DEBUG_PRINT_CURRENT_STATE
   ja_inf_loop();

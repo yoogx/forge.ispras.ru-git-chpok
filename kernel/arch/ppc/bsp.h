@@ -1,5 +1,5 @@
-#ifndef __POK_BSP_H__
-#define __POK_BSP_H__
+#ifndef __JET_PPC_BSP_H__
+#define __JET_PPC_BSP_H__
 
 #include <types.h>
 
@@ -22,4 +22,4 @@ typedef struct {
 
 extern pok_bsp_t pok_bsp;
 
-#endif
+#endif /* __JET_PPC_BSP_H__ */
