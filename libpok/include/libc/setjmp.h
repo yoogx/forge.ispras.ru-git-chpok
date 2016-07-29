@@ -18,7 +18,7 @@
 
 #include <arch/setjmp.h>
 
-int setjmp (jmp_buf env);
+int setjmp(jmp_buf env);
 void longjmp(jmp_buf env, int val);
 
 #endif /* __POK_LIBC_SETJMP_H_ */

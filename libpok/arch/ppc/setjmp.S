@@ -40,7 +40,6 @@ longjmp:
 
     /* longjmp/longjmp_target probe expects longjmp first argument (4@3),
     second argument (-4@4), and target address (4@0), respectively. */
-    //LIBC_PROBE (longjmp, 3, 4@3, -4@4, 4@0)
     mtlr r0
     LOAD_GP (21)
     LOAD_GP (22)
@@ -55,7 +54,6 @@ longjmp:
     LOAD_GP (29)
     LOAD_GP (30)
     LOAD_GP (31)
-    //LIBC_PROBE (longjmp_target, 3, 4@3, -4@4, 4@0)
     mr r3,r4
     blr
 
@@ -63,9 +61,9 @@ longjmp:
 setjmp:
     stw  r1,(JB_GPR1*4)(3)
     mflr r0
-/* setjmp probe expects longjmp first argument (4@3), second argument
-(-4@4), and target address (4@0), respectively. */
-    //LIBC_PROBE (setjmp, 3, 4@3, -4@4, 4@0)
+
+    /* setjmp probe expects longjmp first argument (4@3), second argument
+    (-4@4), and target address (4@0), respectively. */
     SAVE_GP (14)
     stw  r0,(JB_LR*4)(3)
     SAVE_GP (15)
