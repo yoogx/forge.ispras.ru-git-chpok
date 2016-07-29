@@ -19,6 +19,7 @@
 
 #include <errno.h>
 #include <cons.h>
+#include <core/uaccess.h>
 
 static void iostream_init(struct jet_iostream* stream)
 {
@@ -118,6 +119,17 @@ size_t jet_console_write(const char* s, size_t length)
 size_t jet_console_write_debug(const char* s, size_t length)
 {
    return jet_console_write_common(&jet_console_debug, s, length);
+}
+
+
+pok_ret_t jet_console_write_user(const char* __user s, size_t length)
+{
+   const char* __kuser k_s = jet_user_to_kernel_ro(s, length);
+   if(!k_s) return POK_ERRNO_EFAULT;
+
+   jet_console_write(k_s, length);
+
+   return POK_ERRNO_OK;
 }
 
 

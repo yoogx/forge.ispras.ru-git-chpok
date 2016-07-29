@@ -261,38 +261,4 @@ pok_ret_t pok_current_partition_inc_lock_level(int32_t *lock_level);
 
 pok_ret_t pok_current_partition_dec_lock_level(int32_t *lock_level);
 
-// utility macro-like functions
-
-
-/**
- * Chech that pointer \a ptr is located in the address space of partition
- * \a pid
- */
-
-/* TODO dirty as hell */
-
-#ifdef __i386__
-#define POK_CHECK_PTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= current_partition_arinc->base_addr && \
-                                             ((uintptr_t)(ptr)) <  current_partition_arinc->base_addr + current_partition_arinc->size\
-                                             )
-
-#define POK_CHECK_VPTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= current_partition_arinc->base_vaddr && \
-                                             ((uintptr_t)(ptr)) <  current_partition_arinc->base_vaddr + current_partition_arinc->size\
-                                             )
-#elif defined(__PPC__)
-#define POK_CHECK_PTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= 0x80000000 && \
-                                             ((uintptr_t)(ptr)) <  0x80000000 + 0x1000000ULL\
-                                             )
-
-#define POK_CHECK_VPTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= 0x80000000 && \
-                                             ((uintptr_t)(ptr)) <  0x80000000 + 0x1000000ULL\
-                                             )
-#else
-#error "POK_CHECK_PTR macros are not implemented for this arch, do it now!"
-#endif
-
 #endif /* !__POK_PARTITION_ARINC_H__ */

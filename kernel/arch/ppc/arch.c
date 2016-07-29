@@ -27,10 +27,11 @@
 #include "devtree.h"
 #include "bsp.h"
 #include <asp/bsp_common.h>
+#include <core/uaccess.h>
 
 /**
  * Function that initializes architecture concerns.
- * 
+ *
  * Called from entry.S.
  */
 void pok_arch_init (void)
@@ -74,7 +75,11 @@ void ja_cpu_reset(void)
     out_be32((void*)addr, RSTCR_RESET_REQ);
 }
 
-void pok_bsp_get_info(void *addr) {
-    pok_bsp_t *data = addr;
-    *data = pok_bsp;
+pok_ret_t pok_bsp_get_info(void * __user addr) {
+    pok_bsp_t* __kuser k_addr = jet_user_to_kernel(addr, sizeof(pok_bsp_t));
+    if(!k_addr) return POK_ERRNO_EFAULT;
+
+    *k_addr = pok_bsp;
+
+    return POK_ERRNO_OK;
 }

@@ -17,6 +17,9 @@
 #ifndef __POK_BSP_COMMON_H__
 #define __POK_BSP_COMMON_H__
 
-void pok_bsp_get_info(void *addr);
+#include <errno.h>
+#include <common.h>
+
+pok_ret_t pok_bsp_get_info(void * __user addr);
 
 #endif /* __POK_BSP_COMMON_H__ */

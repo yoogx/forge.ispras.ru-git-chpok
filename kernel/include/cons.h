@@ -18,6 +18,8 @@
 
 #include <types.h>
 #include <asp/cons.h>
+#include <common.h>
+#include <errno.h>
 
 /* 
  * Do-nothing stream.
@@ -72,6 +74,10 @@ size_t jet_console_read_debug(char* s, size_t length);
  * Currently always returns 'length'.
  */
 size_t jet_console_write_debug(const char* s, size_t length);
+
+
+/* Syscall for write into main console from user space. */
+pok_ret_t jet_console_write_user(const char* __user s, size_t length);
 
 
 // Functions for backward compatibility. TODO: Remove them and their usage.

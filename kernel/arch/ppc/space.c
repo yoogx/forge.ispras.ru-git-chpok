@@ -93,7 +93,7 @@ static unsigned next_non_resident = 0;
  *
  * Note that the first request for resident TLB1 entry
  * returns the entry occupidied by the kernel.
- * This is intentional, as we have to overwrite it with 
+ * This is intentional, as we have to overwrite it with
  * appropriate access rights.
  */
 int pok_get_next_tlb1_index(int is_resident)
@@ -119,7 +119,7 @@ int pok_get_next_tlb1_index(int is_resident)
         }
         res = next_non_resident++;
     }
-    
+
     return res;
 }
 
@@ -134,9 +134,9 @@ int pok_get_next_tlb1_index(int is_resident)
  *      number to MAS0[ESEL] before executing a tlbwe instruction.
  */
 void pok_insert_tlb1(
-        uint64_t virtual, 
-        uint64_t physical, 
-        unsigned pgsize_enum, 
+        uint64_t virtual,
+        uint64_t physical,
+        unsigned pgsize_enum,
         unsigned permissions,
         unsigned wimge,
         unsigned pid,
@@ -149,14 +149,14 @@ void pok_insert_tlb1(
      * instruction is executed, the TLB entry information stored in MAS0–MAS3, MAS5, MAS7, and MAS8 is
      * written into the selected TLB entry in the TLB1 array.
      */
-    
+
     unsigned entry;
 
     entry = pok_get_next_tlb1_index(is_resident);
     pok_ppc_tlb_write(1,
-        virtual, 
-        physical, 
-        pgsize_enum, 
+        virtual,
+        physical,
+        pgsize_enum,
         permissions,
         wimge,
         pid,
@@ -167,7 +167,7 @@ void pok_insert_tlb1(
 static inline const char* pok_ppc_tlb_size(unsigned size)
 {
     switch (size) {
-#define CASE(x) case E500MC_PGSIZE_##x: return #x; 
+#define CASE(x) case E500MC_PGSIZE_##x: return #x;
         CASE(4K);
         CASE(16K);
         CASE(64K);
@@ -204,7 +204,7 @@ static void pok_ppc_tlb_print(unsigned tlbsel) {
 
     for (unsigned i = 0; i < limit; i++) {
         unsigned valid;
-        unsigned tsize; 
+        unsigned tsize;
         uint32_t epn;
         uint64_t rpn;
         pok_ppc_tlb_read_entry(tlbsel, i,
@@ -218,10 +218,10 @@ static void pok_ppc_tlb_print(unsigned tlbsel) {
             //~ printf("DEBUG:   Valid\r\n");
             //~ printf("DEBUG:   Effective: %p\r\n", (void*)epn);
             //~ // FIXME This is wrong. We print only 32 bits out of 36
-            //~ printf("DEBUG:   Physical: %x:%p\r\n", 
+            //~ printf("DEBUG:   Physical: %x:%p\r\n",
                     //~ (unsigned)(rpn>>32), (void*)(unsigned)rpn);
             //~ printf("DEBUG:   Size: %s\r\n", pok_ppc_tlb_size(tsize));
-//~ 
+//~
         //~ }
     }
 }
@@ -237,7 +237,7 @@ void pok_arch_space_init (void)
         E500MC_PGSIZE_256M,  //TODO make smaller
         MAS3_SW | MAS3_SR | MAS3_SX,
         0,
-        0, // any pid 
+        0, // any pid
         TRUE
     );
     /*
@@ -289,14 +289,14 @@ void pok_arch_handle_page_fault(
 
     if (tlb_miss && faulting_address >= pok_bsp.ccsrbar_base && faulting_address < pok_bsp.ccsrbar_base + pok_bsp.ccsrbar_size) {
         pok_insert_tlb1(
-            pok_bsp.ccsrbar_base, 
-            pok_bsp.ccsrbar_base_phys, 
-            E500MC_PGSIZE_16M, 
+            pok_bsp.ccsrbar_base,
+            pok_bsp.ccsrbar_base_phys,
+            E500MC_PGSIZE_16M,
             //MAS3_SW | MAS3_SR,
             MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,
             MAS2_W | MAS2_I | MAS2_M | MAS2_G,
             0, /* any pid */
-            TRUE 
+            TRUE
         );
     } else if (tlb_miss && faulting_address >= MPC8544_PCI_IO && faulting_address < MPC8544_PCI_IO + MPC8544_PCI_IO_SIZE) {
         pok_insert_tlb1(
@@ -317,7 +317,7 @@ void pok_arch_handle_page_fault(
     {
         jet_space_id space_id = pid;
 
-        pok_insert_tlb1( 
+        pok_insert_tlb1(
             POK_PARTITION_MEMORY_BASE,
             ja_spaces[space_id - 1].phys_base,
             E500MC_PGSIZE_16M,
@@ -348,28 +348,32 @@ void pok_arch_handle_page_fault(
     }
 }
 
-//Double check here because these function are called not only in syscall
-//(where there is checking), but also inside kernel
-//TODO: maybe rename to pok_arch_?
 uintptr_t pok_virt_to_phys(uintptr_t virt)
 {
-    pok_partition_id_t partid = mfspr(SPRN_PID) - 1;
-    if (!POK_CHECK_PTR_IN_PARTITION(partid, virt)) {
+    if((virt < POK_PARTITION_MEMORY_BASE)
+        || (virt > POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE))
+    {
+        // Fatal error despite it is called from user space!!
         printf("pok_virt_to_phys: wrong virtual address %p\n", (void*)virt);
         pok_fatal("wrong pointer in pok_virt_to_phys\n");
     }
 
-    return virt - POK_PARTITION_MEMORY_BASE + ja_spaces[partid].phys_base;
+    jet_space_id space_id = ja_space_get_current();
+
+    return virt - POK_PARTITION_MEMORY_BASE + ja_spaces[space_id - 1].phys_base;
 }
 
 uintptr_t pok_phys_to_virt(uintptr_t phys)
 {
-    pok_partition_id_t partid = mfspr(SPRN_PID) - 1;
+    jet_space_id space_id = ja_space_get_current();
 
-    uintptr_t virt = phys - ja_spaces[partid].phys_base + POK_PARTITION_MEMORY_BASE;
-    if (!POK_CHECK_PTR_IN_PARTITION(partid, virt)) {
-        printf("pok_phys_to_virt: wrong virtual address %p\n", (void*)virt);
+    if((phys < ja_spaces[space_id - 1].phys_base)
+        || (phys >= ja_spaces[space_id - 1].phys_base + POK_PARTITION_MEMORY_SIZE))
+    {
+        // Fatal error despite it is called from user space!!
+        printf("pok_phys_to_virt: wrong physical address %p\n", (void*)phys);
         pok_fatal("wrong pointer in pok_phys_to_virt\n");
     }
-    return virt;
+
+    return phys - ja_spaces[space_id - 1].phys_base + POK_PARTITION_MEMORY_BASE;
 }
