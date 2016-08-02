@@ -290,8 +290,11 @@ typedef UNITY_DOUBLE_TYPE _UD;
 #ifndef UNITY_OUTPUT_CHAR
 //Default to using putchar, which is defined in stdio.h
 #include <stdio.h>
+#include <string.h>
 //#define UNITY_OUTPUT_CHAR(a) putchar(a)
-#define UNITY_OUTPUT_CHAR(a) printf("%c", a)
+#define UNITY_OUTPUT_MAX_LENGTH 10000
+char outstr[UNITY_OUTPUT_MAX_LENGTH];
+#define UNITY_OUTPUT_CHAR(a) strappchar(outstr, a)
 // We need to flag the output char function uses putc in
 //  unity.c the extern function is not declared then.
 // Previously the extern was declared in this header but
@@ -305,11 +308,11 @@ typedef UNITY_DOUBLE_TYPE _UD;
 #endif
 
 #ifndef UNITY_OUTPUT_START
-#define UNITY_OUTPUT_START()
+#define UNITY_OUTPUT_START() memset(outstr, 0, UNITY_OUTPUT_MAX_LENGTH)
 #endif
 
 #ifndef UNITY_OUTPUT_COMPLETE
-#define UNITY_OUTPUT_COMPLETE()
+#define UNITY_OUTPUT_COMPLETE() printf("%s", outstr)
 #endif
 
 //-------------------------------------------------------
