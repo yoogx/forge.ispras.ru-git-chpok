@@ -294,7 +294,8 @@ typedef UNITY_DOUBLE_TYPE _UD;
 //#define UNITY_OUTPUT_CHAR(a) putchar(a)
 #define UNITY_OUTPUT_MAX_LENGTH 10000
 char outstr[UNITY_OUTPUT_MAX_LENGTH];
-#define UNITY_OUTPUT_CHAR(a) strappchar(outstr, a)
+unsigned int pos;
+#define UNITY_OUTPUT_CHAR(a) outstr[pos++] = a
 // We need to flag the output char function uses putc in
 //  unity.c the extern function is not declared then.
 // Previously the extern was declared in this header but
@@ -308,11 +309,23 @@ char outstr[UNITY_OUTPUT_MAX_LENGTH];
 #endif
 
 #ifndef UNITY_OUTPUT_START
-#define UNITY_OUTPUT_START() memset(outstr, 0, UNITY_OUTPUT_MAX_LENGTH)
+#define UNITY_OUTPUT_START()                        \
+    do {                                            \
+        pos = 0;                                    \
+        memset(outstr, 0, UNITY_OUTPUT_MAX_LENGTH); \
+    } while (0)
 #endif
 
 #ifndef UNITY_OUTPUT_COMPLETE
-#define UNITY_OUTPUT_COMPLETE() printf("%s", outstr)
+#include <arinc653/partition.h>
+#define UNITY_OUTPUT_COMPLETE()                                                    \
+    do {                                                                           \
+        PARTITION_STATUS_TYPE status;                                              \
+        RETURN_CODE_TYPE ret;                                                      \
+        GET_PARTITION_STATUS(&status, &ret);                                       \
+        if (ret != NO_ERROR) printf("Failed to get partition id, code %d\n", ret); \
+        else printf("\nPartition %ld:\n%s\n", status.IDENTIFIER, outstr);          \
+    } while (0)
 #endif
 
 //-------------------------------------------------------
