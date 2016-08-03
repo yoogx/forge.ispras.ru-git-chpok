@@ -4,6 +4,9 @@
 void entry_point_method(void)
 {
 	// add some output (print log)
+    
+    printf("the created process is working");
+    
 	return;	
 }
 
@@ -40,7 +43,8 @@ pok_ret_t pok_syscall_thread_create_wrapper(void* param, int pos)
 			
 			//strncpy(attrs.process_name, "process1", sizeof(PROCESS_NAME_TYPE));
 			
-			ret = pok_thread_create(&param, &entry, &attr, &id);
+            //ret = pok_thread_create("process 2", &entry, &attr, &id); // TODO: UNCOMMENT
+			//ret = pok_thread_create(&param, &entry, &attr, &id);
 			
 			break;
 		

@@ -21,7 +21,8 @@ void first_process(void)
     int param = 0;
     
     //pok_ret_t 
-    int ret = pointer_error_tester(POK_SYSCALL_THREAD_CREATE, NULL_POINTER, param, 0);
+    int ret = 0;
+    //ret = pointer_error_tester(POK_SYSCALL_THREAD_CREATE, NULL_POINTER, param, 0);
     
     status = EXECUTED;
     TEST_RESULT = ret;
@@ -94,8 +95,12 @@ static int real_main(void)
         printf("ERROR HANDLER successfully created\n");
     }
 	
+    
+    
     RETURN_CODE_TYPE ret;
-    BUFFER_ID_TYPE id;
+    
+    /*
+    
     PROCESS_ID_TYPE pid;
     PROCESS_ATTRIBUTE_TYPE process_attrs = {
         .PERIOD = INFINITE_TIME_VALUE,
@@ -125,6 +130,8 @@ static int real_main(void)
         printf("process 1 \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
     }
     
+    */
+    /*
     // create control process
 	PROCESS_ATTRIBUTE_TYPE ControlProcessAttributes = {
         .PERIOD = INFINITE_TIME_VALUE,
@@ -133,6 +140,7 @@ static int real_main(void)
         .BASE_PRIORITY = MIN_PRIORITY_VALUE,
         .DEADLINE = SOFT,
     };
+    
     
 	
 	ControlProcessAttributes.ENTRY_POINT = (SYSTEM_ADDRESS_TYPE) &ControlProc;
@@ -153,6 +161,9 @@ static int real_main(void)
     } else {
         printf("ControlProc \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
     }
+    
+    
+    */
 
     // transition to NORMAL operating mode
     // N.B. if everything is OK, this never returns
