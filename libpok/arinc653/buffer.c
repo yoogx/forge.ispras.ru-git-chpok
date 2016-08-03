@@ -30,7 +30,7 @@
 
 #define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
 #define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
- 
+
 void CREATE_BUFFER ( 
        /*in */ BUFFER_NAME_TYPE         BUFFER_NAME, 
        /*in */ MESSAGE_SIZE_TYPE        MAX_MESSAGE_SIZE, 
@@ -41,9 +41,9 @@ void CREATE_BUFFER (
 {
    strtoupper(BUFFER_NAME);
    pok_ret_t                  core_ret;
-   pok_buffer_id_t            core_id;
+   pok_buffer_id_t            core_id = 0;
    pok_queuing_discipline_t   core_discipline;
-   
+
    switch (QUEUING_DISCIPLINE)
    {
      case PRIORITY:
@@ -75,7 +75,7 @@ void CREATE_BUFFER (
    }
 
    core_ret = pok_buffer_create (BUFFER_NAME, MAX_MESSAGE_SIZE, MAX_NB_MESSAGE, core_discipline, &core_id);
-   
+
    *BUFFER_ID = core_id + 1;
 
    switch (core_ret) {
@@ -126,9 +126,9 @@ void RECEIVE_BUFFER (
    }
 
    pok_ret_t core_ret;
-   pok_message_size_t core_size;
+   pok_message_size_t core_size = 0;
    pok_time_t ms = TIME_OUT < 0 ? INFINITE_TIME_VALUE : arinc_time_to_ms(TIME_OUT);
-   
+
    core_ret = pok_buffer_receive (BUFFER_ID - 1, &ms, MESSAGE_ADDR, &core_size);
    *LENGTH = (APEX_INTEGER) core_size;
 
@@ -148,7 +148,7 @@ void GET_BUFFER_ID (
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
    strtoupper(BUFFER_NAME);
-   pok_buffer_id_t id;
+   pok_buffer_id_t id = 0;
    pok_ret_t core_ret = pok_buffer_get_id(BUFFER_NAME, &id);
 
    switch (core_ret) {
@@ -165,18 +165,18 @@ void GET_BUFFER_STATUS (
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
    pok_buffer_status_t status;
-    
+
    if (BUFFER_ID == 0) {
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
 
    *RETURN_CODE = pok_buffer_status(BUFFER_ID - 1, &status);
-    
+
    BUFFER_STATUS->NB_MESSAGE = status.nb_message;
    BUFFER_STATUS->MAX_NB_MESSAGE = status.max_nb_message;
    BUFFER_STATUS->MAX_MESSAGE_SIZE = status.max_message_size;
    BUFFER_STATUS->WAITING_PROCESSES = status.waiting_processes;
 }
- 
+
 #endif 
