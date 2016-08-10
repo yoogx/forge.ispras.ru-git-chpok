@@ -662,7 +662,7 @@ class Configuration:
         self.partition_ids_map = dict()
         self.next_partition_id = 0
 
-        self.memory_block_names_map = dict()
+        self.memory_blocks_names = set()
 
         self.next_channel_id_sampling = 0
         self.next_channel_id_queueing = 0
@@ -758,13 +758,13 @@ class Configuration:
         self.major_frame += slot.duration
 
     def add_memory_block(self, name, size):
-        if name in self.memory_block_names_map:
-            raise RuntimeError("Adding already existed partition '%s'" % part_name)
+        if name in self.memory_blocks_names:
+            raise RuntimeError("Adding already existed memory block '%s'" % name)
 
         mblock = Memory_block(name, size, self)
 
         self.memory_blocks.append(mblock)
-        self.memory_block_names_map[name] = mblock
+        self.memory_blocks_names.add(name)
 
         return mblock
 
