@@ -612,7 +612,7 @@ class Memory_block:
         for part in conf.partitions:
             if name in part.memory_blocks_map:
                 self.access[part.part_index + 1] = part.memory_blocks_map[name]
-
+        self.tlb_entries_count = len(self.access)
 
     def __repr__(self):
         return self.name + ": " + hex(self.virt_addr) + " -> " + hex(self.phys_addr) + " [" +\
@@ -652,6 +652,7 @@ class Configuration:
         self.channels_sampling = []
         self.network = None
         self.memory_blocks = []
+        self.memory_blocks_tlb_entries_count = 0
 
         self.test_support_print_when_all_threads_stopped = False
 
@@ -765,6 +766,7 @@ class Configuration:
 
         self.memory_blocks.append(mblock)
         self.memory_blocks_names.add(name)
+        self.memory_blocks_tlb_entries_count += mblock.tlb_entries_count
 
         return mblock
 

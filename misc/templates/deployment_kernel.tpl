@@ -308,5 +308,5 @@ struct tlb_entry jet_tlb_entries[] = {
 
 };
 
-size_t jet_tlb_entries_n = {{ conf.memory_blocks | length }};
+size_t jet_tlb_entries_n = {{ conf.memory_blocks_tlb_entries_count }};
 #endif
