@@ -282,6 +282,22 @@ const pok_time_t pok_config_scheduling_major_frame = {{conf.major_frame}};
 /************************ Setup address spaces ************************/
 struct pok_space spaces[{{conf.partitions | length}}]; // As many as partitions
 
+/************************ Memory blocks ************************/
+#include <core/memory_blocks_config.h>
+struct memory_block jet_memory_blocks[] = {
+    {%for mblock in conf.memory_blocks%}
+    {
+        .name = "{{mblock.name}}",
+        .virt_addr = 0x{{'%x'%mblock.virt_addr}},
+        .size = {{mblock.actual_size}},
+        .avail_for_pids = { {%for pid, access_right in mblock.access.iteritems() %}{{pid}}, {%endfor%} }
+    },
+
+    {%endfor%}
+
+};
+
+size_t jet_memory_blocks_n = {{ conf.memory_blocks | length }};
 /************************ Memory mapping ************************/
 //HACK
 #ifdef __PPC__
@@ -309,4 +325,5 @@ struct tlb_entry jet_tlb_entries[] = {
 };
 
 size_t jet_tlb_entries_n = {{ conf.memory_blocks_tlb_entries_count }};
+
 #endif
