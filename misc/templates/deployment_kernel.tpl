@@ -290,7 +290,7 @@ struct pok_space spaces[{{conf.partitions | length}}]; // As many as partitions
 
 struct tlb_entry jet_tlb_entries[] = {
     {%for mblock in conf.memory_blocks%}
-    //---
+    // {{mblock.name}}
     {%for pid, access_right in mblock.access.iteritems() %}
     {
         .virt_addr = {{mblock.virt_addr}},
