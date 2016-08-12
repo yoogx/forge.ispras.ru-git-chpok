@@ -33,4 +33,7 @@ struct memory_block {
     unsigned size;
     enum mb_config_rights pid_to_rights[MAX_PID];
 };
+
+extern struct memory_block jet_memory_blocks[];
+extern size_t jet_memory_blocks_n;
 #endif
