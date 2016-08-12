@@ -283,7 +283,7 @@ const pok_time_t pok_config_scheduling_major_frame = {{conf.major_frame}};
 struct pok_space spaces[{{conf.partitions | length}}]; // As many as partitions
 
 /************************ Memory blocks ************************/
-#include <core/memory_blocks_config.h>
+#include <core/memblocks_config.h>
 struct memory_block jet_memory_blocks[] = {
     {%for mblock in conf.memory_blocks%}
     {
