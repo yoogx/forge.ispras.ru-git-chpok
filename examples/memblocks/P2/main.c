@@ -67,7 +67,7 @@ static int real_main(void)
 
 
     MEMORY_BLOCK_STATUS_TYPE status;
-    GET_MEMORY_BLOCK_STATUS("sharedmb0", &status, &ret);
+    GET_MEMORY_BLOCK_STATUS("shared_mb0", &status, &ret);
     if (ret != NO_ERROR) {
         printf("couldn't get Memory Block: %d\n", (int) ret);
         return 1;
