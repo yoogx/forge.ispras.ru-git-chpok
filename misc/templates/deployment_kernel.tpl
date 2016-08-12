@@ -281,3 +281,53 @@ const pok_time_t pok_config_scheduling_major_frame = {{conf.major_frame}};
 
 /************************ Setup address spaces ************************/
 struct pok_space spaces[{{conf.partitions | length}}]; // As many as partitions
+
+/************************ Memory blocks ************************/
+#include <core/memblocks_config.h>
+struct memory_block jet_memory_blocks[] = {
+    {%for mblock in conf.memory_blocks%}
+    {
+        .name = "{{mblock.name}}",
+        .virt_addr = 0x{{'%x'%mblock.virt_addr}},
+        .size = {{mblock.actual_size}},
+        .pid_to_rights = {
+            {%for pid, access_right in mblock.access.iteritems() %}
+                [{{pid}}] = MB_CONFIG_{{access_right}},
+            {%endfor%}
+        }
+    },
+
+    {%endfor%}
+
+};
+
+size_t jet_memory_blocks_n = {{ conf.memory_blocks | length }};
+/************************ Memory mapping ************************/
+//HACK
+#ifdef __PPC__
+
+#include <arch/ppc/tlb_config.h>
+
+struct tlb_entry jet_tlb_entries[] = {
+    {%for mblock in conf.memory_blocks%}
+    // {{mblock.name}}
+    {%for pid, access_right in mblock.access.iteritems() %}
+    {
+        .virt_addr = {{mblock.virt_addr}},
+        .phys_addr = {{mblock.phys_addr}},
+        .size = E500MC_PGSIZE_{{mblock.str_size}},
+        .permissions = MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,
+        {%if mblock.cache_policy == "IO"%}
+        .cache_policy = MAS2_W | MAS2_I | MAS2_M | MAS2_G,
+        {% endif %}
+        .pid = {{pid}},
+    },
+    {%endfor%}
+
+    {%endfor%}
+
+};
+
+size_t jet_tlb_entries_n = {{ conf.memory_blocks_tlb_entries_count }};
+
+#endif

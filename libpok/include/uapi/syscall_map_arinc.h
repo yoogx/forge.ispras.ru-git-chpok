@@ -29,6 +29,7 @@
 #include <uapi/semaphore_types.h>
 #include <uapi/event_types.h>
 #include <uapi/error_arinc_types.h>
+#include <uapi/memblock_types.h>
 
 static inline pok_ret_t pok_thread_create(const char* name,
     void* entry,
@@ -629,3 +630,13 @@ static inline pok_ret_t pok_port_queuing_status(pok_port_id_t id,
 // Syscall should be accessed only by function
 #undef POK_SYSCALL_MIDDLEWARE_QUEUEING_STATUS
 #endif /* POK_NEEDS_PORTS_QUEUEING */
+
+static inline pok_ret_t pok_memory_block_get_status(const char* name,
+    jet_memory_block_status_t* status)
+{
+    return pok_syscall2(POK_SYSCALL_MEMORY_BLOCK_GET_STATUS,
+        (uint32_t)name,
+        (uint32_t)status);
+}
+// Syscall should be accessed only by function
+#undef POK_SYSCALL_MEMORY_BLOCK_GET_STATUS
