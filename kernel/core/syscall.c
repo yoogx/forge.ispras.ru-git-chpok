@@ -254,6 +254,8 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
          return 0;
       }
 
+      SYSCALL_ENTRY(POK_SYSCALL_MEMORY_BLOCK_GET_STATUS)
+
       default:
        /*
         * Unrecognized system call ID.

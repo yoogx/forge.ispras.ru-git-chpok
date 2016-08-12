@@ -18,6 +18,8 @@
 
 #include <config.h>
 #include <arinc653/memblocks.h>
+#include <core/syscall.h>
+#include <uapi/memblock_types.h>
 
 
 
@@ -26,10 +28,23 @@ void GET_MEMORY_BLOCK_STATUS (
         /*out*/ MEMORY_BLOCK_STATUS_TYPE *MEMORY_BLOCK_STATUS,
         /*out*/ RETURN_CODE_TYPE         *RETURN_CODE)
 {
-    MEMORY_BLOCK_STATUS->MEMORY_BLOCK_ADDR = (void *)0xed000000;
-    MEMORY_BLOCK_STATUS->MEMORY_BLOCK_MODE = MB_READ_WRITE;
-    MEMORY_BLOCK_STATUS->MEMORY_BLOCK_SIZE = 65536;
+    pok_ret_t core_ret;
+    jet_memory_block_status_t mb_status;
 
-    *RETURN_CODE = NO_ERROR;
+
+    core_ret = pok_memory_block_get_status(MEMORY_BLOCK_NAME,
+        &mb_status);
+
+
+
+
+    if (core_ret != POK_ERRNO_OK) {
+        *RETURN_CODE = INVALID_CONFIG;
+    } else {
+        *RETURN_CODE = NO_ERROR;
+        MEMORY_BLOCK_STATUS->MEMORY_BLOCK_ADDR = (void *)mb_status.addr;
+        MEMORY_BLOCK_STATUS->MEMORY_BLOCK_MODE = mb_status.mode;
+        MEMORY_BLOCK_STATUS->MEMORY_BLOCK_SIZE = mb_status.size;
+    }
 
 }
