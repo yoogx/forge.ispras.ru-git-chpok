@@ -18,13 +18,33 @@
         <Slot Type="Monitor" Duration="10ms" />
     </Schedule>
 
+    <!--
+        This looks like Connection_Table
+        found in schema in older ARINC-653 standard,
+        but it's somewhat different (because that old thing
+        is very inconsistent).
+
+        Recent standard doesn't define this at all.
+    -->
+
+    <Connection_Table>
+        <Channel>
+            <Source>
+                <Standard_Partition PartitionName="P1" PortName="QP1" />
+            </Source>
+            <Destination>
+                <Standard_Partition PartitionName="P2" PortName="QP2" />
+            </Destination>
+        </Channel>
+    </Connection_Table>
+
     <Memory_Blocks>
         <Memory_Block
             Name="shared_mb0"
             VirtualAddress ="0xed000000"
-            PhysicalAddress="0xed000000"
+            PhysicalAddress="0x600000"
             Size="0x10000"
-            />
+            /> <!-- PhysicalAddress="0xed000000" -->
     </Memory_Blocks>
 
 </chpok-configuration>

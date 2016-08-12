@@ -1,50 +1,37 @@
 #include <stdio.h>
 #include <string.h>
-#include <arinc653/buffer.h>
+#include <arinc653/queueing.h>
 #include <arinc653/partition.h>
 #include <arinc653/time.h>
+#include <arinc653/memblocks.h>
 
-static BUFFER_ID_TYPE global_buffer_id;
+QUEUING_PORT_ID_TYPE QP1;
+void *mb0addr;
 
 static void first_process(void)
 {
     RETURN_CODE_TYPE ret;
+
     int i = 0;
+    int status = 1; //non-zero means 'ready'
     while (1) {
-        SEND_BUFFER(global_buffer_id, (MESSAGE_ADDR_TYPE) &i, sizeof(i), 0, &ret);
+        snprintf(mb0addr, 1000, "hello %d", i);
+
+        SEND_QUEUING_MESSAGE(QP1, (MESSAGE_ADDR_TYPE) &status, sizeof(status),
+                0, &ret);
         if (ret != NO_ERROR) {
-            //~ printf("couldn't send to the buffer: \n");
-            //~ break;
+                printf("P1 error: %d\n", (int) ret);
         }
+
         i++;
         TIMED_WAIT(1000000000LL, &ret);
     }
 }
 
-static void second_process(void)
-{
-    //~ RETURN_CODE_TYPE ret;
-    while (1) {
-        //~ int i;
-        //~ MESSAGE_SIZE_TYPE len;
-//~ 
-        //~ RECEIVE_BUFFER(global_buffer_id, INFINITE_TIME_VALUE, (MESSAGE_ADDR_TYPE) &i, &len, &ret);
-//~ 
-        //~ if (ret != NO_ERROR) {
-            //~ printf("couldn'd receive from the buffer: %d\n", (int) ret);
-            //~ break;
-        //~ }
-        //~ printf("received message \n");
-    }
-    //~ STOP_SELF();
-}
-
- 
 
 static int real_main(void)
 {
     RETURN_CODE_TYPE ret;
-    BUFFER_ID_TYPE id;
     PROCESS_ID_TYPE pid;
     PROCESS_ATTRIBUTE_TYPE process_attrs = {
         .PERIOD = INFINITE_TIME_VALUE,
@@ -54,15 +41,13 @@ static int real_main(void)
         .DEADLINE = SOFT,
     };
 
-    // create buffer
-    CREATE_BUFFER("foo", sizeof(int), 10, FIFO, &id, &ret);
+    // create ports
+    CREATE_QUEUING_PORT("QP1", 64, 10, SOURCE, FIFO, &QP1, &ret);
+
     if (ret != NO_ERROR) {
-        printf("error creating a buffer: %d\n", (int) ret);
+        printf("error creating a port: %d\n", (int) ret);
         return 1;
-    } else {
-        printf("buffer successfully created\n");
     }
-    global_buffer_id = id;
 
     // create process 1
     process_attrs.ENTRY_POINT = first_process;
@@ -75,7 +60,7 @@ static int real_main(void)
     } else {
         printf("process 1 created\n");
     }
-    
+
     START(pid, &ret);
     if (ret != NO_ERROR) {
         printf("couldn't start process 1: %d\n", (int) ret);
@@ -84,25 +69,18 @@ static int real_main(void)
         printf("process 1 \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
     }
 
-    // create process 2
-    process_attrs.ENTRY_POINT = second_process;
-    strncpy(process_attrs.NAME, "process 2", sizeof(PROCESS_NAME_TYPE));
-
-    CREATE_PROCESS(&process_attrs, &pid, &ret);
+    MEMORY_BLOCK_STATUS_TYPE status;
+    GET_MEMORY_BLOCK_STATUS("sharedmb0", &status, &ret);
     if (ret != NO_ERROR) {
-        printf("couldn't create process 2: %d\n", (int) ret);
+        printf("couldn't get Memory Block: %d\n", (int) ret);
         return 1;
-    } else {
-        printf("process 2 created\n");
     }
+    printf("P1 memblock: %s %p [0x%lx]\n",
+            status.MEMORY_BLOCK_MODE == MB_READ? "MB_READ": "MB_READ_WRITE",
+            status.MEMORY_BLOCK_ADDR,
+            status.MEMORY_BLOCK_SIZE);
+    mb0addr = status.MEMORY_BLOCK_ADDR;
 
-    START(pid, &ret);
-    if (ret != NO_ERROR) {
-        printf("couldn't start process 2: %d\n", (int) ret);
-        return 1;
-    } else {
-        printf("process 2 \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
-    }
 
     // transition to NORMAL operating mode
     // N.B. if everything is OK, this never returns
@@ -110,7 +88,7 @@ static int real_main(void)
 
     if (ret != NO_ERROR) {
         printf("couldn't transit to normal operating mode: %d\n", (int) ret);
-    } 
+    }
 
     STOP_SELF();
     return 0;
@@ -119,4 +97,4 @@ static int real_main(void)
 void main(void) {
     real_main();
     STOP_SELF();
-}  
+}
