@@ -19,11 +19,18 @@
 #define __POK_MEMORY_BLOCKS_H__
 
 #include <uapi/types.h>
-#define TMP__MAX_PARTITON 32
+// XXX HACK: should be fixed when move to proptree
+#define MAX_PID 32
+enum mb_config_rights {
+    MB_CONFIG_NO_ACCESS,
+    MB_CONFIG_READ_ONLY,
+    MB_CONFIG_READ_WRITE,
+};
+
 struct memory_block {
     char name[MAX_NAME_LENGTH];
     uint32_t virt_addr;
     unsigned size;
-    unsigned avail_for_pids[TMP__MAX_PARTITON];
+    enum mb_config_rights pid_to_rights[MAX_PID];
 };
 #endif
