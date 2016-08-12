@@ -46,7 +46,7 @@
     </HM_Table>
 
     <Memory_Blocks>
-        <Memory_Block NameRef="shared_mb0" UserAccess="READ_WRITE"/>
+        <Memory_Block NameRef="shared_mb0" UserAccess="READ_ONLY"/>
     </Memory_Blocks>
 
 </Partition>
