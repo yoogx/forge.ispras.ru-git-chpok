@@ -244,10 +244,6 @@ void pok_arch_space_init (void)
             limit-1,
             TRUE);
 
-    // DIRTY HACK
-    // By some reason P3041 DUART blocks when TLB entry #1 is overrriden.
-    // Preserve it, let's POK write it's entries starting 2
-    next_non_resident = next_resident = 2;
 
     pok_insert_tlb1(
         0x20000000,
@@ -267,6 +263,11 @@ void pok_arch_space_init (void)
         0,
         FALSE
     );
+
+    // DIRTY HACK
+    // By some reason P3041 DUART blocks when TLB entry #1 is overrriden.
+    // Preserve it, let's POK write it's entries starting 2
+    next_non_resident = next_resident = 4;
 
     for (int i = 0; i < jet_tlb_entries_n; i++) {
         pok_insert_tlb1(
