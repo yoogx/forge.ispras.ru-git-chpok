@@ -32,6 +32,7 @@ unsigned pci_driver_table_used_cnt = 0;
 
 #ifdef __PPC__
 struct pci_bridge bridge;
+uint32_t ccsrbar_base;
 
 struct legacy_io {
     uint32_t virt_addr;
@@ -527,7 +528,7 @@ void pci_ATMU_windows_clear()
 {
     struct pci_atmu_windows *atmu = (struct pci_atmu_windows *)(bridge.cfg_addr + PEX1_PEXOTAR0);
 //FIXME
-    struct pci_atmu_windows *atmu2 = (struct pci_atmu_windows *)(0xfe201000 + PEX1_PEXOTAR0);
+    struct pci_atmu_windows *atmu2 = (struct pci_atmu_windows *)(ccsrbar_base + 0x201000 + PEX1_PEXOTAR0);
 
     for(int i = 1; i < 5; i++) {
         out_be32(&atmu->pow[i].powar, 0);
@@ -577,9 +578,7 @@ void LAW_list()
 {
 
     //FIXME
-    uint32_t ccsr_bar = 0xfe000000;
-
-    struct LAW_regs *law = (struct LAW_regs *)(ccsr_bar + 0xC00);
+    struct LAW_regs *law = (struct LAW_regs *)(ccsrbar_base + 0xC00);
 
     //law[6].barl = 0x40000000;
     asm("isync");
@@ -592,8 +591,9 @@ void LAW_list()
                 law[i].ar);
     }
 
-#endif
 }
+
+#endif
 
 void pci_init()
 {
@@ -603,6 +603,7 @@ void pci_init()
     pok_bsp_t pok_bsp;
     pok_bsp_get_info(&pok_bsp);
     bridge = pok_bsp.pci_bridge;
+    ccsrbar_base = (uint32_t) pok_bsp.ccsrbar_base;
 
     //TODO add pci_bridge too?
     //static uint32_t bar0_addr = 0x1001;
