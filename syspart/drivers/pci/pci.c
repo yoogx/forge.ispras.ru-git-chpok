@@ -483,6 +483,7 @@ uintptr_t pci_convert_legacy_port(struct pci_dev *dev, uint16_t port)
 #define WAR_WTT_IO     0x00008000
 #define WAR_WTT_MEM    0x00004000
 #define WAR_OWS_8K     0xC
+#define WAR_OWS_256M   0x1b
 #define WAR_OWS_4G     0x1f
 
 #ifdef __PPC__
@@ -612,21 +613,21 @@ void pci_init()
     printf("bridge cfg_addr: %p cfg_data: %p\n",
             (void *)bridge.cfg_addr, (void *)bridge.cfg_data);
 
-    legacy_io.virt_addr = 0x21100000;
-    legacy_io.phys_addr = 0x7100000;
+    legacy_io.virt_addr = 0xe1000000;
+    legacy_io.phys_addr = 0xe1000000;
+    //legacy_io.phys_addr = 0;
 
-    /*
-    //for legacy ports
-    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWBAR1), legacy_io.phys_addr>>12);
-    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR1), WAR_EN|WAR_RTT_IO|WAR_WTT_IO|WAR_OWS_8K);
-    */
+    struct pci_atmu_windows *atmu = (struct pci_atmu_windows *)(bridge.cfg_addr + PEX1_PEXOTAR0);
 
-#if 0
-    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWBAR1), 0x80000000 >> 12);
-    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOTAR1),  0x40000000 >> 12);
-    out_be32((uint32_t *) (bridge.cfg_addr + PEX1_PEXOWAR1), WAR_EN|WAR_RTT_MEM|WAR_WTT_MEM|WAR_OWS_8K);
-#endif
+    atmu->pow[1].powbar = legacy_io.phys_addr>>12;
+    atmu->pow[1].potar = 0;
+    atmu->pow[1].potear = 0;
+    atmu->pow[1].powar = WAR_EN|WAR_RTT_IO|WAR_WTT_IO|WAR_OWS_8K;
 
+    atmu->pow[2].powbar = 0x80000000 >> 12;
+    atmu->pow[2].potar =  0x80000000 >> 12;
+    atmu->pow[2].potear = 0;
+    atmu->pow[2].powar = WAR_EN|WAR_RTT_IO|WAR_WTT_IO|WAR_OWS_256M;
 
     pci_ATMU_windows_list();
 
