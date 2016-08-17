@@ -90,6 +90,10 @@ int radeon_get_temp(int b, int d, int f)
     memset(&radeon_pci_dev, 0x0, sizeof(radeon_pci_dev));
 
     pci_get_dev_by_bdf(b, d, f, &radeon_pci_dev);
+    if (radeon_dev.vendor_id == 0xffff) {
+        printf("radeon test: Have not found device\n");
+        return -1;
+    }
 
     radeon_rmmio_base = radeon_pci_dev.resources[PCI_RESOURCE_BAR2].addr;
     radeon_rmmio_size = radeon_pci_dev.resources[PCI_RESOURCE_BAR2].size;
