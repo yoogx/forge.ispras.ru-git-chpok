@@ -54,16 +54,16 @@
             Size="0x10000"
             />
         <Memory_Block
-            Name="vga-framebuffer"
-            VirtualAddress ="0xee000000"
-            PhysicalAddress="0xee000000"
-            Size="0x1000000"
+            Name="vga1"
+            VirtualAddress ="0x20000000"
+            PhysicalAddress="0x80000000"
+            Size="0x10000000"
             />
         <Memory_Block
-            Name="vga-rom"
-            VirtualAddress ="0xedf00000"
-            PhysicalAddress="0xedf00000"
-            Size="0x10000"
+            Name="vga2"
+            VirtualAddress ="0x30000000"
+            PhysicalAddress="0x90000000"
+            Size="0x10000000"
             />
             <!--
             CachePolicy="DEFAULT"

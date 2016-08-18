@@ -244,30 +244,10 @@ void pok_arch_space_init (void)
             limit-1,
             TRUE);
 
-
-    pok_insert_tlb1(
-        0x20000000,
-        0x80000000,
-        E500MC_PGSIZE_256M,
-        MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
-        MAS2_W | MAS2_I | MAS2_M | MAS2_G,
-        0,
-        FALSE
-    );
-    pok_insert_tlb1(
-        0x30000000,
-        0x90000000,
-        E500MC_PGSIZE_256M,
-        MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
-        MAS2_W | MAS2_I | MAS2_M | MAS2_G,
-        0,
-        FALSE
-    );
-
     // DIRTY HACK
     // By some reason P3041 DUART blocks when TLB entry #1 is overrriden.
     // Preserve it, let's POK write it's entries starting 2
-    next_non_resident = next_resident = 4;
+    next_non_resident = next_resident = 2;
 
     for (int i = 0; i < jet_tlb_entries_n; i++) {
         pok_insert_tlb1(

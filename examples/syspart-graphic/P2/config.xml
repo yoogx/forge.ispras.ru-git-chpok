@@ -49,8 +49,8 @@
 
     <Memory_Blocks>
         <Memory_Block NameRef="PCI_IO" UserAccess="READ_WRITE"/>
-        <Memory_Block NameRef="vga-framebuffer" UserAccess="READ_WRITE"/>
-        <Memory_Block NameRef="vga-rom"/>
+        <Memory_Block NameRef="vga1" UserAccess="READ_WRITE"/>
+        <Memory_Block NameRef="vga2" UserAccess="READ_WRITE"/>
     </Memory_Blocks>
 
 </Partition>
