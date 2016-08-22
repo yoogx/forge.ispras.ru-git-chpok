@@ -22,6 +22,7 @@ import os
 from lxml import etree
 import arinc653_xml_conf
 import chpok_configuration
+import template_generation
 
 Import('env')
 Import('part_dir')
@@ -31,6 +32,8 @@ Import('part_xml')
 
 env.Command('clean_cmd', [], Delete('build/'))
 env.Alias('clean', 'clean_cmd')
+
+AddMethod(env, template_generation.TemplateRender)
 
 def get_pok_partition_definitions(source, env):
     if type(source) is list:
