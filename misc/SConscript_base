@@ -41,24 +41,24 @@ def get_pok_definitions(source, env):
     return dict(conf=conf)
 
 def get_pok_gdb_definitions(source, env):
-	defs = get_pok_definitions(source, env)
+    defs = get_pok_definitions(source, env)
 
-	defs['partition_build_dirs'] = env['PARTITION_BUILD_DIRS']
+    defs['partition_build_dirs'] = env['PARTITION_BUILD_DIRS']
 
-	return defs
+    return defs
 
 env['PARTITION_BUILD_DIRS'] = []
 for i in range(len(env['PARTITIONS'])):
-	env['PARTITION_BUILD_DIRS'].append(os.path.join(env['SCONSTRUCT_DIR'], env['PARTITIONS'][i], 'build', env['BSP'], ''))
+    env['PARTITION_BUILD_DIRS'].append(os.path.join(env['SCONSTRUCT_DIR'], env['PARTITIONS'][i], 'build', env['BSP'], ''))
 
 env.Command('clean_cmd', [], Delete(['build/']+[pdir+'/build' for pdir in env['PARTITIONS']]))
 env.Alias('clean', 'clean_cmd')
 
 if not os.path.exists(env['BUILD_DIR']):
-	os.makedirs(env['BUILD_DIR'])
+    os.makedirs(env['BUILD_DIR'])
 for pdir in env['PARTITION_BUILD_DIRS']:
-	if not os.path.exists(pdir):
-		os.makedirs(pdir)
+    if not os.path.exists(pdir):
+        os.makedirs(pdir)
 
 part_elf_list = [os.path.join(p, 'part.elf') for p in env['PARTITION_BUILD_DIRS']]
 part_xml_list = []
@@ -77,13 +77,13 @@ env.Append(GENERATE_TITLE = template_generation.generate_title_c_no_track)
 
 # Generate "deployment.c" for kernel
 env.TemplateRender(
-	target = os.path.join(env['BUILD_DIR'], "deployment.c"),
-	source = [env['XML']] +
-		[os.path.join(env['SCONSTRUCT_DIR'], part_xml) for part_xml in part_xml_list],
-	create_definitions_func = get_pok_definitions,
-	template_main = "deployment_kernel",
-	template_dir = env['POK_PATH'] + "/misc/templates"
-	)
+    target = os.path.join(env['BUILD_DIR'], "deployment.c"),
+    source = [env['XML']] +
+        [os.path.join(env['SCONSTRUCT_DIR'], part_xml) for part_xml in part_xml_list],
+    create_definitions_func = get_pok_definitions,
+    template_main = "deployment_kernel",
+    template_dir = env['POK_PATH'] + "/misc/templates"
+    )
 
 
 gdb_env = env.Clone()
@@ -92,13 +92,13 @@ gdb_env['GENERATE_TITLE'] = template_generation.generate_title_python
 
 # Generate file with commands for GDB for possible debugging
 gdb_env.TemplateRender(
-	target = gdb_env['BUILD_DIR'] + "/GDB_commands",
-	source = [gdb_env['XML']] +
-		[os.path.join(gdb_env['SCONSTRUCT_DIR'], part_xml) for part_xml in part_xml_list],
-	create_definitions_func = get_pok_gdb_definitions,
-	template_main = "GDB_commands",
-	template_dir = gdb_env['POK_PATH'] + "/misc/templates"
-	)
+    target = gdb_env['BUILD_DIR'] + "/GDB_commands",
+    source = [gdb_env['XML']] +
+        [os.path.join(gdb_env['SCONSTRUCT_DIR'], part_xml) for part_xml in part_xml_list],
+    create_definitions_func = get_pok_gdb_definitions,
+    template_main = "GDB_commands",
+    template_dir = gdb_env['POK_PATH'] + "/misc/templates"
+    )
 
 pok_env = env.Clone()
 
@@ -114,23 +114,23 @@ pok_env['LINKFLAGS'] = str(' -T '+ldscript+' -Map build/'+pok_env['BSP']+'/pok.e
 
 # there should (perhaps) also be padding to get aligned file size
 def merge_partitions(target, source, env):
-	with open(str(target[0]), 'wb') as part:
-		for s in source:
-			with open(str(s), 'rb') as orig_part:
-				shutil.copyfileobj(orig_part, part)
+    with open(str(target[0]), 'wb') as part:
+        for s in source:
+            with open(str(s), 'rb') as orig_part:
+                shutil.copyfileobj(orig_part, part)
 
 def create_sizes_c(target, source, env):
-	with open(str(target[0]), 'w') as sizes:
-		sizes.write('#include <types.h>\n')
-		sizes.write('uint32_t pok_elf_sizes[] = {\n')
-		for s in source:
-			part_size = os.path.getsize(str(s))
-			if part_size > pok_env['MAX_PART_SIZE']:
-				raise RuntimeError('Partition size must not exceed %d bytes' % pok_env['MAX_PART_SIZE'])
-			sizes.write(str(part_size))
-			if source.index(s) != len(source) - 1:
-				sizes.write(',\n')
-		sizes.write('\n};\n')
+    with open(str(target[0]), 'w') as sizes:
+        sizes.write('#include <types.h>\n')
+        sizes.write('uint32_t pok_elf_sizes[] = {\n')
+        for s in source:
+            part_size = os.path.getsize(str(s))
+            if part_size > pok_env['MAX_PART_SIZE']:
+                raise RuntimeError('Partition size must not exceed %d bytes' % pok_env['MAX_PART_SIZE'])
+            sizes.write(str(part_size))
+            if source.index(s) != len(source) - 1:
+                sizes.write(',\n')
+        sizes.write('\n};\n')
 
 merge_command = pok_env.Command(target = pok_env['BUILD_DIR']+'partitions.bin',
 source = part_elf_list,
