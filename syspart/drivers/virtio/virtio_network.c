@@ -35,6 +35,8 @@
 #include <net/network.h>
 #include <mem.h>
 
+#include <pool.h>
+
 #define VIRTIO_PCI_VENDORID 0x1AF4
 
 #define VIRTIO_NETWORK_RX_VIRTQUEUE 0
@@ -45,6 +47,7 @@
 #define DRV_NAME "virtio-net"
 #define DEV_NAME_PREFIX DRV_NAME
 #define DEV_NAME_LEN 20
+#define JET_POOL_SIZE 100
 
 #define PRINTF(fmt, ...) printf("virtio_network: " fmt, ##__VA_ARGS__)
 
@@ -64,6 +67,7 @@ struct virtio_network_device {
     void (*packet_received_callback)(const char *, size_t);
 
     struct receive_buffer receive_buffers[POK_MAX_RECEIVE_BUFFERS];
+    struct pool *pool;
 };
 
 
@@ -446,6 +450,9 @@ static pok_bool_t probe_device(struct pci_device *pci_dev)
 
     // 6. DRIVER_OK status bit
     set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_DRIVER_OK);
+
+    //pool create
+    dev->pool = jet_pool_create(ETH_DATA_LENGTH, JET_POOL_SIZE);
 
 
     /* create netdevice structure */
