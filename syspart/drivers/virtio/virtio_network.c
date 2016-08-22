@@ -207,52 +207,44 @@ static void process_received_buffer(
     }
 }
 
-
-
-
-static pok_bool_t send_frame_gather(
+static pok_bool_t send_frame(
         pok_netdevice_t *netdev,
-        const pok_network_sg_list_t *sg_list,
-        size_t sg_list_len,
+        char *buffer,
+        size_t size,
         pok_network_buffer_callback_t callback,
         void *callback_arg)
 {
     static struct virtio_net_hdr net_hdr;
+    struct vring_desc *desc;
+
     struct virtio_network_device *dev = netdev->info;
 
     // now, send it to the virtqueue
     struct virtio_virtqueue *vq = &dev->tx_vq;
-    if (vq->num_free < sg_list_len) {
+    if (vq->num_free < 1) {
         PRINTF("no free TX descriptors\n");
-        return FALSE; 
+        return FALSE;
     }
 
     memset(&net_hdr, 0, sizeof(net_hdr));
 
-    vq->num_free -= sg_list_len;
+    vq->num_free--;
 
-    struct vring_desc *desc;
     uint16_t head = vq->free_index;
-
-
     /* Setup first descriptor as virtio_net_hdr */
     desc = &vq->vring.desc[head];
     desc->addr = pok_virt_to_phys(&net_hdr);
     desc->len = sizeof(net_hdr);
     desc->flags = VRING_DESC_F_NEXT;
 
-    /* Setup next descriptors as data*/
-    size_t i;
-    for (i = 0; i < sg_list_len; i++) {
-        desc = &vq->vring.desc[desc->next];
-        desc->addr = pok_virt_to_phys(sg_list[i].buffer);
-        if (desc->addr == 0) {
-            printf("%s: kernel says that virtual address is wrong\n", __func__);
-            return FALSE;
-        }
-        desc->len = sg_list[i].size;
-        desc->flags = VRING_DESC_F_NEXT;
+    desc = &vq->vring.desc[desc->next];
+    desc->addr = pok_virt_to_phys(buffer);
+    if (desc->addr == 0) {
+        printf("%s: kernel says that virtual address is wrong\n", __func__);
+        return FALSE;
     }
+    desc->len = size;
+    desc->flags = VRING_DESC_F_NEXT;
 
     desc->flags = 0;
     vq->free_index = desc->next;
@@ -261,24 +253,13 @@ static pok_bool_t send_frame_gather(
     vq->callbacks[head].callback_arg = callback_arg;
 
     int avail = vq->vring.avail->idx & (vq->vring.num-1); // wrap around
-    vq->vring.avail->ring[avail] = head; 
-    
+    vq->vring.avail->ring[avail] = head;
+
     __sync_synchronize();
-    
+
     vq->vring.avail->idx++;
 
     return TRUE;
-}
-
-static pok_bool_t send_frame(
-        pok_netdevice_t *dev,
-        char *buffer,
-        size_t size,
-        pok_network_buffer_callback_t callback,
-        void *callback_arg)
-{
-    pok_network_sg_list_t sg_list[1] = {{.buffer=buffer, .size=size}};
-    return send_frame_gather(dev, sg_list, 1, callback, callback_arg);
 }
 
 static void set_packet_received_callback(
@@ -387,7 +368,7 @@ static void flush_send(pok_netdevice_t *netdev)
 
 static const pok_network_driver_ops_t driver_ops = {
     .send_frame = send_frame,
-    .send_frame_gather = send_frame_gather,
+    //.send_frame_gather = send_frame_gather,
     .set_packet_received_callback = set_packet_received_callback,
     .reclaim_send_buffers = reclaim_send_buffers,
     .reclaim_receive_buffers = reclaim_receive_buffers,
@@ -484,4 +465,25 @@ struct pci_driver virtio_pci_driver = {
 void virtio_net_init()
 {
     register_pci_driver(&virtio_pci_driver);
+
+    /*
+    printf("\n---------\n");
+    struct pool *pool = jet_pool_create(10, 5);
+    printf("%d\n", pool->stride);
+    struct pool_elem *elem1 = jet_pool_get_free_elem(pool);
+    struct pool_elem *elem2 = jet_pool_get_free_elem(pool);
+    printf("elem1 %d\n", elem1->idx);
+    printf("elem2 %d\n", elem2->idx);
+    printf(">1< %d\n", pool->free_elem_idx);
+    jet_pool_free_elem(pool, elem1);
+    printf(">1< %d\n", pool->free_elem_idx);
+    jet_pool_free_elem(pool, elem2);
+    printf(">1< %d\n", pool->free_elem_idx);
+    elem1 = jet_pool_get_free_elem(pool);
+    elem2 = jet_pool_get_free_elem(pool);
+    printf("elem1 %d\n", elem1->idx);
+    printf("elem2 %d\n", elem2->idx);
+    printf("\n---------\n");
+    while (1);
+    */
 }
