@@ -108,36 +108,6 @@ static pok_bool_t udp_received_callback(
     return FALSE;
 }
 
-static void queuing_packet_sent_callback(void *arg)
-{
-    sys_queuing_data_t *qdata = arg;
-    qdata->status = QUEUING_STATUS_SENT;
-    sys_queuing_port_t *port = &sys_queuing_ports[qdata->port_index];
-
-    for (int i = 0; i < port->nb_message; i++) {
-        sys_queuing_data_t *cur_data = utils_queue_head(port);
-
-        if (cur_data->status == QUEUING_STATUS_SENT) {
-            port->queue_head = (port->queue_head + 1) % port->max_nb_messages;
-            port->nb_message--;
-
-            cur_data->status = QUEUING_STATUS_NONE;
-
-        } else {
-            // ignore messages not at the head of the queue
-            // even if they're already sent, and buffers are free to use
-            break;
-        }
-    }
-}
-
-static void sampling_packet_sent_callback(void *arg) {
-    pok_bool_t *var = (pok_bool_t*) arg;
-    if (!*var)
-        printf("error: buffer is no busy in callback\n");
-    *var = FALSE;
-}
-
 static void queuing_send_outside(unsigned channel_idx)
 {
     sys_channel_t channel = sys_queuing_channels[channel_idx];
@@ -145,43 +115,33 @@ static void queuing_send_outside(unsigned channel_idx)
 
     sys_queuing_port_t *port = &sys_queuing_ports[channel.port_index];
 
-    while (!utils_queue_full(port)) {
-        sys_queuing_data_t *dst_place = utils_queue_tail(port);
-        if (dst_place->status != QUEUING_STATUS_NONE) {
-            printf("SYSNET error: status is not NONE\n");
-            STOP_SELF();
-        }
-        RECEIVE_QUEUING_MESSAGE(
-                port->id,
-                0,
-                (MESSAGE_ADDR_TYPE ) (dst_place->data + port->header.overhead),
-                &dst_place->message_size,
-                &ret
-                );
+    sys_port_data_t *dst_place = port->data;
+    RECEIVE_QUEUING_MESSAGE(
+            port->id,
+            0,
+            (MESSAGE_ADDR_TYPE ) (dst_place->data + port->header.overhead),
+            &dst_place->message_size,
+            &ret
+            );
 
-        if (ret != NO_ERROR) {
-            if (ret != NOT_AVAILABLE)
-                printf("SYSNET: %s port error: %u\n", port->header.name, ret);
-            break;
-        }
-        printf("P2: received %s\n", dst_place->data + port->header.overhead);
-
-        port->nb_message++;
-
-        pok_bool_t res = channel.driver_ptr->send(
-                dst_place->data,
-                dst_place->message_size,
-                channel.driver_data
-                );
-
-        printf("sent\n");
-        if (!res)
-            printf("SYSNET: Error in send_udp\n");
-
-        dst_place->status = QUEUING_STATUS_PENDING;
-        dst_place->port_index = channel.port_index;
-        channel.driver_ptr->flush_send();
+    if (ret != NO_ERROR) {
+        if (ret != NOT_AVAILABLE)
+            printf("SYSNET: %s port error: %u\n", port->header.name, ret);
+        return;
     }
+    printf("P2: received %s\n", dst_place->data + port->header.overhead);
+
+    pok_bool_t res = channel.driver_ptr->send(
+            dst_place->data,
+            dst_place->message_size,
+            channel.driver_data
+            );
+
+    printf("sent\n");
+    if (!res)
+        printf("SYSNET: Error in send_udp\n");
+
+    channel.driver_ptr->flush_send();
 }
 
 static void sampling_send_outside(unsigned channel_idx)
@@ -196,12 +156,6 @@ static void sampling_send_outside(unsigned channel_idx)
     if (!SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(port->id))
         return;
 
-    if (dst_place->busy) {
-        printf("SYSNET error: sampling buffer is busy\n");
-        STOP_SELF();
-        return;
-    }
-
     READ_SAMPLING_MESSAGE(
             port->id,
             (MESSAGE_ADDR_TYPE ) (dst_place->data + port->header.overhead),
@@ -215,8 +169,6 @@ static void sampling_send_outside(unsigned channel_idx)
             printf("SYSNET: %s port error: %u\n", port->header.name, ret);
         return;
     }
-
-    dst_place->busy = TRUE;
 
     pok_bool_t res = channel.driver_ptr->send(
             dst_place->data,

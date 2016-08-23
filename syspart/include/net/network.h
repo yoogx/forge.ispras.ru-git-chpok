@@ -44,11 +44,6 @@ typedef struct network_driver_ops{
             char *buffer,
             size_t size);
 
-    pok_bool_t (*send_frame_gather)(
-            pok_netdevice_t *dev,
-            const pok_network_sg_list_t *sg_list,
-            size_t sg_list_len);
-
     void (*set_packet_received_callback)(
             pok_netdevice_t *dev,
             void (*f)(const char *, size_t));
@@ -83,13 +78,6 @@ void pok_network_init(void);
 pok_bool_t pok_network_send_udp(
     char *buffer,
     size_t size,
-    uint32_t dst_ip,
-    uint16_t dst_port
-);
-
-pok_bool_t pok_network_send_udp_gather(
-    const pok_network_sg_list_t *sg_list,
-    size_t sg_list_len,
     uint32_t dst_ip,
     uint16_t dst_port
 );

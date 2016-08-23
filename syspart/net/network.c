@@ -40,7 +40,6 @@ static pok_bool_t (*received_callback)(
 
 
 static void flush_send();
-static void reclaim_send_buffers();
 
 #define POK_NEEDS_ARP_ANSWER
 
@@ -69,12 +68,7 @@ struct arp_packet_t {
 //    }
 //    return 1;
 //}
-static pok_bool_t arp_answer_buffer_is_busy = FALSE;
 
-static void stub_callback(void *arg) {
-    arp_answer_buffer_is_busy = FALSE;
-    printf("ARP: we have sent an answer.\n");
-}
 
 static struct {
     struct ether_hdr ether_hdr;
@@ -108,12 +102,7 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
         return; // This ARP request is not for us.
     }
     printf("ARP: we have received a request for our MAC.\n");
-    if (arp_answer_buffer_is_busy) {
-        printf("ARP: answer buffer is yet busy! Unable to answer.");
-        // TODO to wait for freeing somehow.
-        return;
-    }
-    arp_answer_buffer_is_busy = TRUE;
+
     int i;
     for (i = 0; i < ETH_ALEN; i++) {
         arp_answer_buffer.arp_answer.sha[i] =
@@ -255,6 +244,7 @@ void pok_network_init(void)
 
     NETWORK_DRIVER_OPS->set_packet_received_callback(NETDEVICE_PTR, packet_received_callback);
     initialized = TRUE;
+    printf("INITED\n");
 }
 
 static void fill_in_udp_header(
@@ -310,8 +300,10 @@ pok_bool_t pok_network_send_udp(
     uint32_t dst_ip,
     uint16_t dst_port)
 {
-    if (!initialized) 
+    if (!initialized)  {
+        printf("non inited\n");
         return FALSE;
+    }
 
     fill_in_udp_header(
         buffer,
@@ -324,45 +316,6 @@ pok_bool_t pok_network_send_udp(
         NETDEVICE_PTR,
         buffer,
         size + POK_NETWORK_OVERHEAD
-    );
-}
-
-pok_bool_t pok_network_send_udp_gather(
-    const pok_network_sg_list_t *sg_list,
-    size_t sg_list_len,
-    uint32_t dst_ip,
-    uint16_t dst_port)
-{
-    if (!initialized) return FALSE;
-
-    if (sg_list_len == 0) {
-        printf("pok_network_send_udp_gather: list_len should not be zero");
-        return FALSE;
-    }
-
-    if (sg_list[0].size != POK_NETWORK_OVERHEAD) {
-        printf("pok_network_send_udp_gather: wrong size of list element");
-        return FALSE;
-    }
-
-
-    size_t payload_length = 0;
-    size_t i;
-    for (i = 1; i < sg_list_len; i++) {
-        payload_length += sg_list[i].size;
-    }
-
-    fill_in_udp_header(
-        sg_list[0].buffer, 
-        payload_length, 
-        dst_ip, 
-        dst_port
-    );
-
-    return NETWORK_DRIVER_OPS->send_frame_gather(
-        NETDEVICE_PTR,
-        sg_list,
-        sg_list_len
     );
 }
 

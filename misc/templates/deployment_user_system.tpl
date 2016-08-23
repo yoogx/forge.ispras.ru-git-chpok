@@ -21,10 +21,8 @@
 {%for port_queueing in part.ports_queueing_system%}
 static struct {
     pok_port_size_t message_size;
-    enum QUEUING_STATUS status;
-    uint32_t port_index;
     char data[POK_NETWORK_UDP + {{port_queueing.max_message_size}}];
-} qp_{{loop.index0}}_{{port_queueing.protocol}}_data[10];
+} qp_{{loop.index0}}_{{port_queueing.protocol}}_data;
 
 {%endfor%}
 
@@ -48,7 +46,6 @@ sys_queuing_port_t sys_queuing_ports[] = {
         .max_nb_messages = {{port_queueing.max_nb_message}},
         
         .data = (void *) &qp_{{loop.index0}}_{{port_queueing.protocol}}_data,
-        .data_stride = sizeof(qp_{{loop.index0}}_{{port_queueing.protocol}}_data[0]),
     },
     {%endfor%}
 };
