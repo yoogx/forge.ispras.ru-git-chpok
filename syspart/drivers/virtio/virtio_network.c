@@ -35,8 +35,6 @@
 #include <net/network.h>
 #include <mem.h>
 
-#include <pool.h>
-
 #define VIRTIO_PCI_VENDORID 0x1AF4
 
 #define VIRTIO_NETWORK_RX_VIRTQUEUE 0
@@ -47,7 +45,6 @@
 #define DRV_NAME "virtio-net"
 #define DEV_NAME_PREFIX DRV_NAME
 #define DEV_NAME_LEN 20
-#define JET_POOL_SIZE 100
 
 #define PRINTF(fmt, ...) printf("virtio_network: " fmt, ##__VA_ARGS__)
 
@@ -72,7 +69,6 @@ struct virtio_network_device {
 
     struct receive_buffer receive_buffers[POK_MAX_RECEIVE_BUFFERS];
     struct send_buffer *send_buffers;
-    struct pool *pool;
 };
 
 
@@ -441,10 +437,8 @@ static pok_bool_t probe_device(struct pci_device *pci_dev)
     // 6. DRIVER_OK status bit
     set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_DRIVER_OK);
 
-    //pool create
-    dev->pool = jet_pool_create(ETH_DATA_LENGTH, JET_POOL_SIZE);
+    // 7. send buffers allocation
     dev->send_buffers = smalloc(sizeof(*dev->send_buffers) * dev->tx_vq.vring.num);
-
 
     /* create netdevice structure */
     pok_netdevice_t *netdevice = smalloc(sizeof(*netdevice));
@@ -475,25 +469,4 @@ struct pci_driver virtio_pci_driver = {
 void virtio_net_init()
 {
     register_pci_driver(&virtio_pci_driver);
-
-    /*
-    printf("\n---------\n");
-    struct pool *pool = jet_pool_create(10, 5);
-    printf("%d\n", pool->stride);
-    struct pool_elem *elem1 = jet_pool_get_free_elem(pool);
-    struct pool_elem *elem2 = jet_pool_get_free_elem(pool);
-    printf("elem1 %d\n", elem1->idx);
-    printf("elem2 %d\n", elem2->idx);
-    printf(">1< %d\n", pool->free_elem_idx);
-    jet_pool_free_elem(pool, elem1);
-    printf(">1< %d\n", pool->free_elem_idx);
-    jet_pool_free_elem(pool, elem2);
-    printf(">1< %d\n", pool->free_elem_idx);
-    elem1 = jet_pool_get_free_elem(pool);
-    elem2 = jet_pool_get_free_elem(pool);
-    printf("elem1 %d\n", elem1->idx);
-    printf("elem2 %d\n", elem2->idx);
-    printf("\n---------\n");
-    while (1);
-    */
 }
