@@ -129,7 +129,6 @@ static void queuing_send_outside(unsigned channel_idx)
             printf("SYSNET: %s port error: %u\n", port->header.name, ret);
         return;
     }
-    printf("P2: received %s\n", dst_place->data + port->header.overhead);
 
     pok_bool_t res = channel.driver_ptr->send(
             dst_place->data,
@@ -137,7 +136,6 @@ static void queuing_send_outside(unsigned channel_idx)
             channel.driver_data
             );
 
-    printf("sent\n");
     if (!res)
         printf("SYSNET: Error in send_udp\n");
 
