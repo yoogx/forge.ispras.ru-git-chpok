@@ -57,6 +57,10 @@ struct receive_buffer {
     char payload[ETH_DATA_LENGTH];
 } __attribute__((packed));
 
+struct send_buffer {
+    char data[ETH_DATA_LENGTH];
+} __attribute__((packed));
+
 struct virtio_network_device {
     s_pci_device pci_device;
 
@@ -67,6 +71,7 @@ struct virtio_network_device {
     void (*packet_received_callback)(const char *, size_t);
 
     struct receive_buffer receive_buffers[POK_MAX_RECEIVE_BUFFERS];
+    struct send_buffer *send_buffers;
     struct pool *pool;
 };
 
@@ -110,6 +115,7 @@ static void setup_virtqueue(
     outw(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_SEL, index);
 
     // get queue size
+
     uint16_t queue_size = inw(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_NUM);
 
     // allocate memory and fill in vq fields
@@ -228,7 +234,7 @@ static pok_bool_t send_frame(
 
     memset(&net_hdr, 0, sizeof(net_hdr));
 
-    vq->num_free--;
+    vq->num_free -= 2; //we use 2 desc. One for virtio specific hdr, the other one for message
 
     uint16_t head = vq->free_index;
     /* Setup first descriptor as virtio_net_hdr */
@@ -237,8 +243,11 @@ static pok_bool_t send_frame(
     desc->len = sizeof(net_hdr);
     desc->flags = VRING_DESC_F_NEXT;
 
+
+    memcpy(dev->send_buffers[head].data, buffer, size);
+
     desc = &vq->vring.desc[desc->next];
-    desc->addr = pok_virt_to_phys(buffer);
+    desc->addr = pok_virt_to_phys(dev->send_buffers[head].data);
     if (desc->addr == 0) {
         printf("%s: kernel says that virtual address is wrong\n", __func__);
         return FALSE;
@@ -434,6 +443,7 @@ static pok_bool_t probe_device(struct pci_device *pci_dev)
 
     //pool create
     dev->pool = jet_pool_create(ETH_DATA_LENGTH, JET_POOL_SIZE);
+    dev->send_buffers = smalloc(sizeof(*dev->send_buffers) * dev->tx_vq.vring.num);
 
 
     /* create netdevice structure */
