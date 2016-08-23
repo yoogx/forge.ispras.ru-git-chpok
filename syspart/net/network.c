@@ -133,14 +133,12 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
         NETWORK_DRIVER_OPS->send_frame(
                 NETDEVICE_PTR,
                 (char *) &arp_answer_buffer,
-                sizeof(arp_answer_buffer),
-                stub_callback,
-                NULL);
+                sizeof(arp_answer_buffer)
+                );
     if (!sent) {
         printf("ARP: unable to send an answer.\n");
     }
     flush_send();
-    reclaim_send_buffers();
 }
 // ---- ARP support -  end  ----
 #endif // POK_NEEDS_ARP_ANSWER
@@ -310,9 +308,7 @@ pok_bool_t pok_network_send_udp(
     char *buffer,
     size_t size,
     uint32_t dst_ip,
-    uint16_t dst_port,
-    pok_network_buffer_callback_t callback,
-    void *callback_arg)
+    uint16_t dst_port)
 {
     if (!initialized) 
         return FALSE;
@@ -327,9 +323,7 @@ pok_bool_t pok_network_send_udp(
     return NETWORK_DRIVER_OPS->send_frame(
         NETDEVICE_PTR,
         buffer,
-        size + POK_NETWORK_OVERHEAD,
-        callback,
-        callback_arg
+        size + POK_NETWORK_OVERHEAD
     );
 }
 
@@ -337,9 +331,7 @@ pok_bool_t pok_network_send_udp_gather(
     const pok_network_sg_list_t *sg_list,
     size_t sg_list_len,
     uint32_t dst_ip,
-    uint16_t dst_port,
-    pok_network_buffer_callback_t callback,
-    void *callback_arg)
+    uint16_t dst_port)
 {
     if (!initialized) return FALSE;
 
@@ -370,9 +362,7 @@ pok_bool_t pok_network_send_udp_gather(
     return NETWORK_DRIVER_OPS->send_frame_gather(
         NETDEVICE_PTR,
         sg_list,
-        sg_list_len,
-        callback,
-        callback_arg
+        sg_list_len
     );
 }
 
@@ -380,9 +370,7 @@ pok_bool_t pok_network_send_udp_gather(
 static pok_bool_t send(
         char *buffer,
         size_t buffer_size,
-        void *driver_data,
-        pok_network_buffer_callback_t callback,
-        void *callback_arg
+        void *driver_data
     )
 {
     udp_data_t *udp_data = driver_data;
@@ -390,17 +378,8 @@ static pok_bool_t send(
             buffer,
             buffer_size,
             udp_data->ip,
-            udp_data->port,
-            callback,
-            callback_arg
+            udp_data->port
             );
-}
-
-static void reclaim_send_buffers(void)
-{
-    if (initialized) {
-        NETWORK_DRIVER_OPS->reclaim_send_buffers(NETDEVICE_PTR);
-    }
 }
 
 static void receive(void)
@@ -430,7 +409,6 @@ void register_received_callback(
 
 struct channel_driver ipnet_channel_driver = {
     .send = send,
-    .reclaim_send_buffers = reclaim_send_buffers,
     .receive = receive,
     .flush_send = flush_send,
     .register_received_callback = register_received_callback

@@ -37,12 +37,5 @@ void* virtio_virtqueue_setup(struct virtio_virtqueue *vq, uint16_t size, size_t 
         vq->vring.desc[i].next = i + 1;
     }
 
-    vq->callbacks = NULL;
-
     return mem;
-}
-
-void virtio_virtqueue_allocate_callbacks(struct virtio_virtqueue *vq)
-{
-    vq->callbacks = smalloc(sizeof(vq->callbacks[0]) * vq->vring.num);
 }

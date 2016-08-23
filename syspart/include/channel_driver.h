@@ -21,13 +21,8 @@ typedef struct channel_driver {
     pok_bool_t (*send)(
         char *buffer,
         size_t buffer_size,
-        void *driver_data,
-        pok_network_buffer_callback_t callback,
-        void *callback_arg
+        void *driver_data
     );
-
-    /* will call callbacks on sent packets */
-    void (*reclaim_send_buffers)();
 
     void (*register_received_callback)(
             pok_bool_t (*callback)(

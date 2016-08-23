@@ -24,12 +24,6 @@
 
 typedef void (*pok_network_buffer_callback_t)(void*);
 
-struct send_callback {
-    pok_network_buffer_callback_t func;
-    void *argument;
-};
-
-
 typedef struct {
     char *buffer;
     size_t size;
@@ -48,22 +42,17 @@ typedef struct network_driver_ops{
     pok_bool_t (*send_frame)(
             pok_netdevice_t *dev,
             char *buffer,
-            size_t size,
-            pok_network_buffer_callback_t callback,
-            void *callback_arg);
+            size_t size);
 
     pok_bool_t (*send_frame_gather)(
             pok_netdevice_t *dev,
             const pok_network_sg_list_t *sg_list,
-            size_t sg_list_len,
-            pok_network_buffer_callback_t callback,
-            void *callback_arg);
+            size_t sg_list_len);
 
     void (*set_packet_received_callback)(
             pok_netdevice_t *dev,
             void (*f)(const char *, size_t));
 
-    void (*reclaim_send_buffers)(pok_netdevice_t *dev);
     void (*reclaim_receive_buffers)(pok_netdevice_t *dev);
 
     void (*flush_send)(pok_netdevice_t *dev);
@@ -95,18 +84,14 @@ pok_bool_t pok_network_send_udp(
     char *buffer,
     size_t size,
     uint32_t dst_ip,
-    uint16_t dst_port,
-    pok_network_buffer_callback_t callback,
-    void *callback_arg
+    uint16_t dst_port
 );
 
 pok_bool_t pok_network_send_udp_gather(
     const pok_network_sg_list_t *sg_list,
     size_t sg_list_len,
     uint32_t dst_ip,
-    uint16_t dst_port,
-    pok_network_buffer_callback_t callback,
-    void *callback_arg
+    uint16_t dst_port
 );
 
 /*

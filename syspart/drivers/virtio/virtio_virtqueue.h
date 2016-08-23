@@ -32,15 +32,8 @@ struct virtio_virtqueue {
 
     // last seen used
     uint16_t last_seen_used;
-
-    struct {
-        pok_network_buffer_callback_t callback;
-        void *callback_arg;
-    } *callbacks;
 };
 
 void* virtio_virtqueue_setup(struct virtio_virtqueue *vq, uint16_t size, size_t alignment);
-
-void virtio_virtqueue_allocate_callbacks(struct virtio_virtqueue *vq);
 
 #endif // __POK_KERNEL_VIRTIO_VIRTQUEUE_H__

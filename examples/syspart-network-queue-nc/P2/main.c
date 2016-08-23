@@ -146,17 +146,11 @@ static void queuing_send_outside(unsigned channel_idx)
     sys_queuing_port_t *port = &sys_queuing_ports[channel.port_index];
 
     while (!utils_queue_full(port)) {
-
-        if (port->nb_message > port->max_nb_messages/2) {
-            channel.driver_ptr->reclaim_send_buffers();
-        }
-
         sys_queuing_data_t *dst_place = utils_queue_tail(port);
         if (dst_place->status != QUEUING_STATUS_NONE) {
             printf("SYSNET error: status is not NONE\n");
             STOP_SELF();
         }
-
         RECEIVE_QUEUING_MESSAGE(
                 port->id,
                 0,
@@ -170,17 +164,17 @@ static void queuing_send_outside(unsigned channel_idx)
                 printf("SYSNET: %s port error: %u\n", port->header.name, ret);
             break;
         }
+        printf("P2: received %s\n", dst_place->data + port->header.overhead);
 
         port->nb_message++;
 
         pok_bool_t res = channel.driver_ptr->send(
                 dst_place->data,
                 dst_place->message_size,
-                channel.driver_data,
-                queuing_packet_sent_callback,
-                (void*) dst_place
+                channel.driver_data
                 );
 
+        printf("sent\n");
         if (!res)
             printf("SYSNET: Error in send_udp\n");
 
@@ -227,9 +221,7 @@ static void sampling_send_outside(unsigned channel_idx)
     pok_bool_t res = channel.driver_ptr->send(
             dst_place->data,
             dst_place->message_size,
-            channel.driver_data,
-            sampling_packet_sent_callback,
-            &dst_place->busy
+            channel.driver_data
             );
 
     if (!res)
@@ -249,7 +241,6 @@ static void first_process(void)
                 break;
 
             sampling_send_outside(i);
-            channel->driver_ptr->reclaim_send_buffers();
         }
 
         for (int i = 0; i<sys_queuing_channels_nb; i++) {
@@ -260,7 +251,6 @@ static void first_process(void)
                 break;
 
             queuing_send_outside(i);
-            channel->driver_ptr->reclaim_send_buffers();
         }
 
         for (int i = 0; i < channel_drivers_nb; i++) {

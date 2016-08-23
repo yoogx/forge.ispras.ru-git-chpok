@@ -72,6 +72,7 @@ struct virtio_network_device {
 };
 
 
+static void reclaim_send_buffers(pok_netdevice_t *dev);
 /*
  * When we're in interrupt context (e.g. system call or timer),
  * preemption is already disabled, and we certainly don't want to
@@ -212,10 +213,12 @@ static void process_received_buffer(
 static pok_bool_t send_frame(
         pok_netdevice_t *netdev,
         char *buffer,
-        size_t size,
-        pok_network_buffer_callback_t callback,
-        void *callback_arg)
+        size_t size)
 {
+    //XXX need carefully think when do we need to call this reclaim func
+    reclaim_send_buffers(netdev);
+
+
     static struct virtio_net_hdr net_hdr;
     struct vring_desc *desc;
 
@@ -254,9 +257,6 @@ static pok_bool_t send_frame(
     desc->flags = 0;
     vq->free_index = desc->next;
 
-    vq->callbacks[head].callback = callback;
-    vq->callbacks[head].callback_arg = callback_arg;
-
     int avail = vq->vring.avail->idx & (vq->vring.num-1); // wrap around
     vq->vring.avail->ring[avail] = head;
 
@@ -291,10 +291,6 @@ static void reclaim_send_buffers(pok_netdevice_t *dev)
         struct vring_used_elem *e = &vq->vring.used->ring[index];
         struct vring_desc *head = &vq->vring.desc[e->id];
         struct vring_desc *tail = head;
-
-        pok_network_buffer_callback_t cb = vq->callbacks[e->id].callback;
-        void *cb_arg = vq->callbacks[e->id].callback_arg;
-        cb(cb_arg);
 
         // reclaim descriptor
         uint16_t total_descriptors = 1;
@@ -375,7 +371,6 @@ static const pok_network_driver_ops_t driver_ops = {
     .send_frame = send_frame,
     //.send_frame_gather = send_frame_gather,
     .set_packet_received_callback = set_packet_received_callback,
-    .reclaim_send_buffers = reclaim_send_buffers,
     .reclaim_receive_buffers = reclaim_receive_buffers,
     .flush_send = flush_send,
 };
@@ -411,8 +406,6 @@ static pok_bool_t probe_device(struct pci_device *pci_dev)
     // 4. Device-specific setup
     setup_virtqueue(dev, VIRTIO_NETWORK_RX_VIRTQUEUE, &dev->rx_vq);
     setup_virtqueue(dev, VIRTIO_NETWORK_TX_VIRTQUEUE, &dev->tx_vq);
-
-    virtio_virtqueue_allocate_callbacks(&dev->tx_vq);
 
     setup_receive_buffers(dev);
 
