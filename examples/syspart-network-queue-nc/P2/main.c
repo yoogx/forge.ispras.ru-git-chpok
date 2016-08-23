@@ -188,7 +188,7 @@ static void first_process(void)
             sys_sampling_port_t *port = &sys_sampling_ports[channel->port_index];
 
             if (port->header.direction != DESTINATION)
-                break;
+                continue;
 
             sampling_send_outside(i);
         }
@@ -198,7 +198,7 @@ static void first_process(void)
             sys_queuing_port_t *port = &sys_queuing_ports[channel->port_index];
 
             if (port->header.direction != DESTINATION)
-                break;
+                continue;
 
             queuing_send_outside(i);
         }
