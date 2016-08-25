@@ -87,35 +87,16 @@ pok_bool_t udp_ip_send(
     )
 {
     udp_data_t *udp_data = driver_data;
-    return pok_network_send_udp(
-            buffer,
-            buffer_size,
-            udp_data->ip,
-            udp_data->port
-            );
-}
-
-pok_bool_t pok_network_send_udp(
-    char *buffer,
-    size_t size,
-    uint32_t dst_ip,
-    uint16_t dst_port)
-{
-    if (!initialized)  {
-        printf("non inited\n");
-        return FALSE;
-    }
-
     fill_in_udp_header(
         buffer,
-        size,
-        dst_ip,
-        dst_port
+        buffer_size,
+        udp_data->ip,
+        udp_data->port
     );
 
     return NETWORK_DRIVER_OPS->send_frame(
         NETDEVICE_PTR,
         buffer,
-        size + POK_NETWORK_OVERHEAD
+        buffer_size + POK_NETWORK_OVERHEAD
     );
 }
