@@ -17,10 +17,48 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+import os
+
+from lxml import etree
+import arinc653_xml_conf
+import chpok_configuration
+import template_generation
+
 Import('env')
 Import('part_dir')
 Import('part_build_dir')
-Import('part_is_system')
+Import('src_dirs')
+Import('part_xml')
+
+env.Command('clean_cmd', [], Delete('build/'))
+env.Alias('clean', 'clean_cmd')
+
+AddMethod(env, template_generation.TemplateRender)
+
+def get_pok_partition_definitions(source, env):
+    if type(source) is list:
+        source = source[0]
+
+    root = etree.parse(source.path)
+
+    parser = arinc653_xml_conf.ArincConfigParser()
+
+    conf = chpok_configuration.Configuration()
+    parser.parse_partition(conf, root)
+
+    return dict(part = conf.partitions[0])
+
+env.TemplateRender(
+    target = os.path.join(part_build_dir, "deployment.c"),
+    source = part_xml,
+    create_definitions_func = get_pok_partition_definitions,
+    template_main = "deployment_user",
+    template_dir = env['POK_PATH'] + "/misc/templates"
+    )
+
+root = etree.parse(part_xml)
+definition_attrib = root.find("Definition").attrib
+part_is_system = ("System" in definition_attrib) and (arinc653_xml_conf.parse_bool(definition_attrib["System"]))
 
 part_env = env.Clone()
 part_env['CPPPATH'] = part_env['LIBPOK_CPPPATH']
@@ -39,15 +77,22 @@ syspart_lo = []
 if part_is_system:
     syspart_lo = part_env['POK_PATH']+'build/'+part_env['BSP']+'/syspart/syspart.lo'
 
-VariantDir(part_build_dir, part_dir, duplicate = 0)
+objs = []
+for d in src_dirs:
+    sources = Glob(d + '/*.c')
+    for src in sources:
+        objs += part_env.Object(part_build_dir + os.path.basename(str(src))[:-2], src)
 
 part_elf = part_env.Program(target = part_build_dir+'part.elf', source = [
-Glob(part_build_dir+'*.c'),
+objs,
+part_build_dir + 'deployment.c',
 syspart_lo,
 libpok,
 part_env['LIBGCC']])
-part_env.Depends(part_elf, ldscript)
 
+part_env.Depends(part_elf, ldscript)
 part_env.Depends(part_elf, part_build_dir + "deployment.c")
+
+Return('part_elf')
 
 # EOF
