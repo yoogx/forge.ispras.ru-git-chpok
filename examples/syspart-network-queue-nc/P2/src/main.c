@@ -27,186 +27,11 @@
 
 #define SECOND 1000000000LL
 
-static void queuing_send_to_partition(unsigned channel_idx, MESSAGE_ADDR_TYPE payload, size_t length)
-{
-    RETURN_CODE_TYPE ret;
-    sys_channel_t channel = sys_queuing_channels[channel_idx];
-    sys_queuing_port_t *port = &sys_queuing_ports[channel.port_index];
-
-    SEND_QUEUING_MESSAGE(
-            port->id,
-            payload,
-            length,
-            0,
-            &ret);
-
-    if (ret == NOT_AVAILABLE) {
-        printf("Buffer is full, drop packet\n");
-    } else if (ret != NO_ERROR) {
-        printf("SYSNET %s port error: %u\n", port->header.name, ret);
-    }
-}
-
-static void sampling_send_to_partition(unsigned channel_idx, MESSAGE_ADDR_TYPE payload, size_t length)
-{
-    sys_channel_t channel = sys_sampling_channels[channel_idx];
-    sys_sampling_port_t *port = &sys_sampling_ports[channel.port_index];
-    RETURN_CODE_TYPE ret;
-
-    WRITE_SAMPLING_MESSAGE(
-            port->id,
-            payload, 
-            length, 
-            &ret);
-
-    if (ret != NO_ERROR) {
-        printf("error: %u\n", ret);
-    }
-
-}
-
-static pok_bool_t udp_received_callback(
-        uint32_t ip, 
-        uint16_t udp_port, 
-        const char *payload, 
-        size_t length) 
-{
-    for (int i = 0; i<sys_sampling_channels_nb; i++) {
-        sys_channel_t *s_channel = &sys_sampling_channels[i];
-        //TODO
-        //if (s_channel->protocol != UDP)
-        //    continue;
-
-        sys_sampling_port_t *port = &sys_sampling_ports[s_channel->port_index];
-        udp_data_t *udp_data = s_channel->driver_data;
-
-        if (port->header.direction != SOURCE)
-            continue;
-        if (udp_data->ip != ip || udp_data->port != udp_port)
-            continue;
-
-        sampling_send_to_partition(i, (MESSAGE_ADDR_TYPE) payload, length);
-    }
-
-    for (int i = 0; i<sys_queuing_channels_nb; i++) {
-        sys_channel_t *q_channel = &sys_queuing_channels[i];
-        //TODO
-        //if (q_channel->protocol != UDP)
-        //    continue;
-
-        sys_queuing_port_t *port = &sys_queuing_ports[q_channel->port_index];
-        udp_data_t *udp_data = q_channel->driver_data;
-
-        if (port->header.direction != SOURCE)
-            continue;
-        if (udp_data->ip != ip || udp_data->port != udp_port)
-            continue;
-
-        queuing_send_to_partition(i, (MESSAGE_ADDR_TYPE) payload, length);
-    }
-
-    return FALSE;
-}
-
-static void queuing_send_outside(unsigned channel_idx)
-{
-    sys_channel_t channel = sys_queuing_channels[channel_idx];
-    RETURN_CODE_TYPE ret;
-
-    sys_queuing_port_t *port = &sys_queuing_ports[channel.port_index];
-
-    sys_port_data_t *dst_place = port->data;
-    RECEIVE_QUEUING_MESSAGE(
-            port->id,
-            0,
-            (MESSAGE_ADDR_TYPE ) (dst_place->data + port->header.overhead),
-            &dst_place->message_size,
-            &ret
-            );
-
-    if (ret != NO_ERROR) {
-        if (ret != NOT_AVAILABLE)
-            printf("SYSNET: %s port error: %u\n", port->header.name, ret);
-        return;
-    }
-
-    pok_bool_t res = channel.driver_ptr->send(
-            dst_place->data,
-            dst_place->message_size,
-            channel.driver_data
-            );
-
-    if (!res)
-        printf("SYSNET: Error in send_udp\n");
-
-    channel.driver_ptr->flush_send();
-}
-
-static void sampling_send_outside(unsigned channel_idx)
-{
-    RETURN_CODE_TYPE ret;
-    VALIDITY_TYPE validity;
-
-    sys_channel_t channel = sys_sampling_channels[channel_idx];
-    sys_sampling_port_t *port = &sys_sampling_ports[channel.port_index];
-    sys_port_data_t *dst_place = port->data;
-
-    if (!SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(port->id))
-        return;
-
-    READ_SAMPLING_MESSAGE(
-            port->id,
-            (MESSAGE_ADDR_TYPE ) (dst_place->data + port->header.overhead),
-            &dst_place->message_size,
-            &validity,
-            &ret
-            );
-
-    if (ret != NO_ERROR) {
-        if (ret != NOT_AVAILABLE)
-            printf("SYSNET: %s port error: %u\n", port->header.name, ret);
-        return;
-    }
-
-    pok_bool_t res = channel.driver_ptr->send(
-            dst_place->data,
-            dst_place->message_size,
-            channel.driver_data
-            );
-
-    if (!res)
-        printf("SYSNET: Error in send_udp\n");
-
-    channel.driver_ptr->flush_send();
-}
-
 static void first_process(void)
 {
     while(1) {
-        for (int i = 0; i<sys_sampling_channels_nb; i++) {
-            sys_channel_t *channel = &sys_sampling_channels[i];
-            sys_sampling_port_t *port = &sys_sampling_ports[channel->port_index];
-
-            if (port->header.direction != DESTINATION)
-                continue;
-
-            sampling_send_outside(i);
-        }
-
-        for (int i = 0; i<sys_queuing_channels_nb; i++) {
-            sys_channel_t *channel = &sys_queuing_channels[i];
-            sys_queuing_port_t *port = &sys_queuing_ports[channel->port_index];
-
-            if (port->header.direction != DESTINATION)
-                continue;
-
-            queuing_send_outside(i);
-        }
-
-        for (int i = 0; i < channel_drivers_nb; i++) {
-            channel_driver_t *driver_ptr = channel_drivers[i];
-            driver_ptr->receive();
-        }
+        ARINC_recv_active();
+        ARINC_send_active();
     }
 }
 
@@ -242,38 +67,11 @@ static int real_main(void)
         printf("process 1 \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
     }
 
-    for (int i = 0; i<sys_sampling_ports_nb; i++) {
-        sys_sampling_port_t *port = &sys_sampling_ports[i];
-        CREATE_SAMPLING_PORT(
-                port->header.name,
-                port->max_message_size,
-                port->header.direction,
-                0,
-                &port->id,
-                &ret);
-
-        if (ret != NO_ERROR)
-            printf("error %d creating %s port\n", ret, port->header.name);
-    }
-
-    for (int i = 0; i<sys_queuing_ports_nb; i++) {
-        sys_queuing_port_t *port = &sys_queuing_ports[i];
-        CREATE_QUEUING_PORT(
-                port->header.name,
-                port->max_message_size,
-                port->max_nb_messages,
-                port->header.direction,
-                FIFO,
-                &port->id,
-                &ret);
-        if (ret != NO_ERROR)
-            printf("error %d creating %s port\n", ret, port->header.name);
-
-    }
-
     drivers_init();
 
-    channel_drivers[0]->register_received_callback(udp_received_callback);
+
+    ARINC_recv_init();
+    ARINC_send_init();
 
     // transition to NORMAL operating mode
     // N.B. if everything is OK, this never returns
