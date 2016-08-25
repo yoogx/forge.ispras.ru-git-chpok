@@ -46,7 +46,7 @@ static pok_bool_t (*received_callback)(
         size_t length);
 
 
-static void flush_send();
+void udp_ip_flush();
 
 #define POK_NEEDS_ARP_ANSWER
 
@@ -134,7 +134,8 @@ static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
     if (!sent) {
         printf("ARP: unable to send an answer.\n");
     }
-    flush_send();
+    //change_to mac_flush
+    udp_ip_flush();
 }
 // ---- ARP support -  end  ----
 #endif // POK_NEEDS_ARP_ANSWER
@@ -262,12 +263,6 @@ static void receive(void)
     }
 }
 
-static void flush_send(void) {
-    if (initialized) {
-        NETWORK_DRIVER_OPS->flush_send(NETDEVICE_PTR);
-    }
-}
-
 void register_received_callback(
             pok_bool_t (*callback)(
                 uint32_t ip,
@@ -283,7 +278,7 @@ void register_received_callback(
 struct channel_driver ipnet_channel_driver = {
     .send = udp_ip_send,
     .receive = receive,
-    .flush_send = flush_send,
+    .flush_send = udp_ip_flush,
     .register_received_callback = register_received_callback
 };
 

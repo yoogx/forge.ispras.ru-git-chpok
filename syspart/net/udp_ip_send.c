@@ -100,3 +100,9 @@ pok_bool_t udp_ip_send(
         buffer_size + POK_NETWORK_OVERHEAD
     );
 }
+
+void udp_ip_flush(void) {
+    if (initialized) {
+        NETWORK_DRIVER_OPS->flush_send(NETDEVICE_PTR);
+    }
+}
