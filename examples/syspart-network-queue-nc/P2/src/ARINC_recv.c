@@ -112,7 +112,6 @@ void ARINC_recv_active()
 
 void ARINC_recv_init()
 {
-    return;
     RETURN_CODE_TYPE ret;
     for (int i = 0; i<sys_sampling_ports_nb; i++) {
         sys_sampling_port_t *port = &sys_sampling_ports[i];
