@@ -58,7 +58,7 @@ static int real_main(void)
     } else {
         printf("process 1 created\n");
     }
-    
+
     START(pid, &ret);
     if (ret != NO_ERROR) {
         printf("couldn't start process 1: %d\n", (int) ret);
@@ -80,7 +80,7 @@ static int real_main(void)
 
     if (ret != NO_ERROR) {
         printf("couldn't transit to normal operating mode: %d\n", (int) ret);
-    } 
+    }
 
     STOP_SELF();
     return 0;
@@ -89,4 +89,4 @@ static int real_main(void)
 void main(void) {
     real_main();
     STOP_SELF();
-}  
+}
