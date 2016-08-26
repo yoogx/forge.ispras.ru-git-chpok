@@ -53,8 +53,6 @@ void udp_ip_flush();
 #ifdef POK_NEEDS_ARP_ANSWER
 // ---- ARP support - begin ----
 
-#define ETH_P_ARP 0x0806
-
 struct arp_packet_t {
     uint16_t htype;
     uint16_t ptype;
