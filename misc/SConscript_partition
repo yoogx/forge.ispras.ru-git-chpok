@@ -25,7 +25,6 @@ import chpok_configuration
 import template_generation
 
 Import('env')
-Import('part_dir')
 Import('part_build_dir')
 Import('src_dirs')
 Import('part_xml')
