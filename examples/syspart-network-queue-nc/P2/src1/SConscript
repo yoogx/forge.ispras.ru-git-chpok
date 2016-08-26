@@ -17,17 +17,18 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-import os
+Import('part_env')
+Import('part_build_dir')
 
-Import('env')
+P2_env = part_env.Clone()
+P2_env.Append(CFLAGS = ' -O3')
 
-part_dir = Dir('.').abspath
-part_build_dir = os.path.join(part_dir, 'build', env['BSP'], '')
+#VariantDir(part_build_dir, '.', duplicate = 0)
+#objs = P2_env.StaticObject(source = Glob(part_build_dir+'*.c'))
 
-src_dirs = [os.path.join(part_dir, 'src', '')]
-src_script_dirs = []
+objs = []
+sources = Glob('*.c')
+for src in sources:
+    objs += P2_env.StaticObject(part_build_dir + str(src)[:-2], src)
 
-part_xml = os.path.join(part_dir, 'config.xml')
-
-SConscript(env['POK_PATH']+'/misc/SConscript_partition',
-    exports = ['part_build_dir', 'src_dirs', 'src_script_dirs', 'part_xml'])
+Return('objs')
