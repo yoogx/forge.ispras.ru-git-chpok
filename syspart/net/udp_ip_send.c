@@ -79,7 +79,10 @@ pok_bool_t udp_ip_send(
         udp_data->ip,
         udp_data->port
     );
-    mac_send(buffer, payload_size, driver_data);
+
+    uint8_t *dst_mac = find_mac_by_ip(udp_data->ip);
+
+    mac_send(buffer, payload_size, dst_mac, ETH_P_IP);
 }
 
 void udp_ip_flush(void) {

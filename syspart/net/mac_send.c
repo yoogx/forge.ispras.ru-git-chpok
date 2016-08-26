@@ -28,38 +28,37 @@
 
 #include "net.h"
 
-void fill_in_mac_header(
+static void fill_in_mac_header(
         char *buffer,
-        size_t size, // size of UDP data
-        uint8_t *dst_mac)
+        uint8_t *dst_mac,
+        uint8_t *my_mac,
+        enum ethertype type)
 {
-    struct {
-        struct ether_hdr ether_hdr;
-        char data[];
-    } __attribute__((packed)) *real_buffer = (void*) buffer;
+    struct ether_hdr *ether_hdr = (struct ether_hdr *) buffer;
 
     for (int i = 0; i < ETH_ALEN; i++) {
-        real_buffer->ether_hdr.src[i] = NETDEVICE_PTR->mac[i];
-        real_buffer->ether_hdr.dst[i] = dst_mac[i];
+        ether_hdr->src[i] = my_mac[i];
+        ether_hdr->dst[i] = dst_mac[i];
     }
-    real_buffer->ether_hdr.ethertype = hton16(ETH_P_IP);
+    ether_hdr->ethertype = hton16(type);
 
 }
+
 
 pok_bool_t mac_send(
         char *buffer,
         size_t payload_size,
-        void *driver_data
-    )
+        uint8_t *dst_mac_addr,
+        enum ethertype ethertype
+        )
 {
-    udp_data_t *udp_data = driver_data;
-    uint8_t *dst_mac = find_mac_by_ip(udp_data->ip);
 
     fill_in_mac_header(
         buffer,
-        payload_size,
-        dst_mac
-    );
+        dst_mac_addr,
+        NETDEVICE_PTR->mac,
+        ethertype
+        );
 
     return NETWORK_DRIVER_OPS->send_frame(
         NETDEVICE_PTR,
