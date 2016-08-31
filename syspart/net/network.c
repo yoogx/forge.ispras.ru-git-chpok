@@ -27,7 +27,7 @@
 #include <channel_driver.h>
 
 
-static pok_bool_t udp_ip_send(
+pok_bool_t udp_ip_send(
         char *buffer,
         size_t buffer_size,
         void *driver_data
@@ -48,22 +48,6 @@ static pok_bool_t (*received_callback)(
 
 void udp_ip_flush();
 
-#define POK_NEEDS_ARP_ANSWER
-
-#ifdef POK_NEEDS_ARP_ANSWER
-// ---- ARP support - begin ----
-
-struct arp_packet_t {
-    uint16_t htype;
-    uint16_t ptype;
-    uint8_t hlen;
-    uint8_t plen;
-    uint16_t oper;
-    uint8_t sha[ETH_ALEN];
-    uint32_t spa;
-    uint8_t tha[ETH_ALEN];
-    uint32_t tpa;
-} __attribute__((packed));
 
 //static pok_bool_t ether_is_broadcast(const uint8_t addr[ETH_ALEN]) {
 //    for (int i = 0; i < ETH_ALEN; ++i) {
@@ -74,69 +58,6 @@ struct arp_packet_t {
 //    return 1;
 //}
 
-
-static struct {
-    struct ether_hdr ether_hdr;
-    struct arp_packet_t arp_answer;
-} __attribute__((packed)) arp_answer_buffer;
-
-static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
-
-    //TODO check that dst is either broadcast or our mac address
-    //if (!ether_is_broadcast(ether_hdr->dst)) {
-    //    return; // This is not an ARP request.
-    //}
-
-    if (ether_hdr->ethertype != hton16(ETH_P_ARP)) {
-        return; // This is not an ARP request.
-    }
-    struct arp_packet_t *arp_packet = (void *) ether_hdr->payload;
-    if (arp_packet->htype != hton16(1)) {
-        return; // We support only Ethernet hardware type.
-    }
-    if (arp_packet->ptype != hton16(ETH_P_IP)) {
-        return; // We support only IPv4 protocol type.
-    }
-    if (arp_packet->hlen != ETH_ALEN || arp_packet->plen != 4) {
-        return; // We support Ethernet MAC and IPv4 addresses only.
-    }
-    if (arp_packet->oper != hton16(1)) {
-        return; // This is not an ARP request.
-    }
-    if (arp_packet->tpa != hton32(pok_network_ip_address)) {
-        return; // This ARP request is not for us.
-    }
-    printf("ARP: we have received a request for our MAC.\n");
-
-    int i;
-    for (i = 0; i < ETH_ALEN; i++) {
-        arp_answer_buffer.arp_answer.sha[i] =
-            arp_answer_buffer.ether_hdr.src[i] = NETDEVICE_PTR->mac[i];
-        arp_answer_buffer.arp_answer.tha[i] =
-            arp_answer_buffer.ether_hdr.dst[i] = arp_packet->sha[i];
-    }
-    arp_answer_buffer.ether_hdr.ethertype = hton16(ETH_P_ARP);
-    arp_answer_buffer.arp_answer.htype = arp_packet->htype;
-    arp_answer_buffer.arp_answer.ptype = arp_packet->ptype;
-    arp_answer_buffer.arp_answer.hlen = arp_packet->hlen;
-    arp_answer_buffer.arp_answer.plen = arp_packet->plen;
-    arp_answer_buffer.arp_answer.oper = hton16(2); // This is an ARP answer.
-    arp_answer_buffer.arp_answer.spa = hton32(pok_network_ip_address);
-    arp_answer_buffer.arp_answer.tpa = arp_packet->spa;
-    pok_bool_t sent =
-        NETWORK_DRIVER_OPS->send_frame(
-                NETDEVICE_PTR,
-                (char *) &arp_answer_buffer,
-                sizeof(arp_answer_buffer)
-                );
-    if (!sent) {
-        printf("ARP: unable to send an answer.\n");
-    }
-    //change_to mac_flush
-    udp_ip_flush();
-}
-// ---- ARP support -  end  ----
-#endif // POK_NEEDS_ARP_ANSWER
 
 static void packet_received_callback(const char *data, size_t len)
 {
@@ -159,11 +80,8 @@ static void packet_received_callback(const char *data, size_t len)
     }
 
     if (ether_hdr->ethertype != hton16(ETH_P_IP)) {
-
-#ifdef POK_NEEDS_ARP_ANSWER
-        try_arp(ether_hdr, len); // Manage if it is an ARP packet
-#endif // POK_NEEDS_ARP_ANSWER
-
+        if (ether_hdr->ethertype == hton16(ETH_P_ARP))
+            arp_received(ether_hdr->payload, len);
         // we don't know anything except IPv4
         return;
     }

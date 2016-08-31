@@ -60,10 +60,17 @@ pok_bool_t mac_send(
         ethertype
         );
 
+    size_t frame_size;
+    //HACK
+    if (ethertype == ETH_P_ARP)
+        frame_size = payload_size;
+    else
+        frame_size = payload_size + POK_NETWORK_OVERHEAD;
+
     return NETWORK_DRIVER_OPS->send_frame(
         NETDEVICE_PTR,
         buffer,
-        payload_size + POK_NETWORK_OVERHEAD
+        frame_size
     );
 
 }
