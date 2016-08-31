@@ -28,4 +28,4 @@ src_dirs = [os.path.join(part_dir, 'src', '')]
 part_xml = os.path.join(part_dir, 'config.xml')
 
 SConscript(env['POK_PATH']+'/misc/SConscript_partition',
-    exports = ['part_dir', 'part_build_dir', 'src_dirs', 'part_xml'])
+    exports = ['part_build_dir', 'src_dirs', 'part_xml'])

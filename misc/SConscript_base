@@ -69,9 +69,8 @@ part_xmls = root.find("Partitions")
 for xml in part_xmls.findall(etree.QName(part_xmls[0], 'include')):
     part_xml_list.append(xml.attrib["href"])
 
-for i in range(len(env['PARTITIONS'])):
-    if not os.path.exists(part_elf_list[i]):
-        SConscript(os.path.join(env['SCONSTRUCT_DIR'], env['PARTITIONS'][i], 'SConscript'), exports = 'env')
+for part in env['PARTITIONS']:
+    SConscript(os.path.join(env['SCONSTRUCT_DIR'], part, 'SConscript'), exports = 'env')
 
 env.Append(GENERATE_TITLE = template_generation.generate_title_c_no_track)
 

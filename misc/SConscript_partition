@@ -25,9 +25,9 @@ import chpok_configuration
 import template_generation
 
 Import('env')
-Import('part_dir')
 Import('part_build_dir')
 Import('src_dirs')
+Import('src_script_dirs')
 Import('part_xml')
 
 env.Command('clean_cmd', [], Delete('build/'))
@@ -81,7 +81,10 @@ objs = []
 for d in src_dirs:
     sources = Glob(d + '/*.c')
     for src in sources:
-        objs += part_env.Object(part_build_dir + os.path.basename(str(src))[:-2], src)
+        objs += part_env.StaticObject(part_build_dir + os.path.basename(str(src))[:-2], src)
+
+for d in src_script_dirs:
+    objs += SConscript(os.path.join(d, 'SConscript'), exports = ['part_env', 'part_build_dir'])
 
 part_elf = part_env.Program(target = part_build_dir+'part.elf', source = [
 objs,
