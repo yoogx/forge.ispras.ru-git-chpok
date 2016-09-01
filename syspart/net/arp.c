@@ -81,8 +81,11 @@ void arp_received(void* data, size_t payload_len)
     arp_answer_buffer.arp_answer.spa = hton32(pok_network_ip_address);
     arp_answer_buffer.arp_answer.tpa = arp_packet->spa;
 
-    mac_send((char *) &arp_answer_buffer,
-                sizeof(arp_answer_buffer), arp_answer_buffer.arp_answer.tha, ETH_P_ARP);
+    mac_send((char *) &arp_answer_buffer.arp_answer,
+                sizeof(arp_answer_buffer.arp_answer),
+                sizeof(struct ether_hdr),
+                arp_answer_buffer.arp_answer.tha,
+                ETH_P_ARP);
     //if (!sent) {
     //    printf("ARP: unable to send an answer.\n");
     //}
