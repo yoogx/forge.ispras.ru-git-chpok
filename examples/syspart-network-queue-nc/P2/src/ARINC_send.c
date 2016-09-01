@@ -42,8 +42,9 @@ static void queuing_send_outside(unsigned channel_idx)
     }
 
     pok_bool_t res = channel.driver_ptr->send(
-            dst_place->data,
+            dst_place->data + port->header.overhead,
             dst_place->message_size,
+            port->header.overhead,
             channel.driver_data
             );
 
@@ -80,8 +81,9 @@ static void sampling_send_outside(unsigned channel_idx)
     }
 
     pok_bool_t res = channel.driver_ptr->send(
-            dst_place->data,
+            dst_place->data + port->header.overhead,
             dst_place->message_size,
+            port->header.overhead,
             channel.driver_data
             );
 

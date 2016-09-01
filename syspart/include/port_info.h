@@ -24,7 +24,7 @@ typedef struct
 {
     NAME_TYPE                   name;
     PORT_DIRECTION_TYPE         direction;
-    unsigned                    overhead;
+    size_t                      overhead;
 } sys_port_header_t;
 
 typedef struct

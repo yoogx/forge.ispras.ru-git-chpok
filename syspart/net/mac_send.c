@@ -28,6 +28,9 @@
 
 #include "net.h"
 
+
+#define MAC_HEADER_SIZE 14
+
 static void fill_in_mac_header(
         char *buffer,
         uint8_t *dst_mac,
@@ -46,33 +49,27 @@ static void fill_in_mac_header(
 
 
 pok_bool_t mac_send(
-        char *buffer,
+        char *payload,
         size_t payload_size,
+        size_t max_backstep,
         uint8_t *dst_mac_addr,
         enum ethertype ethertype
         )
 {
 
+    void *mac_packet = payload - MAC_HEADER_SIZE;
     fill_in_mac_header(
-        buffer,
+        mac_packet,
         dst_mac_addr,
         NETDEVICE_PTR->mac,
         ethertype
         );
 
-    size_t frame_size;
-    //HACK
-    if (ethertype == ETH_P_ARP)
-        frame_size = payload_size;
-    else
-        frame_size = payload_size + POK_NETWORK_OVERHEAD;
-
     return NETWORK_DRIVER_OPS->send_frame(
         NETDEVICE_PTR,
-        buffer,
-        frame_size
+        mac_packet,
+        payload_size + MAC_HEADER_SIZE
     );
-
 }
 
 void mac_flush(void) {

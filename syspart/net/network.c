@@ -28,8 +28,9 @@
 
 
 pok_bool_t udp_ip_send(
-        char *buffer,
-        size_t buffer_size,
+        char *payload,
+        size_t payload_size,
+        size_t max_backstep,
         void *driver_data
     );
 

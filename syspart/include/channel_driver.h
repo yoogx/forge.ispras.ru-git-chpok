@@ -19,8 +19,9 @@
 #include <net/network.h>
 typedef struct channel_driver {
     pok_bool_t (*send)(
-        char *buffer,
-        size_t buffer_size,
+        char *payload,
+        size_t payload_size,
+        size_t max_backstep,
         void *driver_data
     );
 

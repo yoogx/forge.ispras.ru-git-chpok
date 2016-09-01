@@ -28,6 +28,7 @@
 
 #include "net.h"
 
+#define UDP_IP_HEADER_SIZE (20+8)
 
 static void fill_in_udp_ip_header(
         char *buffer,
@@ -39,7 +40,7 @@ static void fill_in_udp_ip_header(
         struct ip_hdr ip_hdr;
         struct udp_hdr udp_hdr;
         char data[];
-    } __attribute__((packed)) *real_buffer = (void*) (buffer + sizeof(struct ether_hdr));
+    } __attribute__((packed)) *real_buffer = (void*)buffer;
 
     // ...next, IP heaader
     real_buffer->ip_hdr.version_len = (4 << 4) | 5;
@@ -67,14 +68,19 @@ static void fill_in_udp_ip_header(
 }
 
 pok_bool_t udp_ip_send(
-        char *buffer,
+        char *payload,
         size_t payload_size,
+        size_t max_backstep,
         void *driver_data
     )
 {
+    if (max_backstep < UDP_IP_HEADER_SIZE)
+        return 0;
+
+    void *udp_packet = payload - UDP_IP_HEADER_SIZE;
     udp_data_t *udp_data = driver_data;
     fill_in_udp_ip_header(
-        buffer,
+        udp_packet,
         payload_size,
         udp_data->ip,
         udp_data->port
@@ -82,7 +88,13 @@ pok_bool_t udp_ip_send(
 
     uint8_t *dst_mac = find_mac_by_ip(udp_data->ip);
 
-    mac_send(buffer, payload_size, dst_mac, ETH_P_IP);
+    mac_send(udp_packet,
+            payload_size + UDP_IP_HEADER_SIZE,
+            max_backstep - UDP_IP_HEADER_SIZE,
+            dst_mac,
+            ETH_P_IP);
+
+    return 1;
 }
 
 void udp_ip_flush(void) {
