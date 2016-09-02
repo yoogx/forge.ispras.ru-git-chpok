@@ -31,13 +31,18 @@
 
 #define MAC_HEADER_SIZE 14
 
+struct mac_packet {
+    struct ether_hdr ether_hdr;
+    char payload[];
+} __attribute__((packed));
+
 static void fill_in_mac_header(
-        char *buffer,
+        struct mac_packet *packet,
         uint8_t *dst_mac,
         uint8_t *my_mac,
         enum ethertype type)
 {
-    struct ether_hdr *ether_hdr = (struct ether_hdr *) buffer;
+    struct ether_hdr *ether_hdr = &packet->ether_hdr;
 
     for (int i = 0; i < ETH_ALEN; i++) {
         ether_hdr->src[i] = my_mac[i];
@@ -56,8 +61,7 @@ pok_bool_t mac_send(
         enum ethertype ethertype
         )
 {
-
-    void *mac_packet = payload - MAC_HEADER_SIZE;
+    struct mac_packet *mac_packet = payload - MAC_HEADER_SIZE;
     fill_in_mac_header(
         mac_packet,
         dst_mac_addr,
