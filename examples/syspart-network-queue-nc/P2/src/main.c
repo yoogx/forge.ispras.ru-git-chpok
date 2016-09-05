@@ -87,6 +87,7 @@ static int real_main(void)
 }
 
 void main(void) {
+    glue_main();
     real_main();
     STOP_SELF();
 }
