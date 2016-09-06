@@ -17,28 +17,26 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-COMPONENTS_DIR = "syspart/components"
-COMPONENTS_LIST = ['X', 'Y']
-
 import os
 
-Import('part_env')
-Import('part_build_dir')
+Import('syspart_env')
 
+COMPONENTS_LIST = ['X', 'Y']
 
-P2_env = part_env.Clone()
-P2_env.Append(CFLAGS = ' -O3')
+comp_env = syspart_env.Clone()
+comp_objs = []
+#comp_gens = []
 
 for comp in COMPONENTS_LIST:
-    P2_env.Append(CPPPATH = os.path.join(P2_env['POK_PATH'], COMPONENTS_DIR, comp))
+    objs = SConscript(os.path.join(comp, 'SConscript'),
+                          #variant_dir='build/%s' % comp,
+                          #duplicate=0,
+                          exports=['comp_env'])
+    comp_objs.append(objs)
+    #comp_gens.append(gens)
+Return('comp_objs')
 
-
-#VariantDir(part_build_dir, '.', duplicate = 0)
-#objs = P2_env.StaticObject(source = Glob(part_build_dir+'*.c'))
-
-objs = []
-sources = Glob('*.c')
-for src in sources:
-    objs += P2_env.StaticObject(part_build_dir + str(src)[:-2], src)
-
-Return('objs')
+#if syspart_env.get('jdeveloper'):
+#    import sys
+#    sys.path.insert(1, os.path.join(os.environ["POK_PATH"], "misc"))
+#    import template_generation

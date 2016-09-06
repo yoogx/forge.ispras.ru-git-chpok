@@ -1,0 +1,10 @@
+- name: send_flush_t
+  #additional_h_files: ['1.h', '2.h']
+  functions:
+      - name: send
+        return_value: void
+        args: "self_t *, void *, size_t"
+
+      - name: flush
+        return_value: void
+        args: "self_t *"

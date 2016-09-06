@@ -1,0 +1,37 @@
+#hierarchical?
+#
+components:
+    - type : X
+      h_file: x_gen.h # ?
+      instances:
+        - name: x_1
+          data: "{.x = 1}" # {x: 1}
+
+        - name: x_2
+          data: "{.x = 2}"
+
+    - type: Y
+      h_file: y_gen.h
+      instances:
+        - name: y_1
+          data: "{.y = 1}"
+
+        - name: y_2
+          data: "{.y = 2}"
+
+
+links:
+    - from:
+          instance: y_1
+          port: portB
+      to:
+          instance: x_1
+          port: portC
+
+    - from:
+          instance: y_2
+          port: portB
+      to:
+          instance: x_2
+          port: portC
+

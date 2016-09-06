@@ -1,0 +1,8 @@
+#import generator
+
+Import('comp_env')
+#gen_files = generator.gen_component_files(comp_env)
+
+objs = comp_env.StaticObject(['y_gen.c', 'y.c'])
+
+Return('objs')#, 'gen_files')
