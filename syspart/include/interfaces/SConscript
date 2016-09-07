@@ -1,0 +1,7 @@
+import generator
+
+Import('integrator_env')
+
+gen_files = generator.gen_interfaces_files(integrator_env)
+
+Return('gen_files')

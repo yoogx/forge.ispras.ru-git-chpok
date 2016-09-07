@@ -4,11 +4,11 @@
 #include <lib/common.h>
 
     typedef struct {
-            void (*tick)(self_t *);
+        void (*tick)(self_t *);
     } tick_t;
 
     typedef struct {
-            void (*tick)(self_t *);
+        void (*tick)(self_t *);
     } some_interface_t;
 
 
