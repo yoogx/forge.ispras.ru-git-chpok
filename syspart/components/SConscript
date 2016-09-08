@@ -82,14 +82,7 @@ def generate_interfaces():
                 jinja_env = jinja_env
                 )
 
-if True:#syspart_env.get('jdeveloper'):
-    import sys
-    import yaml
-    import glob
-    sys.path.insert(1, os.path.join(comp_env["POK_PATH"], "misc"))
-    import template_generation
-    AddMethod(comp_env, template_generation.TemplateRender)
-
+def generate_component_files():
     for component in COMPONENTS_LIST:
         cur_component_dir = os.path.join(COMPONENTS_DIR, component)
 
@@ -111,6 +104,15 @@ if True:#syspart_env.get('jdeveloper'):
             NO_DEPS_FILES = 1
             )
 
+if True:#syspart_env.get('jdeveloper'):
+    import sys
+    import yaml
+    import glob
+    sys.path.insert(1, os.path.join(comp_env["POK_PATH"], "misc"))
+    import template_generation
+    AddMethod(comp_env, template_generation.TemplateRender)
+
+    generate_component_files()
     generate_interfaces()
 
 for comp in COMPONENTS_LIST:
