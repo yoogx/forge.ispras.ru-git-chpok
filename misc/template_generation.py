@@ -150,13 +150,13 @@ def template_render_action(target, source, env):
     if template_create_definitions_func is None:
         raise RuntimeError('TEMPLATE_CREATE_DEFINITIONS_FUNC is not specified for renderer')
 
-    template_create_used = env['TEMPLATE_CREATE_USED']
+    no_deps = env.get('NO_DEPS_FILES')
     
     # Create some tree from the source files in memory
     tree = template_create_definitions_func(source, env)
     
     used_list = None
-    if template_create_used is not None:
+    if not no_deps:
         used_list = set()
     # Create jinja environment with specific template loader.
     loader = TemplateLoader(template_dir, used = used_list)
@@ -176,7 +176,7 @@ def template_render_action(target, source, env):
                     f.write(format_title(generate_title, target, source, env))
                 stream.dump(f)
 
-            if template_create_used is not None:
+            if not no_deps:
                 deps_file_path = target_single.path + '.deps'
                 with open(deps_file_path, "w") as deps_file:
                     for f in used_list:
@@ -220,21 +220,20 @@ def TemplateRender(env, target, source, create_definitions_func,
     if len(target) != len(template_main):
         raise RuntimeError("'target' and 'template_main' lists have different lengths.")
 
-
     t = env.Command(target,
                 source,
                 template_render_action,
                 TEMPLATE_DIR = template_dir,
                 TEMPLATE_MAIN = template_main,
                 TEMPLATE_CREATE_DEFINITIONS_FUNC = create_definitions_func,
-                TEMPLATE_CREATE_USED = 1,
                 **kargs
                 )
-
-    for target_single in target:
-        env.SideEffect(target_single + '.deps', t)
-        env.ParseDepends(target_single + '.deps')
-
+    if not kargs.get('NO_DEPS_FILES'):
+        for target_single in target:
+            env.SideEffect(target_single + '.deps', t)
+            env.ParseDepends(target_single + '.deps')
+    else:
+       env.Depends(target, os.path.join(template_dir, template_main[0] + '.tpl'))
     return t
 
 ######################### Build system calls definitions ###############
