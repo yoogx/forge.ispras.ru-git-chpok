@@ -2,7 +2,7 @@
 #define __X_GEN_H__
 
 
-    #include <interfaces/send_flush_gen.h>
+    #include <interfaces/send_flush_t_gen.h>
 
 
 struct X_state {

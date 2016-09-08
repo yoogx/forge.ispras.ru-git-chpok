@@ -66,6 +66,30 @@ def get_component_definitions(source, env):
        'interfaces': interfaces
        }
 
+def interface_func(source, env):
+    return env['jinja_env']
+
+def generate_interfaces():
+    cwd = INTERFACES_DIR
+    config_list = glob.glob(os.path.join(cwd, '*.yaml'))
+
+    for config_file in config_list:
+        print(config_file)
+        path_without_ext = os.path.splitext(config_file)[0]
+        config = yaml.load(open(config_file))
+        for interface in config:
+            jinja_env = {'interface': interface}
+            gen_file = interface['name'] + '_gen.h'
+            print(gen_file, os.path.join(cwd, config_file))
+            comp_env.TemplateRender(
+                target = os.path.join(cwd, gen_file),
+                source = os.path.join(cwd, config_file),
+                create_definitions_func = interface_func,
+                template_main = "interfaces.h",
+                template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
+                NO_DEPS_FILES = 1,
+                jinja_env = jinja_env
+                )
 
 if True:#syspart_env.get('jdeveloper'):
     import sys
@@ -84,7 +108,8 @@ if True:#syspart_env.get('jdeveloper'):
             source = os.path.join(cur_component_dir, CONFIG), # plus "port headers"
             create_definitions_func = get_component_definitions,
             template_main = "component.c",
-            template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates")
+            template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
+            NO_DEPS_FILES = 1
             )
 
         comp_env.TemplateRender(
@@ -92,9 +117,11 @@ if True:#syspart_env.get('jdeveloper'):
             source = os.path.join(cur_component_dir, CONFIG), # plus "port headers"
             create_definitions_func = get_component_definitions,
             template_main = "component.h",
-            template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates")
+            template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
+            NO_DEPS_FILES = 1
             )
 
+    generate_interfaces()
 
 for comp in COMPONENTS_LIST:
     objs = SConscript(os.path.join(comp, 'SConscript'),

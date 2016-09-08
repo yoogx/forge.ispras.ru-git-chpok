@@ -2,9 +2,9 @@
 #define __Y_GEN_H__
 
 
-    #include <interfaces/tick_gen.h>
+    #include <interfaces/tick_t_gen.h>
 
-    #include <interfaces/send_flush_gen.h>
+    #include <interfaces/send_flush_t_gen.h>
 
 struct Y_state {
         int y;

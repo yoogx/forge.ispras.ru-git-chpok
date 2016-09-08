@@ -6,11 +6,11 @@
 {% endfor %}
 
 {% for p in component.in_ports %}
-    #include <interfaces/{{interfaces[p.type].inc_file}}>
+    #include <interfaces/{{p.type}}_gen.h>
 {% endfor %}
 
 {% for p in component.out_ports %}
-    #include <interfaces/{{interfaces[p.type].inc_file}}>
+    #include <interfaces/{{p.type}}_gen.h>
 {% endfor %}
 
 struct {{component.name}}_state {
