@@ -45,7 +45,7 @@ def generate_glue():
     cwd = part_env.Dir('.').srcnode().abspath
     part_env.TemplateRender(
         target = os.path.join(cwd, "glue_main_gen.c"),
-        source = os.path.join(cwd, CONFIG),#XXX plus "port headers" plus components
+        source = os.path.join(cwd, CONFIG),
         create_definitions_func = get_glue_definitions,
         template_main = "glue.c",
         template_dir = os.path.join(part_env['POK_PATH'],"misc/templates"),
