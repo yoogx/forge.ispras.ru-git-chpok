@@ -34,9 +34,7 @@ cache = {}
 def get_interfaces_config(cwd):
     """
     Return dictionary. Keys are interface names. Value are dictionary representing
-    config of interface. Add 'inc_file' key in this sub-dictionary
-    'inc_file' is name file which should be included before using corresponding
-    interface
+    config of interface.
     """
     if cwd in cache:
         return cache[cwd]
@@ -46,13 +44,8 @@ def get_interfaces_config(cwd):
     interfaces_dict = {}
     for config_file in config_list:
         config = yaml.load(open(config_file))
-
-        gen_file = os.path.splitext(config_file)[0] + '_gen.h'
-        inc_file = os.path.relpath(gen_file, os.path.split(cwd)[0])
-
         for interface in config:
             interfaces_dict[interface['name']] = interface
-            interfaces_dict[interface['name']]['inc_file'] = inc_file
 
     cache[cwd] = interfaces_dict
     return interfaces_dict
@@ -74,13 +67,11 @@ def generate_interfaces():
     config_list = glob.glob(os.path.join(cwd, '*.yaml'))
 
     for config_file in config_list:
-        print(config_file)
         path_without_ext = os.path.splitext(config_file)[0]
         config = yaml.load(open(config_file))
         for interface in config:
             jinja_env = {'interface': interface}
             gen_file = interface['name'] + '_gen.h'
-            print(gen_file, os.path.join(cwd, config_file))
             comp_env.TemplateRender(
                 target = os.path.join(cwd, gen_file),
                 source = os.path.join(cwd, config_file),
@@ -98,7 +89,6 @@ if True:#syspart_env.get('jdeveloper'):
     sys.path.insert(1, os.path.join(comp_env["POK_PATH"], "misc"))
     import template_generation
     AddMethod(comp_env, template_generation.TemplateRender)
-
 
     for component in COMPONENTS_LIST:
         cur_component_dir = os.path.join(COMPONENTS_DIR, component)
