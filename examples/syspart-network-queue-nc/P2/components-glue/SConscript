@@ -19,6 +19,7 @@
 
 COMPONENTS_DIR = "syspart/components"
 COMPONENTS_LIST = ['X', 'Y']
+CONFIG = "config.yaml"
 
 import os
 
@@ -33,8 +34,33 @@ for comp in COMPONENTS_LIST:
     P2_env.Append(CPPPATH = os.path.join(P2_env['POK_PATH'], COMPONENTS_DIR, comp))
 
 
-#VariantDir(part_build_dir, '.', duplicate = 0)
-#objs = P2_env.StaticObject(source = Glob(part_build_dir+'*.c'))
+def get_glue_definitions(source, env):
+    config = yaml.load(open(source[0].abspath))
+    return { 'components': config['components'],
+        'links': config['links'],
+        'config': config
+        }
+
+def generate_glue():
+    cwd = part_env.Dir('.').srcnode().abspath
+    part_env.TemplateRender(
+        target = os.path.join(cwd, "glue_main_gen.c"),
+        source = os.path.join(cwd, CONFIG),#XXX plus "port headers" plus components
+        create_definitions_func = get_glue_definitions,
+        template_main = "glue.c",
+        template_dir = os.path.join(part_env['POK_PATH'],"misc/templates"),
+        NO_DEPS_FILES = 1
+        )
+
+if True:#syspart_env.get('jdeveloper'):
+    import sys
+    import yaml
+    import glob
+    sys.path.insert(1, os.path.join(part_env["POK_PATH"], "misc"))
+    import template_generation
+    AddMethod(part_env, template_generation.TemplateRender)
+
+    generate_glue()
 
 objs = []
 sources = Glob('*.c')
