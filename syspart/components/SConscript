@@ -21,7 +21,8 @@ import os
 
 Import('syspart_env')
 
-COMPONENTS_LIST = ['X', 'Y']
+COMPONENTS_LIST = ['X', 'Y',
+        'arinc']
 COMPONENTS_DIR = os.path.join(syspart_env["POK_PATH"], "syspart/components")
 CONFIG = "config.yaml"
 INTERFACES_DIR = os.path.join(syspart_env["POK_PATH"], "syspart/include/interfaces/")
@@ -117,6 +118,8 @@ if True:#syspart_env.get('jdeveloper'):
 
     generate_component_files()
     generate_interfaces()
+
+
 
 for comp in COMPONENTS_LIST:
     objs = SConscript(os.path.join(comp, 'SConscript'),
