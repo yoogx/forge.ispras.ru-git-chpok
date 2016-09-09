@@ -25,7 +25,7 @@ static void first_process(void)
 {
     RETURN_CODE_TYPE ret;
     int i = 0;
-    while (1) {
+    while (i < 5) {
         SEND_BUFFER(global_buffer_id, (MESSAGE_ADDR_TYPE) &i, sizeof(i), 0, &ret);
         if (ret != NO_ERROR) {
             printf("couldn't send to the buffer: %d\n", (int) ret);
@@ -59,6 +59,8 @@ static void second_process(void)
 static int real_main(void)
 {
     RETURN_CODE_TYPE ret;
+    
+    
     BUFFER_ID_TYPE id;
     PROCESS_ID_TYPE pid;
     PROCESS_ATTRIBUTE_TYPE process_attrs = {
@@ -113,17 +115,19 @@ static int real_main(void)
 
     START(pid, &ret);
     if (ret != NO_ERROR) {
-        printf("couldn't start process 2: %d\n", (int) ret);
+        printf("couldn't start process 2: %d\n" , (int) ret);    
         return 1;
     } else {
         printf("process 2 \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
     }
+    
+    
 
     // transition to NORMAL operating mode
     // N.B. if everything is OK, this never returns
     SET_PARTITION_MODE(NORMAL, &ret);
 
-    if (ret != NO_ERROR) {
+    if (ret != NO_ERROR) {  
         printf("couldn't transit to normal operating mode: %d\n", (int) ret);
     } 
 
@@ -134,4 +138,4 @@ static int real_main(void)
 void main(void) {
     real_main();
     STOP_SELF();
-}  
+}
