@@ -72,7 +72,7 @@ def generate_interfaces():
         for interface in config:
             jinja_env = {'interface': interface}
             gen_file = interface['name'] + '_gen.h'
-            comp_env.TemplateRender(
+            t = comp_env.TemplateRender(
                 target = os.path.join(cwd, gen_file),
                 source = os.path.join(cwd, config_file),
                 create_definitions_func = interface_func,
@@ -81,12 +81,13 @@ def generate_interfaces():
                 NO_DEPS_FILES = 1,
                 jinja_env = jinja_env
                 )
+            Default(t)
 
 def generate_component_files():
     for component in COMPONENTS_LIST:
         cur_component_dir = os.path.join(COMPONENTS_DIR, component)
 
-        comp_env.TemplateRender(
+        t = comp_env.TemplateRender(
             target = os.path.join(cur_component_dir, component.lower() + "_gen.c"),
             source = os.path.join(cur_component_dir, CONFIG), # plus "port headers"
             create_definitions_func = get_component_definitions,
@@ -94,8 +95,9 @@ def generate_component_files():
             template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
             NO_DEPS_FILES = 1
             )
+        Default(t)
 
-        comp_env.TemplateRender(
+        t = comp_env.TemplateRender(
             target = os.path.join(cur_component_dir, component.lower() + "_gen.h"),
             source = os.path.join(cur_component_dir, CONFIG), # plus "port headers"
             create_definitions_func = get_component_definitions,
@@ -103,6 +105,7 @@ def generate_component_files():
             template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
             NO_DEPS_FILES = 1
             )
+        Default(t)
 
 if True:#syspart_env.get('jdeveloper'):
     import sys

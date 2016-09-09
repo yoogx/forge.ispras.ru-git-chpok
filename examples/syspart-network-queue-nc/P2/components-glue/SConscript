@@ -43,7 +43,7 @@ def get_glue_definitions(source, env):
 
 def generate_glue():
     cwd = part_env.Dir('.').srcnode().abspath
-    part_env.TemplateRender(
+    t = part_env.TemplateRender(
         target = os.path.join(cwd, "glue_main_gen.c"),
         source = os.path.join(cwd, CONFIG),
         create_definitions_func = get_glue_definitions,
@@ -51,6 +51,7 @@ def generate_glue():
         template_dir = os.path.join(part_env['POK_PATH'],"misc/templates"),
         NO_DEPS_FILES = 1
         )
+    Default(t)
 
 if True:#syspart_env.get('jdeveloper'):
     import sys
