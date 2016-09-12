@@ -51,16 +51,7 @@ def get_interfaces_config(cwd):
     cache[cwd] = interfaces_dict
     return interfaces_dict
 
-def get_component_definitions(source, env):
-    component_config = yaml.load(open(source[0].rstr()))
-    interfaces = get_interfaces_config(INTERFACES_DIR)
-
-    return {
-       'component': component_config[0],
-       'interfaces': interfaces
-       }
-
-def interface_func(source, env):
+def dummy_create_func(source, env):
     return env['jinja_env']
 
 def generate_interfaces():
@@ -76,7 +67,7 @@ def generate_interfaces():
             t = comp_env.TemplateRender(
                 target = os.path.join(cwd, gen_file),
                 source = os.path.join(cwd, config_file),
-                create_definitions_func = interface_func,
+                create_definitions_func = dummy_create_func,
                 template_main = "interfaces.h",
                 template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
                 NO_DEPS_FILES = 1,
@@ -85,24 +76,33 @@ def generate_interfaces():
             Default(t)
 
 def generate_component_files():
-    for component in COMPONENTS_LIST:
-        cur_component_dir = os.path.join(COMPONENTS_DIR, component)
+    for cur_component in COMPONENTS_LIST:
+        cur_dir = os.path.join(COMPONENTS_DIR, cur_component)
+        cur_config_file = os.path.join(cur_dir, CONFIG)
+        cur_config = yaml.load(open(cur_config_file))
+        interfaces =  get_interfaces_config(INTERFACES_DIR)
+        jinja_env = {
+               'cur_component': cur_config[0],
+               'interfaces':  interfaces
+               }
 
         t = comp_env.TemplateRender(
-            target = os.path.join(cur_component_dir, component.lower() + "_gen.c"),
-            source = os.path.join(cur_component_dir, CONFIG), # plus "port headers"
-            create_definitions_func = get_component_definitions,
+            target = os.path.join(cur_dir, cur_component.lower() + "_gen.c"),
+            source = os.path.join(cur_dir, CONFIG), # plus "port headers"
+            create_definitions_func = dummy_create_func,
             template_main = "component.c",
             template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
+            jinja_env = jinja_env
             )
         Default(t)
 
         t = comp_env.TemplateRender(
-            target = os.path.join(cur_component_dir, component.lower() + "_gen.h"),
-            source = os.path.join(cur_component_dir, CONFIG), # plus "port headers"
-            create_definitions_func = get_component_definitions,
+            target = os.path.join(cur_dir, cur_component.lower() + "_gen.h"),
+            source = os.path.join(cur_dir, CONFIG), # plus "port headers"
+            create_definitions_func = dummy_create_func,
             template_main = "component.h",
             template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
+            jinja_env = jinja_env
             )
         Default(t)
 
