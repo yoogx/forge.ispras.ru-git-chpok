@@ -1,7 +1,5 @@
 Import('comp_env')
 
-#objs = comp_env.Object(Glob('*.c'))
-#objs = comp_env.Object(['ARINC_send.c', '/home/kurban/workspace/POK/chpok/syspart/components/arinc/arinc_gen.c'])
 objs = comp_env.Object(['ARINC_send.c', 'arinc_gen.c'])
 
 Return('objs')

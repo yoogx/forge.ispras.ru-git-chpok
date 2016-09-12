@@ -1,8 +1,5 @@
-#import generator
-
 Import('comp_env')
-#gen_files = generator.gen_component_files(comp_env)
 
 objs = comp_env.Object(['x_gen.c', 'x.c'])
 
-Return('objs')#, 'gen_files')
+Return('objs')
