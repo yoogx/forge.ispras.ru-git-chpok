@@ -26,10 +26,9 @@ typedef struct {
 } X1;
 
 
-      void x_send(X1 *
-, void *, size_t);
-      void x_flush(X1 *
-);
+
+      void x_send(X1 *, void *, size_t);
+      void x_flush(X1 *);
 
 
 

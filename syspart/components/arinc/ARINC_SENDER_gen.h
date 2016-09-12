@@ -26,10 +26,9 @@ typedef struct {
 } ARINC_SENDER;
 
 
-      void x_send(ARINC_SENDER *
-, void *, size_t);
-      void x_flush(ARINC_SENDER *
-);
+
+      void x_send(ARINC_SENDER *, void *, size_t);
+      void x_flush(ARINC_SENDER *);
 
 
 

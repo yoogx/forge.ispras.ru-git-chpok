@@ -7,16 +7,12 @@
 #include "arinc_sender_gen.h"
 
 
-    static void __wrapper_x_send(self_t *arg0
-        ,void * arg1
-        ,size_t arg2
-    )
+    static void __wrapper_x_send(self_t *arg0, void * arg1, size_t arg2)
     {
         return x_send((ARINC_SENDER*) arg0, arg1, arg2);
     }
 
-    static void __wrapper_x_flush(self_t *arg0
-    )
+    static void __wrapper_x_flush(self_t *arg0)
     {
         return x_flush((ARINC_SENDER*) arg0);
     }

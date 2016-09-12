@@ -31,8 +31,8 @@ typedef struct {
 } Y;
 
 
-      void y_tick(Y *
-);
+
+      void y_tick(Y *);
 
 
 

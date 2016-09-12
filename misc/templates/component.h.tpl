@@ -39,10 +39,13 @@ typedef struct {
 } {{component.name}};
 
 
+{% macro args(func)%}
+    {% for arg in func.args_type[1:]%}, {{arg}}{%endfor%}
+{% endmacro %}
+
 {% for p in component.in_ports %}
   {% for i_func in interfaces[p.type].functions %}
-      {{i_func.return_type}} {{p.implementation[i_func.name]}}({{component.name}} *
-      {%for arg in i_func.args_type[1:]%}, {{arg}}{%endfor%});
+      {{i_func.return_type}} {{p.implementation[i_func.name]}}({{component.name}} *{{args(i_func)}});
   {% endfor %}
 {% endfor %}
 

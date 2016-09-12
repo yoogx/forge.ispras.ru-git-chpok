@@ -1,14 +1,13 @@
 #include <lib/common.h>
 #include "{{component.name|lower}}_gen.h"
 
+{% macro args(func) %}
+{% for i in range(1, func.args_type|length) %}, {{func.args_type[i]}} arg{{i}}{%endfor%}
+{% endmacro %}
 
 {% for p in component.in_ports %}
   {% for i_func in interfaces[p.type].functions %}
-    static {{i_func.return_type}} __wrapper_{{p.implementation[i_func.name]}}(self_t *arg0
-    {% for i in range(1, i_func.args_type|length) %}
-        ,{{i_func.args_type[i]}} arg{{i}}
-    {%endfor%}
-    )
+    static {{i_func.return_type}} __wrapper_{{p.implementation[i_func.name]}}(self_t *arg0{{args(i_func)}})
     {
         return {{p.implementation[i_func.name]}}(({{component.name}}*) arg0{%for i in range(1, i_func.args_type|length)%}, arg{{i}}{%endfor%});
     }
