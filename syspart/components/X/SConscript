@@ -1,5 +1,5 @@
 Import('comp_env')
 
-objs = comp_env.Object(['x_gen.c', 'x.c'])
+objs = comp_env.Object(Glob('*.c'))
 
 Return('objs')

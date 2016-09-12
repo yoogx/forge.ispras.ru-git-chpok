@@ -1,5 +1,5 @@
 Import('comp_env')
 
-objs = comp_env.StaticObject(['y_gen.c', 'y.c'])
+objs = comp_env.StaticObject(Glob('*.c'))
 
 Return('objs')

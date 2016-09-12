@@ -1,5 +1,5 @@
 Import('comp_env')
 
-objs = comp_env.Object(['ARINC_send.c', 'arinc_gen.c'])
+objs = comp_env.Object(Glob('*.c'))
 
 Return('objs')
