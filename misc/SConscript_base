@@ -132,27 +132,27 @@ def create_sizes_c(target, source, env):
         sizes.write('\n};\n')
 
 merge_command = pok_env.Command(target = pok_env['BUILD_DIR']+'partitions.bin',
-source = part_elf_list,
-action = merge_partitions)
+    source = part_elf_list,
+    action = merge_partitions)
 pok_env.Depends(merge_command, part_elf_list)
 
 sizes_c_command = pok_env.Command(target = pok_env['BUILD_DIR']+'sizes.c',
-source = part_elf_list,
-action = create_sizes_c)
+    source = part_elf_list,
+    action = create_sizes_c)
 pok_env.Depends(sizes_c_command, part_elf_list)
 
 compile_sizes = pok_env.Command(target = pok_env['BUILD_DIR']+'sizes.o',
-source = pok_env['BUILD_DIR']+'sizes.c',
-action = [
-pok_env['CC']+' -c -o '+pok_env['BUILD_DIR']+'sizes.o '+pok_env['CFLAGS']+' -I'+pok_env['POK_PATH']+'/kernel/include '+
-pok_env['BUILD_DIR']+'sizes.c',
-pok_env['OBJCOPY']+' --add-section .archive2='+pok_env['BUILD_DIR']+'partitions.bin '+pok_env['BUILD_DIR']+'sizes.o'])
+    source = pok_env['BUILD_DIR']+'sizes.c',
+    action = [
+        pok_env['CC']+' -c -o '+pok_env['BUILD_DIR']+'sizes.o '+pok_env['CFLAGS']+' -I'+pok_env['POK_PATH']+'/kernel/include '+
+        pok_env['BUILD_DIR']+'sizes.c',
+        pok_env['OBJCOPY']+' --add-section .archive2='+pok_env['BUILD_DIR']+'partitions.bin '+pok_env['BUILD_DIR']+'sizes.o'])
 pok_env.Depends(compile_sizes, part_elf_list)
 
 pok_target = pok_env.Program(target = pok_env['BUILD_DIR']+'pok.elf', source = [
-pok_env['BUILD_DIR']+'sizes.o',
-pok_env['BUILD_DIR']+'kernel.lo',
-pok_env['LIBGCC']])
+    pok_env['BUILD_DIR']+'sizes.o',
+    pok_env['BUILD_DIR']+'kernel.lo',
+    pok_env['LIBGCC']])
 pok_env.Depends(pok_target, [compile_sizes, ldscript])
 
 # EOF
