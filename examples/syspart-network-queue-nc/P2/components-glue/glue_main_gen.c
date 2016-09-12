@@ -3,13 +3,13 @@
  *
  * Instead of modifying this file, modify the one it generated from (P2/components-glue/config.yaml).
  */
-    #include <x_gen.h>
+    #include <X_gen.h>
         void __X_init__(X*);
         X x_1 = { .state = {.x = 1} };
         void __X_init__(X*);
         X x_2 = { .state = {.x = 2} };
 
-    #include <y_gen.h>
+    #include <Y_gen.h>
         void __Y_init__(Y*);
         Y y_1 = { .state = {.y = 1} };
         void __Y_init__(Y*);

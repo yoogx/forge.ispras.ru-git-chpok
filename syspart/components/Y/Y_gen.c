@@ -4,7 +4,7 @@
  * Instead of modifying this file, modify the one it generated from (syspart/components/Y/config.yaml).
  */
 #include <lib/common.h>
-#include "y_gen.h"
+#include "Y_gen.h"
 
 
     static void __wrapper_y_tick(self_t *arg0)

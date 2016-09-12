@@ -95,6 +95,7 @@ part_elf = part_env.Program(target = part_build_dir+'part.elf', source = [
 
 part_env.Depends(part_elf, ldscript)
 part_env.Depends(part_elf, part_build_dir + "deployment.c")
+Default(part_elf)
 
 Return('part_elf')
 

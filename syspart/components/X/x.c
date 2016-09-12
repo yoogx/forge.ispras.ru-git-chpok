@@ -1,4 +1,4 @@
-#include "x_gen.h"
+#include "X_gen.h"
 #include <lib/common.h>
 
 void x_send(X *self, void *buf, size_t len)

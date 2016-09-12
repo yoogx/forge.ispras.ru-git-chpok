@@ -1,4 +1,4 @@
-- name: X1
+- name: X
   #additional_h_files: ['x.h'] #list of additional headers
   state_struct:
       - type: char

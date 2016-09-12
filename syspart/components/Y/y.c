@@ -1,4 +1,4 @@
-#include "y_gen.h"
+#include "Y_gen.h"
 #include <lib/common.h>
 
 void y_tick(Y *self)

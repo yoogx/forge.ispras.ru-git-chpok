@@ -1,8 +1,8 @@
 
 #include <stdio.h>
 
-#include <x_gen.h>
-#include <y_gen.h>
+#include <X_gen.h>
+#include <Y_gen.h>
 /* _________                 _________
    \ portA /                 \ portA /
     \     /                   \     /

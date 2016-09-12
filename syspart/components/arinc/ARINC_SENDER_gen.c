@@ -4,7 +4,7 @@
  * Instead of modifying this file, modify the one it generated from (syspart/components/arinc/config.yaml).
  */
 #include <lib/common.h>
-#include "arinc_sender_gen.h"
+#include "ARINC_SENDER_gen.h"
 
 
     static void __wrapper_x_send(self_t *arg0, void * arg1, size_t arg2)

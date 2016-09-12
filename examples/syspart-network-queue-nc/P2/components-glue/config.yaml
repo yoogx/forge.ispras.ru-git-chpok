@@ -2,7 +2,7 @@
 #
 components:
     - type : X
-      h_file: x_gen.h # ?
+      h_file: X_gen.h # ?
       instances:
         - name: x_1
           data: "{.x = 1}" # {x: 1}
@@ -11,7 +11,7 @@ components:
           data: "{.x = 2}"
 
     - type: Y
-      h_file: y_gen.h
+      h_file: Y_gen.h
       instances:
         - name: y_1
           data: "{.y = 1}"

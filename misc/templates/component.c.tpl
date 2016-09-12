@@ -1,5 +1,5 @@
 #include <lib/common.h>
-#include "{{component.name|lower}}_gen.h"
+#include "{{component.name}}_gen.h"
 
 {% macro args(func) %}
 {% for i in range(1, func.args_type|length) %}, {{func.args_type[i]}} arg{{i}}{%endfor%}
