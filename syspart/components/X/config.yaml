@@ -1,4 +1,4 @@
-- name: X
+- name: X1
   #additional_h_files: ['x.h'] #list of additional headers
   state_struct:
       - type: char
@@ -10,3 +10,7 @@
         implementation:
             send: x_send
             flush: x_flush
+- name: X2
+  state_struct:
+      - type: int
+        name: tmp
