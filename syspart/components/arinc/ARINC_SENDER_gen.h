@@ -6,12 +6,20 @@
 #ifndef __ARINC_SENDER_GEN_H__
 #define __ARINC_SENDER_GEN_H__
 
+    #include <arinc653/queueing.h>
+    #include <arinc653/sampling.h>
 
     #include <interfaces/send_flush_t_gen.h>
 
 
 struct ARINC_SENDER_state {
-        char x;
+        NAME_TYPE port_name;
+        PORT_DIRECTION_TYPE port_direction;
+        unsigned overhead;
+        MESSAGE_SIZE_TYPE max_message_size;
+        int is_queuing_port;
+        MESSAGE_RANGE_TYPE q_max_nb_message;
+        APEX_INTEGER id;
 };
 
 typedef struct {

@@ -19,6 +19,8 @@
 #include <net/network.h>
 #include <depl.h>
 #include <port_info.h>
+
+#include "ARINC_SENDER_gen.h"
 static void queuing_send_outside(unsigned channel_idx)
 {
     sys_channel_t channel = sys_queuing_channels[channel_idx];
