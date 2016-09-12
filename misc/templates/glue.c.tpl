@@ -1,5 +1,5 @@
 {% for comp in components%}
-    #include <{{comp.h_file}}>
+    #include <{{comp.type}}_gen.h>
     {% for i in comp.instances %}
         void __{{comp.type}}_init__({{comp.type}}*);
         {{comp.type}} {{i.name}} = { .state = {{i.data}} };
