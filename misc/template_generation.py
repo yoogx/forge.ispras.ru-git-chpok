@@ -228,12 +228,12 @@ def TemplateRender(env, target, source, create_definitions_func,
                 TEMPLATE_CREATE_DEFINITIONS_FUNC = create_definitions_func,
                 **kargs
                 )
-    if not kargs.get('NO_DEPS_FILES'):
+    if not env.get('NO_DEPS_FILES'):
         for target_single in target:
             env.SideEffect(target_single + '.deps', t)
             env.ParseDepends(target_single + '.deps')
     else:
-       env.Depends(target, os.path.join(template_dir, template_main[0] + '.tpl'))
+        env.Depends(target, os.path.join(template_dir, template_main[0] + '.tpl'))
     return t
 
 ######################### Build system calls definitions ###############

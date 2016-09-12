@@ -69,7 +69,6 @@ def generate_interfaces():
                 create_definitions_func = dummy_create_func,
                 template_main = "interfaces.h",
                 template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
-                NO_DEPS_FILES = 1,
                 jinja_env = jinja_env
                 )
             Default(t)
