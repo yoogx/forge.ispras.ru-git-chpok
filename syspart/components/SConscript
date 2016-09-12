@@ -80,30 +80,31 @@ def generate_component_files():
         cur_config_file = os.path.join(cwd_path, CONFIG)
         cur_config = yaml.load(open(cur_config_file))
         interfaces =  get_interfaces_config(INTERFACES_DIR)
-        jinja_env = {
-               'cur_component': cur_config[0],
-               'interfaces':  interfaces
-               }
+        for component in cur_config:
+            jinja_env = {
+                    'component': component,
+                    'interfaces':  interfaces
+                    }
 
-        t = comp_env.TemplateRender(
-            target = os.path.join(cwd_path, cwd.lower() + "_gen.c"),
-            source = os.path.join(cwd_path, CONFIG), # plus "port headers"
-            create_definitions_func = dummy_create_func,
-            template_main = "component.c",
-            template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
-            jinja_env = jinja_env
-            )
-        Default(t)
+            t = comp_env.TemplateRender(
+                    target = os.path.join(cwd_path, component['name'] + "_gen.c"),
+                    source = cur_config_file,
+                    create_definitions_func = dummy_create_func,
+                    template_main = "component.c",
+                    template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
+                    jinja_env = jinja_env
+                    )
+            Default(t)
 
-        t = comp_env.TemplateRender(
-            target = os.path.join(cwd_path, cwd.lower() + "_gen.h"),
-            source = os.path.join(cwd_path, CONFIG), # plus "port headers"
-            create_definitions_func = dummy_create_func,
-            template_main = "component.h",
-            template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
-            jinja_env = jinja_env
-            )
-        Default(t)
+            t = comp_env.TemplateRender(
+                    target = os.path.join(cwd_path, component['name'] + "_gen.h"),
+                    source = cur_config_file,
+                    create_definitions_func = dummy_create_func,
+                    template_main = "component.h",
+                    template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
+                    jinja_env = jinja_env
+                    )
+            Default(t)
 
 if True:#syspart_env.get('jdeveloper'):
     import sys
