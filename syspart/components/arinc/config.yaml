@@ -1,12 +1,12 @@
-- name: arinc_sender
+- name: ARINC_SENDER
   #additional_h_files: ['x.h'] #list of additional headers
   state_struct:
       - type: char
         name: x
-  #init_func: arinc_sender_init #optional
-  #in_ports:
-  #    - name: portC
-  #      type: send_flush_t
-  #      implementation:
-  #          send: x_send
-  #          flush: x_flush
+  init_func: arinc_sender_init
+  in_ports:
+      - name: portC
+        type: send_flush_t
+        implementation:
+            send: x_send
+            flush: x_flush

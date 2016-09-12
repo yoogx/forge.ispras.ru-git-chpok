@@ -153,3 +153,8 @@ void ARINC_send_init()
 
     }
 }
+
+void arinc_sender_init(ARINC_SENDER * self)
+{
+    //printf("");
+}
