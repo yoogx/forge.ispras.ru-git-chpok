@@ -21,9 +21,8 @@ import os
 
 Import('syspart_env')
 
-COMPONENTS_LIST = ['X', 'Y',
-        'arinc']
-COMPONENTS_DIR = os.path.join(syspart_env["POK_PATH"], "syspart/components")
+COMPONENTS_DIRS = ['X', 'Y', 'arinc']
+COMPONENTS_PATH = os.path.join(syspart_env["POK_PATH"], "syspart/components")
 CONFIG = "config.yaml"
 INTERFACES_DIR = os.path.join(syspart_env["POK_PATH"], "syspart/include/interfaces/")
 
@@ -76,9 +75,9 @@ def generate_interfaces():
             Default(t)
 
 def generate_component_files():
-    for cur_component in COMPONENTS_LIST:
-        cur_dir = os.path.join(COMPONENTS_DIR, cur_component)
-        cur_config_file = os.path.join(cur_dir, CONFIG)
+    for cwd in COMPONENTS_DIRS:
+        cwd_path = os.path.join(COMPONENTS_PATH, cwd)
+        cur_config_file = os.path.join(cwd_path, CONFIG)
         cur_config = yaml.load(open(cur_config_file))
         interfaces =  get_interfaces_config(INTERFACES_DIR)
         jinja_env = {
@@ -87,8 +86,8 @@ def generate_component_files():
                }
 
         t = comp_env.TemplateRender(
-            target = os.path.join(cur_dir, cur_component.lower() + "_gen.c"),
-            source = os.path.join(cur_dir, CONFIG), # plus "port headers"
+            target = os.path.join(cwd_path, cwd.lower() + "_gen.c"),
+            source = os.path.join(cwd_path, CONFIG), # plus "port headers"
             create_definitions_func = dummy_create_func,
             template_main = "component.c",
             template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
@@ -97,8 +96,8 @@ def generate_component_files():
         Default(t)
 
         t = comp_env.TemplateRender(
-            target = os.path.join(cur_dir, cur_component.lower() + "_gen.h"),
-            source = os.path.join(cur_dir, CONFIG), # plus "port headers"
+            target = os.path.join(cwd_path, cwd.lower() + "_gen.h"),
+            source = os.path.join(cwd_path, CONFIG), # plus "port headers"
             create_definitions_func = dummy_create_func,
             template_main = "component.h",
             template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
@@ -124,7 +123,7 @@ if True:#syspart_env.get('jdeveloper'):
 
 
 
-for comp in COMPONENTS_LIST:
+for comp in COMPONENTS_DIRS:
     objs = SConscript(os.path.join(comp, 'SConscript'),
                           exports=['comp_env'])
     comp_objs.append(objs)
