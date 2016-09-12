@@ -1,3 +1,8 @@
+/*
+ * GENERATED! DO NOT MODIFY!
+ *
+ * Instead of modifying this file, modify the one it generated from (P2/components-glue/config.yaml).
+ */
     #include <x_gen.h>
         void __X_init__(X*);
         X x_1 = { .state = {.x = 1} };

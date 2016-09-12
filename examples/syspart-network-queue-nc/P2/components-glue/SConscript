@@ -49,7 +49,6 @@ def generate_glue():
         create_definitions_func = get_glue_definitions,
         template_main = "glue.c",
         template_dir = os.path.join(part_env['POK_PATH'],"misc/templates"),
-        NO_DEPS_FILES = 1
         )
     Default(t)
 
@@ -60,6 +59,12 @@ if True:#syspart_env.get('jdeveloper'):
     sys.path.insert(1, os.path.join(part_env["POK_PATH"], "misc"))
     import template_generation
     AddMethod(part_env, template_generation.TemplateRender)
+
+    part_env.Append(
+            NO_DEPS_FILES = 1,
+            SOURCE_BASE_DIR = part_env['SCONSTRUCT_DIR'],
+            GENERATE_TITLE = template_generation.generate_title_c
+            )
 
     generate_glue()
 
