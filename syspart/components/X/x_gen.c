@@ -1,3 +1,8 @@
+/*
+ * GENERATED! DO NOT MODIFY!
+ *
+ * Instead of modifying this file, modify the one it generated from (syspart/components/X/config.yaml).
+ */
 #include <lib/common.h>
 #include "x_gen.h"
 

@@ -1,3 +1,8 @@
+/*
+ * GENERATED! DO NOT MODIFY!
+ *
+ * Instead of modifying this file, modify the one it generated from (syspart/components/Y/config.yaml).
+ */
 #ifndef __Y_GEN_H__
 #define __Y_GEN_H__
 

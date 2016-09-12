@@ -94,7 +94,6 @@ def generate_component_files():
             create_definitions_func = get_component_definitions,
             template_main = "component.c",
             template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
-            NO_DEPS_FILES = 1
             )
         Default(t)
 
@@ -104,7 +103,6 @@ def generate_component_files():
             create_definitions_func = get_component_definitions,
             template_main = "component.h",
             template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
-            NO_DEPS_FILES = 1
             )
         Default(t)
 
@@ -115,6 +113,11 @@ if True:#syspart_env.get('jdeveloper'):
     sys.path.insert(1, os.path.join(comp_env["POK_PATH"], "misc"))
     import template_generation
     AddMethod(comp_env, template_generation.TemplateRender)
+    comp_env.Append(
+            NO_DEPS_FILES = 1,
+            SOURCE_BASE_DIR = comp_env['POK_PATH'],
+            GENERATE_TITLE = template_generation.generate_title_c
+            )
 
     generate_component_files()
     generate_interfaces()
