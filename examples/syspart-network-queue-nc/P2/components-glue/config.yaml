@@ -1,21 +1,23 @@
-#hierarchical?
-#
 components:
     - type : X
       instances:
         - name: x_1
-          data: "{.x = 1}" # {x: 1}
+          state:
+              x: 1
 
         - name: x_2
-          data: "{.x = 2}"
+          state:
+              x: 2
 
     - type: Y
       instances:
         - name: y_1
-          data: "{.y = 1}"
+          state:
+              y: 1
 
         - name: y_2
-          data: "{.y = 2}"
+          state:
+              y: 2
 
 
 links:

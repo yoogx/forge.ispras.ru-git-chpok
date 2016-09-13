@@ -5,15 +5,31 @@
  */
     #include <X_gen.h>
         void __X_init__(X*);
-        X x_1 = { .state = {.x = 1} };
+        X x_1 = {
+            .state = {
+                .x = 1,
+            }
+        };
         void __X_init__(X*);
-        X x_2 = { .state = {.x = 2} };
+        X x_2 = {
+            .state = {
+                .x = 2,
+            }
+        };
 
     #include <Y_gen.h>
         void __Y_init__(Y*);
-        Y y_1 = { .state = {.y = 1} };
+        Y y_1 = {
+            .state = {
+                .y = 1,
+            }
+        };
         void __Y_init__(Y*);
-        Y y_2 = { .state = {.y = 2} };
+        Y y_2 = {
+            .state = {
+                .y = 2,
+            }
+        };
 
 
 

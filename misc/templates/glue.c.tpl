@@ -2,7 +2,13 @@
     #include <{{comp.type}}_gen.h>
     {% for i in comp.instances %}
         void __{{comp.type}}_init__({{comp.type}}*);
-        {{comp.type}} {{i.name}} = { .state = {{i.data}} };
+        {{comp.type}} {{i.name}} = {
+            .state = {
+            {% for name, val in i.state.iteritems()%}
+                .{{name}} = {{val}},
+            {% endfor %}
+            }
+        };
     {% endfor %}
 
 {% endfor %}
