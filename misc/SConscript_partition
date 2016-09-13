@@ -81,7 +81,7 @@ objs = []
 for d in src_dirs:
     sources = Glob(d + '/*.c')
     for src in sources:
-        objs += part_env.StaticObject(part_build_dir + os.path.basename(str(src))[:-2], src)
+        objs += part_env.StaticObject(part_build_dir + os.path.splitext(os.path.basename(str(src)))[0], src)
 
 for d in src_script_dirs:
     objs += SConscript(os.path.join(d, 'SConscript'), exports = ['part_env', 'part_build_dir'])
