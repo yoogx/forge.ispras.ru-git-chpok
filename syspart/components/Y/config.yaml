@@ -1,8 +1,7 @@
 - name: Y
   #additional_h_files: ['y.h'] #list of additional headers
   state_struct:
-      - type: int
-        name: y
+      y: int
   #init_func: optional
   in_ports:
       - name: portA

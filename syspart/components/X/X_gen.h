@@ -11,7 +11,7 @@
 
 
 struct X_state {
-        char x;
+    char x;
 };
 
 typedef struct {

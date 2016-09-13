@@ -13,13 +13,13 @@
 
 
 struct ARINC_SENDER_state {
-        NAME_TYPE port_name;
-        PORT_DIRECTION_TYPE port_direction;
-        unsigned overhead;
-        MESSAGE_SIZE_TYPE max_message_size;
-        int is_queuing_port;
-        MESSAGE_RANGE_TYPE q_max_nb_message;
-        APEX_INTEGER id;
+    PORT_DIRECTION_TYPE port_direction;
+    MESSAGE_RANGE_TYPE q_max_nb_message;
+    MESSAGE_SIZE_TYPE max_message_size;
+    NAME_TYPE port_name;
+    unsigned overhead;
+    int is_queuing_port;
+    APEX_INTEGER id;
 };
 
 typedef struct {

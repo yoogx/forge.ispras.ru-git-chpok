@@ -1,28 +1,15 @@
 - name: ARINC_SENDER
   additional_h_files: ['arinc653/queueing.h', 'arinc653/sampling.h']
   state_struct:
-      - name: port_name
-        type: NAME_TYPE
+      port_name: NAME_TYPE
+      port_direction: PORT_DIRECTION_TYPE
+      overhead: unsigned
+      max_message_size: MESSAGE_SIZE_TYPE
+      is_queuing_port: int
+      q_max_nb_message: MESSAGE_RANGE_TYPE
 
-      - name: port_direction
-        type: PORT_DIRECTION_TYPE
-
-      - name: overhead
-        type: unsigned
-
-      - name: max_message_size
-        type: MESSAGE_SIZE_TYPE
-
-      - name: is_queuing_port
-        type: int
-
-      - name: q_max_nb_message
-        type: MESSAGE_RANGE_TYPE
-
-        #not inited
-      - name: id
-        type: APEX_INTEGER
-
+      #not inited
+      id: APEX_INTEGER
 
   init_func: arinc_sender_init
   in_ports:

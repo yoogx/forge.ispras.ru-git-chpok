@@ -1,8 +1,7 @@
 - name: X
   #additional_h_files: ['x.h'] #list of additional headers
   state_struct:
-      - type: char
-        name: x
+      x: char
   init_func: x_init #optional
   in_ports:
       - name: portC
@@ -12,5 +11,4 @@
             flush: x_flush
 - name: X2
   state_struct:
-      - type: int
-        name: tmp
+      tmp: char

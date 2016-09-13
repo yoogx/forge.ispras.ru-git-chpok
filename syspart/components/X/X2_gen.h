@@ -10,7 +10,7 @@
 
 
 struct X2_state {
-        int tmp;
+    char tmp;
 };
 
 typedef struct {

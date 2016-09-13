@@ -12,7 +12,7 @@
     #include <interfaces/send_flush_t_gen.h>
 
 struct Y_state {
-        int y;
+    int y;
 };
 
 typedef struct {

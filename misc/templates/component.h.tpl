@@ -14,9 +14,9 @@
 {% endfor %}
 
 struct {{component.name}}_state {
-    {% for field in component.state_struct %}
-        {{field.type}} {{field.name}};
-    {% endfor %}
+  {%for name, type in component.state_struct.iteritems()%}
+    {{type}} {{name}};
+  {% endfor %}
 };
 
 typedef struct {
