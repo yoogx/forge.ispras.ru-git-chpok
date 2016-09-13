@@ -33,5 +33,6 @@ uint16_t fill_afdx_frame(frame_data_t *p, uint16_t src_arinc_port, ARINC_PORT_TY
 uint16_t udp_checksum(void *buff, size_t len, uint32_t src_addr, uint32_t dest_addr);
 uint16_t ip_checksum(const void *buf, uint16_t hdr_len);
 void fill_afdx_interface_id (frame_data_t *p, int x);
+void add_seq_numb(void * buf, uint16_t * size, uint8_t * number);
 
 #endif

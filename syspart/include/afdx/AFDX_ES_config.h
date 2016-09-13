@@ -16,8 +16,8 @@
 *
 *                   AFDX End-System configuration
 *
-* The following file is a part of the AFDX project. Any modification should
-* made according to the AFDX standard.
+* The following file is a part of the AFDX project. Any modification
+* should made according to the AFDX standard.
 *
 *
 * Created by ....
@@ -26,14 +26,16 @@
 #ifndef __AFDX_ES_CONFIG_H_
 #define __AFDX_ES_CONFIG_H_
 
+#include <afdx/Receiving.h>
 #include <afdx/AFDX_ES.h>
 #include <stdlib.h>
 #include <arinc653/buffer.h>
 #include <arinc653/queueing.h>
 #include <arinc653/sampling.h>
 
+#define SECOND 					1000000000LL
 
-#define SUBNETWORKS_COUNT  2
+//~ #define SUBNETWORKS_COUNT  2                    // replaced in AFDX_ES.h
 #define VIRTUAL_LINKS_COUNT 2						//max(65535)
 //#define ARRAY_SIZE(sys_queuing_ports) 4
 //#define ARRAY_SIZE(sys_sampling_ports) 4
@@ -134,8 +136,8 @@ typedef struct
 /*
  * this data is needed for receive ES
  */
-//    integrity_check_data_t  integrity_check_data[SUBNETWORKS_COUNT];
-//	redundancy_management_data_t	redundancy_management_data;
+    integrity_check_data_t  integrity_check_data[SUBNETWORKS_COUNT];
+    redundancy_management_data_t	redundancy_management_data;
 
 } vl_data_t;
 

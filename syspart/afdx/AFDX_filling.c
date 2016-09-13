@@ -110,7 +110,7 @@ uint16_t fill_afdx_frame(frame_data_t *p,
 						 uint16_t payload_size)
 {
     //
-    size_t vl_data_index = vl_identification(src_arinc_port,arinc_port_type);
+    size_t vl_data_index = vl_identification(src_arinc_port, arinc_port_type);
     
 	afdx_dst_info_t *arinc_to_afdx_port =  define_ports(src_arinc_port, arinc_port_type);
 //MAC
@@ -169,7 +169,7 @@ uint16_t fill_afdx_frame(frame_data_t *p,
 	memcpy(p->afdx_payload, afdx_payload, payload_size);
 	//scp ifg?
 	
-	return (payload_size + HEADER_LENGTH + FCS_LENGTH);
+	return (payload_size + HEADER_LENGTH);  //FCS_LENGTH
 }
 void fill_afdx_interface_id (frame_data_t *p, int x)
 {
@@ -179,13 +179,14 @@ void fill_afdx_interface_id (frame_data_t *p, int x)
 	p->mac_header.mac_src_addr.interface_id = (MAC_INTERFACE_ID_B << 5 | MAC_INTERFACE_ID_2);
 }	
 
- // Calculate the UDP checksum (calculated with the whole packet).
- // \param buff The UDP packet.
- // \param len The UDP packet length. (header + payload)
- // \param src_addr The IP source address (in network format).
- // \param dest_addr The IP destination address (in network format).
- // \return The result of the checksum.
-uint16_t udp_checksum(void *buff, size_t len, uint32_t src_addr, uint32_t dest_addr)//uint_32
+/* Calculate the UDP checksum (calculated with the whole packet).
+ * \param buff The UDP packet.
+ * \param len The UDP packet length. (header + payload)
+ * \param src_addr The IP source address (in network format).
+ * \param dest_addr The IP destination address (in network format).
+ * \return The result of the checksum.
+ */
+uint16_t udp_checksum(void *buff, size_t len, uint32_t src_addr, uint32_t dest_addr)    //uint_32
 {		
         //hexDump("udp_checksum", buff, len);
         //printf("");
@@ -230,11 +231,12 @@ uint16_t udp_checksum(void *buff, size_t len, uint32_t src_addr, uint32_t dest_a
          // Return the one's complement of sum
          return ( (uint16_t)(~sum)  );
 }
-
-// brief Calculate the IP header checksum.
-// param buf The IP header content.
-// param hdr_len The IP header length.
-// return The result of the checksum.
+/*
+ * brief Calculate the IP header checksum.
+ * param buf The IP header content.
+ * param hdr_len The IP header length.
+ * return The result of the checksum.
+ */
 uint16_t ip_checksum(const void *buf, uint16_t hdr_len)
 {
         unsigned long sum = 0;
@@ -254,4 +256,16 @@ uint16_t ip_checksum(const void *buf, uint16_t hdr_len)
  
         return(~sum);
 }
+
+/*
+ * This function adds SN at the end of Payload
+ * and increases frame_size by 1
+ */
+
+void add_seq_numb(void * buf, uint16_t * f_size, uint8_t * s_number)
+{
+    memcpy((buf + (*f_size)), s_number, sizeof(uint8_t));
+    *f_size = *f_size + (uint16_t)(sizeof(uint8_t));   
+}
+
  

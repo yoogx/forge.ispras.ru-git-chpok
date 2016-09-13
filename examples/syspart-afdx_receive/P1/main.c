@@ -41,31 +41,11 @@ static void check_ret(RETURN_CODE_TYPE ret)
 
 
 static void first_process(void)
-{
-    // send messages in bursts of 10 (maximum queued amount)
-	char	afdx_payload[MAX_AFDX_PAYLOAD_SIZE];
-	int i = 0;
+{  
     RETURN_CODE_TYPE ret;
-
     
     while (1) {
-			if (i == 0){
-			strcpy(afdx_payload, "Hello World!");
-			printf("P1_test message: %s\n", afdx_payload);
-			SEND_QUEUING_MESSAGE(QP1, (MESSAGE_ADDR_TYPE) &afdx_payload, strlen(afdx_payload), 0, &ret);
-			}
-			if (i == 1){
-			strcpy(afdx_payload, "How are you?");
-			printf("P1_test message: %s\n", afdx_payload);
-			SEND_QUEUING_MESSAGE(QP2, (MESSAGE_ADDR_TYPE) &afdx_payload, strlen(afdx_payload), 0, &ret);
-			}
-            
-            check_ret(ret);
-            i++;
-            if (i > 1)
-				i = 0;   
-            
-			TIMED_WAIT(2 * SECOND, &ret);
+			 TIMED_WAIT(5 * SECOND, &ret);
     }
 }
 
@@ -101,18 +81,18 @@ static int real_main(void)
         printf("P1_process 1 \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
     }
     
-    //CREATING QP port 1
-    CREATE_QUEUING_PORT("QP1", MAX_AFDX_PAYLOAD_SIZE, MAX_NB_MESSAGE, SOURCE , FIFO, &QP1, &ret);
-	printf("P1_QP1 = %d\n", (int) QP1);
-	if (ret != NO_ERROR) {
-        printf("P2_couldn't create port QP1, ret %d\n", (int) ret);
-    }
-    //CREATING QP port 3
-    CREATE_QUEUING_PORT("QP3", MAX_AFDX_PAYLOAD_SIZE, MAX_NB_MESSAGE, SOURCE , FIFO, &QP2, &ret);
-	printf("P1_QP3 = %d\n", (int) QP2);
-	if (ret != NO_ERROR) {
-        printf("P2_couldn't create port QP3, ret %d\n", (int) ret);
-    }  
+    //~ //CREATING QP port 1
+    //~ CREATE_QUEUING_PORT("QP1", MAX_AFDX_PAYLOAD_SIZE, MAX_NB_MESSAGE, SOURCE , FIFO, &QP1, &ret);
+	//~ printf("P1_QP1 = %d\n", (int) QP1);
+	//~ if (ret != NO_ERROR) {
+        //~ printf("P2_couldn't create port QP1, ret %d\n", (int) ret);
+    //~ }
+    //~ //CREATING QP port 3
+    //~ CREATE_QUEUING_PORT("QP3", MAX_AFDX_PAYLOAD_SIZE, MAX_NB_MESSAGE, SOURCE , FIFO, &QP2, &ret);
+	//~ printf("P1_QP3 = %d\n", (int) QP2);
+	//~ if (ret != NO_ERROR) {
+        //~ printf("P2_couldn't create port QP3, ret %d\n", (int) ret);
+    //~ }  
     
 
     // transition to NORMAL operating mode

@@ -31,26 +31,25 @@
 	vl_data_t vl_data[VIRTUAL_LINKS_COUNT] = {
 		{
 			.vl_id = 1,
-			.BAG = SECOND,
+			.BAG = 100,
 			.L_max = 1516,
 			.L_min = 62,
 			.TTL = 5,
 			.next_out_seq_numb = 1,
 			.last_sending_BAG_numb = 0,
-			.skew_max = 2000000000,
+			.skew_max = 100000000,
 			.afdx_buf_name = "afdx_buf_1",
 			.afdx_buf_id = (int) NULL,
-            
 		},
 		{
 			.vl_id = 2,
-			.BAG = SECOND,
+			.BAG = 100,
 			.L_max = 1516,
 			.L_min = 62,
 			.TTL = 5,
 			.next_out_seq_numb = 1,
 			.last_sending_BAG_numb = 0,
-			.skew_max = 2000000000,
+			.skew_max = 100000000,
 			.afdx_buf_name = "afdx_buf_2",
 			.afdx_buf_id = (int) NULL,
 		}

@@ -32,7 +32,6 @@
 //for afdx
 #define MAX_AFDX_PAYLOAD_SIZE 	64
 #define MAX_NB_MESSAGE 			10
-#define VL_PER_PORT				1
 
 extern sys_sampling_port_t sys_sampling_ports[];
 extern sys_queuing_port_t  sys_queuing_ports[];

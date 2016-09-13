@@ -1,7 +1,10 @@
 #ifndef __RECEIVING_H_
 #define __RECEIVING_H_
 
+
 #include <afdx/AFDX_ES.h>
+#include <stdlib.h>
+
 
 /* This structure (integrity_check_data_t) describes the information needed
  * for receiving ES.
@@ -35,6 +38,5 @@ typedef struct
 	pok_time_t				last_accepted_msg_time;
 	pok_time_t				arrival_time[SUBNETWORKS_COUNT][MAX_SEQUENCE_NUMBER + 1];
  } redundancy_management_data_t;
-
 
 #endif

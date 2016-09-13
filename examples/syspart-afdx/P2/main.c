@@ -21,18 +21,19 @@
 #include <arinc653/queueing.h>
 #include <arinc653/sampling.h>
 
-//==============================
+/* ============================== */
 #include <afdx/AFDX_ES.h>
 #include <afdx/AFDX_ES_config.h>
 #include <afdx/hexDump.h>
 #include <afdx/AFDX_frame.h>
 #include <afdx/AFDX_filling.h>
 
-//==============================
+/* ============================== */
 #include <net/network.h>
 #include <depl.h>
 #include <port_info.h>
-//------------------------------
+
+/* ============================== */
 #include <net/byteorder.h>
 #include <net/ether.h>
 #include <net/ip.h>
@@ -79,11 +80,12 @@ uint16_t src_arinc_port = 1;
 
 typedef struct
 {
-	uint16_t          		vl_id;			// vl identificator
-    BUFFER_ID_TYPE			afdx_buf_id;	// name of buffer for VL
-    uint16_t				ports_index;
-    uint16_t				ports_count;
-    QUEUING_PORT_ID_TYPE	*ports_list;
+	uint16_t          		vl_id;			/* vl identificator */
+    BUFFER_ID_TYPE			afdx_buf_id;	/* name of buffer for VL */
+    uint16_t				ports_index;    /* index for checking created ports 
+                                                and the amount of ports per VL */
+    uint16_t				ports_count;    /* count of ports belonged to VL */
+    QUEUING_PORT_ID_TYPE	*ports_list;    /* array of numbers of ports,  belonged to VL */
 	
 } vl_info_t;
 
@@ -94,7 +96,7 @@ vl_info_t	vl_info[VIRTUAL_LINKS_COUNT];
 //pok_network_buffer_callback_t callback;
 void send_callback_m(void *pointer)
 {
-	printf("yes");
+	printf("Sended \n");
 }
 
 /*
@@ -110,10 +112,16 @@ static void first_process(void)
     uint16_t frame_size;
     int i = -1;
     int j;
+    uint8_t  sequence_number = 0;
+    
+    /* data for tests */
+    
+    /* end data for tests */
     
     while (1) {
 		i++;
-		if (i >= VIRTUAL_LINKS_COUNT) i = 0;
+		if (i >= VIRTUAL_LINKS_COUNT) 
+            i = 0;
 		
 		for (j = 0; j < vl_info[i].ports_count; j++)
 		{
@@ -123,15 +131,28 @@ static void first_process(void)
 									&payload_size,
 									&ret);
 			
+            printf("---%ld\n", vl_info[i].ports_list[j]);
 			
 			if (ret == NO_ERROR) {
-				printf("Received queueing message: %s, length %d\n", afdx_payload, (int) payload_size);
+				printf("Received queueing message: _%s_ , length %d\n", afdx_payload, (int) payload_size);
 
-				//filling the frame
+				/* filling the frame */
 				frame_data_t *afdx_frame = data_buffer;
+                                        /* because indexes starts from 0 unlike ports indexes starts from 1*/
+				frame_size = fill_afdx_frame(afdx_frame, (vl_info[i].ports_list[j] - 1), QUEUING, afdx_payload, payload_size);
+                
+                /* adding seauence number of message */
+                add_seq_numb(data_buffer, &frame_size, &sequence_number);
+                printf("frame_size = %d\n", frame_size);
+                
+                sequence_number++;
+                
+                /* check for SN
+                 * first message after initialization has SN = 0 
+                 * other messages have SN from 1 to 255 */
+                if (sequence_number == 0)
+                    sequence_number = 1;
 
-				frame_size = fill_afdx_frame(afdx_frame, src_arinc_port, QUEUING, afdx_payload, payload_size);
-				 
 				SEND_BUFFER(vl_info[i].afdx_buf_id, (MESSAGE_ADDR_TYPE) afdx_frame, frame_size, 0, &ret);
 				if (ret != NO_ERROR) {
 					printf("couldn't send to the buffer: %d\n", (int) ret);
@@ -152,16 +173,19 @@ static void first_process(void)
 
 static void second_process(void)
 {
-    RETURN_CODE_TYPE ret_b;
-    RETURN_CODE_TYPE ret_per_w;
-    MESSAGE_SIZE_TYPE len;
-	char	data_buffer[MAX_AFDX_FRAME_SIZE];
-	frame_data_t *afdx_frame = data_buffer;
-	PROCESS_ID_TYPE proc_id;
-	int i;
+    RETURN_CODE_TYPE    ret_b;
+    RETURN_CODE_TYPE    ret_per_w;
+    MESSAGE_SIZE_TYPE   len;
+    PROCESS_ID_TYPE     proc_id;
+	char    data_buffer[MAX_AFDX_FRAME_SIZE];
+	frame_data_t        *afdx_frame = data_buffer;
+	int     i;
+    uint8_t sequence_number;
+    /* test */
+    char payload[MAX_AFDX_FRAME_SIZE];
 	
-	GET_MY_ID(&proc_id, &ret_b); //добавить проверки
-	i = array_of_indexes[proc_id]; // установка соответствия VL и процесса
+	GET_MY_ID(&proc_id, &ret_b);    /* add some checks */
+	i = array_of_indexes[proc_id];  /*matching VL and Process */
 	printf("proc_id = %d\n", (int) proc_id);
 	printf("vl_id_index = %d\n", i);
    
@@ -173,20 +197,28 @@ static void second_process(void)
 			printf("ret = NOT_AVAILABLE, buffer %s proc %d\n", vl_data[i].afdx_buf_name, (int) proc_id);
 			PERIODIC_WAIT(&ret_per_w);
 			continue;
-			//break; if break will be here everething fals down
+			/* break; if break will be here everething fals down */
 		} else
 			if (ret_b != NO_ERROR) {
-				printf("couldn'd receive from the %s: %d\n",vl_data[i].afdx_buf_name, (int) ret_b);
-				break; // необходимо проверить эту ситуацию, может все упасть
+				printf("couldn'd receive from the %s: %d\n", vl_data[i].afdx_buf_name, (int) ret_b);
+				break; 
+                /* It is necessary to check this situation, everythihg falls down */
 			}
 		
 		if (ret_b == NO_ERROR)
 		{	
 			fill_afdx_interface_id(afdx_frame, NETWORK_CARD_A);
-			printf("received message from the %s: %s\n",vl_data[i].afdx_buf_name, afdx_frame->afdx_payload);
+            /* print received payload */
+            memcpy(&payload, (data_buffer + POK_NETWORK_OVERHEAD) , len - POK_NETWORK_OVERHEAD - 1);
+			printf("received message from the %s: %s\n", vl_data[i].afdx_buf_name, payload);
+            
 			printf("afdx_frame size %d\n", (int) len);
+            
+            /*SN*/
+            memcpy(&sequence_number, (data_buffer + len - sizeof(uint8_t)) , sizeof(uint8_t));
+            printf("SN_R %d\n", sequence_number);
 			
-			//проверка для ret - not done
+			//check ret - NOT DONE!
 			ipnet_netdev_name_1 ="virtio-net1";
 			current_netdevice_0 = get_netdevice(ipnet_netdev_name);
 			current_netdevice_1 = get_netdevice(ipnet_netdev_name_1);
@@ -195,14 +227,16 @@ static void second_process(void)
 			
 			//send to 1 card
 			printf("Sending to the card A from %s\n",vl_data[i].afdx_buf_name);
-			current_netdevice_0->ops->send_frame(current_netdevice_0, data_buffer, len + POK_NETWORK_OVERHEAD, send_callback_m, NULL);
+			current_netdevice_0->ops->send_frame(current_netdevice_0, data_buffer, len, send_callback_m, NULL);
 			current_netdevice_0->ops->flush_send(current_netdevice_0);
-			
+			current_netdevice_1->ops->reclaim_send_buffers(current_netdevice_0);
+            
 			//send to 2 card
 			printf("Sending to the card B from %s\n", vl_data[i].afdx_buf_name);
 			fill_afdx_interface_id(afdx_frame, NETWORK_CARD_B);
-			current_netdevice_1->ops->send_frame(current_netdevice_1, data_buffer, len + POK_NETWORK_OVERHEAD, send_callback_m, NULL);
+			current_netdevice_1->ops->send_frame(current_netdevice_1, data_buffer, len, send_callback_m, NULL);
 			current_netdevice_1->ops->flush_send(current_netdevice_1);
+            current_netdevice_1->ops->reclaim_send_buffers(current_netdevice_1);
 			
 			PERIODIC_WAIT(&ret_per_w);
 		}
@@ -239,7 +273,9 @@ static int real_main(void)
 		
 	}
 	
-	// malloc memmory for arrays of ports per VL
+	/*
+     * malloc memmory for arrays of ports per VL
+     */ 
 	for (i = 0; i < VIRTUAL_LINKS_COUNT; i++)
     {
 		vl_info[i].ports_list = malloc(vl_info[i].ports_count * sizeof(QUEUING_PORT_ID_TYPE));
@@ -247,7 +283,9 @@ static int real_main(void)
     
     
     
-    // create buffer
+    /*
+     * Creation of the buffer foe each VL
+     */ 
 
     for (i = 0; i < VIRTUAL_LINKS_COUNT; i++)
     {
@@ -263,7 +301,7 @@ static int real_main(void)
 	}
     
     /* 
-     * create process 1 
+     * Creation of the First Process
      * will read messages from ports 
      * and will send them to the buffers
     */
@@ -287,14 +325,14 @@ static int real_main(void)
     }
 
     /* 
-     * create process 2 for each Vertual Link
+     * Second Process created for each Virtual Link
      * using vl_id
-     * 
+     * with a period equal to BAG
      */ 
 	for (i = 0; i < VIRTUAL_LINKS_COUNT; i++)
 	{
-		process_attrs.PERIOD = SECOND;
-		process_attrs.TIME_CAPACITY = SECOND / 2;
+		process_attrs.PERIOD = vl_data[i].BAG;
+		process_attrs.TIME_CAPACITY = vl_data[i].BAG / 2;
 		process_attrs.ENTRY_POINT = second_process;
 		
 		snprintf(name, sizeof(name), "process vl %d", vl_data[i].vl_id);
@@ -328,7 +366,7 @@ static int real_main(void)
 	{
 			size_t index_for_vl = queuing_arinc_to_afdx_ports[i].vl_data_index;
 			//~ printf("index_for_vl = %d\n", (int) index_for_vl);
-			//~ printf("ports_index = %d\n", (int) vl_info[index_for_vl].ports_index);
+			//~ printf("VL_INFO: ports_index = %d\n", (int) vl_info[index_for_vl].ports_index);
 			
 		
 			CREATE_QUEUING_PORT(config_queuing_port_list[i].name,
@@ -338,8 +376,9 @@ static int real_main(void)
 								config_queuing_port_list[i].que_disc,
 								&vl_info[index_for_vl].ports_list[vl_info[index_for_vl].ports_index],
 								&ret);
-			
-			printf("P2_%s = %d\n", config_queuing_port_list[i].name, vl_info[index_for_vl].ports_list[vl_info[index_for_vl].ports_index]);
+                                
+			printf("CREATE QUEUING PORT:\n");
+			printf("P2_%s = %ld\n", config_queuing_port_list[i].name, vl_info[index_for_vl].ports_list[vl_info[index_for_vl].ports_index]);
 		
 			if (ret != NO_ERROR) {
 				printf("P2_couldn't create port %s, ret %d\n", config_queuing_port_list[i].name, (int) ret);
