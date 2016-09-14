@@ -20,13 +20,14 @@
 #include <depl.h>
 #include <port_info.h>
 
+#include <mem.h>
+
 #include "ARINC_SENDER_gen.h"
 #define C_NAME "ARIND_SENDER: "
 
 static void queuing_send_outside(ARINC_SENDER *self)
 {
-    sys_channel_t channel = sys_queuing_channels[0];
-    sys_port_data_t *dst_place = sys_queuing_ports[channel.port_index].data;
+    sys_port_data_t *dst_place = self->state.port_buffer;
 
     RETURN_CODE_TYPE ret;
     RECEIVE_QUEUING_MESSAGE(
@@ -43,6 +44,7 @@ static void queuing_send_outside(ARINC_SENDER *self)
         return;
     }
 
+    sys_channel_t channel = sys_queuing_channels[0];
     pok_bool_t res = channel.driver_ptr->send(
             dst_place->data + self->state.overhead,
             dst_place->message_size,
@@ -127,8 +129,15 @@ void arinc_sender_init(ARINC_SENDER *self)
                 &ret);
     }
 
-    if (ret != NO_ERROR)
+    if (ret != NO_ERROR) {
         printf(C_NAME"error %d during creation %s port\n", ret, self->state.port_name);
-    else
-        printf(C_NAME"successfuly create %s port\n", self->state.port_name);
+        return;
+    }
+
+    printf(C_NAME"successfuly create %s port\n", self->state.port_name);
+
+    self->state.port_buffer = smalloc(
+            sizeof(*self->state.port_buffer) +
+            self->state.overhead +
+            self->state.port_max_message_size);
 }
