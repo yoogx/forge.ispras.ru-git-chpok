@@ -71,7 +71,6 @@ static int real_main(void)
 
 
     ARINC_recv_init();
-    ARINC_send_init();
 
     // transition to NORMAL operating mode
     // N.B. if everything is OK, this never returns

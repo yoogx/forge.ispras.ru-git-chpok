@@ -21,7 +21,9 @@
 #include <port_info.h>
 
 #include "ARINC_SENDER_gen.h"
-#define C_NAME "ARIND_SENDER"
+#define C_NAME "ARIND_SENDER: "
+
+int tmp_id;
 static void queuing_send_outside(unsigned channel_idx)
 {
     sys_channel_t channel = sys_queuing_channels[channel_idx];
@@ -31,7 +33,7 @@ static void queuing_send_outside(unsigned channel_idx)
 
     sys_port_data_t *dst_place = port->data;
     RECEIVE_QUEUING_MESSAGE(
-            port->id,
+            tmp_id,
             0,
             (MESSAGE_ADDR_TYPE ) (dst_place->data + port->header.overhead),
             &dst_place->message_size,
@@ -121,40 +123,6 @@ void ARINC_send_active()
 
 void ARINC_send_init()
 {
-    RETURN_CODE_TYPE ret;
-    for (int i = 0; i<sys_sampling_ports_nb; i++) {
-        sys_sampling_port_t *port = &sys_sampling_ports[i];
-
-        if (port->header.direction != DESTINATION)
-            continue;
-        CREATE_SAMPLING_PORT(
-                port->header.name,
-                port->max_message_size,
-                port->header.direction,
-                0,
-                &port->id,
-                &ret);
-
-        if (ret != NO_ERROR)
-            printf("error %d creating %s port\n", ret, port->header.name);
-    }
-
-    for (int i = 0; i<sys_queuing_ports_nb; i++) {
-        sys_queuing_port_t *port = &sys_queuing_ports[i];
-        if (port->header.direction != DESTINATION)
-            continue;
-        CREATE_QUEUING_PORT(
-                port->header.name,
-                port->max_message_size,
-                port->max_nb_messages,
-                port->header.direction,
-                FIFO,
-                &port->id,
-                &ret);
-        if (ret != NO_ERROR)
-            printf("SND: error %d creating %s port\n", ret, port->header.name);
-
-    }
 }
 
 void arinc_sender_init(ARINC_SENDER * self)
@@ -178,6 +146,7 @@ void arinc_sender_init(ARINC_SENDER * self)
                 &self->state.port_id,
                 &ret);
     }
+    tmp_id = self->state.port_id;
 
     if (ret != NO_ERROR)
         printf(C_NAME"error %d during creation %s port\n", ret, self->state.port_name);
