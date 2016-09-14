@@ -23,33 +23,30 @@
 #include "ARINC_SENDER_gen.h"
 #define C_NAME "ARIND_SENDER: "
 
-int tmp_id;
-static void queuing_send_outside(unsigned channel_idx)
+static void queuing_send_outside(ARINC_SENDER *self)
 {
-    sys_channel_t channel = sys_queuing_channels[channel_idx];
+    sys_channel_t channel = sys_queuing_channels[0];
+    sys_port_data_t *dst_place = sys_queuing_ports[channel.port_index].data;
+
     RETURN_CODE_TYPE ret;
-
-    sys_queuing_port_t *port = &sys_queuing_ports[channel.port_index];
-
-    sys_port_data_t *dst_place = port->data;
     RECEIVE_QUEUING_MESSAGE(
-            tmp_id,
+            self->state.port_id,
             0,
-            (MESSAGE_ADDR_TYPE ) (dst_place->data + port->header.overhead),
+            (MESSAGE_ADDR_TYPE ) (dst_place->data + self->state.overhead),
             &dst_place->message_size,
             &ret
             );
 
     if (ret != NO_ERROR) {
         if (ret != NOT_AVAILABLE)
-            printf("SYSNET: %s port error: %u\n", port->header.name, ret);
+            printf("SYSNET: %s port error: %u\n", self->state.port_name, ret);
         return;
     }
 
     pok_bool_t res = channel.driver_ptr->send(
-            dst_place->data + port->header.overhead,
+            dst_place->data + self->state.overhead,
             dst_place->message_size,
-            port->header.overhead,
+            self->state.overhead,
             channel.driver_data
             );
 
@@ -99,31 +96,13 @@ static void sampling_send_outside(unsigned channel_idx)
 }
 void ARINC_send_active()
 {
-    for (int i = 0; i<sys_sampling_channels_nb; i++) {
-        sys_channel_t *channel = &sys_sampling_channels[i];
-        sys_sampling_port_t *port = &sys_sampling_ports[channel->port_index];
-
-        if (port->header.direction != DESTINATION)
-            continue;
-
-        sampling_send_outside(i);
-    }
-
-    for (int i = 0; i<sys_queuing_channels_nb; i++) {
-        sys_channel_t *channel = &sys_queuing_channels[i];
-        sys_queuing_port_t *port = &sys_queuing_ports[channel->port_index];
-
-        if (port->header.direction != DESTINATION)
-            continue;
-
-        queuing_send_outside(i);
-    }
 }
 
 
 void arinc_sender_activity(ARINC_SENDER *self)
 {
-    printf(C_NAME"activity\n");
+    //printf(C_NAME"activity\n");
+    queuing_send_outside(self);
 }
 
 void arinc_sender_init(ARINC_SENDER *self)
@@ -147,7 +126,6 @@ void arinc_sender_init(ARINC_SENDER *self)
                 &self->state.port_id,
                 &ret);
     }
-    tmp_id = self->state.port_id;
 
     if (ret != NO_ERROR)
         printf(C_NAME"error %d during creation %s port\n", ret, self->state.port_name);
