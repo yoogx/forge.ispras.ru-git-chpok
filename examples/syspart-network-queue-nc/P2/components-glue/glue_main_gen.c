@@ -5,12 +5,14 @@
  */
     #include <X_gen.h>
         void __X_init__(X*);
+        void __X_activity__(X*);
         X x_1 = {
             .state = {
                 .x = 1,
             }
         };
         void __X_init__(X*);
+        void __X_activity__(X*);
         X x_2 = {
             .state = {
                 .x = 2,
@@ -19,12 +21,14 @@
 
     #include <Y_gen.h>
         void __Y_init__(Y*);
+        void __Y_activity__(Y*);
         Y y_1 = {
             .state = {
                 .y = 1,
             }
         };
         void __Y_init__(Y*);
+        void __Y_activity__(Y*);
         Y y_2 = {
             .state = {
                 .y = 2,
@@ -33,6 +37,7 @@
 
     #include <ARINC_SENDER_gen.h>
         void __ARINC_SENDER_init__(ARINC_SENDER*);
+        void __ARINC_SENDER_activity__(ARINC_SENDER*);
         ARINC_SENDER arinc_sender_1 = {
             .state = {
                 .port_direction = DESTINATION,
@@ -46,7 +51,6 @@
 
 
 
-//#include <Y/y_gen.h>
 void __components_init__()
 {
             __X_init__(&x_1);
@@ -62,5 +66,17 @@ void __components_init__()
         y_1.out.portB.owner = &x_1;
         y_2.out.portB.ops = &x_2.in.portC.ops;
         y_2.out.portB.owner = &x_2;
+
+}
+
+void __components_activity__()
+{
+    while (1) {
+                __X_activity__(&x_1);
+                __X_activity__(&x_2);
+                __Y_activity__(&y_1);
+                __Y_activity__(&y_2);
+                __ARINC_SENDER_activity__(&arinc_sender_1);
+    }
 
 }

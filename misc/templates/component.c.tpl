@@ -27,3 +27,10 @@ void __{{component.name}}_init__({{component.name}} *self)
         {{component.init_func}}(self);
     {% endif %}
 }
+
+void __{{component.name}}_activity__({{component.name}} *self)
+{
+    {% if component.activity %}
+        {{component.activity}}(self);
+    {% endif %}
+}

@@ -12,3 +12,7 @@ void __X2_init__(X2 *self)
 {
 
 }
+
+void __X2_activity__(X2 *self)
+{
+}

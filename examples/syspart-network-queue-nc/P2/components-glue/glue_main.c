@@ -40,9 +40,15 @@ portB, portC: send_flush_t(send, flush)
 extern Y y_1;
 extern Y y_2;
 void __components_init__();
+void __components_activity__();
 void y_tick(Y *);
 
-int glue_main()
+void glue_activity()
+{
+    __components_activity__();
+}
+
+void glue_main()
 {
     __components_init__();
     printf("\n");

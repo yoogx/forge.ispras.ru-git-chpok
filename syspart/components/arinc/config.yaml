@@ -12,6 +12,7 @@
       port_id: APEX_INTEGER
 
   init_func: arinc_sender_init
+  activity: arinc_sender_activity
   #in_ports:
   #    - name: portC
   #      type: send_flush_t

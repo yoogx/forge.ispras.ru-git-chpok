@@ -25,3 +25,7 @@ void __X_init__(X *self)
 
         x_init(self);
 }
+
+void __X_activity__(X *self)
+{
+}

@@ -51,17 +51,13 @@ typedef struct {
 
 
 
-{#
-{% if comp == 'x' %}
-int x_send(X *self, void *buf, size_t len);
-void x_flush(X *self);
-{% else %}
-void y_tick(Y *self);
-{% endif %}
-#}
-
 {% if component.init_func %}
     void {{component.init_func}}({{component.name}} *);
 {% endif %}
+
+{% if component.activity%}
+    void {{component.activity}}({{component.name}} *);
+{% endif %}
+
 
 #endif

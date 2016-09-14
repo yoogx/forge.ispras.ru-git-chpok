@@ -2,6 +2,7 @@
     #include <{{comp.type}}_gen.h>
     {% for i in comp.instances %}
         void __{{comp.type}}_init__({{comp.type}}*);
+        void __{{comp.type}}_activity__({{comp.type}}*);
         {{comp.type}} {{i.name}} = {
             .state = {
             {% for name, val in i.state.iteritems()%}
@@ -14,7 +15,6 @@
 {% endfor %}
 
 
-//#include <Y/y_gen.h>
 void __components_init__()
 {
     {% for comp in components%}
@@ -28,5 +28,17 @@ void __components_init__()
         {{l.from.instance}}.out.{{l.from.port}}.ops = &{{l.to.instance}}.in.{{l.to.port}}.ops;
         {{l.from.instance}}.out.{{l.from.port}}.owner = &{{l.to.instance}};
     {% endfor %}
+
+}
+
+void __components_activity__()
+{
+    while (1) {
+        {% for comp in components%}
+            {% for i in comp.instances %}
+                __{{comp.type}}_activity__(&{{i.name}});
+            {% endfor %}
+        {% endfor %}
+    }
 
 }

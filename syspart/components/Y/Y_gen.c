@@ -18,3 +18,7 @@ void __Y_init__(Y *self)
             self->in.portA.ops.tick = __wrapper_y_tick;
 
 }
+
+void __Y_activity__(Y *self)
+{
+}

@@ -121,11 +121,12 @@ void ARINC_send_active()
 }
 
 
-void ARINC_send_init()
+void arinc_sender_activity(ARINC_SENDER *self)
 {
+    printf(C_NAME"activity\n");
 }
 
-void arinc_sender_init(ARINC_SENDER * self)
+void arinc_sender_init(ARINC_SENDER *self)
 {
     RETURN_CODE_TYPE ret;
     if (self->state.is_queuing_port) {

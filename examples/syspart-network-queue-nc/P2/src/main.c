@@ -30,6 +30,7 @@
 static void first_process(void)
 {
     while(1) {
+        glue_activity();
         ARINC_recv_active();
         ARINC_send_active();
     }
