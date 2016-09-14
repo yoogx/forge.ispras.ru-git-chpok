@@ -71,7 +71,7 @@ def generate_interfaces():
                 template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
                 jinja_env = jinja_env
                 )
-            Default(t)
+            comp_env.Depends(COMPONENTS_DEFAULT_TARGET, t)
 
 def generate_component_files():
     for cwd in COMPONENTS_DIRS:
@@ -93,7 +93,7 @@ def generate_component_files():
                     template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
                     jinja_env = jinja_env
                     )
-            Default(t)
+            comp_env.Depends(COMPONENTS_DEFAULT_TARGET, t)
 
             t = comp_env.TemplateRender(
                     target = os.path.join(cwd_path, component['name'] + "_gen.h"),
@@ -103,7 +103,7 @@ def generate_component_files():
                     template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
                     jinja_env = jinja_env
                     )
-            Default(t)
+            comp_env.Depends(COMPONENTS_DEFAULT_TARGET, t)
 
 if True:#syspart_env.get('jdeveloper'):
     import sys
@@ -117,6 +117,9 @@ if True:#syspart_env.get('jdeveloper'):
             SOURCE_BASE_DIR = comp_env['POK_PATH'],
             GENERATE_TITLE = template_generation.generate_title_c
             )
+    COMPONENTS_DEFAULT_TARGET = os.path.join(COMPONENTS_PATH, 'generate_components_files')
+    comp_env.Command(COMPONENTS_DEFAULT_TARGET, [], '')
+    Default(COMPONENTS_DEFAULT_TARGET)
 
     generate_component_files()
     generate_interfaces()

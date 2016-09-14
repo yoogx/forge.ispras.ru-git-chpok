@@ -50,7 +50,7 @@ def generate_glue():
         template_main = "glue.c",
         template_dir = os.path.join(part_env['POK_PATH'],"misc/templates"),
         )
-    Default(t)
+    part_env.Depends(t, GLUE_DEFAULT_TARGET)
 
 if True:#syspart_env.get('jdeveloper'):
     import sys
@@ -65,6 +65,10 @@ if True:#syspart_env.get('jdeveloper'):
             SOURCE_BASE_DIR = part_env['SCONSTRUCT_DIR'],
             GENERATE_TITLE = template_generation.generate_title_c
             )
+
+    GLUE_DEFAULT_TARGET = "generate_glue_files"
+    part_env.Command(GLUE_DEFAULT_TARGET, [], '')
+    Default(GLUE_DEFAULT_TARGET)
 
     generate_glue()
 
