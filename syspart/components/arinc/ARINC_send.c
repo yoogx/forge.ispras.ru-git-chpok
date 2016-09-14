@@ -40,7 +40,7 @@ static void queuing_send_outside(ARINC_SENDER *self)
 
     if (ret != NO_ERROR) {
         if (ret != NOT_AVAILABLE)
-            printf("SYSNET: %s port error: %u\n", self->state.port_name, ret);
+            printf(C_NAME"%s port error: %u\n", self->state.port_name, ret);
         return;
     }
 
@@ -53,7 +53,7 @@ static void queuing_send_outside(ARINC_SENDER *self)
             );
 
     if (!res)
-        printf("SYSNET: Error in send_udp\n");
+        printf(C_NAME"Error in send_udp\n");
 
     channel.driver_ptr->flush_send();
 }
@@ -80,7 +80,7 @@ static void sampling_send_outside(unsigned channel_idx)
 
     if (ret != NO_ERROR) {
         if (ret != NOT_AVAILABLE)
-            printf("SYSNET: %s port error: %u\n", port->header.name, ret);
+            printf(C_NAME"%s port error: %u\n", port->header.name, ret);
         return;
     }
 
@@ -92,7 +92,7 @@ static void sampling_send_outside(unsigned channel_idx)
             );
 
     if (!res)
-        printf("SYSNET: Error in send_udp\n");
+        printf(C_NAME"Error in send_udp\n");
 
     channel.driver_ptr->flush_send();
 }
