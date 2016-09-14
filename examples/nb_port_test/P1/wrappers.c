@@ -28,7 +28,7 @@ void entry_point_method(void)
 
 /////////////////////////// THREADS ///////////////////////////
  
- 
+/*
 pok_ret_t pok_thread_create_wrapper(void* param, int pos)
 {
 	pok_ret_t ret = 0;
@@ -102,7 +102,7 @@ pok_ret_t pok_sched_get_current_wrapper(void* param, int pos)
 	return ret;
 }
 
-/*
+// there is something wring, check it
 pok_ret_t pok_thread_get_status_wrapper(void* param, int pos)
 {
 	pok_ret_t ret = 0;
@@ -141,7 +141,7 @@ pok_ret_t pok_thread_get_status_wrapper(void* param, int pos)
 	
 	return ret;
 }
-*/
+
 
 pok_ret_t pok_thread_delayed_start_wrapper(void* param, int pos)
 {
@@ -212,6 +212,7 @@ pok_ret_t pok_current_partition_dec_lock_level_wrapper(void* param, int pos)
 	
 	return ret;
 }
+*/
 
 /////////////////////////// BUFFERS ///////////////////////////
 
@@ -327,7 +328,6 @@ pok_ret_t pok_buffer_status_wrapper(void* param, int pos)
 	pok_ret_t ret = 0;
     
     pok_buffer_id_t id; // pre-created buffer needed (check also with no buffer)
-    pok_buffer_status_t* status; // out param (?)
     
 	switch (pos)
 	{
@@ -340,6 +340,7 @@ pok_ret_t pok_buffer_status_wrapper(void* param, int pos)
 	return ret;                     
 }
 
+/*
 /////////////////////////// BLACKBOARDS ///////////////////////////
 
 pok_ret_t pok_buffer_create_wrapper(void* param, int pos)
@@ -701,7 +702,7 @@ pok_ret_t pok_error_get_wrapper(void* param, int pos)
 	return ret;                     
 }
 
-//////////***////////*** MIDDLEWARE SYSCALLS ***//////////***////////////
+//////////---////////--- MIDDLEWARE SYSCALLS ---//////////---////////////
 
 /////////////////////////// PORT SAMPLING ///////////////////////////
 
@@ -955,4 +956,4 @@ pok_ret_t pok_port_queuing_status_wrapper(void* param, int pos)
 	return ret;                     
 }
 
-
+*/
