@@ -31,6 +31,19 @@
             }
         };
 
+    #include <ARINC_SENDER_gen.h>
+        void __ARINC_SENDER_init__(ARINC_SENDER*);
+        ARINC_SENDER arinc_sender_1 = {
+            .state = {
+                .port_direction = DESTINATION,
+                .max_message_size = 64,
+                .port_name = "UOUT",
+                .overhead = 42,
+                .q_max_nb_message = 10,
+                .is_queuing_port = 1,
+            }
+        };
+
 
 
 //#include <Y/y_gen.h>
@@ -41,6 +54,8 @@ void __components_init__()
 
             __Y_init__(&y_1);
             __Y_init__(&y_2);
+
+            __ARINC_SENDER_init__(&arinc_sender_1);
 
 
         y_1.out.portB.ops = &x_1.in.portC.ops;

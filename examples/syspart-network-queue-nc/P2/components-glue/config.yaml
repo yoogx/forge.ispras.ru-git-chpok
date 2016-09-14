@@ -19,6 +19,18 @@ components:
           state:
               y: 2
 
+    - type: ARINC_SENDER
+      instances:
+        - name:
+            arinc_sender_1
+          state:
+              port_name: '"UOUT"'
+              port_direction: DESTINATION
+              overhead: 42 #14+20+8
+              max_message_size: 64
+              is_queuing_port: 1
+              q_max_nb_message: 10
+
 
 links:
     - from:

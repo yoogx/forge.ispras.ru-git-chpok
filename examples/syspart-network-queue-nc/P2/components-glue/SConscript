@@ -18,7 +18,7 @@
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 COMPONENTS_DIR = "syspart/components"
-COMPONENTS_LIST = ['X', 'Y']
+COMPONENTS_LIST = ['X', 'Y', 'arinc']
 CONFIG = "config.yaml"
 
 import os
