@@ -14,9 +14,8 @@
 
   init_func: arinc_sender_init
   activity: arinc_sender_activity
-  #in_ports:
-  #    - name: portC
-  #      type: send_flush_t
-  #      implementation:
-  #          send: x_send
-  #          flush: x_flush
+
+  out_ports:
+      - name: portA
+        type: send_net_data
+

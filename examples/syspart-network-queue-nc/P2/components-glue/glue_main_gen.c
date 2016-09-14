@@ -49,6 +49,15 @@
             }
         };
 
+    #include <UDP_IP_SENDER_gen.h>
+        void __UDP_IP_SENDER_init__(UDP_IP_SENDER*);
+        void __UDP_IP_SENDER_activity__(UDP_IP_SENDER*);
+        UDP_IP_SENDER udp_ip_sender_1 = {
+            .state = {
+                .a = 1,
+            }
+        };
+
 
 
 void __components_init__()
@@ -61,11 +70,15 @@ void __components_init__()
 
             __ARINC_SENDER_init__(&arinc_sender_1);
 
+            __UDP_IP_SENDER_init__(&udp_ip_sender_1);
+
 
         y_1.out.portB.ops = &x_1.in.portC.ops;
         y_1.out.portB.owner = &x_1;
         y_2.out.portB.ops = &x_2.in.portC.ops;
         y_2.out.portB.owner = &x_2;
+        arinc_sender_1.out.portA.ops = &udp_ip_sender_1.in.portA.ops;
+        arinc_sender_1.out.portA.owner = &udp_ip_sender_1;
 
 }
 
@@ -77,6 +90,7 @@ void __components_activity__()
                 __Y_activity__(&y_1);
                 __Y_activity__(&y_2);
                 __ARINC_SENDER_activity__(&arinc_sender_1);
+                __UDP_IP_SENDER_activity__(&udp_ip_sender_1);
     }
 
 }

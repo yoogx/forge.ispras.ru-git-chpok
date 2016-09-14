@@ -31,6 +31,13 @@ components:
               is_queuing_port: 1
               q_port_max_nb_messages: 10
 
+    - type: UDP_IP_SENDER
+      instances:
+        - name:
+            udp_ip_sender_1
+          state:
+              a: 1
+
 
 links:
     - from:
@@ -47,3 +54,9 @@ links:
           instance: x_2
           port: portC
 
+    - from:
+        instance: arinc_sender_1
+        port: portA
+      to:
+        instance: udp_ip_sender_1
+        port: portA

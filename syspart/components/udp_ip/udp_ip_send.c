@@ -27,6 +27,7 @@
 #include <channel_driver.h>
 
 #include "net.h"
+#include "UDP_IP_SENDER_gen.h"
 
 #define UDP_IP_HEADER_SIZE (20+8)
 struct udp_ip_packet{
@@ -66,18 +67,23 @@ static void fill_in_udp_ip_header(
     packet->udp_hdr.checksum = 0; // no checksum
 }
 
-pok_bool_t udp_ip_send(
+ret_t udp_ip_send(
+        UDP_IP_SENDER *self,
         char *payload,
         size_t payload_size,
-        size_t max_backstep,
-        void *driver_data
-    )
+        size_t max_backstep
+        )
 {
+    printf("UDP_IP_SEND\n");
+    extern udp_data_t ipnet_data_0;
+    void * driver_data = &ipnet_data_0;
+    udp_data_t *udp_data = driver_data;
+
+    printf("UDP_IP_SEND middle %p %d\n", udp_data, udp_data->port);
     if (max_backstep < UDP_IP_HEADER_SIZE)
         return 0;
 
     void *udp_packet = payload - UDP_IP_HEADER_SIZE;
-    udp_data_t *udp_data = driver_data;
     fill_in_udp_ip_header(
         udp_packet,
         payload_size,
@@ -85,6 +91,7 @@ pok_bool_t udp_ip_send(
         udp_data->port
     );
 
+    printf("UDP_IP_SEND end\n");
     uint8_t *dst_mac = find_mac_by_ip(udp_data->ip);
 
     mac_send(udp_packet,
@@ -96,6 +103,6 @@ pok_bool_t udp_ip_send(
     return 1;
 }
 
-void udp_ip_flush(void) {
+ret_t udp_ip_flush(UDP_IP_SENDER *self) {
     mac_flush();
 }
