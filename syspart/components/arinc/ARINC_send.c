@@ -96,10 +96,6 @@ static void sampling_send_outside(unsigned channel_idx)
 
     channel.driver_ptr->flush_send();
 }
-void ARINC_send_active()
-{
-}
-
 
 void arinc_sender_activity(ARINC_SENDER *self)
 {
