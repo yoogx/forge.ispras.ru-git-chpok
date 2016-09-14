@@ -37,7 +37,7 @@
 			.TTL = 5,
 			.next_out_seq_numb = 1,
 			.last_sending_BAG_numb = 0,
-			.skew_max = 2000000000,
+			.skew_max = 100000000,
 			.afdx_buf_name = "afdx_buf_1",
 			.afdx_buf_id = (int) NULL,
             
@@ -50,7 +50,7 @@
 			.TTL = 5,
 			.next_out_seq_numb = 1,
 			.last_sending_BAG_numb = 0,
-			.skew_max = 2000000000,
+			.skew_max = 100000000,
 			.afdx_buf_name = "afdx_buf_2",
 			.afdx_buf_id = (int) NULL,
 		}

@@ -50,7 +50,7 @@ static void first_process(void)
     
     while (1) {
 			if (i == 0){
-			strcpy(afdx_payload, "Hello World!");
+			strcpy(afdx_payload, "Hello word!");
 			printf("P1_test message: %s\n", afdx_payload);
 			SEND_QUEUING_MESSAGE(QP1, (MESSAGE_ADDR_TYPE) &afdx_payload, strlen(afdx_payload), 0, &ret);
 			}

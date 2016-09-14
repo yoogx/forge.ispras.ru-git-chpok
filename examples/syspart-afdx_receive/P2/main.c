@@ -42,10 +42,13 @@
 #define PRINT
 /*==============================*/
 
+#define UDP_H_LENGTH            8
+#define SIZE_OF_HEADER			42
 #define SECOND 					1000000000LL
+
 #define MAX_AFDX_FRAME_SIZE		114
 //~ #define MAX_AFDX_PAYLOAD_SIZE 	64
-#define SIZE_OF_HEADER			42
+
 //~ #define MAX_NB_MESSAGE 			10
 
 //~ #define POK_NETWORK_UDP 		(14 + 20 + 8)
@@ -292,7 +295,8 @@ void packet_receive(const char *buffer, size_t size)
     else
         printf("Works with net_card B\n");
     /* get payload */
-    strncpy(afdx_message, afdx_frame->afdx_payload, size - POK_NETWORK_OVERHEAD - sizeof(uint8_t));
+    //~ strncpy(afdx_message, afdx_frame->afdx_payload, size - POK_NETWORK_OVERHEAD - sizeof(uint8_t));
+    strncpy(afdx_message, afdx_frame->afdx_payload, afdx_frame->udp_header.udp_length - UDP_H_LENGTH); // RIGHT of NOT?
 
     /* identify vl_index in vl_data */
     vl_temp = identify_vl_index(afdx_frame->mac_header.mac_dst_addr.vl_id);

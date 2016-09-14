@@ -50,10 +50,14 @@
 #define TYPE_OF_SERVICE 	0x00 		//in most IP protocols 0
 #define IPPROTO_UDP  		0x11    	// UDP
 #define FRAGMENT_ID			0
-#define IHL					0x14		// 20 bytes IP Header
+#define IHL					0x5		// 20 bytes IP Header
 
 #define HEADER_LENGTH		42
+#define UDP_H_LENGTH        8
+#define IP_H_LENGTH         (IHL * 4) + UDP_H_LENGTH
 #define FCS_LENGTH			4
+
+#define MIN_PAYLOAD_SIZE    17
 
 /*
  * UDP (User Datagram Protocol) packet type.
@@ -109,7 +113,8 @@ uint16_t fill_afdx_frame(frame_data_t *p,
 						 char afdx_payload[],
 						 uint16_t payload_size)
 {
-    //
+    uint8_t pad_size = 0;
+//
     size_t vl_data_index = vl_identification(src_arinc_port, arinc_port_type);
     
 	afdx_dst_info_t *arinc_to_afdx_port =  define_ports(src_arinc_port, arinc_port_type);
@@ -125,13 +130,13 @@ uint16_t fill_afdx_frame(frame_data_t *p,
 //IP
 	p->ip_header.version_and_ihl = (IP_VERSION << 4 | IHL);
 	p->ip_header.type_of_service = TYPE_OF_SERVICE;
-	p->ip_header.total_length = hton16(payload_size + 28);	//total length = (payload size + IP header size) ???
+	p->ip_header.total_length = hton16(payload_size + IP_H_LENGTH);	//total length = (payload size + IP header size) 
 	p->ip_header.fragment_id = hton16(FRAGMENT_ID);
 	p->ip_header.flag_and_fragment_offset = hton16(0x2 << 13 | 0x2); // flag = 0x2 -DO not fragment 
 																	//fragment_offset = 0
 	p->ip_header.ttl = vl_data[vl_data_index].TTL;
 	p->ip_header.protocol = IPPROTO_UDP;
-	p->ip_header.header_checksum = hton16(ip_checksum(&p->ip_header, payload_size + 28));
+	p->ip_header.header_checksum = hton16(ip_checksum(&p->ip_header, payload_size + IP_H_LENGTH));
 	//src
 	p->ip_header.u_src_addr.ip_src_addr.ip_const_src = IP_CONST_SRC;
 	p->ip_header.u_src_addr.ip_src_addr.network_id = (IP_NETWOK_ID << 4 | DOMAIN_ID);
@@ -156,9 +161,9 @@ uint16_t fill_afdx_frame(frame_data_t *p,
 		p->udp_header.afdx_src_port = hton16(arinc_to_afdx_port->src_afdx_port);
 		p->udp_header.afdx_dst_port = hton16(arinc_to_afdx_port->dst_afdx_port);
 		//
-	p->udp_header.udp_length = hton16(payload_size + 8); //udp_length = (payload size + udp header size) ??
+	p->udp_header.udp_length = hton16(payload_size + UDP_H_LENGTH); //udp_length = (payload size + udp header size)
 	p->udp_header.udp_checksum = hton16(udp_checksum(&p->udp_header,
-													payload_size + 8,
+													payload_size + UDP_H_LENGTH,
 													p->ip_header.u_src_addr.ip_general_src_addr,
 													p->ip_header.u_dst_addr.ip_general_dst_addr));
 													
@@ -167,13 +172,21 @@ uint16_t fill_afdx_frame(frame_data_t *p,
 //PAYLOAD
 	//uint16_t k;
 	memcpy(p->afdx_payload, afdx_payload, payload_size);
-	//scp ifg?
 	
-	return (payload_size + HEADER_LENGTH);  //FCS_LENGTH
+    if (payload_size < MIN_PAYLOAD_SIZE)
+    {
+        memcpy((p->afdx_payload + payload_size), 0, pad_size);
+    }
+            
+    //scp ifg?
+	if (pad_size == 0)
+        return (payload_size + HEADER_LENGTH);  //FCS_LENGTH
+    else
+        return (payload_size + pad_size + HEADER_LENGTH);
 }
-void fill_afdx_interface_id (frame_data_t *p, int x)
+void fill_afdx_interface_id (frame_data_t *p, int net_card)
 {
-	if (x == 0)
+	if (net_card == 0)
 	p->mac_header.mac_src_addr.interface_id = (MAC_INTERFACE_ID_A << 5 | MAC_INTERFACE_ID_2);
 	else 
 	p->mac_header.mac_src_addr.interface_id = (MAC_INTERFACE_ID_B << 5 | MAC_INTERFACE_ID_2);

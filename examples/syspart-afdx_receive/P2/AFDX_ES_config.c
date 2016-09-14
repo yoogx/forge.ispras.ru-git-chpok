@@ -23,6 +23,8 @@
 * Created by ....
 */
 
+/* CONFIGURATION FOR RECEIVING ES */
+
  #include <stdint.h>
  #include <afdx/AFDX_ES_config.h>
  #include <afdx/AFDX_frame.h>
