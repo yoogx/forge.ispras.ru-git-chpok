@@ -12,9 +12,9 @@
       id: APEX_INTEGER
 
   init_func: arinc_sender_init
-  in_ports:
-      - name: portC
-        type: send_flush_t
-        implementation:
-            send: x_send
-            flush: x_flush
+  #in_ports:
+  #    - name: portC
+  #      type: send_flush_t
+  #      implementation:
+  #          send: x_send
+  #          flush: x_flush
