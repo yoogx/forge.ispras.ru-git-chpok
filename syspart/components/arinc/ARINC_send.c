@@ -21,6 +21,7 @@
 #include <port_info.h>
 
 #include "ARINC_SENDER_gen.h"
+#define C_NAME "ARIND_SENDER"
 static void queuing_send_outside(unsigned channel_idx)
 {
     sys_channel_t channel = sys_queuing_channels[channel_idx];
@@ -158,5 +159,28 @@ void ARINC_send_init()
 
 void arinc_sender_init(ARINC_SENDER * self)
 {
-    //printf("");
+    RETURN_CODE_TYPE ret;
+    if (self->state.is_queuing_port) {
+        CREATE_QUEUING_PORT(
+                self->state.port_name,
+                self->state.port_max_message_size,
+                self->state.q_port_max_nb_messages,
+                self->state.port_direction,
+                FIFO,
+                &self->state.port_id,
+                &ret);
+    } else {
+        CREATE_SAMPLING_PORT(
+                self->state.port_name,
+                self->state.port_max_message_size,
+                self->state.port_direction,
+                0, //in future should be any positive number
+                &self->state.port_id,
+                &ret);
+    }
+
+    if (ret != NO_ERROR)
+        printf(C_NAME"error %d during creation %s port\n", ret, self->state.port_name);
+    else
+        printf(C_NAME"successfuly create %s port\n", self->state.port_name);
 }

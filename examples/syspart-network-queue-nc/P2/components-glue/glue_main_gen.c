@@ -36,10 +36,10 @@
         ARINC_SENDER arinc_sender_1 = {
             .state = {
                 .port_direction = DESTINATION,
-                .max_message_size = 64,
+                .q_port_max_nb_messages = 10,
+                .port_max_message_size = 64,
                 .port_name = "UOUT",
                 .overhead = 42,
-                .q_max_nb_message = 10,
                 .is_queuing_port = 1,
             }
         };
