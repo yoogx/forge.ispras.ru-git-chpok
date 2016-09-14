@@ -10,4 +10,4 @@
             tick: y_tick
   out_ports:
       - name: portB
-        type: send_flush_t
+        type: port_example

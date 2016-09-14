@@ -7,7 +7,7 @@
 #define __X_GEN_H__
 
 
-    #include <interfaces/send_flush_t_gen.h>
+    #include <interfaces/port_example_gen.h>
 
 
 struct X_state {
@@ -18,7 +18,7 @@ typedef struct {
     struct X_state state;
     struct {
             struct {
-                send_flush_t ops;
+                port_example ops;
             } portC;
     } in;
     struct {

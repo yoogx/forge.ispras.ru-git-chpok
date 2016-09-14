@@ -5,7 +5,7 @@
   init_func: x_init #optional
   in_ports:
       - name: portC
-        type: send_flush_t
+        type: port_example
         implementation:
             send: x_send
             flush: x_flush
