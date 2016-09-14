@@ -1,0 +1,4 @@
+- name: UDP_IP_SENDER
+  additional_h_files: ['arinc653/queueing.h', 'arinc653/sampling.h', 'port_info.h']
+  state_struct:
+      a: int
