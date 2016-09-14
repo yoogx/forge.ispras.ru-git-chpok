@@ -44,18 +44,16 @@ static void queuing_send_outside(ARINC_SENDER *self)
         return;
     }
 
-    sys_channel_t channel = sys_queuing_channels[0];
-    pok_bool_t res = channel.driver_ptr->send(
+    ret_t res = CALL_PORT_FUNCTION(self, portA, send,
             dst_place->data + self->state.overhead,
             dst_place->message_size,
-            self->state.overhead,
-            channel.driver_data
+            self->state.overhead
             );
 
-    if (!res)
+    if (res != EOK)
         printf(C_NAME"Error in send_udp\n");
 
-    channel.driver_ptr->flush_send();
+    CALL_PORT_FUNCTION(self, portA, flush);
 }
 
 static void sampling_send_outside(unsigned channel_idx)

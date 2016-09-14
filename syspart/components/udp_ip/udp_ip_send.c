@@ -74,14 +74,12 @@ ret_t udp_ip_send(
         size_t max_backstep
         )
 {
-    printf("UDP_IP_SEND\n");
     extern udp_data_t ipnet_data_0;
     void * driver_data = &ipnet_data_0;
     udp_data_t *udp_data = driver_data;
 
-    printf("UDP_IP_SEND middle %p %d\n", udp_data, udp_data->port);
     if (max_backstep < UDP_IP_HEADER_SIZE)
-        return 0;
+        return EINVAL;
 
     void *udp_packet = payload - UDP_IP_HEADER_SIZE;
     fill_in_udp_ip_header(
@@ -91,7 +89,6 @@ ret_t udp_ip_send(
         udp_data->port
     );
 
-    printf("UDP_IP_SEND end\n");
     uint8_t *dst_mac = find_mac_by_ip(udp_data->ip);
 
     mac_send(udp_packet,
@@ -100,7 +97,7 @@ ret_t udp_ip_send(
             dst_mac,
             ETH_P_IP);
 
-    return 1;
+    return EOK;
 }
 
 ret_t udp_ip_flush(UDP_IP_SENDER *self) {
