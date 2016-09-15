@@ -1,5 +1,5 @@
 - name: port_example
-  #additional_h_files: ['1.h', '2.h']
+  #additional_h_files: ['<1.h>', '<2.h>']
   functions:
       - name: send
         return_type: void

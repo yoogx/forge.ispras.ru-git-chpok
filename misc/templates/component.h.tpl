@@ -2,7 +2,7 @@
 #define __{{component.name}}_GEN_H__
 
 {% for h in component.additional_h_files %}
-    #include <{{h}}>
+    #include {{h}}
 {% endfor %}
 
 {% for p in component.in_ports %}

@@ -1,5 +1,5 @@
 - name: send_net_data
-  additional_h_files: ['ret_type.h']
+  additional_h_files: ['<ret_type.h>']
   functions:
       - name: send
         return_type: ret_t

@@ -3,7 +3,7 @@
 
 #include <lib/common.h>
 {% for add_h in interface.additional_h_files %}
-    #include <{{add_h}}>
+    #include {{add_h}}
 {% endfor %}
 
 typedef struct {
