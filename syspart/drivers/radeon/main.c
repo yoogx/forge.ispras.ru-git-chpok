@@ -98,7 +98,7 @@ int radeon_get_temp(int b, int d, int f)
     radeon_rmmio_base = radeon_pci_dev.resources[PCI_RESOURCE_BAR2].addr;
     radeon_rmmio_size = radeon_pci_dev.resources[PCI_RESOURCE_BAR2].size;
 
-    printf("radeon: rmmio: 0x%x, size: %zu\n", radeon_rmmio_base, radeon_rmmio_size);
+    printf("radeon: rmmio: 0x%lx, size: %zu\n", radeon_rmmio_base, radeon_rmmio_size);
 
     temp = (rreg(radeon_rmmio_base, radeon_rmmio_size, 0x740) & 0x3FF0000) >> 16;
 
