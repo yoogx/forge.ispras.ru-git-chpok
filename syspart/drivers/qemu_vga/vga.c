@@ -20,6 +20,8 @@
 
 //TODO DELETE
 #include "vbe.h"
+
+#include "fb.h"
 void vga_draw(void);
 
 struct pci_dev vga_dev;
