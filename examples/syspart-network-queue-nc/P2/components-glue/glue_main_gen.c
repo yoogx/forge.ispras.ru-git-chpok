@@ -55,7 +55,7 @@
         UDP_IP_SENDER udp_ip_sender_1 = {
             .state = {
                 .src_ip = IP_ADDR(192, 168, 56, 101),
-                .drc_ip = IP_ADDR(192, 168, 56, 1),
+                .dst_ip = IP_ADDR(192, 168, 56, 1),
                 .dst_mac = {0x08, 0x00, 0x27, 0x00, 0x88, 0xAD},
                 .src_port = 10002,
                 .dst_port = 10003,

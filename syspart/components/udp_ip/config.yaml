@@ -3,7 +3,7 @@
   state_struct:
       src_ip: uint32_t
       src_port: uint16_t
-      drc_ip: uint32_t
+      dst_ip: uint32_t
       dst_port: uint16_t
       dst_mac[6]: uint8_t
   in_ports:
