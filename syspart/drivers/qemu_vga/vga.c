@@ -46,7 +46,7 @@ void vbe_write(uint16_t reg, uint16_t val)
 
 #define SCREEN_WIDTH 800
 #define SCREEN_HIGHT 600
-#define SCREEN_BPP VBE_DISPI_BPP_16
+#define SCREEN_BPP VBE_DISPI_BPP_32
 
 void vga_init()
 {
@@ -90,12 +90,13 @@ void vga_draw(void)
 {
     if (!initialized)
         return;
-    uint16_t *addr;
+    uint32_t *addr;
     int start = 400;
     for (int y = 0; y < gimp_image.height; y++) {
         for (int x = 0; x < gimp_image.width; x++) {
-            addr = (uint16_t *) vga_dev.resources[PCI_RESOURCE_BAR0].addr + (y+start)*SCREEN_WIDTH + x;
-            *addr = le16_to_cpu(((uint16_t*)gimp_image.pixel_data)[y*gimp_image.width + x]);
+            addr = (uint32_t *) vga_dev.resources[PCI_RESOURCE_BAR0].addr + (y+start)*SCREEN_WIDTH + x;
+            uint32_t rgba_color = (((uint32_t*)gimp_image.pixel_data)[y*gimp_image.width + x]);
+            *addr = rgba_color>>8 | (rgba_color&0xff)<<24;
         }
     }
 }
