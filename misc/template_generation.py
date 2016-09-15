@@ -148,12 +148,14 @@ jinja_env_global = jinja2.Environment(
 # 'TEMPLATE_MAIN' - main template for render (one per-target)
 # 'TEMPLATE_CREATE_DEFINITIONS_FUNC' - function, which accepts our 'source'
 #     and 'env' parameters and return definitions, which will be rendered.
-# 'TEMPLATE_CREATE_USED' - if set, during rendering`.dep` file will
-#     be created. This file will contain list of templates used.
 #
-# Additionally, if 'GENERATE_TITLE' variable is set, it is used as title
-# for prepend rendering content. The title is formatted according to
-# format_title() description.
+# Optional environment variables:
+#
+# 'GENERATE_TITLE' - if set, it is used as title for prepend rendering
+#     content. The title is formatted according to format_title() description.
+# 'NO_DEPS' - if set, per-target `.dep` file won't be created. This file
+#      contains dependency list of all templates used when generate particular file.
+#      Without this file only dependency from main template file is tracked.
 def template_render_action(target, source, env):
     template_dir = env['TEMPLATE_DIR']
     if template_dir is None:
@@ -167,13 +169,13 @@ def template_render_action(target, source, env):
     if template_create_definitions_func is None:
         raise RuntimeError('TEMPLATE_CREATE_DEFINITIONS_FUNC is not specified for renderer')
 
-    template_create_used = env['TEMPLATE_CREATE_USED']
+    no_deps = env.get('NO_DEPS')
     
     # Create some tree from the source files in memory
     tree = template_create_definitions_func(source, env)
     
     used_list = None
-    if template_create_used is not None:
+    if not no_deps:
         used_list = set()
     # Create jinja environment with specific template loader.
     loader = TemplateLoader(template_dir, used = used_list)
@@ -193,7 +195,7 @@ def template_render_action(target, source, env):
                     f.write(format_title(generate_title, target, source, env))
                 stream.dump(f)
 
-            if template_create_used is not None:
+            if not no_deps:
                 deps_file_path = target_single.path + '.deps'
                 with open(deps_file_path, "w") as deps_file:
                     for f in used_list:
@@ -220,11 +222,15 @@ def template_render_action(target, source, env):
 #
 # All other dictionary arguments are assigned to the environment.
 #
-# If 'GENERATE_TITLE' variable is set, it is used as title
-# for prepend rendering content. The title is formatted according to
-# format_title() description.
+# Optional environment variables which affects behaviour:
 #
-# Use AddMethod for add it into the environment
+# 'GENERATE_TITLE' - if set, it is used as title for prepend rendering
+#     content. The title is formatted according to format_title() description.
+# 'NO_DEPS' - if set, per-target `.dep` file won't be created. This file
+#      contains dependency list of all templates used when generate particular file.
+#      Without this file only dependency from main template file is tracked.
+#
+# Use env.AddMethod() for add this builder it into the environment.
 def TemplateRender(env, target, source, create_definitions_func,
     template_main, template_dir, **kargs):
 
@@ -237,21 +243,22 @@ def TemplateRender(env, target, source, create_definitions_func,
     if len(target) != len(template_main):
         raise RuntimeError("'target' and 'template_main' lists have different lengths.")
 
-
     t = env.Command(target,
                 source,
                 template_render_action,
                 TEMPLATE_DIR = template_dir,
                 TEMPLATE_MAIN = template_main,
                 TEMPLATE_CREATE_DEFINITIONS_FUNC = create_definitions_func,
-                TEMPLATE_CREATE_USED = 1,
                 **kargs
                 )
 
-    for target_single in target:
-        env.SideEffect(target_single + '.deps', t)
-        env.ParseDepends(target_single + '.deps')
-
+    for target_single, template_main_single in zip(t, template_main):
+        if env.get('NO_DEPS') or kargs.get('NO_DEPS'):
+            main_template_file = os.path.join(template_dir, template_main_single + '.tpl')
+            env.Depends(target_single, main_template_file)
+        else:
+            env.SideEffect(target_single.abspath + '.deps', t)
+            env.ParseDepends(target_single.abspath + '.deps')
     return t
 
 ######################### Build system calls definitions ###############
@@ -421,7 +428,7 @@ def syscall_build_action(target, source, env):
 # for prepend rendering content. The title is formatted according to
 # format_title() description.
 #
-# Use AddMethod for add it into the environment
+# Use env.AddMethod() for add this builder into the environment
 def BuildSyscallDefinition(env, target, source, template_main,
     template_dir, **kargs):
 
@@ -594,11 +601,11 @@ def asm_offsets_build_asm_action(target, source, env):
 
     # Read input file line by line and produce output.
     for line in input_f:
-        define_match = re.match("-> (\\w+) (\\w+)", line)
+        define_match = re.match("-> (\\w+) (\\$)?(\\w+)", line)
         if define_match:
             output_f.write("#define %s %s\n" % (
                 define_match.group(1),
-                define_match.group(2)
+                define_match.group(3)
             ))
             continue
         comment_match = re.match("->#(.*)", line)
