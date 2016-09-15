@@ -4,7 +4,7 @@
 void x_send(X *self, void *buf, size_t len)
 {
     /*...*/
-    printf("X<x=%d>.send(%p, %ld)\n", self->state.x, buf, len);
+    printf("X<x=%d>.send(%p, %zx)\n", self->state.x, buf, len);
 
 }
 
