@@ -37,10 +37,10 @@ struct udp_ip_packet{
 } __attribute__((packed));
 
 static void fill_in_udp_ip_header(
+        UDP_IP_SENDER_state *state,
         struct udp_ip_packet *packet,
-        size_t size, // size of UDP data
-        uint32_t dst_ip,
-        uint16_t dst_port)
+        size_t payload_size
+        )
 {
     // ...next, IP heaader
     packet->ip_hdr.version_len = (4 << 4) | 5;
@@ -48,22 +48,22 @@ static void fill_in_udp_ip_header(
     packet->ip_hdr.length = hton16(
             sizeof(struct ip_hdr) +
             sizeof(struct udp_hdr) +
-            size
+            payload_size
     );
     packet->ip_hdr.checksum = 0; // it's filled in just below
     packet->ip_hdr.id = 0;
     packet->ip_hdr.offset = 0;
     packet->ip_hdr.ttl = 32;
     packet->ip_hdr.proto = IPPROTO_UDP;
-    packet->ip_hdr.src = hton32(pok_network_ip_address);
-    packet->ip_hdr.dst = hton32(dst_ip);
+    packet->ip_hdr.src = hton32(state->src_ip);
+    packet->ip_hdr.dst = hton32(state->dst_ip);
 
     packet->ip_hdr.checksum = ip_hdr_checksum(&packet->ip_hdr);
 
     // ... and UDP header
-    packet->udp_hdr.src_port = hton16(dst_port);
-    packet->udp_hdr.dst_port = hton16(dst_port);
-    packet->udp_hdr.length = hton16(size + sizeof(struct udp_hdr));
+    packet->udp_hdr.src_port = hton16(state->src_port);
+    packet->udp_hdr.dst_port = hton16(state->dst_port);
+    packet->udp_hdr.length = hton16(payload_size + sizeof(struct udp_hdr));
     packet->udp_hdr.checksum = 0; // no checksum
 }
 
@@ -83,18 +83,15 @@ ret_t udp_ip_send(
 
     void *udp_packet = payload - UDP_IP_HEADER_SIZE;
     fill_in_udp_ip_header(
+        &self->state,
         udp_packet,
-        payload_size,
-        udp_data->ip,
-        udp_data->port
+        payload_size
     );
-
-    uint8_t *dst_mac = find_mac_by_ip(udp_data->ip);
 
     mac_send(udp_packet,
             payload_size + UDP_IP_HEADER_SIZE,
             max_backstep - UDP_IP_HEADER_SIZE,
-            dst_mac,
+            self->state.dst_mac,
             ETH_P_IP);
 
     return EOK;
