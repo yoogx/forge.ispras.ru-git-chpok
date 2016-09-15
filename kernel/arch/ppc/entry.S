@@ -435,8 +435,6 @@ _pok_reset:
 */
         /* Call C functions */
         bl pok_arch_init
-        bl pok_bsp_init
-        bl pok_bsp_time_init
 
         bl jet_boot /* shouldn't return */
 1:      b  1b

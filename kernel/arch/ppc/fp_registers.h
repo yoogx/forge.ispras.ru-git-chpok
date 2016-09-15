@@ -18,13 +18,6 @@
 
 #include <asp/space.h>
 
-/*
- * Place for store floating point registers.
- * 
- * Kernel code doesn't use floating point operations,
- * so floating point registers needs to be stored only when switching
- * to other user space thread.
- */
 struct jet_fp_store
 {
   double fp_regs[32];

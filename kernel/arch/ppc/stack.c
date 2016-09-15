@@ -15,6 +15,7 @@
 
 #include <asp/stack.h>
 #include <asp/alloc.h>
+#include <common.h>
 
 jet_stack_t pok_stack_alloc(uint32_t stack_size)
 {
@@ -25,8 +26,7 @@ jet_stack_t pok_stack_alloc(uint32_t stack_size)
      * tail.
      */
     const unsigned int alignment = 16;
-    const unsigned int mask = alignment - 1;
-    uint32_t stack_size_real = (stack_size + mask) & ~mask;
+    uint32_t stack_size_real = ALIGN_VAL(stack_size, alignment);
     
     char* stack_tail = ja_mem_alloc_aligned(stack_size_real, alignment);
     char* stack_head = stack_tail + stack_size_real;

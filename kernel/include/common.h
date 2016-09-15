@@ -57,14 +57,14 @@
     (type *)( (char*) __mptr - offsetof(type, member) ); })
 
 /*
- * Return minimal value, which is greater-or-equal than size
+ * Return minimal value, which is greater-or-equal than given value
  * and has corresponded alignment.
  * 
  * @align should be constant and be power of 2.
  */
-static inline unsigned long ALIGN_SIZE(unsigned long size, unsigned long align)
+static inline unsigned long ALIGN_VAL(unsigned long val, unsigned long align)
 {
-    return (size + align - 1) & (~(align - 1));
+    return (val + align - 1) & (~(align - 1));
 }
 
 #endif /* !__POK_COMMON_H__ */

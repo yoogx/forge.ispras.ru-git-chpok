@@ -49,12 +49,6 @@ void ja_context_jump(struct jet_context* new_sp);
  * Jump to given entry with given stack.
  * 
  * Mainly used for restart current context.
- * 
- * Value, pointed by `new_sp_p` will be set to the stack pointer,
- * "as if" pok_context_switch() has been called.
- * This is for prevent caller from forgetting to change value pointed
- * by `new_sp_p` from NULL, which means "restart requires", to something else.
- * 
  */
 void ja_context_restart(jet_stack_t sp, void (*entry)(void));
 

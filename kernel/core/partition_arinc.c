@@ -312,7 +312,7 @@ void* partition_arinc_im_get(size_t size, size_t alignment)
 {
 	pok_partition_arinc_t* part = current_partition_arinc;
 	
-	size_t start = ALIGN_SIZE(part->intra_memory_size_used, alignment);
+	size_t start = ALIGN_VAL(part->intra_memory_size_used, alignment);
 	
 	// TODO: revisit boundary check
 	if(start <= part->intra_memory_size

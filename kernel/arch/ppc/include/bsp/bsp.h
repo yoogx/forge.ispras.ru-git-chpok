@@ -22,4 +22,7 @@ typedef struct {
 
 extern pok_bsp_t pok_bsp;
 
+/* Initialize bsp-related stuff. */
+void ja_bsp_init(void);
+
 #endif /* __JET_PPC_BSP_H__ */

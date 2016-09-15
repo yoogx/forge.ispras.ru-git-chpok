@@ -21,7 +21,7 @@
 #include <types.h>
 #include <errno.h>
 #include <libc.h>
-#include "bsp.h"
+#include "bsp/bsp.h"
 #include <core/sched.h>
 #include <core/debug.h>
 
@@ -70,7 +70,7 @@ jet_ustack_t ja_ustack_alloc (jet_space_id space_id, size_t stack_size)
 
     uint32_t* ustack_state_p = &ja_spaces[space_id - 1].ustack_state;
 
-    size_t size_real = ALIGN_SIZE(stack_size, 16);
+    size_t size_real = ALIGN_VAL(stack_size, 16);
 
     // TODO: Check boundaries.
     jet_ustack_t result = *ustack_state_p;

@@ -14,6 +14,7 @@
  */
 
 #include <asp/alloc.h>
+#include <common.h>
 
 extern char _end[];
 static char *heap_end = _end;
@@ -21,9 +22,8 @@ static char *heap_end = _end;
 void *ja_mem_alloc_aligned (size_t size, unsigned int alignment)
 {
   char *res;
-  uintptr_t mask = alignment - 1;
 
-  res = (char *)(((unsigned int)heap_end + mask) & ~mask);
+  res = (char *)(ALIGN_VAL((unsigned int)heap_end, alignment));
   heap_end = res + size;
   return res;
 }

@@ -365,7 +365,7 @@ pok_ret_t pok_buffer_receive(pok_buffer_id_t id,
             goto out;
         }
 
-        t->wait_private = (void*)data;
+        t->wait_private = (void*)k_data;
 
         pok_thread_wq_add_common(&buffer->waiters, t,
             buffer->discipline);

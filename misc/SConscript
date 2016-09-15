@@ -99,6 +99,7 @@ env['ARCH'] = bsp_arch_dict[env['BSP']]
 env['KERNEL_CPPPATH'] = [
     env['POK_PATH']+'/kernel/include',
     env['POK_PATH']+'/kernel/arch/' + env['ARCH'] + '/include',
+    env['POK_PATH']+'/boards/' + env['BSP'] + '/include',
 ]
 
 env['LIBPOK_CPPPATH'] = [

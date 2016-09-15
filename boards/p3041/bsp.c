@@ -18,12 +18,9 @@
 
 #include <config.h>
 
-#include <errno.h>
 #include <core/debug.h>
-#include "bsp.h"
+#include <bsp/bsp.h>
 #include <asp/entries.h>
-
-#include "devtree.h"
 
 pok_bsp_t pok_bsp = {
     .ccsrbar_size = 0x1000000ULL,
@@ -42,11 +39,9 @@ pok_bsp_t pok_bsp = {
     }
 };
 
-int pok_bsp_init (void)
+extern char _end[];
+
+void ja_bsp_init (void)
 {
-   pok_cons_init ();
-
-   //devtree_dummy_dump();
-
-   return (POK_ERRNO_OK);
+   jet_console_init_all ();
 }

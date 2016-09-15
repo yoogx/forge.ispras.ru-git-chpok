@@ -23,7 +23,7 @@ typedef struct {
  * 
  */
 #define POK_MESSAGE_STRUCT_SIZE(max_size) \
-    ALIGN_SIZE(offsetof(pok_message_t, content) + max_size, sizeof(unsigned long))
+    ALIGN_VAL(offsetof(pok_message_t, content) + max_size, sizeof(unsigned long))
 
 /* 
  * Pair of [ptr,size] for store message into user space.

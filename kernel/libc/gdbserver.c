@@ -120,11 +120,6 @@
 
 #include <gdb.h>
 
-
-#ifdef __i386__
-#include <arch.h>
-#endif
-
 /***********************************************************************
  * 
  * Threading model of the POK.

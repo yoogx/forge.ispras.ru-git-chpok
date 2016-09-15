@@ -18,12 +18,9 @@
 
 #include <config.h>
 
-#include <errno.h>
 #include <core/debug.h>
-#include "bsp.h"
+#include <bsp/bsp.h>
 #include <asp/entries.h>
-
-#include "devtree.h"
 
 pok_bsp_t pok_bsp = {
     .ccsrbar_size = 0x1000000ULL,
@@ -42,8 +39,7 @@ pok_bsp_t pok_bsp = {
 
 extern char _end[];
 
-/* Initialize bsp-related functionality. Called from entry.S. */
-void pok_bsp_init (void)
+void ja_bsp_init (void)
 {
    jet_console_init_all ();
 

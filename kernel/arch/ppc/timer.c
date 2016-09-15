@@ -14,7 +14,7 @@
  */
 
 #include <errno.h>
-#include "bsp.h"
+#include "bsp/bsp.h"
 #include <core/time.h>
 #include <core/sched.h>
 #include <core/debug.h>
@@ -83,12 +83,7 @@ void pok_arch_decr_int (void)
   pok_sched_on_time_changed ();
 }
 
-/* 
- * Initialize timer.
- * 
- * Called from entry.S
- */
-void pok_bsp_time_init (void)
+void ja_time_init (void)
 {
   time_inter = pok_bsp.timebase_freq / POK_TIMER_FREQUENCY;
   printf("Timer interval: %lu\n", time_inter);

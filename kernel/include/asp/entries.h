@@ -37,7 +37,7 @@ void jet_boot(void);
  * 
  * Any stream which is not supported by arch is set to 'jet_stream_null'.
  * 
- * Should be called before 'jet_boot'
+ * Should be called before 'jet_boot'.
  */
 void jet_console_init_all(void);
 

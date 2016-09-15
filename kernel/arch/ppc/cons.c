@@ -22,7 +22,7 @@
 #include <libc.h>
 #include <core/debug.h>
 #include <asp/cons.h>
-#include "bsp.h"
+#include "bsp/bsp.h"
 
 #if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
 

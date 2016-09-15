@@ -25,9 +25,10 @@
 #include "msr.h"
 #include "space.h"
 #include "devtree.h"
-#include "bsp.h"
+#include "bsp/bsp.h"
 #include <asp/bsp_common.h>
 #include <core/uaccess.h>
+#include "timer.h"
 
 /**
  * Function that initializes architecture concerns.
@@ -38,9 +39,11 @@ void pok_arch_init (void)
 {
   mtmsr(MSR_IP | MSR_FP);
 
-#if POK_NEEDS_PARTITIONS
   pok_arch_space_init();
-#endif
+
+  ja_bsp_init();
+
+  ja_time_init();
 }
 
 void ja_preempt_disable(void)

@@ -102,32 +102,12 @@ static pok_bool_t ppc_check_access_gdb(const void* addr, size_t size,
     if(space_id != 0)
     {
         // User partitions have access to their user space.
-        unsigned long start = (unsigned long)addr;
-        unsigned long end = start + size;
-
-        struct ja_ppc_space* space = &ja_spaces[space_id - 1];
-
-        /*
-         * Currently, there are 2 segments accessible to user:
-         * 1. [POK_PARTITION_MEMORY_BASE; POK_PARTITION_MEMORY_BASE + space->size_normal)
-         *    code and data
-         * 2. [space->ustack_state; POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE)
-         *    stacks
-         */
-
-        if(end < start) return FALSE; // Segments doesn't cross NULL.
-
-        if(end <= space->size_normal + POK_PARTITION_MEMORY_BASE)
-        {
-            return (start >= POK_PARTITION_MEMORY_BASE);
-        }
-        else if(start >= space->ustack_state)
-        {
-            return (end <= POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE);
-        }
+        return ppc_check_access((const void* __user)addr, size, space_id);
     }
-
-    return FALSE;
+    else
+    {
+        return FALSE;
+    }
 }
 
 
