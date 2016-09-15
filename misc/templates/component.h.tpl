@@ -13,14 +13,14 @@
     #include <interfaces/{{p.type}}_gen.h>
 {% endfor %}
 
-struct {{component.name}}_state {
+typedef struct {{component.name}}_state {
   {%for name, type in component.state_struct.iteritems()%}
     {{type}} {{name}};
   {% endfor %}
-};
+}{{component.name}}_state;
 
 typedef struct {
-    struct {{component.name}}_state state;
+    {{component.name}}_state state;
     struct {
         {% for p in component.in_ports %}
             struct {

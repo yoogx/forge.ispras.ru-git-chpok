@@ -9,12 +9,12 @@
 
 
 
-struct X2_state {
+typedef struct X2_state {
     char tmp;
-};
+}X2_state;
 
 typedef struct {
-    struct X2_state state;
+    X2_state state;
     struct {
     } in;
     struct {

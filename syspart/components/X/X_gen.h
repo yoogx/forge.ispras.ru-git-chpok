@@ -10,12 +10,12 @@
     #include <interfaces/port_example_gen.h>
 
 
-struct X_state {
+typedef struct X_state {
     char x;
-};
+}X_state;
 
 typedef struct {
-    struct X_state state;
+    X_state state;
     struct {
             struct {
                 port_example ops;

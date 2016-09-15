@@ -11,12 +11,12 @@
 
     #include <interfaces/port_example_gen.h>
 
-struct Y_state {
+typedef struct Y_state {
     int y;
-};
+}Y_state;
 
 typedef struct {
-    struct Y_state state;
+    Y_state state;
     struct {
             struct {
                 tick_t ops;
