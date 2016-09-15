@@ -46,6 +46,7 @@ void vbe_write(uint16_t reg, uint16_t val)
 
 #define SCREEN_WIDTH 800
 #define SCREEN_HIGHT 600
+#define SCREEN_BPP VBE_DISPI_BPP_16
 
 void vga_init()
 {
@@ -73,7 +74,7 @@ void vga_init()
     vbe_write(VBE_DISPI_INDEX_ENABLE, 0);
     vbe_write(VBE_DISPI_INDEX_XRES, SCREEN_WIDTH);
     vbe_write(VBE_DISPI_INDEX_YRES, SCREEN_HIGHT);
-    vbe_write(VBE_DISPI_INDEX_BPP, VBE_DISPI_BPP_16);
+    vbe_write(VBE_DISPI_INDEX_BPP, SCREEN_BPP);
     vbe_write(VBE_DISPI_INDEX_ENABLE, 1);
 
     //TODO this is mmio bar
