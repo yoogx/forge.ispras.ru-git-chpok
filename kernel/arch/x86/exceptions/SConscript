@@ -19,31 +19,37 @@
 
 Import('arch_env')
 
-arch_env.Append(CPPPATH=Dir('.').srcnode().abspath)
+import os
 
-exception_sources = SConscript('exceptions/SConscript')
+exception_source_filenames = [
+    'exception_entries.S',
+    'exception_handlers.c'
+]
 
-arch = arch_env.StaticObject(source = exception_sources + Glob('*.[Sc]'))
+source_dir = Dir('.').srcnode().abspath
+exception_sources = [os.path.join(source_dir, filename) for filename in exception_source_filenames]
 
 if arch_env.get('jdeveloper'):
     import sys
-    import os
     sys.path.insert(1, os.path.join(os.environ["POK_PATH"], "misc"))
     import template_generation
-    AddMethod(arch_env, template_generation.BuildAsmOffsets)
+    AddMethod(arch_env, template_generation.TemplateRender)
+    
+    import yaml
+    
+    def parse_yaml(source, env):
+        return yaml.load(file(source[0].path, "r"))
+    
+    arch_env.TemplateRender(
+        target = exception_sources,
+        source = 'exceptions.yaml',
+        create_definitions_func = parse_yaml,
+        template_main = ['exception_entries', 'exception_handlers'],
+        template_dir = Dir('.').srcnode().path + '/templates',
+        NO_DEPS = True,
+        GENERATE_TITLE = template_generation.generate_title_c
+    )
 
-    current_source_dir = arch_env.Dir('.').srcnode().path
-
-    asm_offsets = [
-        arch_env.BuildAsmOffsets(
-            current_source_dir + "/asm_offsets_interrupt_context.h",
-            "asm_offsets_interrupt_context.def",
-            GENERATE_TITLE = template_generation.generate_title_c),
-    ]
-
-    arch_env.Depends(arch, asm_offsets)
-
-
-Return('arch')
+Return('exception_sources')
 
 # EOF

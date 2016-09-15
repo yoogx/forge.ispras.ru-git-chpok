@@ -13,24 +13,24 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __JET_X86_GDB_H__
-#define __JET_X86_GDB_H__
+#ifndef __JA_X86_BSP_BSP_H__
+#define __JA_X86_BSP_BSP_H__
 
-#define NUMREGS 16
-enum regnames {
-EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
-           PC /* also known as eip */,
-           PS /* also known as eflags */,
-           CS, SS, DS, ES, FS, GS
-};
+#include <arch/interrupt_frame.h>
+
+/* Initialize all board-specific stuff. */
+void ja_bsp_init(void);
 
 /*
- * This provides definition of 'struct jet_interrupt_context' for
- * arch-independent code.
+ * Board-specific header should define:
  * 
- * TODO: should be removed when no longer needed.
+ *  - macro EXCEPTION_TIMER as integer constant
+ *    It corresponds to interrupt index of the timer.
  */
-#include <../arch/x86/interrupt.h>
+#include <board/bsp.h>
+
+/* Called when interrupt from the timer occures. */
+void ja_bsp_process_timer(interrupt_frame* frame);
 
 
-#endif /* __JET_X86_GDB_H__ */
+#endif /* __JET_X86_BSP_BSP_H__ */

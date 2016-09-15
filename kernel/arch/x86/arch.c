@@ -21,25 +21,25 @@
 
 #include "event.h"
 #include "gdt.h"
+#include "space.h"
+#include <bsp/bsp.h>
 
-pok_ret_t pok_arch_init ()
+void pok_arch_init (void)
 {
   pok_gdt_init ();
-  pok_event_init ();
-
-  return (POK_ERRNO_OK);
+  ja_event_init ();
+  ja_bsp_init();
+  ja_space_init();
 }
 
-pok_ret_t pok_arch_preempt_disable()
+void ja_preempt_disable(void)
 {
   asm ("cli");
-  return (POK_ERRNO_OK);
 }
 
-pok_ret_t pok_arch_preempt_enable()
+void ja_preempt_enable(void)
 {
   asm ("sti");
-  return (POK_ERRNO_OK);
 }
 
 static unsigned long get_flags(void)
@@ -57,47 +57,26 @@ static unsigned long get_flags(void)
   return ret;
 }
 
-pok_bool_t pok_arch_preempt_enabled(void)
+pok_bool_t ja_preempt_enabled(void)
 {
   unsigned long flags = get_flags();
   return !!(flags & (1<<9));
 }
 
-void pok_arch_inf_loop()
-{
-   pok_arch_preempt_disable();
-   while (1) {
-      asm ("hlt");
-   }
-}
-
-pok_ret_t pok_arch_idle()
+void ja_inf_loop(void)
 {
    while (1)
    {
       asm ("hlt");
    }
-
-   return (POK_ERRNO_OK);	
-}
-
-uint32_t    ja_thread_stack_addr   (uint8_t    space_id,
-                                     uint32_t stack_size,
-                                     uint32_t* state)
-{
-   uint32_t result = spaces[space_id].size - 4 - (*state);
-   //TODO: Check boundaries
-   *state += stack_size;
-   
-   return result;
 }
 
 #include <ioports.h>
-void pok_arch_cpu_reset()
+void ja_cpu_reset(void)
 {
     uint8_t good = 0x02;
     while (good & 0x02)
         good = inb(0x64);
     outb(0x64, 0xFE);
-    pok_arch_idle();
+    ja_inf_loop();
 }

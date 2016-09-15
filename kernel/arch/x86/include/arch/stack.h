@@ -13,24 +13,20 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __JET_X86_GDB_H__
-#define __JET_X86_GDB_H__
+/* Stack for the (kernel) thread. */
 
-#define NUMREGS 16
-enum regnames {
-EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
-           PC /* also known as eip */,
-           PS /* also known as eflags */,
-           CS, SS, DS, ES, FS, GS
-};
+#ifndef __JET_X86_STACK_H__
+#define __JET_X86_STACK_H__
+
+#include <stdint.h>
 
 /*
- * This provides definition of 'struct jet_interrupt_context' for
- * arch-independent code.
+ * Any stack returned by pok_stack_alloc() has two words *above* it
+ * filled with zeros.
  * 
- * TODO: should be removed when no longer needed.
+ * So, whenever %ebp register points to the beginning of the stack,
+ * it is treated as the last stack frame.
  */
-#include <../arch/x86/interrupt.h>
+typedef uint32_t jet_stack_t;
 
-
-#endif /* __JET_X86_GDB_H__ */
+#endif /* __JET_X86_STACK_H__ */

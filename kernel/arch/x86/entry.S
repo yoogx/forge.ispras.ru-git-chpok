@@ -25,7 +25,8 @@ _core_entry:
 	mov %eax, pok_multiboot_magic
 	mov %ebx, pok_multiboot_info
 
-	call pok_boot
+	call pok_arch_init
+	call jet_boot
 loop:
 	hlt
 	jmp loop

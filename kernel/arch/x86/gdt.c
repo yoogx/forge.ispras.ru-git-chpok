@@ -30,7 +30,7 @@
 
 gdt_entry_t	pok_gdt[GDT_SIZE];
 
-tss_t		pok_tss;
+tss_t	pok_tss;
 
 pok_ret_t pok_gdt_init()
 {

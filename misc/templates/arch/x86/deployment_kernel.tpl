@@ -13,24 +13,17 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __JET_X86_GDB_H__
-#define __JET_X86_GDB_H__
+#include <arch/deployment.h>
 
-#define NUMREGS 16
-enum regnames {
-EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
-           PC /* also known as eip */,
-           PS /* also known as eflags */,
-           CS, SS, DS, ES, FS, GS
+struct ja_x86_space ja_spaces[{{conf.spaces | length}}] =
+{
+{%for space in conf.spaces%}
+    {
+        //.phys_base is filled upon initialization
+        .size_normal = {{space.size}},
+        .size_stack = 10*8*1024 // Currently hardcoded.
+    },
+{%endfor%}
 };
 
-/*
- * This provides definition of 'struct jet_interrupt_context' for
- * arch-independent code.
- * 
- * TODO: should be removed when no longer needed.
- */
-#include <../arch/x86/interrupt.h>
-
-
-#endif /* __JET_X86_GDB_H__ */
+int ja_spaces_n = {{conf.spaces | length}};
