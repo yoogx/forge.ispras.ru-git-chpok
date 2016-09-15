@@ -1,7 +1,11 @@
 - name: UDP_IP_SENDER
-  additional_h_files: ['<arinc653/queueing.h>', '<arinc653/sampling.h>', '<port_info.h>']
+  additional_h_files: ['<arinc653/queueing.h>', '<arinc653/sampling.h>', '<port_info.h>', '"ip_addr.h"']
   state_struct:
-      a: int
+      src_ip: uint32_t
+      src_port: uint16_t
+      drc_ip: uint32_t
+      dst_port: uint16_t
+      dst_mac[6]: uint8_t
   in_ports:
       - name: portA
         type: send_net_data
