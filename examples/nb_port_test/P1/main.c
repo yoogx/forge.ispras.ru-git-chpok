@@ -13,10 +13,7 @@ void first_process(void)
     //uint32_t* result = 0x80000000;
     //pok_ret_t r = pok_port_virtual_nb_destinations(id, result);
     
-    
     //uint32_t* result = 0x80000000;
-    
-    //pok_gettick_by_pointer
     
     int param = 0;
     

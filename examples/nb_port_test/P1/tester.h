@@ -24,7 +24,6 @@ static int TEST_RESULT = 0;
 
 
 typedef enum {
-	
 	NULL_POINTER = 0,
 	OUT_OF_PARTITION_RANGE = 1,
 	ENTRY_POINT = 2

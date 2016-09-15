@@ -14,13 +14,16 @@ pok_ret_t tester1 (int syscall_id, void* param, int pos)
     
 	switch (syscall_id)
 	{
+        
         // ids for each method are from syscall_map_arinc.h
         // for each method one case (example below)
         
+        /*
         case POK_SYSCALL_THREAD_CREATE:
 			;
 			ret = pok_thread_create_wrapper (param, pos);
 			break;
+        */
         
         // threads
         
@@ -59,6 +62,7 @@ pok_ret_t tester1 (int syscall_id, void* param, int pos)
         // middleware syscalls:
         //  1. port sampling
         //  2. port queueing
+        
 		
 	}
     

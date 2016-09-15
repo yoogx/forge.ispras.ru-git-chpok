@@ -209,10 +209,10 @@ pok_ret_t pok_current_partition_dec_lock_level_wrapper(void* param, int pos)
 	pok_ret_t ret = 0;
     
     ret = pok_current_partition_dec_lock_level(&param); 
-	
+	  
 	return ret;
 }
-*/
+*/ 
 
 /////////////////////////// BUFFERS ///////////////////////////
 
@@ -226,17 +226,18 @@ pok_ret_t pok_buffer_create_wrapper(void* param, int pos)
     pok_message_range_t max_nb_message;
     pok_queuing_discipline_t discipline;
     
-    pok_buffer_id_t* id; // TODO: check if it is out-param
+    pok_buffer_id_t id; // out
     
 	switch (pos)
 	{
-		case 0:
+		case 0: // char*, name of the buffer
 			;
-			ret = pok_buffer_create(&param, &max_message_size, &max_nb_message, &discipline, &id); 
+			ret = pok_buffer_create(param, max_message_size, max_nb_message, discipline, &id); 
 			break;
 		
-		case 4:
-            ret = pok_buffer_create(&name, &max_message_size, &max_nb_message, &discipline, &param);
+		case 4: // pok_buffer_id_t*, id of buffer
+            ;
+            ret = pok_buffer_create(name, max_message_size, max_nb_message, discipline, param);
 			break;
 	}
 	
@@ -249,20 +250,25 @@ pok_ret_t pok_buffer_send_wrapper(void* param, int pos)
     
     pok_buffer_id_t id; // pre-created buffer needed
     
-    const void* data;           // TODO: check the right values
+    
+    // TODO: check the right values
+    int data;                   // message to be written to the buffer (which is some variable of any type, basically)
+                                // but the method wants address (pointer) of the message
+                                // so here data is type of int, but it can be changed
     pok_message_size_t length;
-    const pok_time_t* timeout;
+    const pok_time_t timeout;
     
     
 	switch (pos)
 	{
-		case 1:
+		case 1: // any pointer (check whether it matches type of received message), address of the message
 			;
-			ret = pok_buffer_send(&id, &param, &length, &timeout); 
+			ret = pok_buffer_send(id, param, length, &timeout); 
 			break;
 		
-		case 3:
-            ret = pok_buffer_send(&id, &data, &length, &param);
+		case 3: // any number (in range of type), timeout
+            ;
+            ret = pok_buffer_send(id, &data, length, &param);
 			break;
 	}
 	
@@ -275,29 +281,30 @@ pok_ret_t pok_buffer_receive_wrapper(void* param, int pos)
     
     pok_buffer_id_t id; // pre-created buffer needed
     
-    const pok_time_t* timeout;
-    const void* data;           // TODO: check the right values
-    pok_message_size_t* length;
+    // TODO: check the right values
+    const pok_time_t timeout;
+    const void* data;          // out, address of received message (we don't know the exact type in advance)
+    pok_message_size_t length; // out
     
 	switch (pos)
 	{
-		case 1:
+		case 1: // any number (in range of type), timeout
 			;
-			ret = pok_buffer_receive(&id, &param, &data, &length); 
+			ret = pok_buffer_receive(id, &param, data, &length); 
 			break;
 		
-		case 2:
+		case 2: // pointer of type of message that we expect to receive (for example: if int sent, so it should be int*)
 			;
-			ret = pok_buffer_receive(&id, &timeout, &param, &length);     
+			ret = pok_buffer_receive(id, &timeout, param, &length);     
 			break;
             
-        case 3:
+        case 3: // pok_message_size_t*
 			;
-			ret = pok_buffer_receive(&id, &timeout, &data, &param); 
+			ret = pok_buffer_receive(id, &timeout, data, param); 
 			break;
 	}
 	
-	return ret;                     
+	return ret;
 }
 
 pok_ret_t pok_buffer_get_id_wrapper(void* param, int pos)
@@ -306,17 +313,17 @@ pok_ret_t pok_buffer_get_id_wrapper(void* param, int pos)
     
     char* name; // pre-created buffer needed (check also with no buffer)
     
-    pok_buffer_id_t* id; // out param (?)
+    pok_buffer_id_t id; // out
     
 	switch (pos)
 	{
-		case 0:
+		case 0: // char*, name of the buffer
 			;
-			ret = pok_buffer_get_id(&param, &id); 
+			ret = pok_buffer_get_id(param, &id); 
 			break;
 		
-		case 1:
-            ret = pok_buffer_get_id(&name, &param);
+		case 1: // pok_buffer_id_t*, id of buffer
+            ret = pok_buffer_get_id(name, param);
 			break;
 	}
 	
@@ -331,14 +338,16 @@ pok_ret_t pok_buffer_status_wrapper(void* param, int pos)
     
 	switch (pos)
 	{
-		case 1:
+		case 1: // pok_buffer_status_t* (out param, actually)
 			;
-			ret = pok_buffer_status(&id, &param); 
+			ret = pok_buffer_status(id, &param); 
 			break;
 	}
 	
 	return ret;                     
 }
+
+
 
 /*
 /////////////////////////// BLACKBOARDS ///////////////////////////
@@ -486,7 +495,7 @@ pok_ret_t pok_semaphore_create_wrapper(void* param, int pos)
     pok_queuing_discipline_t discipline;
     
     pok_sem_id_t* id; // TODO: check if it is out-param
-    
+      
 	switch (pos)
 	{
 		case 0:
@@ -496,7 +505,7 @@ pok_ret_t pok_semaphore_create_wrapper(void* param, int pos)
 		
 		case 4:
             ret = pok_semaphore_create(&name, &value, &max_value, &discipline, &param);
-			break;
+			break;        
 	}
 	
 	return ret;                     

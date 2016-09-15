@@ -25,6 +25,7 @@ static void first_process(void)
 {
     RETURN_CODE_TYPE ret;
     int i = 0;
+    
     while (i < 5) {
         SEND_BUFFER(global_buffer_id, (MESSAGE_ADDR_TYPE) &i, sizeof(i), 0, &ret);
         if (ret != NO_ERROR) {
@@ -34,11 +35,13 @@ static void first_process(void)
         i++;
         TIMED_WAIT(1000000000LL, &ret);
     }
+    
 }
 
 static void second_process(void)
 {
     RETURN_CODE_TYPE ret;
+    
     while (1) {
         int i;
         MESSAGE_SIZE_TYPE len;
@@ -51,6 +54,7 @@ static void second_process(void)
         }
         printf("received message %d\n", i);
     }
+    
     STOP_SELF();
 }
 
@@ -112,6 +116,7 @@ static int real_main(void)
     } else {
         printf("process 2 created\n");
     }
+    
 
     START(pid, &ret);
     if (ret != NO_ERROR) {
