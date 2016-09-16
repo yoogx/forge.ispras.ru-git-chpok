@@ -1,7 +1,11 @@
 #ifndef __POK_PPC_TIMER_H__
 #define __POK_PPC_TIMER_H__
 
-void pok_arch_decr_int();
+/* Called by the decrementer's interrupt handled. */
+void pok_arch_decr_int(void);
+
+/* Initialize timer. */
+void ja_time_init(void);
 
 /* Bit definitions related to the TCR. */
 #define TCR_WP(x)       (((x)&0x3)<<30) /* WDT Period */

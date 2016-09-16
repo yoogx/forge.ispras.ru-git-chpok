@@ -18,6 +18,10 @@
 #include <core/thread.h>
 #include "thread_internal.h"
 
+#include <cswitch.h>
+#include <core/space.h>
+#include <asp/arch.h>
+
 static void thread_start_func(void)
 {
     pok_thread_t* thread_current = current_thread;
@@ -25,7 +29,7 @@ static void thread_start_func(void)
     pok_partition_jump_user(
         thread_current->entry,
         thread_current->init_stack_addr,
-        &thread_current->initial_sp);
+        thread_current->initial_sp);
 }
 
 void sched_arinc_start(void)
@@ -36,9 +40,9 @@ void sched_arinc_start(void)
 
     pok_thread_t* thread_main
         = &part->threads[POK_PARTITION_ARINC_MAIN_THREAD_ID];
-
-    thread_main->entry_sp_user = 0;
-
+#ifdef POK_NEEDS_GDB
+    thread_main->entry_sp_user = NULL;
+#endif
     part->lock_level = 1;
 	part->thread_locked = thread_main;
 
@@ -46,8 +50,10 @@ void sched_arinc_start(void)
     part->thread_current = thread_main;
 
 	// Direct jump into main thread.
-	pok_context_restart(&thread_main->initial_sp, &thread_start_func,
-        &thread_main->sp);
+    part->base_part.fp_store_current = thread_main->fp_store;
+
+	jet_context_restart_and_save(thread_main->initial_sp,
+        &thread_start_func, &thread_main->sp);
 }
 
 static void thread_deadline_occured(struct delayed_event* event)
@@ -117,7 +123,7 @@ static void do_nothing_func(void)
 {
     pok_preemption_local_enable();
     
-    wait_infinitely();
+    ja_inf_loop();
 }
 
 
@@ -191,7 +197,7 @@ static void sched_arinc(void)
         new_thread = part->thread_error;
         
         new_thread->priority = new_thread->base_priority;
-        new_thread->sp = 0;
+        new_thread->sp = NULL;
       
         new_thread->state = POK_STATE_RUNNABLE;
         
@@ -226,25 +232,26 @@ static void sched_arinc(void)
          * error list is not empty, error handler is automatically restarted.
          */
         assert(new_thread == part->thread_error);
-        
-        new_thread->entry_sp_user = 0;
-        pok_context_restart(&new_thread->initial_sp, &thread_start_func,
-            &new_thread->sp);
+
+#ifdef POK_NEEDS_GDB
+        new_thread->entry_sp_user = NULL;
+#endif
+        jet_context_restart_and_save(new_thread->initial_sp,
+            &thread_start_func, &new_thread->sp);
     }
 
     // Switch between different threads
     part->thread_current = new_thread;
     
-    uint32_t* old_sp = old_thread? &old_thread->sp : &part->idle_sp;
-    uint32_t new_sp;
+    struct jet_context** old_sp = old_thread? &old_thread->sp : &part->idle_sp;
+    struct jet_context* new_sp;
     
     if(new_thread)
     {
         new_sp = new_thread->sp;
-        if(new_sp == 0)
+        if(new_sp == NULL)
         {
-            new_sp = pok_context_init(
-                pok_dstack_get_stack(&new_thread->initial_sp),
+            new_sp = jet_context_init(new_thread->initial_sp,
                 &thread_start_func);
             new_thread->sp = new_sp;
         }
@@ -253,10 +260,9 @@ static void sched_arinc(void)
     {
         // New thread is "do_nothing"
         new_sp = part->idle_sp;
-        if(new_sp ==0)
+        if(new_sp == NULL)
         {
-            new_sp = pok_context_init(
-                pok_dstack_get_stack(&part->base_part.initial_sp),
+            new_sp = jet_context_init(part->base_part.initial_sp,
                 &do_nothing_func);
             part->idle_sp = new_sp;
         }
@@ -266,8 +272,9 @@ static void sched_arinc(void)
      * If old_thread->sp is 0, this should be processed upon
      * returning to given thread, not now.
      */
-    if(*old_sp == 0) old_sp = NULL;
+    if(*old_sp == NULL) old_sp = NULL;
 
+#ifdef POK_NEEDS_GDB
     if(old_thread && part->base_part.entry_sp_user)
     {
         /*
@@ -275,16 +282,18 @@ static void sched_arinc(void)
          * and clear original.
          */
         old_thread->entry_sp_user = part->base_part.entry_sp_user;
-        part->base_part.entry_sp_user = 0;
+        part->base_part.entry_sp_user = NULL;
     }
-    
+#endif /* POK_NEEDS_GDB */
+    part->base_part.fp_store_current = new_thread->fp_store;
+
     if(old_sp)
     {
-        pok_context_switch(old_sp, new_sp);
+        jet_context_switch(old_sp, new_sp);
     }
     else
     {
-        pok_context_jump(new_sp);
+        jet_context_jump(new_sp);
     }
 }
 

@@ -17,9 +17,9 @@
 #include <config.h>
 
 #include <libc.h>
-#include <bsp_common.h>
-#include <arch.h>
+#include <asp/arch.h>
 #include <core/partition_arinc.h>
+#include <cons.h>
 
 
 #ifdef POK_NEEDS_NETWORKING
@@ -199,13 +199,15 @@ int info_partition(int argc,char **argv){
     }
     
     pok_partition_arinc_t* part = &pok_partitions_arinc[number];
+    struct jet_space_layout space_layout;
+    ja_space_layout_get(part->base_part.space_id, &space_layout);
     
     printf("\n\n");
     printf("Info about partition #%d\n",number);
     printf("is_paused = %d\n", partition_pause_get(number));
-    printf("base_addr = 0x%lx\n", part->base_addr);
-    printf("base_vaddr = 0x%lx\n", part->base_vaddr);
-    printf("size = 0x%lx\n", part->size);
+    printf("base_addr = 0x%lx\n", (unsigned long)space_layout.kernel_addr);
+    printf("base_vaddr = 0x%lx\n", (unsigned long)space_layout.user_addr);
+    printf("size = 0x%zx\n", space_layout.size);
     printf("name = %s\n", part->base_part.name);
     printf("nthreads = %lu\n", part->nthreads);
     printf("period = %lu\n", part->base_part.period);
@@ -313,7 +315,7 @@ int cpu_reset(int argc, char **argv)
     (void) argc;
     (void) argv;
     printf("Rebooting\n");
-    pok_arch_cpu_reset();
+    ja_cpu_reset();
 
     return 0;
 }
@@ -393,7 +395,7 @@ void monitor_start_func(void)
     for (;;) {
         if (data_to_read_0() == 1) {
             /*
-             * Set all partition on pause
+             * Set all partitions on pause
              */
             pok_preemption_disable();
             for (int i=0; i < pok_partitions_arinc_n; i++){
@@ -437,7 +439,7 @@ void pok_monitor_thread_init()
 #ifdef POK_NEEDS_MONITOR
     partition_monitor.part_sched_ops = &partition_sched_ops_kernel;
     partition_monitor.part_ops = &monitor_operations;
-    pok_dstack_alloc(&partition_monitor.initial_sp, 4096);
+    partition_monitor.initial_sp = pok_stack_alloc(4096);
 #endif
 }
 

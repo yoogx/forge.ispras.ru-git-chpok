@@ -72,6 +72,9 @@ class ArincConfigParser:
         'PARTITION_CONFIGURATION': 'Config Error',
     }
 
+    def __init__(self, arch):
+        self.arch = arch
+
     def parse_layout(self, root):
         """
         Minimal parsing for extract layout of the module.
@@ -96,7 +99,7 @@ class ArincConfigParser:
         Returns chpok_configuration.Configuration object.
         """
 
-        conf = chpok_configuration.Configuration()
+        conf = chpok_configuration.Configuration(self.arch)
 
         for part_root in root.find("Partitions").findall("Partition"):
             self.parse_partition(conf, part_root)

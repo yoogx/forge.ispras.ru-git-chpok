@@ -17,53 +17,50 @@
  * Access to user space from kernel space.
  */
 
-#include <uaccess.h>
-#include <assert.h>
-#include <libc.h>
+#include <core/uaccess.h>
+#include <core/partition.h>
 
-#ifndef NDEBUG
-void __copy_from_user(void* to, const void* __user from, size_t n)
+/* 
+ * Return kernel address which can be used in the kernel for
+ * r/w from/to current partition.
+ * 
+ * If given area cannot be write by the user space, returns NULL.
+ */
+void* __kuser jet_user_to_kernel(void* __user addr, size_t size)
 {
-    assert(check_access_read(from, n));
-    memcpy(to, ja_user_to_kernel_ro(from), n);
-}
-
-void __copy_to_user(void* __user to, const void* from, size_t n)
-{
-    assert(check_access_write(to, n));
-    memcpy(ja_user_to_kernel(to), from, n);
-}
-
-void __copy_user(void* __user to, const void* __user from, size_t n)
-{
-    memcpy(ja_user_to_kernel(to), ja_user_to_kernel_ro(from), n);
-}
-#endif /* NDEBUG */
-
-pok_bool_t copy_from_user(void* to, const void* __user from, size_t n)
-{
-    if(!check_access_read(from, n)) return FALSE;
-    memcpy(to, ja_user_to_kernel_ro(from), n);
-    return TRUE;
-}
-
-pok_bool_t copy_to_user(void* __user to, const void* from, size_t n)
-{
-    if(!check_access_write(to, n)) return FALSE;
-    memcpy(ja_user_to_kernel(to), from, n);
-    return TRUE;
+    return ja_user_to_kernel_space(addr, size, current_partition->space_id);
 }
 
 /* 
- * Copy name to the user space.
+ * Return kernel address which can be used in the kernel for
+ * read from current partition.
  * 
- * Destination buffer should be checked before.
+ * If given area cannot be read by the user space, returns NULL.
  */
-void pok_copy_name_to_user(void* __user to, const char* name)
+const void* __kuser jet_user_to_kernel_ro(const void* __user addr, size_t size)
 {
-    // How many bytes to copy.
-    size_t n = strnlen(name, MAX_NAME_LENGTH);
-    if(n != MAX_NAME_LENGTH) n++; // null-byte should be copied too.
-    
-    __copy_to_user(to, name, n);
+    return ja_user_to_kernel_ro_space(addr, size, current_partition->space_id);
+}
+
+/*
+ * Return true if address *may* contain instruction, which can be
+ * executed by the user in the current partition.
+ * 
+ * Used mainly for additional checks.
+ * Kernel doesn't perform r/w to given address.
+ */
+pok_bool_t jet_check_access_exec(void* __user addr)
+{
+    return ja_check_access_exec(addr, current_partition->space_id);
+}
+
+void pok_copy_name_to_user(char* to, const char* name)
+{
+    pok_bool_t null_found = FALSE;
+
+    for(int i = 0; !null_found && (i < MAX_NAME_LENGTH); i++)
+    {
+        to[i] = name[i];
+        if(name[i] == '\0') null_found = TRUE;
+    }
 }

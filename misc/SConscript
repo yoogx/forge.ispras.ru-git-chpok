@@ -99,6 +99,7 @@ env['ARCH'] = bsp_arch_dict[env['BSP']]
 env['KERNEL_CPPPATH'] = [
     env['POK_PATH']+'/kernel/include',
     env['POK_PATH']+'/kernel/arch/' + env['ARCH'] + '/include',
+    env['POK_PATH']+'/boards/' + env['BSP'] + '/include',
 ]
 
 env['LIBPOK_CPPPATH'] = [
@@ -166,6 +167,13 @@ bsp_cpu_dict = {
     'x86-qemu':        ''
 }
 env.Append(CFLAGS = bsp_cpu_dict[env['BSP']])
+
+# Additional compile flags for kernel-only
+arch_kernel_flags_dict = {
+    'ppc':    '-msoft-float',
+}
+
+env['CFLAGS_KERNEL'] = arch_kernel_flags_dict.get(env['ARCH'], "")
 
 bsp_qemu_dict = {
     'e500mc':          ' -M ppce500 -cpu e500mc',

@@ -21,291 +21,146 @@
 #include <ioports.h>
 #include <libc.h>
 #include <core/debug.h>
-#include <core/cons.h>
+#include <asp/cons.h>
 
 #include "cons.h"
 
-#if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
+#ifdef POK_NEEDS_CONSOLE
 
-static const int     screen_w = 80;
-static const int     screen_h = 25;
-static const int     tab_size = 8;
-static char *const   vga_base = (char *)0xb8000;
-struct s_cons        g_cons;
-
-#if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS) || defined (POK_NEEDS_SERIAL)
 #define  COM0      0x3F8
 #define  COM1      0x2f8
 
-int is_transmit_empty_0() {
-   return inb(COM0 + 5) & 0x20;
+int is_transmit_empty(int port) {
+   return inb(port + 5) & 0x20;
 }
 
-int is_transmit_empty_1() {
-   return inb(COM1 + 5) & 0x20;
+void write_serial(int port, char a) {
+   while (is_transmit_empty(port) == 0);
+
+   outb(port, a);
 }
-
-void write_serial_0(char a) {
-   while (is_transmit_empty_0() == 0);
-
-   outb(COM0,a);
-}
-
-void write_serial_1(char a) {
-   while (is_transmit_empty_1() == 0);
-
-   outb(COM1,a);
-}
-#endif
-
 
 #define COM_LSR		5	// In:	Line Status Register
 #define COM_RX		0	// In:	Receive buffer (DLAB=0)
 #define   COM_LSR_DATA	0x01	//   Data available
 #define   COM_LSR_RFE	0x80	//   Error in Received FIFO
 	
-int data_to_read_0() //return 0 if no data to read
+static int data_to_read(int port) //return 0 if no data to read
 {
-    int flags = inb(COM0 + COM_LSR);
+    int flags = inb(port + COM_LSR);
 	if (!(flags & COM_LSR_DATA) || (flags & COM_LSR_RFE))
 		return 0;
 	return 1;
 }
 
-int data_to_read_1() //return 0 if no data to read
+static int read_serial(int port)
 {
-    int flags = inb(COM1 + COM_LSR);
-	if (!(flags & COM_LSR_DATA) || (flags & COM_LSR_RFE))
-		return 0;
-	return 1;
-}
+	if(!data_to_read(port)) return -1;
 
-int read_serial_0()
-{
-	int data;
-	data=inb(COM0+COM_RX);
-	if ( !(inb(COM0+COM_LSR) & COM_LSR_RFE) )
+   int data;
+	data=inb(port+COM_RX);
+	if ( !(inb(port+COM_LSR) & COM_LSR_RFE) )
 		return data;
 	return -1;
-
 }
 
-int read_serial_1()
+static size_t iostream_read_common(int port, char* s, size_t length)
 {
-	int data;
-	data=inb(COM1+COM_RX);
-	if ( !(inb(COM1+COM_LSR) & COM_LSR_RFE) )
-		return data;
-	return -1;
-
-}
-
-
-
-
-void pok_cons_print_char (const char c)
-{
-#ifdef POK_NEEDS_CONSOLE
-   char*                ptr;
-   static struct s_cons local_curs; /* Local copy of the curent cursor position */
-   int                  i;
-#endif
-
-#if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS) || defined (POK_NEEDS_SERIAL)
-   write_serial_0 (c);
-#endif
-
-#ifdef POK_NEEDS_CONSOLE
-   local_curs = g_cons;
-
-   if (c == '\r')
-   {
-      local_curs.col = 0;
-   }
-
-   if (c == '\n')
-   {
-      local_curs.col = 0;
-      ++local_curs.row;
-   }
-
-   if (c == '\t')
-   {
-      local_curs.col += tab_size - local_curs.col % tab_size;
-   }
-
-   if (c != '\r' && c != '\n' && c != '\t')
-   {
-      ptr = vga_base + 2 * screen_w * local_curs.row + 2 * local_curs.col++;
-      *ptr = c;
-      ++ptr;
-      *ptr = local_curs.cur_attr;
-   }
-
-   if (local_curs.col >= screen_w)
-   {
-      local_curs.col = 0;
-      ++local_curs.row;
-   }
-
-   if (local_curs.row >= screen_h)
-   {
-      memcpy (vga_base, vga_base + 2 * screen_w, (screen_h - 1) * screen_w * 2);
-      for (i = 0; i < screen_w; ++i)
-      {
-         *(vga_base + 2 * screen_w * (screen_h - 1) + 2 * i) = 0;
-         *(vga_base + 2 * screen_w * (screen_h - 1) + 2 * i + 1) = local_curs.cur_attr;
-      }
-      local_curs.row = screen_h - 1;
-   }
-
-   // Reset the global cursor to the new position
-   g_cons = local_curs;
-#endif
-}
-
-void pok_cons_attr (uint8_t attr)
-{
-   g_cons.cur_attr = attr;
-}
-
-void pok_cons_clear (void)
-{
-   int   i;
-   int   j;
-   char  *ptr;
-   static struct s_cons		local_curs; /* local copy of the current cursor position */
-
-   ptr = vga_base;
-   local_curs = g_cons;
-
-   for (i = 0 ; i < screen_h ; ++i)
-   {
-      for (j = 0 ; j < screen_w ; ++j)
-      {
-         *ptr = 0;
-         ++ptr;
-         *ptr = g_cons.cur_attr;
-         ++ptr;
-      }
-   }
-
-   local_curs.row = 0;
-   local_curs.col = 0;
-
-   g_cons = local_curs; /* reset the global cursor to the new position */
-}
-
-
-pok_bool_t pok_cons_write (const char *s, size_t length)
-{
-   int    res;
    size_t i;
 
-   res = 0;
-   i   = 0;
-
-   while (i < length)
+   for(i = 0; i != length; i++)
    {
-      if ((const unsigned char)s[i] == CONS_ESCAPE)
-      {
-         ++i;
-         switch (s[i])
-         {
-            case CONS_CLEAR:
-               pok_cons_clear();
-               break;
-            case CONS_COLOR:
-               ++i;
-               pok_cons_attr((const unsigned char)s[i]);
-               break;
-            case CONS_SETY:
-               ++i;
-               g_cons.row = (const unsigned char)s[i] % screen_h;
-               break;
-            case CONS_SETX:
-               ++i;
-               g_cons.col = (const unsigned char)s[i] % screen_w;
-               break;
-            default:
-               pok_cons_print_char(s[i]);
-               ++res;
-         }
-      }
-      else
-      {
-         pok_cons_print_char(s[i]);
-         ++res;
-      }
-      ++i;
+      int data = read_serial(port);
+      if(data == -1) break;
+
+      s[i] = (char)data;
    }
-   return res;
+
+   return i;
 }
 
-pok_bool_t pok_cons_write_1 (const char *s, size_t length)
+
+static size_t iostream_write_common (int port, const char *s, size_t length)
 {
     char c;
-    for (; length > 0; length--) {
+    size_t rest = length;
+    for (; rest > 0; rest--) {
         c = *s++;
         if (c != '\n')
-            write_serial_1(c);
+            write_serial(port, c);
         else {
-            write_serial_1('\r');
-            write_serial_1('\n');
+            write_serial(port, '\r');
+            write_serial(port, '\n');
         }
     }
-   return 0;
+   return length;
 }
 
-#ifdef POK_NEEDS_CONSOLE
-void pok_cons_disable_cursor (void)
+static void iostream_init_common (int port)
 {
-   char tmp;
-   int  base_port;
-
-   if (inb(0x3cc) & 0x01)
-   {
-      base_port = 0x3d4;
-   }
-   else
-   {
-      base_port = 0x3b4;
-   }
-
-   tmp = inb (base_port);
-   outb (base_port, 0x0a);
-   outb (base_port + 1, inb (base_port + 1) | 0x20);
-   outb (base_port, tmp);
-}
-#endif
-
-int pok_cons_init (void)
-{
-#ifdef POK_NEEDS_CONSOLE
-   g_cons.cur_attr = CONS_FRONT (CONS_WHITE) | CONS_BACK (CONS_BLACK);
-   pok_cons_clear ();
-   pok_cons_disable_cursor ();
-   pok_print_init (pok_cons_print_char, pok_cons_attr);
-#endif
-
-#if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
    /* To be fixed : init serial */
-   outb(COM1 + 1, 0x00);    // Disable all interrupts
-   outb(COM1 + 3, 0x80);    // Enable DLAB (set baud rate divisor)
-   outb(COM1 + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
-   outb(COM1 + 1, 0x00);    //                  (hi byte)
-   outb(COM1 + 3, 0x03);    // 8 bits, no parity, one stop bit
-   outb(COM1 + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
-   outb(COM1 + 4, 0x0B);    // IRQs enabled, RTS/DSR set
-#endif
+   outb(port + 1, 0x00);    // Disable all interrupts
+   outb(port + 3, 0x80);    // Enable DLAB (set baud rate divisor)
+   outb(port + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
+   outb(port + 1, 0x00);    //                  (hi byte)
+   outb(port + 3, 0x03);    // 8 bits, no parity, one stop bit
+   outb(port + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
+   outb(port + 4, 0x0B);    // IRQs enabled, RTS/DSR set
+}
 
-   return 0;
-}
-#else
-int pok_cons_init (void)
+static size_t iostream_read_main(char* s, size_t length)
 {
-   return 0;
+    return iostream_read_common(COM0, s, length);
 }
+static size_t iostream_write_main(const char* s, size_t length)
+{
+   return iostream_write_common(COM0, s, length);
+}
+static void iostream_init_main(void)
+{
+   iostream_init_common(COM0);
+}
+
+static struct jet_iostream x86_stream_main =
+{
+    .write = &iostream_write_main,
+    .read  = &iostream_read_main,
+    .init = &iostream_init_main
+};
+
+
+static size_t iostream_read_debug(char* s, size_t length)
+{
+    return iostream_read_common(COM1, s, length);
+}
+static size_t iostream_write_debug(const char* s, size_t length)
+{
+   return iostream_write_common(COM1, s, length);
+}
+static void iostream_init_debug(void)
+{
+   iostream_init_common(COM1);
+}
+
+static struct jet_iostream x86_stream_debug =
+{
+    .write = &iostream_write_debug,
+    .read  = &iostream_read_debug,
+    .init = &iostream_init_debug
+};
+
+struct jet_iostream* ja_stream_default_read = &x86_stream_main;
+struct jet_iostream* ja_stream_default_write = &x86_stream_main;
+struct jet_iostream* ja_stream_default_read_debug = &x86_stream_debug;
+struct jet_iostream* ja_stream_default_write_debug = &x86_stream_debug;
+
+#else
+
+struct jet_iostream* ja_stream_default_read = NULL;
+struct jet_iostream* ja_stream_default_write = NULL;
+struct jet_iostream* ja_stream_default_read_debug = NULL;
+struct jet_iostream* ja_stream_default_write_debug = NULL;
+
 #endif
 
 
