@@ -27,7 +27,14 @@
 #define POK_NEEDS_THREAD_SLEEP 1
 #define POK_NEEDS_THREAD_ID 1
 #define POK_NEEDS_MONITOR 1
-#define POK_NEEDS_GDB 1
+
+// Quick and dirty hack: currently debugger support is broken on x86
+// This options provides the way to build JET OS on x86
+// It is set in /misc/SConsript in CFLAGS
+#ifndef POK_DISABLE_GDB
+#define   POK_NEEDS_GDB 1
+#endif
+
 #define POK_NEEDS_PORTS_SAMPLING 1
 #define POK_NEEDS_PORTS_QUEUEING 1
 #define POK_NEEDS_BUFFERS 1
