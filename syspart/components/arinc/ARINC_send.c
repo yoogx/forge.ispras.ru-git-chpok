@@ -56,43 +56,38 @@ static void queuing_send_outside(ARINC_SENDER *self)
     CALL_PORT_FUNCTION(self, portA, flush);
 }
 
-static void sampling_send_outside(unsigned channel_idx)
+static void sampling_send_outside(ARINC_SENDER *self)
 {
     RETURN_CODE_TYPE ret;
-    VALIDITY_TYPE validity;
+    sys_port_data_t *dst_place = self->state.port_buffer;
 
-    sys_channel_t channel = sys_sampling_channels[channel_idx];
-    sys_sampling_port_t *port = &sys_sampling_ports[channel.port_index];
-    sys_port_data_t *dst_place = port->data;
-
-    if (!SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(port->id))
+    if (!SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(self->state.port_id))
         return;
 
     READ_SAMPLING_MESSAGE(
-            port->id,
-            (MESSAGE_ADDR_TYPE ) (dst_place->data + port->header.overhead),
+            self->state.port_id,
+            (MESSAGE_ADDR_TYPE ) (dst_place->data + self->state.overhead),
             &dst_place->message_size,
-            &validity,
+            NULL,
             &ret
             );
 
     if (ret != NO_ERROR) {
         if (ret != NOT_AVAILABLE)
-            printf(C_NAME"%s port error: %u\n", port->header.name, ret);
+            printf(C_NAME"%s port error: %u\n", self->state.port_name, ret);
         return;
     }
 
-    pok_bool_t res = channel.driver_ptr->send(
-            dst_place->data + port->header.overhead,
+    ret_t res = CALL_PORT_FUNCTION(self, portA, send,
+            dst_place->data + self->state.overhead,
             dst_place->message_size,
-            port->header.overhead,
-            channel.driver_data
+            self->state.overhead
             );
 
-    if (!res)
+    if (res != EOK)
         printf(C_NAME"Error in send_udp\n");
 
-    channel.driver_ptr->flush_send();
+    CALL_PORT_FUNCTION(self, portA, flush);
 }
 
 void arinc_sender_activity(ARINC_SENDER *self)
