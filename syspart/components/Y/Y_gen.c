@@ -15,7 +15,7 @@
 
 
 
-      void call_portB_send(Y *self, void * arg1, size_t arg2)
+      void Y_call_portB_send(Y *self, void * arg1, size_t arg2)
       {
          if (self->out.portB.ops == NULL) {
              printf("WRONG CONFIG: out port portB of component Y was not initialized\n");
@@ -23,7 +23,7 @@
          }
          return self->out.portB.ops->send(self->out.portB.owner, arg1, arg2);
       }
-      void call_portB_flush(Y *self)
+      void Y_call_portB_flush(Y *self)
       {
          if (self->out.portB.ops == NULL) {
              printf("WRONG CONFIG: out port portB of component Y was not initialized\n");

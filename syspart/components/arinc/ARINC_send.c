@@ -83,7 +83,7 @@ void arinc_sender_activity(ARINC_SENDER *self)
         return;
 
     sys_port_data_t *dst_place = self->state.port_buffer;
-    ret_t res = call_portA_send(self,
+    ret_t res = ARINC_SENDER_call_portA_send(self,
             dst_place->data + self->state.overhead,
             dst_place->message_size,
             self->state.overhead
@@ -92,7 +92,7 @@ void arinc_sender_activity(ARINC_SENDER *self)
     if (res != EOK)
         printf(C_NAME"Error in send_udp\n");
 
-    call_portA_flush(self);
+    ARINC_SENDER_call_portA_flush(self);
 }
 
 void arinc_sender_init(ARINC_SENDER *self)

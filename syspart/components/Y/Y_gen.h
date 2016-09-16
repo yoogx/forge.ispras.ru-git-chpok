@@ -34,8 +34,8 @@ typedef struct {
 
       void y_tick(Y *);
 
-      void call_portB_send(Y *, void *, size_t);
-      void call_portB_flush(Y *);
+      void Y_call_portB_send(Y *, void *, size_t);
+      void Y_call_portB_flush(Y *);
 
 
 

@@ -19,7 +19,7 @@
 
 {% for p in component.out_ports %}
   {% for i_func in interfaces[p.type].functions %}
-      {{i_func.return_type}} call_{{p.name}}_{{i_func.name}}({{component.name}} *self{{args(i_func)}})
+      {{i_func.return_type}} {{component.name}}_call_{{p.name}}_{{i_func.name}}({{component.name}} *self{{args(i_func)}})
       {
          if (self->out.{{p.name}}.ops == NULL) {
              printf("WRONG CONFIG: out port {{p.name}} of component {{component.name}} was not initialized\n");

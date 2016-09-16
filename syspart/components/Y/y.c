@@ -6,9 +6,9 @@ void y_tick(Y *self)
     printf("Y<y=%d>.tick()\n", self->state.y);
 
     //CALL_PORT_FUNCTION(self, portB, send, NULL, 0x10);
-    call_portB_send(self, NULL, 0x10);
+    Y_call_portB_send(self, NULL, 0x10);
 
-    call_portB_flush(self);
+    Y_call_portB_flush(self);
 
 }
 
