@@ -29,7 +29,7 @@
 
 pok_ret_t pok_arch_init ()
 {
-  mtsr(/*MSR_IP |*/ Status_XX);
+ /*MSR_IP |*/   mtsr(Status_XX);
 
 #if POK_NEEDS_PARTITIONS
   pok_arch_space_init();

@@ -296,6 +296,16 @@ pok_ret_t pok_current_partition_dec_lock_level(int32_t *lock_level);
                                              ((uintptr_t)(ptr)) >= 0x80000000 && \
                                              ((uintptr_t)(ptr)) <  0x80000000 + 0x1000000ULL\
                                              )
+#elif defined(__mips__)
+#define POK_CHECK_PTR_IN_PARTITION(pid,ptr) (\
+                                             ((uintptr_t)(ptr)) >= 0x80000000 && \
+                                             ((uintptr_t)(ptr)) <  0x80000000 + 0x1000000ULL\
+                                             )
+
+#define POK_CHECK_VPTR_IN_PARTITION(pid,ptr) (\
+                                             ((uintptr_t)(ptr)) >= 0x80000000 && \
+                                             ((uintptr_t)(ptr)) <  0x80000000 + 0x1000000ULL\
+                                             )
 #else
 #error "POK_CHECK_PTR macros are not implemented for this arch, do it now!"
 #endif

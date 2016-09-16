@@ -51,14 +51,15 @@ pok_ret_t ja_space_create (uint8_t space_id,
 
 pok_ret_t ja_space_switch (uint8_t space_id)
 {
-    mtspr(SPRN_PID, space_id + 1);
+    //~ mtspr(SPRN_PID, space_id + 1);
 
     return POK_ERRNO_OK;
 }
 
 uint8_t ja_space_get_current (void)
 {
-    return ((uint8_t)mfspr(SPRN_PID)) - 1;
+    //~ return ((uint8_t)mfspr(SPRN_PID)) - 1;
+    return 0;
 }
 
 
@@ -311,7 +312,9 @@ void pok_arch_handle_page_fault(
         pf_type_t type)
 {
     int tlb_miss = (type == PF_INST_TLB_MISS || type == PF_DATA_TLB_MISS);
-    unsigned pid = mfspr(SPRN_PID);
+    //~ unsigned pid = mfspr(SPRN_PID);
+    unsigned pid = 0;
+    
 
     if (tlb_miss && faulting_address >= pok_bsp.ccsrbar_base && faulting_address < pok_bsp.ccsrbar_base + pok_bsp.ccsrbar_size) {
         pok_insert_tlb1(
@@ -379,7 +382,8 @@ void pok_arch_handle_page_fault(
 //TODO: maybe rename to pok_arch_?
 uintptr_t pok_virt_to_phys(uintptr_t virt)
 {
-    pok_partition_id_t partid = mfspr(SPRN_PID) - 1;
+    //~ pok_partition_id_t partid = mfspr(SPRN_PID) - 1;
+    pok_partition_id_t partid = 0;
     if (!POK_CHECK_PTR_IN_PARTITION(partid, virt)) {
         printf("pok_virt_to_phys: wrong virtual address %p\n", (void*)virt);
         pok_fatal("wrong pointer in pok_virt_to_phys\n");
@@ -390,7 +394,8 @@ uintptr_t pok_virt_to_phys(uintptr_t virt)
 
 uintptr_t pok_phys_to_virt(uintptr_t phys)
 {
-    pok_partition_id_t partid = mfspr(SPRN_PID) - 1;
+    //~ pok_partition_id_t partid = mfspr(SPRN_PID) - 1;
+    pok_partition_id_t partid = 0;
 
     uintptr_t virt = phys - spaces[partid].phys_base + POK_PARTITION_MEMORY_BASE;
     if (!POK_CHECK_PTR_IN_PARTITION(partid, virt)) {

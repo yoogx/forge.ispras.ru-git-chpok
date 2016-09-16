@@ -79,7 +79,7 @@
 #define CP0_Count            0x09     /* Count       Register*/ /* Счетчик тактов процессора*/
 #define CP0_EntryHi          0x0A     /* EntryHi     Register*/ /*  */
 #define CP0_Compare          0x0B     /* Compare     Register*/ /* Величина для сравнения с регистром Count */
-#define CP0_Status           0x0C     /* Status      Register*/ /* Описывает состояние системы */
+#define CP0_Status           12     /* Status      Register*/ /* Описывает состояние системы */
 #define CP0_Cause            0x0D     /* Cause       Register*/ /* Информация о прерывании */
 #define CP0_EPC              0x0E     /* Exception Program Counter Register*/ /* Значение счетчика инструкций (виртуальный адрес команды) в момент возникновения исключительной ситуации. */
 #define CP0_PI               0x0F     /* Processor Identification  Register*/ /* Информация об производителе процессора */
@@ -123,35 +123,23 @@
 #define __stringify(x)          __stringify_1(x)
 #endif
 
-#define mfmsr()         ({unsigned long rval; \
-                                asm volatile("mfmsr %0" : "=r" (rval) : \
-                                                                                    : "memory"); rval;})
-#define mtmsr(v)        asm volatile("mtmsr %0" : \
-                                             : "r" ((unsigned long)(v)) \
-                                             : "memory")
-
-#define mfspr(rn)       ({unsigned long rval; \
-                                asm volatile("mfspr %0," __stringify(rn) \
-                                                                    : "=r" (rval)); rval;})
-#define mtspr(rn, v)    asm volatile("mtspr " __stringify(rn) ",%0" : \
-                                             : "r" ((unsigned long)(v)) \
-                                             : "memory")
-                                             
 
 
 #define mfc0(rn)       ({unsigned long rval; \
-                                asm volatile("mfc0 %0," __stringify(rn) \
+                                asm volatile("mfc0 %0, $" __stringify(rn) \
                                                                     : "=r" (rval)); rval;})
                                                                     
-#define mtc0(v, rn)    asm volatile("mtс0 %0," __stringify(rn) : \
-                                             : "r" ((unsigned long)(v)) \
-                                             : "memory")
+///FIXIT
+#define mtc0(v, rn)    mfc0(rn)
+//~ asm volatile("mtс0 %0, $" __stringify(rn) : 
+                                             //~ : "r" ((unsigned long)(v)) 
+                                             //~ : "memory")
 
 #define mfc1(rn)       ({unsigned long rval; \
-                                asm volatile("mfc1 %0," __stringify(rn) \
+                                asm volatile("mfc1 %0, $" __stringify(rn) \
                                                                     : "=r" (rval)); rval;})
                                                                     
-#define mtc1(v, rn)    asm volatile("mtс1 %0," __stringify(rn) : \
+#define mtc1(v, rn)    asm volatile("mtс1 %0, $" __stringify(rn) : \
                                              : "r" ((unsigned long)(v)) \
                                              : "memory")
 

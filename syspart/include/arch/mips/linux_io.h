@@ -13,7 +13,6 @@
 
 #include <stdint.h>
 
-
 typedef uint8_t  u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
@@ -44,46 +43,42 @@ typedef uint64_t u64;
 #define DEF_MMIO_IN_X(name, size, insn)				\
 static inline u##size name(const volatile u##size  *addr)	\
 {									\
-	asm volatile ("sync"); \
-    return 0;           \
-}
 	//~ u##size ret;							
-	//~ __asm__ __volatile__("sync;" 
+	__asm__ __volatile__("sync;"); \
     //~ #insn" %0,%y1;twi 0,%0,0;isync"	
 		//~ : "=r" (ret) : "Z" (*addr) : "memory");			
 	//~ return ret;							
+    return 0;           \
+}
 
 #define DEF_MMIO_OUT_X(name, size, insn)				\
 static inline void name(volatile u##size  *addr, u##size val)	\
 {									\
-	asm volatile ("sync"); \
-}
-	//~ __asm__ __volatile__("sync;" 
+	__asm__ __volatile__("sync;"); \
     //~ #insn" %1,%y0"			
 		//~ : "=Z" (*addr) : "r" (val) : "memory");			
-
+}
 
 #define DEF_MMIO_IN_D(name, size, insn)				\
 static inline u##size name(const volatile u##size  *addr)	\
 {									\
-	asm volatile ("sync"); \
-    return 0;               \
-}
 	//~ u##size ret;							
-	//~ __asm__ __volatile__("sync;"
+	__asm__ __volatile__("sync;"); \
     //~ #insn"%U1%X1 %0,%1;twi 0,%0,0;isync"
 		//~ : "=r" (ret) : "m" (*addr) : "memory");			
 	//~ return ret;							
+    return 0;               \
+}
 ///change twi on tge,tlt, etc.
 
 #define DEF_MMIO_OUT_D(name, size, insn)				\
 static inline void name(volatile u##size  *addr, u##size val)	\
 {									\
-	asm volatile ("sync"); \
-}
-	//~ __asm__ __volatile__("sync;" 
+	__asm__ __volatile__("sync;"); \
     //~ #insn"%U0%X0 %1,%0"			
 		//~ : "=m" (*addr) : "r" (val) : "memory");			
+}
+
 
 DEF_MMIO_IN_D(in_8,     8, lbz);
 DEF_MMIO_OUT_D(out_8,   8, stb);
@@ -110,5 +105,43 @@ DEF_MMIO_OUT_D(out_le16, 16, sth);
 DEF_MMIO_OUT_D(out_le32, 32, stw);
 
 #endif /* __BIG_ENDIAN */
+
+
+/* Clear and set bits in one shot. These macros can be used to clear and
+ * set multiple bits in a register using a single call. These macros can
+ * also be used to set a multiple-bit bit pattern using a mask, by
+ * specifying the mask in the 'clear' parameter and the new bit pattern
+ * in the 'set' parameter.
+ */
+
+#define clrbits(type, addr, clear) \
+        out_##type((addr), in_##type(addr) & ~(clear))
+
+#define setbits(type, addr, set) \
+        out_##type((addr), in_##type(addr) | (set))
+
+#define clrsetbits(type, addr, clear, set) \
+        out_##type((addr), (in_##type(addr) & ~(clear)) | (set))
+
+#define clrbits_be32(addr, clear) clrbits(be32, addr, clear)
+#define setbits_be32(addr, set) setbits(be32, addr, set)
+#define clrsetbits_be32(addr, clear, set) clrsetbits(be32, addr, clear, set)
+
+#define clrbits_le32(addr, clear) clrbits(le32, addr, clear)
+#define setbits_le32(addr, set) setbits(le32, addr, set)
+#define clrsetbits_le32(addr, clear, set) clrsetbits(le32, addr, clear, set)
+
+#define clrbits_be16(addr, clear) clrbits(be16, addr, clear)
+#define setbits_be16(addr, set) setbits(be16, addr, set)
+#define clrsetbits_be16(addr, clear, set) clrsetbits(be16, addr, clear, set)
+
+#define clrbits_le16(addr, clear) clrbits(le16, addr, clear)
+#define setbits_le16(addr, set) setbits(le16, addr, set)
+#define clrsetbits_le16(addr, clear, set) clrsetbits(le16, addr, clear, set)
+
+#define clrbits_8(addr, clear) clrbits(8, addr, clear)
+#define setbits_8(addr, set) setbits(8, addr, set)
+#define clrsetbits_8(addr, clear, set) clrsetbits(8, addr, clear, set)
+
 
 #endif

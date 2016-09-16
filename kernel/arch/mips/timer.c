@@ -31,7 +31,7 @@ static uint32_t time_inter;
 static uint64_t get_timebase(void)
 {
     //~ while (1) {
-        uint32_t count = mfc0(CP0_Count);
+        //~ uint32_t count = mfc0(CP0_Count);
         //~ uint32_t lower = mfspr(SPRN_TBRL);
 
         // since it's two part register,
@@ -40,8 +40,9 @@ static uint64_t get_timebase(void)
         //~ if (upper == mfspr(SPRN_TBRU)) {
             //~ return (((uint64_t) upper) << 32) | lower;
         //~ }
-        return (uint64_t) count;
+        //~ return (uint64_t) count;
     //~ }
+    return 0;
 }
 
 /* Compute new value for the decrementer.  If the value is in the future,
@@ -61,7 +62,7 @@ static int set_decrementer(void)
   }
   else
   {
-    mtspr(SPRN_DEC, delta);
+    //~ mtspr(SPRN_DEC, delta);
     return POK_ERRNO_OK;
   }
 }
@@ -72,7 +73,7 @@ void pok_arch_decr_int (void)
   int err;
 
   // clear pending intrerrupt
-  mtspr(SPRN_TSR, TSR_DIS);
+  //~ mtspr(SPRN_TSR, TSR_DIS);
 
   do
   {
@@ -87,11 +88,11 @@ void pok_arch_decr_int (void)
 pok_ret_t pok_bsp_time_init ()
 {
   time_inter = pok_bsp.timebase_freq / POK_TIMER_FREQUENCY;
-  printf("Timer interval: %lu\n", time_inter);
+  //~ printf("Timer interval: %lu\n", time_inter);
   time_last = get_timebase ();
   set_decrementer();
 
-  mtspr(SPRN_TCR, TCR_DIE); // enable decrementer
+  //~ mtspr(SPRN_TCR, TCR_DIE); // enable decrementer
 
   return (POK_ERRNO_OK);
 }
