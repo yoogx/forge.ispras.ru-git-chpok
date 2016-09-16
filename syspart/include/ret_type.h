@@ -13,7 +13,11 @@
  * See the GNU General Public License version 3 for more details.
  */
 
+#ifndef __RET_TYPE_H__
+#define __RET_TYPE_H__
 typedef enum {
-EOK,
-EINVAL /* Invalid argument */
+    EOK,
+    EINVAL /* Invalid argument */
 }ret_t;
+
+#endif
