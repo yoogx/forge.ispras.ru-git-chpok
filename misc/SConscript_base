@@ -128,9 +128,6 @@ env['POK_PATH']+'/build/'+env['BSP']+'/kernel/core.lo',
 env['POK_PATH']+'/build/'+env['BSP']+'/boards/bsp.lo',
 env['BUILD_DIR']+'deployment.c'])
 
-ldscript = pok_env['POK_PATH']+'/boards/'+pok_env['BSP']+'/ldscripts/kernel.lds'
-pok_env['LINKFLAGS'] = str(' -T '+ldscript+' -Map build/'+pok_env['BSP']+'/pok.elf.map')
-
 # there should (perhaps) also be padding to get aligned file size
 def merge_partitions(target, source, env):
 	with open(str(target[0]), 'wb') as part:
@@ -176,10 +173,15 @@ pok_env['BUILD_DIR']+'sizes.c',
 pok_env['OBJCOPY']+' --add-section .archive2='+pok_env['BUILD_DIR']+'partitions.bin '+pok_env['BUILD_DIR']+'sizes.o'])
 pok_env.Depends(compile_sizes, pok_env['PARTITIONS'])
 
+ldscript_kernel = pok_env['LDSCRIPT_KERNEL']
+# Rewrite LINKFLAGS, as we build '.elf'.
+pok_env['LINKFLAGS'] = ' -T ' + ldscript_kernel
+
+
 pok_target = pok_env.Program(target = pok_env['BUILD_DIR']+'pok.elf', source = [
 pok_env['BUILD_DIR']+'sizes.o',
 pok_env['BUILD_DIR']+'kernel.lo',
 pok_env['LIBGCC']])
-pok_env.Depends(pok_target, [compile_sizes, ldscript])
+pok_env.Depends(pok_target, [compile_sizes, ldscript_kernel])
 
 # EOF

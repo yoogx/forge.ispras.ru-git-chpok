@@ -82,6 +82,7 @@ SConsignFile(None)
 
 # Flags common for all architectures
 env['PRINT_CMD_LINE_FUNC'] = print_cmd_line
+# Linker flags for '.lo' objects, but not for '.elf'
 env['LINKFLAGS'] = '-r'
 env['QEMU_FLAGS'] = ' -serial stdio'
 # 16 MBytes
@@ -176,6 +177,22 @@ arch_kernel_flags_dict = {
 }
 
 env['CFLAGS_KERNEL'] = arch_kernel_flags_dict.get(env['ARCH'], "")
+
+# ldscript for kernel.
+arch_kernel_ldscript_dict = {
+    'ppc': env['POK_PATH'] + '/kernel/arch/ppc/ldscripts/kernel.lds',
+    'x86': env['POK_PATH'] + '/boards/' + env['BSP'] + '/ldscripts/kernel.lds'
+}
+
+env['LDSCRIPT_KERNEL'] = arch_kernel_ldscript_dict.get(env['ARCH'])
+
+# ldscript for partitions.
+arch_partition_ldscript_dict = {
+    'ppc': env['POK_PATH'] + '/kernel/arch/ppc/ldscripts/partition.lds',
+    'x86': env['POK_PATH'] + '/boards/' + env['BSP'] + '/ldscripts/partition.lds'
+}
+
+env['LDSCRIPT_PARTITION'] = arch_partition_ldscript_dict.get(env['ARCH'])
 
 bsp_qemu_dict = {
     'e500mc':          ' -M ppce500 -cpu e500mc',
