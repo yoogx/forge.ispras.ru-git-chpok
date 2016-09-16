@@ -31,9 +31,7 @@
     mov $0x10, %ax
     mov %ax, %ds
     mov %ax, %es
-    mov %esp, %eax
-    add $(SIZEOF_jet_interrupt_context), %eax
-    mov %eax, %ebp // %ebp points to the first stack frame
+    mov $0, %ebp // Mark current frame as first
     push %esp // Interrupt frame is the only parameter to the followed functions.
     SAVE_FRAME
 .endm

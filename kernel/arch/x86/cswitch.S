@@ -50,17 +50,36 @@ ja_context_jump:
     jmp CONTEXT_RESTORE
     .size ja_context_jump, . - ja_context_jump
 
+
+/*
+ * Wrapper around the first function in the kernel thread.
+ *
+ * This function is shown first in the backchain, while returning to
+ * it should never occures.
+ *
+ * %esp is assumed pointed to the beginning of the stack,
+ * %ebx contains address of the function to be called,
+ * %ebp should be 0,
+ * other general registers are unspecified.
+ */
+.globl ja_kernel_thread
+ja_kernel_thread:
+    call *%ebx
+    // TODO: assert "no return"
+    .size ja_kernel_thread, . - ja_kernel_thread
+
+
 .globl ja_context_restart
 ja_context_restart:
     /* [esp + 4]: stack */
     /* [esp + 8]: entry */
     // Store all stack parameters into registers.
     mov 4(%esp), %eax
-    mov 8(%esp), %ebx
+    mov 8(%esp), %ebx // %ebx is used in ja_kernel_thread
     // Now we can modify stack
     mov  %eax, %esp
-    mov %eax, %ebp // ebp points to the beginning of the stack, that is the first frame.
-    jmp *%ebx
+    mov 0, %ebp // Mark current frame as first.
+    jmp ja_kernel_thread
     .size ja_context_restart, . - ja_context_restart
 
 .globl ja_context_restart_and_save

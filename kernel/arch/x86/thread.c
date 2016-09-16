@@ -1,35 +1,27 @@
 /*
- *                               POK header
- * 
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *                                      Copyright (c) 2007-2009 POK team 
- *
- * Created by julien on Thu Jan 15 23:34:13 2009 
+ * See the GNU General Public License version 3 for more details.
  */
 
-/**
- **\file    thread.c
- **\brief   x86-dependent code for thread management
- **\author  Julian Pidancet
- */
-
-#include <config.h>
 #include <asp/arch.h>
 
 #include <libc.h>
-#include <errno.h>
 #include <asp/cswitch.h>
 
-#include "gdt.h"
-
 #include "thread.h"
+
+/* This function starts kernel thread and is defined in cswitch.S.*/
+void ja_kernel_thread(void);
 
 struct jet_context* ja_context_init (jet_stack_t sp, void (*entry)(void))
 {
@@ -48,8 +40,10 @@ struct jet_context* ja_context_init (jet_stack_t sp, void (*entry)(void))
     * context we switched from.
     */
     ctx->eflags  = ja_preempt_enabled()? 1 << 9 : 0;
-    ctx->ebp = sp;
-    ctx->ret = (uint32_t)entry;
+    // Registers below are filled in accordance to ja_kernel_thread().
+    ctx->ebp = 0;
+    ctx->ebx = (uint32_t)entry;
+    ctx->ret = (uint32_t)ja_kernel_thread;
 
     return ctx;
 }
