@@ -23,7 +23,7 @@
 #include <mem.h>
 
 #include "ARINC_SENDER_gen.h"
-#define C_NAME "ARIND_SENDER: "
+#define C_NAME "ARINC_SENDER: "
 
 static int receive_msg_queuing(ARINC_SENDER *self)
 {
