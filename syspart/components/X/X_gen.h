@@ -32,6 +32,7 @@ typedef struct {
 
 
 
+
     void x_init(X *);
 
 

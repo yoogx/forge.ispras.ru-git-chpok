@@ -49,6 +49,12 @@ typedef struct {
   {% endfor %}
 {% endfor %}
 
+{% for p in component.out_ports %}
+  {% for i_func in interfaces[p.type].functions %}
+      {{i_func.return_type}} call_{{p.name}}_{{i_func.name}}({{component.name}} *{{args(i_func)}});
+  {% endfor %}
+{% endfor %}
+
 
 
 {% if component.init_func %}
