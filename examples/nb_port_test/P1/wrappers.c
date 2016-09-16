@@ -26,6 +26,7 @@ void entry_point_method(void)
  **/
  
 // TODO: fix all parameter types + default values + add parameter for ID's of pre-created stuff
+// TODO: handle wrong position of parameters via default case and more pre-checks 
 
 
 /////////////////////////// THREADS ///////////////////////////

@@ -19,7 +19,7 @@
 
 import os
 
-cflags = '-D POK_NEEDS_WAIT_FOR_GDB'
+cflags = ''
 SConscript(os.environ['POK_PATH']+'/misc/SConscript', exports = 'cflags')
 
 Import('env')

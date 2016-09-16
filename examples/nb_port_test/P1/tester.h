@@ -22,6 +22,7 @@ TEST_STATUS status;
 // PARTITION START not NORMAL - verdict is rendered another way)
 static int TEST_RESULT = 0;
 
+// TODO: add other types of errorssq
 typedef enum {
 	NULL_POINTER = 0,
 	OUT_OF_PARTITION_RANGE = 1,
