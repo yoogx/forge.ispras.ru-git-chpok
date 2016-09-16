@@ -15,4 +15,4 @@
             flush: udp_ip_flush
   out_ports:
       - name: portB
-        type: send_net_data
+        type: mac_send_data

@@ -8,3 +8,14 @@
       - name: flush
         return_type: ret_t
         args_type: [self_t *]
+
+- name: mac_send_data
+  additional_h_files: ['<ret_type.h>', '<net/ether.h>']
+  functions:
+      - name: mac_send
+        return_type: ret_t
+        args_type: [self_t *, char *, size_t, size_t, enum ethertype]
+
+      - name: flush
+        return_type: ret_t
+        args_type: [self_t *]
