@@ -25,7 +25,7 @@
 #include "ARINC_SENDER_gen.h"
 #define C_NAME "ARIND_SENDER: "
 
-static void queuing_send_outside(ARINC_SENDER *self)
+static int receive_msg_queuing(ARINC_SENDER *self)
 {
     sys_port_data_t *dst_place = self->state.port_buffer;
 
@@ -41,28 +41,18 @@ static void queuing_send_outside(ARINC_SENDER *self)
     if (ret != NO_ERROR) {
         if (ret != NOT_AVAILABLE)
             printf(C_NAME"%s port error: %u\n", self->state.port_name, ret);
-        return;
+        return -1;
     }
-
-    ret_t res = CALL_PORT_FUNCTION(self, portA, send,
-            dst_place->data + self->state.overhead,
-            dst_place->message_size,
-            self->state.overhead
-            );
-
-    if (res != EOK)
-        printf(C_NAME"Error in send_udp\n");
-
-    CALL_PORT_FUNCTION(self, portA, flush);
+    return 0;
 }
 
-static void sampling_send_outside(ARINC_SENDER *self)
+static int receive_msg_samping(ARINC_SENDER *self)
 {
     RETURN_CODE_TYPE ret;
     sys_port_data_t *dst_place = self->state.port_buffer;
 
     if (!SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(self->state.port_id))
-        return;
+        return -1;
 
     READ_SAMPLING_MESSAGE(
             self->state.port_id,
@@ -75,9 +65,24 @@ static void sampling_send_outside(ARINC_SENDER *self)
     if (ret != NO_ERROR) {
         if (ret != NOT_AVAILABLE)
             printf(C_NAME"%s port error: %u\n", self->state.port_name, ret);
-        return;
+        return -1;
     }
 
+    return 0;
+}
+
+void arinc_sender_activity(ARINC_SENDER *self)
+{
+    int receive_error;
+    if (self->state.is_queuing_port)
+        receive_error = receive_msg_queuing(self);
+    else
+        receive_error = receive_msg_samping(self);
+
+    if (receive_error != 0)
+        return;
+
+    sys_port_data_t *dst_place = self->state.port_buffer;
     ret_t res = CALL_PORT_FUNCTION(self, portA, send,
             dst_place->data + self->state.overhead,
             dst_place->message_size,
@@ -88,12 +93,6 @@ static void sampling_send_outside(ARINC_SENDER *self)
         printf(C_NAME"Error in send_udp\n");
 
     CALL_PORT_FUNCTION(self, portA, flush);
-}
-
-void arinc_sender_activity(ARINC_SENDER *self)
-{
-    //printf(C_NAME"activity\n");
-    queuing_send_outside(self);
 }
 
 void arinc_sender_init(ARINC_SENDER *self)
