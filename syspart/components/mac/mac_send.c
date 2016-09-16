@@ -28,6 +28,8 @@
 
 #include "net.h"
 
+#include "MAC_SENDER_gen.h"
+
 
 #define MAC_HEADER_SIZE 14
 
@@ -37,23 +39,22 @@ struct mac_packet {
 } __attribute__((packed));
 
 static void fill_in_mac_header(
+        MAC_SENDER_state *state,
         struct mac_packet *packet,
         uint8_t *dst_mac,
-        uint8_t *my_mac,
         enum ethertype type)
 {
     struct ether_hdr *ether_hdr = &packet->ether_hdr;
 
     for (int i = 0; i < ETH_ALEN; i++) {
-        ether_hdr->src[i] = my_mac[i];
+        ether_hdr->src[i] = state->src_mac[i];
         ether_hdr->dst[i] = dst_mac[i];
     }
     ether_hdr->ethertype = hton16(type);
 
 }
 
-
-pok_bool_t mac_send(
+ret_t mac_send(MAC_SENDER *self,
         char *payload,
         size_t payload_size,
         size_t max_backstep,
@@ -61,21 +62,26 @@ pok_bool_t mac_send(
         enum ethertype ethertype
         )
 {
-    struct mac_packet *mac_packet = payload - MAC_HEADER_SIZE;
+    if (max_backstep < MAC_HEADER_SIZE)
+        return EINVAL;
+
+    void *mac_packet = payload - MAC_HEADER_SIZE;
     fill_in_mac_header(
+        &self->state,
         mac_packet,
         dst_mac_addr,
-        NETDEVICE_PTR->mac,
         ethertype
         );
 
-    return NETWORK_DRIVER_OPS->send_frame(
+    NETWORK_DRIVER_OPS->send_frame(
         NETDEVICE_PTR,
         mac_packet,
         payload_size + MAC_HEADER_SIZE
     );
+    return EOK;
 }
 
-void mac_flush(void) {
+ret_t mac_flush(MAC_SENDER *self) {
     NETWORK_DRIVER_OPS->flush_send(NETDEVICE_PTR);
+    return EOK;
 }

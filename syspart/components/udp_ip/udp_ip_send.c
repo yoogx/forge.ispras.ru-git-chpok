@@ -74,10 +74,6 @@ ret_t udp_ip_send(
         size_t max_backstep
         )
 {
-    extern udp_data_t ipnet_data_0;
-    void * driver_data = &ipnet_data_0;
-    udp_data_t *udp_data = driver_data;
-
     if (max_backstep < UDP_IP_HEADER_SIZE)
         return EINVAL;
 
@@ -88,15 +84,14 @@ ret_t udp_ip_send(
         payload_size
     );
 
-    mac_send(udp_packet,
+    return UDP_IP_SENDER_call_portB_mac_send(self,
+            udp_packet,
             payload_size + UDP_IP_HEADER_SIZE,
             max_backstep - UDP_IP_HEADER_SIZE,
             self->state.dst_mac,
             ETH_P_IP);
-
-    return EOK;
 }
 
 ret_t udp_ip_flush(UDP_IP_SENDER *self) {
-    mac_flush();
+    return UDP_IP_SENDER_call_portB_flush(self);
 }
