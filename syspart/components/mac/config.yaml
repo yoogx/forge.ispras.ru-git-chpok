@@ -1,0 +1,11 @@
+- name: MAC_SENDER
+  #additional_h_files: ['<port_info.h>']
+  state_struct:
+      src_mac[6]: uint8_t
+
+  in_ports:
+      - name: portA
+        type: send_net_data
+        implementation:
+            send: mac_send
+            flush: mac_flush

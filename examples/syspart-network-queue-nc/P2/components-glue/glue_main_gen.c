@@ -62,6 +62,15 @@
             }
         };
 
+    #include <MAC_SENDER_gen.h>
+        void __MAC_SENDER_init__(MAC_SENDER*);
+        void __MAC_SENDER_activity__(MAC_SENDER*);
+        MAC_SENDER mac_sender_1 = {
+            .state = {
+                .src_mac = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06},
+            }
+        };
+
 
 
 void __components_init__()
@@ -76,6 +85,8 @@ void __components_init__()
 
             __UDP_IP_SENDER_init__(&udp_ip_sender_1);
 
+            __MAC_SENDER_init__(&mac_sender_1);
+
 
         y_1.out.portB.ops = &x_1.in.portC.ops;
         y_1.out.portB.owner = &x_1;
@@ -83,6 +94,8 @@ void __components_init__()
         y_2.out.portB.owner = &x_2;
         arinc_sender_1.out.portA.ops = &udp_ip_sender_1.in.portA.ops;
         arinc_sender_1.out.portA.owner = &udp_ip_sender_1;
+        udp_ip_sender_1.out.portB.ops = &mac_sender_1.in.portA.ops;
+        udp_ip_sender_1.out.portB.owner = &mac_sender_1;
 
 }
 
@@ -95,6 +108,7 @@ void __components_activity__()
                 __Y_activity__(&y_2);
                 __ARINC_SENDER_activity__(&arinc_sender_1);
                 __UDP_IP_SENDER_activity__(&udp_ip_sender_1);
+                __MAC_SENDER_activity__(&mac_sender_1);
     }
 
 }

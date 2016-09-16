@@ -6,10 +6,13 @@
       dst_ip: uint32_t
       dst_port: uint16_t
       dst_mac[6]: uint8_t
+
   in_ports:
       - name: portA
         type: send_net_data
         implementation:
             send: udp_ip_send
             flush: udp_ip_flush
-
+  out_ports:
+      - name: portB
+        type: send_net_data
