@@ -43,9 +43,5 @@ struct jet_context* ja_context_init (jet_stack_t sp, void (*entry)(void))
   jet_stack_frame_link(&stack_frame_null->stack_frame,
     &ctx->stack_frame, entry);
 
-#ifdef POK_NEEDS_DEBUG
-  printf ("ctxt_create %lu: sp=%p entry=%lx\n", (unsigned long) id, ctx, (unsigned long) entry);
-#endif
-
   return ctx;
 }

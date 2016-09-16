@@ -56,7 +56,7 @@ ja_user_space_jump:
         stwux %r8, %r1, %r7
         mtsprg 1, %r1
         // Prepare user stack, srr1 and srr0 for rfi
-        subi %r1, %r6, 12
+        subi %r1, %r6, 16
         mtsrr0 %r5
         lis %r9, (MSR_EE | MSR_IP | MSR_PR | MSR_FP)@ha
         addi %r9, %r9, (MSR_EE | MSR_IP | MSR_PR | MSR_FP)@l
