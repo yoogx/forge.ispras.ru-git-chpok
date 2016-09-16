@@ -1,4 +1,9 @@
 /*
+ * GENERATED! DO NOT MODIFY!
+ *
+ * Instead of modifying this file, modify the one it generated from (kernel/arch/x86/exceptions/exceptions.yaml).
+ */
+/*
  * Institute for System Programming of the Russian Academy of Sciences
  * Copyright (C) 2016 ISPRAS
  *

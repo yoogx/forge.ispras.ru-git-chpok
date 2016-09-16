@@ -1,4 +1,9 @@
 /*
+ * GENERATED! DO NOT MODIFY!
+ *
+ * Instead of modifying this file, modify the one it generated from (kernel/arch/x86/exceptions/exceptions.yaml).
+ */
+/*
  * Institute for System Programming of the Russian Academy of Sciences
  * Copyright (C) 2016 ISPRAS
  *
@@ -31,9 +36,7 @@
     mov $0x10, %ax
     mov %ax, %ds
     mov %ax, %es
-    mov %esp, %eax
-    add $(SIZEOF_jet_interrupt_context), %eax
-    mov %eax, %ebp // %ebp points to the first stack frame
+    mov $0, %ebp // Mark current frame as first
     push %esp // Interrupt frame is the only parameter to the followed functions.
     SAVE_FRAME
 .endm
