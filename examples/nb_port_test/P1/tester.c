@@ -63,7 +63,7 @@ pok_ret_t tester1 (int syscall_id, void* param, int pos)
         //  1. port sampling
         //  2. port queueing
         
-		
+		// TODO: add cases for all wrappers
 	}
     
     
@@ -93,20 +93,22 @@ pok_ret_t out_of_partition_range_tester(int syscall_id, int pos)
 
 pok_ret_t pointer_error_tester(int syscall_id, int error_type, void* param, int pos)
 {
+    pok_ret_t ret = 0;
+    
 	switch (error_type)
 	{
 		case NULL_POINTER:
 			;
-			pok_ret_t ret = 0;
 			ret = null_pointer_tester(syscall_id, pos);
-			return ret;
-			
 			break;
 		
 		case OUT_OF_PARTITION_RANGE:
-			
-			
-			
+			;
+			ret = null_pointer_tester(syscall_id, pos);
 			break;
+            
+        // TODO: add more types of errors
 	}
+    
+    return ret;
 }

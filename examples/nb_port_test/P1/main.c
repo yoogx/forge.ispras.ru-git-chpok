@@ -15,15 +15,18 @@ void first_process(void)
     
     //uint32_t* result = 0x80000000;
     
-    int param = 0;
+    //int param = 0;
+    char* param = "text";
+    int pos = 0;
     
     //pok_ret_t 
     int ret = 0;
-    //ret = pointer_error_tester(POK_SYSCALL_THREAD_CREATE, NULL_POINTER, param, 0);
+    ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_CREATE, NULL_POINTER, param, pos);
     
     status = EXECUTED;
     TEST_RESULT = ret;
     
+    STOP_SELF();
 }
 
  void ControlProc()
@@ -44,7 +47,7 @@ void first_process(void)
 		printf("VERDICT: TEST PASSED, code = %d\n", TEST_RESULT);
 	}
 	
-	return;
+	STOP_SELF();
  }
  
  int T_MYTEST_Error_Handler()
@@ -59,7 +62,6 @@ void first_process(void)
 	return verdict;
 }
 
- 
  int MasterErrorHandler()
  {
 	 int result = 0;
@@ -91,12 +93,8 @@ static int real_main(void)
     } else {
         printf("ERROR HANDLER successfully created\n");
     }
-	
-    
     
     RETURN_CODE_TYPE ret;
-    
-    /*
     
     PROCESS_ID_TYPE pid;
     PROCESS_ATTRIBUTE_TYPE process_attrs = {
@@ -118,7 +116,7 @@ static int real_main(void)
     } else {
         printf("process 1 created\n");
     }
-    
+    // start process 1
     START(pid, &ret);
     if (ret != NO_ERROR) {
         printf("couldn't start process 1: %d\n", (int) ret);
@@ -127,8 +125,6 @@ static int real_main(void)
         printf("process 1 \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
     }
     
-    */
-    /*
     // create control process
 	PROCESS_ATTRIBUTE_TYPE ControlProcessAttributes = {
         .PERIOD = INFINITE_TIME_VALUE,
@@ -137,9 +133,7 @@ static int real_main(void)
         .BASE_PRIORITY = MIN_PRIORITY_VALUE,
         .DEADLINE = SOFT,
     };
-    
-    
-	
+
 	ControlProcessAttributes.ENTRY_POINT = (SYSTEM_ADDRESS_TYPE) &ControlProc;
 	strncpy(ControlProcessAttributes.NAME, "Control process", sizeof(PROCESS_NAME_TYPE));
 	CREATE_PROCESS (&ControlProcessAttributes, &ControlProcessId, &ReturnCode);
@@ -160,7 +154,7 @@ static int real_main(void)
     }
     
     
-    */
+    
 
     // transition to NORMAL operating mode
     // N.B. if everything is OK, this never returns
@@ -170,7 +164,7 @@ static int real_main(void)
         printf("couldn't transit to normal operating mode: %d\n", (int) ret);
     } 
 
-    STOP_SELF();
+    //STOP_SELF();
     return 0;
 }
 
@@ -193,6 +187,6 @@ void main(void) {
 		return;
 	}
 	
-    real_main();
+    real_main();  
     STOP_SELF();
 }  

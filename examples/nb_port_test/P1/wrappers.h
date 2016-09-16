@@ -39,3 +39,5 @@ pok_ret_t pok_buffer_send_wrapper(void* param, int pos);
 pok_ret_t pok_buffer_receive_wrapper(void* param, int pos);
 pok_ret_t pok_buffer_get_id_wrapper(void* param, int pos);
 pok_ret_t pok_buffer_status_wrapper(void* param, int pos);
+
+// TODO: add prototypes for all wrappers

@@ -24,6 +24,8 @@ void entry_point_method(void)
  * 
  * 
  **/
+ 
+// TODO: fix all parameter types + default values + add parameter for ID's of pre-created stuff
 
 
 /////////////////////////// THREADS ///////////////////////////
@@ -167,7 +169,7 @@ pok_ret_t pok_thread_find_wrapper(void* param, int pos)
 {
 	pok_ret_t ret = 0;
     
-    char* name = "process1"; // TODO: there better should be process with that name
+    char* name = "process1"; // TODO: there better be process with that name
 		
 	pok_thread_id_t* id; // TODO: check if it is out-param
     
@@ -222,9 +224,11 @@ pok_ret_t pok_buffer_create_wrapper(void* param, int pos)
     
     char* name = "buffer1";
     
-    pok_message_size_t max_message_size; // TODO: check right values
-    pok_message_range_t max_nb_message;
-    pok_queuing_discipline_t discipline;
+    // check right values at kernel/include/uapi/types.h
+    
+    pok_message_size_t max_message_size = 8192; 
+    pok_message_range_t max_nb_message  = 512;
+    pok_queuing_discipline_t discipline = POK_QUEUING_DISCIPLINE_FIFO;
     
     pok_buffer_id_t id; // out
     
@@ -248,16 +252,16 @@ pok_ret_t pok_buffer_send_wrapper(void* param, int pos)
 {
 	pok_ret_t ret = 0;
     
-    pok_buffer_id_t id; // pre-created buffer needed
+    pok_buffer_id_t id; // pre-created buffer needed (check also with no buffer)
     
+    int data = 57;                      // message to be written to the buffer (which is some variable of any type, basically)
+                                        // but the method wants address (pointer) of the message
+                                        // so here data is type of int, but it can be changed in order to test different cases
+                                        // TODO: try different types and values
+                                        
+    pok_message_size_t length = 8192; // check right values at kernel/include/uapi/types.h
     
-    // TODO: check the right values
-    int data;                   // message to be written to the buffer (which is some variable of any type, basically)
-                                // but the method wants address (pointer) of the message
-                                // so here data is type of int, but it can be changed
-    pok_message_size_t length;
-    const pok_time_t timeout;
-    
+    const pok_time_t timeout  = 0; // TODO: try another values
     
 	switch (pos)
 	{
@@ -279,10 +283,10 @@ pok_ret_t pok_buffer_receive_wrapper(void* param, int pos)
 {
 	pok_ret_t ret = 0;
     
-    pok_buffer_id_t id; // pre-created buffer needed
+    pok_buffer_id_t id; // pre-created buffer needed (check also with no buffer)
     
-    // TODO: check the right values
-    const pok_time_t timeout;
+    const pok_time_t timeout = 0; // TODO: try another values
+    
     const void* data;          // out, address of received message (we don't know the exact type in advance)
     pok_message_size_t length; // out
     
@@ -346,8 +350,6 @@ pok_ret_t pok_buffer_status_wrapper(void* param, int pos)
 	
 	return ret;                     
 }
-
-
 
 /*
 /////////////////////////// BLACKBOARDS ///////////////////////////
