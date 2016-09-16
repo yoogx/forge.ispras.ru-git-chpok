@@ -154,7 +154,7 @@ env.Append(CFLAGS = cflags)
 
 cflags_arch_dict = {
     'ppc':    ' -O0 -mregnames',
-    'x86':    ' -Og'
+    'x86':    ' -O0'
 }
 env.Append(CFLAGS = cflags_arch_dict[env['ARCH']])
 
