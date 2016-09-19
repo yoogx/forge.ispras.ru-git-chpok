@@ -25,6 +25,9 @@
             send: mac_receive
 
   out_ports:
-      - name: portB
+      - name: port_UDP
+        type: simple_send_data
+
+      - name: port_ARP
         type: simple_send_data
 

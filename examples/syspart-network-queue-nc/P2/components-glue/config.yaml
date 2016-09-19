@@ -66,6 +66,10 @@ components:
             state:
                 my_mac: '{0x52, 0x54, 0x00, 0x01, 0x02, 0x03}'
 
+    - type: UDP_RECEIVER_FILTER
+      instances:
+          - name: udp_receiver_filter_1
+
 links:
     - from:
           instance: y_1
@@ -111,7 +115,7 @@ links:
 
     - from:
         instance: mac_receiver_1
-        port: portB
+        port: port_ARP
       to:
         instance: arp_answerer_1
         port: portA
@@ -122,3 +126,11 @@ links:
       to:
         instance: mac_sender_1
         port: portA
+
+    - from:
+        instance: mac_receiver_1
+        port: port_UDP
+      to:
+        instance: udp_receiver_filter_1
+        port: portA
+

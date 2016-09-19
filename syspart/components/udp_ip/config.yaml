@@ -16,3 +16,10 @@
   out_ports:
       - name: portB
         type: mac_send_data
+
+- name: UDP_RECEIVER_FILTER
+  in_ports:
+      - name: portA
+        type: simple_send_data
+        implementation:
+            send: udp_receive_and_filter
