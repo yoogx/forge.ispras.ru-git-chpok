@@ -72,11 +72,14 @@ create_tap() {
 destroy_taps
 destroy_bridge
 
-if [ $NUM -gt 0 ]; then
-    create_bridge 
+if [ $NUM -gt 2 ]; then
+    create_bridge
 fi
 
 
 for i in `seq 0 $(expr $NUM - 1)`; do
     create_tap $i
+    
+
 done
+

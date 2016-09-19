@@ -17,27 +17,10 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-Import('env')
+Import('syspart_env')
 
-syspart_env = env.Clone()
+afdx = syspart_env.StaticObject(source = Glob('*.c'))
 
-syspart_env['CPPPATH'] = env['LIBPOK_CPPPATH'] + [
-        env['POK_PATH']+'/syspart/include',
-        ]
-
-Export('syspart_env')
-
-drivers = SConscript('drivers/SConscript')
-net     = SConscript('net/SConscript')
-afdx     = SConscript('afdx/SConscript')
-
-syspart_program = syspart_env.Program(target = 'syspart.lo', source = [
-    net,
-    drivers,
-    afdx,
-    'config.c',
-    'mem.c'
-])
-syspart_env.Depends(syspart_program, env['POK_PATH']+'/libpok/')
+Return('afdx')
 
 # EOF

@@ -17,27 +17,15 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+import os
+
+cflags = ''
+SConscript(os.environ['POK_PATH']+'/misc/SConscript', exports = 'cflags')
+
 Import('env')
+SConscript(env['POK_PATH']+'/misc/SConscript_partition_base')
 
-syspart_env = env.Clone()
-
-syspart_env['CPPPATH'] = env['LIBPOK_CPPPATH'] + [
-        env['POK_PATH']+'/syspart/include',
-        ]
-
-Export('syspart_env')
-
-drivers = SConscript('drivers/SConscript')
-net     = SConscript('net/SConscript')
-afdx     = SConscript('afdx/SConscript')
-
-syspart_program = syspart_env.Program(target = 'syspart.lo', source = [
-    net,
-    drivers,
-    afdx,
-    'config.c',
-    'mem.c'
-])
-syspart_env.Depends(syspart_program, env['POK_PATH']+'/libpok/')
+env.Clean('chpok', env['POK_PATH']+'/build/')
+env.Clean('local', 'build')
 
 # EOF

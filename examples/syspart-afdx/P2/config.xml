@@ -1,7 +1,7 @@
 <Partition>
-    <Definition Identifier="1" Name="P2" />
+    <Definition Name="P2" System="true"/>
     <!-- Amount of ram allocated (code + stack + static variables) -->
-    <Memory Bytes="300K" />
+    <Memory Bytes="1000K" />
 
     <!-- Number of threads that can be created in this partition.
          Note that this number doesn't include main and error handler threads,
@@ -23,8 +23,20 @@
              A653_SamplingPortType and A653_QueueingPortType
              defined in the standard
         -->
+<!--
+        <Queueing_Port Name="UIN"  Protocol="UDP" MaxMessageSize="64" Direction="SOURCE" MaxNbMessage="10" />
+        <Queueing_Port Name="UOUT" Protocol="UDP" MaxMessageSize="64" Direction="DESTINATION" MaxNbMessage="10" />
+-->
+        
+<!--
         <Queueing_Port Name="QP1" MaxMessageSize="64" Direction="SOURCE" MaxNbMessage="10" />
         <Queueing_Port Name="QP2" MaxMessageSize="64" Direction="DESTINATION" MaxNbMessage="10" />
+-->
+        <Queueing_Port Name="QP2" MaxMessageSize="64" Direction="DESTINATION" MaxNbMessage="10" />
+        <Queueing_Port Name="QP4" MaxMessageSize="64" Direction="DESTINATION" MaxNbMessage="10" />
+		<Queueing_Port Name="QP1" MaxMessageSize="64" Direction="SOURCE" MaxNbMessage="10" />
+		<Queueing_Port Name="QP3" MaxMessageSize="64" Direction="SOURCE" MaxNbMessage="10" />
+        
     </ARINC653_Ports>
 
     <HM_Table>

@@ -20,23 +20,34 @@
 #include <arinc653/queueing.h>
 #include <arinc653/sampling.h>
 
-QUEUING_PORT_ID_TYPE QP1;
-QUEUING_PORT_ID_TYPE QP2;
+//~ #include <afdx/AFDX_ES.h>
+//~ #include <afdx/AFDX_ES_config.h>
+
 #define SECOND 1000000000LL
 
-static void first_process(void)
+#define MAX_AFDX_FRAME_SIZE	114
+#define MAX_AFDX_PAYLOAD_SIZE 64
+#define MAX_NB_MESSAGE 10
+
+QUEUING_PORT_ID_TYPE QP1, QP2;
+
+
+static void check_ret(RETURN_CODE_TYPE ret)
 {
-    RETURN_CODE_TYPE ret;
-    char msg[64];
-
-    /* Wait a little until second partition is initialized */
-    TIMED_WAIT(SECOND/5, &ret);
-
-    snprintf(msg, 64, "Hello \n");
-    SEND_QUEUING_MESSAGE(QP1, (MESSAGE_ADDR_TYPE) &msg, sizeof(msg), INFINITE_TIME_VALUE, &ret);
-
+    if (ret != NO_ERROR) {
+        printf("check_ret_error: %d\n", (int) ret);
+    }
 }
 
+
+static void first_process(void)
+{  
+    RETURN_CODE_TYPE ret;
+    
+    while (1) {
+			 TIMED_WAIT(5 * SECOND, &ret);
+    }
+}
 
 static int real_main(void)
 {
@@ -50,31 +61,39 @@ static int real_main(void)
         .DEADLINE = SOFT,
     };
 
-    // create process 1
+  // create process 1
     process_attrs.ENTRY_POINT = first_process;
     strncpy(process_attrs.NAME, "process 1", sizeof(PROCESS_NAME_TYPE));
 
     CREATE_PROCESS(&process_attrs, &pid, &ret);
     if (ret != NO_ERROR) {
-        printf("couldn't create process 1: %d\n", (int) ret);
+        printf("P1_couldn't create process 1: %d\n", (int) ret);
         return 1;
     } else {
-        printf("process 1 created\n");
+        printf("P1_process 1 created\n");
     }
     
     START(pid, &ret);
     if (ret != NO_ERROR) {
-        printf("couldn't start process 1: %d\n", (int) ret);
+        printf("P1_couldn't start process 1: %d\n", (int) ret);
         return 1;
     } else {
-        printf("process 1 \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
+        printf("P1_process 1 \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
     }
-
-
-    // create ports
-    CREATE_QUEUING_PORT("QP1", 64, 10, SOURCE,      FIFO, &QP1, &ret);
-    CREATE_QUEUING_PORT("QP2", 64, 10, DESTINATION, FIFO, &QP2, &ret);
-
+    
+    //~ //CREATING QP port 1
+    //~ CREATE_QUEUING_PORT("QP1", MAX_AFDX_PAYLOAD_SIZE, MAX_NB_MESSAGE, SOURCE , FIFO, &QP1, &ret);
+	//~ printf("P1_QP1 = %d\n", (int) QP1);
+	//~ if (ret != NO_ERROR) {
+        //~ printf("P2_couldn't create port QP1, ret %d\n", (int) ret);
+    //~ }
+    //~ //CREATING QP port 3
+    //~ CREATE_QUEUING_PORT("QP3", MAX_AFDX_PAYLOAD_SIZE, MAX_NB_MESSAGE, SOURCE , FIFO, &QP2, &ret);
+	//~ printf("P1_QP3 = %d\n", (int) QP2);
+	//~ if (ret != NO_ERROR) {
+        //~ printf("P2_couldn't create port QP3, ret %d\n", (int) ret);
+    //~ }  
+    
 
     // transition to NORMAL operating mode
     // N.B. if everything is OK, this never returns
