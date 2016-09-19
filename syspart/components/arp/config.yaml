@@ -3,6 +3,7 @@
   state_struct:
       good_ips[10]: uint32_t
       good_ips_len: uint32_t
+      src_mac[6]: uint8_t
   in_ports:
       - name: portA
         type: simple_send_data

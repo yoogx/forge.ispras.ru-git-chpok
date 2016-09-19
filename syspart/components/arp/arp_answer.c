@@ -13,21 +13,9 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <net/network.h>
 #include <net/byteorder.h>
-#include <net/ether.h>
-#include <net/ip.h>
-#include <net/udp.h>
-#include <pci.h>
-#include <depl.h>
 
 #include <stdio.h>
-#include <string.h>
-#include <net/netdevices.h>
-#include <channel_driver.h>
-
-#include "net.h"
-
 #include "ARP_ANSWERER_gen.h"
 
 struct arp_packet_t {
@@ -64,14 +52,21 @@ ret_t arp_receive(ARP_ANSWERER *self, char *data, size_t len)
     if (arp_packet->oper != hton16(1)) {
         return EINVAL; // This is not an ARP request.
     }
-    if (arp_packet->tpa != hton32(pok_network_ip_address)) {
+    int found = 0;
+    for (int i=0; i<self->state.good_ips_len; i++) {
+        if (arp_packet->tpa == hton32(self->state.good_ips[i])) {
+            found = 1;
+            break;
+        }
+    }
+    if (!found) {
         return EINVAL; // This ARP request is not for us.
     }
-    printf("ARP: we have received a request for our MAC.\n");
+    printf("ARP_ANSWERER: we have received a request for our MAC.\n");
 
     int i;
     for (i = 0; i < ETH_ALEN; i++) {
-        arp_answer_buffer.arp_answer.sha[i] = NETDEVICE_PTR->mac[i];
+        arp_answer_buffer.arp_answer.sha[i] = self->state.src_mac[i];
         arp_answer_buffer.arp_answer.tha[i] = arp_packet->sha[i];
     }
 
@@ -83,6 +78,8 @@ ret_t arp_receive(ARP_ANSWERER *self, char *data, size_t len)
     arp_answer_buffer.arp_answer.spa = arp_packet->tpa;
     arp_answer_buffer.arp_answer.tpa = arp_packet->spa;
 
+    hexdump( (void *)&arp_answer_buffer.arp_answer,
+            sizeof(arp_answer_buffer.arp_answer));
     ARP_ANSWERER_call_portB_mac_send(self,
             (void *)&arp_answer_buffer.arp_answer,
             sizeof(arp_answer_buffer.arp_answer),

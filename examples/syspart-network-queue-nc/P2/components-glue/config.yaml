@@ -58,6 +58,7 @@ components:
             state:
                 good_ips: '{IP_ADDR(192, 168, 56, 101),IP_ADDR(192, 168, 56, 102)}'
                 good_ips_len: 2
+                src_mac: '{0x01, 0x02, 0x03, 0x04, 0x05, 0x06}'
 
     - type: MAC_RECEIVER
       instances:
