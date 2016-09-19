@@ -176,13 +176,13 @@ static void setup_receive_buffers(struct virtio_network_device *dev)
     notify_receive_buffers(dev);
 }
 
+//XXX forward_receive_buffer
 static void process_received_buffer(
         struct virtio_network_device *dev,
         struct receive_buffer *buf,
         size_t length)
 {
-    // FIXME process Ethernet header or not?
-
+    printf("PACKET_RECEIVED\n");
     if (dev->packet_received_callback != NULL) {
         dev->packet_received_callback(
             (const char *)&buf->ether_hdr, 
@@ -293,9 +293,8 @@ static void reclaim_send_buffers(struct virtio_network_device *info)
     maybe_unlock_preemption(&saved_preemption);
 }
 
-static void reclaim_receive_buffers(pok_netdevice_t *netdev)
+static void reclaim_receive_buffers(struct virtio_network_device *dev)
 {
-    struct virtio_network_device *dev = netdev->info;
     struct virtio_virtqueue *vq = &dev->rx_vq;
 
     pok_bool_t saved_preemption;
@@ -437,6 +436,12 @@ struct pci_driver virtio_pci_driver = {
     .probe    = probe_device,
     .id_table = virtio_pci_devid_tbl
 };
+
+
+void virtio_receive_activity(VIRTIO_NET_DEV *self)
+{
+    reclaim_receive_buffers(&self->state.info);
+}
 
 /*
  * init

@@ -11,3 +11,5 @@
         implementation:
             send: send_frame
             flush: flush_send
+
+  activity: virtio_receive_activity
