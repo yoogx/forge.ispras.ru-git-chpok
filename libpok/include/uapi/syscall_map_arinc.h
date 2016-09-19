@@ -80,15 +80,6 @@ static inline pok_ret_t pok_thread_suspend(const pok_time_t* time)
 #undef POK_SYSCALL_THREAD_SUSPEND
 #endif
 
-#ifdef POK_NEEDS_THREAD_ID
-static inline pok_ret_t pok_sched_get_current(pok_thread_id_t* thread_id)
-{
-    return pok_syscall1(POK_SYSCALL_THREAD_ID,
-        (uint32_t)thread_id);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_THREAD_ID
-#endif
 static inline pok_ret_t pok_thread_get_status(pok_thread_id_t thread_id,
     char* name,
     void** entry,

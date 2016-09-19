@@ -48,6 +48,8 @@ void sched_arinc_start(void)
 
 	thread_main->state = POK_STATE_RUNNABLE;
     part->thread_current = thread_main;
+    // Update kernel shared data.
+    part->kshd->current_thread_id = POK_PARTITION_ARINC_MAIN_THREAD_ID;
 
 	// Direct jump into main thread.
     part->base_part.fp_store_current = thread_main->fp_store;
@@ -242,6 +244,9 @@ static void sched_arinc(void)
 
     // Switch between different threads
     part->thread_current = new_thread;
+    // Update kernel shared data
+    if(new_thread)
+        part->kshd->current_thread_id = new_thread - part->threads;
     
     struct jet_context** old_sp = old_thread? &old_thread->sp : &part->idle_sp;
     struct jet_context* new_sp;

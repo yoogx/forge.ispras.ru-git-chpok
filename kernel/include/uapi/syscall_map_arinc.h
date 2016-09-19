@@ -75,14 +75,6 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_SUSPEND(const pok
 }
 #endif
 
-#ifdef POK_NEEDS_THREAD_ID
-pok_ret_t pok_sched_get_current(pok_thread_id_t* __user thread_id);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_ID(const pok_syscall_args_t* args)
-{
-    return pok_sched_get_current(
-        (pok_thread_id_t* __user)args->arg1);
-}
-#endif
 pok_ret_t pok_thread_get_status(pok_thread_id_t thread_id,
     char* __user name,
     void** __user entry,

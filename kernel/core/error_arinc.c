@@ -86,6 +86,9 @@ pok_ret_t pok_error_thread_create (uint32_t stack_size, void* __user entry)
     if(!thread_create(t))
        return POK_ERRNO_UNAVAILABLE;
 
+    // Update kernel shared data
+    part->kshd->error_thread_id = part->nthreads_used;
+
     part->nthreads_used++;
 
     part->thread_error = t;

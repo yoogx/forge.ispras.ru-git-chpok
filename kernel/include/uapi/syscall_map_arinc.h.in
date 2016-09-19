@@ -69,11 +69,6 @@ SYSCALL_DECLARE(POK_SYSCALL_THREAD_SUSPEND, pok_thread_suspend,
    const pok_time_t*, time)
 #endif
 
-#ifdef POK_NEEDS_THREAD_ID
-//! User name - pok_thread_id
-SYSCALL_DECLARE(POK_SYSCALL_THREAD_ID, pok_sched_get_current,
-   pok_thread_id_t*, thread_id)
-#endif
 //! User name - pok_thread_status
 SYSCALL_DECLARE(POK_SYSCALL_THREAD_STATUS, pok_thread_get_status,
    pok_thread_id_t, thread_id,

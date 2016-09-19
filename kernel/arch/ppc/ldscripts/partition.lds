@@ -4,7 +4,9 @@ ENTRY(__pok_partition_start)
 
 SECTIONS
 {
-	. = 0x80000000;
+	kshd = 0x80000000; /* This should coincide with ja_space_shared_data() in the kernel. */
+
+  . = 0x80001000;
 
 	__partition_begin = . ;
        

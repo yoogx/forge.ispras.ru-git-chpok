@@ -24,6 +24,7 @@ uapi_headers = [
     'errno.h',
     'error_arinc_types.h',
     'event_types.h',
+    'kernel_shared_data.h',
     'partition_arinc_types.h',
     'partition_types.h',
     'port_types.h',

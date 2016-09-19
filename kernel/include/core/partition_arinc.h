@@ -129,6 +129,7 @@ typedef struct _pok_patition_arinc
      */
     const pok_thread_error_map_t* thread_error_info;
 #endif
+    struct jet_kernel_shared_data* kshd;
 
     /* 
      * Pointer to partition HM table.

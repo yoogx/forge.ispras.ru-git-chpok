@@ -86,12 +86,14 @@ static void partition_arinc_start(void)
 	if(part->base_part.restarted_externally)
 	{
 		part->base_part.restarted_externally = FALSE;
-		current_partition_arinc->mode = POK_PARTITION_MODE_INIT_COLD;
+		part->mode = POK_PARTITION_MODE_INIT_COLD;
 	}
 
 	jet_loader_elf_load(part->base_part.space_id - 1, /* elf_id*/
 		part->base_part.space_id,
 		&part->main_entry);
+
+	part->kshd = ja_space_shared_data(part->base_part.space_id);
 
 	for(int i = 0; i < part->nports_queuing; i++)
 	{
@@ -141,6 +143,11 @@ static void partition_arinc_start(void)
     if(!thread_create(thread_main)) unreachable(); // Configurator should check stack size for main thread.
 
 	part->nthreads_used = POK_PARTITION_ARINC_MAIN_THREAD_ID + 1;
+
+	// Fill initial kernel shared data.
+	part->kshd->current_thread_id = JET_THREAD_ID_NONE;
+	part->kshd->max_n_threads = part->nthreads;
+	part->kshd->partition_mode = part->mode;
 
 	sched_arinc_start();
 
@@ -440,7 +447,10 @@ static pok_ret_t partition_set_mode_internal (const pok_partition_mode_t mode)
 	default:
 		return POK_ERRNO_EINVAL;
 	}
-	
+
+	// Update kernel shared data
+	part->kshd->partition_mode = part->mode;
+
 	return POK_ERRNO_OK;
 }
 

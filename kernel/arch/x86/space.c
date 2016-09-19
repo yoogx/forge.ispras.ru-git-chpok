@@ -45,6 +45,11 @@ void ja_space_layout_get(jet_space_id space_id,
     space_layout->size = ja_spaces[space_id - 1].size_normal;
 }
 
+struct jet_kernel_shared_data* __kuser ja_space_shared_data(jet_space_id space_id)
+{
+    struct ja_x86_space* space = &ja_spaces[space_id - 1];
+    return (struct jet_kernel_shared_data* __kuser)space->phys_base;
+}
 
 jet_space_id current_space_id = 0;
 

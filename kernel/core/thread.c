@@ -653,26 +653,6 @@ out:
     return ret;
 }
 
-pok_ret_t pok_sched_get_current(pok_thread_id_t* __user thread_id)
-{
-    pok_partition_arinc_t* part = current_partition_arinc;
-    
-    if(part->mode != POK_PARTITION_MODE_NORMAL)
-		return POK_ERRNO_THREAD;
-
-#ifdef POK_NEEDS_ERROR_HANDLING
-	if(part->thread_current == part->thread_error)
-		return POK_ERRNO_THREAD;
-#endif
-
-    pok_thread_id_t* __kuser k_thread_id = jet_user_to_kernel_typed(thread_id);
-    if(!k_thread_id) return POK_ERRNO_EFAULT;
-
-	*k_thread_id = part->thread_current - part->threads;
-
-    return POK_ERRNO_OK;
-}
-
 /*********************** Wait queues **********************************/
 void pok_thread_wq_init(pok_thread_wq_t* wq)
 {

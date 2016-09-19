@@ -17,11 +17,15 @@
 #include <config.h>
 
 #include <errno.h>
+#include <kernel_shared_data.h>
 
 int main();
 
 int __pok_partition_start ()
 {
+   // Setup user-only fields of kernel shared data.
+   kshd.main_thread_id = kshd.current_thread_id;
+
    main(); /* main loop from user */
    return (0);
 }
