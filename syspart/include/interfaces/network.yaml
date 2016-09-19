@@ -19,3 +19,10 @@
       - name: flush
         return_type: ret_t
         args_type: [self_t *]
+
+- name: simple_send_data
+  additional_h_files: ['<ret_type.h>']
+  functions:
+      - name: send
+        return_type: ret_t
+        args_type: [self_t *, char *, size_t]

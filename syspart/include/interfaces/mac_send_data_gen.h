@@ -1,7 +1,7 @@
 /*
  * GENERATED! DO NOT MODIFY!
  *
- * Instead of modifying this file, modify the one it generated from (syspart/include/interfaces/send_net.yaml).
+ * Instead of modifying this file, modify the one it generated from (syspart/include/interfaces/network.yaml).
  */
 #ifndef __INTERFACES_MAC_SEND_DATA_H__
 #define __INTERFACES_MAC_SEND_DATA_H__
