@@ -47,14 +47,20 @@ ret_t mac_receive(MAC_RECEIVER *self, char *data, size_t len)
     if (!ether_is_multicast(ether_hdr->dst) &&
         memcmp(ether_hdr->dst, NETDEVICE_PTR->mac, ETH_ALEN) != 0)
     {
+        printf("packet NOT for us: dst= %x %x %x %x %x %x\n",
+            ether_hdr->dst[0],
+            ether_hdr->dst[1],
+            ether_hdr->dst[2],
+            ether_hdr->dst[3],
+            ether_hdr->dst[4],
+            ether_hdr->dst[5]);
         // it's not for us
         return;
     }
 
     if (ether_hdr->ethertype != hton16(ETH_P_IP)) {
         if (ether_hdr->ethertype == hton16(ETH_P_ARP)) {
-            printf("ARP\n");
-            arp_received(ether_hdr->payload, len);
+            MAC_RECEIVER_call_portB_send(self, ether_hdr->payload, len);
         }
         // we don't know anything except IPv4
         return;

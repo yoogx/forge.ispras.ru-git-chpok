@@ -2,6 +2,11 @@
   #additional_h_files: []
   state_struct:
       # good IPs
+  in_ports:
+      - name: portA
+        type: simple_send_data
+        implementation:
+            send: arp_receive
 
   out_ports:
       - name: portB

@@ -48,7 +48,7 @@ static struct {
 } __attribute__((packed)) arp_answer_buffer;
 
 
-void arp_received(void* data, size_t payload_len)
+ret_t arp_receive(ARP_ANSWERER *self, char *data, size_t len)
 {
     struct arp_packet_t *arp_packet = (void *) data;
 
@@ -83,15 +83,15 @@ void arp_received(void* data, size_t payload_len)
     arp_answer_buffer.arp_answer.spa = hton32(pok_network_ip_address);
     arp_answer_buffer.arp_answer.tpa = arp_packet->spa;
 
-    mac_send((char *) &arp_answer_buffer.arp_answer,
-                sizeof(arp_answer_buffer.arp_answer),
-                sizeof(struct ether_hdr),
-                arp_answer_buffer.arp_answer.tha,
-                ETH_P_ARP);
+    ARP_ANSWERER_call_portB_mac_send(self,
+            (void *)&arp_answer_buffer.arp_answer,
+            sizeof(arp_answer_buffer.arp_answer),
+            sizeof(struct ether_hdr),
+            arp_answer_buffer.arp_answer.tha,
+            ETH_P_ARP);
 
-    //if (!sent) {
-    //    printf("ARP: unable to send an answer.\n");
-    //}
-    //change_to mac_flush
-    mac_flush();
+
+    ARP_ANSWERER_call_portB_flush(self);
+
+    return EOK;
 }

@@ -124,6 +124,10 @@ void __components_init__()
         mac_sender_1.out.portB.owner = &virtio_net_dev_1;
         virtio_net_dev_1.out.portB.ops = &mac_receiver_1.in.portA.ops;
         virtio_net_dev_1.out.portB.owner = &mac_receiver_1;
+        mac_receiver_1.out.portB.ops = &arp_answerer_1.in.portA.ops;
+        mac_receiver_1.out.portB.owner = &arp_answerer_1;
+        arp_answerer_1.out.portB.ops = &mac_sender_1.in.portA.ops;
+        arp_answerer_1.out.portB.owner = &mac_sender_1;
 
 }
 

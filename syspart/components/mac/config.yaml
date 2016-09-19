@@ -23,6 +23,8 @@
         type: simple_send_data
         implementation:
             send: mac_receive
-   #out_ports:
-   #   - name: portB
-   #      type: send_net_data
+
+  out_ports:
+      - name: portB
+        type: simple_send_data
+

@@ -102,3 +102,17 @@ links:
       to:
         instance: mac_receiver_1
         port: portA
+
+    - from:
+        instance: mac_receiver_1
+        port: portB
+      to:
+        instance: arp_answerer_1
+        port: portA
+
+    - from:
+        instance: arp_answerer_1
+        port: portB
+      to:
+        instance: mac_sender_1
+        port: portA
