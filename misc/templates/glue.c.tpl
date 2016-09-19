@@ -4,11 +4,13 @@
         void __{{comp.type}}_init__({{comp.type}}*);
         void __{{comp.type}}_activity__({{comp.type}}*);
         {{comp.type}} {{i.name}} = {
+            {% if i.state %}
             .state = {
             {% for name, val in i.state.iteritems()%}
                 .{{name}} = {{val}},
             {% endfor %}
             }
+            {% endif %}
         };
     {% endfor %}
 
