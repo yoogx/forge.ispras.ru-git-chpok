@@ -1,4 +1,13 @@
 - name: VIRTIO_NET_DEV
-  #additional_h_files: []
+  additional_h_files: ['"virtio_network_device.h"']
   state_struct:
-      a: int
+      #not inited by glue
+      info: struct virtio_network_device
+  #init_func: virtio_init
+
+  #in_ports:
+  #    - name: portA
+  #      type: send_net_data
+  #      implementation:
+  #          send: send_frame
+  #          flush: flush_send

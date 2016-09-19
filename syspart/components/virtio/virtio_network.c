@@ -30,6 +30,7 @@
 #include "virtio_ring.h"
 #include "virtio_virtqueue.h"
 #include "virtio_net.h"
+#include "virtio_network_device.h"
 
 #include <net/netdevices.h>
 #include <net/network.h>
@@ -41,35 +42,11 @@
 #define VIRTIO_NETWORK_TX_VIRTQUEUE 1
 
 // FIXME
-#define POK_MAX_RECEIVE_BUFFERS 100
 #define DRV_NAME "virtio-net"
 #define DEV_NAME_PREFIX DRV_NAME
 #define DEV_NAME_LEN 20
 
 #define PRINTF(fmt, ...) printf("virtio_network: " fmt, ##__VA_ARGS__)
-
-struct receive_buffer {
-    struct virtio_net_hdr virtio_net_hdr;
-    struct ether_hdr ether_hdr;
-    char payload[ETH_DATA_LENGTH];
-} __attribute__((packed));
-
-struct send_buffer {
-    char data[ETH_DATA_LENGTH];
-} __attribute__((packed));
-
-struct virtio_network_device {
-    s_pci_device pci_device;
-
-    struct virtio_virtqueue rx_vq, tx_vq;
-
-    uint8_t mac[ETH_ALEN];
-
-    void (*packet_received_callback)(const char *, size_t);
-
-    struct receive_buffer receive_buffers[POK_MAX_RECEIVE_BUFFERS];
-    struct send_buffer *send_buffers;
-};
 
 
 static void reclaim_send_buffers(pok_netdevice_t *dev);
