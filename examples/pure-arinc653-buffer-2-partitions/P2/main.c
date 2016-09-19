@@ -12,9 +12,10 @@ static void first_process_105(void)
         a++;
         if (a < 1) printf("WAAAAAAT?");
         //~ RETURN_CODE_TYPE ret;
-        //~ printf("Second partition\n" );
+         printf("Second partition\n" );
         //~ asm("trap");
-        //~ TIMED_WAIT(1000000000LL, &ret);
+        RETURN_CODE_TYPE ret;
+         TIMED_WAIT(1000000000LL, &ret);
     }
 }
 

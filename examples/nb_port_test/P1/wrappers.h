@@ -31,13 +31,34 @@
 #include "../../../kernel/include/uapi/event_types.h"
 #include "../../../kernel/include/uapi/error_arinc_types.h"
 
+// TODO: debug and find from which file all of the syscalls signatures come
+
+// TODO: for messages, size should match message (or not, depends on what error we try to catch)
 
 /////////////////////////// BUFFERS ///////////////////////////
 
-pok_ret_t pok_buffer_create_wrapper(void* param, int pos);
-pok_ret_t pok_buffer_send_wrapper(void* param, int pos);
-pok_ret_t pok_buffer_receive_wrapper(void* param, int pos);
-pok_ret_t pok_buffer_get_id_wrapper(void* param, int pos);
-pok_ret_t pok_buffer_status_wrapper(void* param, int pos);
+pok_ret_t pok_buffer_create_wrapper (void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);
+pok_ret_t pok_buffer_send_wrapper   (void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);
+pok_ret_t pok_buffer_receive_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);
+pok_ret_t pok_buffer_get_id_wrapper (void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);
+pok_ret_t pok_buffer_status_wrapper (void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);
 
-// TODO: add prototypes for all wrappers
+/////////////////////////// BLACKBOARDS ///////////////////////////
+
+pok_ret_t pok_blackboard_create_wrapper (void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);
+pok_ret_t pok_blackboard_read_wrapper   (void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);
+pok_ret_t pok_blackboard_display_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);
+pok_ret_t pok_blackboard_clear_wrapper  (void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);
+pok_ret_t pok_blackboard_id_wrapper     (void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);
+pok_ret_t pok_blackboard_status_wrapper (void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);
+
+
+/*
+ *  TODO: add prototypes for all wrappers
+ * 
+ * buffers      +
+ * blackboards  +
+ * 
+ * 
+ * 
+*/

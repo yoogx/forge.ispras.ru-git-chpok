@@ -1,6 +1,7 @@
 #include "wrappers.h"
 
 
+// TODO: seems that it's just not apropriate place for this function
 void entry_point_method(void)
 {
 	// add some output (print log)
@@ -25,7 +26,16 @@ void entry_point_method(void)
  * 
  **/
  
-// TODO: fix all parameter types + default values + add parameter for ID's of pre-created stuff
+// TODO: fix all parameter types + default values
+
+/*
+ * TODO: add parameter for IDs      of pre-created stuff
+ * 
+ * buffers      +
+ * blackboards  in progress
+ */
+ 
+// TODO: add parameter for names    of pre-created stuff
 // TODO: handle wrong position of parameters via default case and more pre-checks 
 
 
@@ -219,13 +229,13 @@ pok_ret_t pok_current_partition_dec_lock_level_wrapper(void* param, int pos)
 
 /////////////////////////// BUFFERS ///////////////////////////
 
-pok_ret_t pok_buffer_create_wrapper(void* param, int pos)
+pok_ret_t pok_buffer_create_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    char* name = "buffer1";
+    const char* name = "buffer1";
     
-    // check right values at kernel/include/uapi/types.h
+    // check allowed values at kernel/include/uapi/types.h
     
     pok_message_size_t max_message_size = 8192; 
     pok_message_range_t max_nb_message  = 512;
@@ -235,12 +245,12 @@ pok_ret_t pok_buffer_create_wrapper(void* param, int pos)
     
 	switch (pos)
 	{
-		case 0: // char*, name of the buffer
+		case 0: // const char*, name of the buffer
 			;
 			ret = pok_buffer_create(param, max_message_size, max_nb_message, discipline, &id); 
 			break;
 		
-		case 4: // pok_buffer_id_t*, id of buffer
+		case 4: // pok_buffer_id_t*, id of new buffer
             ;
             ret = pok_buffer_create(name, max_message_size, max_nb_message, discipline, param);
 			break;
@@ -249,24 +259,28 @@ pok_ret_t pok_buffer_create_wrapper(void* param, int pos)
 	return ret;                     
 }
 
-pok_ret_t pok_buffer_send_wrapper(void* param, int pos)
+pok_ret_t pok_buffer_send_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    pok_buffer_id_t id; // pre-created buffer needed (check also with no buffer)
+    pok_buffer_id_t id = pre_created_id; // pre-created buffer needed (check also with no buffer)
     
     int data = 57;                      // message to be written to the buffer (which is some variable of any type, basically)
                                         // but the method wants address (pointer) of the message
                                         // so here data is type of int, but it can be changed in order to test different cases
+                                        //
                                         // TODO: try different types and values
-                                        
-    pok_message_size_t length = 8192; // check right values at kernel/include/uapi/types.h
+                                      
+    // check allowed values at kernel/include/uapi/types.h
+    // TODO: check whether it matches the actual size of sent message (does it actually matter?)
+    pok_message_size_t length = 8192; 
     
     const pok_time_t timeout  = 0; // TODO: try another values
     
 	switch (pos)
 	{
 		case 1: // any pointer (check whether it matches type of received message), address of the message
+                // also check if the message size matches "length"
 			;
 			ret = pok_buffer_send(id, param, length, &timeout); 
 			break;
@@ -280,16 +294,19 @@ pok_ret_t pok_buffer_send_wrapper(void* param, int pos)
 	return ret;                     
 }
 
-pok_ret_t pok_buffer_receive_wrapper(void* param, int pos)
+pok_ret_t pok_buffer_receive_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    pok_buffer_id_t id; // pre-created buffer needed (check also with no buffer)
+    pok_buffer_id_t id = pre_created_id; // pre-created buffer needed (check also with no buffer)
     
     const pok_time_t timeout = 0; // TODO: try another values
     
     const void* data;          // out, address of received message (we don't know the exact type in advance)
     pok_message_size_t length; // out
+    
+    // TODO: check two cases: whether there was pre-sent message to read or not
+    // TODO: for the second case add call of pok_buffer_send
     
 	switch (pos)
 	{
@@ -312,11 +329,13 @@ pok_ret_t pok_buffer_receive_wrapper(void* param, int pos)
 	return ret;
 }
 
-pok_ret_t pok_buffer_get_id_wrapper(void* param, int pos)
+pok_ret_t pok_buffer_get_id_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    char* name; // pre-created buffer needed (check also with no buffer)
+    char* name = (char*) pre_created_name; // pre-created buffer needed (check also with no buffer)
+                        // TODO: check this dangerous cast from const char* to char*
+                        //       maybe it would be better to change the syscall signature?
     
     pok_buffer_id_t id; // out
     
@@ -335,17 +354,161 @@ pok_ret_t pok_buffer_get_id_wrapper(void* param, int pos)
 	return ret;                     
 }
 
-pok_ret_t pok_buffer_status_wrapper(void* param, int pos)
+pok_ret_t pok_buffer_status_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    pok_buffer_id_t id; // pre-created buffer needed (check also with no buffer)
+    pok_buffer_id_t id = pre_created_id; // pre-created buffer needed (check also with no buffer)
     
 	switch (pos)
 	{
 		case 1: // pok_buffer_status_t* (out param, actually)
 			;
-			ret = pok_buffer_status(id, &param); 
+			ret = pok_buffer_status(id, param); 
+			break;
+	}
+	
+	return ret;                     
+}
+
+
+/////////////////////////// BLACKBOARDS ///////////////////////////
+
+pok_ret_t pok_blackboard_create_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
+{
+	pok_ret_t ret = 0;
+    
+    const char* name = "blackboard1";
+    
+    // check correct values at kernel/include/uapi/types.h
+    
+    pok_message_size_t max_message_size = 8192;
+    
+    pok_blackboard_id_t id; // out
+    
+	switch (pos)
+	{
+		case 0: // const char*, name of the blackboard
+			;
+			ret = pok_blackboard_create(param, max_message_size, &id); 
+			break;
+		
+		case 2: // pok_blackboard_id_t*, id of new blackboard
+            ;
+            ret = pok_blackboard_create(name, max_message_size, param);
+			break;
+	}
+	
+	return ret;                     
+}
+
+pok_ret_t pok_blackboard_read_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
+{
+	pok_ret_t ret = 0;
+    
+    pok_blackboard_id_t id = pre_created_id; // pre-created blackboard needed (check also with no blackboard)
+    
+    const pok_time_t timeout = 0; // TODO: try another values
+    
+    void* data;                 // out, address of received message (we don't know the exact type in advance)
+    pok_message_size_t len;     // out
+    
+    // TODO: check two cases: whether there was pre-sent message to read or not
+    // TODO: for the second case add call of pok_blackboard_display
+    
+	switch (pos)
+	{
+		case 1: // any number (in range of type), timeout
+			;
+			ret = pok_blackboard_read(id, &param, data, &len); 
+			break;
+        
+        case 2: // pointer of type of message that we expect to receive (for example: if int sent, so it should be int*)
+			;
+			ret = pok_blackboard_read(id, &timeout, param, &len); 
+			break;
+		
+		case 3: // pok_message_size_t*
+            ;
+            ret = pok_blackboard_read(id, &timeout, data, param);
+			break;
+	}
+	
+	return ret;                     
+}
+
+pok_ret_t pok_blackboard_display_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
+{
+	pok_ret_t ret = 0;
+    
+    pok_blackboard_id_t id = pre_created_id; // pre-created blackboard needed (check also with no blackboard)
+    
+    // check allowed values at kernel/include/uapi/types.h
+    // TODO: check whether it matches the actual size of sent message (does it actually matter?)
+    pok_message_size_t len = 8192;
+    
+	switch (pos)
+	{
+		case 1: // any pointer (check whether it matches type of received message), address of the message
+                // also check if the message size matches "len"
+			;
+			ret = pok_blackboard_display(id, param, len); 
+			break;
+	}
+	
+	return ret;                     
+}
+
+pok_ret_t pok_blackboard_clear_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
+{
+	pok_ret_t ret = 0;
+    
+	switch (pos)
+	{
+		case 0: // pok_blackboard_id_t, id of blackboard (check whether it exists) = two cases
+			;
+			ret = pok_blackboard_clear(param); 
+			break;
+	}
+	
+	return ret;         
+}
+
+pok_ret_t pok_blackboard_id_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
+{
+	pok_ret_t ret = 0;
+    
+    const char* name = pre_created_name; // pre-created blackboard needed (check also with no blackboard)
+    
+    pok_blackboard_id_t id; // out
+    
+	switch (pos)
+	{
+		case 0: // const char*, name of the blackboard
+			;
+			ret = pok_blackboard_id(param, &id); 
+			break;
+		
+		case 1: // pok_buffer_id_t*, id of buffer
+            ;
+            ret = pok_blackboard_id(name, param);
+			break;
+	}
+	
+	return ret;                     
+}
+
+pok_ret_t pok_blackboard_status_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
+{
+	pok_ret_t ret = 0;
+    
+    pok_blackboard_id_t id = pre_created_id; // pre-created blackboard needed (check also with no blackboard)
+    
+	switch (pos)
+	{
+		case 1: // pok_blackboard_status_t* (out param, actually)
+			;
+			ret = pok_blackboard_status(id, param); 
 			break;
 	}
 	
@@ -353,138 +516,6 @@ pok_ret_t pok_buffer_status_wrapper(void* param, int pos)
 }
 
 /*
-/////////////////////////// BLACKBOARDS ///////////////////////////
-
-pok_ret_t pok_buffer_create_wrapper(void* param, int pos)
-{
-	pok_ret_t ret = 0;
-    
-    char* name = "blackboard1";
-    
-    pok_message_size_t max_message_size; // TODO: check right value
-    
-    pok_blackboard_id_t* id; // TODO: check if it is out-param
-    
-	switch (pos)
-	{
-		case 0:
-			;
-			ret = pok_blackboard_create(&param, &max_message_size, &id); 
-			break;
-		
-		case 2:
-            ret = pok_blackboard_create(&name, &max_message_size, &param);
-			break;
-	}
-	
-	return ret;                     
-}
-
-pok_ret_t pok_blackboard_read_wrapper(void* param, int pos)
-{
-	pok_ret_t ret = 0;
-    
-    pok_blackboard_id_t id; // pre-created blackboard needed
-    
-    const pok_time_t* timeout; // TODO: check the right values
-    void* data;           
-    pok_message_size_t* len;
-    
-	switch (pos)
-	{
-		case 1:
-			;
-			ret = pok_blackboard_read(&id, &param, &data, &len); 
-			break;
-        
-        case 2:
-			;
-			ret = pok_blackboard_read(&id, &timeout, &param, &len); 
-			break;
-		
-		case 3:
-            ret = pok_blackboard_read(&id, &timeout, &data, &param);
-			break;
-	}
-	
-	return ret;                     
-}
-
-pok_ret_t pok_blackboard_display_wrapper(void* param, int pos)
-{
-	pok_ret_t ret = 0;
-    
-    pok_blackboard_id_t id; // pre-created blackboard needed
-    
-    pok_message_size_t len; // TODO: check the right values
-    
-	switch (pos)
-	{
-		case 1:
-			;
-			ret = pok_blackboard_display(&id, &param, &len); 
-			break;
-	}
-	
-	return ret;                     
-}
-
-pok_ret_t pok_blackboard_clear_wrapper(void* param, int pos)
-{
-	pok_ret_t ret = 0;
-    
-	switch (pos)
-	{
-		case 0:
-			;
-			ret = pok_blackboard_clear(&param); 
-			break;
-	}
-	
-	return ret;                     
-}
-
-pok_ret_t pok_blackboard_id_wrapper(void* param, int pos)
-{
-	pok_ret_t ret = 0;
-    
-    const char* name; // pre-created blackboard needed (check also with no blackboard)
-    
-    pok_blackboard_id_t* id; // out param (?)
-    
-	switch (pos)
-	{
-		case 0:
-			;
-			ret = pok_blackboard_id(&param, &id); 
-			break;
-		
-		case 1:
-            ret = pok_blackboard_id(&name, &param);
-			break;
-	}
-	
-	return ret;                     
-}
-
-pok_ret_t pok_blackboard_status_wrapper(void* param, int pos)
-{
-	pok_ret_t ret = 0;
-    
-    pok_blackboard_id_t id; // pre-created blackboard needed (check also with no blackboard)
-    pok_blackboard_status_t* status; // out param (?)
-    
-	switch (pos)
-	{
-		case 1:
-			;
-			ret = pok_blackboard_status(&id, &param); 
-			break;
-	}
-	
-	return ret;                     
-}
-
 /////////////////////////// SEMAPHORES ///////////////////////////
 
 pok_ret_t pok_semaphore_create_wrapper(void* param, int pos)

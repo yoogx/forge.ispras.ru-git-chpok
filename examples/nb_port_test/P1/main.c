@@ -5,6 +5,8 @@ static TestProcType MasterErrorHandlerTestProc;
 
 static PROCESS_ID_TYPE ControlProcessId;
 
+static uint8_t  pre_created_id;
+static char*    pre_created_name;
 
 
 void first_process(void)
@@ -21,7 +23,11 @@ void first_process(void)
     
     //pok_ret_t 
     int ret = 0;
-    ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_CREATE, NULL_POINTER, param, pos);
+    ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_CREATE,     NULL_POINTER, param, pos, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_SEND,       NULL_POINTER, param, pos, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_RECEIVE,    NULL_POINTER, param, pos, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_ID,         NULL_POINTER, param, pos, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_STATUS,     NULL_POINTER, param, pos, pre_created_id, pre_created_name);
     
     status = EXECUTED;
     TEST_RESULT = ret;
@@ -82,6 +88,20 @@ static int real_main(void)
 {
 	STACK_SIZE_TYPE VALID_STACK_SIZE = 8192;
 	RETURN_CODE_TYPE ReturnCode;
+    BUFFER_ID_TYPE id;
+    pre_created_id = -1;
+    pre_created_name = "foo";
+    
+    // create buffer
+    CREATE_BUFFER(pre_created_name, sizeof(int), 10, FIFO, &id, &ReturnCode);
+    if (ReturnCode != NO_ERROR) {
+        printf("error creating a buffer: %d\n", (int) ReturnCode);
+        return 1;
+    } else {
+        printf("buffer successfully created\n");
+    }
+    pre_created_id = id;
+    
 	
 	MasterErrorHandlerTestProc = &T_MYTEST_Error_Handler;
 	
