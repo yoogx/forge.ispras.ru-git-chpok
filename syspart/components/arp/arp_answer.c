@@ -28,6 +28,8 @@
 
 #include "net.h"
 
+#include "ARP_ANSWERER_gen.h"
+
 struct arp_packet_t {
     uint16_t htype;
     uint16_t ptype;
@@ -86,6 +88,7 @@ void arp_received(void* data, size_t payload_len)
                 sizeof(struct ether_hdr),
                 arp_answer_buffer.arp_answer.tha,
                 ETH_P_ARP);
+
     //if (!sent) {
     //    printf("ARP: unable to send an answer.\n");
     //}
