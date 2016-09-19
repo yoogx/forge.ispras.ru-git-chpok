@@ -176,21 +176,6 @@ static void setup_receive_buffers(struct virtio_network_device *dev)
     notify_receive_buffers(dev);
 }
 
-//XXX forward_receive_buffer
-static void process_received_buffer(
-        struct virtio_network_device *dev,
-        struct receive_buffer *buf,
-        size_t length)
-{
-    printf("PACKET_RECEIVED\n");
-    if (dev->packet_received_callback != NULL) {
-        dev->packet_received_callback(
-            (const char *)&buf->ether_hdr, 
-            length - sizeof(struct virtio_net_hdr)
-        );
-    }
-}
-
 ret_t send_frame(VIRTIO_NET_DEV * self,
         char *buffer,
         size_t size,
@@ -293,8 +278,9 @@ static void reclaim_send_buffers(struct virtio_network_device *info)
     maybe_unlock_preemption(&saved_preemption);
 }
 
-static void reclaim_receive_buffers(struct virtio_network_device *dev)
+static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
 {
+    struct virtio_network_device *dev = &self->state.info;
     struct virtio_virtqueue *vq = &dev->rx_vq;
 
     pok_bool_t saved_preemption;
@@ -312,8 +298,9 @@ static void reclaim_receive_buffers(struct virtio_network_device *dev)
             printf("%s: kernel says that physical address is wrong\n", __func__);
             return;
         }
-        
-        process_received_buffer(dev, buf, e->len);
+
+        printf("PACKET_RECEIVED\n");
+        VIRTIO_NET_DEV_call_portB_send(self, buf, e->len);
 
         // reclaim descriptor
         // FIXME support chained descriptors as well
@@ -440,7 +427,7 @@ struct pci_driver virtio_pci_driver = {
 
 void virtio_receive_activity(VIRTIO_NET_DEV *self)
 {
-    reclaim_receive_buffers(&self->state.info);
+    reclaim_receive_buffers(self);
 }
 
 /*

@@ -11,5 +11,8 @@
         implementation:
             send: send_frame
             flush: flush_send
+  out_ports:
+      - name: portB
+        type: simple_send_data
 
   activity: virtio_receive_activity
