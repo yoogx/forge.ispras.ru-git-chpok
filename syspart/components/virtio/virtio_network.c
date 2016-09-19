@@ -32,9 +32,11 @@
 #include "virtio_net.h"
 #include "virtio_network_device.h"
 
+#include "VIRTIO_NET_DEV_gen.h"
+
 #include <net/netdevices.h>
 #include <net/network.h>
-#include <mem.h>
+
 
 #define VIRTIO_PCI_VENDORID 0x1AF4
 
@@ -49,7 +51,9 @@
 #define PRINTF(fmt, ...) printf("virtio_network: " fmt, ##__VA_ARGS__)
 
 
-static void reclaim_send_buffers(pok_netdevice_t *dev);
+struct virtio_network_device *tmp_singleton;
+
+static void reclaim_send_buffers(struct virtio_network_device *info);
 /*
  * When we're in interrupt context (e.g. system call or timer),
  * preemption is already disabled, and we certainly don't want to
@@ -187,19 +191,21 @@ static void process_received_buffer(
     }
 }
 
-static pok_bool_t send_frame(
-        pok_netdevice_t *netdev,
+ret_t send_frame(VIRTIO_NET_DEV * self,
         char *buffer,
-        size_t size)
+        size_t size,
+        size_t max_back_step)
 {
-    //XXX need carefully think when do we need to call this reclaim func
-    reclaim_send_buffers(netdev);
-
+    if (max_back_step != 0)
+        return EINVAL;
 
     static struct virtio_net_hdr net_hdr;
     struct vring_desc *desc;
 
-    struct virtio_network_device *dev = netdev->info;
+    struct virtio_network_device *dev = &self->state.info;
+
+    //XXX need carefully think when do we need to call this reclaim func
+    reclaim_send_buffers(dev);
 
     // now, send it to the virtqueue
     struct virtio_virtqueue *vq = &dev->tx_vq;
@@ -252,9 +258,8 @@ static void set_packet_received_callback(
     info->packet_received_callback = f;
 }
 
-static void reclaim_send_buffers(pok_netdevice_t *dev)
+static void reclaim_send_buffers(struct virtio_network_device *info)
 {
-    struct virtio_network_device *info = dev->info;
     struct virtio_virtqueue *vq = &(info->tx_vq);
     
     // this function can be called by any thread
@@ -337,11 +342,12 @@ static void reclaim_receive_buffers(pok_netdevice_t *netdev)
     maybe_unlock_preemption(&saved_preemption);
 }
 
-static void flush_send(pok_netdevice_t *netdev)
+ret_t flush_send(VIRTIO_NET_DEV *self)
 {
-    struct virtio_network_device *dev = netdev->info;
+    struct virtio_network_device *dev = &self->state.info;
 
     outw(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_NOTIFY, (uint16_t) VIRTIO_NETWORK_TX_VIRTQUEUE);
+    return EOK;
 }
 
 static const pok_network_driver_ops_t driver_ops = {
@@ -359,7 +365,7 @@ static const pok_network_driver_ops_t driver_ops = {
 static pok_bool_t probe_device(struct pci_device *pci_dev)
 {
     static int dev_count = 0;
-    struct virtio_network_device *dev = smalloc(sizeof(*dev));
+    struct virtio_network_device *dev = tmp_singleton;
 
     dev->pci_device = *pci_dev;
     //TODO change to ioaddr everywhere
@@ -435,7 +441,8 @@ struct pci_driver virtio_pci_driver = {
 /*
  * init
  */
-void virtio_init()
+void virtio_init(VIRTIO_NET_DEV *self)
 {
+    tmp_singleton = &self->state.info;
     register_pci_driver(&virtio_pci_driver);
 }

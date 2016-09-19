@@ -9,3 +9,6 @@
         implementation:
             mac_send: mac_send
             flush: mac_flush
+  out_ports:
+      - name: portB
+        type: send_net_data

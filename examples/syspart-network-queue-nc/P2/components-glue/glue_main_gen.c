@@ -104,6 +104,8 @@ void __components_init__()
         arinc_sender_1.out.portA.owner = &udp_ip_sender_1;
         udp_ip_sender_1.out.portB.ops = &mac_sender_1.in.portA.ops;
         udp_ip_sender_1.out.portB.owner = &mac_sender_1;
+        mac_sender_1.out.portB.ops = &virtio_net_dev_1.in.portA.ops;
+        mac_sender_1.out.portB.owner = &virtio_net_dev_1;
 
 }
 

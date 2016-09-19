@@ -81,3 +81,11 @@ links:
       to:
         instance: mac_sender_1
         port: portA
+
+    - from:
+        instance: mac_sender_1
+        port: portB
+      to:
+        instance: virtio_net_dev_1
+        port: portA
+

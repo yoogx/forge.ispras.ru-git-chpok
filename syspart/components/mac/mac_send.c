@@ -73,15 +73,16 @@ ret_t mac_send(MAC_SENDER *self,
         ethertype
         );
 
-    NETWORK_DRIVER_OPS->send_frame(
-        NETDEVICE_PTR,
-        mac_packet,
-        payload_size + MAC_HEADER_SIZE
-    );
+    MAC_SENDER_call_portB_send(self,
+            mac_packet,
+            payload_size + MAC_HEADER_SIZE,
+            max_backstep - MAC_HEADER_SIZE
+            );
     return EOK;
 }
 
+
 ret_t mac_flush(MAC_SENDER *self) {
-    NETWORK_DRIVER_OPS->flush_send(NETDEVICE_PTR);
+    MAC_SENDER_call_portB_flush(self);
     return EOK;
 }
