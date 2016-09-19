@@ -35,10 +35,22 @@ def get_pok_definitions(source, env):
     root = etree.parse(source.path)
     root.xinclude()
 
-    parser = arinc653_xml_conf.ArincConfigParser()
+    parser = arinc653_xml_conf.ArincConfigParser(env['ARCH'])
     conf = parser.parse(root)
 
     return dict(conf=conf)
+
+def get_pok_partition_definitions(source, env):
+    source = source[0]
+
+    root = etree.parse(source.path)
+    root.xinclude()
+
+    parser = arinc653_xml_conf.ArincConfigParser(env['ARCH'])
+    conf = chpok_configuration.Configuration(env['ARCH'])
+    parser.parse_partition(conf, root)
+
+    return dict(part = conf.partitions[0])
 
 def get_pok_gdb_definitions(source, env):
     defs = get_pok_definitions(source, env)
@@ -90,6 +102,7 @@ AddMethod(gdb_env, template_generation.TemplateRender)
 gdb_env['GENERATE_TITLE'] = template_generation.generate_title_python
 
 # Generate file with commands for GDB for possible debugging
+
 gdb_env.TemplateRender(
     target = gdb_env['BUILD_DIR'] + "/GDB_commands",
     source = [gdb_env['XML']] +

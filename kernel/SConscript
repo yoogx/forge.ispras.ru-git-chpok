@@ -22,7 +22,14 @@ Import('env')
 kernel_env = env.Clone()
 kernel_env.Append(CFLAGS = ' -Werror')
 
+if 'CFLAGS_KERNEL' in kernel_env:
+    kernel_env.Append(CFLAGS = ' ' + kernel_env['CFLAGS_KERNEL'])
+
 kernel_env['CPPPATH'] = kernel_env['KERNEL_CPPPATH']
+
+if kernel_env.get('jdeveloper'):
+    # Set base dir for reference in generated files
+    kernel_env['SOURCE_BASE_DIR'] = kernel_env['POK_PATH']
 
 Export('kernel_env')
 
@@ -34,7 +41,7 @@ kernel_objects=[core, libc, arch]
 
 kernel_env.Program(target = 'core.lo', source = kernel_objects)
 
-if env.get('jdeveloper'):
+if kernel_env.get('jdeveloper'):
     import sys
     import os
     sys.path.insert(1, os.path.join(os.environ["POK_PATH"], "misc"))
@@ -46,10 +53,11 @@ if env.get('jdeveloper'):
 
     (uapi_headers, uapi_headers_syscall) = SConscript(source_dir + 'SConscript')
 
-    kernel_env.Append(
+    kernel_env.Replace(
         SOURCE_BASE_DIR = kernel_env['POK_PATH'],
         GENERATE_TITLE = template_generation.generate_title_c
     )
+
     # <source-dir> and <target-dir> are the same.
     #
     # No needs to simply copy files. Only files generation takes a place.

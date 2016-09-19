@@ -29,20 +29,13 @@
 
 idt_entry_t	pok_idt[IDT_SIZE];
 
-pok_ret_t pok_event_init ()
+void ja_event_init (void)
 {
-   pok_idt_init ();
-
-#if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_ERROR_HANDLING)
-   pok_exception_init ();
-#endif
-
-   pok_syscall_init ();
-
-   return (POK_ERRNO_OK);
+   ja_idt_init ();
+   ja_exception_init ();
 }
 
-pok_ret_t pok_idt_init ()
+void ja_idt_init (void)
 {
    sysdesc_t sysdesc;
 
@@ -56,20 +49,18 @@ pok_ret_t pok_idt_init ()
    asm ("lidt %0"
         :
         : "m" (sysdesc));
-
-  return (POK_ERRNO_OK);
 }
 
-void pok_idt_set_gate (uint16_t     index,
-                       uint16_t     segsel,
-                       uint32_t     offset,
-                       e_idte_type  t,
-                       int          dpl)
+void pok_idt_set_gate (uint8_t     index,
+                       void (*entry)(void),
+                       e_idte_type  t)
 {
+   uint32_t offset = (uint32_t)entry;
+
    pok_idt[index].offset_low   = (offset) & 0xFFFF;
    pok_idt[index].offset_high  = (offset >> 16) & 0xFFFF;
-   pok_idt[index].segsel       = segsel;
-   pok_idt[index].dpl          = dpl;
+   pok_idt[index].segsel       = GDT_CORE_CODE_SEGMENT << 3;
+   pok_idt[index].dpl          = 3;
    pok_idt[index].type         = t;
    pok_idt[index].d            = 1;
    pok_idt[index].res0         = 0; /* reserved */
