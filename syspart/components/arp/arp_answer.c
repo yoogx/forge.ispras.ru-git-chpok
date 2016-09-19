@@ -53,19 +53,19 @@ ret_t arp_receive(ARP_ANSWERER *self, char *data, size_t len)
     struct arp_packet_t *arp_packet = (void *) data;
 
     if (arp_packet->htype != hton16(1)) {
-        return; // We support only Ethernet hardware type.
+        return EINVAL; // We support only Ethernet hardware type.
     }
     if (arp_packet->ptype != hton16(ETH_P_IP)) {
-        return; // We support only IPv4 protocol type.
+        return EINVAL; // We support only IPv4 protocol type.
     }
     if (arp_packet->hlen != ETH_ALEN || arp_packet->plen != 4) {
-        return; // We support Ethernet MAC and IPv4 addresses only.
+        return EINVAL; // We support Ethernet MAC and IPv4 addresses only.
     }
     if (arp_packet->oper != hton16(1)) {
-        return; // This is not an ARP request.
+        return EINVAL; // This is not an ARP request.
     }
     if (arp_packet->tpa != hton32(pok_network_ip_address)) {
-        return; // This ARP request is not for us.
+        return EINVAL; // This ARP request is not for us.
     }
     printf("ARP: we have received a request for our MAC.\n");
 
@@ -80,7 +80,7 @@ ret_t arp_receive(ARP_ANSWERER *self, char *data, size_t len)
     arp_answer_buffer.arp_answer.hlen = arp_packet->hlen;
     arp_answer_buffer.arp_answer.plen = arp_packet->plen;
     arp_answer_buffer.arp_answer.oper = hton16(2); // This is an ARP answer.
-    arp_answer_buffer.arp_answer.spa = hton32(pok_network_ip_address);
+    arp_answer_buffer.arp_answer.spa = arp_packet->tpa;
     arp_answer_buffer.arp_answer.tpa = arp_packet->spa;
 
     ARP_ANSWERER_call_portB_mac_send(self,
