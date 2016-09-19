@@ -435,7 +435,7 @@ struct pci_driver virtio_pci_driver = {
 /*
  * init
  */
-void virtio_net_init()
+void virtio_init()
 {
     register_pci_driver(&virtio_pci_driver);
 }

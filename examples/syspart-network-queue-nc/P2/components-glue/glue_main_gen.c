@@ -71,6 +71,12 @@
             }
         };
 
+    #include <VIRTIO_NET_DEV_gen.h>
+        void __VIRTIO_NET_DEV_init__(VIRTIO_NET_DEV*);
+        void __VIRTIO_NET_DEV_activity__(VIRTIO_NET_DEV*);
+        VIRTIO_NET_DEV virtio_net_dev_1 = {
+        };
+
 
 
 void __components_init__()
@@ -86,6 +92,8 @@ void __components_init__()
             __UDP_IP_SENDER_init__(&udp_ip_sender_1);
 
             __MAC_SENDER_init__(&mac_sender_1);
+
+            __VIRTIO_NET_DEV_init__(&virtio_net_dev_1);
 
 
         y_1.out.portB.ops = &x_1.in.portC.ops;
@@ -109,6 +117,7 @@ void __components_activity__()
                 __ARINC_SENDER_activity__(&arinc_sender_1);
                 __UDP_IP_SENDER_activity__(&udp_ip_sender_1);
                 __MAC_SENDER_activity__(&mac_sender_1);
+                __VIRTIO_NET_DEV_activity__(&virtio_net_dev_1);
     }
 
 }

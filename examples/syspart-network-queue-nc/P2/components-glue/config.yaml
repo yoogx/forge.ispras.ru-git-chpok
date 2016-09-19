@@ -48,6 +48,10 @@ components:
           state:
               src_mac: '{0x01, 0x02, 0x03, 0x04, 0x05, 0x06}'
 
+    - type: VIRTIO_NET_DEV
+      instances:
+        - name: virtio_net_dev_1
+
 
 links:
     - from:

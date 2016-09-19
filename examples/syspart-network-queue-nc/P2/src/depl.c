@@ -74,7 +74,7 @@ char *ipnet_netdev_name = "virtio-net0";
 #include <drivers/ne2000/ne2000.h>
 void drivers_init()
 {
-    virtio_net_init();
+    //virtio_net_init();
     //ne2000_net_init();
     pci_init();
     //TODO add next string if BSP=P3041
