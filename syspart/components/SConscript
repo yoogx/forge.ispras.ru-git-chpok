@@ -21,7 +21,7 @@ import os
 
 Import('syspart_env')
 
-COMPONENTS_DIRS = ['X', 'Y', 'arinc', 'udp_ip', 'mac', 'virtio']
+COMPONENTS_DIRS = ['X', 'Y', 'arinc', 'udp_ip', 'mac', 'virtio', 'arp']
 COMPONENTS_PATH = os.path.join(syspart_env["POK_PATH"], "syspart/components")
 CONFIG = "config.yaml"
 INTERFACES_DIR = os.path.join(syspart_env["POK_PATH"], "syspart/include/interfaces/")

@@ -52,6 +52,9 @@ components:
       instances:
         - name: virtio_net_dev_1
 
+    - type: ARP_ANSWERER
+      instances:
+          - name: arp_answerer_1
 
 links:
     - from:
@@ -89,3 +92,9 @@ links:
         instance: virtio_net_dev_1
         port: portA
 
+    - from:
+        instance: arp_answerer_1
+        port: portB
+      to:
+        instance: mac_sender_1
+        port: portA

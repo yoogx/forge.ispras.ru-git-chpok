@@ -1,0 +1,8 @@
+- name: ARP_ANSWERER
+  #additional_h_files: []
+  state_struct:
+      # good IPs
+
+  out_ports:
+      - name: portB
+        type: mac_send_data

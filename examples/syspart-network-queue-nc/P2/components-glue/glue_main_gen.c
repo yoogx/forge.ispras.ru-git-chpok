@@ -77,6 +77,12 @@
         VIRTIO_NET_DEV virtio_net_dev_1 = {
         };
 
+    #include <ARP_ANSWERER_gen.h>
+        void __ARP_ANSWERER_init__(ARP_ANSWERER*);
+        void __ARP_ANSWERER_activity__(ARP_ANSWERER*);
+        ARP_ANSWERER arp_answerer_1 = {
+        };
+
 
 
 void __components_init__()
@@ -95,6 +101,8 @@ void __components_init__()
 
             __VIRTIO_NET_DEV_init__(&virtio_net_dev_1);
 
+            __ARP_ANSWERER_init__(&arp_answerer_1);
+
 
         y_1.out.portB.ops = &x_1.in.portC.ops;
         y_1.out.portB.owner = &x_1;
@@ -106,6 +114,8 @@ void __components_init__()
         udp_ip_sender_1.out.portB.owner = &mac_sender_1;
         mac_sender_1.out.portB.ops = &virtio_net_dev_1.in.portA.ops;
         mac_sender_1.out.portB.owner = &virtio_net_dev_1;
+        arp_answerer_1.out.portB.ops = &mac_sender_1.in.portA.ops;
+        arp_answerer_1.out.portB.owner = &mac_sender_1;
 
 }
 
@@ -120,6 +130,7 @@ void __components_activity__()
                 __UDP_IP_SENDER_activity__(&udp_ip_sender_1);
                 __MAC_SENDER_activity__(&mac_sender_1);
                 __VIRTIO_NET_DEV_activity__(&virtio_net_dev_1);
+                __ARP_ANSWERER_activity__(&arp_answerer_1);
     }
 
 }
