@@ -55,6 +55,9 @@ components:
     - type: ARP_ANSWERER
       instances:
           - name: arp_answerer_1
+            state:
+                good_ips: '{IP_ADDR(192, 168, 56, 101),IP_ADDR(192, 168, 56, 102)}'
+                good_ips_len: 2
 
     - type: MAC_RECEIVER
       instances:
