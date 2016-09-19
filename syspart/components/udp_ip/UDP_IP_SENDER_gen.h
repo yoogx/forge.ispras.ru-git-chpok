@@ -6,9 +6,6 @@
 #ifndef __UDP_IP_SENDER_GEN_H__
 #define __UDP_IP_SENDER_GEN_H__
 
-    #include <arinc653/queueing.h>
-    #include <arinc653/sampling.h>
-    #include <port_info.h>
     #include "ip_addr.h"
 
     #include <interfaces/send_net_data_gen.h>

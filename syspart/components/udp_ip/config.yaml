@@ -1,5 +1,5 @@
 - name: UDP_IP_SENDER
-  additional_h_files: ['<arinc653/queueing.h>', '<arinc653/sampling.h>', '<port_info.h>', '"ip_addr.h"']
+  additional_h_files: ['"ip_addr.h"']
   state_struct:
       src_ip: uint32_t
       src_port: uint16_t
