@@ -1,0 +1,4 @@
+- name: VIRTIO_NET_DEV
+  #additional_h_files: []
+  state_struct:
+      a: int

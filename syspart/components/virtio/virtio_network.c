@@ -369,7 +369,6 @@ static void flush_send(pok_netdevice_t *netdev)
 
 static const pok_network_driver_ops_t driver_ops = {
     .send_frame = send_frame,
-    //.send_frame_gather = send_frame_gather,
     .set_packet_received_callback = set_packet_received_callback,
     .reclaim_receive_buffers = reclaim_receive_buffers,
     .flush_send = flush_send,
