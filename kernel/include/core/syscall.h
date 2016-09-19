@@ -80,12 +80,4 @@ pok_ret_t	pok_core_syscall (const pok_syscall_id_t     syscall_id,
  */
 pok_ret_t pok_syscall_init();
 
-#define POK_CHECK_PTR_OR_RETURN(pid,ptr)	\
-   if (!POK_CHECK_PTR_IN_PARTITION(pid,ptr))	\
-{						\
-   return POK_ERRNO_EINVAL;					\
-}
-
-extern uintptr_t global_thread_stack;
-
 #endif /* __POK_SYSCALL_H__ */

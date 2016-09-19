@@ -16,6 +16,7 @@
 
 #include <core/error.h>
 #include <core/sched.h>
+#include <asp/arch.h>
 
 // TODO: this should be modified somewhere
 pok_system_state_t kernel_state = POK_SYSTEM_STATE_INIT_PARTOS;
@@ -31,11 +32,11 @@ static pok_error_module_action_t get_module_action(
 static void perform_module_action(pok_error_module_action_t action)
 {
     if(action == POK_ERROR_MODULE_ACTION_IGNORE) return;
-    
-    pok_arch_preempt_disable();
-    
+
+    ja_preempt_disable();
+
     switch(action) {
-    
+
     case POK_ERROR_MODULE_ACTION_RESET:
         pok_sched_restart();
         // TODO: Reset module
@@ -48,9 +49,9 @@ static void perform_module_action(pok_error_module_action_t action)
     //default:
         /*
          * Incorrect configuration table.
-         * 
+         *
          * We do not trust module HM table anymore.
-         * 
+         *
          * Forse shutdown.
          */
         // TODO: Force shutdown
@@ -60,42 +61,42 @@ static void perform_module_action(pok_error_module_action_t action)
 static pok_system_state_t get_current_state(pok_bool_t user_space)
 {
     pok_partition_t* part;
-    
+
     if(kernel_state != POK_SYSTEM_STATE_OS_PART)
         return kernel_state;
-    
+
     part = current_partition;
-    
+
     if(!user_space)
         return POK_SYSTEM_STATE_OS_PART;
-    
+
     return part->is_error_handler
         ? POK_SYSTEM_STATE_ERROR_HANDLER
         : POK_SYSTEM_STATE_USER;
 }
 
 
-/* 
+/*
  * Check if error is module-level error and process it in that case.
- * 
+ *
  * Return FALSE if error is partition-level error.
  */
 static pok_bool_t process_error_module(pok_system_state_t system_state,
     pok_error_id_t error_id)
 {
     pok_error_module_action_t action;
-    
+
     if(pok_error_level_select(&pok_hm_module_selector, system_state, error_id))
     {
         // Partition level error
         pok_partition_t* part = current_partition;
-        
+
         if(pok_error_level_select(part->multi_partition_hm_selector,
             system_state, error_id)) {
-            
+
             return FALSE; // Error should be processed in partition-specific way.
         }
-        
+
         action = get_module_action(part->multi_partition_hm_table,
             system_state, error_id);
     }
@@ -104,25 +105,25 @@ static pok_bool_t process_error_module(pok_system_state_t system_state,
         action = get_module_action(&pok_hm_module_table,
             system_state, error_id);
     }
-    
+
     perform_module_action(action);
-    
+
     return TRUE;
 }
 
 void pok_raise_error(pok_error_id_t error_id, pok_bool_t user_space, void* failed_address)
 {
     pok_system_state_t system_state;
-    
+
     pok_partition_t* part;
     pok_bool_t need_call_process_partition_error = FALSE;
-    uint8_t preempt_local_disabled_old = !pok_arch_preempt_enabled();
-    
+    pok_bool_t preempt_local_disabled_old = !ja_preempt_enabled();
+
     if(!preempt_local_disabled_old)
         pok_preemption_disable();
-    
+
     system_state = get_current_state(user_space);
-    
+
     if(!process_error_module(system_state, error_id))
     {
         part = current_partition;
@@ -134,7 +135,7 @@ void pok_raise_error(pok_error_id_t error_id, pok_bool_t user_space, void* faile
             part->preempt_local_disabled = 0;
         }
     }
-    
+
     if(!preempt_local_disabled_old)
         pok_preemption_enable();
 
@@ -147,7 +148,7 @@ pok_bool_t pok_raise_error_by_partition(pok_system_state_t system_state,
     pok_error_id_t error_id)
 {
     assert(system_state >= POK_SYSTEM_STATE_MIN_PARTITION);
-    
+
     return process_error_module(system_state, error_id);
 }
 

@@ -1,0 +1,122 @@
+global_c: |
+    #include <bsp/bsp.h>
+
+exceptions:
+
+  - id: DIVIDE_ERROR
+    raise_error:
+        error_id: NUMERIC_ERROR
+        debug_message: "Raise divide by zero error"
+        
+  - id: DEBUG
+    code: handle_exception(3, frame);
+    
+  - id: NMI
+    raise_error:
+        error_id: ILLEGAL_REQUEST
+        debug_message: "Raise exception NMI fault"
+        dump_registers: true
+
+  - id: BREAKPOINT
+    code: process_breakpoint(frame);
+
+  - id: OVERFLOW
+    raise_error:
+        error_id: STACK_OVERFLOW
+        debug_message: "Raise exception bound range fault"
+        dump_registers: true
+
+  - id: INVALIDOPCODE
+    raise_error:
+        error_id: ILLEGAL_REQUEST
+        debug_message: "Raise exception invalid opcode fault, EIP: 0x%lx"
+        debug_message_args:
+          - frame->eip
+        dump_registers: true
+
+  - id: NOMATH_COPROC
+    raise_error:
+        error_id: ILLEGAL_REQUEST
+        debug_message: "Raise exception no math coprocessor fault"
+        dump_registers: true
+
+  - id: DOUBLEFAULT
+    raise_error:
+        error_id: UNHANDLED_INT # FIXME: does it make sense?
+        debug_message: "Raise exception double fault"
+        dump_registers: true
+
+  - id: COPSEG_OVERRUN
+    raise_error:
+        error_id: MEMORY_VIOLATION
+        debug_message: "Raise exception copseg overrun fault"
+        dump_registers: true
+
+  - id: INVALID_TSS
+    set_error: true
+    raise_error:
+        error_id: MEMORY_VIOLATION
+        debug_message: "Raise exception invalid tss fault"
+        dump_registers: true
+
+  - id: SEGMENT_NOT_PRESENT
+    set_error: true
+    raise_error:
+        error_id: MEMORY_VIOLATION
+        debug_message: "Raise exception segment not present fault"
+        dump_registers: true
+
+  - id: STACKSEG_FAULT
+    set_error: true
+    raise_error:
+        error_id: MEMORY_VIOLATION
+        debug_message: "Raise exception stack segment fault"
+        dump_registers: true
+
+  - id: GENERAL_PROTECTION
+    set_error: true
+    raise_error:
+        error_id: ILLEGAL_REQUEST
+        debug_message: "Raise exception general protection fault. EIP=0x%lx"
+        debug_message_args:
+          - frame->eip
+        dump_registers: true
+
+  - id: PAGEFAULT
+    set_error: true
+    raise_error:
+        error_id: MEMORY_VIOLATION
+        debug_message: "Raise exception pagefault"
+        dump_registers: true
+
+  - id: FPU_FAULT
+    raise_error:
+        error_id: HARDWARE_FAULT
+        debug_message: "Raise exception FPU fault"
+        dump_registers: true
+
+  - id: ALIGNEMENT_CHECK
+    set_error: true
+    raise_error:
+        error_id: HARDWARE_FAULT
+        debug_message: "Raise exception alignment fault"
+        dump_registers: true
+
+  - id: MACHINE_CHECK
+    raise_error:
+        error_id: HARDWARE_FAULT
+        debug_message: "Raise exception machine check fault"
+        dump_registers: true
+
+  - id: SIMD_FAULT
+    raise_error:
+        error_id: HARDWARE_FAULT
+        debug_message: "Raise exception SIMD fault"
+        dump_registers: true
+
+  - id: SYSCALL
+    code: process_syscall(frame);
+
+  - id: TIMER
+    code: ja_bsp_process_timer(frame);
+

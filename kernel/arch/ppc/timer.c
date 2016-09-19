@@ -14,7 +14,7 @@
  */
 
 #include <errno.h>
-#include <bsp_common.h>
+#include "bsp/bsp.h"
 #include <core/time.h>
 #include <core/sched.h>
 #include <core/debug.h>
@@ -86,7 +86,7 @@ void pok_arch_decr_int (void)
   pok_sched_on_time_changed ();
 }
 
-pok_ret_t pok_bsp_time_init ()
+void ja_time_init (void)
 {
   time_inter = pok_bsp.timebase_freq / POK_TIMER_FREQUENCY;
   printf("Timer interval: %lu\n", time_inter);
@@ -94,6 +94,4 @@ pok_ret_t pok_bsp_time_init ()
   set_decrementer();
 
   mtspr(SPRN_TCR, TCR_DIE); // enable decrementer
-
-  return (POK_ERRNO_OK);
 }
