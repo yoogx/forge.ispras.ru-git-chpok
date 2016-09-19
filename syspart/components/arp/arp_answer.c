@@ -78,8 +78,6 @@ ret_t arp_receive(ARP_ANSWERER *self, char *data, size_t len)
     arp_answer_buffer.arp_answer.spa = arp_packet->tpa;
     arp_answer_buffer.arp_answer.tpa = arp_packet->spa;
 
-    hexdump( (void *)&arp_answer_buffer.arp_answer,
-            sizeof(arp_answer_buffer.arp_answer));
     ARP_ANSWERER_call_portB_mac_send(self,
             (void *)&arp_answer_buffer.arp_answer,
             sizeof(arp_answer_buffer.arp_answer),
