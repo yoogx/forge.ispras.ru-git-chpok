@@ -299,8 +299,7 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
             return;
         }
 
-        printf("PACKET_RECEIVED\n");
-        VIRTIO_NET_DEV_call_portB_send(self, buf, e->len);
+        VIRTIO_NET_DEV_call_portB_send(self, &buf->ether_hdr, e->len - sizeof(struct virtio_net_hdr));
 
         // reclaim descriptor
         // FIXME support chained descriptors as well
