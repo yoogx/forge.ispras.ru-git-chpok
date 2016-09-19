@@ -63,6 +63,8 @@ components:
     - type: MAC_RECEIVER
       instances:
           - name: mac_receiver_1
+            state:
+                my_mac: '{0x52, 0x54, 0x00, 0x01, 0x02, 0x03}'
 
 links:
     - from:

@@ -16,7 +16,7 @@
 - name: MAC_RECEIVER
   #additional_h_files: ['<port_info.h>']
   state_struct:
-      src_mac[6]: uint8_t
+      my_mac[6]: uint8_t
 
   in_ports:
       - name: portA
