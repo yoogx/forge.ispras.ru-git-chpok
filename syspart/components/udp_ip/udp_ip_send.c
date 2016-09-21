@@ -13,20 +13,12 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <net/network.h>
 #include <net/byteorder.h>
-#include <net/ether.h>
 #include <net/ip.h>
 #include <net/udp.h>
-#include <pci.h>
-#include <depl.h>
 
 #include <stdio.h>
-#include <string.h>
-#include <net/netdevices.h>
-#include <channel_driver.h>
 
-#include "net.h"
 #include "UDP_IP_SENDER_gen.h"
 
 #define UDP_IP_HEADER_SIZE (20+8)

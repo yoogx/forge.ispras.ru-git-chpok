@@ -13,30 +13,16 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <net/network.h>
 #include <net/byteorder.h>
-#include <net/ether.h>
 #include <net/ip.h>
 #include <net/udp.h>
-#include <pci.h>
-#include <depl.h>
-
 #include <stdio.h>
-#include <string.h>
-#include <net/netdevices.h>
-#include <channel_driver.h>
 
-#include "net.h"
 #include "UDP_RECEIVER_FILTER_gen.h"
 
 #define C_NAME "UDP_RECEIVER_FILTER: "
 
-#define UDP_IP_HEADER_SIZE (20+8)
-struct udp_ip_packet{
-    struct ip_hdr ip_hdr;
-    struct udp_hdr udp_hdr;
-    char payload[];
-} __attribute__((packed));
+int pok_network_ip_address = 1; //DELETE!!
 
 ret_t udp_receive_and_filter(UDP_RECEIVER_FILTER *self, char *data, size_t len)
 {
@@ -74,7 +60,7 @@ ret_t udp_receive_and_filter(UDP_RECEIVER_FILTER *self, char *data, size_t len)
     }
 
     if (ip_hdr->proto != IPPROTO_UDP) {
-        // we don't know anything except UDP
+        printf(C_NAME"it is not UDP\n");
         return EINVAL;
     }
 
@@ -92,6 +78,7 @@ ret_t udp_receive_and_filter(UDP_RECEIVER_FILTER *self, char *data, size_t len)
 
     printf(C_NAME"GOOD UDP PACKET\n");
     hexdump(udp_hdr->payload, len-sizeof(struct udp_hdr));
+
     return EOK;
     //received_callback(
     //        ntoh32(ip_hdr->dst),
