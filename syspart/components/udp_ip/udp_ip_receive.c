@@ -19,10 +19,22 @@
 #include <stdio.h>
 
 #include "UDP_RECEIVER_FILTER_gen.h"
+#include "udp_ip_pair.h"
 
 #define C_NAME "UDP_RECEIVER_FILTER: "
 
-int pok_network_ip_address = 1; //DELETE!!
+#define IP_PRINT(X) X>>24&0xff,X>>16&0xff,X>>8&0xff, X&0xff
+
+static int find_ip_port_in_state(UDP_RECEIVER_FILTER_state *state, uint32_t ip, uint16_t udp_port)
+{
+    for (int i = 0; i < state->good_ip_port_len; i++) {
+        struct udp_ip_pair *current_pair = &state->good_ip_port[i];
+        if (ip == current_pair->ip && udp_port == current_pair->port)
+            return 1;
+    }
+    return 0;
+}
+
 
 ret_t udp_receive_and_filter(UDP_RECEIVER_FILTER *self, char *data, size_t len)
 {
@@ -50,14 +62,6 @@ ret_t udp_receive_and_filter(UDP_RECEIVER_FILTER *self, char *data, size_t len)
         return EINVAL;
     }
 
-    // TODO network broadcast address?
-    if (ip_hdr->dst != hton32(0xFFFFFFFFUL) &&
-        ip_hdr->dst != hton32(pok_network_ip_address))
-    {
-        // it's not for us
-        printf(C_NAME"not for us %lx\n", ip_hdr->dst);
-        return EINVAL;
-    }
 
     if (ip_hdr->proto != IPPROTO_UDP) {
         printf(C_NAME"it is not UDP\n");
@@ -76,10 +80,16 @@ ret_t udp_receive_and_filter(UDP_RECEIVER_FILTER *self, char *data, size_t len)
         return EINVAL;
     }
 
-    printf(C_NAME"GOOD UDP PACKET\n");
-    hexdump(udp_hdr->payload, len-sizeof(struct udp_hdr));
+    if (find_ip_port_in_state(&self->state, ntoh32(ip_hdr->dst), ntoh16(udp_hdr->dst_port))) {
+        printf(C_NAME"GOOD UDP PACKET\n");
+        hexdump(udp_hdr->payload, len-sizeof(struct udp_hdr));
+        return EOK;
+    } else {
+        printf(C_NAME"packet not for us %ld.%ld.%ld.%ld:%d\n", IP_PRINT(ntoh32(ip_hdr->dst)), ntoh16(udp_hdr->dst_port));
+        return EINVAL;
+    }
 
-    return EOK;
+
     //received_callback(
     //        ntoh32(ip_hdr->dst),
     //        ntoh16(udp_hdr->dst_port),
