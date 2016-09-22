@@ -19,43 +19,54 @@
 #include <types.h>
 #include <errno.h>
 #include <libc.h>
-#include <bsp_common.h>
 #include <assert.h>
 
-#include <arch.h>
-
 #include "interrupt.h"
+#include <asp/arch.h>
+#include <arch/deployment.h>
 
 #include "gdt.h"
 #include "tss.h"
 
 #include "space.h"
 #include <core/sched.h>
-#include <core/partition.h>
-#include <core/partition_arinc.h>
+
+#include <asp/alloc.h>
 
 #define KERNEL_STACK_SIZE 8192
 
-uint8_t current_space_id = (uint8_t)(-1);
-
-/*
- * Arguments of this function must match the layout 
- * of space_context_t
- */
-static void pok_dispatch_space(
-         uint8_t space_id,
-         uint32_t user_pc,
-         uint32_t user_sp,
-         uint32_t kernel_sp,
-         uint32_t arg1,
-         uint32_t arg2)
+void ja_space_layout_get(jet_space_id space_id,
+    struct jet_space_layout* space_layout)
 {
+    assert(space_id != 0 && space_id <= ja_spaces_n);
+
+    space_layout->kernel_addr = (char*)ja_spaces[space_id - 1].phys_base;
+    space_layout->user_addr = (char* __user)POK_PARTITION_MEMORY_BASE;
+    space_layout->size = ja_spaces[space_id - 1].size_normal;
+}
+
+
+jet_space_id current_space_id = 0;
+
+void ja_user_space_jump(
+    jet_stack_t stack_kernel,
+    jet_space_id space_id,
+    void (__user * entry_user)(void),
+    jet_ustack_t stack_user)
+{
+    /*
+     * Reuse layout of interrupt_frame structure, allocated on stack,
+     * for own purposes.
+     * 
+     * Usage of this structure here is unrelated to interrupts
+     * because it is allocated not at the *beginning* of the stack.
+     */
    interrupt_frame   ctx;
    uint32_t          code_sel;
    uint32_t          data_sel;
    uint32_t          sp;
 
-   assert(space_id < pok_partitions_arinc_n); //TODO: fix comparision
+   assert(space_id <= ja_spaces_n); //TODO: fix comparision
 
    code_sel = GDT_BUILD_SELECTOR (GDT_PARTITION_CODE_SEGMENT (space_id), 0, 3);
    data_sel = GDT_BUILD_SELECTOR (GDT_PARTITION_DATA_SEGMENT (space_id), 0, 3);
@@ -64,19 +75,17 @@ static void pok_dispatch_space(
 
    memset (&ctx, 0, sizeof (interrupt_frame));
 
-   pok_arch_preempt_disable ();
-
    ctx.es = ctx.ds = ctx.ss = data_sel;
 
-   ctx.__esp   = (uint32_t) (&ctx.error); /* for pusha */
-   ctx.eip     = user_pc;
-   ctx.eax     = arg1;
-   ctx.ebx     = arg2;
+   // ctx.__esp   = (uint32_t) (&ctx.error); /* for pusha */
+   ctx.eip     = (uint32_t)entry_user;
+   //ctx.eax     = arg1;
+   //ctx.ebx     = arg2;
    ctx.cs      = code_sel;
    ctx.eflags  = 1 << 9 | 3<<12;
-   ctx.esp     = user_sp;
+   ctx.esp     = stack_user;
 
-   tss_set_esp0 (kernel_sp);
+   tss_set_esp0 (stack_kernel);
 
    asm ("mov %0, %%esp		\n"
         "pop %%es		\n"
@@ -89,7 +98,7 @@ static void pok_dispatch_space(
        );
 }
 
-pok_ret_t ja_space_create (uint8_t space_id,
+static void ja_space_create (jet_space_id space_id,
                             uintptr_t addr,
                             size_t size)
 {
@@ -98,84 +107,150 @@ pok_ret_t ja_space_create (uint8_t space_id,
 
    gdt_set_segment (GDT_PARTITION_DATA_SEGMENT (space_id),
          addr, size, GDTE_DATA, 3);
-
-   spaces[space_id].size = size;
-
-   return (POK_ERRNO_OK);
 }
 
-pok_ret_t ja_space_switch (uint8_t space_id)
+void ja_space_init(void)
 {
-    // For kernel space-only partitions do not change space at all.
-    if(space_id != (uint8_t)(-1)) return POK_ERRNO_OK;
+    uintptr_t phys_start = POK_PARTITION_MEMORY_PHYS_START;
+    for(int i = 0; i < ja_spaces_n; i++)
+    {
+        struct ja_x86_space* space = &ja_spaces[i];
+        /* 
+         * Code and data segments should be aligned on 4k;
+         * stack should be aligned on 16; (why?)
+         * total size should be aligned on 4k;
+         */
 
-    if(current_space_id != (uint8_t)(-1)) {
+        size_t size_total_min = ALIGN_VAL(space->size_normal, 16) + space->size_stack;
+        space->size_total = ALIGN_VAL(size_total_min, 0x1000);
+
+        if(space->phys_base == 0)
+        {
+            space->phys_base = ALIGN_VAL(phys_start, 0x1000);
+            phys_start = space->phys_base + space->size_total;
+        }
+        else
+        {
+            assert(space->phys_base >= POK_PARTITION_MEMORY_PHYS_START);
+            assert((space->phys_base & 0xfff) == 0);
+            uintptr_t phys_base_end = space->phys_base + space->size_total;
+            if(phys_start < phys_base_end)
+                phys_start = phys_base_end;
+        }
+        ja_space_create(i + 1, (uintptr_t)space->phys_base, space->size_total);
+    }
+}
+
+void ja_ustack_init (jet_space_id space_id)
+{
+    assert(space_id != 0);
+
+    struct ja_x86_space* space = &ja_spaces[space_id - 1];
+
+    space->size_stack_used = 0;
+}
+
+jet_ustack_t ja_ustack_alloc (jet_space_id space_id, size_t stack_size)
+{
+    assert(space_id != 0);
+
+    struct ja_x86_space* space = &ja_spaces[space_id - 1];
+
+    size_t size_stack_new = space->size_stack_used + ALIGN_VAL(stack_size, 16);
+
+    if(size_stack_new > space->size_stack) return 0;
+
+    jet_ustack_t result = POK_PARTITION_MEMORY_BASE + space->size_total - space->size_stack_used;
+
+    space->size_stack_used = size_stack_new;
+
+    return result;
+}
+
+void ja_space_switch (jet_space_id space_id)
+{
+    if(current_space_id != 0) {
         gdt_disable (GDT_PARTITION_CODE_SEGMENT(current_space_id));
         gdt_disable (GDT_PARTITION_DATA_SEGMENT(current_space_id));
     }
-    gdt_enable (GDT_PARTITION_CODE_SEGMENT(space_id));
-    gdt_enable (GDT_PARTITION_DATA_SEGMENT(space_id));
+    if(space_id != 0) {
+        gdt_enable (GDT_PARTITION_CODE_SEGMENT(space_id));
+        gdt_enable (GDT_PARTITION_DATA_SEGMENT(space_id));
+    }
 
     current_space_id = space_id;
-
-    return (POK_ERRNO_OK);
 }
 
-uint8_t ja_space_get_current (void)
+jet_space_id ja_space_get_current (void)
 {
     return current_space_id;
 }
 
-uint32_t	ja_space_base_vaddr (uint32_t addr)
+// TODO: Storage for floating point registers and operations with it.
+struct jet_fp_store
 {
-   (void) addr;
-   return (0);
+  int todo;
+};
+
+/* 
+ * Allocate place for store floating point registers.
+ * 
+ * May be called only during OS init.
+ */
+struct jet_fp_store* ja_alloc_fp_store(void)
+{
+    struct jet_fp_store* res = ja_mem_alloc_aligned(sizeof(*res), 4);
+    
+    return res;
 }
 
-uint32_t
-ja_space_context_init(
-        uint32_t stack_addr, /*should be `sp`, but it alredy used in code. */
-        uint8_t space_id,
-        uint32_t entry_rel,
-        uint32_t stack_rel,
-        uint32_t arg1,
-        uint32_t arg2)
+/* Save floating point registers into given place. */
+void ja_fp_save(struct jet_fp_store* fp_store)
 {
-    space_context_t *sp = (space_context_t*)(stack_addr - sizeof(space_context_t) - 4);
-    memset (sp, 0, sizeof(*sp));
-    
-    sp->ctx.__esp  = (uint32_t)(&sp->ctx.eip); /* for pusha */
-    sp->ctx.eip    = (uint32_t)pok_dispatch_space;
-    sp->ctx.cs     = GDT_CORE_CODE_SEGMENT << 3;
-    sp->ctx.eflags = 1 << 9 | 3<<12;
-    
-    sp->arg1          = arg1;
-    sp->arg2          = arg2;
-    sp->kernel_sp     = (uint32_t)sp;
-    sp->user_sp       = stack_rel;
-    sp->user_pc       = entry_rel;
-    sp->partition_id  = space_id;
-    
-    return (uint32_t)sp;
+    // TODO
+    (void)fp_store;
 }
 
-//Double check here because these function are called not only in syscall
-//(where there is checking), but also inside kernel
-//TODO: maybe rename to pok_arch_?
-uintptr_t pok_virt_to_phys(uintptr_t virt) {
-    if (POK_CHECK_PTR_IN_PARTITION(pok_current_partition, virt)) {
+/* Restore floating point registers into given place. */
+void ja_fp_restore(struct jet_fp_store* fp_store)
+{
+    // TODO
+    (void)fp_store;
+}
+
+/* Initialize floating point registers with zero. */
+void ja_fp_init(void)
+{
+    // TODO
+}
+
+
+uintptr_t pok_virt_to_phys(uintptr_t virt)
+{
+    struct ja_x86_space* space = &ja_spaces[ja_space_get_current() - 1];
+
+    if((virt < POK_PARTITION_MEMORY_BASE)
+        || (virt > POK_PARTITION_MEMORY_BASE + space->size_total))
+    {
+        // Fatal error despite it is called from user space!!
         printf("pok_virt_to_phys: wrong virtual address %p\n", (void*)virt);
         pok_fatal("wrong pointer in pok_virt_to_phys\n");
     }
-    return virt + current_partition_arinc->base_addr;
+
+    return virt - POK_PARTITION_MEMORY_BASE + space->phys_base;
 }
 
-uintptr_t pok_phys_to_virt(uintptr_t phys) {
-    uintptr_t virt = phys - current_partition_arinc->base_addr;
+uintptr_t pok_phys_to_virt(uintptr_t phys)
+{
+    struct ja_x86_space* space = &ja_spaces[ja_space_get_current() - 1];
 
-    if (POK_CHECK_PTR_IN_PARTITION(pok_current_partition, virt)) {
-        printf("pok_phys_to_virt: wrong virtual address %p\n", (void*)virt);
+    if((phys < space->phys_base)
+        || (phys >= space->phys_base + space->size_total))
+    {
+        // Fatal error despite it is called from user space!!
+        printf("pok_phys_to_virt: wrong physical address %p\n", (void*)phys);
         pok_fatal("wrong pointer in pok_phys_to_virt\n");
     }
-    return virt;
+
+    return phys - space->phys_base + POK_PARTITION_MEMORY_BASE;
 }

@@ -217,6 +217,21 @@ class PartitionHMTable(HMTable):
     def get_action(self, system_state, error_id):
         return self.get_action_generic(system_state, error_id, 'IDLE')
 
+class Space:
+    """
+    Definition of single memory space.
+
+    - size - allocated RAM size in bytes (code + static storage)
+
+    Everything except 'size' should be automatically calculated by arch.
+
+    TODO: This should be make arch-dependent somehow.
+    TODO: Config files uses 'size' as contained stack.
+           Arch code allocates stack from other memory.
+    """
+    def __init__(self, size):
+        self.size = size
+
 # ARINC partition.
 #
 # - name - name of the partition
@@ -228,7 +243,6 @@ class Partition:
         "name", 
         "is_system",
 
-        "size", # allocated RAM size in bytes (code + static storage)
         "num_threads", # number of user threads, _not_ counting init thread and error handler
         "ports_queueing", # list of queuing ports
         "ports_sampling", # list of sampling ports
@@ -247,7 +261,7 @@ class Partition:
         "ports_sampling_system", # list of sampling ports with non-empty protocol set
     ]
 
-    def __init__(self, part_id, name, size):
+    def __init__(self, part_id, name):
         self.name = name
         self.part_id = part_id
 
@@ -259,8 +273,6 @@ class Partition:
         # 'duration' is sum of all timeslots, denoted for partition.
         self.period = None
         self.duration = None
-
-        self.size = size
 
         self.num_threads = 0
 
@@ -581,6 +593,8 @@ class Configuration:
         "channels_sampling", # sampling port channels (connections)
         "network", # NetworkConfiguration object (or None)
 
+        "spaces", # Array of 'Space' objects.
+
         # if this is set, POK writes a special string once 
         # there are no more schedulable threads
         # it's used by test runner as a sign that POK
@@ -588,7 +602,9 @@ class Configuration:
         "test_support_print_when_all_threads_stopped",
     ]
 
-    def __init__(self):
+    def __init__(self, arch):
+        self.arch = arch
+
         self.module_hm_table = ModuleHMTable()
 
         self.partitions = []
@@ -596,6 +612,8 @@ class Configuration:
         self.channels_queueing = []
         self.channels_sampling = []
         self.network = None
+
+        self.spaces = []
 
         self.test_support_print_when_all_threads_stopped = False
 
@@ -623,7 +641,7 @@ class Configuration:
             part_id_real = self.next_partition_id
             self.next_partition_id += 1
 
-        part = Partition(part_id_real, part_name, part_size)
+        part = Partition(part_id_real, part_name)
         part.set_index(len(self.partitions))
 
         self.partitions.append(part)
@@ -631,6 +649,8 @@ class Configuration:
 
         if part_id is not None:
             self.partition_ids_map[part_id] = part
+
+        self.spaces.append(Space(part_size))
 
         return part
 

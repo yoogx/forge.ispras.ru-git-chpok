@@ -1,0 +1,64 @@
+/*
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
+ *
+ * This program is free software) you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
+ *
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY) without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ * See the GNU General Public License version 3 for more details.
+ */
+#include "interrupt_context_noconfig.h"
+
+#ifdef POK_NEEDS_GDB
+/* Fields of jet_interrupt_context structure with GDB enabled. */
+#else /* POK_NEEDS_GDB */
+/* Fields of jet_interrupt_context structure without GDB. */
+#endif /* POK_NEEDS_GDB */
+OFFSETOF(jet_interrupt_context, cr)
+OFFSETOF(jet_interrupt_context, r0)
+OFFSETOF(jet_interrupt_context, r1)
+OFFSETOF(jet_interrupt_context, r2)
+OFFSETOF(jet_interrupt_context, r3)
+OFFSETOF(jet_interrupt_context, r4)
+OFFSETOF(jet_interrupt_context, r5)
+OFFSETOF(jet_interrupt_context, r6)
+OFFSETOF(jet_interrupt_context, r7)
+OFFSETOF(jet_interrupt_context, r8)
+OFFSETOF(jet_interrupt_context, r9)
+OFFSETOF(jet_interrupt_context, r10)
+OFFSETOF(jet_interrupt_context, r11)
+OFFSETOF(jet_interrupt_context, r12)
+OFFSETOF(jet_interrupt_context, ctr)
+OFFSETOF(jet_interrupt_context, xer)
+OFFSETOF(jet_interrupt_context, srr0)
+OFFSETOF(jet_interrupt_context, srr1)
+OFFSETOF(jet_interrupt_context, lr)
+#ifdef POK_NEEDS_GDB
+/* GDB also need to know non-volatile registers. */
+OFFSETOF(jet_interrupt_context, r13)
+OFFSETOF(jet_interrupt_context, r14)
+OFFSETOF(jet_interrupt_context, r15)
+OFFSETOF(jet_interrupt_context, r16)
+OFFSETOF(jet_interrupt_context, r17)
+OFFSETOF(jet_interrupt_context, r18)
+OFFSETOF(jet_interrupt_context, r19)
+OFFSETOF(jet_interrupt_context, r20)
+OFFSETOF(jet_interrupt_context, r21)
+OFFSETOF(jet_interrupt_context, r22)
+OFFSETOF(jet_interrupt_context, r23)
+OFFSETOF(jet_interrupt_context, r24)
+OFFSETOF(jet_interrupt_context, r25)
+OFFSETOF(jet_interrupt_context, r26)
+OFFSETOF(jet_interrupt_context, r27)
+OFFSETOF(jet_interrupt_context, r28)
+OFFSETOF(jet_interrupt_context, r29)
+OFFSETOF(jet_interrupt_context, r30)
+OFFSETOF(jet_interrupt_context, r31)
+#endif /* POK_NEEDS_GDB */
+
+SIZEOF_STRUCT(jet_interrupt_context)
