@@ -28,18 +28,29 @@
 #include <net/netdevices.h>
 #include <channel_driver.h>
 
+//NKK
+#include "uip.h"
+#include "uip_arp.h"
+#include "timer.h"
+#include "chpok-conf.h"
+#define BUF ((struct uip_eth_hdr *)&uip_buf[0])
+
+extern udp_data_t ipnet_data_0, ipnet_data_1;
+enum appstate uip_state;
+char *msg_buffer;
+size_t msg_buffer_size;
+
 static pok_bool_t initialized = FALSE;
 
 pok_netdevice_t *current_netdevice;
 #define NETDEVICE_PTR current_netdevice
 #define NETWORK_DRIVER_OPS (NETDEVICE_PTR->ops)
 
-static pok_bool_t (*received_callback)(
+pok_bool_t (*received_callback)(
         uint32_t ip,
         uint16_t port,
         const char *payload,
         size_t length);
-
 
 static void flush_send();
 static void reclaim_send_buffers();
@@ -47,193 +58,48 @@ static void reclaim_send_buffers();
 #define POK_NEEDS_ARP_ANSWER
 
 #ifdef POK_NEEDS_ARP_ANSWER
-// ---- ARP support - begin ----
-
-#define ETH_P_ARP 0x0806
-
-struct arp_packet_t {
-    uint16_t htype;
-    uint16_t ptype;
-    uint8_t hlen;
-    uint8_t plen;
-    uint16_t oper;
-    uint8_t sha[ETH_ALEN];
-    uint32_t spa;
-    uint8_t tha[ETH_ALEN];
-    uint32_t tpa;
-} __attribute__((packed));
-
-//static pok_bool_t ether_is_broadcast(const uint8_t addr[ETH_ALEN]) {
-//    for (int i = 0; i < ETH_ALEN; ++i) {
-//        if (addr[i] != 0xFF) {
-//            return 0;
-//        }
-//    }
-//    return 1;
-//}
-static pok_bool_t arp_answer_buffer_is_busy = FALSE;
-
-static void stub_callback(void *arg) {
-    arp_answer_buffer_is_busy = FALSE;
+static void stub_callback(void *arg) 
+{
     printf("ARP: we have sent an answer.\n");
 }
-
-static struct {
-    struct ether_hdr ether_hdr;
-    struct arp_packet_t arp_answer;
-} __attribute__((packed)) arp_answer_buffer;
-
-static void try_arp(const struct ether_hdr *ether_hdr, size_t payload_len) {
-
-    //TODO check that dst is either broadcast or our mac address
-    //if (!ether_is_broadcast(ether_hdr->dst)) {
-    //    return; // This is not an ARP request.
-    //}
-
-    if (ether_hdr->ethertype != hton16(ETH_P_ARP)) {
-        return; // This is not an ARP request.
-    }
-    struct arp_packet_t *arp_packet = (void *) ether_hdr->payload;
-    if (arp_packet->htype != hton16(1)) {
-        return; // We support only Ethernet hardware type.
-    }
-    if (arp_packet->ptype != hton16(ETH_P_IP)) {
-        return; // We support only IPv4 protocol type.
-    }
-    if (arp_packet->hlen != ETH_ALEN || arp_packet->plen != 4) {
-        return; // We support Ethernet MAC and IPv4 addresses only.
-    }
-    if (arp_packet->oper != hton16(1)) {
-        return; // This is not an ARP request.
-    }
-    if (arp_packet->tpa != hton32(pok_network_ip_address)) {
-        return; // This ARP request is not for us.
-    }
-    printf("ARP: we have received a request for our MAC.\n");
-    if (arp_answer_buffer_is_busy) {
-        printf("ARP: answer buffer is yet busy! Unable to answer.");
-        // TODO to wait for freeing somehow.
-        return;
-    }
-    arp_answer_buffer_is_busy = TRUE;
-    int i;
-    for (i = 0; i < ETH_ALEN; i++) {
-        arp_answer_buffer.arp_answer.sha[i] =
-            arp_answer_buffer.ether_hdr.src[i] = NETDEVICE_PTR->mac[i];
-        arp_answer_buffer.arp_answer.tha[i] =
-            arp_answer_buffer.ether_hdr.dst[i] = arp_packet->sha[i];
-    }
-    arp_answer_buffer.ether_hdr.ethertype = hton16(ETH_P_ARP);
-    arp_answer_buffer.arp_answer.htype = arp_packet->htype;
-    arp_answer_buffer.arp_answer.ptype = arp_packet->ptype;
-    arp_answer_buffer.arp_answer.hlen = arp_packet->hlen;
-    arp_answer_buffer.arp_answer.plen = arp_packet->plen;
-    arp_answer_buffer.arp_answer.oper = hton16(2); // This is an ARP answer.
-    arp_answer_buffer.arp_answer.spa = hton32(pok_network_ip_address);
-    arp_answer_buffer.arp_answer.tpa = arp_packet->spa;
-    pok_bool_t sent =
-        NETWORK_DRIVER_OPS->send_frame(
-                NETDEVICE_PTR,
-                (char *) &arp_answer_buffer,
-                sizeof(arp_answer_buffer),
-                stub_callback,
-                NULL);
-    if (!sent) {
-        printf("ARP: unable to send an answer.\n");
-    }
-    flush_send();
-    reclaim_send_buffers();
-}
-// ---- ARP support -  end  ----
 #endif // POK_NEEDS_ARP_ANSWER
 
+//-******************************************************************
+//-********************** packet_received_callback ******************
+//-******************************************************************
 static void packet_received_callback(const char *data, size_t len)
 {
-    // TODO validate checksums, TTL, and all that stuff
-
-    if (len < sizeof(struct ether_hdr)) {
-        printf("Received packet is too small (even Ethernet header doesn't fit).");
-        return;
-    }
-
-    const struct ether_hdr *ether_hdr = (const struct ether_hdr *) data;
-    data += sizeof(*ether_hdr);
-    len -= sizeof(*ether_hdr);
-
-    if (!ether_is_multicast(ether_hdr->dst) &&
-        memcmp(ether_hdr->dst, NETDEVICE_PTR->mac, ETH_ALEN) != 0)
+    printf("in packet_received_callback!\n");
+    uip_state = RECIEVE_STATE;
+    memcpy( uip_buf, data, len );
+    uip_len = len;
+    if(uip_len > 0) 
     {
-        // it's not for us
-        return;
-    }
-
-    if (ether_hdr->ethertype != hton16(ETH_P_IP)) {
-
-#ifdef POK_NEEDS_ARP_ANSWER
-        try_arp(ether_hdr, len); // Manage if it is an ARP packet
-#endif // POK_NEEDS_ARP_ANSWER
-
-        // we don't know anything except IPv4
-        return;
-    }
-
-    const struct ip_hdr *ip_hdr = (const struct ip_hdr *) data;
-
-    if (len < sizeof(struct ip_hdr) || len < (size_t) (ip_hdr->version_len & 0xf) * 4) {
-        printf("Received packet is too small (IP header doesn't fit).\n");
-        return;
-    }
-
-    if (len != ntoh16(ip_hdr->length)) {
-        if (len > ntoh16(ip_hdr->length)) {
-            len = ntoh16(ip_hdr->length);
-        } else {
-            printf("Packet length mismatch (received buffer size vs. specified in IP header).\n");
-            return;
+        if(BUF->type == HTONS(UIP_ETHTYPE_IP))  //Just packet
+        {
+            uip_arp_ipin();
+            uip_input();
+            //Возможно дописать отправку
+        } 
+#ifdef POK_NEEDS_ARP_ANSWER 
+        else if(BUF->type == HTONS(UIP_ETHTYPE_ARP)) //ARP-packet
+        {
+            uip_arp_arpin();
+            if(uip_len > 0)
+            {
+                NETWORK_DRIVER_OPS->send_frame(
+                NETDEVICE_PTR,
+                uip_buf,
+                uip_len + POK_NETWORK_OVERHEAD,
+                stub_callback,
+                NULL
+                );
+                flush_send();
+                reclaim_send_buffers();
+            }
         }
+#endif // POK_NEEDS_ARP_ANSWER
     }
-
-    data += (ip_hdr->version_len & 0xf) * 4;
-    len -= (ip_hdr->version_len & 0xf) * 4;
-
-    if (ip_hdr_checksum(ip_hdr) != 0) {
-        printf("Discarded IP packet with incorrect header checksum.\n");
-        return;
-    }
-    
-    // TODO network broadcast address?
-    if (ip_hdr->dst != hton32(0xFFFFFFFFUL) &&
-        ip_hdr->dst != hton32(pok_network_ip_address))
-    {
-        // it's not for us
-        return;
-    }
-
-    if (ip_hdr->proto != IPPROTO_UDP) {
-        // we don't know anything except UDP
-        return;
-    }
-
-    if (len < sizeof(struct udp_hdr)) {
-        printf("Received IP packet is too small (UDP header doesn't fit).\n");
-        return;
-    }
-
-    const struct udp_hdr *udp_hdr = (const struct udp_hdr *) data;
-
-    if (ntoh16(udp_hdr->length) != len) {
-        printf("Packet length mismatch (received buffer size vs. specified in UDP header).\n");
-        return;
-    }
-    
-    data += sizeof(struct udp_hdr);
-    len -= sizeof(struct udp_hdr);
-
-    received_callback(
-            ntoh32(ip_hdr->dst),
-            ntoh16(udp_hdr->dst_port),
-            udp_hdr->payload, 
-            len);
 }
 
 uint8_t default_mac[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
@@ -248,19 +114,60 @@ uint8_t* find_mac_by_ip(uint32_t dst_ip)
     return default_mac;
 }
 
-void pok_network_init(void)
+//-******************************************************************
+//-********************** pok_network_init **************************
+//-******************************************************************
+void pok_network_init(void) 
 {
+    printf("in pok_network_init!\n");
+    uip_ipaddr_t ipaddr;
+    
+    //Not NKK
     current_netdevice = get_netdevice(ipnet_netdev_name);
 
     if (current_netdevice == NULL) {
         printf("ipnet ERROR: netdevice '%s' not found\n", ipnet_netdev_name);
         return;
     }
-
+    
     NETWORK_DRIVER_OPS->set_packet_received_callback(NETDEVICE_PTR, packet_received_callback);
     initialized = TRUE;
+    
+    //NKK: Set up ip and mac: use real values! 
+    struct uip_eth_addr myethaddr = {{NETDEVICE_PTR->mac[0],
+                                      NETDEVICE_PTR->mac[1],
+                                      NETDEVICE_PTR->mac[2],
+                                      NETDEVICE_PTR->mac[3],
+                                      NETDEVICE_PTR->mac[4],
+                                      NETDEVICE_PTR->mac[5]
+                                    }};
+    uip_ipaddr( ipaddr,
+                ((ipnet_data_1.ip) & 0xff000000) >> 24,
+                ((ipnet_data_1.ip) & 0xff0000) >> 16,
+                ((ipnet_data_1.ip) & 0xff00) >> 8,
+                ((ipnet_data_1.ip) & 0xff)
+              );
+    uip_sethostaddr(ipaddr);                //Host IP (own)
+    uip_ipaddr(ipaddr,
+                ((ipnet_data_0.ip) & 0xff000000) >> 24,
+                ((ipnet_data_0.ip) & 0xff0000) >> 16,
+                ((ipnet_data_0.ip) & 0xff00) >> 8,
+                ((ipnet_data_0.ip) & 0xff)
+              );
+    uip_setdraddr(ipaddr);                  //Router IP
+    uip_ipaddr(ipaddr, 255,255,255,0);
+    uip_setnetmask(ipaddr);
+    uip_setethaddr(myethaddr);              //My MAC
+    printf( "DONE SETUP IP!\n" );
+    //NKK: uip init
+    uip_init();
+    uip_appcall_init();
+    uip_state = IDLE_STATE;
 }
 
+//-******************************************************************
+//-********************** fill_in_udp_header ************************
+//-******************************************************************
 static void fill_in_udp_header(
         char *buffer, 
         size_t size, // size of UDP data
@@ -278,7 +185,7 @@ static void fill_in_udp_header(
     int i;
     uint8_t *dst_mac = find_mac_by_ip(dst_ip);
     for (i = 0; i < ETH_ALEN; i++) {
-        real_buffer->ether_hdr.src[i] = NETDEVICE_PTR->mac[i];
+        real_buffer->ether_hdr.src[i] = NETDEVICE_PTR->mac[i];   //My mac
         real_buffer->ether_hdr.dst[i] = dst_mac[i];
     }
     real_buffer->ether_hdr.ethertype = hton16(ETH_P_IP);
@@ -308,6 +215,9 @@ static void fill_in_udp_header(
     real_buffer->udp_hdr.checksum = 0; // no checksum
 }
 
+//-******************************************************************
+//-********************** pok_network_send_udp **********************
+//-******************************************************************
 pok_bool_t pok_network_send_udp(
     char *buffer,
     size_t size,
@@ -316,23 +226,47 @@ pok_bool_t pok_network_send_udp(
     pok_network_buffer_callback_t callback,
     void *callback_arg)
 {
+    printf("in pok_network_send_udp!\n");
+    printf("size is: %d, it was buffer\n", size);
+    int ii;
+    uip_ipaddr_t addr;
+
     if (!initialized) 
         return FALSE;
 
-    fill_in_udp_header(
-        buffer,
-        size,
-        dst_ip,
-        dst_port
-    );
-
-    return NETWORK_DRIVER_OPS->send_frame(
-        NETDEVICE_PTR,
-        buffer,
-        size + POK_NETWORK_OVERHEAD,
-        callback,
-        callback_arg
-    );
+    uip_state = SEND_STATE;
+    msg_buffer = buffer + POK_NETWORK_UDP;
+    //memcpy( msg_buffer, buffer, size );
+    msg_buffer_size = size;
+                                                                    //memset( msg_buffer, 's', 600 );
+                                                                    //msg_buffer_size = 600;
+    addr[0] =  (dst_ip&0xFFFF0000)>>16;
+    addr[1] = dst_ip&0xFFFF;
+    
+    for(ii = 0; ii < UIP_UDP_CONNS; ++ii) 
+    {
+        printf( "befor uip_udp_periodic(%d)\n", ii );
+        uip_udp_periodic(ii);
+        if ((uip_len > 0)&&
+            (uip_udp_conns[ii].ripaddr[0] == addr[0])&&
+            (uip_udp_conns[ii].rport == dst_port)
+           )
+        {
+            //hexdump(uip_buf, uip_len+POK_NETWORK_OVERHEAD);
+            uip_arp_update( addr, (struct uip_eth_addr *)find_mac_by_ip( dst_ip ) );//New ARP table entry
+            uip_arp_out ();                                 //Create Ethernet header, sendidng ARP
+            
+            return NETWORK_DRIVER_OPS->send_frame(
+                NETDEVICE_PTR,
+                uip_buf,
+                size + POK_NETWORK_OVERHEAD,
+                callback,
+                callback_arg
+                ); 
+        }
+    }
+    printf("pok_network_send_udp: No matching connection found!\n");
+    return;
 }
 
 pok_bool_t pok_network_send_udp_gather(
@@ -354,7 +288,6 @@ pok_bool_t pok_network_send_udp_gather(
         printf("pok_network_send_udp_gather: wrong size of list element");
         return FALSE;
     }
-
 
     size_t payload_length = 0;
     size_t i;
@@ -378,7 +311,6 @@ pok_bool_t pok_network_send_udp_gather(
     );
 }
 
-
 static pok_bool_t send(
         char *buffer,
         size_t buffer_size,
@@ -387,6 +319,7 @@ static pok_bool_t send(
         void *callback_arg
     )
 {
+    printf("in send()\n");
     udp_data_t *udp_data = driver_data;
     return pok_network_send_udp(
             buffer,
@@ -437,4 +370,3 @@ struct channel_driver ipnet_channel_driver = {
     .flush_send = flush_send,
     .register_received_callback = register_received_callback
 };
-
