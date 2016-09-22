@@ -107,6 +107,9 @@ void uip_arp_out(void);
    is responsible for flushing old entries in the ARP table. */
 void uip_arp_timer(void);
 
+//NKK
+void uip_arp_update(u16_t *ipaddr, struct uip_eth_addr *ethaddr);
+
 /** @} */
 
 /**
