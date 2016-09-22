@@ -39,17 +39,15 @@
  */
 
 #include "clock-arch.h"
-#include <sys/time.h>
+#include "core/time.h"
 
 /*---------------------------------------------------------------------------*/
 clock_time_t
 clock_time(void)
 {
-  struct timeval tv;
-  struct timezone tz;
-
-  gettimeofday(&tv, &tz);
-
-  return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    uint64_t time;
+    
+    pok_time_get(&time);
+    return time;
 }
 /*---------------------------------------------------------------------------*/

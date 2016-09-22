@@ -13,7 +13,8 @@ syspart_program = syspart_env.Program(target = 'syspart.lo', source = [
     'net/net.lo',
     'drivers/drivers.lo',
     'config.c',
-    'mem.c'
+    'mem.c',
+    'uip/uip.lo'
 ])
 syspart_env.Depends(syspart_program, env['POK_PATH']+'/libpok/')
 
@@ -21,5 +22,6 @@ Export('syspart_env')
 
 SConscript('net/SConscript')
 SConscript('drivers/SConscript')
+SConscript('uip/SConscript')
 
 # EOF

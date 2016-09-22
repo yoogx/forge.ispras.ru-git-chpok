@@ -1,0 +1,13 @@
+# -*- Mode: Python -*-
+
+Import('syspart_env')
+
+syspart_env.Append(CPPPATH = [syspart_env['POK_PATH']+'/syspart/uip/config',
+			  	syspart_env['POK_PATH']+'/syspart/uip/uip'])
+
+syspart_env.Program(target = 'uip.lo', source = [
+	Glob('./uip/*.c'),
+	Glob('./config/*.c'),
+])
+
+# EOF

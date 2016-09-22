@@ -55,7 +55,7 @@
 #ifndef __UIP_CONF_H__
 #define __UIP_CONF_H__
 
-#include <inttypes.h>
+#include <stdint.h>
 
 /**
  * 8 bit datatype
@@ -111,7 +111,7 @@ typedef unsigned short uip_stats_t;
  *
  * \hideinitializer
  */
-#define UIP_CONF_BYTE_ORDER      LITTLE_ENDIAN
+#define UIP_CONF_BYTE_ORDER      UIP_BIG_ENDIAN
 
 /**
  * Logging on or off
@@ -125,14 +125,14 @@ typedef unsigned short uip_stats_t;
  *
  * \hideinitializer
  */
-#define UIP_CONF_UDP             0
+#define UIP_CONF_UDP             1
 
 /**
  * UDP checksums on or off
  *
  * \hideinitializer
  */
-#define UIP_CONF_UDP_CHECKSUMS   1
+#define UIP_CONF_UDP_CHECKSUMS   0
 
 /**
  * uIP statistics on or off
@@ -141,15 +141,7 @@ typedef unsigned short uip_stats_t;
  */
 #define UIP_CONF_STATISTICS      1
 
-/* Here we include the header file for the application(s) we use in
-   our project. */
-/*#include "smtp.h"*/
-/*#include "hello-world.h"*/
-/*#include "telnetd.h"*/
-#include "webserver.h"
-/*#include "dhcpc.h"*/
-/*#include "resolv.h"*/
-/*#include "webclient.h"*/
+#include "chpok-conf.h"
 
 #endif /* __UIP_CONF_H__ */
 
