@@ -2,7 +2,10 @@
 
 // TODO: add 2 param case (tester2 and other methods to fit it)
 //       comes in handy if the programmer wants to set more then one parameter.
-//       for example, one param is tested, other param is tuned (for instance, timeout of pok_buffer_read), and others are autocompleted
+//       for example,
+//       one param is tested, other param is tuned (for instance, timeout of pok_buffer_read), and others are autocompleted => tuned1_tester1, tuned2_tester1
+//       or
+//       two params needed to setup test: [message + len of message] or [type of sent message + type of received message]
 
 pok_ret_t tester1 (int syscall_id, void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);
 
@@ -30,7 +33,7 @@ TEST_STATUS status;
 // 0 						  - verdict: test failed (nothing happened)
 // 1000						  - verdict: test passed (ERROR HANDLER)
 // ERROR_CODE	     		  - verdict: test passed
-// PARTITION START not NORMAL - verdict is rendered another way)
+// PARTITION START not NORMAL - verdict is rendered another way
 static int TEST_RESULT = 0;
 
 // TODO: add other types of errors

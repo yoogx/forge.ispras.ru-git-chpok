@@ -14,16 +14,21 @@ void entry_point_method(void)
 	return;	
 }
 
-
-
 /*
- * For all wrappers
+ * For all 1-parametrized wrappers
  * 
  * pos - position of tested param
  * 
- * other _n params are autocompleted
+ * other _n params are autocompleted by a wrapper
  * 
- * 
+ * usefull files to write this type of wrappers:
+ * - libpok/arinc653/<name>.c // for example, buffer.c for buffer syscalls
+ * - kernel/include/uapi/<name>_types.h // for example, buffer_types.h for buffer syscalls
+ * - kernel/include/uapi/types.h
+ * - kernel/include/uapi/syscall_map_arinc.h
+ * - libpok/include/uapi/syscall_map_arinc.h
+ * - libpok/include/arinc653/types.h
+ * - kernel/core/intra_arinc.c
  **/
  
 // TODO: fix all parameter types + default values
@@ -273,7 +278,7 @@ pok_ret_t pok_buffer_send_wrapper(void* param, int pos, uint8_t pre_created_id, 
                                       
     // check allowed values at kernel/include/uapi/types.h
     // TODO: check whether it matches the actual size of sent message (does it actually matter?)
-    pok_message_size_t length = 8192; 
+    pok_message_size_t length = 8192;
     
     const pok_time_t timeout  = 0; // TODO: try another values
     
@@ -291,7 +296,7 @@ pok_ret_t pok_buffer_send_wrapper(void* param, int pos, uint8_t pre_created_id, 
 			break;
 	}
 	
-	return ret;                     
+	return ret;
 }
 
 pok_ret_t pok_buffer_receive_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
@@ -334,7 +339,7 @@ pok_ret_t pok_buffer_get_id_wrapper(void* param, int pos, uint8_t pre_created_id
 	pok_ret_t ret = 0;
     
     char* name = (char*) pre_created_name; // pre-created buffer needed (check also with no buffer)
-                        // TODO: check this dangerous cast from const char* to char*
+                        // TODO: check this dangerous cast from 'const char*' to 'char*'
                         //       maybe it would be better to change the syscall signature?
     
     pok_buffer_id_t id; // out
@@ -722,7 +727,7 @@ pok_ret_t pok_error_raise_application_error_wrapper(void* param, int pos)
 	return ret;                     
 }
 
-// check what this syscall does
+// TODO: check what this syscall does
 pok_ret_t pok_error_get_wrapper(void* param, int pos)
 {
 	pok_ret_t ret = 0;
