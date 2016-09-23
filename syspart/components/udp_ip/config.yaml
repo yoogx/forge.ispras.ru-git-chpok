@@ -18,7 +18,7 @@
         type: mac_send_data
 
 - name: UDP_RECEIVER_FILTER
-  additional_h_files: ['"state_structs.h"']
+  additional_h_files: ['"state_structs.h"', '"ip_addr.h"']
   state_struct:
       good_ip_port[10]: struct udp_ip_pair
       good_ip_port_len: size_t
@@ -29,7 +29,12 @@
             send: udp_receive_and_filter
 
 - name: ROUTER
-  additional_h_files: ['"state_structs.h"']
+  additional_h_files: ['"state_structs.h"', '"ip_addr.h"']
   state_struct:
       map_ip_port_to_idx[10]: struct udp_ip_idx_triplet
       map_ip_port_to_idx_len: size_t
+  in_ports:
+      - name: portA
+        type: udp_received
+        implementation:
+            udp_received: receive_packet

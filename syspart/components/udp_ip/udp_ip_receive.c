@@ -22,7 +22,6 @@
 
 #define C_NAME "UDP_RECEIVER_FILTER: "
 
-#define IP_PRINT(X) X>>24&0xff,X>>16&0xff,X>>8&0xff, X&0xff
 
 static int find_ip_port_in_state(UDP_RECEIVER_FILTER_state *state, uint32_t ip, uint16_t udp_port)
 {

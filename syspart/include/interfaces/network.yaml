@@ -26,3 +26,10 @@
       - name: send
         return_type: ret_t
         args_type: [self_t *, char *, size_t]
+
+- name: udp_received
+  additional_h_files: ['<ret_type.h>']
+  functions:
+      - name: udp_received
+        return_type: ret_t
+        args_type: [self_t *, char *, size_t, uint32_t, uint16_t]
