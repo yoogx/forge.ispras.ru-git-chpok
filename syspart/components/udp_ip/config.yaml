@@ -27,6 +27,9 @@
         type: simple_send_data
         implementation:
             send: udp_receive_and_filter
+  out_ports:
+      - name: portB
+        type: udp_received
 
 - name: ROUTER
   additional_h_files: ['"state_structs.h"', '"ip_addr.h"']

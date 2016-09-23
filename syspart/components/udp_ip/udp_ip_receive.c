@@ -71,7 +71,8 @@ ret_t udp_receive_and_filter(UDP_RECEIVER_FILTER *self, char *data, size_t len)
         return EINVAL;
     }
 
-    const struct udp_hdr *udp_hdr = (const struct udp_hdr *) data;
+    //const struct udp_hdr *udp_hdr = (const struct udp_hdr *) data;
+    struct udp_hdr *udp_hdr = (struct udp_hdr *) data;
 
     if (ntoh16(udp_hdr->length) != len) {
         printf(C_NAME"Packet length mismatch (received buffer size vs. specified in UDP header).\n");
@@ -81,16 +82,14 @@ ret_t udp_receive_and_filter(UDP_RECEIVER_FILTER *self, char *data, size_t len)
     if (find_ip_port_in_state(&self->state, ntoh32(ip_hdr->dst), ntoh16(udp_hdr->dst_port))) {
         printf(C_NAME"GOOD UDP PACKET\n");
         hexdump(udp_hdr->payload, len-sizeof(struct udp_hdr));
+        UDP_RECEIVER_FILTER_call_portB_udp_received(self,
+                udp_hdr->payload,
+                len-sizeof(struct udp_hdr),
+                ntoh32(ip_hdr->dst),
+                ntoh16(udp_hdr->dst_port));
         return EOK;
     } else {
         printf(C_NAME"packet not for us %ld.%ld.%ld.%ld:%d\n", IP_PRINT(ntoh32(ip_hdr->dst)), ntoh16(udp_hdr->dst_port));
         return EINVAL;
     }
-
-
-    //received_callback(
-    //        ntoh32(ip_hdr->dst),
-    //        ntoh16(udp_hdr->dst_port),
-    //        udp_hdr->payload,
-    //        len);
 }

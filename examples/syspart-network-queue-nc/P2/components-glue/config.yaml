@@ -68,10 +68,14 @@ components:
 
     - type: UDP_RECEIVER_FILTER
       instances:
-          - name: udp_receiver_filter_1
+          - name: udp_receiver_filter
             state:
                 good_ip_port: '{{IP_ADDR(192, 168, 56, 101), 10001},{IP_ADDR(192, 168, 56, 102), 10005}}'
                 good_ip_port_len: 2
+
+    - type: ROUTER
+      instances:
+          - name: router
 
 links:
     - from:
@@ -134,6 +138,13 @@ links:
         instance: mac_receiver_1
         port: port_UDP
       to:
-        instance: udp_receiver_filter_1
+        instance: udp_receiver_filter
+        port: portA
+
+    - from:
+        instance: udp_receiver_filter
+        port: portB
+      to:
+        instance: router
         port: portA
 
