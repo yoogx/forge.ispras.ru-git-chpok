@@ -19,7 +19,6 @@
 #include <stdio.h>
 
 #include "UDP_RECEIVER_FILTER_gen.h"
-#include "udp_ip_pair.h"
 
 #define C_NAME "UDP_RECEIVER_FILTER: "
 
