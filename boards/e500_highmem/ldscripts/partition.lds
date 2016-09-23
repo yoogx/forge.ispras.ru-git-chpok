@@ -1,4 +1,4 @@
-OUTPUT_FORMAT("elf32-powerpc");
+  OUTPUT_FORMAT("elf32-powerpc");
 OUTPUT_ARCH("powerpc")
 ENTRY(__pok_partition_start)
 
@@ -66,4 +66,6 @@ SECTIONS
           _end = .;
         }
 	__partition_end = . ;
+
+	test_eom = 0x81000000 ;
 }
