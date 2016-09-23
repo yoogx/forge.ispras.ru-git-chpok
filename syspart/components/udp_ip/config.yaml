@@ -34,7 +34,7 @@
 - name: ROUTER
   additional_h_files: ['"state_structs.h"', '"ip_addr.h"']
   state_struct:
-      map_ip_port_to_idx[10]: struct udp_ip_idx_triplet
+      map_ip_port_to_idx[10]: struct udp_ip_pair
       map_ip_port_to_idx_len: size_t
   in_ports:
       - name: portA

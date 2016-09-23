@@ -21,10 +21,4 @@ struct udp_ip_pair {
     uint16_t port;
 };
 
-struct udp_ip_idx_triplet{
-    uint32_t ip;
-    uint16_t port;
-    uint16_t idx; //index of out port of compoponent
-};
-
 #endif
