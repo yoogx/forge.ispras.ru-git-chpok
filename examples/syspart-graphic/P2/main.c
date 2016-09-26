@@ -40,13 +40,12 @@ struct gimp_image {
 
 extern const struct gimp_image gimp_image;
 
-static void draw_image(struct uwrm_scm_direct_fb *fb, int shift)
+static void draw_image(struct uwrm_scm_direct_fb *fb, int x_start, int y_start)
 {
     uint32_t *addr;
-    int y_start = shift;
     for (int y = 0; y < gimp_image.height; y++) {
         for (int x = 0; x < gimp_image.width; x++) {
-            addr = (uint32_t *) fb->back_surface + (y+y_start)*fb->width + x;
+            addr = (uint32_t *) fb->back_surface + (y+y_start)*fb->width + x + x_start;
             uint32_t rgba_color = (((uint32_t*)gimp_image.pixel_data)[y*gimp_image.width + x]);
             *addr = rgba_to_argb(rgba_color);
         }
@@ -57,19 +56,24 @@ static void draw_image(struct uwrm_scm_direct_fb *fb, int shift)
 static void first_process(void)
 {
     RETURN_CODE_TYPE ret;
-    int y = 400;
 
     struct uwrm_scm_direct_fb fb;
     uwrm_scm_get_direct_fb(&fb);
 
+    int y = fb.height - 100;
+    int x = 0;
+
     while (y > 0) {
-        draw_image(&fb, y);
+        draw_image(&fb, x, y);
         uwrm_scm_fb_swap(&fb);
         y--;
-        TIMED_WAIT(SECOND/20, &ret);
+        x++;
+        TIMED_WAIT(SECOND/50, &ret);
     }
     STOP_SELF();
 }
+
+void vga_init();
 
 static int real_main(void)
 {
@@ -106,7 +110,7 @@ static int real_main(void)
     printf("System partition is starting\n");
     pci_init();
     vga_init();
-    p3041_test();
+    //p3041_test();
 
 
     // transition to NORMAL operating mode
