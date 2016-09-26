@@ -18,7 +18,6 @@
 #include <arinc653/time.h>
 
 #include <fb.h>
-
 #define MILLISECOND 1000000
 
 uint32_t rgba_to_argb(uint32_t rgba_color);
@@ -30,7 +29,7 @@ struct gimp_image {
   unsigned char pixel_data[];
 };
 
-extern const struct gimp_image gimp_image;
+extern const struct gimp_image gimp_image; //Image of airplane
 
 
 static void draw_image(struct uwrm_scm_direct_fb *fb, int x_start, int y_start)
