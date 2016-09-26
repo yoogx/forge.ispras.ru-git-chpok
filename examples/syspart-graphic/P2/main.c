@@ -29,46 +29,11 @@
 
 #define SECOND 1000000000LL
 
-uint32_t rgba_to_argb(uint32_t rgba_color);
-
-struct gimp_image {
-  unsigned int  width;
-  unsigned int  height;
-  unsigned int  bytes_per_pixel; /* 2:RGB16, 3:RGB, 4:RGBA */
-  unsigned char pixel_data[];
-};
-
-extern const struct gimp_image gimp_image;
-
-static void draw_image(struct uwrm_scm_direct_fb *fb, int x_start, int y_start)
-{
-    uint32_t *addr;
-    for (int y = 0; y < gimp_image.height; y++) {
-        for (int x = 0; x < gimp_image.width; x++) {
-            addr = (uint32_t *) fb->back_surface + (y+y_start)*fb->width + x + x_start;
-            uint32_t rgba_pixel = (((uint32_t*)gimp_image.pixel_data)[y*gimp_image.width + x]);
-            *addr = rgba_to_argb(rgba_pixel);
-        }
-    }
-}
+void fb_example_run(void);
 
 static void first_process(void)
 {
-    RETURN_CODE_TYPE ret;
-
-    struct uwrm_scm_direct_fb fb;
-    uwrm_scm_get_direct_fb(&fb);
-
-    int y = fb.height - 100;
-    int x = 0;
-
-    while (y > 0) {
-        draw_image(&fb, x, y);
-        uwrm_scm_fb_swap(&fb);
-        y--;
-        x++;
-        TIMED_WAIT(SECOND/50, &ret);
-    }
+    fb_example_run();
     STOP_SELF();
 }
 
