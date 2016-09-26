@@ -22,22 +22,51 @@
 #include <arinc653/sampling.h>
 
 #include <pci.h>
+#include <fb.h>
 //#include <net/network.h>
 //#include <depl.h>
 //#include <port_info.h>
 
 #define SECOND 1000000000LL
 
-void vga_set_y_offset();
+uint32_t rgba_to_argb(uint32_t rgba_color);
+
+struct gimp_image {
+  unsigned int  width;
+  unsigned int  height;
+  unsigned int  bytes_per_pixel; /* 2:RGB16, 3:RGB, 4:RGBA */
+  unsigned char pixel_data[];
+};
+
+extern const struct gimp_image gimp_image;
+
+static void draw_image(struct uwrm_scm_direct_fb *fb, int shift)
+{
+    uint32_t *addr;
+    int y_start = shift;
+    for (int y = 0; y < gimp_image.height; y++) {
+        for (int x = 0; x < gimp_image.width; x++) {
+            addr = (uint32_t *) fb->back_surface + (y+y_start)*fb->width + x;
+            uint32_t rgba_color = (((uint32_t*)gimp_image.pixel_data)[y*gimp_image.width + x]);
+            *addr = rgba_to_argb(rgba_color);
+        }
+    }
+
+}
 
 static void first_process(void)
 {
     RETURN_CODE_TYPE ret;
-    int y = 0;
-    while (y < 400) {
+    int y = 400;
+
+    struct uwrm_scm_direct_fb fb;
+    uwrm_scm_get_direct_fb(&fb);
+
+    while (y > 0) {
+        draw_image(&fb, y);
+        uwrm_scm_fb_swap(&fb);
+        y--;
         TIMED_WAIT(SECOND/20, &ret);
-        vga_set_y_offset(y);
-        y++;
     }
     STOP_SELF();
 }

@@ -21,20 +21,11 @@
 //TODO DELETE
 #include "vbe.h"
 
-#include "fb.h"
-void vga_draw(void);
-
+#include <fb.h>
 struct pci_dev vga_dev;
 char initialized = 0;
 
-struct gimp_image {
-  unsigned int  width;
-  unsigned int  height;
-  unsigned int  bytes_per_pixel; /* 2:RGB16, 3:RGB, 4:RGBA */
-  unsigned char pixel_data[];
-};
 
-extern const struct gimp_image gimp_image;
 
 void vbe_write(uint16_t reg, uint16_t val)
 {
@@ -82,8 +73,6 @@ void vga_init()
 
     vbe_write(VBE_DISPI_INDEX_VIRT_WIDTH, SCREEN_WIDTH);
     initialized = 1;
-
-    vga_draw();
 }
 
 uint32_t rgba_to_argb(uint32_t rgba_color)
@@ -91,41 +80,17 @@ uint32_t rgba_to_argb(uint32_t rgba_color)
     return rgba_color>>8 | (rgba_color&0xff)<<24;
 }
 
-void vga_draw(void)
-{
-    if (!initialized)
-        return;
-
-    struct uwrm_scm_direct_fb fb;
-    uwrm_scm_get_direct_fb(&fb);
-    uint32_t *addr;
-    int start = 0;
-    for (int y = 0; y < gimp_image.height; y++) {
-        for (int x = 0; x < gimp_image.width; x++) {
-            addr = (uint32_t *) fb.back_surface + (y+start)*SCREEN_WIDTH + x;
-            uint32_t rgba_color = (((uint32_t*)gimp_image.pixel_data)[y*gimp_image.width + x]);
-            *addr = rgba_to_argb(rgba_color);
-        }
-    }
-
-    uwrm_scm_fb_swap(&fb);
-}
-
-
-void vga_set_y_offset(int offset)
-{
-//    if (!initialized)
-//        return;
-//    vbe_write(VBE_DISPI_INDEX_Y_OFFSET, offset);
-}
-
 
 #define DEFAULT_FB_DESCRIPTOR 1
 
 int first = 1;
+int fb_initialized = 0;
 
 int uwrm_scm_get_direct_fb(struct uwrm_scm_direct_fb * fb)
 {
+    if (fb_initialized)
+        return UWRM_ERROR;
+    fb_initialized = 1;
     fb->hfb = DEFAULT_FB_DESCRIPTOR;
     fb->back_surface = (uint32_t *)vga_dev.resources[PCI_RESOURCE_BAR0].addr + SCREEN_WIDTH*SCREEN_HEIGHT;
     fb->front_surface = (void *) vga_dev.resources[PCI_RESOURCE_BAR0].addr;
