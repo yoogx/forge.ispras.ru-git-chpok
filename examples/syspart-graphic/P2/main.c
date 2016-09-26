@@ -46,11 +46,10 @@ static void draw_image(struct uwrm_scm_direct_fb *fb, int x_start, int y_start)
     for (int y = 0; y < gimp_image.height; y++) {
         for (int x = 0; x < gimp_image.width; x++) {
             addr = (uint32_t *) fb->back_surface + (y+y_start)*fb->width + x + x_start;
-            uint32_t rgba_color = (((uint32_t*)gimp_image.pixel_data)[y*gimp_image.width + x]);
-            *addr = rgba_to_argb(rgba_color);
+            uint32_t rgba_pixel = (((uint32_t*)gimp_image.pixel_data)[y*gimp_image.width + x]);
+            *addr = rgba_to_argb(rgba_pixel);
         }
     }
-
 }
 
 static void first_process(void)
