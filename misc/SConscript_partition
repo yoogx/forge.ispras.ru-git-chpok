@@ -45,6 +45,7 @@ part_elf = part_env.Program(target = part_build_dir+'part.elf', source = [
 Glob(part_build_dir+'*.c'),
 syspart_lo,
 libpok,
+part_env['LIBGCOV'],
 part_env['LIBGCC']])
 part_env.Depends(part_elf, ldscript)
 

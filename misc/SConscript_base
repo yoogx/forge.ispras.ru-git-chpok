@@ -178,6 +178,7 @@ pok_env.Depends(compile_sizes, pok_env['PARTITIONS'])
 pok_target = pok_env.Program(target = pok_env['BUILD_DIR']+'pok.elf', source = [
 pok_env['BUILD_DIR']+'sizes.o',
 pok_env['BUILD_DIR']+'kernel.lo',
+pok_env['LIBGCOV'],
 pok_env['LIBGCC']])
 pok_env.Depends(pok_target, [compile_sizes, ldscript])
 

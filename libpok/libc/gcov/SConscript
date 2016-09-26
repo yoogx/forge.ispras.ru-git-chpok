@@ -19,11 +19,8 @@
 
 Import('libpok_env')
 
-gcov   = SConscript('gcov/SConscript')
-stdio  = SConscript('stdio/SConscript')
-string = SConscript('string/SConscript')
-stdlib = SConscript('stdlib/SConscript')
+gcov = libpok_env.StaticObject(source = Glob('*.c'))
 
-Return('gcov', 'stdio', 'string', 'stdlib')
+Return('gcov')
 
 # EOF

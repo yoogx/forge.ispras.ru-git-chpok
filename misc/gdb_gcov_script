@@ -1,0 +1,92 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+define gcov_dump
+    python
+import os
+import shutil
+
+bsp = str(gdb.parse_and_eval("$BSP")).replace("\"", "")
+gcov_dir = str(gdb.parse_and_eval("$GCOV_DIR")).replace("\"", "")
+
+if os.path.isdir(gcov_dir):
+    shutil.rmtree(gcov_dir)
+
+shutil.copytree(os.environ["POK_PATH"]+"/build/"+bsp, gcov_dir, ignore=shutil.ignore_patterns("*.o", "*.lo", "*.a"))
+
+if "chpok-ts" in gcov_dir:
+    shutil.copytree("test_environ", gcov_dir+"/test_environ", ignore=shutil.ignore_patterns("*.o", "*.c", "*.h"))
+    end
+
+    set $i = 0
+    while $i < num_used_partitions
+        set $j = part[$i].idx_start
+        while $j < part[$i].idx_end
+            set $filename = entry[$j].filename
+            python
+bsp = str(gdb.parse_and_eval("$BSP")).replace("\"", "")
+gcov_dir = str(gdb.parse_and_eval("$GCOV_DIR")).replace("\"", "")
+
+# filename looks like 0x1e6359 <filenames+497> "absolute_file_path"
+name = str(gdb.parse_and_eval("$filename")).partition("\"")[2]
+
+if "chpok-ts" not in name and "examples" not in name:
+    name = gcov_dir + name.partition(bsp)[2]
+
+if "test_environ" in name:
+    name = gcov_dir + "/test_environ" + name.partition("test_environ")[2]
+
+name = name.replace("\"", "")
+
+gdb.execute('eval "dump binary memory ' + name + ' 0x%x 0x%x", entry[$j].data_start, entry[$j].data_end')
+            end
+
+            set $j++
+        end
+        # collect libpok coverage from multiple partitions
+        # part[0] is actually the kernel, so the first libpok dump will happen at part[1]
+        if $i > 0 && $i < num_used_partitions - 1
+            python
+import os
+import shutil
+
+bsp = str(gdb.parse_and_eval("$BSP")).replace("\"", "")
+gcov_dir = str(gdb.parse_and_eval("$GCOV_DIR")).replace("\"", "")
+build_dir = os.path.join(os.environ["POK_PATH"], "build", bsp)
+
+if os.path.isdir(build_dir):
+    libpok_dir = os.path.join(build_dir, "libpok")
+
+    i = 1
+    part_dir = os.path.join(gcov_dir, "pr" + str(i))
+    while os.path.exists(part_dir):
+        i += 1
+        part_dir = os.path.join(gcov_dir, "pr" + str(i))
+
+    print("Creating directory " + part_dir)
+
+    shutil.copytree(libpok_dir, part_dir, ignore=shutil.ignore_patterns("*.o", "*.lo", "*.a"))
+else:
+    print("No directory %s", build_dir)
+            end
+
+        end
+        set $i++
+    end
+end

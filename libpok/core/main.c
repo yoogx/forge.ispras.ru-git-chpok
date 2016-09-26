@@ -18,10 +18,18 @@
 
 #include <errno.h>
 
+#ifdef POK_NEEDS_GCOV
+   #include <libc/gcov.h>
+#endif
+
 int main();
 
 int __pok_partition_start ()
 {
+#ifdef POK_NEEDS_GCOV
+   pok_gcov_init();
+#endif
+
    main(); /* main loop from user */
    return (0);
 }

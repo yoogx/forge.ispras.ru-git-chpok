@@ -33,6 +33,7 @@
 #include <core/partition_arinc.h>
 #include <core/channel.h>
 #include <core/boot.h>
+#include <gcov.h>
 #include <libc.h>
 
 #include <core/instrumentation.h>
@@ -42,6 +43,10 @@ void pok_boot ()
    kernel_state = POK_SYSTEM_STATE_OS_MOD; // TODO: is this choice for state right?
    pok_arch_init();
    pok_bsp_init();
+
+#ifdef POK_NEEDS_GCOV
+   pok_gcov_init();
+#endif
 
 #ifdef POK_NEEDS_NETWORKING
    pok_network_init();

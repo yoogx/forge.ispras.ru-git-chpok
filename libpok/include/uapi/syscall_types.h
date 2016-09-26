@@ -128,6 +128,9 @@ typedef enum
      POK_SYSCALL_MEM_VIRT_TO_PHYS                    = 701,
      POK_SYSCALL_MEM_PHYS_TO_VIRT                    = 702,
      POK_SYSCALL_GET_BSP_INFO                        = 703,
+#ifdef POK_NEEDS_GCOV
+     POK_SYSCALL_GCOV_INIT                           = 801,
+#endif
 } pok_syscall_id_t;
 
 #endif /* __LIBJET_SYSCALL_TYPES_H__ */
