@@ -45,7 +45,7 @@ void vbe_write(uint16_t reg, uint16_t val)
 #define VGA_PAS 0x20 //palette address source. val 1 enables display.
 
 #define SCREEN_WIDTH 800
-#define SCREEN_HIGHT 600
+#define SCREEN_HEIGHT 600
 #define SCREEN_BPP VBE_DISPI_BPP_32
 
 void vga_init()
@@ -73,7 +73,7 @@ void vga_init()
 
     vbe_write(VBE_DISPI_INDEX_ENABLE, 0);
     vbe_write(VBE_DISPI_INDEX_XRES, SCREEN_WIDTH);
-    vbe_write(VBE_DISPI_INDEX_YRES, SCREEN_HIGHT);
+    vbe_write(VBE_DISPI_INDEX_YRES, SCREEN_HEIGHT);
     vbe_write(VBE_DISPI_INDEX_BPP, SCREEN_BPP);
     vbe_write(VBE_DISPI_INDEX_ENABLE, 1);
 
@@ -86,24 +86,69 @@ void vga_init()
     vga_draw();
 }
 
+uint32_t rgba_to_argb(uint32_t rgba_color)
+{
+    return rgba_color>>8 | (rgba_color&0xff)<<24;
+}
+
 void vga_draw(void)
 {
     if (!initialized)
         return;
+
+    struct uwrm_scm_direct_fb fb;
+    uwrm_scm_get_direct_fb(&fb);
     uint32_t *addr;
-    int start = 400;
+    int start = 0;
     for (int y = 0; y < gimp_image.height; y++) {
         for (int x = 0; x < gimp_image.width; x++) {
-            addr = (uint32_t *) vga_dev.resources[PCI_RESOURCE_BAR0].addr + (y+start)*SCREEN_WIDTH + x;
+            addr = (uint32_t *) fb.back_surface + (y+start)*SCREEN_WIDTH + x;
             uint32_t rgba_color = (((uint32_t*)gimp_image.pixel_data)[y*gimp_image.width + x]);
-            *addr = rgba_color>>8 | (rgba_color&0xff)<<24;
+            *addr = rgba_to_argb(rgba_color);
         }
     }
+
+    uwrm_scm_fb_swap(&fb);
 }
+
 
 void vga_set_y_offset(int offset)
 {
-    if (!initialized)
-        return;
-    vbe_write(VBE_DISPI_INDEX_Y_OFFSET, offset);
+//    if (!initialized)
+//        return;
+//    vbe_write(VBE_DISPI_INDEX_Y_OFFSET, offset);
 }
+
+
+#define DEFAULT_FB_DESCRIPTOR 1
+
+int first = 1;
+
+int uwrm_scm_get_direct_fb(struct uwrm_scm_direct_fb * fb)
+{
+    fb->hfb = DEFAULT_FB_DESCRIPTOR;
+    fb->back_surface = (uint32_t *)vga_dev.resources[PCI_RESOURCE_BAR0].addr + SCREEN_WIDTH*SCREEN_HEIGHT;
+    fb->front_surface = (void *) vga_dev.resources[PCI_RESOURCE_BAR0].addr;
+    fb->width = SCREEN_WIDTH;
+    fb->height = SCREEN_HEIGHT;
+    fb->format = UWRM_FORMAT_ARGB8888;
+
+    return UWRM_OK;
+}
+
+int uwrm_scm_fb_swap(struct uwrm_scm_direct_fb *fb)
+{
+    if (fb->hfb != DEFAULT_FB_DESCRIPTOR)
+        return UWRM_ERROR;
+
+    void *tmp = fb->front_surface;
+    fb->front_surface = fb->back_surface;
+    fb->back_surface = tmp;
+
+    vbe_write(VBE_DISPI_INDEX_Y_OFFSET, SCREEN_HEIGHT*first);
+
+    first = 1-first;
+
+    return UWRM_OK;
+}
+
