@@ -6,6 +6,7 @@ typedef int uwrm_handle;
 enum FB_FORMAT {
     UWRM_FORMAT_RGB888,
     UWRM_FORMAT_RGBA8888,
+    UWRM_FORMAT_ARGB8888,
     UWRM_FORMAT_RGB565,
 };
 
@@ -23,6 +24,8 @@ struct uwrm_scm_direct_fb {
     int format; //enum FB_FORMAT
 };
 
-int uwrm_scm_get_direct_fb(struct uwrm_scm_direct_fb * fb);
+int uwrm_scm_get_direct_fb(struct uwrm_scm_direct_fb *fb);
+
+int uwrm_scm_fb_swap(struct uwrm_scm_direct_fb *fb);
 
 #endif
