@@ -80,14 +80,11 @@ ret_t udp_receive_and_filter(UDP_RECEIVER_FILTER *self, char *data, size_t len)
     }
 
     if (find_ip_port_in_state(&self->state, ntoh32(ip_hdr->dst), ntoh16(udp_hdr->dst_port))) {
-        printf(C_NAME"GOOD UDP PACKET\n");
-        hexdump(udp_hdr->payload, len-sizeof(struct udp_hdr));
-        UDP_RECEIVER_FILTER_call_portB_udp_received(self,
+        return UDP_RECEIVER_FILTER_call_portB_udp_received(self,
                 udp_hdr->payload,
                 len-sizeof(struct udp_hdr),
                 ntoh32(ip_hdr->dst),
                 ntoh16(udp_hdr->dst_port));
-        return EOK;
     } else {
         printf(C_NAME"packet not for us %ld.%ld.%ld.%ld:%d\n", IP_PRINT(ntoh32(ip_hdr->dst)), ntoh16(udp_hdr->dst_port));
         return EINVAL;

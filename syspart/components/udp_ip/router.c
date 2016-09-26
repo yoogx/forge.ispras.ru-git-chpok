@@ -25,5 +25,7 @@
 ret_t receive_packet(ROUTER *self, char *payload, size_t payload_size, uint32_t ip, uint16_t port)
 {
     printf(C_NAME"packet from %ld.%ld.%ld.%ld:%d\n", IP_PRINT(ip), port);
+    printf(C_NAME"GOOD UDP PACKET\n");
+    hexdump(payload, payload_size);
     return EOK;
 }
