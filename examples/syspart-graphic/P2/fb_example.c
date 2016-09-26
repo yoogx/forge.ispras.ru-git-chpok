@@ -19,7 +19,7 @@
 
 #include <fb.h>
 
-#define SECOND 1000000000LL
+#define MILLISECOND 1000000
 
 uint32_t rgba_to_argb(uint32_t rgba_color);
 
@@ -60,6 +60,6 @@ void fb_example_run(void)
         uwrm_scm_fb_swap(&fb);
         y--;
         x++;
-        TIMED_WAIT(SECOND/50, &ret);
+        TIMED_WAIT(MILLISECOND, &ret);
     }
 }
