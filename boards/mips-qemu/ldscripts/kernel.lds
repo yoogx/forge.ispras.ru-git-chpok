@@ -1,7 +1,6 @@
-OUTPUT_FORMAT("elf32-tradbigmips");
-OUTPUT_ARCH("mips")
+OUTPUT_FORMAT("elf32-powerpc");
+OUTPUT_ARCH("powerpc")
 ENTRY(_pok_reset)
-
 
 SECTIONS
 {
@@ -74,6 +73,13 @@ SECTIONS
     *(.sbss2 .sbss2.* .gnu.linkonce.sb2.*)
     . = ALIGN(4);
     __sbss2_end = .;
+  }
+  .eh_frame :
+  {
+  .eh_frame_start = .;
+  *(.eh_frame*)
+  . = ALIGN (4);
+  .eh_frame_end = .;
   }
   .bss  :
   {

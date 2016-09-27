@@ -25,85 +25,64 @@
 #include "msr.h"
 #include "space.h"
 #include "devtree.h"
-#include <bsp_common.h>
+#include "bsp/bsp.h"
+#include <asp/bsp_common.h>
+#include <core/uaccess.h>
+#include "timer.h"
 
-pok_ret_t pok_arch_init ()
+/**
+ * Function that initializes architecture concerns.
+ *
+ * Called from entry.S.
+ */
+void pok_arch_init (void)
 {
- /*MSR_IP |*/   mtsr(Status_XX);
+  mtmsr(MSR_IP | MSR_FP);
 
-#if POK_NEEDS_PARTITIONS
   pok_arch_space_init();
-#endif
 
-  return (POK_ERRNO_OK);
+  ja_bsp_init();
+
+  ja_time_init();
 }
 
-pok_ret_t pok_arch_preempt_disable()
+void ja_preempt_disable(void)
 {
-
-  asm("DI");
-
-  return (POK_ERRNO_OK);
+  mtmsr(mfmsr() & ~MSR_EE);
 }
 
-pok_ret_t pok_arch_preempt_enable()
+void ja_preempt_enable(void)
 {
-
-  asm("EI");
-
-  return (POK_ERRNO_OK);
+  mtmsr(mfmsr() | MSR_EE);
 }
 
-pok_bool_t pok_arch_preempt_enabled(void)
+pok_bool_t ja_preempt_enabled(void)
 {
-  return !!(mfsr() & Status_IE);
+  return !!(mfmsr() & MSR_EE);
 }
 
-void pok_arch_inf_loop()
+void ja_inf_loop(void)
 {
-   pok_arch_preempt_disable();
-
-   while (1)
-   {}
-}
-
-pok_ret_t pok_arch_idle()
-{
-   pok_arch_preempt_enable();
-
    while (1)
    {
+      asm("wait": : :"memory");
    }
-
-   return (POK_ERRNO_OK);	
 }
-
-pok_ret_t pok_arch_event_register (uint8_t vector, void (*handler)(void))
-{
-  (void) vector;
-  (void) handler;
-
-  return (POK_ERRNO_OK);
-}
-
-
-uint32_t    ja_thread_stack_addr   (uint8_t    space_id,
-                                     uint32_t stack_size,
-                                     uint32_t* state)
-{
-   uint32_t result = POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE - 16 - (*state);
-   // TODO: Check boundaries.
-   (void) space_id;
-   *state += stack_size;
-   return result;
-}
-
 
 #include <arch/linux_io.h>
 #define DCFG_RSTCR 0xb0
 #define RSTCR_RESET_REQ 0x2
-void pok_arch_cpu_reset()
+void ja_cpu_reset(void)
 {
     uintptr_t addr = pok_bsp.ccsrbar_base + pok_bsp.dcfg_offset + DCFG_RSTCR;
     out_be32((void*)addr, RSTCR_RESET_REQ);
+}
+
+pok_ret_t pok_bsp_get_info(void * __user addr) {
+    pok_bsp_t* __kuser k_addr = jet_user_to_kernel(addr, sizeof(pok_bsp_t));
+    if(!k_addr) return POK_ERRNO_EFAULT;
+
+    *k_addr = pok_bsp;
+
+    return POK_ERRNO_OK;
 }

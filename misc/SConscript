@@ -42,7 +42,7 @@ def print_cmd_line(s, target, src, env):
 try:
     Import('env')
 except:
-    boards = ['e500mc', 'e500_highmem', 'p3041', 'x86-qemu']
+    boards = ['e500mc', 'e500_highmem', 'p3041', 'x86-qemu', 'mips-qemu']
     default_board = 'e500mc'
 
     vars = Variables()
@@ -92,7 +92,8 @@ bsp_arch_dict = {
     'e500mc':          'ppc',
     'e500_highmem':    'ppc',
     'p3041':           'ppc',
-    'x86-qemu':        'x86'
+    'x86-qemu':        'x86',
+    'mips-qemu':       'mips'
 }
 env['ARCH'] = bsp_arch_dict[env['BSP']]
 
@@ -110,17 +111,20 @@ env['LIBPOK_CPPPATH'] = [
 
 arch_prefix_dict = {
     'ppc':    'powerpc-elf-',
-    'x86':    'i386-elf-'
+    'x86':    'i386-elf-',
+    'mips':   'mips-linux-gnu-'
 }
 
 arch_gdb_dict = {
     'ppc':    'powerpc-elf-gdb',
-    'x86':    'i386-elf-gdb'
+    'x86':    'i386-elf-gdb',
+    'mips':   'mips-linux-gnu-gdb'
 }
 
 arch_qemu_dict = {
     'ppc':    'qemu-system-ppc',
-    'x86':    'qemu-system-i386'
+    'x86':    'qemu-system-i386',
+    'mips':   '~/workspace/Niisi/niisi/qemu/mips64-softmmu/qemu-system-mips64'
 }
 
 tools_dict = {
@@ -157,6 +161,7 @@ cflags_arch_dict = {
     # TODO: Add infrastructure to enable/disable compile time parameters
     # Quick and dirty hack: currently GDB suport is broken on x86 -- disable it
     'x86':    ' -O0 -DPOK_DISABLE_GDB'
+    'mips':   ' -O0'
 }
 env.Append(CFLAGS = cflags_arch_dict[env['ARCH']])
 
@@ -166,7 +171,8 @@ bsp_cpu_dict = {
     'e500mc':          ' -mcpu=e500mc',
     'e500_highmem':    ' -mcpu=e500mc',
     'p3041':           ' -mcpu=e500mc',
-    'x86-qemu':        ''
+    'x86-qemu':        '',
+    'mips-qemu':       ''
 }
 env.Append(CFLAGS = bsp_cpu_dict[env['BSP']])
 
@@ -181,7 +187,8 @@ bsp_qemu_dict = {
     'e500mc':          ' -M ppce500 -cpu e500mc',
     'e500_highmem':    ' -M ppce500 -cpu e500mc',
     'p3041':           ' -M ppce500 -cpu e500mc',
-    'x86-qemu':        ''
+    'x86-qemu':        '',
+    'mips-qemu':       ' -machine duna'
 }
 env.Append(QEMU_FLAGS = bsp_qemu_dict[env['BSP']])
 
@@ -191,7 +198,7 @@ env.Append(QEMU_FLAGS = ' -kernel '+env['BUILD_DIR']+'pok.elf')
 
 env.Command('run_cmd', [], env['QEMU']+env['QEMU_FLAGS'])
 env.Alias('run', 'run_cmd')
-
+print(env['QEMU']+env['QEMU_FLAGS'])
 env.Command('run_tap_cmd', [], env['QEMU'] + env['QEMU_FLAGS'] + ' -net nic,model=virtio -net tap,ifname=tap0,script=no,downscript=no')
 env.Alias('run-tap', 'run_tap_cmd')
 

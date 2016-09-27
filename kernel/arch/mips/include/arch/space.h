@@ -13,12 +13,13 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __JET_PPC_UACCESS_H__
-#define __JET_PPC_UACCESS_H__
+/* (Memory) space. */
 
-#define JET_ARCH_DECLARE_USER_TO_KERNEL 1
+#ifndef __JET_PPC_SPACE_H__
+#define __JET_PPC_SPACE_H__
 
-#define ja_user_to_kernel(addr) ((void*)(addr))
-#define ja_user_to_kernel_ro(addr) ((const void*)(addr))
+#include <stdint.h>
 
-#endif /* __JET_PPC_UACCESS_H__ */
+typedef uint32_t jet_ustack_t;
+
+#endif /* __JET_PPC_SPACE_H__ */

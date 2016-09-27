@@ -49,34 +49,6 @@
 #define MSR_RI_LG       1               /* Recoverable Exception */
 #define MSR_LE_LG       0               /* Little Endian */
 
-
-#define Status_XX_LG       31              /* Разрешает выполнение вещественных инструкций с кодом COP1X*/
-#define Status_FR_LG       26              /* Контролирует режим работы вещественного регистрового файла (регистрового файла CP1)*/
-#define Status_PX_LG       23              /* Обеспечивает доступ к 64-разрядным инструкциям в пользовательском режиме (User)*/
-#define Status_BEV_LG      22              /* Контролирует размещение векторов исключений*/
-#define Status_SR_LG       20              /* Показывает, что возникло исключение Soft Reset*/
-#define Status_NMI_LG      19              /* Показывает, что возникло исключение NMI*/
-#define Status_CH_LG       18              /* Указывает на попадание или непопадание в кэш второго уровня для последних
-                                                                    инструкций CACHE Hit Invalidate, Hit Write Back Invalidate, или Hit Write Back*/
-#define Status_HE_LG       17              /* Hamming checking Enable – разрешает контроль кода Хемминга в кэш-памяти второго уровня*/
-#define Status_HC_LG       16              /* Hamming Correction enable – разрешает автоматическую коррекцию одиночной ошибки в данных кэш-памяти второго уровня*/
-#define Status_IM7_LG      15              /* (IM7 -прерывания таймера)*/
-#define Status_IM6_LG      14              /*                              */
-#define Status_IM5_LG      13              /*             Номера               */
-#define Status_IM4_LG      12              /*                                      */
-#define Status_IM3_LG      11              /*                  соответствующих         */
-#define Status_IM2_LG      10              /*                                              */
-#define Status_IM1_LG       9              /*                              прерываний          */
-#define Status_IM0_LG       8              /*                                                      */
-#define Status_KX_LG        7              /* Определяет режим разрядности при адресации в режиме Kernel*/
-#define Status_SX_LG        6              /* Определяет режим разрядности при адресации в режиме Supervisor*/
-#define Status_UX_LG        5              /* Определяет режим разрядности при адресации в режиме User*/
-#define Status_ERL_LG       2              /* Error Level. Устанавливается аппаратно при возникновении исключений Reset, Soft Reset, NMI или Cache Error*/
-#define Status_EXL_LG       1              /* Exception Level. Устанавливается аппаратно, если 
-                                                                            происходит исключение, отличное от Reset, Soft Reset, NMI или Cache Error*/
-#define Status_IE_LG        0              /* Разрешение прерываний*/
-
-
 #define __MASK(X)       (1<<(X))
 
 #define MSR_VEC         __MASK(MSR_VEC_LG)      /* Enable AltiVec */
@@ -115,35 +87,5 @@
 
 #define MSR_KERNEL (MSR_ME|MSR_RI|MSR_IR|MSR_DR)
 #define MSR_USER (MSR_KERNEL|MSR_PR|MSR_EE)
-
-#define Status_XX       __MASK(Status_XX_LG)              /* Разрешает выполнение вещественных инструкций с кодом COP1X*/
-#define Status_FP       __MASK(Status_FR_LG)              /* Контролирует режим работы вещественного регистрового файла (регистрового файла CP1)*/
-#define Status_PX       __MASK(Status_PX_LG)              /* Обеспечивает доступ к 64-разрядным инструкциям в пользовательском режиме (User)*/
-#define Status_BEV      __MASK(Status_BEV_LG)             /* Контролирует размещение векторов исключений*/
-#define Status_SR       __MASK(Status_SR_LG)              /* Показывает, что возникло исключение Soft Reset*/
-#define Status_NMI      __MASK(Status_NMI_LG)             /* Показывает, что возникло исключение NMI*/
-#define Status_CH       __MASK(Status_CH_LG)              /* Указывает на попадание или непопадание в кэш второго уровня для последних
-                                                                    инструкций CACHE Hit Invalidate, Hit Write Back Invalidate, или Hit Write Back*/
-#define Status_HE       __MASK(Status_HE_LG)              /* Hamming checking Enable – разрешает контроль кода Хемминга в кэш-памяти второго уровня*/
-#define Status_HC       __MASK(Status_HC_LG)              /* Hamming Correction enable – разрешает автоматическую коррекцию одиночной ошибки в данных кэш-памяти второго уровня*/
-#define Status_IM7      __MASK(Status_IM7_LG)             /* (IM7 -прерывания таймера)*/
-#define Status_IM6      __MASK(Status_IM6_LG)             /*         Маски                */
-#define Status_IM5      __MASK(Status_IM5_LG)             /*                                  */
-#define Status_IM4      __MASK(Status_IM4_LG)             /*             соответствующих          */
-#define Status_IM3      __MASK(Status_IM3_LG)             /*                                          */
-#define Status_IM2      __MASK(Status_IM2_LG)             /*                       прерываний             */
-#define Status_IM1      __MASK(Status_IM1_LG)             /*                                                  */
-#define Status_IM0      __MASK(Status_IM0_LG)             /*                              (по номерам)            */
-#define Status_KX       __MASK(Status_KX_LG)              /* Определяет режим разрядности при адресации в режиме Kernel*/
-#define Status_SX       __MASK(Status_SX_LG)              /* Определяет режим разрядности при адресации в режиме Supervisor*/
-#define Status_UX       __MASK(Status_UX_LG)              /* Определяет режим разрядности при адресации в режиме User*/
-#define Status_ERL      __MASK(Status_ERL_LG)             /* Error Level. Устанавливается аппаратно при возникновении исключений Reset, Soft Reset, NMI или Cache Error*/
-#define Status_EXL      __MASK(Status_EXL_LG)             /* Exception Level. Устанавливается аппаратно, если 
-                                                                            происходит исключение, отличное от Reset, Soft Reset, NMI или Cache Error*/
-#define Status_IE       __MASK(Status_IE_LG)              /* Разрешение прерываний*/
-
-
-
-
 
 #endif

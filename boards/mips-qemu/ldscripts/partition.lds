@@ -1,5 +1,5 @@
-OUTPUT_FORMAT("elf32-tradbigmips");
-OUTPUT_ARCH("mips")
+OUTPUT_FORMAT("elf32-powerpc");
+OUTPUT_ARCH("powerpc")
 ENTRY(__pok_partition_start)
 
 SECTIONS

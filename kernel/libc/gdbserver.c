@@ -11,9 +11,9 @@
 #define MULTIPROCESS
 
 /*
- * For e500mc: ~/qemu/ppc-softmmu/qemu-system-ppc -serial stdio -serial pty -M ppce500 -cpu e500mc -kernel pok.elf
+ * For e500mc: qemu-system-ppc -serial stdio -serial pty -M ppce500 -cpu e500mc -kernel pok.elf
  *
- * For i386:  qemu-system-i386 -serial stdio -serial pty -kernel pok.elf
+ * For i386:   qemu-system-i386 -serial stdio -serial pty -kernel pok.elf
  *
  */
 

@@ -31,7 +31,7 @@ if part_is_system:
 part_env.Append(CFLAGS = ' -include '+part_env['POK_PATH']+'libpok/include/config.h')
 
 ldscript = part_env['POK_PATH']+'boards/'+part_env['BSP']+'/ldscripts/partition.lds'
-part_env['LINKFLAGS'] = str(' -T '+ldscript+' -Map '+part_build_dir+'part.elf.map')
+#part_env['LINKFLAGS'] = str(' -T '+ldscript+' -Map '+part_build_dir+'part.elf.map')
 
 libpok = part_env['POK_PATH']+'build/'+part_env['BSP']+'/libpok/libpok.a'
 

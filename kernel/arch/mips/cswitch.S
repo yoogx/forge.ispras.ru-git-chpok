@@ -16,187 +16,135 @@
  * Copyright (c) 2007-2009 POK team
  */
 
-/* FP_START must be equal to offsetof(context_t, fp0) */
-#define FP_START 140
-#define SAVE_FP(num) swc1 $f##num,(140+8*num)(sp)
-#define LOAD_FP(num) lwc1 $f##num,(140+8*num)(sp)
-/* FRAME_SIZE must be equal to offsetof(context_t, back_chain) */
-#define sp      $29 
-#define a0      $4      /* argument registers */
-#define a1      $5
-#define a2      $6
-#define a3      $7
-#define FRAME_SIZE 404 /* 352 + 52*/
+#include "asm_offsets_stack_frame.h"
+#include "asm_offsets_context.h"
+
+#define FRAME_SIZE SIZEOF_jet_context
         .text
+
+/* Restore context from current stack. */
+CONTEXT_RESTORE:
+        lwz     %r31,OFFSETOF_jet_context_r31(%r1)
+        lwz     %r30,OFFSETOF_jet_context_r30(%r1)
+        lwz     %r29,OFFSETOF_jet_context_r29(%r1)
+        lwz     %r28,OFFSETOF_jet_context_r28(%r1)
+        lwz     %r27,OFFSETOF_jet_context_r27(%r1)
+        lwz     %r26,OFFSETOF_jet_context_r26(%r1)
+        lwz     %r25,OFFSETOF_jet_context_r25(%r1)
+        lwz     %r24,OFFSETOF_jet_context_r24(%r1)
+        lwz     %r23,OFFSETOF_jet_context_r23(%r1)
+        lwz     %r22,OFFSETOF_jet_context_r22(%r1)
+        lwz     %r21,OFFSETOF_jet_context_r21(%r1)
+        lwz     %r20,OFFSETOF_jet_context_r20(%r1)
+        lwz     %r19,OFFSETOF_jet_context_r19(%r1)
+        lwz     %r18,OFFSETOF_jet_context_r18(%r1)
+        lwz     %r17,OFFSETOF_jet_context_r17(%r1)
+        lwz     %r16,OFFSETOF_jet_context_r16(%r1)
+        lwz     %r15,OFFSETOF_jet_context_r15(%r1)
+        lwz     %r14,OFFSETOF_jet_context_r14(%r1)
+        lwz     %r13,OFFSETOF_jet_context_r13(%r1)
+        lwz     %r2,OFFSETOF_jet_context_r2(%r1)
+        lwz     %r0,OFFSETOF_jet_context_cr(%r1)
+        mtcr    %r0
+        lwz     %r1,OFFSETOF_jet_stack_frame_back_chain(%r1)
+        lwz     %r0,OFFSETOF_jet_stack_frame_lr(%r1)
+        mtlr    %r0
+        blr
+
         .globl ja_context_switch
 ja_context_switch:
         /* r3: *old_sp, r4: new_sp */
-        .set    noat
-        /* Save registers.  */
-        sw    sp, -FRAME_SIZE(sp)                  
-        
-        
-        /* SAVE LR REGISTER!!! FIXIT*/
-        sw      $31,FRAME_SIZE+4(sp)
-        
-        sw      $1, 12(sp)
-        mfc1    $1, $24 /* FCCR */
-        sw      $1, 8(sp)
-        
-        mfhi    $1                             
-        sw      $1, 136(sp) 
-        mflo    $1            
-        sw      $1, 140(sp) 
-        
-        sw      $2, 16(sp) 
-        sw      $3, 20(sp) 
-        sw      $4, 24(sp) 
-        sw      $5, 28(sp) 
-        sw      $6, 32(sp) 
-        sw      $7, 36(sp) 
-        sw      $8, 40(sp) 
-        sw      $9, 44(sp) 
-        sw      $10, 48(sp)
-        sw      $11, 52(sp)
-        sw      $12, 56(sp)
-        sw      $13, 60(sp)
-        sw      $14, 64(sp)
-        sw      $15, 68(sp)
-        sw      $16, 72(sp)
-        sw      $17, 76(sp)
-        sw      $18, 80(sp)
-        sw      $19, 84(sp)
-        sw      $20, 88(sp)
-        sw      $21, 92(sp)
-        sw      $22, 96(sp)
-        sw      $23, 100(sp)
-        sw      $24, 104(sp)
-        sw      $25, 108(sp)
-        sw      $26, 112(sp)
-        sw      $27, 116(sp)
-        sw      $28, 120(sp)
-        sw      $29, 124(sp)
-        sw      $30, 128(sp)
-        sw      $31, 132(sp)
-        SAVE_FP (0)
-        SAVE_FP (1)
-        SAVE_FP (2)
-        SAVE_FP (3)
-        SAVE_FP (4)
-        SAVE_FP (5)
-        SAVE_FP (6)
-        SAVE_FP (7)
-        SAVE_FP (8)
-        SAVE_FP (9)
-        SAVE_FP (10)
-        SAVE_FP (11)
-        SAVE_FP (12)
-        SAVE_FP (13)
-        SAVE_FP (14)
-        SAVE_FP (15)
-        SAVE_FP (16)
-        SAVE_FP (17)
-        SAVE_FP (18)
-        SAVE_FP (19)
-        SAVE_FP (20)
-        SAVE_FP (21)
-        SAVE_FP (22)
-        SAVE_FP (23)
-        SAVE_FP (24)
-        SAVE_FP (25)
-        SAVE_FP (26)
-        SAVE_FP (27)
-        SAVE_FP (28)
-        SAVE_FP (29)
-        SAVE_FP (30)
-        SAVE_FP (31)
-        
-        
-        /* Switch stack. */
-        sw      sp, 0(a0)
-        move      sp, a1       
-        
-        
-        /* Restore registers.  */
-        LOAD_FP (31)
-        LOAD_FP (30)
-        LOAD_FP (29)
-        LOAD_FP (28)
-        LOAD_FP (27)
-        LOAD_FP (26)
-        LOAD_FP (25)
-        LOAD_FP (24)
-        LOAD_FP (23)
-        LOAD_FP (22)
-        LOAD_FP (21)
-        LOAD_FP (20)
-        LOAD_FP (19)
-        LOAD_FP (18)
-        LOAD_FP (17)
-        LOAD_FP (16)
-        LOAD_FP (15)
-        LOAD_FP (14)
-        LOAD_FP (13)
-        LOAD_FP (12)
-        LOAD_FP (11)
-        LOAD_FP (10)
-        LOAD_FP (9)
-        LOAD_FP (8)
-        LOAD_FP (7)
-        LOAD_FP (6)
-        LOAD_FP (5)
-        LOAD_FP (4)
-        LOAD_FP (3)
-        LOAD_FP (2)
-        LOAD_FP (1)         
-        LOAD_FP (0)
 
-        lw      $31, 132(sp)
-        lw      $30, 128(sp)
-        lw      $29, 124(sp)
-        lw      $28, 120(sp)
-        lw      $27, 116(sp)
-        lw      $26, 112(sp)
-        lw      $25, 108(sp)
-        lw      $24, 104(sp)
-        lw      $23, 100(sp)
-        lw      $22, 96(sp)
-        lw      $21, 92(sp)
-        lw      $20, 88(sp)
-        lw      $19, 84(sp)
-        lw      $18, 80(sp)
-        lw      $17, 76(sp)
-        lw      $16, 72(sp)
-        lw      $15, 68(sp)
-        lw      $14, 64(sp)
-        lw      $13, 60(sp)
-        lw      $12, 56(sp)
-        lw      $11, 52(sp)
-        lw      $10, 48(sp)
-        lw      $9, 44(sp) 
-        lw      $8, 40(sp) 
-        lw      $7, 36(sp) 
-        lw      $6, 32(sp) 
-        lw      $5, 28(sp) 
-        lw      $4, 24(sp) 
-        lw      $3, 20(sp) 
-        lw      $2, 16(sp) 
-        
-        lw      $1, 140(sp) 
-        mtlo    $1            
-        lw      $1, 136(sp) 
-        mthi    $1                             
-        
-        lw      $1, 8(sp)
-        mtc1    $1, $24 /* FCCR */
-        
-        lw      $1, 12(sp)
-        
-        /* Load LR REGISTER!!! FIXIT*/
-        lw      $31, 4(sp)
-        
-        .set    at
-        /*maybe it can be better*/
-        jr      $31
-        
+        /* Form stack frame */
+        stwu    %r1,-FRAME_SIZE(%r1)
+        mflr    %r0
+        stw     %r0,FRAME_SIZE + OFFSETOF_jet_stack_frame_lr(%r1)
+        /* Save registers.  */
+        mfcr    %r0
+        stw     %r0,OFFSETOF_jet_context_cr(%r1)
+        stw     %r2,OFFSETOF_jet_context_r2(%r1)
+        stw     %r13,OFFSETOF_jet_context_r13(%r1)
+        stw     %r14,OFFSETOF_jet_context_r14(%r1)
+        stw     %r15,OFFSETOF_jet_context_r15(%r1)
+        stw     %r16,OFFSETOF_jet_context_r16(%r1)
+        stw     %r17,OFFSETOF_jet_context_r17(%r1)
+        stw     %r18,OFFSETOF_jet_context_r18(%r1)
+        stw     %r19,OFFSETOF_jet_context_r19(%r1)
+        stw     %r20,OFFSETOF_jet_context_r20(%r1)
+        stw     %r21,OFFSETOF_jet_context_r21(%r1)
+        stw     %r22,OFFSETOF_jet_context_r22(%r1)
+        stw     %r23,OFFSETOF_jet_context_r23(%r1)
+        stw     %r24,OFFSETOF_jet_context_r24(%r1)
+        stw     %r25,OFFSETOF_jet_context_r25(%r1)
+        stw     %r26,OFFSETOF_jet_context_r26(%r1)
+        stw     %r27,OFFSETOF_jet_context_r27(%r1)
+        stw     %r28,OFFSETOF_jet_context_r28(%r1)
+        stw     %r29,OFFSETOF_jet_context_r29(%r1)
+        stw     %r30,OFFSETOF_jet_context_r30(%r1)
+        stw     %r31,OFFSETOF_jet_context_r31(%r1)
+
+        /* Switch stacks. */
+        stw     %r1,0(%r3)
+        mr      %r1, %r4
+
+        b CONTEXT_RESTORE
         .size ja_context_switch, . - ja_context_switch
+
+        .globl ja_context_jump
+ja_context_jump:
+        /* r3: new_sp */
+        mr      %r1, %r3
+        b CONTEXT_RESTORE
+        .size ja_context_jump, . - ja_context_jump
+
+        .globl ja_context_restart
+ja_context_restart:
+        /* r3: stack, r4: entry */
+        /* Calculate in r5 relative stack offset for stwux: */
+        sub %r5, %r3, %r1
+        subi %r5, %r5, SIZEOF_jet_stack_frame_null
+        li %r6, 0 /* 0 should be stored into first back chain*/
+        stwux %r6, %r1, %r5
+        mtlr %r4
+        /* Nullify other registers (0, 2-5, 7-31). */
+        mr %r0, %r6
+        mr %r2, %r6
+        mr %r3, %r6
+        mr %r4, %r6
+        mr %r5, %r6
+        mr %r7, %r6
+        mr %r8, %r6
+        mr %r9, %r6
+        mr %r10, %r6
+        mr %r11, %r6
+        mr %r12, %r6
+        mr %r13, %r6
+        mr %r14, %r6
+        mr %r15, %r6
+        mr %r16, %r6
+        mr %r17, %r6
+        mr %r18, %r6
+        mr %r19, %r6
+        mr %r20, %r6
+        mr %r21, %r6
+        mr %r22, %r6
+        mr %r23, %r6
+        mr %r24, %r6
+        mr %r25, %r6
+        mr %r26, %r6
+        mr %r27, %r6
+        mr %r28, %r6
+        mr %r29, %r6
+        mr %r30, %r6
+        mr %r31, %r6
+        
+        blr
+        .size ja_context_restart, . - ja_context_restart
+
+        .globl ja_context_restart_and_save
+ja_context_restart_and_save:
+        /* r3: stack, r4: entry, r5 - address to save resulted context */
+        subi %r6, %r3, SIZEOF_jet_stack_frame_null
+        stw %r6, 0(%r5)
+        b ja_context_restart
+        .size ja_context_restart_and_save, . - ja_context_restart_and_save
