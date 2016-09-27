@@ -29,6 +29,7 @@
 #include <uapi/semaphore_types.h>
 #include <uapi/event_types.h>
 #include <uapi/error_arinc_types.h>
+#include <uapi/msection.h>
 
 pok_ret_t pok_thread_create(const char* __user name,
     void* __user entry,
@@ -153,6 +154,19 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_FIND(const pok_sy
     return pok_thread_find(
         (const char* __user)args->arg1,
         (pok_thread_id_t* __user)args->arg2);
+}
+
+
+pok_ret_t jet_resched(void);
+static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_RESCHED(const pok_syscall_args_t* args)
+{
+    return jet_resched();
+}
+pok_ret_t jet_msection_enter_helper(struct msection* __user section);
+static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MSECTION_ENTER_HELPER(const pok_syscall_args_t* args)
+{
+    return jet_msection_enter_helper(
+        (struct msection* __user)args->arg1);
 }
 
 #ifdef POK_NEEDS_PARTITIONS

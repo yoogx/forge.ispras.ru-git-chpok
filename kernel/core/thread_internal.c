@@ -26,7 +26,13 @@ pok_bool_t thread_create(pok_thread_t* t)
         t->user_stack_size);
     
     if(t->init_stack_addr == 0) return FALSE;
-    
+
+    // Initialize thread shared data
+    struct jet_thread_shared_data* tshd_t = part->kshd->tshd
+	+ (t - part->threads);
+    tshd_t->msection_count = 0;
+    tshd_t->msection_entering = NULL;
+
     /* 
      * Do not modify stack here: it will be filled when thread will run.
      */
@@ -37,9 +43,15 @@ pok_bool_t thread_create(pok_thread_t* t)
     
     t->priority = t->base_priority;
     t->state = POK_STATE_STOPPED;
-    
+
     t->suspended = FALSE;
-    
+
+    t->relations_stop.donate_target = NULL;
+    t->relations_stop.first_donator = NULL;
+    t->relations_stop.next_donator = NULL;
+
+    t->msection_entering = NULL;
+
     delayed_event_init(&t->thread_deadline_event);
     delayed_event_init(&t->thread_delayed_event);
     INIT_LIST_HEAD(&t->wait_elem);
@@ -163,6 +175,8 @@ void thread_stop(pok_thread_t* t)
         t->is_unrecoverable = FALSE;
         part->nthreads_unrecoverable--;
     }
+
+    t->msection_entering = NULL;
 }
 
 void thread_start(pok_thread_t* t)

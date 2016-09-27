@@ -17,28 +17,14 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-# List of headers which are used both by kernel and user.
-uapi_headers = [
-    'blackboard_types.h',
-    'buffer_types.h',
-    'errno.h',
-    'error_arinc_types.h',
-    'event_types.h',
-    'kernel_shared_data.h',
-    'msection.h',
-    'partition_arinc_types.h',
-    'partition_types.h',
-    'port_types.h',
-    'semaphore_types.h',
-    'syscall_types.h',
-    'thread_types.h',
-    'types.h',
-]
+import os
 
-# List of headers files, described syscalls, for generate.
-# Filenames do not include `.in` suffix.
-uapi_headers_syscall = [
-    'syscall_map_arinc.h'
-]
+cflags = ''
+SConscript(os.environ['POK_PATH']+'/misc/SConscript', exports = 'cflags')
 
-Return('uapi_headers', 'uapi_headers_syscall')
+Import('env')
+SConscript(env['POK_PATH']+'/misc/SConscript_base')
+
+env.Clean('chpok', env['POK_PATH']+'/build/')
+env.Clean('local', ['build/', [pdir+'/build' for pdir in env['PARTITION_DIRS']]])
+# EOF

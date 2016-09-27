@@ -75,7 +75,7 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
 #endif
 
       SYSCALL_ENTRY(POK_SYSCALL_THREAD_CREATE)
-      
+
 #ifdef POK_NEEDS_THREAD_SLEEP
       SYSCALL_ENTRY(POK_SYSCALL_THREAD_SLEEP)
 #endif
@@ -99,8 +99,11 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
    SYSCALL_ENTRY(POK_SYSCALL_THREAD_REPLENISH)
    SYSCALL_ENTRY(POK_SYSCALL_THREAD_STOP)
    SYSCALL_ENTRY(POK_SYSCALL_THREAD_STOPSELF)
-   
+
    SYSCALL_ENTRY(POK_SYSCALL_THREAD_FIND)
+
+   SYSCALL_ENTRY(POK_SYSCALL_RESCHED)
+   SYSCALL_ENTRY(POK_SYSCALL_MSECTION_ENTER_HELPER)
 
 #ifdef POK_NEEDS_PARTITIONS
    SYSCALL_ENTRY(POK_SYSCALL_PARTITION_SET_MODE)
@@ -210,16 +213,10 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
        /*
         * Unrecognized system call ID.
         */
-#ifdef POK_NEEDS_ERROR_HANDLING
-         //TODO
-         //POK_ERROR_CURRENT_THREAD(POK_ERROR_KIND_ILLEGAL_REQUEST);
-         //pok_sched(); 
-#else
-         #ifdef POK_NEEDS_DEBUG
+#ifdef POK_NEEDS_DEBUG
             printf ("Tried to use syscall %d\n", syscall_id);
-         #endif
-         POK_FATAL ("Unknown syscall");
 #endif
+         pok_raise_error(POK_ERROR_ID_ILLEGAL_REQUEST, TRUE, NULL);
          break;
    }
 

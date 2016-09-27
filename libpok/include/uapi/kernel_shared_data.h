@@ -23,19 +23,36 @@
 
 #include <types.h>
 #include <uapi/partition_arinc_types.h>
-
-typedef uint16_t jet_thread_id_t;
-/*
- * Special value of type jet_thread_id_t, which cannot be id of actual thread.
- */
-#define JET_THREAD_ID_NONE (jet_thread_id_t)(-1)
+#include <uapi/msection.h>
 
 /* Data about the thread, shared between kernel and user spaces. */
 struct jet_thread_shared_data
 {
-    // TODO: Which data should be there?
-    int unused;
+    /* 
+     * Count of currently entered msections.
+     * 
+     * This value is controlled from user space and checked in kernel.
+     * 
+     * DEV: Actually kernel needs only zero-or-not comparision.
+     */
+    uint16_t msection_count;
+    /* 
+     * If thread is currently entering msection, this is a pointer to it.
+     * 
+     * If thread is switched with this field is set, switching back
+     * to the thread automatically enters into the critical section.
+     * 
+     * DEV: This field is needed only on single-CPU for omit CAS
+     * instruction on section entering.
+     */
+    struct msection* volatile msection_entering;
+
+    /* User space may "signal" kernel by setting these flags. */
+    volatile uint8_t thread_kernel_flags;
 };
+
+/* Thread is killed. When last msection is leaved, jet_sched() should be called. */
+#define THREAD_KERNEL_FLAG_KILLED 1
 
 /* Instance of this struct will be shared between kernel and user spaces. */
 struct jet_kernel_shared_data
@@ -47,7 +64,7 @@ struct jet_kernel_shared_data
      * all running threads.
      */
     pok_partition_mode_t partition_mode;
-    
+
     /* 
      * Set by the kernel, read by the user.
      * 
@@ -58,15 +75,15 @@ struct jet_kernel_shared_data
      * 
      * DEV: When porting to multicore, this should be stored in the register.
      */
-    jet_thread_id_t current_thread_id;
-    
+    pok_thread_id_t current_thread_id;
+
     /*
      * Actually, accessed only by the user.
      * 
      * Set once before partition's entry is executed.
      * Read when need to check process_id from ARINC.
      */
-    jet_thread_id_t main_thread_id;
+    pok_thread_id_t main_thread_id;
 
     /*
      * Set by the kernel when error thread is created.
@@ -77,15 +94,15 @@ struct jet_kernel_shared_data
      * 
      * Race is impossible, as the field is changed in INIT mode.
      */
-    jet_thread_id_t error_thread_id;
-    
+    pok_thread_id_t error_thread_id;
+
     /* 
      * Maximum number of threads.
      * 
      * TODO: Does partition really need that info?
      */
-    jet_thread_id_t max_n_threads;
-    
+    pok_thread_id_t max_n_threads;
+
     /* Open-bounds array of thread shared data. */
     struct jet_thread_shared_data tshd[];
 };

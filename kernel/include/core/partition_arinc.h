@@ -62,6 +62,24 @@ typedef struct _pok_patition_arinc
 
     pok_thread_t*          thread_current; // Normal thread or special thread. NULL if doing nothing.
 
+    /* 
+     * Thread, selected according to scheduling algorithm.
+     * 
+     * Selected thread may differ from current one, if selected
+     * thread wants to enter into critical section, which already has an owner,
+     * or selected thread kills a thread, which is currently in critical section.
+     */
+    pok_thread_t*          thread_selected;
+
+    /*
+     * When current thread releases given msection, it should be preempted.
+     * 
+     * If thread_selected != thread_current but waiting_section is NULL,
+     * then preemption should be occured when current thread leaves
+     * all sections and terminates.
+     */
+    struct msection*        waiting_section;
+
 
     pok_port_queuing_t*    ports_queuing; /* List of queuing ports. Set in deployment.c. */
     size_t                 nports_queuing;
@@ -261,5 +279,16 @@ pok_ret_t pok_current_partition_get_status (pok_partition_status_t* status);
 pok_ret_t pok_current_partition_inc_lock_level(int32_t *lock_level);
 
 pok_ret_t pok_current_partition_dec_lock_level(int32_t *lock_level);
+
+
+/*
+ * Raise error about inconsistent state of OS.
+ * 
+ * User space may modify part of OS state directly writting some memory
+ * cells. This is faster than syscalls, but may lead to inconsistent state
+ * of OS. When kernel code detects inconsistency, it should call this function.
+ */
+// TODO: this should raise partition-level error.
+#define assert_os(expr) assert(expr)
 
 #endif /* !__POK_PARTITION_ARINC_H__ */

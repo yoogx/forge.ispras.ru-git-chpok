@@ -43,6 +43,7 @@
 #include <uapi/semaphore_types.h>
 #include <uapi/event_types.h>
 #include <uapi/error_arinc_types.h>
+#include <uapi/msection.h>
 
 SYSCALL_DECLARE(POK_SYSCALL_THREAD_CREATE, pok_thread_create,
    const char*, name,
@@ -105,6 +106,11 @@ SYSCALL_DECLARE(POK_SYSCALL_THREAD_STOPSELF, pok_thread_stop)
 SYSCALL_DECLARE(POK_SYSCALL_THREAD_FIND, pok_thread_find,
    const char*, name,
    pok_thread_id_t*, id)
+
+
+SYSCALL_DECLARE(POK_SYSCALL_RESCHED, jet_resched)
+SYSCALL_DECLARE(POK_SYSCALL_MSECTION_ENTER_HELPER, jet_msection_enter_helper,
+   struct msection*, section)
 
 #ifdef POK_NEEDS_PARTITIONS
 //! User name - pok_partition_set_mode

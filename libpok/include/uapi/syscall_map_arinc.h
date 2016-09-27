@@ -29,6 +29,7 @@
 #include <uapi/semaphore_types.h>
 #include <uapi/event_types.h>
 #include <uapi/error_arinc_types.h>
+#include <uapi/msection.h>
 
 static inline pok_ret_t pok_thread_create(const char* name,
     void* entry,
@@ -169,6 +170,21 @@ static inline pok_ret_t pok_thread_find(const char* name,
 }
 // Syscall should be accessed only by function
 #undef POK_SYSCALL_THREAD_FIND
+
+
+static inline pok_ret_t jet_resched(void)
+{
+    return pok_syscall0(POK_SYSCALL_RESCHED);
+}
+// Syscall should be accessed only by function
+#undef POK_SYSCALL_RESCHED
+static inline pok_ret_t jet_msection_enter_helper(struct msection* section)
+{
+    return pok_syscall1(POK_SYSCALL_MSECTION_ENTER_HELPER,
+        (uint32_t)section);
+}
+// Syscall should be accessed only by function
+#undef POK_SYSCALL_MSECTION_ENTER_HELPER
 
 #ifdef POK_NEEDS_PARTITIONS
 static inline pok_ret_t pok_partition_set_mode_current(pok_partition_mode_t mode)

@@ -1,0 +1,35 @@
+Scenario for simple usage of mutual sections(msections).
+
+Two processes are created within single partition.
+
+The first process with low priority starts immediately after switching into NORMAL mode.
+The process enters into the msection and do some work.
+
+The second process with high priority starts 20 ms after switching into NORMAL mode.
+It also wants to enter into the msection, but the msection is busy.
+
+Because the msection is already entered by the first process, it continues
+its execution for the time of the second process. But when the first process
+leaves the msection, control is immediately returned to the second process.
+
+Possible partition's output is:
+
+---
+First process starts.
+First process has been entered mutual section.
+pok_gdb_thread
+Second process starts.
+First process is leaving the section.
+Second process has been entered mutual section.
+Second process is leaving the section.
+Second process is finishing.
+First process is finishing.
+---
+
+Note, that while the first process leaves msection first, it is finished
+only after the second process.
+
+(TODO: Not sure why, but it is possible for the second process to start
+before the first one.
+In that case msection is useless: because of high priority, the second
+process do all its work until STOP(). Only then the first process runs.)

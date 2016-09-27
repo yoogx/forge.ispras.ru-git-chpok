@@ -13,13 +13,6 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-/**
- * \file    core/thread.c
- * \author  Julien Delange
- * \date    2008-2009
- * \brief   Thread management in kernel
- */
-
 #include <config.h>
 
 #include <types.h>
@@ -38,6 +31,7 @@
 #include <core/uaccess.h>
 
 #include <system_limits.h>
+#include <core/syscall.h>
 
 
 /*
@@ -234,11 +228,14 @@ static pok_ret_t thread_delayed_start_internal (pok_thread_t* thread,
 												pok_time_t delay)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
-    
+
     pok_time_t thread_start_time;
-    
+
+    struct jet_thread_shared_data* tshd = part->kshd->tshd
+        + (thread - part->threads);
+
     assert(!pok_time_is_infinity(delay));
-    
+
     if (thread->state != POK_STATE_STOPPED) {
         return POK_ERRNO_UNAVAILABLE;
     }
@@ -246,16 +243,20 @@ static pok_ret_t thread_delayed_start_internal (pok_thread_t* thread,
     if (!pok_time_is_infinity(thread->period) && delay >= thread->period) {
         return POK_ERRNO_EINVAL;
     }
-    
+
     thread->priority = thread->base_priority;
 	thread->sp = 0;
-  
+
+    tshd->msection_count = 0;
+    tshd->msection_entering = NULL;
+    tshd->thread_kernel_flags = 0;
+
 	if(part->mode != POK_PARTITION_MODE_NORMAL)
 	{
 		/* Delay thread's starting until normal mode. */
 		thread->delayed_time = delay;
 		thread->state = POK_STATE_WAITING;
-		
+
 		return POK_ERRNO_OK;
 	}
 
@@ -269,7 +270,7 @@ static pok_ret_t thread_delayed_start_internal (pok_thread_t* thread,
 		thread_start_time = get_next_periodic_processing_start() + delay;
 		thread->next_activation = thread_start_time + thread->period;
 	}
-	
+
 	if(!pok_time_is_infinity(thread->time_capacity))
 		thread_set_deadline(thread, thread_start_time + thread->time_capacity);
 
@@ -509,23 +510,76 @@ suspend_timed:
 
 pok_ret_t pok_thread_stop_target(pok_thread_id_t id)
 {
+    pok_partition_arinc_t* part = current_partition_arinc;
+
     pok_ret_t ret = POK_ERRNO_PARAM;
 
     pok_thread_t *t = get_thread_by_id(id);
     if(!t) return POK_ERRNO_PARAM;
 
-	// can's stop self
+	pok_thread_t* thread_current = part->thread_current;
+
+    // can's stop self
 	// use pok_thread_stop to do that
-    if (t == current_thread) return POK_ERRNO_THREADATTR;
-    
+    if (t == thread_current) return POK_ERRNO_THREADATTR;
+
+    struct jet_thread_shared_data* tshd_target = part->kshd->tshd
+        + (t - part->threads);
+
     pok_preemption_local_disable();
-    
+
     ret = POK_ERRNO_UNAVAILABLE;
-    if (t->state == POK_STATE_STOPPED) goto out;
+    if (t->state == POK_STATE_STOPPED)
+    {
+        // Target process is already stopped.
+        goto out;
+    }
 
-	thread_stop(t);
+    if(t->relations_stop.donate_target != NULL)
+    {
+        /* target waits other thread to stop. */
+        if(!t->relations_stop.first_donator)
+        {
+            t->relations_stop.first_donator = thread_current;
+            ret = POK_ERRNO_OK;
+        }
 
-	ret = POK_ERRNO_OK;
+        // Add ourselves into the list of "donators" *after* the target.
+        thread_current->relations_stop.donate_target = t->relations_stop.donate_target;
+        thread_current->relations_stop.next_donator = t->relations_stop.next_donator;
+        t->relations_stop.next_donator = thread_current;
+    }
+    else if(t->relations_stop.first_donator != NULL)
+    {
+        /* Someone else waits for the target. */
+        // Add ourselves into the beginning of the list of "donators".
+        thread_current->relations_stop.donate_target = t;
+        thread_current->relations_stop.next_donator = t->relations_stop.first_donator;
+        t->relations_stop.first_donator = thread_current;
+    }
+    else if(tshd_target->msection_count != 0)
+    {
+        /* target currently owners the section. Cannot kill it immediately. */
+        //TODO: Interrupt possible waiting on section.
+        thread_current->relations_stop.donate_target = t;
+        thread_current->relations_stop.next_donator = NULL;
+        t->relations_stop.first_donator = thread_current;
+
+        ret = POK_ERRNO_OK;
+
+        tshd_target->thread_kernel_flags = THREAD_KERNEL_FLAG_KILLED;
+    }
+    else
+    {
+        // Target thread can be stopped immediately.
+        ret = POK_ERRNO_OK;
+        thread_stop(t);
+
+        goto out;
+    }
+    // Notify scheduler that threads cannot continue its execution now.
+    pok_sched_local_invalidate();
+
 out:
 	pok_preemption_local_enable();
 
@@ -539,6 +593,16 @@ pok_ret_t pok_thread_stop(void)
 
     pok_preemption_local_disable();
 
+    // Thread cannot executed anything in donation state.
+    assert(t->relations_stop.donate_target == NULL);
+    // While already stopped, thread shouldn't stop itself.
+    assert_os(t->relations_stop.first_donator == NULL);
+    /*
+     * It is *possible* for thread to be stopped while in msection.
+     * But this cannot hurt kernel.
+     * 
+     * TODO: Should additional os-check to be added?
+     */
     thread_stop(t);
 
 #ifdef POK_NEEDS_ERROR_HANDLING
@@ -651,6 +715,31 @@ out:
     pok_preemption_local_enable();
 
     return ret;
+}
+
+pok_ret_t jet_msection_enter_helper(struct msection* __user section)
+{
+    pok_partition_arinc_t* part = current_partition_arinc;
+    pok_thread_t* thread_current = part->thread_current;
+
+    struct msection* __kuser msection_entering = jet_user_to_kernel_typed(section);
+
+    assert_os(msection_entering);
+
+    pok_preemption_local_disable();
+
+    if(msection_entering->owner != 0
+        && msection_entering->owner != thread_current - part->threads)
+    {
+        // Set thread as entering into the section ...
+        thread_current->msection_entering = msection_entering;
+        // And let scheduler to do all the work.
+        pok_sched_local_invalidate();
+    }
+
+    pok_preemption_local_enable();
+
+    return POK_ERRNO_OK;
 }
 
 /*********************** Wait queues **********************************/
