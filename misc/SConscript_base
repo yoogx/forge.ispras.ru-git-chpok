@@ -35,7 +35,7 @@ def get_pok_definitions(source, env):
     root = etree.parse(source.path)
     root.xinclude()
 
-    parser = arinc653_xml_conf.ArincConfigParser()
+    parser = arinc653_xml_conf.ArincConfigParser(env['ARCH'])
     conf = parser.parse(root)
 
     return dict(conf=conf)
@@ -46,8 +46,8 @@ def get_pok_partition_definitions(source, env):
     root = etree.parse(source.path)
     root.xinclude()
 
-    parser = arinc653_xml_conf.ArincConfigParser()
-    conf = chpok_configuration.Configuration()
+    parser = arinc653_xml_conf.ArincConfigParser(env['ARCH'])
+    conf = chpok_configuration.Configuration(env['ARCH'])
     parser.parse_partition(conf, root)
 
     return dict(part = conf.partitions[0])
@@ -62,7 +62,7 @@ def get_pok_gdb_definitions(source, env):
 
 root = etree.parse(os.path.join(env['SCONSTRUCT_DIR'], env['xml']))
 root.xinclude()
-parser = arinc653_xml_conf.ArincConfigParser()
+parser = arinc653_xml_conf.ArincConfigParser(env['ARCH'])
 conf_layout = parser.parse_layout(root)
 
 env['PARTITION_DIRS'] = list(part.name for part in conf_layout)
@@ -115,7 +115,8 @@ env.TemplateRender(
 		[os.path.join(env['SCONSTRUCT_DIR'], part_dir, env['xml']) for part_dir in partition_build_dirs],
 	create_definitions_func = get_pok_gdb_definitions,
 	template_main = "GDB_commands",
-	template_dir = env['POK_PATH'] + "/misc/templates"
+	template_dir = env['POK_PATH'] + "/misc/templates",
+	GENERATE_TITLE = template_generation.generate_title_python
 	)
 
 pok_env = env.Clone()

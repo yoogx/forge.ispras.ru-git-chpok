@@ -64,15 +64,15 @@ typedef struct
 #define EXCEPTION_MACHINE_CHECK		18
 #define EXCEPTION_SIMD_FAULT		19
 
-void  pok_idt_set_gate(uint16_t index,
-                       uint16_t segsel,
-                       uint32_t offset,
-                       e_idte_type t,
-                       int dpl);
-pok_ret_t pok_idt_init();
-pok_ret_t pok_exception_init();
-pok_ret_t pok_event_init();
-pok_ret_t pok_syscall_init();
+// TODO: Currently this is hardcoded exception vector for syscall. This value is used in libpok.
+#define EXCEPTION_SYSCALL 42
+
+void  pok_idt_set_gate(uint8_t     index,
+                       void (*entry)(void),
+                       e_idte_type  t);
+void ja_idt_init(void);
+void ja_exception_init(void);
+void ja_event_init(void);
 
 #endif /* !__POK_X86_EVENT_H__ */
 

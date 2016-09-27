@@ -64,6 +64,7 @@ int getchar(void);
 int getchar2(void);
 void monitor();
 
+/*
 struct  regs{
 #ifdef __PPC__
     uint32_t r1;
@@ -177,6 +178,7 @@ struct  regs{
   uint32_t ss;
 #endif  
 };
+*/
 
 struct T_breakpoint{
     /*
@@ -216,7 +218,9 @@ struct T_breakpoint{
 #endif
 };
 
-void handle_exception (int exceptionVector, struct regs * ea);
+struct jet_interrupt_context;
+
+void handle_exception (int exceptionVector, struct jet_interrupt_context* ea);
 
 void pok_monitor_thread(void);
 void pok_monitor_thread_init(void);

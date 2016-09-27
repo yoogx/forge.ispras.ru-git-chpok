@@ -37,15 +37,11 @@ typedef struct _pok_patition_arinc
     pok_partition_mode_t   mode;           /**< Current mode of the partition */
 
     /* 
-     * Size of the allocated memory segment.
+     * Index in the elf array where partition's image is contained.
      * 
      * Set in deployment.c.
      */
-    uint32_t               size;           
-    uint32_t               base_addr;    /**< The base address inside the whole memory (where the segment is in the whole memory ?) */
-    uint32_t               base_vaddr;   /**< The virtual address of the partition. The address the threads sees when they are executed */
-    
-    uint32_t               user_stack_state; /* State of the use-space allocation. */
+    uint8_t                 elf_id;
 
     pok_time_t             activation; // Not used now
 
@@ -73,7 +69,6 @@ typedef struct _pok_patition_arinc
     pok_port_sampling_t*   ports_sampling; /* List of sampling ports. Set in deployment.c. */
     size_t                 nports_sampling;
 
-
    /*
     * Size of memory pre-allocated for intra-partition communicaton
     * objects.
@@ -83,10 +78,10 @@ typedef struct _pok_patition_arinc
     * 
     * Set in deployment.c
     */
-   size_t                  intra_memory_size; 
+   size_t                  intra_memory_size;
    
    // Memory allocated at init for intra-partition communicaton objects.
-   void*                   intra_memory; 
+   void*                   intra_memory;
    
    /* Size of currently used `intra_memory`. Reseted at partition restart. */
    size_t                  intra_memory_size_used;
@@ -153,7 +148,7 @@ typedef struct _pok_patition_arinc
     uint32_t                nthreads_unrecoverable;
 
 
-    uintptr_t               main_entry;
+    void                    (*main_entry)(void);
     uint32_t                main_user_stack_size;
 
 
@@ -187,7 +182,7 @@ typedef struct _pok_patition_arinc
      * 
      * This is context pointer for switch to it.
      */
-    uint32_t               idle_sp;
+    struct jet_context*               idle_sp;
 } pok_partition_arinc_t;
 
 #define current_partition_arinc container_of(current_partition, pok_partition_arinc_t, base_part)
@@ -265,49 +260,5 @@ pok_ret_t pok_current_partition_get_status (pok_partition_status_t* status);
 pok_ret_t pok_current_partition_inc_lock_level(int32_t *lock_level);
 
 pok_ret_t pok_current_partition_dec_lock_level(int32_t *lock_level);
-
-// utility macro-like functions
-
-
-/**
- * Chech that pointer \a ptr is located in the address space of partition
- * \a pid
- */
-
-/* TODO dirty as hell */
-
-#ifdef __i386__
-#define POK_CHECK_PTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= current_partition_arinc->base_addr && \
-                                             ((uintptr_t)(ptr)) <  current_partition_arinc->base_addr + current_partition_arinc->size\
-                                             )
-
-#define POK_CHECK_VPTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= current_partition_arinc->base_vaddr && \
-                                             ((uintptr_t)(ptr)) <  current_partition_arinc->base_vaddr + current_partition_arinc->size\
-                                             )
-#elif defined(__PPC__)
-#define POK_CHECK_PTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= 0x80000000 && \
-                                             ((uintptr_t)(ptr)) <  0x80000000 + 0x1000000ULL\
-                                             )
-
-#define POK_CHECK_VPTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= 0x80000000 && \
-                                             ((uintptr_t)(ptr)) <  0x80000000 + 0x1000000ULL\
-                                             )
-#elif defined(__mips__)
-#define POK_CHECK_PTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= 0x80000000 && \
-                                             ((uintptr_t)(ptr)) <  0x80000000 + 0x1000000ULL\
-                                             )
-
-#define POK_CHECK_VPTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= 0x80000000 && \
-                                             ((uintptr_t)(ptr)) <  0x80000000 + 0x1000000ULL\
-                                             )
-#else
-#error "POK_CHECK_PTR macros are not implemented for this arch, do it now!"
-#endif
 
 #endif /* !__POK_PARTITION_ARINC_H__ */

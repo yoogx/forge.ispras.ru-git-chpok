@@ -13,8 +13,6 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <types.h>
-
 #define POK_NEEDS_LOCKOBJECTS  1
 #define POK_NEEDS_THREADS      1
 #define POK_NEEDS_PARTITIONS   1
@@ -29,7 +27,7 @@
 #define POK_NEEDS_THREAD_SLEEP 1
 #define POK_NEEDS_THREAD_ID 1
 #define POK_NEEDS_MONITOR 1
-//~ #define POK_NEEDS_GDB 1
+#define POK_NEEDS_GDB 1
 #define POK_NEEDS_PORTS_SAMPLING 1
 #define POK_NEEDS_PORTS_QUEUEING 1
 #define POK_NEEDS_BUFFERS 1
