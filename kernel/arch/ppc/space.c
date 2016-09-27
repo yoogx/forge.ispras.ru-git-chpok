@@ -333,6 +333,7 @@ void pok_arch_handle_page_fault(
             FALSE
         );
     } else {
+#ifdef POK_NEEDS_DEBUG
         if (vctx->srr1 & MSR_PR) {
             printf("USER ");
         } else {
@@ -344,13 +345,8 @@ void pok_arch_handle_page_fault(
         } else {
             printf("code at %p address tried to execute code at %p address\n", (void *)vctx->lr, (void*)vctx->srr0);
         }
-#ifdef PARTITION_DEBUG_MODE
-        pok_fatal("page fault");
-#else
-        printf("raising error in pagefault addr %p  syndrome 0x%lx\n", (void*) faulting_address, syndrome);
-        POK_ERROR_CURRENT_THREAD(POK_ERROR_KIND_MEMORY_VIOLATION);
 #endif
-        //pok_fatal("bad memory access");
+        pok_raise_error(POK_ERROR_ID_MEMORY_VIOLATION, vctx->srr1 & MSR_PR, (void*) faulting_address);
     }
 }
 
