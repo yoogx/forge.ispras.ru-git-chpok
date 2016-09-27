@@ -1,11 +1,11 @@
 #include <config.h>
 
 #ifdef POK_NEEDS_GDB
-#include <gdb.h>
+
 #define PC_REGNUM 64
 #define SP_REGNUM 1
  
-//~ #define DEBUG_GDB
+#define DEBUG_GDB
 #define QEMU
 #define MULTIPROCESS
 
@@ -511,7 +511,6 @@ hex (ch)
 static char remcomInBuffer[BUFMAX];
 static char remcomOutBuffer[BUFMAX];
 
-#ifdef __PPC__
 /* scan for the sequence $<data>#<checksum>     */
 static void
 getpacket(char *buffer)
@@ -575,80 +574,6 @@ getpacket(char *buffer)
     printf("\n");
 #endif
 }
-#endif
-#ifdef __i386__
-unsigned char * getpacket (void)
-{
-#ifdef DEBUG_GDB
-    printf("Lets getpacket <---\n");
-#endif
-    unsigned char *buffer = (unsigned char *) (&remcomInBuffer[0]);
-    unsigned char checksum;
-    unsigned char xmitcsum;
-    int count;
-    char ch;
-
-    while (1)
-    {
-      /* wait around for the start character, ignore all other characters */
-        while ((ch = getDebugChar ()) != '$')
-        ;
-        retry:
-        checksum = 0;
-        xmitcsum = -1;
-        count = 0;
-
-      /* now, read until a # or end of buffer is found */
-        while (count < BUFMAX - 1)
-        {
-            ch = getDebugChar ();
-            if (ch == '$')
-                goto retry;
-            if (ch == '#')
-                break;
-            checksum = checksum + ch;
-            buffer[count] = ch;
-            count = count + 1;
-        }
-        buffer[count] = 0;
-
-        if (ch == '#')
-        {
-            ch = getDebugChar ();
-            xmitcsum = hex (ch) << 4;
-            ch = getDebugChar ();
-            xmitcsum += hex (ch);
-
-            if (checksum != xmitcsum)
-            {
-                putDebugChar ('-');   /* failed checksum */
-            }
-            else
-            {
-          
-            }
-      
-            {
-                putDebugChar ('+');   /* successful transfer */
-
-                /* if a sequence char is present, reply the sequence ID */
-                if (buffer[2] == ':')
-                {
-                    putDebugChar (buffer[0]);
-                    putDebugChar (buffer[1]);
-
-                    return &buffer[3];
-                }
-
-            return &buffer[0];
-            }
-        }
-    }
-#ifdef DEBUG_GDB
-    printf("\n");
-#endif
-}
-#endif
 
 
 /* send the packet in buffer.  */
@@ -735,12 +660,11 @@ asm volatile("dcbst 0, %0; sync; icbi 0,%0; sync; isync" : : "r" (addr));
 #endif
 
 }
-//FIX FOR COMMENT!
 /*
  * Convert the memory pointed to by mem into hex, placing result in buf 
  * return a pointer to the last char put in buf (null) 
  * If MAY_FAULT is non-zero, then we should set mem_err in response to
- * a(WHAT???) fault; if zero treat a fault like any other fault in the stub.  
+ * a fault; if zero treat a fault like any other fault in the stub.  
  */
 char * 
 mem2hex (mem, buf, count, may_fault)
@@ -1425,13 +1349,8 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
 
     remcomOutBuffer[0] = 0;
 
-//FIX FOR X86, where get packet is different    
-#ifdef __PPC__
     getpacket(remcomInBuffer);
-#endif
-#ifdef __i386__
-    remcomInBuffer = getpacket();
-#endif
+
     switch (remcomInBuffer[0]) {
         case 'T':               /*Find out if the thread thread-id is alive*/
             ptr = &remcomInBuffer[1];
@@ -1660,8 +1579,8 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
             mem2hex ((char *) registers, remcomOutBuffer, NUMREGBYTES);
 #endif
 
-        }
             break;
+        }
 
         case 'G':   /* set the value of the CPU registers */
         {
@@ -1804,7 +1723,12 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
             if (strncmp(ptr, "Cont;c", 6) == 0) {
                 ptr = &remcomInBuffer[1];
                 if (hexToInt(&ptr, &addr)) {
+#ifdef __PPC__
                     registers[pc]/*nip*/ = addr;
+#endif
+#ifdef __i386__
+                    registers[PC]/*eip*/ = addr;
+#endif
                 }
                 return;
             }         
@@ -1942,6 +1866,20 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
 #endif
                 gdb_state_store_registers(&tc);
             }
+#ifdef __i386__
+      /* clear the trace bit */
+            registers[PS] &= 0xfffffeff;
+            ea->eflags = registers[PS];
+      /* set the trace bit if we're stepping */
+            if (stepping){
+#ifdef DEBUG_GDB
+                printf("\n\n\nStepping\n\n\n");
+#endif
+                stepping=FALSE; 
+                registers[PS] |= 0x100;
+                ea->eflags = registers[PS];      
+            }
+#endif
 
             return;
 
@@ -1954,12 +1892,17 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
  */
         case 'P':       /* set the value of a single CPU register - return OK */
         {
-            int regno;
-
-            if (hexToInt (&ptr, (uintptr_t *)&regno) && *ptr++ == '=')
-                if (regno >= 0 && regno < NUMREGS)
+            int regno_offset;
+            ptr = &remcomInBuffer[1];
+            if (hexToInt (&ptr, (uintptr_t *)&regno_offset) && *ptr++ == '=')
+                if (regno_offset >= 0 && regno_offset < NUMREGS * 8) /* 8 - max length of each register*/
                 {
-                    hex2mem (ptr, (char *) &registers[regno], 4, 0);
+#ifdef __PPC__
+                    hex2mem (ptr, (char *) &registers[regno_offset >> 3], 4, 0);
+#endif
+#ifdef __i386__
+                    hex2mem (ptr, (char *) &registers[regno_offset >> 3], 1, 0);
+#endif
                     strcpy (remcomOutBuffer, "OK");
                     break;
                 }
@@ -1969,15 +1912,18 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
         }
         case 'p':       /* Read the value of register; Register is in hex. */
         {
-            int regno;
-
-            if (hexToInt (&ptr, (uintptr_t *)&regno))
+            int regno_offset;
+            ptr = &remcomInBuffer[1];
+            if (hexToInt (&ptr, (uintptr_t *)&regno_offset))
             {
-                if (regno >= 0 && regno < NUMREGS)
+                if (regno_offset >= 0 && regno_offset < NUMREGS * 8) /* 8 - max length of each register*/
                 {
-                    
-                    mem2hex ((char *) &registers[regno], remcomOutBuffer, 4, 0);
-                    strcpy (remcomOutBuffer, "OK");
+#ifdef __PPC__
+                    mem2hex ((char *) &registers[regno_offset >> 3], remcomOutBuffer, 4, 0);
+#endif
+#ifdef __i386__
+                    mem2hex ((char *) &registers[regno_offset >> 3], remcomOutBuffer, 1, 0);
+#endif
                     break;
                 }
             }
@@ -1990,464 +1936,6 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
         }/* switch */
     /* reply to the request */
     putpacket((unsigned char *)remcomOutBuffer);
-#ifdef __i386__
-    remcomOutBuffer[0] = 0;
-    ptr = (char *)getpacket ();
-
-    switch (*ptr++)
-    {
-
-            /*
-             * Insert (‘Z’) or remove (‘z’) a type breakpoint or watchpoint starting at address address of kind kind.
-             */
-        case 'Z':
-        case 'z':
-            {
-                if (new_start == 1) {
-#ifdef DEBUG_GDB
-                    printf("New_start = %d",new_start);
-#endif
-                    new_start = 0;
-#ifdef DEBUG_GDB
-                    printf("New_start = %d",new_start);
-#endif
-                    clear_breakpoints();
-                }
-                ptr = &remcomInBuffer[1];
-                int type = -1;
-                hexToInt(&ptr, (uintptr_t *)(&type));
-                if (type == -1) break;
-                if (*ptr != ',') break;
-                ptr++;
-                hexToInt(&ptr, &addr);
-                if (*ptr != ',') break;
-                ptr++;
-                int kind = -1;
-                hexToInt(&ptr, (uintptr_t *)(&kind));
-                if (kind == -1) break;
-                if (type == 0){
-                    if (remcomInBuffer[0] == 'Z') 
-                            add_0_breakpoint(addr, kind, &tc.t);
-                        else
-                            remove_0_breakpoint(addr, kind, &tc.t);
-                }
-                if (type == 2){
-                    if (remcomInBuffer[0] == 'Z') 
-                            add_watchpoint(addr, kind, &tc.t, 2);
-                        else
-                            remove_watchpoint(addr, kind, &tc.t, 2);
-                }
-                if (type == 3){
-                    if (remcomInBuffer[0] == 'Z') 
-                            add_watchpoint(addr, kind, &tc.t, 3);
-                        else
-                            remove_watchpoint(addr, kind, &tc.t, 3);
-                }
-                if (type == 4){
-                    if (remcomInBuffer[0] == 'Z') 
-                            add_watchpoint(addr, kind, &tc.t, 4);
-                        else
-                            remove_watchpoint(addr, kind, &tc.t, 4);
-                }
-                break;
-            }
-
-        case 'T':               /*Find out if the thread thread-id is alive*/
-            ptr = &remcomInBuffer[1];
-            ptr = read_thread_id(ptr, &t);
-            
-            if(!gdb_thread_find(&t)) {
-                remcomOutBuffer[0] = 'O';
-                remcomOutBuffer[1] = 'K';
-                remcomOutBuffer[2] = 0;
-            }
-            break;
-        case 'q': /* this screws up gdb for some reason...*/
-        {
-            //~ extern long _start, sdata, __bss_start;
-            ptr = &remcomInBuffer[1];
-            if (strncmp(ptr, "C", 1) == 0){
-                ptr = remcomOutBuffer;
-                *ptr++ = 'Q';
-                *ptr++ = 'C';
-
-                ptr = write_thread_id(ptr, &gdb_thread_current);
-                *ptr++ = 0;
-
-                if (Connect_to_new_inferior == 1){
-                    Connect_to_new_inferior = -1;
-                    putpacket ( (unsigned char *) remcomOutBuffer);
-                    //pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = old_entryS;?
-               
-                    ptr = &remcomInBuffer[1];
-                    if (hexToInt(&ptr, &addr)) {
-                        //ea->srr0 = addr;
-                    }
-                    
-                    ea->eip--;
-                    return;
-                }
-
-                break;
-            }
-            if (strncmp(ptr, "Offsets", 7) == 0){
-                ptr = remcomOutBuffer;
-                *ptr++ = 0;
-
-                break;
-            }
-            if (strncmp(ptr, "Attached:", 9) == 0){
-                ptr += 9;
-                int part_id;
-                hexToInt(&ptr, (uintptr_t *)(&part_id));
-                ptr = remcomOutBuffer;
-                    *ptr++ = '1';
-                *ptr = 0;
-                break;
-            }
-            if (strncmp(ptr, "Symbol::", 8) == 0){
-
-                ptr = remcomOutBuffer;
-                remcomOutBuffer[0] = 'O';
-                remcomOutBuffer[1] = 'K';
-                remcomOutBuffer[2] = 0;
-                break;
-            }
-            if (strncmp(ptr, "Supported", 9) == 0){
-#ifdef MULTIPROCESS
-                ptr+= (9 + 1); //qSupported:
-                while  (strncmp(ptr, "multiprocess", 9) != 0){
-                    ptr++;
-                    if (*ptr == '+' && *(ptr+1) != ';'){
-                        break;
-                    }
-                }
-                if (strncmp(ptr, "multiprocess", 9) == 0){
-                    char * answer = "multiprocess+";
-                    ptr = remcomOutBuffer;
-                    for (int i = 0; i < 13; i++)
-                    *ptr++ = answer[i];
-                }
-                
-                *ptr++ = 0;
-#endif
-                break;
-                
-            }
-            if (strncmp(ptr, "fThreadInfo", 11) == 0)   {
-                t.inferior_id = 0;
-                t.thread_id = 0;
-
-                ptr = remcomOutBuffer;
-                *ptr++ = 'm';
-
-                gdb_thread_get_next(&t);
-
-                ptr = write_thread_id(ptr, &t);
-                *ptr++ = 0;
-
-                break;
-            }
-            if (strncmp(ptr, "sThreadInfo", 11) == 0){
-
-                ptr = remcomOutBuffer;
-
-                if(gdb_thread_get_next(&t))
-                {
-                    *ptr++ = 'l';
-                    *ptr++ = 0;
-                    break;
-                }
-
-                *ptr++ = 'm';
-
-                ptr = write_thread_id(ptr, &t);
-                *ptr++ = 0;
-
-                break;
-             }
-             if (strncmp(ptr, "ThreadExtraInfo", 15) == 0){
-                ptr += 16;
-
-                ptr = read_thread_id(ptr, &t);
-                gdb_thread_find(&t);
-
-                ptr = remcomOutBuffer;
-
-                struct packet_write_cb_data cb_data = {.ptr = ptr};
-
-                gdb_thread_print_name(&t, packet_write_cb, &cb_data);
-
-                ptr = cb_data.ptr;
-
-                *ptr++ = 0;
-                break;
-            }
-            break;
-        }
-        case '?':
-            remcomOutBuffer[0] = 'S';
-            remcomOutBuffer[1] = hexchars[sigval >> 4];
-            remcomOutBuffer[2] = hexchars[sigval % 16];
-            remcomOutBuffer[3] = 0;
-            break;
-        case 'g':       /* return the value of the CPU registers */
-            gdb_state_fill_registers(&tc);
-            mem2hex ((char *) registers, remcomOutBuffer, NUMREGBYTES);
-            break;
-        case 'G':       /* set the value of the CPU registers - return OK */
-            hex2mem (ptr, (char *) registers, NUMREGBYTES, 0);
-            gdb_state_store_registers(&tc);
-            strcpy (remcomOutBuffer, "OK");
-            break;
-        case 'P':       /* set the value of a single CPU register - return OK */
-        {
-            int regno;
-
-            if (hexToInt (&ptr, (uintptr_t *)&regno) && *ptr++ == '=')
-                if (regno >= 0 && regno < NUMREGS)
-                {
-                    hex2mem (ptr, (char *) &registers[regno], 4, 0);
-                    strcpy (remcomOutBuffer, "OK");
-                    break;
-                }
-
-            strcpy (remcomOutBuffer, "E01");
-            break;
-        }
-        case 'p':       /* Read the value of register; Register is in hex. */
-        {
-            int regno;
-
-            if (hexToInt (&ptr, (uintptr_t *)&regno))
-            {
-                //~ printf("Regno = %d\n",regno);
-                ///FIXME
-                //~ if (regno == 64){
-                    //~ mem2hex ((char *) &registers[PC], remcomOutBuffer, 4, 0);
-                    //~ break;
-                //~ }
-                //~ if (regno == 67){
-                    //~ mem2hex ((char *) &registers[Д], remcomOutBuffer, 4, 0);
-                    //~ break;
-                //~ }                
-                if (regno >= 0 && regno < NUMREGS)
-                {
-                    
-                    mem2hex ((char *) &registers[regno], remcomOutBuffer, 4, 0);
-                    strcpy (remcomOutBuffer, "OK");
-                    break;
-                }
-            }
-            strcpy (remcomOutBuffer, "E01");
-            break;
-        }
-
-        //~ case 'm':
-      //~ /* TRY TO READ %x,%x.  IF SUCCEED, SET PTR = 0 */
-            //~ if (hexToInt (&ptr, &addr))
-                //~ if (*(ptr++) == ',')
-                    //~ if (hexToInt (&ptr, &length))
-                    //~ {
-                        //~ ptr = 0;
-                        //~ mem_err = 0;
-                        //~ mem2hex ((char *) addr, remcomOutBuffer, length, 1);
-                        //~ if (mem_err)
-                        //~ {
-                            //~ strcpy (remcomOutBuffer, "E03");
-                        //~ }
-                    //~ }
-//~ 
-            //~ if (ptr)
-            //~ {
-                //~ strcpy (remcomOutBuffer, "E01");
-            //~ }
-            //~ break;
-      /* mAA..AA,LLLL  Read LLLL bytes at address AA..AA */
-        case 'm':   /* mAA..AA,LLLL  Read LLLL bytes at address AA..AA */
-                /* Try to read %x,%x.  */
-            {
-                ptr = &remcomInBuffer[1];
-                int old_pid = pok_space_get_current();
-                int new_pid = gdb_thread_get_space(&tc.t);
-#ifdef DEBUG_GDB
-                printf("New_pid = %d\n",new_pid);
-                printf("Old_pid = %d\n",old_pid);
-#endif
-                if (hexToInt(&ptr, &addr)
-                    && *ptr++ == ','
-                    && hexToInt(&ptr, (uintptr_t *)(&length))) {
-                    if (!gdb_thread_check_access(&tc.t, addr, length)){
-                        strcpy (remcomOutBuffer, "E03");
-                        break;
-                    }else{ 
-#ifdef DEBUG_GDB
-                        printf("Load new_pid\n");
-#endif
-                        pok_space_switch(new_pid);
-                    }
-                    if (!mem2hex((char *)addr, remcomOutBuffer,length)){
-                        strcpy (remcomOutBuffer, "E03");
-                    }
-                    pok_space_switch(old_pid);
-                } else {
-                    strcpy(remcomOutBuffer,"E01");
-                }
-                break;
-            }
-
-
-        case 'M': /* MAA..AA,LLLL: Write LLLL bytes at address AA.AA return OK */
-            /* Try to read '%x,%x:'.  */
-            {
-                ptr = &remcomInBuffer[1];
-                int old_pid = pok_space_get_current();
-                int new_pid = gdb_thread_get_space(&tc.t);
-
-                if (hexToInt(&ptr, &addr)
-                    && *ptr++ == ','
-                    && hexToInt(&ptr, (uintptr_t *)(&length))
-                    && *ptr++ == ':') {
-
-                    if (gdb_thread_check_access(&tc.t, addr, length))
-                        strcpy (remcomOutBuffer, "E03");
-                        break;
-
-                    pok_space_switch(new_pid);
-                    if (strncmp(ptr, "7d821008", 8) == 0) // TODO: Magic constant
-                        ptr = trap;
-                    if (hex2mem(ptr, (char *)addr, length)) {
-                        strcpy(remcomOutBuffer, "OK");
-                    } else {
-                        strcpy(remcomOutBuffer, "E03");
-                    }
-                    pok_space_switch(old_pid);
-                } else {
-                    strcpy(remcomOutBuffer, "E02");
-                }
-                break;
-            }
-
-
-        case 'H':                   /*Set thread for subsequent operations (‘m’, ‘M’, ‘g’, ‘G’, et.al.). */
-        {
-            ptr = &remcomInBuffer[1];
-            if ( *ptr == 'c'){
-                /*ptr++;
-                ptr = read_thread_id(ptr, &t);
-                if(!gdb_thread_equal(&t, &tc.gdb_thread_current)) {
-                    // Only current thread can be single-stepped or continued
-                    strcpy(remcomOutBuffer, "E22");
-                } else {
-                    strcpy(remcomOutBuffer, "OK");
-                }*/
-                // Ignore thread id and assume it to be current one.
-                strcpy(remcomOutBuffer, "OK");
-            }else if (*ptr == 'g'){
-                ptr++;
-                ptr = read_thread_id(ptr, &t);
-                
-                // "Any" choice assume the current.
-                // TODO: What means "all" choice in that case?
-                if(t.inferior_id == -1 || t.inferior_id == 0) {
-                    gdb_sate_set_thread(&tc, &gdb_thread_current);
-                    strcpy(remcomOutBuffer,"OK");
-                }
-
-                else if(gdb_thread_find(&t)) {
-                    strcpy(remcomOutBuffer,"E22");
-                }else {
-                    gdb_sate_set_thread(&tc, &t);
-                    strcpy(remcomOutBuffer,"OK");
-                }
-            }
-            break;
-        }
-#ifdef MULTIPROCESS
-        case 'v':               /*
-                                 * Packets starting with ‘v’ are identified by a multi-letter name, up to the first ‘;’ or ‘?’ (or the end of the packet). 
-                                 */
-            {
-#ifdef DEBUG_GDB
-            printf("IN V\n");
-            printf("String = %s, %d\n", remcomOutBuffer, remcomOutBuffer[0]);
-#endif
-            ptr = &remcomInBuffer[1];
-            if (strncmp(ptr, "Attach;", 7) == 0)   {
-#ifdef DEBUG_GDB
-                printf("Added reply\n");
-#endif
-                strcpy(remcomOutBuffer, "Any stop packet");
-            }
-            if (strncmp(ptr, "Cont;c", 6) == 0) {
-                ptr = &remcomInBuffer[1];
-                if (hexToInt(&ptr, &addr)) {
-                    registers[PC] = addr;
-                }
-                return;
-            }         
-            Connect_to_new_inferior = 1;
-
-            break;
-            //~ putpacket((unsigned char *)remcomOutBuffer);            
-            //~ return;
-        }
-        case 'D':               /*
-                                 * The first form of the packet is used to detach gdb from the remote system
-                                 * It is sent to the remote target before gdb disconnects via the detach command.
-                                 */
-            {
-#ifdef DEBUG_GDB
-            printf("HERE\n");
-#endif
-            ptr = &remcomInBuffer[2];
-            int part_id;
-            hexToInt(&ptr, (uintptr_t *)(&part_id));
-            remcomOutBuffer[0] = 'O';
-            remcomOutBuffer[1] = 'K';
-            remcomOutBuffer[2] = 0;
-            
-            /*If it is last detaching process - continue*/
-            if (part_id != 1) break;
-            putpacket((unsigned char *)remcomOutBuffer);            
-        }
-#endif
-      /* cAA..AA    Continue at address AA..AA(optional) */
-      /* sAA..AA   Step one instruction from AA..AA(optional) */
-        case 's':
-            stepping = TRUE;
-        case 'k':       /* do nothing */
-        case 'c':
-            gdb_state_fill_registers(&tc);
-      /* try to read optional parameter, pc unchanged if no parm */
-            ptr = &remcomInBuffer[1];
-            if (hexToInt(&ptr, &addr)) {
-                gdb_sate_set_thread(&tc, &gdb_thread_current);
-                gdb_state_fill_registers(&tc);
-                registers[PC]/*eip*/ = addr;
-                gdb_state_store_registers(&tc);
-            }
-
-
-      /* clear the trace bit */
-            registers[PS] &= 0xfffffeff;
-            ea->eflags = registers[PS];
-      /* set the trace bit if we're stepping */
-            if (stepping){
-#ifdef DEBUG_GDB
-                printf("\n\n\nStepping\n\n\n");
-#endif
-                stepping=FALSE;
-                registers[PS] |= 0x100;
-                ea->eflags = registers[PS];      
-            }
-            return;
-
-    }           /* switch */
-
-      /* reply to the request */
-      putpacket ((unsigned char *)remcomOutBuffer);
-#endif
     } /* while(1) */
     ////printf("\n\n\n          End of handle_exeption\n\n");
 }

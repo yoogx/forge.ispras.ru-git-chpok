@@ -17,7 +17,7 @@
 
 #include "interrupt.h"
 #include "tss.h"
-
+#include <gdb.h>
 #include <libc.h>
 
 extern void * pok_trap_addr;
