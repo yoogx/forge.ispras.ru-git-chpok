@@ -19,3 +19,14 @@
       - name: portA
         type: send_net_data
 
+
+- name: ARINC_RECEIVER
+  additional_h_files: ['<arinc653/queueing.h>', '<arinc653/sampling.h>', '<port_info.h>']
+  state_struct:
+      tmp_name: NAME_TYPE
+
+  in_ports:
+      - name: portA
+        type: simple_send_data
+        implementation:
+            send: arinc_receive_message

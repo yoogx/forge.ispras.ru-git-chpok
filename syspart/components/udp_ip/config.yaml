@@ -41,3 +41,10 @@
         type: udp_received
         implementation:
             udp_received: receive_packet
+
+  out_ports:
+      - name: portout1
+        type: simple_send_data
+
+      - name: portout2
+        type: simple_send_data

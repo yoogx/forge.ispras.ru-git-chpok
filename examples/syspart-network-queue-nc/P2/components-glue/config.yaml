@@ -80,6 +80,21 @@ components:
                 map_ip_port_to_idx: '{{IP_ADDR(192, 168, 56, 101), 10001},{IP_ADDR(192, 168, 56, 102), 10005}}'
                 map_ip_port_to_idx_len: 2
 
+    - type: ARINC_RECEIVER
+      instances:
+        - name:
+            arinc_receiver_1
+          state:
+              tmp_name: '"ARINC_1"'
+
+    - type: ARINC_RECEIVER
+      instances:
+        - name:
+            arinc_receiver_2
+          state:
+              tmp_name: '"ARINC_2"'
+
+
 links:
     - from:
           instance: y_1
@@ -149,5 +164,19 @@ links:
         port: portB
       to:
         instance: router
+        port: portA
+
+    - from:
+        instance: router
+        port: portout1
+      to:
+        instance: arinc_receiver_1
+        port: portA
+
+    - from:
+        instance: router
+        port: portout2
+      to:
+        instance: arinc_receiver_2
         port: portA
 
