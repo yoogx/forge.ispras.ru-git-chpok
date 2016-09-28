@@ -115,7 +115,7 @@ ja_context_restart:
         /* $4: stack, $5: entry */
         /* Calculate in $6 relative stack offset for stwux: */
         add   $6, $4, $29
-        addi  $6, $6, SIZEOF_jet_stack_frame_null
+        addi  $6, $6, -SIZEOF_jet_stack_frame_null
         li    $7, 0 /* 0 should be stored into first back chain*/
         /* stwux $7, $29, $6 */
         add   $29, $29, $6
