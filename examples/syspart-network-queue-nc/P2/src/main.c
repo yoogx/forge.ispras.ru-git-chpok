@@ -24,6 +24,10 @@
 
 #define SECOND 1000000000LL
 
+void glue_activity();
+void glue_main();
+void pci_init();
+
 static void first_process(void)
 {
     while(1) {
@@ -63,7 +67,7 @@ static int real_main(void)
         printf("process 1 \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
     }
 
-    drivers_init();
+    pci_init();
 
 
     // transition to NORMAL operating mode
