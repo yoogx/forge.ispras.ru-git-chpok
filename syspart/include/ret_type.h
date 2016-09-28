@@ -17,7 +17,8 @@
 #define __RET_TYPE_H__
 typedef enum {
     EOK,
-    EINVAL /* Invalid argument */
+    EINVAL, /* Invalid argument */
+    EAGAIN
 }ret_t;
 
 #endif
