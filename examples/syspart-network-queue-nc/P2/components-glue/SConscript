@@ -34,11 +34,27 @@ for comp in COMPONENTS_LIST:
     P2_env.Append(CPPPATH = os.path.join(P2_env['POK_PATH'], COMPONENTS_DIR, comp))
 
 
+from collections import defaultdict
+def get_port_arrays_dict(config):
+    res_dict = defaultdict(dict)
+    for link in config['links']:
+        if 'array_index' in link['from']:
+            instance_name = link['from']['instance']
+            port_name = link['from']['port']
+            array_index = int(link['from']['array_index'])
+
+            per_instance_dict = res_dict[instance_name]
+            port_max_index = max(per_instance_dict.get(port_name, 0), array_index)
+            per_instance_dict[port_name] = port_max_index
+
+    #print(res_dict)
+    return res_dict
+
 def get_glue_definitions(source, env):
     config = yaml.load(open(source[0].abspath))
     return { 'components': config['components'],
         'links': config['links'],
-        'config': config
+        'port_array_dict': get_port_arrays_dict(config)
         }
 
 def generate_glue():

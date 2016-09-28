@@ -8,7 +8,11 @@ struct port_ops{
     {% for i in comp.instances %}
         void __{{comp.type}}_init__({{comp.type}}*);
         void __{{comp.type}}_activity__({{comp.type}}*);
-        struct port_ops array_for_portArray[2];
+        {% if i.name in port_array_dict %}
+         {% for port, size in port_array_dict[i.name].iteritems() %}
+            struct port_ops {{i.name}}_array_for_{{port}}[{{size + 1}}];
+         {% endfor %}
+        {% endif %}
         {{comp.type}} {{i.name}} = {
             {% if i.state %}
             .state = {
@@ -16,11 +20,14 @@ struct port_ops{
                 .{{name}} = {{val}},
               {% endfor %}
             },
-            {% if comp.type == "ROUTER" %}
-            .out = {
-                .portArray = (void *)array_for_portArray,
-            }
             {% endif %}
+
+            {% if i.name in port_array_dict %}
+            .out = {
+             {% for port, size in port_array_dict[i.name].iteritems() %}
+                .{{port}} = (void *){{i.name}}_array_for_{{port}},
+             {% endfor %}
+            }
             {% endif %}
         };
     {% endfor %}
