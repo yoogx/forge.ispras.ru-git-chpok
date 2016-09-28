@@ -28,8 +28,7 @@
 
 struct receive_buffer {
     struct virtio_net_hdr virtio_net_hdr;
-    struct ether_hdr ether_hdr;
-    char payload[MAX_PACKET_SIZE];
+    char packet[MAX_PACKET_SIZE];
 } __attribute__((packed));
 
 struct send_buffer {

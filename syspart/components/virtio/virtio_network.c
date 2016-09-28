@@ -288,7 +288,7 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
             return;
         }
 
-        VIRTIO_NET_DEV_call_portB_send(self, &buf->ether_hdr, e->len - sizeof(struct virtio_net_hdr));
+        VIRTIO_NET_DEV_call_portB_send(self, (char *)&buf->packet, e->len - sizeof(struct virtio_net_hdr));
 
         // reclaim descriptor
         // FIXME support chained descriptors as well
@@ -331,7 +331,6 @@ ret_t flush_send(VIRTIO_NET_DEV *self)
 
 static pok_bool_t probe_device(struct pci_device *pci_dev)
 {
-    static int dev_count = 0;
     struct virtio_network_device *dev = tmp_singleton;
 
     dev->pci_device = *pci_dev;
