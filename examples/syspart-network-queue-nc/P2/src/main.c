@@ -31,7 +31,6 @@ static void first_process(void)
 {
     while(1) {
         glue_activity();
-        ARINC_recv_active();
     }
 }
 
@@ -69,8 +68,6 @@ static int real_main(void)
 
     drivers_init();
 
-
-    ARINC_recv_init();
 
     // transition to NORMAL operating mode
     // N.B. if everything is OK, this never returns

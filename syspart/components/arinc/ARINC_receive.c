@@ -21,130 +21,79 @@
 #include <depl.h>
 #include <port_info.h>
 
-static void queuing_send_to_partition(unsigned channel_idx, MESSAGE_ADDR_TYPE payload, size_t length)
+#include "ARINC_RECEIVER_gen.h"
+
+#define C_NAME "ARINC_RECEIVER: "
+
+static ret_t send_msg_to_user_partition_queuing(ARINC_RECEIVER *self, char *payload, size_t length)
 {
     RETURN_CODE_TYPE ret;
-    sys_channel_t channel = sys_queuing_channels[channel_idx];
-    sys_queuing_port_t *port = &sys_queuing_ports[channel.port_index];
 
     SEND_QUEUING_MESSAGE(
-            port->id,
-            payload,
+            self->state.port_id,
+            (MESSAGE_ADDR_TYPE) payload,
             length,
             0,
             &ret);
 
-    if (ret == NOT_AVAILABLE) {
-        printf("Buffer is full, drop packet\n");
-    } else if (ret != NO_ERROR) {
-        printf("SYSNET %s port error: %u\n", port->header.name, ret);
-    }
-}
-
-static void sampling_send_to_partition(unsigned channel_idx, MESSAGE_ADDR_TYPE payload, size_t length)
-{
-    sys_channel_t channel = sys_sampling_channels[channel_idx];
-    sys_sampling_port_t *port = &sys_sampling_ports[channel.port_index];
-    RETURN_CODE_TYPE ret;
-
-    WRITE_SAMPLING_MESSAGE(
-            port->id,
-            payload, 
-            length, 
-            &ret);
-
     if (ret != NO_ERROR) {
-        printf("error: %u\n", ret);
+        if (ret == NOT_AVAILABLE) {
+            printf(C_NAME"%s port queue is full, drop packet\n", self->state.port_name);
+            return EAGAIN; //what should be returned???
+        } else {
+            printf(C_NAME"%s port error: %d\n", self->state.port_name, ret);
+            return EINVAL;
+        }
     }
-
+    return EOK;
 }
 
-static pok_bool_t udp_received_callback(
-        uint32_t ip, 
-        uint16_t udp_port, 
-        const char *payload, 
-        size_t length) 
-{
-    for (int i = 0; i<sys_sampling_channels_nb; i++) {
-        sys_channel_t *s_channel = &sys_sampling_channels[i];
-        //TODO
-        //if (s_channel->protocol != UDP)
-        //    continue;
+//static void send_msg_to_user_partition_sampling(unsigned channel_idx, MESSAGE_ADDR_TYPE payload, size_t length)
+//{
+//    sys_channel_t channel = sys_sampling_channels[channel_idx];
+//    sys_sampling_port_t *port = &sys_sampling_ports[channel.port_index];
+//    RETURN_CODE_TYPE ret;
+//
+//    WRITE_SAMPLING_MESSAGE(
+//            port->id,
+//            payload, 
+//            length, 
+//            &ret);
+//
+//    if (ret != NO_ERROR) {
+//        printf("error: %u\n", ret);
+//    }
+//
+//}
 
-        sys_sampling_port_t *port = &sys_sampling_ports[s_channel->port_index];
-        udp_data_t *udp_data = s_channel->driver_data;
-
-        if (port->header.direction != SOURCE)
-            continue;
-        if (udp_data->ip != ip || udp_data->port != udp_port)
-            continue;
-
-        sampling_send_to_partition(i, (MESSAGE_ADDR_TYPE) payload, length);
-    }
-
-    for (int i = 0; i<sys_queuing_channels_nb; i++) {
-        sys_channel_t *q_channel = &sys_queuing_channels[i];
-        //TODO
-        //if (q_channel->protocol != UDP)
-        //    continue;
-
-        sys_queuing_port_t *port = &sys_queuing_ports[q_channel->port_index];
-        udp_data_t *udp_data = q_channel->driver_data;
-
-        if (port->header.direction != SOURCE)
-            continue;
-        if (udp_data->ip != ip || udp_data->port != udp_port)
-            continue;
-
-        queuing_send_to_partition(i, (MESSAGE_ADDR_TYPE) payload, length);
-    }
-
-    return FALSE;
-}
-
-void ARINC_recv_active()
-{
-    for (int i = 0; i < channel_drivers_nb; i++) {
-        channel_driver_t *driver_ptr = channel_drivers[i];
-        driver_ptr->receive();
-    }
-}
-
-void ARINC_recv_init()
+void arinc_receiver_init(ARINC_RECEIVER *self)
 {
     RETURN_CODE_TYPE ret;
-    for (int i = 0; i<sys_sampling_ports_nb; i++) {
-        sys_sampling_port_t *port = &sys_sampling_ports[i];
-        if (port->header.direction != SOURCE)
-            continue;
-        CREATE_SAMPLING_PORT(
-                port->header.name,
-                port->max_message_size,
-                port->header.direction,
-                0,
-                &port->id,
-                &ret);
-
-        if (ret != NO_ERROR)
-            printf("error %d creating %s port\n", ret, port->header.name);
-    }
-
-    for (int i = 0; i<sys_queuing_ports_nb; i++) {
-        sys_queuing_port_t *port = &sys_queuing_ports[i];
-        if (port->header.direction != SOURCE)
-            continue;
+    if (self->state.is_queuing_port) {
         CREATE_QUEUING_PORT(
-                port->header.name,
-                port->max_message_size,
-                port->max_nb_messages,
-                port->header.direction,
+                self->state.port_name,
+                self->state.port_max_message_size,
+                self->state.q_port_max_nb_messages,
+                self->state.port_direction,
                 FIFO,
-                &port->id,
+                &self->state.port_id,
                 &ret);
-        if (ret != NO_ERROR)
-            printf("RCV: error %d creating %s port\n", ret, port->header.name);
-
+    } else {
+        CREATE_SAMPLING_PORT(
+                self->state.port_name,
+                self->state.port_max_message_size,
+                self->state.port_direction,
+                0, //in future should be any positive number
+                &self->state.port_id,
+                &ret);
     }
+}
 
-    channel_drivers[0]->register_received_callback(udp_received_callback);
+ret_t arinc_receive_message(ARINC_RECEIVER *self, char *payload, size_t payload_size)
+{
+    printf(C_NAME"%s got message\n", self->state.tmp_name);
+    if (self->state.is_queuing_port)
+        return send_msg_to_user_partition_queuing(self, payload, payload_size);
+    else
+        return EOK;
 }
