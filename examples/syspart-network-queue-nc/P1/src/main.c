@@ -36,12 +36,9 @@ static void first_process(void)
         printf("P1: sending %d msg\n", i);
         snprintf(msg, 64, "Hello %d\n", i);
         SEND_QUEUING_MESSAGE(QP1, (MESSAGE_ADDR_TYPE) &msg, sizeof(msg), INFINITE_TIME_VALUE, &ret);
-        printf("after\n");
-        TIMED_WAIT(SECOND/5, &ret);
+        //TIMED_WAIT(SECOND/5, &ret);
 
     }
-    printf("P1 going to sleep\n");
-    while(1);
 
     while (1) {
         MESSAGE_SIZE_TYPE len;

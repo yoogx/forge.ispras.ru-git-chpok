@@ -23,7 +23,6 @@
 - name: ARINC_RECEIVER
   additional_h_files: ['<arinc653/queueing.h>', '<arinc653/sampling.h>', '<port_info.h>']
   state_struct:
-      tmp_name: NAME_TYPE
       port_name: NAME_TYPE
       port_direction: PORT_DIRECTION_TYPE
       port_max_message_size: MESSAGE_SIZE_TYPE

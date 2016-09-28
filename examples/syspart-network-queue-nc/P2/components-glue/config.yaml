@@ -85,14 +85,18 @@ components:
         - name:
             arinc_receiver_1
           state:
-              tmp_name: '"ARINC_1"'
+              port_name: '"UIN"'
+              port_direction: SOURCE
+              port_max_message_size: 64
+              is_queuing_port: 1
+              q_port_max_nb_messages: 10
 
     - type: ARINC_RECEIVER
       instances:
         - name:
             arinc_receiver_2
           state:
-              tmp_name: '"ARINC_2"'
+              port_name: '"__test__"'
 
 
 links:
