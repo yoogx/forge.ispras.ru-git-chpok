@@ -48,3 +48,7 @@
 
       - name: portout2
         type: simple_send_data
+
+      - name: portArray
+        type: simple_send_data
+        is_array: true

@@ -32,10 +32,17 @@ typedef struct {
     } in;
     struct {
         {% for p in component.out_ports %}
+          {% if p.is_array %}
+            struct {
+                {{p.type}} *ops;
+                self_t *owner;
+            } *{{p.name}};
+          {% else %}
             struct {
                 {{p.type}} *ops;
                 self_t *owner;
             } {{p.name}};
+          {% endif %}
         {% endfor %}
     } out;
 } {{component.name}};
@@ -53,7 +60,11 @@ typedef struct {
 
 {% for p in component.out_ports %}
   {% for i_func in interfaces[p.type].functions %}
+    {% if p.is_array %}
+      {{i_func.return_type}} {{component.name}}_call_{{p.name}}_{{i_func.name}}_by_index(int, {{component.name}} *{{args(i_func)}});
+    {% else %}
       {{i_func.return_type}} {{component.name}}_call_{{p.name}}_{{i_func.name}}({{component.name}} *{{args(i_func)}});
+    {% endif %}
   {% endfor %}
 {% endfor %}
 

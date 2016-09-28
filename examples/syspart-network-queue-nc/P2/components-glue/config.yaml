@@ -168,14 +168,16 @@ links:
 
     - from:
         instance: router
-        port: portout1
+        port: portArray
+        array_index: 0
       to:
         instance: arinc_receiver_1
         port: portA
 
     - from:
         instance: router
-        port: portout2
+        port: portArray
+        array_index: 1
       to:
         instance: arinc_receiver_2
         port: portA

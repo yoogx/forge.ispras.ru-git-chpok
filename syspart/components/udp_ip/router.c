@@ -28,7 +28,7 @@ ret_t receive_packet(ROUTER *self, char *payload, size_t payload_size, uint32_t 
     printf(C_NAME"GOOD UDP PACKET\n");
     hexdump(payload, payload_size);
 
-    ROUTER_call_portout1_send(self, payload, payload_size);
+    ROUTER_call_portArray_send_by_index(1, self, payload, payload_size);
 
     return EOK;
 }
