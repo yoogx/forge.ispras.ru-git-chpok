@@ -17,8 +17,6 @@
 #ifndef __POK_KERNEL_VIRTIO_VIRTQUEUE_H__
 #define __POK_KERNEL_VIRTIO_VIRTQUEUE_H__
 
-#include <net/network.h>
-
 #include "virtio_ring.h"
 
 struct virtio_virtqueue {

@@ -21,9 +21,6 @@
 #include <arinc653/queueing.h>
 #include <arinc653/sampling.h>
 
-#include <net/network.h>
-#include <depl.h>
-#include <port_info.h>
 
 #define SECOND 1000000000LL
 

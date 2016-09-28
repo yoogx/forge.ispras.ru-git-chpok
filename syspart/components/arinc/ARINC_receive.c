@@ -17,8 +17,6 @@
 #include <arinc653/sampling.h>
 #include <stdio.h>
 
-#include <net/network.h>
-#include <depl.h>
 #include <port_info.h>
 
 #include "ARINC_RECEIVER_gen.h"

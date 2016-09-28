@@ -34,9 +34,6 @@
 
 #include "VIRTIO_NET_DEV_gen.h"
 
-#include <net/netdevices.h>
-#include <net/network.h>
-
 
 #define VIRTIO_PCI_VENDORID 0x1AF4
 
@@ -235,14 +232,6 @@ ret_t send_frame(VIRTIO_NET_DEV * self,
     return TRUE;
 }
 
-static void set_packet_received_callback(
-        pok_netdevice_t *dev,
-        void (*f)(const char *, size_t))
-{
-    struct virtio_network_device *info = dev->info;
-    info->packet_received_callback = f;
-}
-
 static void reclaim_send_buffers(struct virtio_network_device *info)
 {
     struct virtio_virtqueue *vq = &(info->tx_vq);
@@ -335,13 +324,6 @@ ret_t flush_send(VIRTIO_NET_DEV *self)
     return EOK;
 }
 
-static const pok_network_driver_ops_t driver_ops = {
-    .send_frame = send_frame,
-    .set_packet_received_callback = set_packet_received_callback,
-    .reclaim_receive_buffers = reclaim_receive_buffers,
-    .flush_send = flush_send,
-};
-
 
 /*
  * PCI part
@@ -399,16 +381,6 @@ static pok_bool_t probe_device(struct pci_device *pci_dev)
 
     // 7. send buffers allocation
     dev->send_buffers = smalloc(sizeof(*dev->send_buffers) * dev->tx_vq.vring.num);
-
-    /* create netdevice structure */
-    pok_netdevice_t *netdevice = smalloc(sizeof(*netdevice));
-    netdevice->ops = &driver_ops,
-    netdevice->mac = dev->mac,
-    netdevice->info = dev;
-    char *name = smalloc(DEV_NAME_LEN);
-    snprintf(name, 30, DEV_NAME_PREFIX"%d", dev_count);
-    register_netdevice(name, netdevice);
-    dev_count += 1;
 
     return TRUE;
 }

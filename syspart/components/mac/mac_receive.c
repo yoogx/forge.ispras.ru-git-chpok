@@ -13,20 +13,15 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <net/network.h>
 #include <net/byteorder.h>
 #include <net/ether.h>
 #include <net/ip.h>
 #include <net/udp.h>
 #include <pci.h>
-#include <depl.h>
 
 #include <stdio.h>
 #include <string.h>
-#include <net/netdevices.h>
-#include <channel_driver.h>
 
-#include "net.h"
 #include "MAC_RECEIVER_gen.h"
 
 #define MAC_HEADER_SIZE 14

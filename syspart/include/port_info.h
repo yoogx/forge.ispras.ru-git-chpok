@@ -16,7 +16,6 @@
 #ifndef __POK_SYSPART_PORTS_H__
 #define __POK_SYSPART_PORTS_H__
 
-#include <net/network.h>
 #include <middleware/port.h>
 #include <arinc653/types.h>
 

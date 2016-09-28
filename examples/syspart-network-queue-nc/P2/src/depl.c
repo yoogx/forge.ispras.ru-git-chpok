@@ -12,10 +12,6 @@
  *
  * See the GNU General Public License version 3 for more details.
  */
-#include <depl.h>
-#include <channel_driver.h>
-#include <net/network.h>
-
 
 void drivers_init()
 {
