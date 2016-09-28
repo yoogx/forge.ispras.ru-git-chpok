@@ -48,23 +48,23 @@ static ret_t send_msg_to_user_partition_queuing(ARINC_RECEIVER *self, char *payl
     return EOK;
 }
 
-//static void send_msg_to_user_partition_sampling(unsigned channel_idx, MESSAGE_ADDR_TYPE payload, size_t length)
-//{
-//    sys_channel_t channel = sys_sampling_channels[channel_idx];
-//    sys_sampling_port_t *port = &sys_sampling_ports[channel.port_index];
-//    RETURN_CODE_TYPE ret;
-//
-//    WRITE_SAMPLING_MESSAGE(
-//            port->id,
-//            payload, 
-//            length, 
-//            &ret);
-//
-//    if (ret != NO_ERROR) {
-//        printf("error: %u\n", ret);
-//    }
-//
-//}
+static ret_t send_msg_to_user_partition_sampling(ARINC_RECEIVER *self, char *payload, size_t length)
+{
+    RETURN_CODE_TYPE ret;
+
+    WRITE_SAMPLING_MESSAGE(
+            self->state.port_id,
+            (MESSAGE_ADDR_TYPE) payload,
+            length,
+            &ret);
+
+    if (ret != NO_ERROR) {
+        printf(C_NAME"%s port error: %d\n", self->state.port_name, ret);
+        return EINVAL;
+    }
+    return EOK;
+
+}
 
 void arinc_receiver_init(ARINC_RECEIVER *self)
 {
@@ -95,5 +95,5 @@ ret_t arinc_receive_message(ARINC_RECEIVER *self, char *payload, size_t payload_
     if (self->state.is_queuing_port)
         return send_msg_to_user_partition_queuing(self, payload, payload_size);
     else
-        return EOK;
+        return send_msg_to_user_partition_sampling(self, payload, payload_size);
 }
