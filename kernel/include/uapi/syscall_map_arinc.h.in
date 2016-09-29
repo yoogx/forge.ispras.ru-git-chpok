@@ -109,8 +109,17 @@ SYSCALL_DECLARE(POK_SYSCALL_THREAD_FIND, pok_thread_find,
 
 
 SYSCALL_DECLARE(POK_SYSCALL_RESCHED, jet_resched)
+
 SYSCALL_DECLARE(POK_SYSCALL_MSECTION_ENTER_HELPER, jet_msection_enter_helper,
    struct msection*, section)
+
+SYSCALL_DECLARE(POK_SYSCALL_MSECTION_WAIT, jet_msection_wait,
+   struct msection*, section,
+   const pok_time_t*, timeout)
+
+SYSCALL_DECLARE(POK_SYSCALL_MSECTION_NOTIFY, jet_msection_notify,
+   struct msection*, section,
+   pok_thread_id_t, thread_id)
 
 #ifdef POK_NEEDS_PARTITIONS
 //! User name - pok_partition_set_mode

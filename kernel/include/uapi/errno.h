@@ -56,10 +56,8 @@ typedef enum
 		POK_ERRNO_TIMEOUT              =  250,
 		POK_ERRNO_MODE                 =  251,
 
-		POK_ERRNO_LOCKOBJ_UNAVAILABLE  =  500,
-		POK_ERRNO_LOCKOBJ_NOTREADY     =  501,
-		POK_ERRNO_LOCKOBJ_KIND         =  502,
-		POK_ERRNO_LOCKOBJ_POLICY       =  503,
+		/* Native thread is STOP()-ed or server thread is cancelled. */
+		POK_ERRNO_CANCELLED            =  500,
 
 		POK_ERRNO_PARTITION_MODE       =  601,
 

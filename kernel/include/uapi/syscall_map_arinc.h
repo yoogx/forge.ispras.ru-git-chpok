@@ -162,11 +162,30 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_RESCHED(const pok_syscal
 {
     return jet_resched();
 }
+
 pok_ret_t jet_msection_enter_helper(struct msection* __user section);
 static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MSECTION_ENTER_HELPER(const pok_syscall_args_t* args)
 {
     return jet_msection_enter_helper(
         (struct msection* __user)args->arg1);
+}
+
+pok_ret_t jet_msection_wait(struct msection* __user section,
+    const pok_time_t* __user timeout);
+static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MSECTION_WAIT(const pok_syscall_args_t* args)
+{
+    return jet_msection_wait(
+        (struct msection* __user)args->arg1,
+        (const pok_time_t* __user)args->arg2);
+}
+
+pok_ret_t jet_msection_notify(struct msection* __user section,
+    pok_thread_id_t thread_id);
+static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MSECTION_NOTIFY(const pok_syscall_args_t* args)
+{
+    return jet_msection_notify(
+        (struct msection* __user)args->arg1,
+        (pok_thread_id_t)args->arg2);
 }
 
 #ifdef POK_NEEDS_PARTITIONS

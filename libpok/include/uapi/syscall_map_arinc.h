@@ -178,6 +178,7 @@ static inline pok_ret_t jet_resched(void)
 }
 // Syscall should be accessed only by function
 #undef POK_SYSCALL_RESCHED
+
 static inline pok_ret_t jet_msection_enter_helper(struct msection* section)
 {
     return pok_syscall1(POK_SYSCALL_MSECTION_ENTER_HELPER,
@@ -185,6 +186,26 @@ static inline pok_ret_t jet_msection_enter_helper(struct msection* section)
 }
 // Syscall should be accessed only by function
 #undef POK_SYSCALL_MSECTION_ENTER_HELPER
+
+static inline pok_ret_t jet_msection_wait(struct msection* section,
+    const pok_time_t* timeout)
+{
+    return pok_syscall2(POK_SYSCALL_MSECTION_WAIT,
+        (uint32_t)section,
+        (uint32_t)timeout);
+}
+// Syscall should be accessed only by function
+#undef POK_SYSCALL_MSECTION_WAIT
+
+static inline pok_ret_t jet_msection_notify(struct msection* section,
+    pok_thread_id_t thread_id)
+{
+    return pok_syscall2(POK_SYSCALL_MSECTION_NOTIFY,
+        (uint32_t)section,
+        (uint32_t)thread_id);
+}
+// Syscall should be accessed only by function
+#undef POK_SYSCALL_MSECTION_NOTIFY
 
 #ifdef POK_NEEDS_PARTITIONS
 static inline pok_ret_t pok_partition_set_mode_current(pok_partition_mode_t mode)

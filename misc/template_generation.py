@@ -390,9 +390,11 @@ def syscall_build_action(target, source, env):
 
         if len(args_tokens) > SYSCALL_MAX_ARG_NUMBER * 2:
             pc.print_syscall_parse_error("Too many arguments for system call. Should be at most " + str(MAX_ARG_NUMBER))
+            return 1
 
         if len(args_tokens) % 2 == 1:
             pc.print_syscall_parse_error("Missed argument name after last type")
+            return 1
 
         for pair in zip(*[iter(args_tokens)]*2):
             is_pointer = 0
@@ -409,7 +411,8 @@ def syscall_build_action(target, source, env):
         syscall_string = None
 
     if syscall_string is not None:
-        fatal("Unterminated syscall definition")
+        print_error("Unterminated syscall definition")
+        return 1
 
 # Pseudo builder(method).
 #

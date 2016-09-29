@@ -63,3 +63,12 @@ void msection_leave(struct msection* section)
     }
 }
 
+pok_ret_t msection_wait(struct msection* section, pok_time_t timeout)
+{
+    return jet_msection_wait(section, &timeout);
+}
+
+pok_ret_t msection_notify(struct msection* section, pok_thread_id_t thread_id)
+{
+    return jet_msection_notify(section, thread_id);
+}
