@@ -60,16 +60,16 @@
 afdx_dst_info_t queuing_arinc_to_afdx_ports[ES_QUEUING_ARINC_PORTS_COUNT]= {
 	{
 		.src_partition_id = 1,
-	    .src_afdx_port = 1,
-	    .dst_afdx_port = 3,
+	    .src_afdx_port = 16001,
+	    .dst_afdx_port = 16003,
 	    .vl_data_index = 0,
 	    .dst_partition_id = 2,
 	    .type_of_packet = UNICAST_PACKET,
     },//vl 1 port 1
 	{
 		.src_partition_id = 1,
-	    .src_afdx_port = 2,
-	    .dst_afdx_port = 4,
+	    .src_afdx_port = 16002,
+	    .dst_afdx_port = 16004,
 	    .vl_data_index = 1,
 	    .dst_partition_id = 2,
 	    .type_of_packet = UNICAST_PACKET,
