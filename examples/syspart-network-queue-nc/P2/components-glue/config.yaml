@@ -54,12 +54,6 @@ components:
           state:
               dev_index: 0
 
-    - type: VIRTIO_NET_DEV
-      instances:
-          - name: virtio_net_dev_2
-            state:
-                dev_index: 1
-
     - type: ARP_ANSWERER
       instances:
           - name: arp_answerer_1
@@ -73,6 +67,33 @@ components:
           - name: mac_receiver_1
             state:
                 my_mac: '{0x52, 0x54, 0x00, 0x01, 0x02, 0x03}'
+
+    - type: MAC_SENDER
+      instances:
+        - name: mac_sender_2
+          state:
+              src_mac: '{0x52, 0x54, 0x01, 0x01, 0x02, 0x03}'
+
+    - type: VIRTIO_NET_DEV
+      instances:
+        - name: virtio_net_dev_2
+          state:
+              dev_index: 1
+
+    - type: ARP_ANSWERER
+      instances:
+          - name: arp_answerer_2
+            state:
+                good_ips: '{IP_ADDR(192, 168, 0, 101),IP_ADDR(192, 168, 0, 102)}'
+                good_ips_len: 2
+                src_mac: '{0x52, 0x54, 0x01, 0x01, 0x02, 0x03}'
+
+    - type: MAC_RECEIVER
+      instances:
+          - name: mac_receiver_2
+            state:
+                my_mac: '{0x52, 0x54, 0x01, 0x01, 0x02, 0x03}'
+
 
     - type: UDP_RECEIVER_FILTER
       instances:
@@ -178,6 +199,43 @@ links:
         instance: router
         port: portA
 
+    # second virtio card
+    - from:
+        instance: mac_sender_2
+        port: portB
+      to:
+        instance: virtio_net_dev_2
+        port: portA
+
+    - from:
+        instance: virtio_net_dev_2
+        port: portB
+      to:
+        instance: mac_receiver_2
+        port: portA
+
+    - from:
+        instance: mac_receiver_2
+        port: port_ARP
+      to:
+        instance: arp_answerer_2
+        port: portA
+
+    - from:
+        instance: arp_answerer_2
+        port: portB
+      to:
+        instance: mac_sender_2
+        port: portA
+
+    - from:
+        instance: mac_receiver_2
+        port: port_UDP
+      to:
+        instance: udp_receiver_filter
+        port: portA
+
+
     - from:
         instance: router
         port: portArray
@@ -193,4 +251,3 @@ links:
       to:
         instance: arinc_receiver_2
         port: portA
-
