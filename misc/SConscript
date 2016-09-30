@@ -182,7 +182,7 @@ env.Alias('run', 'run_cmd')
 env.Command('run_tap_cmd', [], env['QEMU'] + env['QEMU_FLAGS'] + ' -net nic,model=virtio -net tap,ifname=tap0,script=no,downscript=no')
 env.Alias('run-tap', 'run_tap_cmd')
 
-env.Command('run_tap2_cmd', [], env['QEMU'] + env['QEMU_FLAGS'] + ' -net nic,model=virtio,vlan=0 -net nic,model=virtio,vlan=1 -net tap,ifname=tap0,script=no,downscript=no,vlan=0 -net tap,ifname=tap0,script=no,downscript=no,vlan=1')
+env.Command('run_tap2_cmd', [], env['QEMU'] + env['QEMU_FLAGS'] + ' -net nic,model=virtio,vlan=0 -net nic,model=virtio,vlan=1 -net tap,ifname=tap0,script=no,downscript=no,vlan=0 -net tap,ifname=tap1,script=no,downscript=no,vlan=1')
 env.Alias('run-tap2', 'run_tap2_cmd')
 
 env.Command('run_tap_cmd_ne2k', [], env['QEMU'] + env['QEMU_FLAGS'] + ' -net nic,model=ne2k_pci,vlan=0 -net nic,model=ne2k_pci,vlan=1 -net tap,ifname=tap0,script=no,downscript=no,vlan=0, -net tap,ifname=tap1,script=no,downscript=no,vlan=1')
