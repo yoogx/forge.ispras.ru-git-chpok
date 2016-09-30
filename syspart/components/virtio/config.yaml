@@ -3,6 +3,7 @@
   state_struct:
       #not inited by glue
       info: struct virtio_network_device
+      dev_index: int
   init_func: virtio_init
 
   in_ports:

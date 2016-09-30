@@ -51,6 +51,14 @@ components:
     - type: VIRTIO_NET_DEV
       instances:
         - name: virtio_net_dev_1
+          state:
+              dev_index: 0
+
+    - type: VIRTIO_NET_DEV
+      instances:
+          - name: virtio_net_dev_2
+            state:
+                dev_index: 1
 
     - type: ARP_ANSWERER
       instances:

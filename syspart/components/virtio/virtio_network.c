@@ -48,7 +48,7 @@
 #define PRINTF(fmt, ...) printf("virtio_network: " fmt, ##__VA_ARGS__)
 
 
-struct virtio_network_device *tmp_singleton;
+struct virtio_network_device *tmp_vdevice[2];
 
 static void reclaim_send_buffers(struct virtio_network_device *info);
 /*
@@ -331,7 +331,9 @@ ret_t flush_send(VIRTIO_NET_DEV *self)
 
 static pok_bool_t probe_device(struct pci_device *pci_dev)
 {
-    struct virtio_network_device *dev = tmp_singleton;
+    static int dev_count = 0;
+    struct virtio_network_device *dev = tmp_vdevice[dev_count];
+    dev_count ++;
 
     dev->pci_device = *pci_dev;
     //TODO change to ioaddr everywhere
@@ -407,6 +409,11 @@ void virtio_receive_activity(VIRTIO_NET_DEV *self)
  */
 void virtio_init(VIRTIO_NET_DEV *self)
 {
-    tmp_singleton = &self->state.info;
-    register_pci_driver(&virtio_pci_driver);
+    tmp_vdevice[self->state.dev_index] = &self->state.info;
+    int static t = 0;
+    if (t == 0) {
+        printf("register pci_driver\n");
+        t++;
+        register_pci_driver(&virtio_pci_driver);
+    }
 }
