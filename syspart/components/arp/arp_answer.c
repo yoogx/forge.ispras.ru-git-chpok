@@ -18,6 +18,8 @@
 #include <stdio.h>
 #include "ARP_ANSWERER_gen.h"
 
+#define C_NAME "ARP: "
+
 struct arp_packet_t {
     uint16_t htype;
     uint16_t ptype;
@@ -41,15 +43,19 @@ ret_t arp_receive(ARP_ANSWERER *self, char *data, size_t len)
     struct arp_packet_t *arp_packet = (void *) data;
 
     if (arp_packet->htype != hton16(1)) {
+        printf(C_NAME"wrong arp packet\n");
         return EINVAL; // We support only Ethernet hardware type.
     }
     if (arp_packet->ptype != hton16(ETH_P_IP)) {
+        printf(C_NAME"wrong arp packet\n");
         return EINVAL; // We support only IPv4 protocol type.
     }
     if (arp_packet->hlen != ETH_ALEN || arp_packet->plen != 4) {
+        printf(C_NAME"wrong arp packet\n");
         return EINVAL; // We support Ethernet MAC and IPv4 addresses only.
     }
     if (arp_packet->oper != hton16(1)) {
+        printf(C_NAME"wrong arp packet\n");
         return EINVAL; // This is not an ARP request.
     }
     int found = 0;
@@ -60,6 +66,7 @@ ret_t arp_receive(ARP_ANSWERER *self, char *data, size_t len)
         }
     }
     if (!found) {
+        printf(C_NAME"bad ip\n");
         return EINVAL; // This ARP request is not for us.
     }
     printf("ARP_ANSWERER: we have received a request for our MAC.\n");
