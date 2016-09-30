@@ -18,23 +18,11 @@
 #include <net/udp.h>
 #include <stdio.h>
 
-#include "UDP_RECEIVER_FILTER_gen.h"
+#include "UDP_RECEIVER_gen.h"
 
-#define C_NAME "UDP_RECEIVER_FILTER: "
+#define C_NAME "UDP_RECEIVER: "
 
-
-static int find_ip_port_in_state(UDP_RECEIVER_FILTER_state *state, uint32_t ip, uint16_t udp_port)
-{
-    for (int i = 0; i < state->good_ip_port_len; i++) {
-        struct udp_ip_pair *current_pair = &state->good_ip_port[i];
-        if (ip == current_pair->ip && udp_port == current_pair->port)
-            return 1;
-    }
-    return 0;
-}
-
-
-ret_t udp_receive_and_filter(UDP_RECEIVER_FILTER *self, char *data, size_t len)
+ret_t udp_receive(UDP_RECEIVER *self, char *data, size_t len)
 {
     const struct ip_hdr *ip_hdr = (const struct ip_hdr *) data;
 
@@ -79,14 +67,9 @@ ret_t udp_receive_and_filter(UDP_RECEIVER_FILTER *self, char *data, size_t len)
         return EINVAL;
     }
 
-    if (find_ip_port_in_state(&self->state, ntoh32(ip_hdr->dst), ntoh16(udp_hdr->dst_port))) {
-        return UDP_RECEIVER_FILTER_call_portB_udp_received(self,
-                udp_hdr->payload,
-                len-sizeof(struct udp_hdr),
-                ntoh32(ip_hdr->dst),
-                ntoh16(udp_hdr->dst_port));
-    } else {
-        printf(C_NAME"packet not for us %ld.%ld.%ld.%ld:%d\n", IP_PRINT(ntoh32(ip_hdr->dst)), ntoh16(udp_hdr->dst_port));
-        return EINVAL;
-    }
+    return UDP_RECEIVER_call_portB_udp_received(self,
+            udp_hdr->payload,
+            len-sizeof(struct udp_hdr),
+            ntoh32(ip_hdr->dst),
+            ntoh16(udp_hdr->dst_port));
 }

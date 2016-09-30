@@ -95,12 +95,9 @@ components:
                 my_mac: '{0x52, 0x54, 0x01, 0x01, 0x02, 0x03}'
 
 
-    - type: UDP_RECEIVER_FILTER
+    - type: UDP_RECEIVER
       instances:
-          - name: udp_receiver_filter
-            state:
-                good_ip_port: '{{IP_ADDR(192, 168, 56, 101), 10001},{IP_ADDR(192, 168, 56, 102), 10005}}'
-                good_ip_port_len: 2
+          - name: udp_receiver
 
     - type: ROUTER
       instances:
@@ -189,11 +186,11 @@ links:
         instance: mac_receiver_1
         port: port_UDP
       to:
-        instance: udp_receiver_filter
+        instance: udp_receiver
         port: portA
 
     - from:
-        instance: udp_receiver_filter
+        instance: udp_receiver
         port: portB
       to:
         instance: router
@@ -232,7 +229,7 @@ links:
         instance: mac_receiver_2
         port: port_UDP
       to:
-        instance: udp_receiver_filter
+        instance: udp_receiver
         port: portA
 
 

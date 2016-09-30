@@ -17,16 +17,13 @@
       - name: portB
         type: mac_send_data
 
-- name: UDP_RECEIVER_FILTER
+- name: UDP_RECEIVER
   additional_h_files: ['"state_structs.h"', '"ip_addr.h"']
-  state_struct:
-      good_ip_port[10]: struct udp_ip_pair
-      good_ip_port_len: size_t
   in_ports:
       - name: portA
         type: simple_send_data
         implementation:
-            send: udp_receive_and_filter
+            send: udp_receive
   out_ports:
       - name: portB
         type: udp_received
