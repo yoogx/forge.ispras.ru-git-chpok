@@ -381,6 +381,7 @@ static pok_bool_t probe_device(struct pci_device *pci_dev)
     // 7. send buffers allocation
     dev->send_buffers = smalloc(sizeof(*dev->send_buffers) * dev->tx_vq.vring.num);
 
+    dev->inited = 1;
     return TRUE;
 }
 
@@ -397,7 +398,8 @@ struct pci_driver virtio_pci_driver = {
 
 void virtio_receive_activity(VIRTIO_NET_DEV *self)
 {
-    reclaim_receive_buffers(self);
+    if (self->state.info.inited)
+        reclaim_receive_buffers(self);
 }
 
 /*

@@ -46,6 +46,7 @@ struct virtio_network_device {
 
     struct receive_buffer receive_buffers[POK_MAX_RECEIVE_BUFFERS];
     struct send_buffer *send_buffers;
+    int inited;
 };
 
 #endif
