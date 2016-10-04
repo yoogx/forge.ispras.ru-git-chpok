@@ -18,7 +18,14 @@
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 COMPONENTS_DIR = "syspart/components"
-COMPONENTS_LIST = ['X', 'Y', 'arinc', 'udp_ip', 'mac', 'virtio', 'arp']
+COMPONENTS_LIST = [
+        'arinc',
+        'udp_ip',
+        'mac',
+        'virtio',
+        'arp'
+        ]
+
 CONFIG = "config.yaml"
 
 import os

@@ -1,24 +1,4 @@
 components:
-    - type : X
-      instances:
-        - name: x_1
-          state:
-              x: 1
-
-        - name: x_2
-          state:
-              x: 2
-
-    - type: Y
-      instances:
-        - name: y_1
-          state:
-              y: 1
-
-        - name: y_2
-          state:
-              y: 2
-
     - type: ARINC_SENDER
       instances:
         - name:
@@ -126,20 +106,6 @@ components:
 
 
 links:
-    - from:
-          instance: y_1
-          port: portB
-      to:
-          instance: x_1
-          port: portC
-
-    - from:
-          instance: y_2
-          port: portB
-      to:
-          instance: x_2
-          port: portC
-
     - from:
         instance: arinc_sender_1
         port: portA

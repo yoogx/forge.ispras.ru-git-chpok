@@ -1,5 +1,0 @@
-Import('comp_env')
-
-objs = comp_env.StaticObject(Glob('*.c'))
-
-Return('objs')
