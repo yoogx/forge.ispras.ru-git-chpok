@@ -33,7 +33,7 @@ static int get_ip_port_index(ROUTER_state *state, uint32_t ip, uint16_t port)
     return -1;
 }
 
-ret_t receive_packet(ROUTER *self, char *payload, size_t payload_size, uint32_t ip, uint16_t port)
+ret_t receive_packet(ROUTER *self, const char *payload, size_t payload_size, uint32_t ip, uint16_t port)
 {
     int idx = get_ip_port_index(&self->state, ip, port);
 

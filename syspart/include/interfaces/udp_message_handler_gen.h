@@ -10,7 +10,7 @@
     #include <ret_type.h>
 
 typedef struct {
-    ret_t (*udp_message_handler)(self_t *, char *, size_t, uint32_t, uint16_t);
+    ret_t (*udp_message_handle)(self_t *, const char *, size_t, uint32_t, uint16_t);
 } udp_message_handler;
 
 

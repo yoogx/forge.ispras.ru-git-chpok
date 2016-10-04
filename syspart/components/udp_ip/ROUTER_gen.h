@@ -35,7 +35,7 @@ typedef struct {
 
 
 
-      ret_t receive_packet(ROUTER *, char *, size_t, uint32_t, uint16_t);
+      ret_t receive_packet(ROUTER *, const char *, size_t, uint32_t, uint16_t);
 
       ret_t ROUTER_call_portArray_handle_by_index(int, ROUTER *, const char *, size_t);
 

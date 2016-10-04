@@ -8,7 +8,7 @@
 
 
 
-    static ret_t __wrapper_receive_packet(self_t *arg0, char * arg1, size_t arg2, uint32_t arg3, uint16_t arg4)
+    static ret_t __wrapper_receive_packet(self_t *arg0, const char * arg1, size_t arg2, uint32_t arg3, uint16_t arg4)
     {
         return receive_packet((ROUTER*) arg0, arg1, arg2, arg3, arg4);
     }
@@ -27,7 +27,7 @@
 
 void __ROUTER_init__(ROUTER *self)
 {
-            self->in.portA.ops.udp_message_handler = __wrapper_receive_packet;
+            self->in.portA.ops.udp_message_handle = __wrapper_receive_packet;
 
 }
 

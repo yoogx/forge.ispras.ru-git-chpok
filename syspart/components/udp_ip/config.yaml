@@ -37,7 +37,7 @@
       - name: portA
         type: udp_message_handler
         implementation:
-            udp_message_handler: receive_packet
+            udp_message_handle: receive_packet
 
   out_ports:
       - name: portArray

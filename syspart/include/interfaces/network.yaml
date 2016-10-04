@@ -35,7 +35,7 @@
 - name: udp_message_handler
   additional_h_files: ['<ret_type.h>']
   functions:
-      - name: udp_message_handler #udp_message_handle
+      - name: udp_message_handle #udp_message_handle
         return_type: ret_t
         # component, udp_msg, size, dst_ip, dst_udp_port
-        args_type: [self_t *, char *, size_t, uint32_t, uint16_t]  #const char *!!
+        args_type: [self_t *, const char *, size_t, uint32_t, uint16_t]  #const char *!!
