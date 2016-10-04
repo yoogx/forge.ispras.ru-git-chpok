@@ -28,11 +28,9 @@ syspart_env['CPPPATH'] = env['LIBPOK_CPPPATH'] + [
 Export('syspart_env')
 
 drivers = SConscript('drivers/SConscript')
-net     = SConscript('net/SConscript')
 components = SConscript('components/SConscript')
 
 syspart_program = syspart_env.Program(target = 'syspart.lo', source = [
-    net,
     drivers,
     components,
     'config.c',

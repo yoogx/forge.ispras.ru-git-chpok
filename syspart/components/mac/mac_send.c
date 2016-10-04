@@ -14,10 +14,6 @@
  */
 
 #include <net/byteorder.h>
-#include <net/ether.h>
-#include <net/ip.h>
-#include <net/udp.h>
-#include <pci.h>
 
 #include <stdio.h>
 #include <string.h>

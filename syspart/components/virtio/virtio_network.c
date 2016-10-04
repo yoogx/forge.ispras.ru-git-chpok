@@ -18,10 +18,6 @@
 #include <pci.h>
 #include <ioports.h>
 
-#include <net/byteorder.h>
-#include <net/ether.h>
-#include <net/ip.h>
-#include <net/udp.h>
 #include <mem.h>
 
 #include "virtio_config.h"
