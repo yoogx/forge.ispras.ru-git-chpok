@@ -11,7 +11,7 @@
     #include <port_info.h>
 
 
-    #include <interfaces/send_net_data_gen.h>
+    #include <interfaces/preallocated_sender_gen.h>
 
 typedef struct ARINC_SENDER_state {
     PORT_DIRECTION_TYPE port_direction;
@@ -30,7 +30,7 @@ typedef struct {
     } in;
     struct {
             struct {
-                send_net_data *ops;
+                preallocated_sender *ops;
                 self_t *owner;
             } portA;
     } out;

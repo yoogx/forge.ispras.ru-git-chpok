@@ -7,9 +7,9 @@
 #define __ARP_ANSWERER_GEN_H__
 
 
-    #include <interfaces/simple_send_data_gen.h>
+    #include <interfaces/message_handler_gen.h>
 
-    #include <interfaces/mac_send_data_gen.h>
+    #include <interfaces/ethernet_packet_sender_gen.h>
 
 typedef struct ARP_ANSWERER_state {
     uint8_t src_mac[6];
@@ -21,12 +21,12 @@ typedef struct {
     ARP_ANSWERER_state state;
     struct {
             struct {
-                simple_send_data ops;
+                message_handler ops;
             } portA;
     } in;
     struct {
             struct {
-                mac_send_data *ops;
+                ethernet_packet_sender *ops;
                 self_t *owner;
             } portB;
     } out;

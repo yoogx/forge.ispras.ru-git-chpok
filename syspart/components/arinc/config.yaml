@@ -17,7 +17,7 @@
 
   out_ports:
       - name: portA
-        type: send_net_data
+        type: preallocated_sender
 
 
 - name: ARINC_RECEIVER
@@ -35,6 +35,6 @@
 
   in_ports:
       - name: portA
-        type: simple_send_data
+        type: message_handler
         implementation:
             send: arinc_receive_message

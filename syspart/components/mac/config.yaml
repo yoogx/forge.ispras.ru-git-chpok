@@ -5,13 +5,13 @@
 
   in_ports:
       - name: portA
-        type: mac_send_data
+        type: ethernet_packet_sender
         implementation:
             mac_send: mac_send
             flush: mac_flush
   out_ports:
       - name: portB
-        type: send_net_data
+        type: preallocated_sender
 
 - name: MAC_RECEIVER
   #additional_h_files: ['<port_info.h>']
@@ -20,14 +20,14 @@
 
   in_ports:
       - name: portA
-        type: simple_send_data
+        type: message_handler
         implementation:
             send: mac_receive
 
   out_ports:
       - name: port_UDP
-        type: simple_send_data
+        type: message_handler
 
       - name: port_ARP
-        type: simple_send_data
+        type: message_handler
 

@@ -8,9 +8,9 @@
 
     #include "ip_addr.h"
 
-    #include <interfaces/send_net_data_gen.h>
+    #include <interfaces/preallocated_sender_gen.h>
 
-    #include <interfaces/mac_send_data_gen.h>
+    #include <interfaces/ethernet_packet_sender_gen.h>
 
 typedef struct UDP_IP_SENDER_state {
     uint32_t src_ip;
@@ -24,12 +24,12 @@ typedef struct {
     UDP_IP_SENDER_state state;
     struct {
             struct {
-                send_net_data ops;
+                preallocated_sender ops;
             } portA;
     } in;
     struct {
             struct {
-                mac_send_data *ops;
+                ethernet_packet_sender *ops;
                 self_t *owner;
             } portB;
     } out;

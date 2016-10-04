@@ -6,10 +6,10 @@
       src_mac[6]: uint8_t
   in_ports:
       - name: portA
-        type: simple_send_data
+        type: message_handler
         implementation:
             send: arp_receive
 
   out_ports:
       - name: portB
-        type: mac_send_data
+        type: ethernet_packet_sender

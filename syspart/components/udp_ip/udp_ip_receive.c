@@ -67,7 +67,7 @@ ret_t udp_receive(UDP_RECEIVER *self, char *data, size_t len)
         return EINVAL;
     }
 
-    return UDP_RECEIVER_call_portB_udp_received(self,
+    return UDP_RECEIVER_call_portB_udp_message_handler(self,
             udp_hdr->payload,
             len-sizeof(struct udp_hdr),
             ntoh32(ip_hdr->dst),

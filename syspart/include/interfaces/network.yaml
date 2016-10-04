@@ -1,4 +1,4 @@
-- name: send_net_data #preallocated_sender
+- name: preallocated_sender
   additional_h_files: ['<ret_type.h>']
   functions:
       - name: send
@@ -11,7 +11,7 @@
         # component
         args_type: [self_t *]
 
-- name: mac_send_data #send_ethernet_packet
+- name: ethernet_packet_sender
   additional_h_files: ['<ret_type.h>', '<net/ether.h>']
   functions:
       - name: mac_send
@@ -24,7 +24,7 @@
         # component
         args_type: [self_t *]
 
-- name: simple_send_data #message_handler
+- name: message_handler
   additional_h_files: ['<ret_type.h>']
   functions:
       - name: send #handle
@@ -32,10 +32,10 @@
         # component, msg, size
         args_type: [self_t *, char *, size_t] #const char *!!
 
-- name: udp_received #udp_message_handler
+- name: udp_message_handler
   additional_h_files: ['<ret_type.h>']
   functions:
-      - name: udp_received #udp_message_handle
+      - name: udp_message_handler #udp_message_handle
         return_type: ret_t
         # component, udp_msg, size, dst_ip, dst_udp_port
         args_type: [self_t *, char *, size_t, uint32_t, uint16_t]  #const char *!!

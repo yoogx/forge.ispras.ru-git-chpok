@@ -3,8 +3,8 @@
  *
  * Instead of modifying this file, modify the one it generated from (syspart/include/interfaces/network.yaml).
  */
-#ifndef __INTERFACES_MAC_SEND_DATA_H__
-#define __INTERFACES_MAC_SEND_DATA_H__
+#ifndef __INTERFACES_ETHERNET_PACKET_SENDER_H__
+#define __INTERFACES_ETHERNET_PACKET_SENDER_H__
 
 #include <lib/common.h>
     #include <ret_type.h>
@@ -13,7 +13,7 @@
 typedef struct {
     ret_t (*mac_send)(self_t *, char *, size_t, size_t, uint8_t *, enum ethertype);
     ret_t (*flush)(self_t *);
-} mac_send_data;
+} ethernet_packet_sender;
 
 
 #endif

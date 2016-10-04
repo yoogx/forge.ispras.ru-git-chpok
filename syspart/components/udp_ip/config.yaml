@@ -9,24 +9,24 @@
 
   in_ports:
       - name: portA
-        type: send_net_data
+        type: preallocated_sender
         implementation:
             send: udp_ip_send
             flush: udp_ip_flush
   out_ports:
       - name: portB
-        type: mac_send_data
+        type: ethernet_packet_sender
 
 - name: UDP_RECEIVER
   additional_h_files: ['"state_structs.h"', '"ip_addr.h"']
   in_ports:
       - name: portA
-        type: simple_send_data
+        type: message_handler
         implementation:
             send: udp_receive
   out_ports:
       - name: portB
-        type: udp_received
+        type: udp_message_handler
 
 - name: ROUTER
   additional_h_files: ['"state_structs.h"', '"ip_addr.h"']
@@ -35,11 +35,11 @@
       map_ip_port_to_idx_len: size_t
   in_ports:
       - name: portA
-        type: udp_received
+        type: udp_message_handler
         implementation:
-            udp_received: receive_packet
+            udp_message_handler: receive_packet
 
   out_ports:
       - name: portArray
-        type: simple_send_data
+        type: message_handler
         is_array: true
