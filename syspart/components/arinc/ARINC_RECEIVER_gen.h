@@ -35,7 +35,7 @@ typedef struct {
 
 
 
-      ret_t arinc_receive_message(ARINC_RECEIVER *, char *, size_t);
+      ret_t arinc_receive_message(ARINC_RECEIVER *, const char *, size_t);
 
 
 

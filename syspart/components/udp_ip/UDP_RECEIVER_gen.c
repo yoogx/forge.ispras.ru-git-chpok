@@ -8,7 +8,7 @@
 
 
 
-    static ret_t __wrapper_udp_receive(self_t *arg0, char * arg1, size_t arg2)
+    static ret_t __wrapper_udp_receive(self_t *arg0, const char * arg1, size_t arg2)
     {
         return udp_receive((UDP_RECEIVER*) arg0, arg1, arg2);
     }
@@ -27,7 +27,7 @@
 
 void __UDP_RECEIVER_init__(UDP_RECEIVER *self)
 {
-            self->in.portA.ops.send = __wrapper_udp_receive;
+            self->in.portA.ops.handle = __wrapper_udp_receive;
 
 }
 

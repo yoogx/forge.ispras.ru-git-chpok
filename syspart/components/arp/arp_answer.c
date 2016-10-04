@@ -38,7 +38,7 @@ static struct {
 } __attribute__((packed)) arp_answer_buffer;
 
 
-ret_t arp_receive(ARP_ANSWERER *self, char *data, size_t len)
+ret_t arp_receive(ARP_ANSWERER *self, const char *data, size_t len)
 {
     struct arp_packet_t *arp_packet = (void *) data;
 

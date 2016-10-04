@@ -15,13 +15,13 @@
 
 
 
-      ret_t ROUTER_call_portArray_send_by_index(int idx, ROUTER *self, char * arg1, size_t arg2)
+      ret_t ROUTER_call_portArray_handle_by_index(int idx, ROUTER *self, const char * arg1, size_t arg2)
       {
          if (self->out.portArray[idx].ops == NULL) {
              printf("WRONG CONFIG: out port portArray of component ROUTER was not initialized\n");
              //fatal_error?
          }
-         return self->out.portArray[idx].ops->send(self->out.portArray[idx].owner, arg1, arg2);
+         return self->out.portArray[idx].ops->handle(self->out.portArray[idx].owner, arg1, arg2);
       }
 
 

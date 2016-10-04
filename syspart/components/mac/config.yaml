@@ -22,7 +22,7 @@
       - name: portA
         type: message_handler
         implementation:
-            send: mac_receive
+            handle: mac_receive
 
   out_ports:
       - name: port_UDP

@@ -23,7 +23,7 @@
       - name: portA
         type: message_handler
         implementation:
-            send: udp_receive
+            handle: udp_receive
   out_ports:
       - name: portB
         type: udp_message_handler

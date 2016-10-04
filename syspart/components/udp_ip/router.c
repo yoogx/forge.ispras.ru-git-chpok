@@ -41,7 +41,7 @@ ret_t receive_packet(ROUTER *self, char *payload, size_t payload_size, uint32_t 
         printf(C_NAME"packet not for us (from %ld.%ld.%ld.%ld:%d)\n", IP_PRINT(ip), port);
         return EINVAL;
     }
-    ROUTER_call_portArray_send_by_index(idx, self, payload, payload_size);
+    ROUTER_call_portArray_handle_by_index(idx, self, payload, payload_size);
 
     return EOK;
 }

@@ -27,10 +27,10 @@
 - name: message_handler
   additional_h_files: ['<ret_type.h>']
   functions:
-      - name: send #handle
+      - name: handle
         return_type: ret_t
         # component, msg, size
-        args_type: [self_t *, char *, size_t] #const char *!!
+        args_type: [self_t *, const char *, size_t] #const char *!!
 
 - name: udp_message_handler
   additional_h_files: ['<ret_type.h>']

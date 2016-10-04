@@ -34,7 +34,7 @@ typedef struct {
 
 
 
-      ret_t arp_receive(ARP_ANSWERER *, char *, size_t);
+      ret_t arp_receive(ARP_ANSWERER *, const char *, size_t);
 
       ret_t ARP_ANSWERER_call_portB_mac_send(ARP_ANSWERER *, char *, size_t, size_t, uint8_t *, enum ethertype);
       ret_t ARP_ANSWERER_call_portB_flush(ARP_ANSWERER *);

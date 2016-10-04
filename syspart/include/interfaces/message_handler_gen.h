@@ -10,7 +10,7 @@
     #include <ret_type.h>
 
 typedef struct {
-    ret_t (*send)(self_t *, char *, size_t);
+    ret_t (*handle)(self_t *, const char *, size_t);
 } message_handler;
 
 

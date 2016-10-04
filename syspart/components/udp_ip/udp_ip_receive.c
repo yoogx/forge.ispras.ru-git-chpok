@@ -22,7 +22,7 @@
 
 #define C_NAME "UDP_RECEIVER: "
 
-ret_t udp_receive(UDP_RECEIVER *self, char *data, size_t len)
+ret_t udp_receive(UDP_RECEIVER *self, const char *data, size_t len)
 {
     const struct ip_hdr *ip_hdr = (const struct ip_hdr *) data;
 

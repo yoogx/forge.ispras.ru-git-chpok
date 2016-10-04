@@ -27,7 +27,7 @@
 #define MAC_HEADER_SIZE 14
 
 #define C_NAME "MAC_RECEIVER: "
-ret_t mac_receive(MAC_RECEIVER *self, char *data, size_t len)
+ret_t mac_receive(MAC_RECEIVER *self, const char *data, size_t len)
 {
     // TODO validate checksums, TTL, and all that stuff
 
@@ -55,9 +55,9 @@ ret_t mac_receive(MAC_RECEIVER *self, char *data, size_t len)
     }
 
     if (ether_hdr->ethertype == hton16(ETH_P_ARP)) {
-        return MAC_RECEIVER_call_port_ARP_send(self, ether_hdr->payload, len);
+        return MAC_RECEIVER_call_port_ARP_handle(self, ether_hdr->payload, len);
     } else if(ether_hdr->ethertype == hton16(ETH_P_IP)){
-        return MAC_RECEIVER_call_port_UDP_send(self, ether_hdr->payload, len);
+        return MAC_RECEIVER_call_port_UDP_handle(self, ether_hdr->payload, len);
     } else {
         // we don't know anything except IPv4
         return EINVAL;

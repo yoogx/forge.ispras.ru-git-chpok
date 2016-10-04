@@ -8,7 +8,7 @@
       - name: portA
         type: message_handler
         implementation:
-            send: arp_receive
+            handle: arp_receive
 
   out_ports:
       - name: portB

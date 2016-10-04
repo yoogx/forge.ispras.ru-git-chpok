@@ -87,7 +87,7 @@ void arinc_receiver_init(ARINC_RECEIVER *self)
     }
 }
 
-ret_t arinc_receive_message(ARINC_RECEIVER *self, char *payload, size_t payload_size)
+ret_t arinc_receive_message(ARINC_RECEIVER *self, const char *payload, size_t payload_size)
 {
     //printf(C_NAME"%s got message\n", self->state.tmp_name);
     if (self->state.is_queuing_port)

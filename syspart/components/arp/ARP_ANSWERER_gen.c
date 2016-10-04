@@ -8,7 +8,7 @@
 
 
 
-    static ret_t __wrapper_arp_receive(self_t *arg0, char * arg1, size_t arg2)
+    static ret_t __wrapper_arp_receive(self_t *arg0, const char * arg1, size_t arg2)
     {
         return arp_receive((ARP_ANSWERER*) arg0, arg1, arg2);
     }
@@ -35,7 +35,7 @@
 
 void __ARP_ANSWERER_init__(ARP_ANSWERER *self)
 {
-            self->in.portA.ops.send = __wrapper_arp_receive;
+            self->in.portA.ops.handle = __wrapper_arp_receive;
 
 }
 

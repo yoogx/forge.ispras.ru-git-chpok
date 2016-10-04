@@ -37,4 +37,4 @@
       - name: portA
         type: message_handler
         implementation:
-            send: arinc_receive_message
+            handle: arinc_receive_message
