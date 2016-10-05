@@ -20,117 +20,41 @@
 
 
 #include <types.h>
-#include <core/syscall.h>
+#include <arch/interrupt_frame.h>
 
-typedef struct
+/* Descriptor for concrete exception. */
+struct exception_descriptor
 {
-  uint32_t es;
-  uint32_t ds;
-  uint32_t edi;
-  uint32_t esi;
-  uint32_t ebp;
-  uint32_t __esp;
-  uint32_t ebx;
-  uint32_t edx;
-  uint32_t ecx;
-  uint32_t eax;
+  uint16_t	vector;
+  void      (*handler)(void);
+};
 
-  /* These are pushed by interrupt */
-  uint32_t error;	/* Error code or padding */
-  uint32_t eip;
-  uint32_t cs;
-  uint32_t eflags;
+/* 
+ * List of exception for register.
+ * 
+ * The last element in the list has NULL as handler field.
+ */
+extern const struct exception_descriptor exception_list[];
 
-  /* Only pushed with privilege switch */
-  /* (Check cs content to have original CPL) */
-  uint32_t esp;
-  uint32_t ss;
-} interrupt_frame;
-
-extern uint32_t pok_tss;
-
+/*
+ * If we returns to user space, restore esp0 field of tss.
+ * This field is responsible for kernel stack processing interrupts
+ * from user space.
+ * 
+ * Should be called when returning from interrupt.
+ */
 void update_tss (interrupt_frame* frame);
 
-#define INTERRUPT_HANDLER(name)						\
-void name (void);							\
-void name##_handler(interrupt_frame* frame);				\
-  asm (	    			      			      		\
-      ".global "#name "			\n"				\
-      "\t.type "#name",@function	\n"				\
-      #name":				\n"				\
-      "subl $4, %esp			\n"				\
-      "pusha				\n"				\
-      "push %ds				\n"				\
-      "push %es				\n"				\
-      "push %esp			\n"				\
-      "mov $0x10, %ax			\n"				\
-      "mov %ax, %ds			\n"				\
-      "mov %ax, %es			\n"				\
-      "call " #name"_help		\n"				\
-      "call update_tss			\n"				\
-      "addl $4, %esp			\n"				\
-      "pop %es				\n"				\
-      "pop %ds				\n"				\
-      "popa				\n"				\
-      "addl $4, %esp			\n"				\
-      "iret				\n"				\
-      );								\
-void name##_help(interrupt_frame* frame){global_thread_stack = (uintptr_t) frame; return name##_handler(frame);}   \
-void name##_handler(interrupt_frame* frame)
+#ifdef POK_NEEDS_GDB
+/* 
+ * Save pointer to the frame, so it can be used in GDB.
+ * 
+ * Should be called when enter to interrupt.
+ */
+void save_frame(interrupt_frame* frame);
+#endif /* POK_NEEDS_GDB */
 
-#define INTERRUPT_HANDLER_errorcode(name)				\
-void name (void);							\
-void name##_handler(interrupt_frame* frame);			\
-  asm (	    			      			      		\
-      ".global "#name "			\n"				\
-      "\t.type "#name",@function	\n"				\
-      #name":				\n"				\
-      "pusha				\n"				\
-      "push %ds				\n"				\
-      "push %es				\n"				\
-      "push %esp			\n"				\
-      "mov $0x10, %ax			\n"				\
-      "mov %ax, %ds			\n"				\
-      "mov %ax, %es			\n"				\
-      "call " #name"_help		\n"				\
-      "call update_tss			\n"				\
-      "addl $4, %esp			\n"				\
-      "pop %es				\n"				\
-      "pop %ds				\n"				\
-      "popa				\n"				\
-      "addl $4, %esp			\n"				\
-      "iret				\n"				\
-      );								\
-void name##_help(interrupt_frame* frame){global_thread_stack = (uintptr_t) frame; return name##_handler(frame);}   \
-void name##_handler(interrupt_frame* frame)
-
-#define INTERRUPT_HANDLER_syscall(name)						\
-int name (void);							\
-void name##_handler(interrupt_frame* frame);				\
-  asm (	    			      			      		\
-      ".global "#name "			\n"				\
-      "\t.type "#name",@function	\n"				\
-      #name":				\n"				\
-      "subl $4, %esp			\n"				\
-      "pusha				\n"				\
-      "push %ds				\n"				\
-      "push %es				\n"				\
-      "push %esp			\n"				\
-      "mov $0x10, %ax			\n"				\
-      "mov %ax, %ds			\n"				\
-      "mov %ax, %es			\n"				\
-      "call " #name"_help		\n"				\
-      "movl %eax, 40(%esp)         \n" /* return value */  \
-      "call update_tss			\n"				\
-      "addl $4, %esp			\n"				\
-      "pop %es				\n"				\
-      "pop %ds				\n"				\
-      "popa				\n"				\
-      "addl $4, %esp			\n"				\
-      "iret				\n"				\
-      );								\
-void name##_help(interrupt_frame* frame){global_thread_stack = (uintptr_t) frame; return name##_handler(frame);}   \
-void name##_handler(interrupt_frame* frame)
-
+void process_breakpoint(interrupt_frame* frame);
+void process_syscall(interrupt_frame* frame);
 
 #endif /* !__POK_INTERRUPT_H__ */

@@ -1,0 +1,55 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+Import('arch_env')
+
+import os
+
+exception_source_filenames = [
+    'exception_entries.S',
+    'exception_handlers.c'
+]
+
+source_dir = Dir('.').srcnode().abspath
+exception_sources = [os.path.join(source_dir, filename) for filename in exception_source_filenames]
+
+if arch_env.get('jdeveloper'):
+    import sys
+    sys.path.insert(1, os.path.join(os.environ["POK_PATH"], "misc"))
+    import template_generation
+    AddMethod(arch_env, template_generation.TemplateRender)
+    
+    import yaml
+    
+    def parse_yaml(source, env):
+        return yaml.load(file(source[0].path, "r"))
+    
+    arch_env.TemplateRender(
+        target = exception_sources,
+        source = 'exceptions.yaml',
+        create_definitions_func = parse_yaml,
+        template_main = ['exception_entries', 'exception_handlers'],
+        template_dir = Dir('.').srcnode().path + '/templates',
+        NO_DEPS = True,
+        GENERATE_TITLE = template_generation.generate_title_c
+    )
+
+Return('exception_sources')
+
+# EOF

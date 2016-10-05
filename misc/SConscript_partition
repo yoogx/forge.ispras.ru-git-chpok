@@ -41,9 +41,9 @@ def get_pok_partition_definitions(source, env):
 
     root = etree.parse(source.path)
 
-    parser = arinc653_xml_conf.ArincConfigParser()
+    parser = arinc653_xml_conf.ArincConfigParser(env['ARCH'])
 
-    conf = chpok_configuration.Configuration()
+    conf = chpok_configuration.Configuration(env['ARCH'])
     parser.parse_partition(conf, root)
 
     return dict(part = conf.partitions[0])

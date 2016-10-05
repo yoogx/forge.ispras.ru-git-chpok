@@ -33,12 +33,13 @@
 
 #include <types.h>
 #include <errno.h>
-//#include <core/sched.h>
+
 #include <core/delayed_event.h>
-#include <arch.h>
 #include <list.h>
 
+#include <asp/cswitch.h>
 
+#include <core/space.h>
 
 /*
  * In POK, we add a kernel thread and an idle thread. The kernel
@@ -293,7 +294,7 @@ typedef struct _pok_thread
      * and updated by pok_context_switch.
      *
      */
-    uint32_t	        sp; 
+    struct jet_context*	        sp;
 
     /*
      * Initial value of kernel stack (when it was allocated).
@@ -302,7 +303,14 @@ typedef struct _pok_thread
      * 
      * Final after thread's initialization.
      */
-    struct dStack       initial_sp;
+    jet_stack_t         initial_sp;
+
+    /*
+     * Pointer to area for save floating point registers for given thread.
+     * It is allocated at partition's initialization.
+     */
+
+    struct jet_fp_store*    fp_store;
 
     /*
      * ???
@@ -313,7 +321,7 @@ typedef struct _pok_thread
      * 
      * Final after create_process().
      */
-    void* __user        init_stack_addr;
+    jet_ustack_t        init_stack_addr;
     
     /*
      * Size of the user space stack.
@@ -335,14 +343,14 @@ typedef struct _pok_thread
     // Whether thread is in unrecoverable error state.
     pok_bool_t is_unrecoverable;
 
+#ifdef POK_NEEDS_GDB
     /*
-     * Stack from entry.S for PPC and from interrupt.h for i386
-     * where all user space registers have been saved.
+     * Interrupt context where all user space registers have been saved.
      * 
      * If user space has never been called yet, this is 0.
      */
-    uint32_t            entry_sp_user;
-
+    struct jet_interrupt_context* entry_sp_user;
+#endif /* POK_NEEDS_GDB */
     /* 
      * Name of the process.
      * 

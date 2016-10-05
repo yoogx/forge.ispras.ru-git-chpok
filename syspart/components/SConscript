@@ -119,7 +119,7 @@ if True:#syspart_env.get('jdeveloper'):
     import template_generation
     AddMethod(comp_env, template_generation.TemplateRender)
     comp_env.Append(
-            NO_DEPS_FILES = 1,
+            NO_DEPS = 1,
             SOURCE_BASE_DIR = comp_env['POK_PATH'],
             GENERATE_TITLE = template_generation.generate_title_c
             )

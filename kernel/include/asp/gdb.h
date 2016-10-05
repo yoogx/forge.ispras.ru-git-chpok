@@ -30,13 +30,34 @@
  * Arch header should define correspondence between names of these
  * floating-point registers and their index in registers array.
  * (TODO: which order of array? TODO: why arch-specific names are needed for common code?).
+ * 
+ * If POK_NEEDS_GDB is enabled, arch header should expose definition(!)
+ * of struct jet_interrupt_context. (TODO: Move usage of this definition into arch code).
  */
 #include <arch/gdb.h>
 
-/* Fill 'registers' array according to 'ea'. */
-void gdb_set_regs(const struct regs* ea, uint32_t* registers);
+struct jet_interrupt_context;
+
+/* 
+ * Context from the last interrupt. Used for extract registers for
+ * interrupted thread.
+ * 
+ * Defined in arch-independent code. Should be assigned by arch code.
+ * 
+ * TODO: Naming is bad.
+ */
+extern struct jet_interrupt_context* global_thread_stack;
+
+/* 
+ * Fill 'registers' array according to 'ea'.
+ * 
+ * If 'ea' is NULL, interpret it as thread have not been started yet.
+ */
+void gdb_set_regs(const struct jet_interrupt_context* ea, uint32_t* registers);
 
 /* Fill 'ea' array according to 'registers'. */
-void gdb_get_regs(struct regs* ea, const uint32_t* registers);
+void gdb_get_regs(struct jet_interrupt_context* ea, const uint32_t* registers);
+
+void pok_trap(void);
 
 #endif /* __JET_ASP_GDB_H__ */

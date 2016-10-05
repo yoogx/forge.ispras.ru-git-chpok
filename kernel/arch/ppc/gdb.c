@@ -13,10 +13,20 @@
  * See the GNU General Public License version 3 for more details.
  */
 
+#include <config.h>
+
+#if POK_NEEDS_GDB
+
 #include <gdb.h>
 /* Fill 'registers' array according to 'ea'. */
-void gdb_set_regs(const struct regs* ea, uint32_t* registers)
+void gdb_set_regs(const struct jet_interrupt_context* ea, uint32_t* registers)
 {
+    if(ea == NULL)
+    {
+        memset(registers, 0, NUMREGS * sizeof(uint32_t));
+        return;
+    }
+
     registers[r0] = ea->r0;
     registers[r1] = ea->r1;
     registers[r2] = ea->r2;
@@ -58,8 +68,9 @@ void gdb_set_regs(const struct regs* ea, uint32_t* registers)
 }
 
 /* Fill 'ea' array according to 'registers'. */
-void gdb_get_regs(struct regs* ea, const uint32_t* registers)
+void gdb_get_regs(struct jet_interrupt_context* ea, const uint32_t* registers)
 {
     //TODO
 }
 
+#endif /* POK_NEEDS_GDB */

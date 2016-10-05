@@ -19,9 +19,13 @@
 #include <core/sched_arinc.h>
 #include "thread_internal.h"
 #include <common.h>
-#include <arch.h>
-#include <uaccess.h>
+#include <asp/arch.h>
+#include <core/uaccess.h>
 #include <system_limits.h>
+
+#include <cswitch.h>
+#include <core/loader.h>
+#include <alloc.h>
 
 
 /*
@@ -35,21 +39,17 @@
  */
 static void idle_func(void)
 {
-    wait_infinitely();
+    ja_inf_loop();
 }
 
 void pok_partition_arinc_idle(void)
 {
 	pok_partition_arinc_t* part = current_partition_arinc;
-	uint32_t fake_sp;
 	
 	// Unconditionally off preemption.
 	part->base_part.preempt_local_disabled = 1;
 	
-	pok_context_restart(
-		&part->base_part.initial_sp,
-		&idle_func,
-		&fake_sp);
+	jet_context_restart(part->base_part.initial_sp, &idle_func);
 }
 
 /* Helpers */
@@ -71,7 +71,8 @@ static void thread_reset(pok_thread_t* t)
  */
 static void thread_init(pok_thread_t* t)
 {
-    pok_dstack_alloc(&t->initial_sp, KERNEL_STACK_SIZE_DEFAULT);
+    t->initial_sp = pok_stack_alloc(KERNEL_STACK_SIZE_DEFAULT);
+    t->fp_store = ja_alloc_fp_store();
 }
 
 // This name is not accessible for user space
@@ -88,6 +89,10 @@ static void partition_arinc_start(void)
 		current_partition_arinc->mode = POK_PARTITION_MODE_INIT_COLD;
 	}
 
+	jet_loader_elf_load(part->base_part.space_id - 1, /* elf_id*/
+		part->base_part.space_id,
+		&part->main_entry);
+
 	for(int i = 0; i < part->nports_queuing; i++)
 	{
 		pok_port_queuing_init(&part->ports_queuing[i]);
@@ -98,17 +103,18 @@ static void partition_arinc_start(void)
 		pok_port_sampling_init(&part->ports_sampling[i]);
 	}
 
+	ja_ustack_init(part->base_part.space_id);
+
 	INIT_LIST_HEAD(&part->eligible_threads);
 	delayed_event_queue_init(&part->queue_deadline);
 	delayed_event_queue_init(&part->queue_delayed);
-    
+
 	for(int i = 0; i < part->nthreads; i++)
 	{
 		thread_reset(&part->threads[i]);
 	}
 	
 	part->nthreads_used = 0;
-	part->user_stack_state = 0;
 	
 	part->intra_memory_size_used = 0;
 	part->nbuffers_used = 0;
@@ -160,6 +166,7 @@ void pok_partition_arinc_reset(pok_partition_mode_t mode)
 	pok_partition_restart();
 }
 
+#if POK_NEEDS_GDB
 static int pok_sched_arinc_get_number_of_threads(pok_partition_t* part)
 {
 	pok_partition_arinc_t* part_arinc = container_of(part,
@@ -245,7 +252,7 @@ static void pok_sched_arinc_get_thread_info(pok_partition_t* part, int index, vo
 #undef WRITE_STR
 }
 
-static struct regs* pok_sched_arinc_get_thread_registers(pok_partition_t* part,
+static struct jet_interrupt_context* pok_sched_arinc_get_thread_registers(pok_partition_t* part,
 	int index, void* private)
 {
 	pok_thread_t* t = private;
@@ -258,7 +265,7 @@ static struct regs* pok_sched_arinc_get_thread_registers(pok_partition_t* part,
 	}
 	else if(index < part_arinc->nthreads_used && t->entry_sp_user)
 	{
-		return (struct regs*) t->entry_sp_user;
+		return t->entry_sp_user;
 	}
 	else
 	{
@@ -266,15 +273,17 @@ static struct regs* pok_sched_arinc_get_thread_registers(pok_partition_t* part,
 		return NULL;
 	}
 }
-
+#endif /* POK_NEEDS_GDB */
 
 static const struct pok_partition_sched_operations arinc_sched_ops = {
 	.on_event = &pok_sched_arinc_on_event,
+#if POK_NEEDS_GDB
 	.get_number_of_threads = &pok_sched_arinc_get_number_of_threads,
 	.get_current_thread_index = &pok_sched_arinc_get_current_thread_index,
 	.get_thread_at_index = &pok_sched_arinc_get_thread_at_index,
 	.get_thread_info = &pok_sched_arinc_get_thread_info,
 	.get_thread_registers = &pok_sched_arinc_get_thread_registers,
+#endif /* POK_NEEDS_GDB */
 };
 
 static const struct pok_partition_operations arinc_ops = {
@@ -284,26 +293,7 @@ static const struct pok_partition_operations arinc_ops = {
 
 void pok_partition_arinc_init(pok_partition_arinc_t* part)
 {
-	size_t size = part->size;
-
-	pok_dstack_alloc(&part->base_part.initial_sp, DEFAULT_STACK_SIZE);
-
-	uintptr_t base_addr = (uintptr_t) pok_bsp_alloc_partition(part->size);
-	uintptr_t base_vaddr = pok_space_base_vaddr(base_addr);
-	
-    /* 
-	 * Memory.
-	 */
-	part->base_addr   = base_addr;
-	part->base_vaddr  = base_vaddr;
-
-	pok_create_space (part->base_part.space_id, base_addr, size);
-
-	// TODO: this should be performed on restart too.
-	pok_arch_load_partition(part,
-		part->base_part.space_id, /* elf_id*/
-		part->base_part.space_id,
-		&part->main_entry);
+	part->base_part.initial_sp = pok_stack_alloc(DEFAULT_STACK_SIZE);
 
 	for(int i = 0; i < part->nthreads; i++)
 	{
@@ -314,7 +304,7 @@ void pok_partition_arinc_init(pok_partition_arinc_t* part)
 	part->base_part.part_sched_ops = &arinc_sched_ops;
 	
 	part->intra_memory = part->intra_memory_size
-		? pok_bsp_mem_alloc(part->intra_memory_size)
+		? jet_mem_alloc(part->intra_memory_size)
 		: NULL;
 }
 
@@ -322,7 +312,7 @@ void* partition_arinc_im_get(size_t size, size_t alignment)
 {
 	pok_partition_arinc_t* part = current_partition_arinc;
 	
-	size_t start = ALIGN_SIZE(part->intra_memory_size_used, alignment);
+	size_t start = ALIGN_VAL(part->intra_memory_size_used, alignment);
 	
 	// TODO: revisit boundary check
 	if(start <= part->intra_memory_size
@@ -470,14 +460,16 @@ pok_ret_t pok_partition_set_mode_current (const pok_partition_mode_t mode)
  */
 pok_ret_t pok_current_partition_get_status(pok_partition_status_t * __user status)
 {
-    if(!check_user_write(status)) return POK_ERRNO_EFAULT;
+    pok_partition_status_t* __kuser k_status =
+		jet_user_to_kernel_typed(status);
+    if(!k_status) return POK_ERRNO_EFAULT;
     
-    __put_user_f(status, id, current_partition->partition_id);
-    __put_user_f(status, period, current_partition->period);
-    __put_user_f(status, duration, current_partition->duration);
-    __put_user_f(status, mode, current_partition_arinc->mode);
-    __put_user_f(status, lock_level, current_partition_arinc->lock_level);
-    __put_user_f(status, start_condition, current_partition->start_condition);
+    k_status->id = current_partition->partition_id;
+    k_status->period = current_partition->period;
+    k_status->duration = current_partition->duration;
+    k_status->mode = current_partition_arinc->mode;
+    k_status->lock_level = current_partition_arinc->lock_level;
+    k_status->start_condition = current_partition->start_condition;
     
     return POK_ERRNO_OK;
 }
@@ -502,8 +494,9 @@ pok_ret_t pok_current_partition_inc_lock_level(int32_t * __user lock_level)
 		return POK_ERRNO_PARTITION_MODE;
     if(part->lock_level == MAX_LOCK_LEVEL)
 		return POK_ERRNO_EINVAL;
-	if(!check_user_write(lock_level))
-		return POK_ERRNO_EFAULT;
+
+	uint32_t* __kuser k_lock_level = jet_user_to_kernel_typed(lock_level);
+	if(!k_lock_level) return POK_ERRNO_EFAULT;
 
     pok_preemption_local_disable();
 	part->lock_level++;
@@ -511,7 +504,7 @@ pok_ret_t pok_current_partition_inc_lock_level(int32_t * __user lock_level)
 	// Note: this doesn't invalidate any scheduling event.
 	pok_preemption_local_enable();
 
-	__put_user(lock_level, current_partition_arinc->lock_level);
+	*k_lock_level = current_partition_arinc->lock_level;
 
 	return POK_ERRNO_OK;
 }
@@ -522,8 +515,9 @@ pok_ret_t pok_current_partition_dec_lock_level(int32_t * __user lock_level)
 		return POK_ERRNO_PARTITION_MODE;
     if(current_partition_arinc->lock_level == 0)
 		return POK_ERRNO_EINVAL;
-	if(!check_user_write(lock_level))
-		return POK_ERRNO_EFAULT;
+
+	uint32_t* __kuser k_lock_level = jet_user_to_kernel_typed(lock_level);
+	if(!k_lock_level) return POK_ERRNO_EFAULT;
 
     pok_preemption_local_disable();
     if(--current_partition_arinc->lock_level == 0)
@@ -535,9 +529,9 @@ pok_ret_t pok_current_partition_dec_lock_level(int32_t * __user lock_level)
 		}
 	}
 	pok_preemption_local_enable();
-	
-	__put_user(lock_level, current_partition_arinc->lock_level);
-	
+
+	*k_lock_level = current_partition_arinc->lock_level;
+
 	return POK_ERRNO_OK;
 }
 

@@ -84,7 +84,7 @@ if True:#syspart_env.get('jdeveloper'):
     AddMethod(part_env, template_generation.TemplateRender)
 
     part_env.Append(
-            NO_DEPS_FILES = 1,
+            NO_DEPS = 1,
             SOURCE_BASE_DIR = part_env['SCONSTRUCT_DIR'],
             GENERATE_TITLE = template_generation.generate_title_c
             )

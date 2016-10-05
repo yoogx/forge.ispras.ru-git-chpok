@@ -52,8 +52,8 @@ def parse_time(s):
         return int(s[:-1]) * (10 ** 3)
     else:
         # assume nanoseconds
-        ns = int(s) 
-    
+        ns = int(s)
+
     if ns < (10 ** 6):
             raise ValueError("specified time less than 1ms (which won't work due to 1ms timer precision)")
     return ns // (10 ** 6)
@@ -71,6 +71,9 @@ class ArincConfigParser:
         'STACK_OVERFLOW': 'Stack Overflow',
         'PARTITION_CONFIGURATION': 'Config Error',
     }
+
+    def __init__(self, arch):
+        self.arch = arch
 
     def parse_layout(self, root):
         """
@@ -96,7 +99,7 @@ class ArincConfigParser:
         Returns chpok_configuration.Configuration object.
         """
 
-        conf = chpok_configuration.Configuration()
+        conf = chpok_configuration.Configuration(self.arch)
 
         for part_root in root.find("Partitions").findall("Partition"):
             self.parse_partition(conf, part_root)
@@ -117,7 +120,7 @@ class ArincConfigParser:
         conf.validate()
 
         return conf
-    
+
     def parse_partition(self, conf, part_root):
         part_name = part_root.find("Definition").attrib["Name"]
 

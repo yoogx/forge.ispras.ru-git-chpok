@@ -21,12 +21,12 @@
 #include <types.h>
 #include <errno.h>
 #include <libc.h>
-#include <bsp_common.h>
+#include "bsp/bsp.h"
 #include <core/sched.h>
 #include <core/debug.h>
 
-#include <arch.h>
-#include "thread.h"
+#include "context.h"
+#include "interrupt_context.h"
 #include "msr.h"
 #include "reg.h"
 #include "mmu.h"
@@ -36,79 +36,48 @@
 #include "core/partition_arinc.h"
 #include "core/error.h"
 
-pok_ret_t ja_space_create (uint8_t space_id,
-                            uintptr_t addr,
-                            size_t size)
+void ja_space_layout_get(jet_space_id space_id,
+    struct jet_space_layout* space_layout)
 {
-#ifdef POK_NEEDS_DEBUG
-  printf ("pok_create_space space_id=%d: phys=%x size=%x\n", space_id, addr, size);
-#endif
-  spaces[space_id].phys_base = addr;
-  spaces[space_id].size = size;
+    assert(space_id != 0 && space_id <= ja_spaces_n);
 
-  return (POK_ERRNO_OK);
+    space_layout->kernel_addr = (char*) POK_PARTITION_MEMORY_BASE;
+    space_layout->user_addr = (char*) POK_PARTITION_MEMORY_BASE;
+    space_layout->size = ja_spaces[space_id - 1].size_normal;
 }
 
-pok_ret_t ja_space_switch (uint8_t space_id)
+void ja_space_switch (jet_space_id space_id)
 {
-    mtspr(SPRN_PID, space_id + 1);
-
-    return POK_ERRNO_OK;
+    mtspr(SPRN_PID, space_id);
 }
 
-uint8_t ja_space_get_current (void)
+jet_space_id ja_space_get_current (void)
 {
-    return ((uint8_t)mfspr(SPRN_PID)) - 1;
+    return (jet_space_id)mfspr(SPRN_PID);
 }
 
 
-uintptr_t ja_space_base_vaddr(uintptr_t addr)
+void ja_ustack_init (jet_space_id space_id)
 {
-    (void) addr;
-    return POK_PARTITION_MEMORY_BASE;
-}
-    
-static void
-pok_space_context_init0(
-        volatile_context_t *vctx,
-        context_t *ctx,
-        uint8_t space_id,
-        uintptr_t entry_rel,
-        uintptr_t stack_rel,
-        uint32_t arg1,
-        uint32_t arg2)
-{
-    (void) space_id;
+    assert(space_id != 0);
 
-    memset (ctx, 0, sizeof(*ctx));
-    memset (vctx, 0, sizeof(*vctx));
-
-    extern void pok_arch_rfi (void);
-
-    vctx->r3     = arg1;
-    vctx->r4     = arg2;
-    vctx->sp     = stack_rel - 16;
-    vctx->srr0   = entry_rel;
-    vctx->srr1   = MSR_EE | MSR_IP | MSR_PR | MSR_FP;
-    ctx->lr      = (uintptr_t) pok_arch_rfi;
-
-    ctx->sp      = (uintptr_t) &vctx->sp;
+    ja_spaces[space_id - 1].ustack_state = POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE - 16;
 }
 
-uint32_t ja_space_context_init(
-        uint32_t sp,
-        uint8_t space_id,
-        uint32_t entry_rel,
-        uint32_t stack_rel,
-        uint32_t arg1,
-        uint32_t arg2)
+jet_ustack_t ja_ustack_alloc (jet_space_id space_id, size_t stack_size)
 {
-    volatile_context_t *vctx = (volatile_context_t*) (sp - sizeof (volatile_context_t));
-    context_t *ctx = (context_t*)((char*)vctx - sizeof(context_t) + 8);
-    
-    pok_space_context_init0(vctx, ctx, space_id, entry_rel, stack_rel, arg1, arg2);
-    
-    return (uint32_t)ctx;
+    assert(space_id != 0);
+
+    uint32_t* ustack_state_p = &ja_spaces[space_id - 1].ustack_state;
+
+    size_t size_real = ALIGN_VAL(stack_size, 16);
+
+    // TODO: Check boundaries.
+    jet_ustack_t result = *ustack_state_p;
+
+    *ustack_state_p -= size_real;
+
+    return result;
 }
 
 static unsigned next_resident = 0;
@@ -124,7 +93,7 @@ static unsigned next_non_resident = 0;
  *
  * Note that the first request for resident TLB1 entry
  * returns the entry occupidied by the kernel.
- * This is intentional, as we have to overwrite it with 
+ * This is intentional, as we have to overwrite it with
  * appropriate access rights.
  */
 int pok_get_next_tlb1_index(int is_resident)
@@ -150,7 +119,7 @@ int pok_get_next_tlb1_index(int is_resident)
         }
         res = next_non_resident++;
     }
-    
+
     return res;
 }
 
@@ -165,9 +134,9 @@ int pok_get_next_tlb1_index(int is_resident)
  *      number to MAS0[ESEL] before executing a tlbwe instruction.
  */
 void pok_insert_tlb1(
-        uint64_t virtual, 
-        uint64_t physical, 
-        unsigned pgsize_enum, 
+        uint64_t virtual,
+        uint64_t physical,
+        unsigned pgsize_enum,
         unsigned permissions,
         unsigned wimge,
         unsigned pid,
@@ -180,14 +149,14 @@ void pok_insert_tlb1(
      * instruction is executed, the TLB entry information stored in MAS0–MAS3, MAS5, MAS7, and MAS8 is
      * written into the selected TLB entry in the TLB1 array.
      */
-    
+
     unsigned entry;
 
     entry = pok_get_next_tlb1_index(is_resident);
     pok_ppc_tlb_write(1,
-        virtual, 
-        physical, 
-        pgsize_enum, 
+        virtual,
+        physical,
+        pgsize_enum,
         permissions,
         wimge,
         pid,
@@ -198,7 +167,7 @@ void pok_insert_tlb1(
 static inline const char* pok_ppc_tlb_size(unsigned size)
 {
     switch (size) {
-#define CASE(x) case E500MC_PGSIZE_##x: return #x; 
+#define CASE(x) case E500MC_PGSIZE_##x: return #x;
         CASE(4K);
         CASE(16K);
         CASE(64K);
@@ -235,7 +204,7 @@ static void pok_ppc_tlb_print(unsigned tlbsel) {
 
     for (unsigned i = 0; i < limit; i++) {
         unsigned valid;
-        unsigned tsize; 
+        unsigned tsize;
         uint32_t epn;
         uint64_t rpn;
         pok_ppc_tlb_read_entry(tlbsel, i,
@@ -249,10 +218,10 @@ static void pok_ppc_tlb_print(unsigned tlbsel) {
             //~ printf("DEBUG:   Valid\r\n");
             //~ printf("DEBUG:   Effective: %p\r\n", (void*)epn);
             //~ // FIXME This is wrong. We print only 32 bits out of 36
-            //~ printf("DEBUG:   Physical: %x:%p\r\n", 
+            //~ printf("DEBUG:   Physical: %x:%p\r\n",
                     //~ (unsigned)(rpn>>32), (void*)(unsigned)rpn);
             //~ printf("DEBUG:   Size: %s\r\n", pok_ppc_tlb_size(tsize));
-//~ 
+//~
         //~ }
     }
 }
@@ -268,7 +237,7 @@ void pok_arch_space_init (void)
         E500MC_PGSIZE_256M,  //TODO make smaller
         MAS3_SW | MAS3_SR | MAS3_SX,
         0,
-        0, // any pid 
+        0, // any pid
         TRUE
     );
     /*
@@ -297,7 +266,12 @@ void pok_arch_space_init (void)
     // By some reason P3041 DUART blocks when TLB entry #1 is overrriden.
     // Preserve it, let's POK write it's entries starting 2
     next_non_resident = next_resident = 2;
-    //
+
+    for(int i = 0; i < ja_spaces_n; i++)
+    {
+        // This should be checked when generate deployment.c too.
+        assert(ja_spaces[i].size_normal < POK_PARTITION_MEMORY_SIZE);
+    }
 }
 
 //TODO get this values from devtree!
@@ -305,7 +279,7 @@ void pok_arch_space_init (void)
 #define MPC8544_PCI_IO           0xE1000000ULL
 
 void pok_arch_handle_page_fault(
-        volatile_context_t *vctx,
+        struct jet_interrupt_context *vctx,
         uintptr_t faulting_address,
         uint32_t syndrome,
         pf_type_t type)
@@ -315,14 +289,14 @@ void pok_arch_handle_page_fault(
 
     if (tlb_miss && faulting_address >= pok_bsp.ccsrbar_base && faulting_address < pok_bsp.ccsrbar_base + pok_bsp.ccsrbar_size) {
         pok_insert_tlb1(
-            pok_bsp.ccsrbar_base, 
-            pok_bsp.ccsrbar_base_phys, 
-            E500MC_PGSIZE_16M, 
+            pok_bsp.ccsrbar_base,
+            pok_bsp.ccsrbar_base_phys,
+            E500MC_PGSIZE_16M,
             //MAS3_SW | MAS3_SR,
             MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,
             MAS2_W | MAS2_I | MAS2_M | MAS2_G,
             0, /* any pid */
-            TRUE 
+            TRUE
         );
     } else if (tlb_miss && faulting_address >= MPC8544_PCI_IO && faulting_address < MPC8544_PCI_IO + MPC8544_PCI_IO_SIZE) {
         pok_insert_tlb1(
@@ -341,11 +315,11 @@ void pok_arch_handle_page_fault(
             faulting_address >= POK_PARTITION_MEMORY_BASE &&
             faulting_address < POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE)
     {
-        uint8_t space_id = pid - 1;
+        jet_space_id space_id = pid;
 
-        pok_insert_tlb1( 
+        pok_insert_tlb1(
             POK_PARTITION_MEMORY_BASE,
-            spaces[space_id].phys_base,
+            ja_spaces[space_id - 1].phys_base,
             E500MC_PGSIZE_16M,
             MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
             0,
@@ -353,7 +327,7 @@ void pok_arch_handle_page_fault(
             FALSE
         );
     } else {
-        if (vctx->srr1&MSR_PR) {
+        if (vctx->srr1 & MSR_PR) {
             printf("USER ");
         } else {
             printf("KERNEL ");
@@ -374,28 +348,32 @@ void pok_arch_handle_page_fault(
     }
 }
 
-//Double check here because these function are called not only in syscall
-//(where there is checking), but also inside kernel
-//TODO: maybe rename to pok_arch_?
 uintptr_t pok_virt_to_phys(uintptr_t virt)
 {
-    pok_partition_id_t partid = mfspr(SPRN_PID) - 1;
-    if (!POK_CHECK_PTR_IN_PARTITION(partid, virt)) {
+    if((virt < POK_PARTITION_MEMORY_BASE)
+        || (virt > POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE))
+    {
+        // Fatal error despite it is called from user space!!
         printf("pok_virt_to_phys: wrong virtual address %p\n", (void*)virt);
         pok_fatal("wrong pointer in pok_virt_to_phys\n");
     }
 
-    return virt - POK_PARTITION_MEMORY_BASE + spaces[partid].phys_base;
+    jet_space_id space_id = ja_space_get_current();
+
+    return virt - POK_PARTITION_MEMORY_BASE + ja_spaces[space_id - 1].phys_base;
 }
 
 uintptr_t pok_phys_to_virt(uintptr_t phys)
 {
-    pok_partition_id_t partid = mfspr(SPRN_PID) - 1;
+    jet_space_id space_id = ja_space_get_current();
 
-    uintptr_t virt = phys - spaces[partid].phys_base + POK_PARTITION_MEMORY_BASE;
-    if (!POK_CHECK_PTR_IN_PARTITION(partid, virt)) {
-        printf("pok_phys_to_virt: wrong virtual address %p\n", (void*)virt);
+    if((phys < ja_spaces[space_id - 1].phys_base)
+        || (phys >= ja_spaces[space_id - 1].phys_base + POK_PARTITION_MEMORY_SIZE))
+    {
+        // Fatal error despite it is called from user space!!
+        printf("pok_phys_to_virt: wrong physical address %p\n", (void*)phys);
         pok_fatal("wrong pointer in pok_phys_to_virt\n");
     }
-    return virt;
+
+    return phys - ja_spaces[space_id - 1].phys_base + POK_PARTITION_MEMORY_BASE;
 }

@@ -21,10 +21,6 @@ Import('env')
 
 bsp_env = env.Clone()
 bsp_env.Append(CPPPATH = bsp_env['KERNEL_CPPPATH'])
-bsp_env.Append(CPPPATH = [
-    bsp_env['POK_PATH']+'/boards/include',
-    bsp_env['POK_PATH']+'kernel/arch/' + bsp_env['ARCH']
-])
 
 bsp_env.Program(target = 'bsp.lo', source = Glob(bsp_env['BSP']+'/*.[Sc]'))
 

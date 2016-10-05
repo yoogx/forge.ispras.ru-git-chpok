@@ -48,6 +48,8 @@ static void kernel_thread_on_event(void)
     unreachable();
 }
 
+#ifdef POK_NEEDS_GDB
+
 static int kernel_thread_get_number_of_threads(pok_partition_t* part)
 {
    (void)part;
@@ -81,11 +83,15 @@ static void kernel_thread_get_thread_info(pok_partition_t* part,
    print_cb(kernel_thread_name, strlen(kernel_thread_name), cb_data);
 }
 
+#endif /* POK_NEEDS_GDB */
+
 const struct pok_partition_sched_operations partition_sched_ops_kernel =
 {
    .on_event = &kernel_thread_on_event,
+#ifdef POK_NEEDS_GDB
    .get_number_of_threads = &kernel_thread_get_number_of_threads,
    .get_current_thread_index = &kernel_thread_get_current_thread_index,
    .get_thread_at_index = &kernel_thread_get_thread_at_index,
    .get_thread_info = &kernel_thread_get_thread_info
+#endif /* POK_NEEDS_GDB */
 };

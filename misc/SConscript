@@ -97,6 +97,7 @@ env['ARCH'] = bsp_arch_dict[env['BSP']]
 env['KERNEL_CPPPATH'] = [
     env['POK_PATH']+'/kernel/include',
     env['POK_PATH']+'/kernel/arch/' + env['ARCH'] + '/include',
+    env['POK_PATH']+'/boards/' + env['BSP'] + '/include',
 ]
 
 env['LIBPOK_CPPPATH'] = [
@@ -151,7 +152,9 @@ env.Append(CFLAGS = cflags)
 
 cflags_arch_dict = {
     'ppc':    ' -O0 -mregnames',
-    'x86':    ' -Og'
+    # TODO: Add infrastructure to enable/disable compile time parameters
+    # Quick and dirty hack: currently GDB suport is broken on x86 -- disable it
+    'x86':    ' -O0 -DPOK_DISABLE_GDB'
 }
 env.Append(CFLAGS = cflags_arch_dict[env['ARCH']])
 
@@ -164,6 +167,13 @@ bsp_cpu_dict = {
     'x86-qemu':        ''
 }
 env.Append(CFLAGS = bsp_cpu_dict[env['BSP']])
+
+# Additional compile flags for kernel-only
+arch_kernel_flags_dict = {
+    'ppc':    '-msoft-float',
+}
+
+env['CFLAGS_KERNEL'] = arch_kernel_flags_dict.get(env['ARCH'], "")
 
 bsp_qemu_dict = {
     'e500mc':          ' -M ppce500 -cpu e500mc',
