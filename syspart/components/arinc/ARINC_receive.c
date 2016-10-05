@@ -23,7 +23,7 @@
 
 #define C_NAME "ARINC_RECEIVER: "
 
-static ret_t send_msg_to_user_partition_queuing(ARINC_RECEIVER *self, char *payload, size_t length)
+static ret_t send_msg_to_user_partition_queuing(ARINC_RECEIVER *self, const char *payload, size_t length)
 {
     RETURN_CODE_TYPE ret;
 
@@ -46,7 +46,7 @@ static ret_t send_msg_to_user_partition_queuing(ARINC_RECEIVER *self, char *payl
     return EOK;
 }
 
-static ret_t send_msg_to_user_partition_sampling(ARINC_RECEIVER *self, char *payload, size_t length)
+static ret_t send_msg_to_user_partition_sampling(ARINC_RECEIVER *self, const char *payload, size_t length)
 {
     RETURN_CODE_TYPE ret;
 
