@@ -111,7 +111,7 @@ def generate_component_files():
                     )
             comp_env.Depends(COMPONENTS_DEFAULT_TARGET, t)
 
-if True:#syspart_env.get('jdeveloper'):
+if syspart_env.get('cdeveloper'):
     import sys
     import yaml
     import glob

@@ -48,7 +48,8 @@ except:
     vars = Variables()
     vars.AddVariables(
         EnumVariable('bsp', 'bsp', default_board, allowed_values = boards),
-        BoolVariable('jdeveloper', 'Enables developer mode', 0)
+        BoolVariable('jdeveloper', 'Enables developer mode', 0),
+        BoolVariable('cdeveloper', 'Enables component developer mode', 0)
     )
 
     env = Environment(variables = vars, ENV = os.environ)

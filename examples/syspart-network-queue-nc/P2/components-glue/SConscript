@@ -75,7 +75,7 @@ def generate_glue():
         )
     part_env.Depends(t, GLUE_DEFAULT_TARGET)
 
-if True:#syspart_env.get('jdeveloper'):
+if part_env.get('cdeveloper'):
     import sys
     import yaml
     import glob
