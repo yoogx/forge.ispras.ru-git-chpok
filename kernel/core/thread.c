@@ -66,7 +66,7 @@ static pok_thread_t* find_thread(const char name[MAX_NAME_LENGTH])
  * 
  * Return NULL if no such thread created.
  * 
-* Note: Doesn't require disable local preemption.
+ * Note: Doesn't require disable local preemption.
  */
 static pok_thread_t* get_thread_by_id(pok_thread_id_t id)
 {
@@ -92,7 +92,7 @@ pok_ret_t pok_thread_create (const char* __user name,
     pok_thread_t* t;
     pok_partition_arinc_t* part = current_partition_arinc;
 
-    /**
+    /*
      * We can create a thread only if the partition is in INIT mode
      */
     if (part->mode == POK_PARTITION_MODE_NORMAL) {
@@ -722,6 +722,14 @@ out:
     return ret;
 }
 
+
+/* Assert that thread id is correct.*/
+static void assert_thread_id(pok_thread_id_t id)
+{
+    pok_partition_arinc_t* part = current_partition_arinc;
+    assert_os((id >= 0) && (id < part->nthreads_used));
+}
+
 pok_ret_t jet_msection_enter_helper(struct msection* __user section)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
@@ -804,12 +812,16 @@ pok_ret_t jet_msection_notify(struct msection* __user section,
 {
     pok_ret_t ret = POK_ERRNO_EXISTS;
 
+    struct msection* __kuser section_kernel = jet_user_to_kernel_typed(section);
+
+    assert_os(section_kernel);
+
     pok_partition_arinc_t* part = current_partition_arinc;
     pok_thread_t* thread_current = part->thread_current;
 
-    pok_thread_t* t = get_thread_by_id(thread_id);
+    assert_thread_id(thread_id);
 
-    if(!t) return POK_ERRNO_UNAVAILABLE;
+    pok_thread_t* t = &part->threads[thread_id];
 
     pok_preemption_local_disable();
 
@@ -817,9 +829,12 @@ pok_ret_t jet_msection_notify(struct msection* __user section,
 
     struct msection* __kuser msection_entering = t->msection_entering;
 
-    // Currently we require that msection should correspond to both current and awaken thread.
-    assert_os(section == msection_entering);
-    assert_os(section->owner == (thread_current - part->threads));
+    /*
+     * Currently we require that msection should corresponds to
+     * both current and awoken thread.
+     */
+    assert_os(section_kernel == msection_entering);
+    assert_os(section_kernel->owner == (thread_current - part->threads));
 
     thread_wake_up(t);
 
@@ -832,7 +847,177 @@ out:
     return ret;
 }
 
-/*********************** Wait queues **********************************/
+/******************* msection wait queue ******************************/
+/* Remove thread from the queue. */
+static void msection_wq_del(struct msection_wq* wq,
+    struct jet_thread_shared_data* tshd_t)
+{
+    pok_partition_arinc_t* part = current_partition_arinc;
+
+    pok_thread_id_t next_id = tshd_t->wq_next;
+    pok_thread_id_t prev_id = tshd_t->wq_prev;
+
+    pok_thread_id_t *pnext, *pprev;
+
+    if(next_id == JET_THREAD_ID_NONE)
+    {
+        pnext = &wq->last;
+    }
+    else
+    {
+        assert_thread_id(next_id);
+        pnext = &part->kshd->tshd[next_id].wq_prev;
+    }
+
+    if(prev_id == JET_THREAD_ID_NONE)
+    {
+        pprev = &wq->first;
+    }
+    else
+    {
+        assert_thread_id(prev_id);
+        pprev = &part->kshd->tshd[prev_id].wq_next;
+    }
+
+    *pnext = prev_id;
+    *pprev = next_id;
+
+    tshd_t->wq_next = tshd_t->wq_prev = JET_THREAD_ID_NONE;
+}
+
+/* 
+ * Awoke waiting threads in the waitqueue.
+ * 
+ * Every thread in the queue which hasn't waited at the function's call
+ * is removed from the queue.
+ * 
+ * If 'first_only' is TRUE, the first waiting thread only. This thread
+ * will be pointed by wq->first after the call.
+ * If 'first_only' is FALSE, notify all waiting threads. List of the
+ * awoken threads may be iterated directly from user space.
+ * 
+ * May be called only by the owner of the section.
+ * 
+ * Returns:
+ * 
+ *     POK_ERRNO_OK - at least on thread has been notified.
+ *     POK_ERRNO_EMPTY - there is no waiting threads in the waitqueue.
+ */
+pok_ret_t jet_msection_wq_notify(struct msection* __user section,
+   struct msection_wq* __user wq,
+   pok_bool_t is_all)
+{
+    pok_ret_t ret = POK_ERRNO_EMPTY;
+
+    struct msection* __kuser section_kernel = jet_user_to_kernel_typed(section);
+    assert_os(section_kernel);
+
+    struct msection_wq* __kuser wq_kernel = jet_user_to_kernel_typed(wq);
+    assert_os(wq_kernel);
+
+    pok_partition_arinc_t* part = current_partition_arinc;
+    pok_thread_t* thread_current = part->thread_current;
+
+    assert_os(section_kernel->owner == (thread_current - part->threads));
+
+    pok_preemption_local_disable();
+
+    pok_thread_id_t thread_id = wq_kernel->first;
+
+    /* TODO: Assert that linkage is correct, so there is no loops in it. */
+    while(thread_id != JET_THREAD_ID_NONE)
+    {
+        assert_thread_id(thread_id);
+
+        pok_thread_t* t = &part->threads[thread_id];
+        assert(t->msection_entering == section_kernel);
+
+        struct jet_thread_shared_data* tshd_t = &part->kshd->tshd[thread_id];
+
+        thread_id = tshd_t->wq_next;
+
+        if(t->state != POK_STATE_WAITING)
+        {
+            msection_wq_del(wq_kernel, tshd_t);
+        }
+        else
+        {
+            thread_wake_up(t);
+            t->wait_private = (void*)(unsigned long)POK_ERRNO_OK;
+            ret = POK_ERRNO_OK;
+
+            if(!is_all) break;
+        }
+    }
+
+    pok_preemption_local_enable();
+
+    return ret;
+}
+
+/*
+ * Compute number of waiting threads in the waitqueue.
+ * 
+ * Every thread in the queue which hasn't waited at the function's call
+ * is removed from the queue.
+ * 
+ * Returns: POK_ERRNO_OK.
+ */
+pok_ret_t jet_msection_wq_size(struct msection* __user section,
+   struct msection_wq* __user wq,
+   size_t* __user size)
+{
+    size_t count = 0;
+
+    struct msection* __kuser section_kernel = jet_user_to_kernel_typed(section);
+    assert_os(section_kernel);
+
+    struct msection_wq* __kuser wq_kernel = jet_user_to_kernel_typed(wq);
+    assert_os(wq_kernel);
+
+    size_t* size_kernel = jet_user_to_kernel_typed(size);
+    assert_os(size_kernel);
+
+    pok_partition_arinc_t* part = current_partition_arinc;
+    pok_thread_t* thread_current = part->thread_current;
+
+    assert_os(section_kernel->owner == (thread_current - part->threads));
+
+    pok_preemption_local_disable();
+
+    pok_thread_id_t thread_id = wq_kernel->first;
+
+    /* TODO: Assert that linkage is correct, so there is no loops in it. */
+    while(thread_id != JET_THREAD_ID_NONE)
+    {
+        assert_thread_id(thread_id);
+
+        pok_thread_t* t = &part->threads[thread_id];
+        assert(t->msection_entering == section_kernel);
+
+        struct jet_thread_shared_data* tshd_t = &part->kshd->tshd[thread_id];
+
+        thread_id = tshd_t->wq_next;
+
+        if(t->state != POK_STATE_WAITING)
+        {
+            msection_wq_del(wq_kernel, tshd_t);
+        }
+        else
+        {
+            count++;
+        }
+    }
+
+    pok_preemption_local_enable();
+
+    *size_kernel = count;
+
+    return POK_ERRNO_OK;
+}
+
+
+/********************* wait queue for port*****************************/
 void pok_thread_wq_init(pok_thread_wq_t* wq)
 {
     INIT_LIST_HEAD(&wq->waits);

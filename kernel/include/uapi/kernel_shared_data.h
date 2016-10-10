@@ -44,6 +44,34 @@ struct jet_thread_shared_data
 
     /* User space may "signal" kernel by setting these flags. */
     volatile uint8_t thread_kernel_flags;
+
+    /* 
+     * Next and previous threads in the waitqueue protected by msection
+     * ('struct msection_wq').
+     * 
+     * When thread is removed from the queue, both fields should be set
+     * to JET_THREAD_ID_NONE.
+     * 
+     * NOTE: Using these fields only it is impossible to distinguish
+     * "single element" case from "thread doesn't belong to waitqueue".
+     * One need to check waitqueue itself for that.
+     */
+    pok_thread_id_t wq_next; // JET_THREAD_ID_NONE for the last thread.
+    pok_thread_id_t wq_prev; // JET_THREAD_ID_NONE for the first thread.
+
+    /*
+     * Pointer to source or destination buffers when implements
+     * waiting on ARINC buffer/blackboard.
+     * 
+     * Used only by user space.
+     */
+    union
+    {
+        const void* src;
+        void* dst;
+    } wq_buffer;
+    /* Length of copied message. This could be an input or output parameter. */
+    size_t wq_len;
 };
 
 /* Thread is killed. When last msection is leaved, jet_sched() should be called. */

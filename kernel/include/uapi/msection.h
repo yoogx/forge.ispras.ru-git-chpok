@@ -40,4 +40,17 @@ struct msection
 /* When leaving the section, need to call jet_resched(). */
 #define MSECTION_KERNEL_FLAG_RESCHED_AFTER_LEAVE 1
 
+/* 
+ * Queue of waiting processes protected by waitqueue.
+ * 
+ * Linkage of elements is within 'struct jet_thread_shared_data'.
+ */
+struct msection_wq
+{
+    // The first thread in the queue. JET_THREAD_ID_NONE if queue is empty.
+    pok_thread_id_t first;
+    // The last thread in the queue. JET_THREAD_ID_NONE if queue is empty.
+    pok_thread_id_t last;
+};
+
 #endif /* __JET_UAPI_MSECTION_H__ */

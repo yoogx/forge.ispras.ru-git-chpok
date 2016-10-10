@@ -121,6 +121,17 @@ SYSCALL_DECLARE(POK_SYSCALL_MSECTION_NOTIFY, jet_msection_notify,
    struct msection*, section,
    pok_thread_id_t, thread_id)
 
+SYSCALL_DECLARE(POK_SYSCALL_MSECTION_WQ_NOTIFY, jet_msection_wq_notify,
+   struct msection*, section,
+   struct msection_wq*, wq,
+   pok_bool_t, is_all)
+
+SYSCALL_DECLARE(POK_SYSCALL_MSECTION_WQ_SIZE, jet_msection_wq_size,
+   struct msection*, section,
+   struct msection_wq*, wq,
+   size_t*, size)
+
+
 #ifdef POK_NEEDS_PARTITIONS
 //! User name - pok_partition_set_mode
 SYSCALL_DECLARE(POK_SYSCALL_PARTITION_SET_MODE, pok_partition_set_mode_current,

@@ -245,6 +245,10 @@ void thread_wake_up(pok_thread_t* t)
         // Set flag that we has been interrupted by timeout.
         t->wait_private = (void*)(-(unsigned long)POK_ERRNO_TIMEOUT);
     }
+    else if(t->msection_entering)
+    {
+	t->wait_private = (void*)(-(unsigned long)POK_ERRNO_TIMEOUT);
+    }
 
     if(!t->suspended)
     {

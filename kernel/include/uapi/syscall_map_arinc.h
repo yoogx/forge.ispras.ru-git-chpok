@@ -188,6 +188,29 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MSECTION_NOTIFY(const po
         (pok_thread_id_t)args->arg2);
 }
 
+pok_ret_t jet_msection_wq_notify(struct msection* __user section,
+    struct msection_wq* __user wq,
+    pok_bool_t is_all);
+static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MSECTION_WQ_NOTIFY(const pok_syscall_args_t* args)
+{
+    return jet_msection_wq_notify(
+        (struct msection* __user)args->arg1,
+        (struct msection_wq* __user)args->arg2,
+        (pok_bool_t)args->arg3);
+}
+
+pok_ret_t jet_msection_wq_size(struct msection* __user section,
+    struct msection_wq* __user wq,
+    size_t* __user size);
+static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MSECTION_WQ_SIZE(const pok_syscall_args_t* args)
+{
+    return jet_msection_wq_size(
+        (struct msection* __user)args->arg1,
+        (struct msection_wq* __user)args->arg2,
+        (size_t* __user)args->arg3);
+}
+
+
 #ifdef POK_NEEDS_PARTITIONS
 pok_ret_t pok_partition_set_mode_current(pok_partition_mode_t mode);
 static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_PARTITION_SET_MODE(const pok_syscall_args_t* args)

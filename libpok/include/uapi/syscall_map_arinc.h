@@ -207,6 +207,31 @@ static inline pok_ret_t jet_msection_notify(struct msection* section,
 // Syscall should be accessed only by function
 #undef POK_SYSCALL_MSECTION_NOTIFY
 
+static inline pok_ret_t jet_msection_wq_notify(struct msection* section,
+    struct msection_wq* wq,
+    pok_bool_t is_all)
+{
+    return pok_syscall3(POK_SYSCALL_MSECTION_WQ_NOTIFY,
+        (uint32_t)section,
+        (uint32_t)wq,
+        (uint32_t)is_all);
+}
+// Syscall should be accessed only by function
+#undef POK_SYSCALL_MSECTION_WQ_NOTIFY
+
+static inline pok_ret_t jet_msection_wq_size(struct msection* section,
+    struct msection_wq* wq,
+    size_t* size)
+{
+    return pok_syscall3(POK_SYSCALL_MSECTION_WQ_SIZE,
+        (uint32_t)section,
+        (uint32_t)wq,
+        (uint32_t)size);
+}
+// Syscall should be accessed only by function
+#undef POK_SYSCALL_MSECTION_WQ_SIZE
+
+
 #ifdef POK_NEEDS_PARTITIONS
 static inline pok_ret_t pok_partition_set_mode_current(pok_partition_mode_t mode)
 {

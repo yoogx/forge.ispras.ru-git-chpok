@@ -14,6 +14,7 @@
  */
 
 #ifndef __LIBJET_MSECTION_H__
+#define __LIBJET_MSECTION_H__
 
 #include <uapi/msection.h>
 
@@ -70,5 +71,56 @@ pok_ret_t msection_wait(struct msection* section, pok_time_t timeout);
  */
 pok_ret_t msection_notify(struct msection* section, pok_thread_id_t thread_id);
 
-#define __LIBJET_MSECTION_H__
+
+/* Initialize waitqueue. */
+static inline void msection_wq_init(struct msection_wq* wq)
+{
+    wq->first = wq->last = JET_THREAD_ID_NONE;
+}
+
+/* 
+ * Add current thread into the msection wait queue.
+ * 
+ * If 'next' is not JET_THREAD_ID_NONE, add before given thread.
+ * Otherwise add to the end of the queue.
+ */
+void msection_wq_add(struct msection_wq* wq, pok_thread_id_t next);
+
+/* 
+ * Remove thread from the msection wait queue, if it has been added before.
+ */
+void msection_wq_del(struct msection_wq* wq, pok_thread_id_t thread);
+
+
+/* 
+ * Awoke waiting threads in the waitqueue.
+ * 
+ * Every thread in the queue which hasn't waited at the function's call
+ * is removed from the queue.
+ * 
+ * If 'is_all' is TRUE, notify all waiting threads. List of the
+ * awoken threads may be iterated directly from user space.
+ * If 'is_all' is FALSE, the first waiting thread only. This thread
+ * will be pointed by wq->first after the call.
+ * 
+ * May be called only by the owner of the section.
+ * 
+ * Returns:
+ * 
+ *     POK_ERRNO_OK - at least on thread has been notified.
+ *     POK_ERRNO_EMPTY - there is no waiting threads in the waitqueue.
+ */
+pok_ret_t msection_wq_notify(struct msection* section,
+    struct msection_wq* wq,
+    pok_bool_t is_all);
+
+/*
+ * Return number of waiting threads in the waitqueue.
+ * 
+ * Every thread in the queue which hasn't waited at the function's call
+ * is removed from the queue.
+ */
+size_t msection_wq_size(struct msection* section,
+   struct msection_wq* wq);
+
 #endif /* __LIBJET_MSECTION_H__ */

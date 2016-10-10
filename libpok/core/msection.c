@@ -72,3 +72,62 @@ pok_ret_t msection_notify(struct msection* section, pok_thread_id_t thread_id)
 {
     return jet_msection_notify(section, thread_id);
 }
+
+void msection_wq_add(struct msection_wq* wq, pok_thread_id_t next)
+{
+    pok_thread_id_t *pnext = (next != JET_THREAD_ID_NONE)
+        ? &kshd.tshd[next].wq_prev
+        : &wq->last;
+
+    pok_thread_id_t prev = *pnext;
+
+    pok_thread_id_t* pprev = (prev != JET_THREAD_ID_NONE)
+        ? &kshd.tshd[prev].wq_next
+        : &wq->first;
+
+    struct jet_thread_shared_data* tshd_current = &kshd.tshd[kshd.current_thread_id];
+
+    tshd_current->wq_next = next;
+    tshd_current->wq_prev = prev;
+
+    *pnext = *pprev = kshd.current_thread_id;
+}
+
+void msection_wq_del(struct msection_wq* wq, pok_thread_id_t thread)
+{
+    struct jet_thread_shared_data* tshd_t = &kshd.tshd[thread];
+
+    pok_thread_id_t next = tshd_t->wq_next;
+    pok_thread_id_t prev = tshd_t->wq_prev;
+
+    pok_thread_id_t *pnext = (next != JET_THREAD_ID_NONE)
+        ? &kshd.tshd[next].wq_prev
+        : &wq->last;
+
+    pok_thread_id_t *pprev = (prev != JET_THREAD_ID_NONE)
+        ? &kshd.tshd[prev].wq_next
+        : &wq->first;
+
+    *pnext = prev;
+    *pprev = next;
+
+    tshd_t->wq_next = tshd_t->wq_prev = JET_THREAD_ID_NONE;
+}
+
+
+pok_ret_t msection_wq_notify(struct msection* section,
+    struct msection_wq* wq,
+    pok_bool_t is_all)
+{
+    return jet_msection_wq_notify(section, wq, is_all);
+}
+
+size_t msection_wq_size(struct msection* section,
+   struct msection_wq* wq)
+{
+    size_t size;
+
+    jet_msection_wq_size(section, wq, &size);
+
+    return size;
+}

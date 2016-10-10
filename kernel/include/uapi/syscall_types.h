@@ -52,6 +52,8 @@ typedef enum
      POK_SYSCALL_MSECTION_ENTER_HELPER               =  81,
      POK_SYSCALL_MSECTION_WAIT                       =  82,
      POK_SYSCALL_MSECTION_NOTIFY                     =  83,
+     POK_SYSCALL_MSECTION_WQ_NOTIFY                  =  84,
+     POK_SYSCALL_MSECTION_WQ_SIZE                    =  85,
 
 #ifdef POK_NEEDS_PORTS_SAMPLING
      POK_SYSCALL_MIDDLEWARE_SAMPLING_ID              = 101,
