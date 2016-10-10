@@ -16,7 +16,7 @@
  * Copyright (c) 2007-2009 POK team
  */
 /*
-blr == jr $ra (= $31)
+blr == JUMP_TO_REG($ra) (= $31)
 
 stw = sw
 lwz = lw
@@ -52,14 +52,14 @@ CONTEXT_RESTORE:
         lw      $9,OFFSETOF_jet_context_9($29)
         lw      $8,OFFSETOF_jet_context_8($29)
         lw      $1,OFFSETOF_jet_context_lo($29)
-        mtlo    $1
+        MTlo($1)
         lw      $1,OFFSETOF_jet_context_hi($20)
-        mthi    $1
+        MTHi($1)
         lw      $1,OFFSETOF_jet_context_FCCR($29)
         mtc1    $1,$24
         lw      $29,OFFSETOF_jet_stack_frame_back_chain($29)
         lw      $31,OFFSETOF_jet_stack_frame_lr($29)
-        jr      $31
+        JUMP_TO_REG($31)
 
         .globl ja_context_switch
 ja_context_switch:
@@ -100,14 +100,14 @@ ja_context_switch:
         /* Switch stacks. */
         sw      $29,0($4)
         move    $29, $5
-        j CONTEXT_RESTORE
+        JUMP_TO_ADDR(CONTEXT_RESTORE)
         .size ja_context_switch, . - ja_context_switch
 
         .globl ja_context_jump
 ja_context_jump:
         /* $4: new_sp */
         move      $29, $4
-        j CONTEXT_RESTORE
+        JUMP_TO_ADDR(CONTEXT_RESTORE)
         .size ja_context_jump, . - ja_context_jump
 
         .globl ja_context_restart
@@ -152,7 +152,7 @@ ja_context_restart:
         move  $30, $7
         
         
-        jr $31
+        JUMP_TO_REG($31)
         .size ja_context_restart, . - ja_context_restart
 
         .globl ja_context_restart_and_save
@@ -160,5 +160,5 @@ ja_context_restart_and_save:
         /* $4: stack, $5: entry, $6 - address to save resulted context */
         addi  $7, $4, SIZEOF_jet_stack_frame_null
         sw    $7, 0($6)
-        j ja_context_restart
+        JUMP_TO_ADDR(ja_context_restart)
         .size ja_context_restart_and_save, . - ja_context_restart_and_save
