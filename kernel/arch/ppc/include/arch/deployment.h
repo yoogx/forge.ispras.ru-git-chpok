@@ -33,7 +33,9 @@
  * DEV: This size corresponds to E500MC_PGSIZE_16M constant, used
  * for memory mapping.
  */
-#define POK_PARTITION_MEMORY_SIZE 0x1000000ULL 
+#define POK_PARTITION_MEMORY_SIZE 0x10000000ULL
+
+#define POK_PARTITION_PHYS_MEMORY_BASE 0x10000000UL
 
 /* 
  * Description of one user space.

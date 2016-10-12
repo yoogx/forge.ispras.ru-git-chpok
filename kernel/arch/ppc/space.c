@@ -234,7 +234,7 @@ void pok_arch_space_init (void)
     pok_insert_tlb1(
         0,
         0,
-        E500MC_PGSIZE_256M,  //TODO make smaller
+        E500MC_PGSIZE_1G,  //TODO make smaller
         MAS3_SW | MAS3_SR | MAS3_SX,
         0,
         0, // any pid
@@ -320,7 +320,7 @@ void pok_arch_handle_page_fault(
         pok_insert_tlb1(
             POK_PARTITION_MEMORY_BASE,
             ja_spaces[space_id - 1].phys_base,
-            E500MC_PGSIZE_16M,
+            E500MC_PGSIZE_256M,
             MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
             0,
             pid,

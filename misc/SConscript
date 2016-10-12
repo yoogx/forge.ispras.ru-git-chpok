@@ -184,6 +184,7 @@ bsp_qemu_dict = {
     'x86-qemu':        ''
 }
 env.Append(QEMU_FLAGS = bsp_qemu_dict[env['BSP']])
+env.Append(QEMU_FLAGS = ' -m 512M')
 
 env.Append(QEMU_FLAGS = ' -kernel '+env['BUILD_DIR']+'pok.elf')
 

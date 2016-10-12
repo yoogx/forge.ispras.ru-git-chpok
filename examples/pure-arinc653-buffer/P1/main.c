@@ -19,6 +19,8 @@
 #include <arinc653/partition.h>
 #include <arinc653/time.h>
 
+char BIG_BUFFER[50*0x100000];
+
 static BUFFER_ID_TYPE global_buffer_id;
 
 static void first_process(void)

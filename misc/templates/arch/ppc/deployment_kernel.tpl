@@ -19,7 +19,7 @@ struct ja_ppc_space ja_spaces[{{conf.spaces | length}}] =
 {
 {%for space in conf.spaces%}
     {
-        .phys_base = 0x4000000UL + {{loop.index0}} * POK_PARTITION_MEMORY_SIZE,
+        .phys_base = POK_PARTITION_PHYS_MEMORY_BASE + {{loop.index0}} * POK_PARTITION_MEMORY_SIZE,
         .size_normal = {{space.size}},
     },
 {%endfor%}
