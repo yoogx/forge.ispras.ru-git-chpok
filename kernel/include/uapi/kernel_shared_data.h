@@ -24,6 +24,13 @@
 struct jet_thread_shared_data
 {
     /* 
+     * Priority of the current thread.
+     * 
+     * This value may be changed by the kernel at any time.
+     */
+    volatile uint8_t priority;
+
+    /* 
      * Count of currently entered msections.
      * 
      * This value is controlled from user space and checked in kernel.
@@ -70,8 +77,22 @@ struct jet_thread_shared_data
         const void* src;
         void* dst;
     } wq_buffer;
-    /* Length of copied message. This could be an input or output parameter. */
+    /* 
+     * Length of copied message for ARINC purposes.
+     * 
+     * This could be an input or output parameter.
+     * 
+     * Used only by user space.
+     */
     size_t wq_len;
+
+    /* 
+     * Priority of the waited thread for ARINC purposes.
+     * 
+     * Used only by user space.
+     */
+    volatile uint8_t wq_priority;
+
 };
 
 /* Thread is killed. When last msection is leaved, jet_sched() should be called. */

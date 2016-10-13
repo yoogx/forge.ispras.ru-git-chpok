@@ -13,19 +13,15 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <kernel_shared_data.h>
-#include <init_arinc.h>
+#ifndef __LIBJET_ASSERT_OS_H__
+#define __LIBJET_ASSERT_OS_H__
 
-int main();
+void assertion_os_fail(const char *expression, const char *file, int line);
 
-int __pok_partition_start (void)
-{
-   // Setup user-only fields of kernel shared data.
-   kshd.main_thread_id = kshd.current_thread_id;
-   kshd.error_thread_id = JET_THREAD_ID_NONE;
+#define assert_os(expr) ( \
+        (expr) ? \
+        ((void) 0) : \
+        assertion_os_fail(#expr, __FILE__, __LINE__) \
+    )
 
-   libjet_arinc_init();
-
-   main(); /* main loop from user */
-   return (0);
-}
+#endif /* __LIBJET_ASSERT_H__ */

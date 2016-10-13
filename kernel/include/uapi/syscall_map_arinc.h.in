@@ -273,6 +273,11 @@ SYSCALL_DECLARE(POK_SYSCALL_ERROR_GET, pok_error_get,
 //!SYSCALL_DECLARE(POK_SYSCALL_ERROR_IS_HANDLER, pok_error_is_handler)
 #endif
 
+SYSCALL_DECLARE(POK_SYSCALL_ERROR_RAISE_OS_ERROR, pok_error_raise_os_error,
+   const char*, msg,
+   size_t, msg_size)
+
+
          /* Middleware syscalls */
 #ifdef POK_NEEDS_PORTS_SAMPLING
 //! User function accepts uint64_t and transforms it to uint32_t without checks

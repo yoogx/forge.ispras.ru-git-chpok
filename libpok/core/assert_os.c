@@ -13,19 +13,17 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <kernel_shared_data.h>
-#include <init_arinc.h>
+#include <core/assert_os.h>
 
-int main();
+#include <core/syscall.h>
+#include <libc/stdio.h>
 
-int __pok_partition_start (void)
+void assertion_os_fail(const char *expression, const char *file, int line)
 {
-   // Setup user-only fields of kernel shared data.
-   kshd.main_thread_id = kshd.current_thread_id;
-   kshd.error_thread_id = JET_THREAD_ID_NONE;
-
-   libjet_arinc_init();
-
-   main(); /* main loop from user */
-   return (0);
+    static char msg[128];
+    
+    snprintf(msg, sizeof(msg), "Assertion failed (%s) in %s:%d\n",
+        expression, file, line);
+    
+    pok_error_raise_os_error(msg, sizeof(msg));
 }

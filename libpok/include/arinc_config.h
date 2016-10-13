@@ -13,11 +13,17 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <arinc_config.h>
+/* Configuration parameters for ARINC. */
+
+#ifndef __LIBJET_ARINC_CONFIG_H__
+#define __LIBJET_ARINC_CONFIG_H__
+
+#include <config.h>
+#include <types.h>
 
 #ifdef POK_NEEDS_ARINC653_BUFFER
-// Maximum number of buffers.
-size_t arinc_config_nbuffers = {{part.num_arinc653_buffers}};
+// Maximum number of buffers. Set in deployment.c
+extern size_t arinc_config_nbuffers;
 #endif /* POK_NEEDS_ARINC653_BUFFER */
 
 #ifdef POK_NEEDS_ARINC653_BLACKBOARD
@@ -36,12 +42,10 @@ extern size_t arinc_config_nevents;
 #endif /* POK_NEEDS_ARINC653_EVENT */
 
 #if defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD)
-// Memory for messages, used by buffers and blackboards.
-size_t arinc_config_messages_memory_size = {{part.buffer_data_size + part.blackboard_data_size}};
+// Memory for messages, used by buffers and blackboards. Set in deployment.c.
+extern size_t arinc_config_messages_memory_size;
 #endif /* defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD) */
 
-{% include 'arch/' + part.arch + '/deployment_user' %}
 
-{%if part.is_system%}
-{% include 'deployment_user_system'%}
-{%endif%}
+
+#endif /* __LIBJET_ARINC_CONFIG_H__ */

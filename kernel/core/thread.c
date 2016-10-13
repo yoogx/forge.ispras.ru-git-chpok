@@ -248,6 +248,7 @@ static pok_ret_t thread_delayed_start_internal (pok_thread_t* thread,
 
     tshd->msection_count = 0;
     tshd->msection_entering = NULL;
+    tshd->priority = thread->priority;
     tshd->thread_kernel_flags = 0;
 
 	if(part->mode != POK_PARTITION_MODE_NORMAL)
@@ -373,6 +374,8 @@ pok_ret_t pok_thread_get_status (pok_thread_id_t id,
 
 pok_ret_t pok_thread_set_priority(pok_thread_id_t id, uint32_t priority)
 {
+    pok_partition_arinc_t* part = current_partition_arinc;
+
     pok_ret_t ret;
 
     pok_thread_t *t = get_thread_by_id(id);
@@ -387,6 +390,10 @@ pok_ret_t pok_thread_set_priority(pok_thread_id_t id, uint32_t priority)
     if (t->state == POK_STATE_STOPPED) goto out;
 
     t->priority = priority;
+
+    struct jet_thread_shared_data* tshd = part->kshd->tshd
+        + (t - part->threads);
+    tshd->priority = priority;
 
     thread_yield(t);
 
@@ -741,7 +748,7 @@ pok_ret_t jet_msection_enter_helper(struct msection* __user section)
 
     pok_preemption_local_disable();
 
-    if(msection_entering->owner != 0
+    if(msection_entering->owner != JET_THREAD_ID_NONE
         && msection_entering->owner != thread_current - part->threads)
     {
         // Set thread as entering into the section ...

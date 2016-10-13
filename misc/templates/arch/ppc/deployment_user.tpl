@@ -13,19 +13,18 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <kernel_shared_data.h>
-#include <init_arinc.h>
+#include <asp/alloc.h>
 
-int main();
+/* Start of the memory heap. */
+char libja_heap_start[{{part.get_intra_size()}}]
+    __attribute__ ((aligned (16)));
 
-int __pok_partition_start (void)
-{
-   // Setup user-only fields of kernel shared data.
-   kshd.main_thread_id = kshd.current_thread_id;
-   kshd.error_thread_id = JET_THREAD_ID_NONE;
+/* Size of the memory heap. */
+const size_t libja_heap_size = {{part.get_intra_size()}};
 
-   libjet_arinc_init();
-
-   main(); /* main loop from user */
-   return (0);
-}
+/* 
+ * Alignment of the memory heap.
+ * 
+ * No allocation should use alignment which exceeds given one.
+ */
+const size_t libja_heap_alignment = 16;

@@ -13,19 +13,14 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <kernel_shared_data.h>
-#include <init_arinc.h>
+#ifndef __LIBJET_ARINC_INIT_H__
+#define __LIBJET_ARINC_INIT_H__
 
-int main();
+/* 
+ * Initialization function for ARINC.
+ * 
+ * Called by libjet when it is initialized.
+ */
+void libjet_arinc_init(void);
 
-int __pok_partition_start (void)
-{
-   // Setup user-only fields of kernel shared data.
-   kshd.main_thread_id = kshd.current_thread_id;
-   kshd.error_thread_id = JET_THREAD_ID_NONE;
-
-   libjet_arinc_init();
-
-   main(); /* main loop from user */
-   return (0);
-}
+#endif /* __LIBJET_ARINC_INIT_H__ */

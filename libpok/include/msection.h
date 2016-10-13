@@ -87,6 +87,15 @@ static inline void msection_wq_init(struct msection_wq* wq)
 void msection_wq_add(struct msection_wq* wq, pok_thread_id_t next);
 
 /* 
+ * Add current thread into the msection wait queue.
+ * 
+ * If 'prev' is not JET_THREAD_ID_NONE, add after given thread.
+ * Otherwise add to the beginning of the queue.
+ */
+void msection_wq_add_after(struct msection_wq* wq, pok_thread_id_t prev);
+
+
+/* 
  * Remove thread from the msection wait queue, if it has been added before.
  */
 void msection_wq_del(struct msection_wq* wq, pok_thread_id_t thread);

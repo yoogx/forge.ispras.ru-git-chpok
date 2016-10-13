@@ -17,6 +17,9 @@
 #include <core/syscall.h>
 #include <kernel_shared_data.h>
 
+#include <arinc653/types.h>
+#include <utils.h>
+
 void msection_init(struct msection* section)
 {
     section->owner = JET_THREAD_ID_NONE;
@@ -63,9 +66,11 @@ void msection_leave(struct msection* section)
     }
 }
 
-pok_ret_t msection_wait(struct msection* section, pok_time_t timeout)
+pok_ret_t msection_wait(struct msection* section, SYSTEM_TIME_TYPE timeout)
 {
-    return jet_msection_wait(section, &timeout);
+    pok_time_t arinc_timeout = arinc_time_to_ms(timeout);
+
+    return jet_msection_wait(section, &arinc_timeout);
 }
 
 pok_ret_t msection_notify(struct msection* section, pok_thread_id_t thread_id)
@@ -84,6 +89,26 @@ void msection_wq_add(struct msection_wq* wq, pok_thread_id_t next)
     pok_thread_id_t* pprev = (prev != JET_THREAD_ID_NONE)
         ? &kshd.tshd[prev].wq_next
         : &wq->first;
+
+    struct jet_thread_shared_data* tshd_current = &kshd.tshd[kshd.current_thread_id];
+
+    tshd_current->wq_next = next;
+    tshd_current->wq_prev = prev;
+
+    *pnext = *pprev = kshd.current_thread_id;
+}
+
+void msection_wq_add_after(struct msection_wq* wq, pok_thread_id_t prev)
+{
+    pok_thread_id_t* pprev = (prev != JET_THREAD_ID_NONE)
+        ? &kshd.tshd[prev].wq_next
+        : &wq->first;
+
+    pok_thread_id_t next = *pprev;
+
+    pok_thread_id_t *pnext = (next != JET_THREAD_ID_NONE)
+        ? &kshd.tshd[next].wq_prev
+        : &wq->last;
 
     struct jet_thread_shared_data* tshd_current = &kshd.tshd[kshd.current_thread_id];
 

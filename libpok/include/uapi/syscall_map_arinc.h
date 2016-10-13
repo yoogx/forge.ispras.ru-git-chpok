@@ -548,6 +548,17 @@ static inline pok_ret_t pok_error_get(pok_error_status_t* status,
 
 #endif
 
+static inline pok_ret_t pok_error_raise_os_error(const char* msg,
+    size_t msg_size)
+{
+    return pok_syscall2(POK_SYSCALL_ERROR_RAISE_OS_ERROR,
+        (uint32_t)msg,
+        (uint32_t)msg_size);
+}
+// Syscall should be accessed only by function
+#undef POK_SYSCALL_ERROR_RAISE_OS_ERROR
+
+
          /* Middleware syscalls */
 #ifdef POK_NEEDS_PORTS_SAMPLING
 static inline pok_ret_t pok_port_sampling_create(const char* name,

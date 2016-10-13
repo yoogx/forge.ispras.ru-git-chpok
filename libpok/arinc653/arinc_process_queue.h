@@ -13,19 +13,23 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <kernel_shared_data.h>
-#include <init_arinc.h>
+#ifndef __LIBJET_ARINC_PROCESS_QUEUE_H__
+#define __LIBJET_ARINC_PROCESS_QUEUE_H__
 
-int main();
+#include <arinc653/types.h>
+#include <msection.h>
 
-int __pok_partition_start (void)
-{
-   // Setup user-only fields of kernel shared data.
-   kshd.main_thread_id = kshd.current_thread_id;
-   kshd.error_thread_id = JET_THREAD_ID_NONE;
+/* 
+ * ARINC Process queue is just a msection waitqueue plus kernel
+ * shared data.
+ */
 
-   libjet_arinc_init();
+/* Add current process to the end of the waitqueue. */
+void arinc_process_queue_add(struct msection_wq* wq);
 
-   main(); /* main loop from user */
-   return (0);
-}
+/* Add current process to the waitqueue according to discipline. */
+void arinc_process_queue_add_common(struct msection_wq* wq,
+    QUEUING_DISCIPLINE_TYPE discipline);
+
+
+#endif /* __LIBJET_ARINC_PROCESS_QUEUE_H__ */

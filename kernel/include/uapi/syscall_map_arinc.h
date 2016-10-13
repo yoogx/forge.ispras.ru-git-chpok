@@ -498,6 +498,16 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_ERROR_GET(const pok_sysc
 
 #endif
 
+pok_ret_t pok_error_raise_os_error(const char* __user msg,
+    size_t msg_size);
+static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_ERROR_RAISE_OS_ERROR(const pok_syscall_args_t* args)
+{
+    return pok_error_raise_os_error(
+        (const char* __user)args->arg1,
+        (size_t)args->arg2);
+}
+
+
          /* Middleware syscalls */
 #ifdef POK_NEEDS_PORTS_SAMPLING
 pok_ret_t pok_port_sampling_create(const char* __user name,
