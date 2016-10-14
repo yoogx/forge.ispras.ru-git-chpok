@@ -18,23 +18,8 @@
 
 #include <types.h>
 
-/* Start of the memory heap. */
-extern char libja_heap_start[];
-
-/* Size of the memory heap. */
-extern const size_t libja_heap_size;
-
-/* 
- * Alignment of the memory heap.
- * 
- * No allocation should use alignment which exceeds given one.
- */
-extern const size_t libja_heap_alignment;
-
 /* 
  * Return maximum alignment for object with given-or-less size.
- * 
- * Shouldn't return alignment greater than 'libja_heap_alignment'.
  */
 size_t libja_mem_get_alignment(size_t obj_size);
 

@@ -18,21 +18,18 @@
 #include <core/assert_os.h>
 #include <libc/stdio.h>
 
-static size_t heap_pos_current = 0;
-
 void* aligned_alloc(size_t size, size_t alignment)
 {
     assert_os(kshd.partition_mode != POK_PARTITION_MODE_NORMAL);
-    assert_os(alignment <= libja_heap_alignment);
     
-    size_t heap_pos_start = ALIGN_VAL(heap_pos_current, alignment);
-    size_t heap_pos_end = heap_pos_start + size;
+    char* obj_start = ALIGN_PTR(heap_current, alignment);
+    char* obj_end = obj_start + size;
     
-    assert_os(heap_pos_end <= libja_heap_size);
+    assert_os(obj_end <= kshd.heap_end);
     
-    heap_pos_current = heap_pos_end;
+    heap_current = obj_end;
     
-    return libja_heap_start + heap_pos_start;
+    return obj_start;
 }
 
 /* 

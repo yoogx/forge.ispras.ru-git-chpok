@@ -13,24 +13,30 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-
-#ifndef  __POK_USER_BLACKBOARD_H__
-#define __POK_USER_BLACKBOARD_H__
+#ifndef __LIBJET_ARINC_EVENT_H__
+#define __LIBJET_ARINC_EVENT_H__
 
 #include <config.h>
 
-#ifdef POK_NEEDS_BLACKBOARDS
+#ifdef POK_NEEDS_ARINC653_EVENT
+#include <arinc653/types.h>
+#include <arinc653/event.h>
+#include <msection.h>
+#include <types.h>
 
-// must be at least MAX_NAME_LENGTH of ARINC653
-#define POK_BLACKBOARD_MAX_NAME_LENGTH 30
-#define POK_BLACKBOARD_NAME_EQ(x, y) (strncmp((x), (y), POK_BLACKBOARD_MAX_NAME_LENGTH) == 0)
+struct arinc_event
+{
+    EVENT_NAME_TYPE event_name;
+    
+    EVENT_STATE_TYPE event_state;
+    
+    struct msection section;
+    struct msection_wq process_queue;
+};
 
-#include <uapi/blackboard_types.h>
+/* Preallocated array of buffers. */
+extern struct arinc_event* arinc_events;
 
-// All blackboard-related functions are already defined as syscalls.
-#include <core/syscall.h>
+#endif /* POK_NEEDS_ARINC653_EVENT */
 
-#endif
-
-#endif
-
+#endif /* __LIBJET_ARINC_EVENT_H__ */

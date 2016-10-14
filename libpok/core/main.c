@@ -15,14 +15,19 @@
 
 #include <kernel_shared_data.h>
 #include <init_arinc.h>
+#include <alloc.h>
 
 int main();
+
+char* heap_current = NULL;
 
 int __pok_partition_start (void)
 {
    // Setup user-only fields of kernel shared data.
    kshd.main_thread_id = kshd.current_thread_id;
    kshd.error_thread_id = JET_THREAD_ID_NONE;
+
+   heap_current = kshd.heap_start;
 
    libjet_arinc_init();
 

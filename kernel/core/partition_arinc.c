@@ -91,6 +91,7 @@ static void partition_arinc_start(void)
 
 	jet_loader_elf_load(part->base_part.space_id - 1, /* elf_id*/
 		part->base_part.space_id,
+		part->heap_size,
 		&part->main_entry);
 
 	part->kshd = ja_space_shared_data(part->base_part.space_id);
@@ -118,12 +119,6 @@ static void partition_arinc_start(void)
 	
 	part->nthreads_used = 0;
 	
-	part->intra_memory_size_used = 0;
-	part->nbuffers_used = 0;
-	part->nblackboards_used = 0;
-	part->nsemaphores_used = 0;
-	part->nevents_used = 0;
-
 	part->thread_current = NULL;
 #ifdef POK_NEEDS_ERROR_HANDLING
 	part->thread_error = NULL;
@@ -309,55 +304,7 @@ void pok_partition_arinc_init(pok_partition_arinc_t* part)
 	
 	part->base_part.part_ops = &arinc_ops;
 	part->base_part.part_sched_ops = &arinc_sched_ops;
-	
-	part->intra_memory = part->intra_memory_size
-		? jet_mem_alloc(part->intra_memory_size)
-		: NULL;
 }
-
-void* partition_arinc_im_get(size_t size, size_t alignment)
-{
-	pok_partition_arinc_t* part = current_partition_arinc;
-	
-	size_t start = ALIGN_VAL(part->intra_memory_size_used, alignment);
-	
-	// TODO: revisit boundary check
-	if(start <= part->intra_memory_size
-		&&	start + size <= part->intra_memory_size) {
-		
-		part->intra_memory_size_used = start + size;
-		return part->intra_memory + start;
-	}
-	
-	return NULL;
-}
-
-
-/* 
- * Return current state of partition's intra memory.
- * 
- * Value return may be used in partition_arinc_im_rollback().
- */
-void* partition_arinc_im_current(void)
-{
-	return (void*)current_partition_arinc->intra_memory_size_used;
-}
-
-/*
- * Revert all intra memory usage requests since given state.
- * 
- * `state` should be obtains with partition_arinc_im_current().
- */
-void partition_arinc_im_rollback(void* prev_state)
-{
-	pok_partition_arinc_t* part = current_partition_arinc;
-	size_t size_used = (size_t)prev_state;
-	
-	assert(size_used <= part->intra_memory_size);
-	
-	part->intra_memory_size_used = size_used;
-}
-
 
 /*
  * Transition from INIT_* mode to NORMAL.

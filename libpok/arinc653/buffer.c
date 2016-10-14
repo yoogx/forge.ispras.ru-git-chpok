@@ -121,7 +121,7 @@ void CREATE_BUFFER (
 
    arinc_allocator_state astate = arinc_allocator_get_state();
 
-   buffer->messages = arinc_alloc(buffer->message_stride * buffer->max_nb_message, 1);
+   buffer->messages = arinc_alloc(buffer->message_stride * buffer->max_nb_message, __alignof__(int));
    buffer->messages_size = arinc_alloc(buffer->max_nb_message * sizeof(*buffer->messages_size),
       __alignof__(*buffer->messages_size));
 

@@ -38,10 +38,18 @@ void* malloc(size_t size);
 
 #define libjet_mem_get_alignment libja_mem_get_alignment
 
+// Set by the init, used by the alloc implementation.
+extern char* heap_current;
+
 static inline unsigned long ALIGN_VAL(unsigned long val, unsigned long align)
 {
     unsigned long mask = align - 1;
     return (val + mask) & ~mask;
+}
+
+static inline void* ALIGN_PTR(void* ptr, unsigned long align)
+{
+    return (void*)ALIGN_VAL((unsigned long)ptr, align);
 }
 
 

@@ -51,6 +51,8 @@ struct jet_kernel_shared_data* __kuser ja_space_shared_data(jet_space_id space_i
     return (struct jet_kernel_shared_data* __kuser)space->phys_base;
 }
 
+size_t ja_user_space_maximum_alignment = 16;
+
 jet_space_id current_space_id = 0;
 
 void ja_user_space_jump(

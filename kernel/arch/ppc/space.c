@@ -52,6 +52,8 @@ struct jet_kernel_shared_data* __kuser ja_space_shared_data(jet_space_id space_i
     return (struct jet_kernel_shared_data* __kuser)POK_PARTITION_MEMORY_BASE;
 }
 
+size_t ja_user_space_maximum_alignment = 16;
+
 void ja_space_switch (jet_space_id space_id)
 {
     mtspr(SPRN_PID, space_id);

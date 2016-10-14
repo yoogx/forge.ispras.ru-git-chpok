@@ -384,11 +384,12 @@ class Partition:
 
     # Return memory size, needed by intra-partition communication mechanisms.
     def get_intra_size(self):
-        return self.buffer_data_size + self.blackboard_data_size \
-            + self.num_arinc653_buffers * self.get_buffer_size() \
-            + self.num_arinc653_blackboards * self.get_blackboard_size() \
-            + self.num_arinc653_semaphores * self.get_semaphore_size() \
+        return ( self.buffer_data_size + self.blackboard_data_size
+            + self.num_arinc653_buffers * self.get_buffer_size()
+            + self.num_arinc653_blackboards * self.get_blackboard_size()
+            + self.num_arinc653_semaphores * self.get_semaphore_size()
             + self.num_arinc653_events * self.get_event_size()
+        )
 
 def _get_port_direction(port):
     direction = port.direction.lower()
