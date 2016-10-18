@@ -16,11 +16,11 @@
  * Copyright (c) 2007-2009 POK team
  */
 /*
-blr == JUMP_TO_REG($ra) (= $31)
-
-stw = sw
-lwz = lw
-*/
+ * blr == JUMP_TO_REG($ra) (= $31)
+ * 
+ * stw = sw
+ * lwz = lw
+ */
 #include "asm_offsets_stack_frame.h"
 #include "asm_offsets_context.h"
 #include "msr.h"
@@ -30,84 +30,85 @@ lwz = lw
 
 /* Restore context from current stack. */
 CONTEXT_RESTORE:
-        lw      $30,OFFSETOF_jet_context_30($29)
-        lw      $28,OFFSETOF_jet_context_28($29)
-        lw      $27,OFFSETOF_jet_context_27($29)
-        lw      $26,OFFSETOF_jet_context_26($29)
-        lw      $25,OFFSETOF_jet_context_25($29)
-        lw      $24,OFFSETOF_jet_context_24($29)
-        lw      $23,OFFSETOF_jet_context_23($29)
-        lw      $22,OFFSETOF_jet_context_22($29)
-        lw      $21,OFFSETOF_jet_context_21($29)
-        lw      $20,OFFSETOF_jet_context_20($29)
-        lw      $19,OFFSETOF_jet_context_19($29)
-        lw      $18,OFFSETOF_jet_context_18($29)
-        lw      $17,OFFSETOF_jet_context_17($29)
-        lw      $16,OFFSETOF_jet_context_16($29)
-        lw      $15,OFFSETOF_jet_context_15($29)
-        lw      $14,OFFSETOF_jet_context_14($29)
-        lw      $13,OFFSETOF_jet_context_13($29)
-        lw      $12,OFFSETOF_jet_context_12($29)
-        lw      $11,OFFSETOF_jet_context_11($29)
-        lw      $10,OFFSETOF_jet_context_10($29)
-        lw      $9,OFFSETOF_jet_context_9($29)
-        lw      $8,OFFSETOF_jet_context_8($29)
-        lw      $1,OFFSETOF_jet_context_lo($29)
+        .set    noat 
+        lw     $30, OFFSETOF_jet_context_r30($sp)
+        lw     $28, OFFSETOF_jet_context_r28($sp)
+        lw     $27, OFFSETOF_jet_context_r27($sp)
+        lw     $26, OFFSETOF_jet_context_r26($sp)
+        lw     $25, OFFSETOF_jet_context_r25($sp)
+        lw     $24, OFFSETOF_jet_context_r24($sp)
+        lw     $23, OFFSETOF_jet_context_r23($sp)
+        lw     $22, OFFSETOF_jet_context_r22($sp)
+        lw     $21, OFFSETOF_jet_context_r21($sp)
+        lw     $20, OFFSETOF_jet_context_r20($sp)
+        lw     $19, OFFSETOF_jet_context_r19($sp)
+        lw     $18, OFFSETOF_jet_context_r18($sp)
+        lw     $17, OFFSETOF_jet_context_r17($sp)
+        lw     $16, OFFSETOF_jet_context_r16($sp)
+        lw     $15, OFFSETOF_jet_context_r15($sp)
+        lw     $14, OFFSETOF_jet_context_r14($sp)
+        lw     $13, OFFSETOF_jet_context_r13($sp)
+        lw     $12, OFFSETOF_jet_context_r12($sp)
+        lw     $11, OFFSETOF_jet_context_r11($sp)
+        lw     $10, OFFSETOF_jet_context_r10($sp)
+        lw     $9,  OFFSETOF_jet_context_r9($sp)
+        lw     $8,  OFFSETOF_jet_context_r8($sp)
+        lw     $1,  OFFSETOF_jet_context_lo($sp)
         MTlo($1)
-        lw      $1,OFFSETOF_jet_context_hi($20)
+        lw     $1,  OFFSETOF_jet_context_hi($sp)
         MTHi($1)
-        lw      $1,OFFSETOF_jet_context_FCCR($29)
-        mtc1    $1,$24
-        lw      $29,OFFSETOF_jet_stack_frame_back_chain($29)
-        lw      $31,OFFSETOF_jet_stack_frame_lr($29)
-        JUMP_TO_REG($31)
+        lw     $1,  OFFSETOF_jet_context_FCCR($sp)
+        mtc1   $1,  $24
+        lw     $sp, OFFSETOF_jet_stack_frame_back_chain($sp)
+        lw     $ra, OFFSETOF_jet_stack_frame_lr($sp)
+        JUMP_TO_REG($ra)
 
         .globl ja_context_switch
 ja_context_switch:
         /* $4: *old_sp, $5: new_sp */
         /* Form stack frame */
-        sw      $29,-FRAME_SIZE($29)
-/*      mflr    $1*/
-        sw      $31,FRAME_SIZE + OFFSETOF_jet_stack_frame_lr($29)
+        sw     $sp, -FRAME_SIZE($sp)
+        /*mflr   $1*/
+        sw     $ra,FRAME_SIZE + OFFSETOF_jet_stack_frame_lr($sp)
         /* Save registers.  */
-        mfc1    $1, $24 /* FCCR */
-        sw      $1,OFFSETOF_jet_context_FCCR($29)
-        mfhi    $1                             
-        sw      $1,OFFSETOF_jet_context_hi($20) 
-        mflo    $1            
-        sw      $1,OFFSETOF_jet_context_lo($20)
-        sw      $8,OFFSETOF_jet_context_8($29)
-        sw      $9,OFFSETOF_jet_context_9($29)
-        sw      $10,OFFSETOF_jet_context_10($29)
-        sw      $11,OFFSETOF_jet_context_11($29)
-        sw      $12,OFFSETOF_jet_context_12($29)
-        sw      $13,OFFSETOF_jet_context_13($29)
-        sw      $14,OFFSETOF_jet_context_14($29)
-        sw      $15,OFFSETOF_jet_context_15($29)
-        sw      $16,OFFSETOF_jet_context_16($29)
-        sw      $17,OFFSETOF_jet_context_17($29)
-        sw      $18,OFFSETOF_jet_context_18($29)
-        sw      $19,OFFSETOF_jet_context_19($29)
-        sw      $20,OFFSETOF_jet_context_20($29)
-        sw      $21,OFFSETOF_jet_context_21($29)
-        sw      $22,OFFSETOF_jet_context_22($29)
-        sw      $23,OFFSETOF_jet_context_23($29)
-        sw      $24,OFFSETOF_jet_context_24($29)
-        sw      $25,OFFSETOF_jet_context_25($29)
-        sw      $26,OFFSETOF_jet_context_26($29)
-        sw      $27,OFFSETOF_jet_context_27($29)
-        sw      $28,OFFSETOF_jet_context_28($29)
-        sw      $30,OFFSETOF_jet_context_30($29)
+        mfc1   $1,  $24 /* FCCR */
+        sw     $1,  OFFSETOF_jet_context_FCCR($sp)
+        mfhi   $1                               
+        sw     $1,  OFFSETOF_jet_context_hi($sp) 
+        mflo   $1            
+        sw     $1,  OFFSETOF_jet_context_lo($sp)
+        sw     $8,  OFFSETOF_jet_context_r8($sp)
+        sw     $9,  OFFSETOF_jet_context_r9($sp)
+        sw     $10, OFFSETOF_jet_context_r10($sp)
+        sw     $11, OFFSETOF_jet_context_r11($sp)
+        sw     $12, OFFSETOF_jet_context_r12($sp)
+        sw     $13, OFFSETOF_jet_context_r13($sp)
+        sw     $14, OFFSETOF_jet_context_r14($sp)
+        sw     $15, OFFSETOF_jet_context_r15($sp)
+        sw     $16, OFFSETOF_jet_context_r16($sp)
+        sw     $17, OFFSETOF_jet_context_r17($sp)
+        sw     $18, OFFSETOF_jet_context_r18($sp)
+        sw     $19, OFFSETOF_jet_context_r19($sp)
+        sw     $20, OFFSETOF_jet_context_r20($sp)
+        sw     $21, OFFSETOF_jet_context_r21($sp)
+        sw     $22, OFFSETOF_jet_context_r22($sp)
+        sw     $23, OFFSETOF_jet_context_r23($sp)
+        sw     $24, OFFSETOF_jet_context_r24($sp)
+        sw     $25, OFFSETOF_jet_context_r25($sp)
+        sw     $26, OFFSETOF_jet_context_r26($sp)
+        sw     $27, OFFSETOF_jet_context_r27($sp)
+        sw     $28, OFFSETOF_jet_context_r28($sp)
+        sw     $30, OFFSETOF_jet_context_r30($sp)
         /* Switch stacks. */
-        sw      $29,0($4)
-        move    $29, $5
+        sw     $sp, 0($4)
+        move   $sp, $5
         JUMP_TO_ADDR(CONTEXT_RESTORE)
         .size ja_context_switch, . - ja_context_switch
 
         .globl ja_context_jump
 ja_context_jump:
         /* $4: new_sp */
-        move      $29, $4
+        move  $sp, $4
         JUMP_TO_ADDR(CONTEXT_RESTORE)
         .size ja_context_jump, . - ja_context_jump
 
@@ -115,15 +116,15 @@ ja_context_jump:
 ja_context_restart:
         /* $4: stack, $5: entry */
         /* Calculate in $6 relative stack offset for stwux: */
-        add   $6, $4, $29
+        add   $6, $4, $sp
         addi  $6, $6, -SIZEOF_jet_stack_frame_null
         li    $7, 0 /* 0 should be stored into first back chain*/
-        /* stwux $7, $29, $6 */
-        add   $29, $29, $6
-        sw    $7, ($29)
+        /* stwux $7, $sp, $6 */
+        add   $sp, $sp, $6
+        sw    $7, ($sp)
         /*mtlr  $5*/
-        move  $31, $5
-        /* Nullify other registers (2-6, 8-29, 30). */
+        move  $ra, $5
+        /* Nullify other registers (2-6, 8-28, 30). */
         move  $2, $7
         move  $3, $7
         move  $4, $7
@@ -153,13 +154,13 @@ ja_context_restart:
         move  $30, $7
         
         
-        JUMP_TO_REG($31)
+        JUMP_TO_REG($ra)
         .size ja_context_restart, . - ja_context_restart
 
         .globl ja_context_restart_and_save
 ja_context_restart_and_save:
         /* $4: stack, $5: entry, $6 - address to save resulted context */
-        addi  $7, $4, SIZEOF_jet_stack_frame_null
-        sw    $7, 0($6)
+        addi  $7,  $4, SIZEOF_jet_stack_frame_null
+        sw    $7,  0($6)
         JUMP_TO_ADDR(ja_context_restart)
         .size ja_context_restart_and_save, . - ja_context_restart_and_save

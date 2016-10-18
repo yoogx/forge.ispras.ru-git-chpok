@@ -36,7 +36,7 @@
  */
 void pok_arch_init (void)
 {
-/*MSR_IP |*/   mtsr(Status_XX);
+/*MSR_IP |*/   mtsr(CP0_STATUS_XX);
 
   pok_arch_space_init();
 

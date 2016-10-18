@@ -151,45 +151,62 @@
 
 #define CP0_CAUSE_IV        __MASK(Cause_IV_LG)               /* Роказывает, использует ли исключение по прерыванию общий вектор исключений или специальный вектор прерываний*/
 
-#define CP0_INDEX         $0
-#define CP0_RANDOM        $1
-#define CP0_ENTRYLO0      $2
-#define CP0_ENTRYLO1      $3
-#define CP0_CONF          $3
-#define CP0_CONTEXT       $4
-#define CP0_PAGEMASK      $5
-#define CP0_WIRED         $6
-#define CP0_INFO          $7
-#define CP0_BadVAddr      $8
-#define CP0_COUNT         $9
-#define CP0_ENTRYHI       $10
-#define CP0_COMPARE       $11
-#define CP0_STATUS        $12
-#define CP0_CAUSE         $13
-#define CP0_EPC           $14
-#define CP0_PRID          $15
-#define CP0_EBASE         $15
-#define CP0_CONFIG        $16
-#define CP0_LLADDR        $17
-#define CP0_WATCHLO       $18
-#define CP0_WATCHHI       $19
-#define CP0_XCONTEXT      $20
-#define CP0_FRAMEMASK     $21
-#define CP0_DIAGNOSTIC    $22
-#define CP0_DEBUG         $23
-#define CP0_DEPC          $24
-#define CP0_PERFORMANCE   $25
-#define CP0_ECC           $26
-#define CP0_CACHEERR      $27
-#define CP0_TAGLO         $28
-#define CP0_TAGHI         $29
-#define CP0_ERROREPC      $30
-#define CP0_DESAVE        $31
-#define PT_SIZE           176
+#define CP0_INDEX         $0    /* Index       Register*/ /* Номер строки TLB и бит ошибки */    
+#define CP0_RANDOM        $1    /* Random      Register*/ /* Псевдослучайное число в диапазоне [63..wired] */
+#define CP0_ENTRYLO0      $2    /* EntryLo0    Register*/ /*  */
+#define CP0_ENTRYLO1      $3    /* EntryLo1    Register*/ /*  */
+#define CP0_CONTEXT       $4    /* Context     Register*/ /* Используется программным обеспечением и есть поле для записи исключений TLB */
+#define CP0_PAGEMASK      $5    /* PageMask    Register*/ /* Битовая маска TLB */
+#define CP0_WIRED         $6    /* Wired       Register*/ /* Минимальное значение, вырабатываемое в регистре Random */
+#define CP0_BadVAddr      $8    /* BadVAddr    Register*/ /* Регистр BadVAddr содержит последний из адресов, вызвавших одно из следующих исключений: 
+                                                                                                                     //~ Address error (AdEL or AdES);
+                                                                                                                     //~ TLB/XTLB Refill;
+                                                                                                                     //~ TLB Invalid (TLBL, TLBS);
+                                                                                                                     //~ TLB Modified*/
+#define CP0_COUNT         $9    /* Count       Register*/ /* Счетчик тактов процессора*/
+#define CP0_ENTRYHI       $10   /* EntryHi     Register*/ /*  */
+#define CP0_COMPARE       $11   /* Compare     Register*/ /* Величина для сравнения с регистром Count, когда Count становится равным Compare происходит прерывание IM7 (прерывание по таймеру)*/
+#define CP0_STATUS        $12   /* Status      Register*/ /* Описывает состояние системы */
+#define CP0_CAUSE         $13   /* Cause       Register*/ /* Информация о прерывании */
+#define CP0_EPC           $14   /* Exception Program Counter Register*/ /* Значение счетчика инструкций (виртуальный адрес команды) в момент возникновения исключительной ситуации. */
+#define CP0_PRID          $15   /* Processor Identification  Register*/ /* Информация об производителе процессора */
+#define CP0_EBASE         $15   /* Exception Base Register*/
+#define CP0_CONFIG        $16   /* Configuration Register (select 0)*/ /*  */
+#define CP0_CONFIG_1      $16   /* Configuration Register (select 1)*/ /*  */
+#define CP0_CONFIG_2      $16   /* Configuration Register (select 2)*/ /*  */
+#define CP0_CONFIG_3      $16   /* Configuration Register (select 3)*/ /*  */
+#define CP0_LLADDR        $17   /*Load Linked Address  Register*/ /* Это поле содержит разряды 35..4 физического адреса, считанного командой Load Linked. */
+#define CP0_WATCHLO       $18   /* WatchLo     Register*/ /* Виртуальный адрес watchpoint'а */
+#define CP0_WATCHHI       $19   /* WatchHi     Register*/ /* Настройка watchpoint'а */
+#define CP0_XCONTEXT      $20   /* Xcontext    Register*/ /*  */
+#define CP0_ChipMemCtrl   $22   /* ChipMemCtrl Register*/ /*  */
+#define CP0_DEBUG         $23   /* Debug       Register*/ /* Настройки для debug прерываний */
+#define CP0_DEPC          $24   /* DEPC        Register*/ /* Адрес, по которому будет продолжено выполнение программы при выходу из режима DebugMode */
+#define CP0_PC_0          $25   /* Performance Counter Register (select 0,2)*/ /*  */
+#define CP0_PC_1          $25   /* Performance Counter Register (select 1,3)*/ /*  */
+#define CP0_ECC           $26   /* Error Checking and Correction Register*/ /*  */
+#define CP0_CACHEERR      $27   /* Cache Error Register*/ /* Информация об ошибках в кэше */
+#define CP0_TAGLO         $28   /* TagLo       Register*/ /* Настройки кэша */
+#define CP0_TAGHI         $29   /* TagHi       Register (select 0)*/ /* PTag – разряды [35:12] физического адреса. */
+#define CP0_DATAHI        $29   /* DataHi      Register (select 1)*/ /* Двойное слово, считанное из кэш-памяти. */
+#define CP0_ERROREPC      $30   /* Error Exception Program Counter Register*/ /* Адрес команды, вызвавшей исключение NMI, Reset или Soft Reset */
+#define CP0_DESAVE        $31   /* DESAVE      Register*/ /* Регистр для хранения промежуточных данных */
+
+
+
+
+#define CP1_FIR           $0    /* FIR       Register*/ /* Регистр идентификации блока вещественной арифметики или FPU(FPU – Floating Point Unit). */
+#define CP1_FCONFIG       $24   /* FCONFIG   Register*/ /* Регистр конфигурации */
+#define CP1_FCCR          $25   /* FCCR      Register*/ /* Регистр кодов условий */
+#define CP1_FEXR          $26   /* FEXR      Register*/ /* Регистр исключений */
+#define CP1_FENR          $28   /* FENR      Register*/ /* Регистр разрешений */
+#define CP1_FCSR          $31   /* FCSR      Register*/ /* Регистр состояния */
+
 
 #define JUMP_TO_REG(reg)   \
         jr  reg;           \
         nop                
+
 
 #define JUMP_TO_ADDR(addr) \
         j   addr;          \
