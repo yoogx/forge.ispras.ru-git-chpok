@@ -49,6 +49,39 @@
 #define MSR_RI_LG       1               /* Recoverable Exception */
 #define MSR_LE_LG       0               /* Little Endian */
 
+
+#define Status_XX_LG       31              /* Разрешает выполнение вещественных инструкций с кодом COP1X*/
+#define Status_CU2_LG      30              /* Разрешается доступ к сопроцессору 2 */
+#define Status_CU1_LG      29              /* Разрешается доступ к сопроцессору 1 */
+#define Status_CU0_LG      28              /* Разрешается доступ к сопроцессору 0 */
+#define Status_RP_LG       27              /* Зарезервирован. Будет использоваться в дальнейших реализациях.*/
+#define Status_FR_LG       26              /* Контролирует режим работы вещественного регистрового файла (регистрового файла CP1)*/
+#define Status_PX_LG       23              /* Обеспечивает доступ к 64-разрядным инструкциям в пользовательском режиме (User)*/
+#define Status_BEV_LG      22              /* Контролирует размещение векторов исключений*/
+#define Status_SR_LG       20              /* Показывает, что возникло исключение Soft Reset*/
+#define Status_NMI_LG      19              /* Показывает, что возникло исключение NMI*/
+#define Status_CH_LG       18              /* Указывает на попадание или непопадание в кэш второго уровня для последних
+                                                                    инструкций CACHE Hit Invalidate, Hit Write Back Invalidate, или Hit Write Back*/
+#define Status_HE_LG       17              /* Hamming checking Enable – разрешает контроль кода Хемминга в кэш-памяти второго уровня*/
+#define Status_HC_LG       16              /* Hamming Correction enable – разрешает автоматическую коррекцию одиночной ошибки в данных кэш-памяти второго уровня*/
+#define Status_IM7_LG      15              /* (IM7 -прерывания таймера)*/
+#define Status_IM6_LG      14              /*                              */
+#define Status_IM5_LG      13              /*             Номера               */
+#define Status_IM4_LG      12              /*                                      */
+#define Status_IM3_LG      11              /*                  соответствующих         */
+#define Status_IM2_LG      10              /*                                              */
+#define Status_IM1_LG       9              /*                              прерываний          */
+#define Status_IM0_LG       8              /*                                                      */
+#define Status_KX_LG        7              /* Определяет режим разрядности при адресации в режиме Kernel*/
+#define Status_SX_LG        6              /* Определяет режим разрядности при адресации в режиме Supervisor*/
+#define Status_UX_LG        5              /* Определяет режим разрядности при адресации в режиме User*/
+#define Status_ERL_LG       2              /* Error Level. Устанавливается аппаратно при возникновении исключений Reset, Soft Reset, NMI или Cache Error*/
+#define Status_EXL_LG       1              /* Exception Level. Устанавливается аппаратно, если 
+                                                                            происходит исключение, отличное от Reset, Soft Reset, NMI или Cache Error*/
+#define Status_IE_LG        0              /* Разрешение прерываний*/
+
+#define Cause_IV_LG         23             /* Показывает, использует ли исключение по прерыванию общий вектор исключений или специальный вектор прерываний*/
+
 #define __MASK(X)       (1<<(X))
 
 #define MSR_VEC         __MASK(MSR_VEC_LG)      /* Enable AltiVec */
@@ -87,5 +120,120 @@
 
 #define MSR_KERNEL (MSR_ME|MSR_RI|MSR_IR|MSR_DR)
 #define MSR_USER (MSR_KERNEL|MSR_PR|MSR_EE)
+
+#define CP0_STATUS_XX       __MASK(Status_XX_LG)              /* Разрешает выполнение вещественных инструкций с кодом COP1X*/
+#define CP0_STATUS_CU2      __MASK(Status_CU2_LG)             /* Разрешается доступ к сопроцессору 2 */
+#define CP0_STATUS_CU1      __MASK(Status_CU1_LG)             /* Разрешается доступ к сопроцессору 1 */
+#define CP0_STATUS_CU0      __MASK(Status_CU0_LG)             /* Разрешается доступ к сопроцессору 0 */
+#define CP0_STATUS_FP       __MASK(Status_FR_LG)              /* Контролирует режим работы вещественного регистрового файла (регистрового файла CP1)*/
+#define CP0_STATUS_PX       __MASK(Status_PX_LG)              /* Обеспечивает доступ к 64-разрядным инструкциям в пользовательском режиме (User)*/
+#define CP0_STATUS_BEV      __MASK(Status_BEV_LG)             /* Контролирует размещение векторов исключений*/
+#define CP0_STATUS_SR       __MASK(Status_SR_LG)              /* Показывает, что возникло исключение Soft Reset*/
+#define CP0_STATUS_NMI      __MASK(Status_NMI_LG)             /* Показывает, что возникло исключение NMI*/
+#define CP0_STATUS_CH       __MASK(Status_CH_LG)              /* Указывает на попадание или непопадание в кэш второго уровня для последних
+                                                                         инструкций CACHE Hit Invalidate, Hit Write Back Invalidate, или Hit Write Back*/
+#define CP0_STATUS_HE       __MASK(Status_HE_LG)              /* Hamming checking Enable – разрешает контроль кода Хемминга в кэш-памяти второго уровня*/
+#define CP0_STATUS_HC       __MASK(Status_HC_LG)              /* Hamming Correction enable – разрешает автоматическую коррекцию одиночной ошибки в данных кэш-памяти второго уровня*/
+#define CP0_STATUS_IM7      __MASK(Status_IM7_LG)             /* (IM7 -прерывания таймера)*/
+#define CP0_STATUS_IM6      __MASK(Status_IM6_LG)             /*         Маски                */
+#define CP0_STATUS_IM5      __MASK(Status_IM5_LG)             /*                                  */
+#define CP0_STATUS_IM4      __MASK(Status_IM4_LG)             /*             соответствующих          */
+#define CP0_STATUS_IM3      __MASK(Status_IM3_LG)             /*                                          */
+#define CP0_STATUS_IM2      __MASK(Status_IM2_LG)             /*                       прерываний             */
+#define CP0_STATUS_IM1      __MASK(Status_IM1_LG)             /*                                                  */
+#define CP0_STATUS_IM0      __MASK(Status_IM0_LG)             /*                              (по номерам)            */
+#define CP0_STATUS_KX       __MASK(Status_KX_LG)              /* Определяет режим разрядности при адресации в режиме Kernel*/
+#define CP0_STATUS_SX       __MASK(Status_SX_LG)              /* Определяет режим разрядности при адресации в режиме Supervisor*/
+#define CP0_STATUS_UX       __MASK(Status_UX_LG)              /* Определяет режим разрядности при адресации в режиме User*/
+#define CP0_STATUS_ERL      __MASK(Status_ERL_LG)             /* Error Level. Устанавливается аппаратно при возникновении исключений Reset, Soft Reset, NMI или Cache Error*/
+#define CP0_STATUS_EXL      __MASK(Status_EXL_LG)             /* Exception Level. Устанавливается аппаратно, если происходит исключение, отличное от Reset, Soft Reset, NMI или Cache Error*/
+#define CP0_STATUS_IE       __MASK(Status_IE_LG)              /* Разрешение прерываний*/
+
+#define CP0_CAUSE_IV        __MASK(Cause_IV_LG)               /* Роказывает, использует ли исключение по прерыванию общий вектор исключений или специальный вектор прерываний*/
+
+#define CP0_INDEX         $0
+#define CP0_RANDOM        $1
+#define CP0_ENTRYLO0      $2
+#define CP0_ENTRYLO1      $3
+#define CP0_CONF          $3
+#define CP0_CONTEXT       $4
+#define CP0_PAGEMASK      $5
+#define CP0_WIRED         $6
+#define CP0_INFO          $7
+#define CP0_BadVAddr      $8
+#define CP0_COUNT         $9
+#define CP0_ENTRYHI       $10
+#define CP0_COMPARE       $11
+#define CP0_STATUS        $12
+#define CP0_CAUSE         $13
+#define CP0_EPC           $14
+#define CP0_PRID          $15
+#define CP0_EBASE         $15
+#define CP0_CONFIG        $16
+#define CP0_LLADDR        $17
+#define CP0_WATCHLO       $18
+#define CP0_WATCHHI       $19
+#define CP0_XCONTEXT      $20
+#define CP0_FRAMEMASK     $21
+#define CP0_DIAGNOSTIC    $22
+#define CP0_DEBUG         $23
+#define CP0_DEPC          $24
+#define CP0_PERFORMANCE   $25
+#define CP0_ECC           $26
+#define CP0_CACHEERR      $27
+#define CP0_TAGLO         $28
+#define CP0_TAGHI         $29
+#define CP0_ERROREPC      $30
+#define CP0_DESAVE        $31
+#define PT_SIZE           176
+
+#define JUMP_TO_REG(reg)   \
+        jr  reg;           \
+        nop                
+
+#define JUMP_TO_ADDR(addr) \
+        j   addr;          \
+        nop                
+
+#define JUMP_AND_LINK(addr) \
+        jal   addr;         \
+        nop                 
+        
+#define ERET_AND_NOP      \
+        eret;             \
+        nop;              \
+        nop               
+
+#define DERET_AND_NOP     \
+        deret;            \
+        nop               
+
+#define MTC1(arg1, arg2)  \
+        mtc1 arg1, arg2;  \
+        nop               
+
+#define MTHi(arg1)        \
+        mthi arg1;        \
+        nop               
+        
+#define MTlo(arg1)        \
+        mtlo arg1;        \
+        nop                 
+        
+#define MTC0(arg1, arg2)  \
+        mtc0 arg1, arg2;  \
+        nop;              \
+        nop;              \
+        nop               
+
+
+
+#define MTC0_sel1(arg1, arg2)  \
+        mtc0 arg1, arg2, 1;    \
+        nop;                   \
+        nop;                   \
+        nop                    
+
+
 
 #endif

@@ -23,6 +23,7 @@ lwz = lw
 */
 #include "asm_offsets_stack_frame.h"
 #include "asm_offsets_context.h"
+#include "msr.h"
 
 #define FRAME_SIZE SIZEOF_jet_context
         .text

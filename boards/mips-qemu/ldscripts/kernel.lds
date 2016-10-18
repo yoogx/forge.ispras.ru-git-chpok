@@ -1,5 +1,5 @@
-OUTPUT_FORMAT("elf32-powerpc");
-OUTPUT_ARCH("powerpc")
+OUTPUT_FORMAT("elf32-tradbigmips");
+OUTPUT_ARCH("mips")
 ENTRY(_pok_reset)
 
 SECTIONS

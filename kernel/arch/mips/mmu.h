@@ -154,7 +154,8 @@ void pok_ppc_tlb_read_entry(
 //        unsigned tlbsel;
 //    );
 
-#define pok_ppc_tlb_get_nentry(tlbsel)                       \
-    (mfspr((SPRN_TLB ## tlbsel ## CFG)) & TLBnCFG_N_ENTRY_MASK)
+#define pok_ppc_tlb_get_nentry(tlbsel) 0
+//FIXIT
+    //~ (mfspr((SPRN_TLB ## tlbsel ## CFG)) & TLBnCFG_N_ENTRY_MASK)
 
 #endif

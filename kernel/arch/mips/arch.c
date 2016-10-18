@@ -15,7 +15,6 @@
  * This file also incorporates work covered by POK License.
  * Copyright (c) 2007-2009 POK team
  */
-
 #include <config.h>
 
 #include <types.h>
@@ -37,7 +36,7 @@
  */
 void pok_arch_init (void)
 {
-  mtmsr(MSR_IP | MSR_FP);
+/*MSR_IP |*/   mtsr(Status_XX);
 
   pok_arch_space_init();
 
@@ -48,17 +47,20 @@ void pok_arch_init (void)
 
 void ja_preempt_disable(void)
 {
-  mtmsr(mfmsr() & ~MSR_EE);
+  asm("DI");
+
 }
 
 void ja_preempt_enable(void)
 {
-  mtmsr(mfmsr() | MSR_EE);
+  asm("EI");
 }
 
 pok_bool_t ja_preempt_enabled(void)
 {
-  return !!(mfmsr() & MSR_EE);
+  
+  ///FIX
+  return 0;//!!(mfmsr() & MSR_EE);
 }
 
 void ja_inf_loop(void)

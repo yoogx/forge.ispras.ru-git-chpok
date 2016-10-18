@@ -48,12 +48,13 @@ void ja_space_layout_get(jet_space_id space_id,
 
 void ja_space_switch (jet_space_id space_id)
 {
-    mtspr(SPRN_PID, space_id);
+    //~ mtspr(SPRN_PID, space_id);
 }
 
 jet_space_id ja_space_get_current (void)
 {
-    return (jet_space_id)mfspr(SPRN_PID);
+    //~ return (jet_space_id)mfspr(SPRN_PID);
+    return 0;
 }
 
 
@@ -285,7 +286,7 @@ void pok_arch_handle_page_fault(
         pf_type_t type)
 {
     int tlb_miss = (type == PF_INST_TLB_MISS || type == PF_DATA_TLB_MISS);
-    unsigned pid = mfspr(SPRN_PID);
+    //~ unsigned pid= mfspr(SPRN_PID);
 
     if (tlb_miss && faulting_address >= pok_bsp.ccsrbar_base && faulting_address < pok_bsp.ccsrbar_base + pok_bsp.ccsrbar_size) {
         pok_insert_tlb1(
@@ -311,11 +312,11 @@ void pok_arch_handle_page_fault(
         );
     } else if (
             tlb_miss &&
-            pid != 0 &&
+            /*pid != 0 &&*/
             faulting_address >= POK_PARTITION_MEMORY_BASE &&
             faulting_address < POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE)
     {
-        jet_space_id space_id = pid;
+        jet_space_id space_id = 0;// pid;
 
         pok_insert_tlb1(
             POK_PARTITION_MEMORY_BASE,
@@ -323,7 +324,7 @@ void pok_arch_handle_page_fault(
             E500MC_PGSIZE_16M,
             MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
             0,
-            pid,
+            0,//pid,
             FALSE
         );
     } else {

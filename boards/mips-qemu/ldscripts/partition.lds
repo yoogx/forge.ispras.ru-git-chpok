@@ -1,5 +1,5 @@
-OUTPUT_FORMAT("elf32-powerpc");
-OUTPUT_ARCH("powerpc")
+OUTPUT_FORMAT("elf32-tradbigmips");
+OUTPUT_ARCH("mips")
 ENTRY(__pok_partition_start)
 
 SECTIONS
@@ -54,6 +54,8 @@ SECTIONS
           *(.scommon)
           __sbss_end = .;
         }
+        
+        
         .bss  :
         {
           __bss_start = .;
@@ -66,4 +68,5 @@ SECTIONS
           _end = .;
         }
 	__partition_end = . ;
+
 }

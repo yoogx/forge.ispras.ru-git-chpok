@@ -32,9 +32,6 @@
 #define SPRN_IVOR40     0x1b2   /* Interrupt Vector Offset Register 40 */
 #define SPRN_IVOR41     0x1b3   /* Interrupt Vector Offset Register 41 */
 
-#define SPRN_DSRR0      0x23e   /* Debug Save and Restore Register 0 */
-#define SPRN_DSRR1      0x23f   /* Debug Save and Restore Register 1 */
-
 #define SPRN_CSRR0      0x03A   /* Critical Save and Restore Register 0 */
 #define SPRN_CSRR1      0x03B   /* Critical Save and Restore Register 1 */
 #define SPRN_DEAR       0x03D   /* Data Error Address Register */
@@ -66,6 +63,58 @@
 #define SPRN_MAS6       0x276   /* MMU Assist Register 6 */
 #define SPRN_MAS7       0x3B0   /* MMU Assist Register 7 */
 
+
+//~ #define CP0_Index            0     /* Index       Register*/ /* Номер строки TLB и бит ошибки */
+//~ #define CP0_Random           1     /* Random      Register*/ /* Псевдослучайное число в диапазоне [63..wired] */
+//~ #define CP0_EntryLo0         2     /* EntryLo0    Register*/ /*  */
+//~ #define CP0_EntryLo1         3     /* EntryLo1    Register*/ /*  */
+//~ #define CP0_Context          4     /* Context     Register*/ /* Используется программным обеспечением и есть поле для записи исключений TLB */
+//~ #define CP0_PageMask         5     /* PageMask    Register*/ /* Битовая маска TLB */
+//~ #define CP0_Wired            6     /* Wired       Register*/ /* Минимальное значение, вырабатываемое в регистре Random */
+//~ #define CP0_BadVAddr         8     /* BadVAddr    Register*/ /* Регистр BadVAddr содержит последний из адресов, вызвавших одно из следующих исключений: 
+                                                                                                                            //~ Address error (AdEL or AdES);
+                                                                                                                            //~ TLB/XTLB Refill;
+                                                                                                                            //~ TLB Invalid (TLBL, TLBS);
+                                                                                                                            //~ TLB Modified*/
+//~ #define CP0_Count            9      /* Count       Register*/ /* Счетчик тактов процессора*/
+//~ #define CP0_EntryHi          10     /* EntryHi     Register*/ /*  */
+//~ #define CP0_Compare          11     /* Compare     Register*/ /* Величина для сравнения с регистром Count, когда Count становится равным Compare происходит прерывание IM7 (прерывание по таймеру)*/
+//~ #define CP0_Status           12     /* Status      Register*/ /* Описывает состояние системы */
+//~ #define CP0_Cause            13     /* Cause       Register*/ /* Информация о прерывании */
+//~ #define CP0_EPC              14     /* Exception Program Counter Register*/ /* Значение счетчика инструкций (виртуальный адрес команды) в момент возникновения исключительной ситуации. */
+//~ #define CP0_PI               15     /* Processor Identification  Register*/ /* Информация об производителе процессора */
+//~ #define CP0_Config_0         16     /* Configuration Register (select 0)*/ /*  */
+//~ #define CP0_Config_1         16     /* Configuration Register (select 1)*/ /*  */
+//~ #define CP0_Config_2         16     /* Configuration Register (select 2)*/ /*  */
+//~ #define CP0_Config_3         16     /* Configuration Register (select 3)*/ /*  */
+//~ #define CP0_LLA              17     /*Load Linked Address  Register*/ /* Это поле содержит разряды 35..4 физического адреса, считанного командой Load Linked. */
+//~ #define CP0_WatchLo          18     /* WatchLo     Register*/ /* Виртуальный адрес watchpoint'а */
+//~ #define CP0_WatchHi          19     /* WatchHi     Register*/ /* Настройка watchpoint'а */
+//~ #define CP0_Xcontext         20     /* Xcontext    Register*/ /*  */
+//~ #define CP0_ChipMemCtrl      22     /* ChipMemCtrl Register*/ /*  */
+//~ #define CP0_Debug            23     /* Debug       Register*/ /* Настройки для debug прерываний */
+//~ #define CP0_DEPC             24     /* DEPC        Register*/ /* Адрес, по которому будет продолжено выполнение программы при выходу из режима DebugMode */
+//~ #define CP0_PC_0             25     /* Performance Counter Register (select 0,2)*/ /*  */
+//~ #define CP0_PC_1             25     /* Performance Counter Register (select 1,3)*/ /*  */
+//~ #define CP0_ECC              26     /* Error Checking and Correction Register*/ /*  */
+//~ #define CP0_CacheErr         27     /* Cache Error Register*/ /* Информация об ошибках в кэше */
+//~ #define CP0_TagLo            28     /* TagLo       Register*/ /* Настройки кэша */
+//~ #define CP0_TagHi            29     /* TagHi       Register (select 0)*/ /* PTag – разряды [35:12] физического адреса. */
+//~ #define CP0_TagHi            29     /* DataHi      Register (select 1)*/ /* Двойное слово, считанное из кэш-памяти. */
+//~ #define CP0_EEPC             30     /* Error Exception Program Counter Register*/ /* Адрес команды, вызвавшей исключение NMI, Reset или Soft Reset */
+//~ #define CP0_DESAVE           31     /* DESAVE      Register*/ /* Регистр для хранения промежуточных данных */
+
+
+
+#define CP1_FIR              $0     /* FIR       Register*/ /* Регистр идентификации блока вещественной арифметики или FPU(FPU – Floating Point Unit). */
+#define CP1_FCONFIG          $24     /* FCONFIG   Register*/ /* Регистр конфигурации */
+#define CP1_FCCR             $25     /* FCCR      Register*/ /* Регистр кодов условий */
+#define CP1_FEXR             $26     /* FEXR      Register*/ /* Регистр исключений */
+#define CP1_FENR             $28     /* FENR      Register*/ /* Регистр разрешений */
+#define CP1_FCSR             $31     /* FCSR      Register*/ /* Регистр состояния */
+
+
+
 /* Macros for setting and retrieving special purpose registers */
 #ifndef __ASSEMBLY__
 
@@ -74,19 +123,29 @@
 #define __stringify(x)          __stringify_1(x)
 #endif
 
-#define mfmsr()         ({unsigned long rval; \
-                                asm volatile("mfmsr %0" : "=r" (rval) : \
-                                                                                    : "memory"); rval;})
-#define mtmsr(v)        asm volatile("mtmsr %0" : \
+
+
+#define mfc0(rn)       ({unsigned long rval; \
+                                asm volatile("mfc0 %0, " __stringify(rn) \
+                                                                    : "=r" (rval)); rval;})
+                                                                    
+///FIXIT
+#define mtc0(v, rn)    mfc0(rn)
+//~ asm volatile("mtс0 %0, ; nop; nop; nop" __stringify(rn) : 
+                                             //~ : "r" ((unsigned long)(v)) 
+                                             //~ : "memory")
+
+#define mfc1(rn)       ({unsigned long rval; \
+                                asm volatile("mfc1 %0, " __stringify(rn) \
+                                                                    : "=r" (rval)); rval;})
+                                                                    
+#define mtc1(v, rn)    asm volatile("mtс1 %0, $" __stringify(rn) : \
                                              : "r" ((unsigned long)(v)) \
                                              : "memory")
 
-#define mfspr(rn)       ({unsigned long rval; \
-                                asm volatile("mfspr %0," __stringify(rn) \
-                                                                    : "=r" (rval)); rval;})
-#define mtspr(rn, v)    asm volatile("mtspr " __stringify(rn) ",%0" : \
-                                             : "r" ((unsigned long)(v)) \
-                                             : "memory")
+#define mfsr()         mfc0(CP0_STATUS)
+#define mtsr(v)        mtc0(v, CP0_STATUS)
+
 #endif // __ASSEMBLY__
 
 #endif

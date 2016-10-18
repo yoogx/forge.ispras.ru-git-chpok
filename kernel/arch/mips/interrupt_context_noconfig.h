@@ -36,11 +36,12 @@
  * 
  * This is a complete first stack frame.
  */
+uint32_t * expection_handlers[16];
+
 struct jet_interrupt_context
 {
   struct jet_stack_frame stack_frame;
   
-  uint32_t cr;
   uint32_t r0;
   uint32_t r1;
   uint32_t r2;
@@ -54,12 +55,6 @@ struct jet_interrupt_context
   uint32_t r10;
   uint32_t r11;
   uint32_t r12;
-  uint32_t ctr;
-  uint32_t xer;
-  uint32_t srr0;
-  uint32_t srr1;
-  uint32_t lr;
-#ifdef POK_NEEDS_GDB
   uint32_t r13;
   uint32_t r14;
   uint32_t r15;
@@ -79,6 +74,13 @@ struct jet_interrupt_context
   uint32_t r29;
   uint32_t r30;
   uint32_t r31;
+  uint32_t LO;
+  uint32_t HI;
+  uint32_t EPC;
+  uint32_t BVADDR;
+  uint32_t STATUS;
+  uint32_t CAUSE;
+#ifdef POK_NEEDS_GDB
 #endif /* POK_NEEDS_GDB */
 } __attribute__((aligned(16)));
 
