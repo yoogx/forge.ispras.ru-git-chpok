@@ -45,22 +45,21 @@
 QUEUING_PORT_ID_TYPE QP1, QP2;
 
 //~ static BUFFER_ID_TYPE global_buffer_id;
+//~ #define MAX_AFDX_PAYLOAD_SIZE 	64
+//~ #define MAX_NB_MESSAGE 			10
+//~ #define POK_NETWORK_UDP 		(14 + 20 + 8)
+//~ #define POK_NETWORK_OVERHEAD 	(POK_NETWORK_UDP)
 
 #define SECOND 					1000000000LL
 
 #define MAX_AFDX_FRAME_SIZE		114
-//~ #define MAX_AFDX_PAYLOAD_SIZE 	64
 #define SIZE_OF_HEADER			42
-//~ #define MAX_NB_MESSAGE 			10
-
-//~ #define POK_NETWORK_UDP 		(14 + 20 + 8)
-//~ #define POK_NETWORK_OVERHEAD 	(POK_NETWORK_UDP)
 
 #define NETWORK_CARD_A			0
 #define NETWORK_CARD_B			1
 
-pok_netdevice_t *current_netdevice_0;
-pok_netdevice_t *current_netdevice_1;
+pok_netdevice_t *current_netdevice;
+
 void *callback_arg;
 char *ipnet_netdev_name_1;
 
@@ -91,12 +90,10 @@ typedef struct
 
 vl_info_t	vl_info[VIRTUAL_LINKS_COUNT];
 
-
-
 //pok_network_buffer_callback_t callback;
 void send_callback_m(void *pointer)
 {
-	printf("Sended \n");
+	printf("Message is sent \n");
 }
 
 /*
@@ -137,7 +134,7 @@ static void first_process(void)
 				printf("Received queueing message: _%s_ , length %d\n", afdx_payload, (int) payload_size);
 
 				/* filling the frame */
-				frame_data_t *afdx_frame = data_buffer;
+				frame_data_t *afdx_frame = (frame_data_t *) data_buffer;
                                         /* because indexes starts from 0 unlike ports indexes starts from 1*/
 				frame_size = fill_afdx_frame(afdx_frame, (vl_info[i].ports_list[j] - 1), QUEUING, afdx_payload, payload_size);
                 
@@ -152,8 +149,10 @@ static void first_process(void)
                  * other messages have SN from 1 to 255 */
                 if (sequence_number == 0)
                     sequence_number = 1;
-
+                    
 				SEND_BUFFER(vl_info[i].afdx_buf_id, (MESSAGE_ADDR_TYPE) afdx_frame, frame_size, 0, &ret);
+                
+                
 				if (ret != NO_ERROR) {
 					printf("couldn't send to the buffer: %d\n", (int) ret);
 					break;
@@ -174,72 +173,70 @@ static void first_process(void)
 static void second_process(void)
 {
     RETURN_CODE_TYPE    ret_b;
-    RETURN_CODE_TYPE    ret_per_w;
     MESSAGE_SIZE_TYPE   len;
     PROCESS_ID_TYPE     proc_id;
 	char    data_buffer[MAX_AFDX_FRAME_SIZE];
-	frame_data_t        *afdx_frame = data_buffer;
-	int     i;
-    uint8_t sequence_number;
+	frame_data_t        *afdx_frame = (frame_data_t *) data_buffer;
+    
     /* test */
     char payload[MAX_AFDX_FRAME_SIZE];
 	
 	GET_MY_ID(&proc_id, &ret_b);    /* add some checks */
-	i = array_of_indexes[proc_id];  /*matching VL and Process */
-	printf("proc_id = %d\n", (int) proc_id);
-	printf("vl_id_index = %d\n", i);
-   
+    
+    // rename - done
+	//~ vl_id_index = array_of_indexes[proc_id];  
+	//~ printf("proc_id = %d\n", (int) proc_id); // ?
+	//~ printf("vl_id_index = %d\n", vl_id_index);
+    
     while (1) {
-		RECEIVE_BUFFER(vl_info[i].afdx_buf_id, 0, (MESSAGE_ADDR_TYPE) afdx_frame, &len, &ret_b);
+        vl_id_index = array_of_indexes[proc_id];        /*matching VL and Process */ 
+		RECEIVE_BUFFER(vl_info[vl_id_index].afdx_buf_id, 0, (MESSAGE_ADDR_TYPE) afdx_frame, &len, &ret_b);
 
 		if (ret_b == NOT_AVAILABLE)
 		{
-			printf("ret = NOT_AVAILABLE, buffer %s proc %d\n", vl_data[i].afdx_buf_name, (int) proc_id);
-			PERIODIC_WAIT(&ret_per_w);
-			continue;
-			/* break; if break will be here everething fals down */
-		} else
-			if (ret_b != NO_ERROR) {
-				printf("couldn'd receive from the %s: %d\n", vl_data[i].afdx_buf_name, (int) ret_b);
-				break; 
-                /* It is necessary to check this situation, everythihg falls down */
-			}
-		
-		if (ret_b == NO_ERROR)
+			printf("ret = NOT_AVAILABLE, buffer %s proc %d\n", vl_data[vl_id_index].afdx_buf_name, (int) proc_id); //?
+			PERIODIC_WAIT(&ret_b);
+
+		} else if (ret_b == NO_ERROR)
 		{	
-			fill_afdx_interface_id(afdx_frame, NETWORK_CARD_A);
+			
             /* print received payload */
             memcpy(&payload, (data_buffer + POK_NETWORK_OVERHEAD) , len - POK_NETWORK_OVERHEAD - 1);
-			printf("received message from the %s: %s\n", vl_data[i].afdx_buf_name, payload);
+			printf("received message from the %s: %s\n", vl_data[vl_id_index].afdx_buf_name, payload);
             
-			printf("afdx_frame size %d\n", (int) len);
+			printf("afdx_frame size %ld\n", len);
             
             /*SN*/
-            memcpy(&sequence_number, (data_buffer + len - sizeof(uint8_t)) , sizeof(uint8_t));
-            printf("SN_R %d\n", sequence_number);
+            printf("SN_R %d\n", data_buffer[len - 1]);
 			
-			//check ret - NOT DONE!
-			ipnet_netdev_name_1 ="virtio-net1";
-			current_netdevice_0 = get_netdevice(ipnet_netdev_name);
-			current_netdevice_1 = get_netdevice(ipnet_netdev_name_1);
-			//~ printf("netdevice %p\n", current_netdevice_0);
-			//~ printf("netdevice %p\n", current_netdevice_1);
+            //send to 1 card
+            {
+                current_netdevice = get_netdevice(ipnet_netdev_name);
+                printf("Sending to the card A from %s\n",vl_data[vl_id_index].afdx_buf_name);
+                fill_afdx_interface_id(afdx_frame, NETWORK_CARD_A);
+                current_netdevice->ops->send_frame(current_netdevice, data_buffer, len, send_callback_m, NULL);
+                current_netdevice->ops->flush_send(current_netdevice);
+                current_netdevice->ops->reclaim_send_buffers(current_netdevice);
+            }
 			
-			//send to 1 card
-			printf("Sending to the card A from %s\n",vl_data[i].afdx_buf_name);
-			current_netdevice_0->ops->send_frame(current_netdevice_0, data_buffer, len, send_callback_m, NULL);
-			current_netdevice_0->ops->flush_send(current_netdevice_0);
-			current_netdevice_1->ops->reclaim_send_buffers(current_netdevice_0);
-            
-			//send to 2 card
-			printf("Sending to the card B from %s\n", vl_data[i].afdx_buf_name);
-			fill_afdx_interface_id(afdx_frame, NETWORK_CARD_B);
-			current_netdevice_1->ops->send_frame(current_netdevice_1, data_buffer, len, send_callback_m, NULL);
-			current_netdevice_1->ops->flush_send(current_netdevice_1);
-            current_netdevice_1->ops->reclaim_send_buffers(current_netdevice_1);
+            //send to 2 card
+            {
+                ipnet_netdev_name_1 = "virtio-net1";
+                current_netdevice = get_netdevice(ipnet_netdev_name_1);
+                printf("Sending to the card B from %s\n", vl_data[vl_id_index].afdx_buf_name);
+                fill_afdx_interface_id(afdx_frame, NETWORK_CARD_B);
+                current_netdevice->ops->send_frame(current_netdevice, data_buffer, len, send_callback_m, NULL);
+                current_netdevice->ops->flush_send(current_netdevice);
+                current_netdevice->ops->reclaim_send_buffers(current_netdevice);
+            }
 			
-			PERIODIC_WAIT(&ret_per_w);
-		}
+			PERIODIC_WAIT(&ret_b);
+		} else 
+        {
+            printf("couldn'd receive from the %s: %d\n", vl_data[vl_id_index].afdx_buf_name, (int) ret_b);
+            break; 
+            /* It is necessary to check this situation, everythihg falls down */
+        }
     }
 }
 
@@ -268,21 +265,19 @@ static int real_main(void)
 		for (j = 0; j < ES_QUEUING_ARINC_PORTS_COUNT; j++)
 		{
 			if (queuing_arinc_to_afdx_ports[j].vl_data_index == i)
-			vl_info[i].ports_count++;
+                vl_info[i].ports_count++;
 		}
-		
+
 	}
 	
 	/*
      * malloc memmory for arrays of ports per VL
-     */ 
+     */
 	for (i = 0; i < VIRTUAL_LINKS_COUNT; i++)
     {
 		vl_info[i].ports_list = malloc(vl_info[i].ports_count * sizeof(QUEUING_PORT_ID_TYPE));
 	}
-    
-    
-    
+
     /*
      * Creation of the buffer foe each VL
      */ 

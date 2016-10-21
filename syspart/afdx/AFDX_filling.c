@@ -41,10 +41,10 @@
 								
 #define MAC_INTERFACE_ID_2	0
 #define CONNECTION_TYPE		0x8000
-#define IP_CONST_SRC 		0x5
+#define IP_CONST_SRC 		0xA
 #define IP_NETWOK_ID		0x8
 #define IP_PARTITION_ID_1	0x0
-#define IP_CONST_DST		0xE0C0
+#define IP_CONST_DST		0xE0E0
 
 #define IP_VERSION			0x4
 #define TYPE_OF_SERVICE 	0x00 		//in most IP protocols 0
@@ -77,24 +77,12 @@ void set_mac_addr_const_part(uint8_t x[3])
 #endif
 }
 
-/* 
- * This function searches vl_data_index using index of the array to identify virtual link (vl_id)
- * functon input: src ARINC Port number and type of ARINC port 
- */
-size_t	vl_identification(uint16_t src_arinc_port, ARINC_PORT_TYPE arinc_port_type)
-{
-	if (arinc_port_type == SAMPLING)
-        return sampling_arinc_to_afdx_ports[src_arinc_port].vl_data_index;
-	
-    else
-		return queuing_arinc_to_afdx_ports[src_arinc_port].vl_data_index;		
-}
-
 /*
  * This function takes the number of src arinc port and its type
  *  and return a pointer to structure of ports
  */
-afdx_dst_info_t* define_ports(uint16_t src_arinc_port, ARINC_PORT_TYPE arinc_port_type)
+ //rename
+afdx_dst_info_t* find_suitable_struct(uint16_t src_arinc_port, ARINC_PORT_TYPE arinc_port_type)
 {
 	if (arinc_port_type == SAMPLING)
 		return (&(sampling_arinc_to_afdx_ports[src_arinc_port]));
@@ -113,11 +101,10 @@ uint16_t fill_afdx_frame(frame_data_t *p,
 						 char afdx_payload[],
 						 uint16_t payload_size)
 {
-    uint8_t pad_size = 0;
-//
-    size_t vl_data_index = vl_identification(src_arinc_port, arinc_port_type);
+    uint8_t pad_size = 0;    
+    size_t vl_data_index = find_suitable_struct(src_arinc_port, arinc_port_type)->vl_data_index;
     
-	afdx_dst_info_t *arinc_to_afdx_port =  define_ports(src_arinc_port, arinc_port_type);
+	afdx_dst_info_t *arinc_to_afdx_port =  find_suitable_struct(src_arinc_port, arinc_port_type);
 //MAC
 	p->mac_header.mac_dst_addr.mac_const_dst = hton32(MAC_CONST_DST);
 	p->mac_header.mac_dst_addr.vl_id = hton16(vl_data[vl_data_index].vl_id);
@@ -143,8 +130,9 @@ uint16_t fill_afdx_frame(frame_data_t *p,
 	p->ip_header.u_src_addr.ip_src_addr.equipment_id = (SIDE_ID << 5 | LOCATION_ID);
 	//
 	p->ip_header.u_src_addr.ip_src_addr.partition_id = (IP_PARTITION_ID_1 << 3 | arinc_to_afdx_port->src_partition_id);
-	//dst
-	if (sampling_arinc_to_afdx_ports[src_arinc_port].type_of_packet == UNICAST_PACKET)
+	//dst??
+    // !
+	if (arinc_to_afdx_port->type_of_packet == UNICAST_PACKET)
 	{
 		p->ip_header.u_dst_addr.ip_unicast_dst_addr.ip_const_src = IP_CONST_SRC;
 		p->ip_header.u_dst_addr.ip_unicast_dst_addr.network_id = (IP_NETWOK_ID << 4 | DOMAIN_ID);
@@ -153,8 +141,8 @@ uint16_t fill_afdx_frame(frame_data_t *p,
 		p->ip_header.u_dst_addr.ip_unicast_dst_addr.partition_id = (IP_PARTITION_ID_1 << 3 | arinc_to_afdx_port->dst_partition_id);
 	}else
 	{
-		p->ip_header.u_dst_addr.ip_multicast_dst_addr.ip_const_dst = IP_CONST_DST;
-		p->ip_header.u_dst_addr.ip_multicast_dst_addr.vl_id =  vl_data[vl_data_index].vl_id;
+		p->ip_header.u_dst_addr.ip_multicast_dst_addr.ip_const_dst = hton16(IP_CONST_DST);
+		p->ip_header.u_dst_addr.ip_multicast_dst_addr.vl_id =  hton16(vl_data[vl_data_index].vl_id);
 	}
 //UDP
 		//
