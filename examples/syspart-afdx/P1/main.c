@@ -46,25 +46,22 @@ static void first_process(void)
 	char	afdx_payload[MAX_AFDX_PAYLOAD_SIZE];
 	int i = 0;
     RETURN_CODE_TYPE ret;
-
     
     while (1) {
 			if (i == 0){
-			strcpy(afdx_payload, "Hello word!");
-			printf("P1_test message: %s\n", afdx_payload);
-			SEND_QUEUING_MESSAGE(QP1, (MESSAGE_ADDR_TYPE) &afdx_payload, strlen(afdx_payload), 0, &ret);
+                strcpy(afdx_payload, "Hello!");
+                printf("P1_test message: %s\n", afdx_payload);
+                SEND_QUEUING_MESSAGE(QP1, (MESSAGE_ADDR_TYPE) &afdx_payload, strlen(afdx_payload) + 1, 0, &ret);
 			}
 			if (i == 1){
-			strcpy(afdx_payload, "How are you?");
-			printf("P1_test message: %s\n", afdx_payload);
-			SEND_QUEUING_MESSAGE(QP2, (MESSAGE_ADDR_TYPE) &afdx_payload, strlen(afdx_payload), 0, &ret);
+                strcpy(afdx_payload, "How are you?");
+                printf("P1_test message: %s\n", afdx_payload);
+                SEND_QUEUING_MESSAGE(QP2, (MESSAGE_ADDR_TYPE) &afdx_payload, strlen(afdx_payload) + 1, 0, &ret);
 			}
             
             check_ret(ret);
-            i++;
-            if (i > 1)
-				i = 0;   
-            
+            i = 1 -i;
+                
 			TIMED_WAIT(2 * SECOND, &ret);
     }
 }

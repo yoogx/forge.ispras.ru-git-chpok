@@ -58,8 +58,7 @@
 
 QUEUING_PORT_ID_TYPE QP1, QP2;
 
-pok_netdevice_t *current_netdevice_0;
-pok_netdevice_t *current_netdevice_1;
+pok_netdevice_t *current_netdevice;
 
 void *callback_arg;
 char *ipnet_netdev_name_1;
@@ -190,7 +189,6 @@ pok_bool_t integrity_checking(uint8_t seq_numb, int vl_index)
             uint8_t diff_betw_sn = seq_numb - vl_data[vl_index].integrity_check_data[network_card].last_in_seq_number;
             if ((diff_betw_sn == 1) || (diff_betw_sn == 2))
             {
-                printf("Here!!!\n");
                 vl_data[vl_index].integrity_check_data[network_card].last_in_seq_number = seq_numb;
                 return TRUE;
             }else
@@ -251,6 +249,7 @@ pok_bool_t redundancy_management(uint8_t seq_numb, int vl_index, pok_time_t msg_
     }else
     {
         if ((vl_data[vl_index].redundancy_management_data.last_accepted_seq_numb + N) > 255)
+        {
             if ((seq_numb > vl_data[vl_index].redundancy_management_data.last_accepted_seq_numb) &&
                 (seq_numb <= 255) &&
                 (seq_numb >= 1) &&
@@ -259,13 +258,15 @@ pok_bool_t redundancy_management(uint8_t seq_numb, int vl_index, pok_time_t msg_
                 vl_data[vl_index].redundancy_management_data.last_accepted_seq_numb = seq_numb;
                 vl_data[vl_index].redundancy_management_data.last_accepted_msg_time = msg_arrival_time;
             }
-        if ((vl_data[vl_index].redundancy_management_data.last_accepted_seq_numb + N) < 255)
+        //if ((vl_data[vl_index].redundancy_management_data.last_accepted_seq_numb + N) < 255)
+        }else {
             if ( (seq_numb > vl_data[vl_index].redundancy_management_data.last_accepted_seq_numb) &&
                  (seq_numb <= (vl_data[vl_index].redundancy_management_data.last_accepted_seq_numb + N)) )
             {
                 vl_data[vl_index].redundancy_management_data.last_accepted_seq_numb = seq_numb;
                 vl_data[vl_index].redundancy_management_data.last_accepted_msg_time = msg_arrival_time;  
             }
+        }
     }
     
     return FALSE;
@@ -283,7 +284,7 @@ void packet_receive(const char *buffer, size_t size)
 	int vl_temp;
     char afdx_message[MAX_AFDX_FRAME_SIZE];
     uint8_t sequence_number;
-    frame_data_t *afdx_frame = buffer;
+    frame_data_t *afdx_frame = (frame_data_t *) buffer;
     pok_time_t msg_arrival_time;
     
     GET_TIME(&msg_arrival_time, &ret);
@@ -318,8 +319,6 @@ void packet_receive(const char *buffer, size_t size)
 #endif
     
     vl_data[vl_temp].redundancy_management_data.arrival_time[network_card][sequence_number] = msg_arrival_time;
-    
-    
     
     if (integrity_checking(sequence_number, vl_temp) == TRUE)
     {
@@ -358,22 +357,24 @@ static void first_process(void)
     integrity_checking_init();
 
     while (1) {
-        ipnet_netdev_name_1 ="virtio-net1";
-        current_netdevice_0 = get_netdevice(ipnet_netdev_name);
-        current_netdevice_1 = get_netdevice(ipnet_netdev_name_1);
-        //~ printf("netdevice %p\n", current_netdevice_0);
-        //~ printf("netdevice %p\n", current_netdevice_1);
 
         /* TRY to get message from card A*/
-        network_card = NETWORK_CARD_A;
-        current_netdevice_0->ops->set_packet_received_callback(current_netdevice_0, packet_receive);
-        current_netdevice_0->ops->reclaim_receive_buffers(current_netdevice_0);
-
+        {
+            current_netdevice = get_netdevice(ipnet_netdev_name);
+            network_card = NETWORK_CARD_A;
+            current_netdevice->ops->set_packet_received_callback(current_netdevice, packet_receive);
+            current_netdevice->ops->reclaim_receive_buffers(current_netdevice);
+        }
+        
         /* TRY to get message from card B*/
-        network_card = NETWORK_CARD_B;
-        current_netdevice_0->ops->set_packet_received_callback(current_netdevice_1, packet_receive);
-        current_netdevice_0->ops->reclaim_receive_buffers(current_netdevice_1);
-
+        {
+            ipnet_netdev_name_1 ="virtio-net1";
+            current_netdevice = get_netdevice(ipnet_netdev_name_1);
+            network_card = NETWORK_CARD_B;
+            current_netdevice->ops->set_packet_received_callback(current_netdevice, packet_receive);
+            current_netdevice->ops->reclaim_receive_buffers(current_netdevice);
+        }
+        
         TIMED_WAIT(SECOND, &ret);
 
     }

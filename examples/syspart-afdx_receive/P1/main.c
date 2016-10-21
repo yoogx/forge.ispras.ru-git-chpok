@@ -32,12 +32,12 @@
 QUEUING_PORT_ID_TYPE QP1, QP2;
 
 
-static void check_ret(RETURN_CODE_TYPE ret)
-{
-    if (ret != NO_ERROR) {
-        printf("check_ret_error: %d\n", (int) ret);
-    }
-}
+//~ static void check_ret(RETURN_CODE_TYPE ret)
+//~ {
+    //~ if (ret != NO_ERROR) {
+        //~ printf("check_ret_error: %d\n", (int) ret);
+    //~ }
+//~ }
 
 
 static void first_process(void)
