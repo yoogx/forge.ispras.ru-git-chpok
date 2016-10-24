@@ -8,7 +8,6 @@ static PROCESS_ID_TYPE ControlProcessId;
 static uint8_t  pre_created_id;
 static char*    pre_created_name;
 
-
 void first_process(void)
 {
     
@@ -210,18 +209,31 @@ static int real_main(void)
     
     
     
-    
-    
-    
-    
     pre_created_id = create_entity(BLACKBOARD, pre_created_name);
     
     
+    //ret = tester_create(POK_SYSCALL_INTRA_BUFFER_CREATE,       NULL_POINTER, param, 4, pre_created_id, pre_created_name);
     
+    //ret = tester_create(POK_SYSCALL_INTRA_BUFFER_CREATE,       OUT_OF_PARTITION_RANGE, param, 0, pre_created_id, pre_created_name);
+    //ret = tester_create(POK_SYSCALL_INTRA_BUFFER_CREATE,       OUT_OF_PARTITION_RANGE, param, 4, pre_created_id, pre_created_name);
     
+    //ret = tester_create(POK_SYSCALL_INTRA_BLACKBOARD_CREATE,       NULL_POINTER, param, 0, pre_created_id, pre_created_name);
+    //ret = tester_create(POK_SYSCALL_INTRA_BLACKBOARD_CREATE,       NULL_POINTER, param, 2, pre_created_id, pre_created_name);
     
+    //ret = tester_create(POK_SYSCALL_INTRA_BLACKBOARD_CREATE,       OUT_OF_PARTITION_RANGE, param, 0, pre_created_id, pre_created_name);
+    //ret = tester_create(POK_SYSCALL_INTRA_BLACKBOARD_CREATE,       OUT_OF_PARTITION_RANGE, param, 2, pre_created_id, pre_created_name);
     
+    //ret = tester_create(POK_SYSCALL_INTRA_SEMAPHORE_CREATE,    NULL_POINTER, param, 0, pre_created_id, pre_created_name);
+    //ret = tester_create(POK_SYSCALL_INTRA_SEMAPHORE_CREATE,    NULL_POINTER, param, 4, pre_created_id, pre_created_name);
     
+    //ret = tester_create(POK_SYSCALL_INTRA_SEMAPHORE_CREATE,    OUT_OF_PARTITION_RANGE, param, 0, pre_created_id, pre_created_name);
+    //ret = tester_create(POK_SYSCALL_INTRA_SEMAPHORE_CREATE,    OUT_OF_PARTITION_RANGE, param, 4, pre_created_id, pre_created_name);
+    
+    //ret = tester_create(POK_SYSCALL_INTRA_EVENT_CREATE,    NULL_POINTER, param, 0, pre_created_id, pre_created_name);
+    //ret = tester_create(POK_SYSCALL_INTRA_EVENT_CREATE,    NULL_POINTER, param, 1, pre_created_id, pre_created_name);
+    
+    //ret = tester_create(POK_SYSCALL_INTRA_EVENT_CREATE,    OUT_OF_PARTITION_RANGE, param, 0, pre_created_id, pre_created_name);
+    //ret = tester_create(POK_SYSCALL_INTRA_EVENT_CREATE,    OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name);
 	
 	MasterErrorHandlerTestProc = &T_MYTEST_Error_Handler;
 	

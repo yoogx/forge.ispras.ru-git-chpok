@@ -1,6 +1,17 @@
 
 #include "tester.h"
 
+pok_ret_t tester_create(int syscall_id, int error_type, void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
+{
+    pok_ret_t ret = 0;
+    
+    ret = pointer_error_tester(syscall_id, error_type, param, pos, pre_created_id, pre_created_name);
+    
+    status = EXECUTED;
+    TEST_RESULT = ret;
+    
+    return ret;
+}
 
 pok_ret_t tester_read(int entity_type, void* message, uint8_t pre_created_id, const char* pre_created_name)
 {
@@ -20,7 +31,7 @@ pok_ret_t tester_read(int entity_type, void* message, uint8_t pre_created_id, co
             
             break;
         
-          case BLACKBOARD:
+        case BLACKBOARD:
             ;
             
             // write wrapper
@@ -59,8 +70,62 @@ pok_ret_t tester1 (int syscall_id, void* param, int pos, uint8_t pre_created_id,
 			break;
         */
         
-        // threads
+        // threads (includes 3 different sections actually)
         
+        case POK_SYSCALL_THREAD_CREATE:
+			;
+			ret = pok_thread_create_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
+            
+        case POK_SYSCALL_THREAD_SLEEP:
+			;
+			ret = pok_thread_sleep_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
+            
+        case POK_SYSCALL_THREAD_SUSPEND:
+			;
+			ret = pok_thread_suspend_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
+            
+        case POK_SYSCALL_THREAD_ID:
+			;
+			ret = pok_sched_get_current_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
+            
+        case POK_SYSCALL_THREAD_STATUS:
+			;
+			ret = pok_thread_get_status_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
+            
+        case POK_SYSCALL_THREAD_DELAYED_START:
+			;
+			ret = pok_thread_delayed_start_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
+            
+        case POK_SYSCALL_THREAD_REPLENISH:
+			;
+			ret = pok_sched_replenish_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
+            
+        case POK_SYSCALL_THREAD_FIND:
+			;
+			ret = pok_thread_find_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
+    
+        case POK_SYSCALL_PARTITION_GET_STATUS:
+			;
+			ret = pok_current_partition_get_status_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
+        
+        case POK_SYSCALL_PARTITION_INC_LOCK_LEVEL:
+			;
+			ret = pok_current_partition_inc_lock_level_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
+            
+        case POK_SYSCALL_PARTITION_DEC_LOCK_LEVEL:
+			;
+			ret = pok_current_partition_dec_lock_level_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
         
         // buffers
         
@@ -166,7 +231,23 @@ pok_ret_t tester1 (int syscall_id, void* param, int pos, uint8_t pre_created_id,
 			ret = pok_event_status_wrapper (param, pos, pre_created_id, pre_created_name);
 			break;
         
-        // error handling
+        // health monitoring
+        
+        case POK_SYSCALL_ERROR_HANDLER_CREATE:
+			;
+			ret = pok_error_thread_create_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
+        
+        case POK_SYSCALL_ERROR_RAISE_APPLICATION_ERROR:
+            ;
+			ret = pok_error_raise_application_error_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
+            
+        case POK_SYSCALL_ERROR_GET:
+			;
+			ret = pok_error_get_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
+        
         
         // middleware syscalls:
         //  1. port sampling

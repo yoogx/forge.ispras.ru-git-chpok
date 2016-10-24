@@ -7,8 +7,8 @@ void entry_point_method(void)
 	// add some output (print log)
     
     
-    // actually this never prints 'cause thread can only be created 
-    // if partition state is INIT mode
+    // actually this prints only
+    // if partition state is in INIT mode
     printf("the created process is working");  
     
 	return;	
@@ -19,17 +19,26 @@ void entry_point_method(void)
 /*
  * TODO: add parameter for IDs      of pre-created stuff
  * 
- * buffers      +
- * blackboards  in progress
+ * thread               in progress
+ * 
+ * buffer               +
+ * blackboard           +
+ * semaphore            +
+ * event                +
+ * 
+ * health monitoring    in progress
+ * 
+ * port                 -
  */
- 
+
 // TODO: add parameter for names    of pre-created stuff
 // TODO: handle wrong position of parameters via default case and more pre-checks 
 
+// TODO: find why delay (time) is pointer
 
 /////////////////////////// THREADS ///////////////////////////
- 
-/*
+
+// call before partition becomes NORMAL
 pok_ret_t pok_thread_create_wrapper(void* param, int pos)
 {
 	pok_ret_t ret = 0;
@@ -52,23 +61,28 @@ pok_ret_t pok_thread_create_wrapper(void* param, int pos)
 	{
 		case 0:
 			;
-			ret = pok_thread_create(&param, &entry, &attr, &id); 
+			ret = pok_thread_create(param, entry, &attr, id); 
 			break;
-		
 		case 1:
-            ret = pok_thread_create(&name, &param, &attr, &id);
+            ;
+            ret = pok_thread_create(name, param, &attr, id);
 			break;
         case 2:
-            ret = pok_thread_create(&name, &entry, &param, &id);
+            ;
+            ret = pok_thread_create(name, entry, param, id);
+			break;
+        case 3:
+            ;
+            ret = pok_thread_create(name, entry, &attr, param);
 			break;
 	}
 	
 	return ret;
 }
-*/
 
 
-
+// process STOP service
+// parameter is time pointer
 pok_ret_t pok_thread_sleep_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
@@ -90,6 +104,7 @@ pok_ret_t pok_thread_sleep_until_wrapper(void* param, int pos, uint8_t pre_creat
 }
 **/
 
+// parameter is process id pointer
 pok_ret_t pok_thread_suspend_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
@@ -99,15 +114,17 @@ pok_ret_t pok_thread_suspend_wrapper(void* param, int pos, uint8_t pre_created_i
 	return ret;
 }
 
+// parameter is process id pointer
 pok_ret_t pok_sched_get_current_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    ret = pok_thread_suspend(param); 
+    ret = pok_sched_get_current(param); 
 	
 	return ret;
 }
 
+// TODO: find what is ARINC analogue (service) of this syscall
 pok_ret_t pok_thread_get_status_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
@@ -115,7 +132,7 @@ pok_ret_t pok_thread_get_status_wrapper(void* param, int pos, uint8_t pre_create
     pok_thread_id_t thread_id = pre_created_id;
     char* name = pre_created_name;      // TODO: check whether it is name of the process
     
-    void* entry = entry_point_method;   // TODO: check the right value!!
+    void* entry = entry_point_method;   // TODO: check the right value
     
     pok_thread_status_t* status;        // out
     
@@ -137,18 +154,20 @@ pok_ret_t pok_thread_get_status_wrapper(void* param, int pos, uint8_t pre_create
 	return ret;
 }
 
-
+// why delay (time) is pointer?
 pok_ret_t pok_thread_delayed_start_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    pok_thread_id_t thread_id = pre_created_id;
+    pok_thread_id_t thread_id = pre_created_id; // TODO: try case with started and not started process
     
     ret = pok_thread_delayed_start(thread_id, param);
     
     return ret;
 }
 
+// why delay (time) is pointer? 
+// does it make sense to call from aperiodic process?
 pok_ret_t pok_sched_replenish_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
@@ -158,11 +177,12 @@ pok_ret_t pok_sched_replenish_wrapper(void* param, int pos, uint8_t pre_created_
 	return ret;
 }
 
+// 
 pok_ret_t pok_thread_find_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    char* name = pre_created_name; // TODO: there better be process with that name
+    char* name = pre_created_name; // TODO: check also without existing process
 		
 	pok_thread_id_t* id; // out
     
@@ -181,6 +201,7 @@ pok_ret_t pok_thread_find_wrapper(void* param, int pos, uint8_t pre_created_id, 
 	return ret;                     
 }
 
+// parameter is status pointer (out)
 pok_ret_t pok_current_partition_get_status_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
@@ -190,6 +211,7 @@ pok_ret_t pok_current_partition_get_status_wrapper(void* param, int pos, uint8_t
 	return ret;
 }
 
+// why param is lock_level? 
 pok_ret_t pok_current_partition_inc_lock_level_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
@@ -199,6 +221,7 @@ pok_ret_t pok_current_partition_inc_lock_level_wrapper(void* param, int pos, uin
 	return ret;
 }
 
+// why param is lock_level? 
 pok_ret_t pok_current_partition_dec_lock_level_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
@@ -211,6 +234,7 @@ pok_ret_t pok_current_partition_dec_lock_level_wrapper(void* param, int pos, uin
 
 /////////////////////////// BUFFERS ///////////////////////////
 
+// call before partition becomes NORMAL
 pok_ret_t pok_buffer_create_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
@@ -356,6 +380,7 @@ pok_ret_t pok_buffer_status_wrapper(void* param, int pos, uint8_t pre_created_id
 
 /////////////////////////// BLACKBOARDS ///////////////////////////
 
+// call before partition becomes NORMAL
 pok_ret_t pok_blackboard_create_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
@@ -593,6 +618,7 @@ pok_ret_t pok_semaphore_status_wrapper(void* param, int pos, uint8_t pre_created
 
 /////////////////////////// EVENTS ///////////////////////////
 
+// call before partition becomes NORMAL
 pok_ret_t pok_event_create_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
@@ -678,6 +704,7 @@ pok_ret_t pok_event_status_wrapper(void* param, int pos, uint8_t pre_created_id,
 
 /////////////////////////// ERROR HANDLING (HEALTH MONITORING ///////////////////////////
 
+// call before partition becomes NORMAL
 pok_ret_t pok_error_thread_create_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
