@@ -142,11 +142,12 @@ pok_ret_t pok_thread_get_status_wrapper(void* param, int pos, uint8_t pre_create
 			;
 			ret = pok_thread_get_status(thread_id, param, entry, status); 
 			break;
-		
 		case 2:
+            ;
             ret = pok_thread_get_status(thread_id, name, param, status);
 			break;
         case 3:
+            ;
             ret = pok_thread_get_status(thread_id, name, entry, param);
 			break;
 	}

@@ -109,7 +109,6 @@ pok_ret_t pok_error_thread_create_wrapper           (void* param, int pos, uint8
 pok_ret_t pok_error_raise_application_error_wrapper (void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);
 pok_ret_t pok_error_get_wrapper                     (void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);
 
-
 // TODO: add other types of entities
 typedef enum {
 	BLACKBOARD  = 0,
