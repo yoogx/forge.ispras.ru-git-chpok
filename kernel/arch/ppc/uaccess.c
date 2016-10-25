@@ -23,7 +23,8 @@ static pok_bool_t ppc_check_access(const void* __user addr, size_t size,
 {
     assert(space_id != 0);
     assert(size != 0);
-
+    return TRUE;
+#if 0
     unsigned long start = (unsigned long)addr;
     unsigned long end = start + size;
 
@@ -51,11 +52,13 @@ static pok_bool_t ppc_check_access(const void* __user addr, size_t size,
     {
         return FALSE;
     }
+#endif
 }
 
 void* __kuser ja_user_to_kernel_space(void* __user addr, size_t size,
     jet_space_id space_id)
-{
+{   
+    //printf("__user addr : %p\n", addr);
     if(ppc_check_access(addr, size, space_id))
        return (void* __kuser)addr;
     else
@@ -65,6 +68,7 @@ void* __kuser ja_user_to_kernel_space(void* __user addr, size_t size,
 const void* __kuser ja_user_to_kernel_ro_space(const void* __user addr,
     size_t size, jet_space_id space_id)
 {
+    //printf("__user addr : %p\n", addr);
     if(ppc_check_access(addr, size, space_id))
        return (const void* __kuser)addr;
     else

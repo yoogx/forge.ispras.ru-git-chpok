@@ -107,11 +107,42 @@ pok_ret_t jet_loader_elf_load   (uint8_t elf_id,
         char* user_dest = (char *)elf_phdr[i].p_vaddr;
         size_t filesz = elf_phdr[i].p_filesz;
         size_t memsz = elf_phdr[i].p_memsz;
-
-        assert((user_dest >= space_layout.user_addr)
+        
+        //char* kernel_dest;
+        if(user_dest < space_layout.user_addr + 0x10000000)
+        {
+            assert((user_dest >= space_layout.user_addr)
+               && (user_dest + filesz < space_layout.user_addr + 0x10000000 + space_layout.size)
+               && (user_dest + memsz < space_layout.user_addr + 0x10000000 + space_layout.size));
+          //  kernel_dest = space_layout.kernel_addr + (user_dest - space_layout.user_addr);
+        }
+        else if(user_dest < space_layout.user_addr + 0x20000000)
+        {
+        assert((user_dest >= space_layout.user_addr+0x10000000)
+               && (user_dest + filesz < space_layout.user_addr + 0x20000000 + space_layout.size)
+               && (user_dest + memsz < space_layout.user_addr + 0x20000000 + space_layout.size));
+           // kernel_dest = space_layout.kernel_addr + (user_dest - space_layout.user_addr)-0x10000000+0x10000;
+            
+        }
+        else if(user_dest < space_layout.user_addr + 0x30000000)
+        {
+            assert((user_dest >= space_layout.user_addr+0x20000000)
+               && (user_dest + filesz < space_layout.user_addr + 0x30000000 + space_layout.size)
+               && (user_dest + memsz < space_layout.user_addr + 0x30000000 + space_layout.size));
+            //kernel_dest = space_layout.kernel_addr + (user_dest - space_layout.user_addr)-0x20000000+0x11000;
+        
+        } else{
+            unreachable();
+        }
+        printf("user_dest ---- = %p\n", user_dest);
+        printf("user_dest1 ---- = %p\n", space_layout.user_addr);
+        printf("user_dest1 ---- = %p\n", user_dest + filesz);
+        printf("user_dest1 ---- = %p\n", user_dest + memsz);
+        printf("user_dest1 ---- = %p\n", space_layout.user_addr + space_layout.size);
+       /* assert((user_dest >= space_layout.user_addr)
                && (user_dest + filesz < space_layout.user_addr + space_layout.size)
                && (user_dest + memsz < space_layout.user_addr + space_layout.size));
-
+*/
         char* kernel_dest = space_layout.kernel_addr + (user_dest - space_layout.user_addr);
 
         memcpy (kernel_dest, elf_phdr[i].p_offset + elf_start, filesz);

@@ -1,3 +1,4 @@
+
 OUTPUT_FORMAT("elf32-powerpc");
 OUTPUT_ARCH("powerpc")
 ENTRY(__pok_partition_start)
@@ -11,8 +12,10 @@ SECTIONS
         .text           :
         {
            *(.text .text.*)
+           . = ALIGN(4);
            __text_end = .;
         }
+        . = ALIGN(268435456);
         .rodata :
         {
           *(.rodata .rodata.*)
@@ -20,7 +23,6 @@ SECTIONS
           . = ALIGN(4);
           __rodata_end = .;
         }
-
         .sdata2 :
         {
           __sdata2_start = .;
@@ -54,7 +56,8 @@ SECTIONS
           *(.scommon)
           __sbss_end = .;
         }
-        .bss  :
+        . = ALIGN(0x10000000);
+        .bss :
         {
           __bss_start = .;
           *(.dynbss)
@@ -65,5 +68,6 @@ SECTIONS
 
           _end = .;
         }
+       
 	__partition_end = . ;
 }
