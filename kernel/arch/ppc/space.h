@@ -18,6 +18,7 @@ void pok_arch_handle_page_fault(
         uintptr_t faulting_address,
         uint32_t syndrome,
         pf_type_t type);
+extern void pok_def_tlb_with_nesessary_flag(void);
 
 void pok_arch_space_init (void);
 

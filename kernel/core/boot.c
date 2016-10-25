@@ -33,12 +33,14 @@
 #include <core/channel.h>
 #include <asp/entries.h>
 #include <libc.h>
+#include <core/space.h>
 
 #include <core/instrumentation.h>
 
 #ifdef POK_NEEDS_GDB
 #include <gdb.h>
 #endif
+void pok_def_tlb_with_nesessary_flag(void);
 
 void jet_boot (void)
 {
@@ -53,6 +55,8 @@ void jet_boot (void)
 #endif
 #ifdef POK_NEEDS_PARTITIONS
    pok_partition_arinc_init_all();
+   printf("-------------------");
+   pok_def_tlb_with_nesessary_flag();
 #endif
 #ifdef POK_NEEDS_MONITOR
    pok_monitor_thread_init();

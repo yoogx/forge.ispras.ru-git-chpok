@@ -126,7 +126,9 @@ env.Append(CPPPATH = env['KERNEL_CPPPATH'])
 env.Program(target = env['BUILD_DIR']+'kernel.lo', source = [
 env['POK_PATH']+'/build/'+env['BSP']+'/kernel/core.lo',
 env['POK_PATH']+'/build/'+env['BSP']+'/boards/bsp.lo',
-env['BUILD_DIR']+'deployment.c'])
+env['BUILD_DIR']+'deployment.c',
+env['BUILD_DIR']+'TLB.c',
+env['BUILD_DIR']+'TLB1.c'])
 
 ldscript = pok_env['POK_PATH']+'/boards/'+pok_env['BSP']+'/ldscripts/kernel.lds'
 pok_env['LINKFLAGS'] = str(' -T '+ldscript+' -Map build/'+pok_env['BSP']+'/pok.elf.map')

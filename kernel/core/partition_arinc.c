@@ -26,6 +26,8 @@
 #include <cswitch.h>
 #include <core/loader.h>
 #include <alloc.h>
+#include <core/space.h>
+
 
 
 /*
@@ -37,6 +39,8 @@
  * because of errors: even if some partition's data are corrupted,
  * idle have high chance to work.
  */
+void pok_def_tlb_with_nesessary_flag(void);
+
 static void idle_func(void)
 {
     ja_inf_loop();
@@ -92,6 +96,7 @@ static void partition_arinc_start(void)
 	jet_loader_elf_load(part->base_part.space_id - 1, /* elf_id*/
 		part->base_part.space_id,
 		&part->main_entry);
+	
 
 	for(int i = 0; i < part->nports_queuing; i++)
 	{
@@ -143,7 +148,7 @@ static void partition_arinc_start(void)
 	part->nthreads_used = POK_PARTITION_ARINC_MAIN_THREAD_ID + 1;
 
 	sched_arinc_start();
-
+	//pok_def_tlb_with_nesessary_flag
 	/* Current context is lost and may be reused for "do_nothing" thread
 	 * or for IDLE partition's mode.
 	 */

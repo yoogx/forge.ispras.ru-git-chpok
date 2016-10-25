@@ -21,6 +21,7 @@
 #include <types.h>
 #include <errno.h>
 #include <libc.h>
+#include <TLB.h>
 #include "bsp/bsp.h"
 #include <core/sched.h>
 #include <core/debug.h>
@@ -261,7 +262,17 @@ void pok_arch_space_init (void)
     for (unsigned i = 1; i < limit-1; i++) {
         pok_ppc_tlb_clear_entry(1, i);
     }
-
+    
+    for(int i=0 ; i < number_TLB_entry1 ;i++) {
+        pok_insert_tlb1(
+            (long long int)TLB_entries1[i].virtual,
+            (long long int)TLB_entries1[i].physical,
+            TLB_entries1[i].pgsize_enum,
+            TLB_entries1[i].permissions,
+            TLB_entries1[i].wimge,
+            TLB_entries1[i].pid,
+            TLB_entries1[i].is_resident
+        );}
     // DIRTY HACK
     // By some reason P3041 DUART blocks when TLB entry #1 is overrriden.
     // Preserve it, let's POK write it's entries starting 2
@@ -315,9 +326,7 @@ void pok_arch_handle_page_fault(
             faulting_address >= POK_PARTITION_MEMORY_BASE &&
             faulting_address < POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE)
     {
-        jet_space_id space_id = pid;
-
-        pok_insert_tlb1(
+        /*pok_insert_tlb1(
             POK_PARTITION_MEMORY_BASE,
             ja_spaces[space_id - 1].phys_base,
             E500MC_PGSIZE_16M,
@@ -325,7 +334,7 @@ void pok_arch_handle_page_fault(
             0,
             pid,
             FALSE
-        );
+        );*/
     } else {
         if (vctx->srr1 & MSR_PR) {
             printf("USER ");
@@ -346,6 +355,27 @@ void pok_arch_handle_page_fault(
 #endif
         //pok_fatal("bad memory access");
     }
+}
+
+void pok_def_tlb_with_nesessary_flag()
+{   
+    unsigned limit = pok_ppc_tlb_get_nentry(1);
+    for (unsigned i = 1; i < limit-1; i++) 
+    {
+        pok_ppc_tlb_clear_entry(1, i);
+    }
+    for(int i=0 ; i < number_TLB_entry ;i++) 
+    {
+            pok_insert_tlb1(
+                (long long int)TLB_entries[i].virtual,
+                (long long int)TLB_entries[i].physical,
+                TLB_entries[i].pgsize_enum,
+                TLB_entries[i].permissions,
+                TLB_entries[i].wimge,
+                TLB_entries[i].pid,
+                TLB_entries[i].is_resident
+        );
+    } 
 }
 
 uintptr_t pok_virt_to_phys(uintptr_t virt)
