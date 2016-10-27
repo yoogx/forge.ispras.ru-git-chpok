@@ -59,7 +59,7 @@ class TimeSlot():
     def validate(self):
         if not isinstance(self.duration, int):
             raise TypeError
-        
+
 class TimeSlotSpare(TimeSlot):
     __slots__ = []
 
@@ -240,7 +240,7 @@ class Space:
 # - part_index - index of the partition in the array. Filled automatically.
 class Partition:
     __slots__ = [
-        "name", 
+        "name",
         "is_system",
 
         "num_threads", # number of user threads, _not_ counting init thread and error handler
@@ -573,7 +573,7 @@ class NetworkConfiguration:
         #        raise ValueError
         #    if not (self.mac[0] & 0x2):
         #        print("Warning! MAC address is not locally administered one", file=sys.stderr)
-        
+
         if not hasattr(self, "ip"):
             raise AttributeError
         if not isinstance(self.ip, ipaddr.IPv4Address):
@@ -587,7 +587,7 @@ class Configuration:
     error_ids_all = error_ids
 
     __slots__ = [
-        "partitions", 
+        "partitions",
         "slots", # time windows
         "channels_queueing", # queueing port channels (connections)
         "channels_sampling", # sampling port channels (connections)
@@ -595,7 +595,7 @@ class Configuration:
 
         "spaces", # Array of 'Space' objects.
 
-        # if this is set, POK writes a special string once 
+        # if this is set, POK writes a special string once
         # there are no more schedulable threads
         # it's used by test runner as a sign that POK
         # can be terminated
@@ -665,7 +665,7 @@ class Configuration:
                 if not isinstance(connection, LocalConnection):
                     raise RuntimeError("Non-local connections are not supported now")
                 if isinstance(connection.port, SamplingPort):
-                    if channel_type is not None: 
+                    if channel_type is not None:
                         if channel_type != "sampling":
                             raise RuntimeError("Channel for ports of different types: %s and %s" %
                                 (src_connection.port.name, dst_connection.port.name))
@@ -673,7 +673,7 @@ class Configuration:
                         channel_type = "sampling"
                     connection.port.setChannel(self.next_channel_id_sampling)
                 else: # Local connection to queueing port
-                    if channel_type is not None: 
+                    if channel_type is not None:
                         if channel_type != "queueing":
                             raise RuntimeError("Channel for ports of different types: %s and %s" %
                                 (src_connection.port.name, dst_connection.port.name))
@@ -747,8 +747,8 @@ class Configuration:
         if self.network:
             self.network.validate()
 
-            if not networking_time_slot_exists: 
-                raise ValueError("Networking is enabled, but no dedicated network processing time slot is present") 
+            if not networking_time_slot_exists:
+                raise ValueError("Networking is enabled, but no dedicated network processing time slot is present")
         else:
             if networking_time_slot_exists:
                 raise ValueError("Networking is disabled, but there's (unnecessary) network processing time slot in the schedule")
