@@ -50,7 +50,6 @@ void CREATE_BLACKBOARD (
        /*out*/ BLACKBOARD_ID_TYPE       *BLACKBOARD_ID, 
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-   strtoupper(BLACKBOARD_NAME);
 
    pok_blackboard_id_t  core_id;
    pok_ret_t            core_ret;
@@ -143,7 +142,6 @@ void GET_BLACKBOARD_ID (
        /*out*/ BLACKBOARD_ID_TYPE       *BLACKBOARD_ID, 
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-   strtoupper(BLACKBOARD_NAME);
    pok_ret_t core_ret;
    pok_blackboard_id_t id;
    core_ret = pok_blackboard_id(BLACKBOARD_NAME, &id);

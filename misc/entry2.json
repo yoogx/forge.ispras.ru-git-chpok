@@ -1,0 +1,64 @@
+{
+    "0": [
+        {
+            "is_resident": false, 
+            "pgsize_enum": "E500MC_PGSIZE_16K", 
+            "pid": 1, 
+            "virtual": "0x80000000", 
+            "wimge": 0, 
+            "name_TLB": "TLB1", 
+            "physical": "0x4000000", 
+            "permissions": "MAS3_SX|MAS3_SR|MAS3_UX|MAS3_UR|MAS3_SW"
+        }, 
+        {
+            "is_resident": false, 
+            "pgsize_enum": "E500MC_PGSIZE_16K", 
+            "pid": 2, 
+            "virtual": "0x80000000", 
+            "wimge": 0, 
+            "name_TLB": "TLB1", 
+            "physical": "0x4004000", 
+            "permissions": "MAS3_SX|MAS3_SR|MAS3_UX|MAS3_UR|MAS3_SW"
+        }, 
+        {
+            "is_resident": false, 
+            "pgsize_enum": "E500MC_PGSIZE_4K", 
+            "pid": 1, 
+            "virtual": "0x90000000", 
+            "wimge": 0, 
+            "name_TLB": "TLB1", 
+            "physical": "0x4008000", 
+            "permissions": "MAS3_SR|MAS3_UR|MAS3_SW"
+        }, 
+        {
+            "is_resident": false, 
+            "pgsize_enum": "E500MC_PGSIZE_4K", 
+            "pid": 2, 
+            "virtual": "0x90000000", 
+            "wimge": 0, 
+            "name_TLB": "TLB1", 
+            "physical": "0x4009000", 
+            "permissions": "MAS3_SR|MAS3_UR|MAS3_SW"
+        }, 
+        {
+            "is_resident": false, 
+            "pgsize_enum": "E500MC_PGSIZE_4K", 
+            "pid": 1, 
+            "virtual": "0xa0000000", 
+            "wimge": 0, 
+            "name_TLB": "TLB1", 
+            "physical": "0x400a000", 
+            "permissions": "MAS3_SW|MAS3_SR|MAS3_UW|MAS3_UR"
+        }, 
+        {
+            "is_resident": false, 
+            "pgsize_enum": "E500MC_PGSIZE_4K", 
+            "pid": 2, 
+            "virtual": "0xa0000000", 
+            "wimge": 0, 
+            "name_TLB": "TLB1", 
+            "physical": "0x400b000", 
+            "permissions": "MAS3_SW|MAS3_SR|MAS3_UW|MAS3_UR"
+        }
+    ]
+}

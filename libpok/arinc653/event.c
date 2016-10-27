@@ -52,7 +52,6 @@ void CREATE_EVENT (EVENT_NAME_TYPE EVENT_NAME,
                    EVENT_ID_TYPE *EVENT_ID,
                    RETURN_CODE_TYPE *RETURN_CODE)
 {
-   strtoupper(EVENT_NAME);
 
    pok_event_id_t    core_id;
    pok_ret_t         core_ret;
@@ -132,7 +131,6 @@ void GET_EVENT_ID (EVENT_NAME_TYPE EVENT_NAME,
                    EVENT_ID_TYPE *EVENT_ID,
                    RETURN_CODE_TYPE *RETURN_CODE)
 {
-   strtoupper(EVENT_NAME);
    pok_event_id_t id;
    pok_ret_t core_ret = pok_event_id(EVENT_NAME, &id);
 

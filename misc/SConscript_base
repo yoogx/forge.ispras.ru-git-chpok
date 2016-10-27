@@ -160,6 +160,13 @@ for i in range(len(pok_env['PARTITION_BUILD_DIRS'])):
     if any(f.endswith('.c') for f in os.listdir(part_dir)):
         SConscript('SConscript_partition', exports = ['part_dir', 'part_build_dir', 'part_is_system'])
 
+import all_cr
+print (env['PARTITION_BUILD_DIRS'])
+tlb_create_command = pok_env.Command(target = pok_env['BUILD_DIR']+'TLB.c',
+source = pok_env['PARTITIONS'],
+action = all_cr.create)
+pok_env.Depends(tlb_create_command, pok_env['PARTITIONS'])
+
 merge_command = pok_env.Command(target = pok_env['BUILD_DIR']+'partitions.bin',
 source = pok_env['PARTITIONS'],
 action = merge_partitions)

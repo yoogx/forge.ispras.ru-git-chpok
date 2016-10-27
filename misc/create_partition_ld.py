@@ -1,10 +1,11 @@
 from jinja2 import FileSystemLoader,Template
-import os.path
+import os
 import subprocess
 
 FLAG_ALLOC = 1<<1
 FLAG_WRITE = 1
 FLAG_EXECUTE = 1<<2
+jetos_path = os.environ['POK_PATH']
 
 def rouding_size_virtual_address(size_pid_for_flag):
     size1=0
@@ -94,34 +95,33 @@ SECTIONS
 }
 """)
     #(size1,size2)=rouding_size_virtual_address(size_pid_for_flag)
-    with open("/home/xubuntu/chpok/boards/e500mc/ldscripts/partition.lds", "w") as f:
+    with open(os.path.join(jetos_path, "boards/e500mc/ldscripts/partition.lds"), "w") as f:
         f.write(template.render(data))
 
-def call_ld(pid):
+def call_ld(name_pid,addr):
     subprocess.call([
-       "powerpc-elf-ld", "-o", name_f(pid), "-T",
-       "/home/xubuntu/chpok/boards/e500mc/ldscripts/partition.lds", 
+       "powerpc-elf-ld", "-o", name_f(name_pid), "-T",
+       os.path.join(jetos_path, "boards/e500mc/ldscripts/partition.lds"), 
        "-Map", 
-       "/home/xubuntu/chpok/examples/"\
-        "pure-arinc653-buffer"\
-       "/P"+str(pid)+"/build/e500mc/part.elf.map", 
-       "P"+str(pid)+"/build/e500mc/deployment.o", 
-       "P"+str(pid)+"/build/e500mc/main.o", 
-       "/home/xubuntu/chpok/build/e500mc/libpok/libpok.a", 
+       os.path.join(addr,name_pid,"build/e500mc/part.elf.map"), 
+       os.path.join(addr,name_pid,"build/e500mc/deployment.o"), 
+       os.path.join(addr,name_pid,"build/e500mc/main.o"), 
+       os.path.join(jetos_path, "build/e500mc/libpok/libpok.a"), 
        "/opt/powerpc-elf/lib/gcc/powerpc-elf/4.9.1/libgcc.a"])
         
         
-def main():
-    #data={'size1': 268435456,'size2': 268435456}
-    #create_partition_ld_skript(data)
+def main(addr):
+    data={'size1': 268435456,'size2': 268435456}
+    create_partition_ld_skript(data)
     pid = 1
-    while os.path.exists(name_f(pid)):
-        call_ld(pid)
+    #while os.path.exists(name_f(pid,addr)):
+    for name_pid in partitions:
+        call_ld(name_pid,addr)
         pid += 1
 
 
-def name_f(pid):
-    return "P"+str(pid)+"/build/e500mc/part.elf"
+def name_f(name_pid,addr):
+    return os.path.join(addr,name_pid,"/build/e500mc/part.elf")
 
 
 

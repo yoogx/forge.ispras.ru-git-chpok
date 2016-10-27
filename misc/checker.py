@@ -1,18 +1,31 @@
 #import tool
 import json
+TLBs = 0
+E500MC_PGSIZE = 0
+flags = 0
+START_PHYSICAL_ADDRESS = 0
+max_memory_TLB_entries = 0
+all_TLB_sizes = 0
 
-f = open('target.json')
-a = f.read() 
-d = json.loads(a)
-TLBs = d['TLBs']
-E500MC_PGSIZE = d['dict E500MC_PGSIZE']
-for a in E500MC_PGSIZE.keys():
-    E500MC_PGSIZE[E500MC_PGSIZE[a]]=a
-flags = d['flags']
-START_PHYSICAL_ADDRESS = d['def']['START_PHYSICAL_ADDRESS']
-max_memory_TLB_entries = d['def']['max_memory_TLB_entries']
-all_TLB_sizes = d['all_TLB_sizes']
-
+def readtarget():
+    f = open('target.json')
+    a = f.read() 
+    d = json.loads(a)
+    global TLBs
+    global E500MC_PGSIZE
+    global flags
+    global START_PHYSICAL_ADDRESS
+    global max_memory_TLB_entries
+    global all_TLB_sizes
+    all_TLB_sizes = d['all_TLB_sizes']
+    TLBs = d['TLBs']
+    E500MC_PGSIZE = d['dict E500MC_PGSIZE']
+    for a in E500MC_PGSIZE.keys():
+        E500MC_PGSIZE[E500MC_PGSIZE[a]]=a
+    flags = d['flags']
+    START_PHYSICAL_ADDRESS = d['def']['START_PHYSICAL_ADDRESS']
+    max_memory_TLB_entries = d['def']['max_memory_TLB_entries']
+    all_TLB_sizes = d['all_TLB_sizes']
     
 def check_sum_size_TLB(entries):
     size = 0
@@ -94,6 +107,7 @@ def readjson(name):
     return json.loads(a)
 
 def main():
+    readtarget()
     d = readjson('entry2.json')
     for i in d.keys():
         print('--------------'+i+'-------------\n')

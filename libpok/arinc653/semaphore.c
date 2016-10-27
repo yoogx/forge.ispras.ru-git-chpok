@@ -61,7 +61,6 @@ void CREATE_SEMAPHORE (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
                        SEMAPHORE_ID_TYPE *SEMAPHORE_ID,
                        RETURN_CODE_TYPE *RETURN_CODE )
 {
-   strtoupper(SEMAPHORE_NAME);
    pok_sem_id_t      sem_id;
    pok_ret_t         core_ret;
    pok_queuing_discipline_t core_discipline;
@@ -133,7 +132,6 @@ void GET_SEMAPHORE_ID (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
                        SEMAPHORE_ID_TYPE *SEMAPHORE_ID,
                        RETURN_CODE_TYPE *RETURN_CODE )
 {
-   strtoupper(SEMAPHORE_NAME);
    pok_sem_id_t id;
    pok_ret_t core_ret = pok_semaphore_id(SEMAPHORE_NAME, &id);
 

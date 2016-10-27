@@ -1,11 +1,14 @@
 from jinja2 import FileSystemLoader,Template
 import json
+import os
+
+jetos_path = os.getcwd()
 
 def readjson(name):
     f = open(name)
     a = f.read() 
     return json.loads(a)
-def create_TLB(TLB_dict,pid):
+def create_TLB(TLB_dict,pid,addr):
     
     t=Template("""
     #include <TLB.h>
@@ -41,8 +44,7 @@ def create_TLB(TLB_dict,pid):
         """)
 
 
-    
-    f = open('build/e500mc/TLB.c','w')
+    f = open(os.path.join(addr, 'build/e500mc/TLB.c'),'w')
     f.write(t.render(
         index='',
         TLB_d = TLB_dict['0'],
@@ -53,7 +55,7 @@ def create_TLB(TLB_dict,pid):
     for TLB in TLB_dict['0']:
         TLB['permissions']='MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX'
     
-    f = open('build/e500mc/TLB1.c','w')
+    f = open(os.path.join(addr, 'build/e500mc/TLB1.c'),'w')
     f.write(t.render(
         index=1,
         TLB_d = TLB_dict['0'],
@@ -61,9 +63,9 @@ def create_TLB(TLB_dict,pid):
         ))
 
     f.close()
-def main():
+def main(addr):
     d = readjson('entry2.json')
-    create_TLB(d,0)
+    create_TLB(d,0,addr)
 
 #-------------------------------------------------------------------------------
 if __name__ == '__main__':

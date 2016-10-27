@@ -2,16 +2,30 @@ import json
 from collections import OrderedDict
 
 #from target_descripter import *
+TLBs = 0
+E500MC_PGSIZE = 0
+flags = 0
+START_PHYSICAL_ADDRESS = 0
+max_memory_TLB_entries = 0
+all_TLB_sizes = 0
 
-f = open('target.json')
-a = f.read() 
-d = json.loads(a)
-TLBs = d['TLBs']
-E500MC_PGSIZE = d['dict E500MC_PGSIZE']
-flags = d['flags']
-START_PHYSICAL_ADDRESS = d['def']['START_PHYSICAL_ADDRESS']
-max_memory_TLB_entries = d['def']['max_memory_TLB_entries']
-all_TLB_sizes = d['all_TLB_sizes']
+def readtarget():
+    f = open('target.json')
+    a = f.read() 
+    d = json.loads(a)
+    global TLBs
+    TLBs = d['TLBs']
+    global E500MC_PGSIZE
+    E500MC_PGSIZE = d['dict E500MC_PGSIZE']
+    global flags
+    flags = d['flags']
+    global START_PHYSICAL_ADDRESS
+    START_PHYSICAL_ADDRESS = d['def']['START_PHYSICAL_ADDRESS']
+    global max_memory_TLB_entries
+    max_memory_TLB_entries = d['def']['max_memory_TLB_entries']
+    global all_TLB_sizes
+    all_TLB_sizes = d['all_TLB_sizes']
+
 def readjson(name):
     f = open(name)
     a = f.read() 
@@ -136,6 +150,7 @@ def create_size_pid_for_flag_from_dict(dict):
     
     
 def main():
+    readtarget()
     name = 'entry1.json'
     s = readjson(name)
     size_pid_for_flag = create_size_pid_for_flag_from_dict(s)
