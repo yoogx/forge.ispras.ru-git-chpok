@@ -74,4 +74,6 @@ SECTIONS
           _end = .;
         }
 	__partition_end = . ;
+
+	test_eom = 0x81000000 ;
 }

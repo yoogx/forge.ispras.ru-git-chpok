@@ -1,4 +1,4 @@
-#include "tester.h"
+#include "../../../libpok/test_framework/tester.h"
 
 typedef int (*TestProcType)(void);
 static TestProcType MasterErrorHandlerTestProc;
@@ -11,23 +11,138 @@ static char*    pre_created_name;
 
 void first_process(void)
 {
-    //const pok_port_id_t id = 1;
-    //uint32_t* result = 0x80000000;
-    //pok_ret_t r = pok_port_virtual_nb_destinations(id, result);
     
     //uint32_t* result = 0x80000000;
     
     //int param = 0;
     char* param = "text";
-    int pos = 0;
     
     //pok_ret_t 
     int ret = 0;
-    ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_CREATE,     NULL_POINTER, param, pos, pre_created_id, pre_created_name);
-    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_SEND,       NULL_POINTER, param, pos, pre_created_id, pre_created_name);
-    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_RECEIVE,    NULL_POINTER, param, pos, pre_created_id, pre_created_name);
-    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_ID,         NULL_POINTER, param, pos, pre_created_id, pre_created_name);
-    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_STATUS,     NULL_POINTER, param, pos, pre_created_id, pre_created_name);
+    
+    // BUFFER NP
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_CREATE,     NULL_POINTER, param, 0, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_CREATE,     NULL_POINTER, param, 4, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_SEND,       NULL_POINTER, param, 1, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_SEND,       NULL_POINTER, param, 3, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_RECEIVE,    NULL_POINTER, param, 1, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_RECEIVE,    NULL_POINTER, param, 2, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_RECEIVE,    NULL_POINTER, param, 3, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_ID,         NULL_POINTER, param, 0, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_ID,         NULL_POINTER, param, 1, pre_created_id, pre_created_name);
+    
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_STATUS,     NULL_POINTER, param, 1, pre_created_id, pre_created_name);
+    
+    // BUFFER OPR
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_CREATE,     OUT_OF_PARTITION_RANGE, param, 0, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_CREATE,     OUT_OF_PARTITION_RANGE, param, 4, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_SEND,       OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_SEND,       OUT_OF_PARTITION_RANGE, param, 3, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_RECEIVE,    OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_RECEIVE,    OUT_OF_PARTITION_RANGE, param, 2, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_RECEIVE,    OUT_OF_PARTITION_RANGE, param, 3, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_ID,         OUT_OF_PARTITION_RANGE, param, 0, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_ID,         OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name);
+    
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_STATUS,     OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name);
+    
+    // BB NP
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_CREATE,   NULL_POINTER, param, 0, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_CREATE,   NULL_POINTER, param, 2, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_DISPLAY,  NULL_POINTER, param, 1, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_READ,     NULL_POINTER, param, 1, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_READ,     NULL_POINTER, param, 2, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_READ,     NULL_POINTER, param, 3, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_CLEAR,    NULL_POINTER, param, 0, pre_created_id, pre_created_name);
+    
+    ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_ID,       NULL_POINTER, param, 0, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_ID,       NULL_POINTER, param, 1, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_STATUS,   NULL_POINTER, param, 1, pre_created_id, pre_created_name);
+    
+    
+    // BB OPR
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_CREATE,   OUT_OF_PARTITION_RANGE, param, 0, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_CREATE,   OUT_OF_PARTITION_RANGE, param, 2, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_DISPLAY,  OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_READ,     OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_READ,     OUT_OF_PARTITION_RANGE, param, 2, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_READ,     OUT_OF_PARTITION_RANGE, param, 3, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_CLEAR,    OUT_OF_PARTITION_RANGE, param, 0, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_ID,       OUT_OF_PARTITION_RANGE, param, 0, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_ID,       OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_STATUS,   OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name);
+    
+    
+    
+    // SEM NP
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_SEMAPHORE_CREATE,   NULL_POINTER, param, 0, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_SEMAPHORE_CREATE,   NULL_POINTER, param, 4, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_SEMAPHORE_WAIT,     NULL_POINTER, param, 1, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_SEMAPHORE_ID,       NULL_POINTER, param, 0, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_SEMAPHORE_ID,       NULL_POINTER, param, 1, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_SEMAPHORE_STATUS,   NULL_POINTER, param, 1, pre_created_id, pre_created_name);
+    
+    // SEM OPR
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_SEMAPHORE_CREATE,   OUT_OF_PARTITION_RANGE, param, 0, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_SEMAPHORE_CREATE,   OUT_OF_PARTITION_RANGE, param, 4, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_SEMAPHORE_WAIT,     OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_SEMAPHORE_ID,       OUT_OF_PARTITION_RANGE, param, 0, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_SEMAPHORE_ID,       OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_SEMAPHORE_STATUS,   OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name);
+    
+    
+    // EVENT NP
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_EVENT_CREATE,   NULL_POINTER, param, 0, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_EVENT_CREATE,   NULL_POINTER, param, 1, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_EVENT_WAIT,     NULL_POINTER, param, 1, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_EVENT_ID,       NULL_POINTER, param, 0, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_EVENT_ID,       NULL_POINTER, param, 1, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_EVENT_STATUS,   NULL_POINTER, param, 1, pre_created_id, pre_created_name);
+    
+    // EVENT OPR
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_EVENT_CREATE,   OUT_OF_PARTITION_RANGE, param, 0, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_EVENT_CREATE,   OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_EVENT_WAIT,     OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_EVENT_ID,       OUT_OF_PARTITION_RANGE, param, 0, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_EVENT_ID,       OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name);
+    
+    //ret = pointer_error_tester(POK_SYSCALL_INTRA_EVENT_STATUS,   OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name);
     
     status = EXECUTED;
     TEST_RESULT = ret;
@@ -92,6 +207,7 @@ static int real_main(void)
     pre_created_id = -1;
     pre_created_name = "foo";
     
+    /*
     // create buffer
     CREATE_BUFFER(pre_created_name, sizeof(int), 10, FIFO, &id, &ReturnCode);
     if (ReturnCode != NO_ERROR) {
@@ -101,6 +217,44 @@ static int real_main(void)
         printf("buffer successfully created\n");
     }
     pre_created_id = id;
+    */
+    
+    
+    // create blackboard
+    CREATE_BLACKBOARD(pre_created_name, sizeof(int), &id, &ReturnCode);
+    if (ReturnCode != NO_ERROR) {
+        printf("error creating a blackboard: %d\n", (int) ReturnCode);
+        return 1;
+    } else {
+        printf("blackboard successfully created\n");
+    }
+    pre_created_id = id;
+    
+    /*
+    // create semaphore
+    CREATE_SEMAPHORE(pre_created_name, 0, 5, FIFO, &id, &ReturnCode);
+    if (ReturnCode != NO_ERROR) {
+        printf("error creating a semaphore: %d\n", (int) ReturnCode);  `
+        return 1;
+    } else {
+        printf("semaphore successfully created\n");
+    }
+    pre_created_id = id;
+    */
+    
+    /*
+    // create event
+    CREATE_SEMAPHORE(pre_created_name, &id, &ReturnCode);
+    if (ReturnCode != NO_ERROR) {
+        printf("error creating a event: %d\n", (int) ReturnCode);  `
+        return 1;
+    } else {
+        printf("event successfully created\n");
+    }
+    pre_created_id = id;
+    */
+    
+    
     
 	
 	MasterErrorHandlerTestProc = &T_MYTEST_Error_Handler;

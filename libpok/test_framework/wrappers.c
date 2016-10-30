@@ -520,30 +520,31 @@ pok_ret_t pok_blackboard_status_wrapper(void* param, int pos, uint8_t pre_create
 	return ret;                     
 }
 
-/*
+
 /////////////////////////// SEMAPHORES ///////////////////////////
 
-pok_ret_t pok_semaphore_create_wrapper(void* param, int pos)
+pok_ret_t pok_semaphore_create_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
     const char* name = "semaphore1";
     
-    pok_sem_value_t value;       // TODO: check right values
-    pok_sem_value_t max_value;
-    pok_queuing_discipline_t discipline;
+    pok_sem_value_t value               = 0;       // TODO: try other values
+    pok_sem_value_t max_value           = 10;
+    pok_queuing_discipline_t discipline = POK_QUEUING_DISCIPLINE_FIFO;
     
-    pok_sem_id_t* id; // TODO: check if it is out-param
+    pok_sem_id_t* id; // out-param
       
 	switch (pos)
 	{
-		case 0:
+		case 0: // const char*, name of the semaphore
 			;
-			ret = pok_semaphore_create(&param, &value, &max_value, &discipline, &id); 
+			ret = pok_semaphore_create(param, value, max_value, discipline, id); 
 			break;
 		
-		case 4:
-            ret = pok_semaphore_create(&name, &value, &max_value, &discipline, &param);
+		case 4: // pok_blackboard_id_t*, id of new blackboard
+            ; 
+            ret = pok_semaphore_create(name, value, max_value, discipline, param);
 			break;        
 	}
 	
@@ -551,146 +552,150 @@ pok_ret_t pok_semaphore_create_wrapper(void* param, int pos)
 }
 
 
-pok_ret_t pok_semaphore_wait_wrapper(void* param, int pos)
+pok_ret_t pok_semaphore_wait_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    pok_sem_id_t id; // pre-created sem needed
+    pok_sem_id_t id = pre_created_id; // pre-created sem needed (check also with no sem)
     
 	switch (pos)
 	{
-		case 1:
+		case 1: // const pok_time_t*, timeout
 			;
-			ret = pok_semaphore_wait(&id, &param); 
+			ret = pok_semaphore_wait(id, param); 
 			break;
 	}
 	
 	return ret;                     
 }
 
-pok_ret_t pok_semaphore_id_wrapper(void* param, int pos)
+pok_ret_t pok_semaphore_id_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    const char* name; // pre-created sem needed (check also with no sem)
+    const char* name = pre_created_name; // pre-created sem needed (check also with no sem)
     
-    pok_sem_id_t* id; // out param (?)
+    pok_sem_id_t* id; // out param
     
 	switch (pos)
 	{
 		case 0:
 			;
-			ret = pok_semaphore_id(&param, &id); 
+			ret = pok_semaphore_id(param, id); 
 			break;
 		
 		case 1:
-            ret = pok_semaphore_id(&name, &param);
+            ;
+            ret = pok_semaphore_id(name, param);
 			break;
 	}
 	
 	return ret;                     
 }
 
-pok_ret_t pok_semaphore_status_wrapper(void* param, int pos)
+pok_ret_t pok_semaphore_status_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    pok_sem_id_t id; // pre-created sem needed (check also with no sem)
-    pok_semaphore_status_t* status; // out param (?)
+    pok_sem_id_t id = pre_created_id; // pre-created sem needed (check also with no sem)
     
 	switch (pos)
 	{
 		case 1:
 			;
-			ret = pok_semaphore_status(&id, &param); 
+			ret = pok_semaphore_status(id, param); 
 			break;
 	}
 	
 	return ret;                     
 }
 
+
+
 /////////////////////////// EVENTS ///////////////////////////
 
-pok_ret_t pok_event_create_wrapper(void* param, int pos)
+pok_ret_t pok_event_create_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
     const char* name = "event1";
     
-    pok_event_id_t* id; // TODO: check if it is out-param
+    pok_event_id_t* id; // out-param
     
 	switch (pos)
 	{
 		case 0:
 			;
-			ret = pok_event_create(&param, &id); 
+			ret = pok_event_create(param, id); 
 			break;
 		
 		case 1:
-            ret = pok_event_create(&name, &param);
+            ret = pok_event_create(name, param);
 			break;
 	}
 	
 	return ret;                     
 }
 
-pok_ret_t pok_event_wait_wrapper(void* param, int pos)
+pok_ret_t pok_event_wait_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    pok_sem_id_t id; // pre-created event needed
+    pok_sem_id_t id = pre_created_id; // pre-created event needed (check without event)
     
 	switch (pos)
 	{
 		case 1:
 			;
-			ret = pok_event_wait(&id, &param); 
+			ret = pok_event_wait(id, param); 
 			break;
 	}
 	
 	return ret;                     
 }
 
-pok_ret_t pok_event_id_wrapper(void* param, int pos)
+pok_ret_t pok_event_id_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    const char* name; // pre-created event needed (check also with no event)
+    const char* name = pre_created_name; // pre-created event needed (check also with no event)
     
-    pok_event_id_t* id; // out param (?)
+    pok_event_id_t* id; // out param
     
 	switch (pos)
 	{
 		case 0:
 			;
-			ret = pok_event_id(&param, &id); 
+			ret = pok_event_id(param, id); 
 			break;
 		
 		case 1:
-            ret = pok_event_id(&name, &param);
+            ret = pok_event_id(name, param);
 			break;
 	}
 	
 	return ret;                     
 }
 
-pok_ret_t pok_event_status_wrapper(void* param, int pos)
+pok_ret_t pok_event_status_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    pok_event_id_t id; // pre-created event needed (check also with no event)
-    pok_event_status_t* status; // out param (?)
+    pok_event_id_t id = pre_created_id; // pre-created event needed (check also with no event)
     
 	switch (pos)
 	{
 		case 1:
 			;
-			ret = pok_event_status(&id, &param); 
+			ret = pok_event_status(id, param); 
 			break;
 	}
 	
 	return ret;                     
 }
+
+
+/*
 
 /////////////////////////// ERROR HANDLING ///////////////////////////
 

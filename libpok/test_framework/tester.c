@@ -90,7 +90,49 @@ pok_ret_t tester1 (int syscall_id, void* param, int pos, uint8_t pre_created_id,
 			break;
         
         // semaphores
+        
+        case POK_SYSCALL_INTRA_SEMAPHORE_CREATE:
+			;
+			ret = pok_semaphore_create_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
+            
+        case POK_SYSCALL_INTRA_SEMAPHORE_WAIT:
+			;
+			ret = pok_semaphore_wait_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
+            
+        case POK_SYSCALL_INTRA_SEMAPHORE_ID:
+			;
+			ret = pok_semaphore_id_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
+            
+        case POK_SYSCALL_INTRA_SEMAPHORE_STATUS:
+			;
+			ret = pok_semaphore_status_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
+        
+        
         // events
+        
+        case POK_SYSCALL_INTRA_EVENT_CREATE:
+			;
+			ret = pok_event_create_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
+            
+        case POK_SYSCALL_INTRA_EVENT_WAIT:
+			;
+			ret = pok_event_wait_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
+            
+        case POK_SYSCALL_INTRA_EVENT_ID:
+			;
+			ret = pok_event_id_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
+            
+        case POK_SYSCALL_INTRA_EVENT_STATUS:
+			;
+			ret = pok_event_status_wrapper (param, pos, pre_created_id, pre_created_name);
+			break;
         
         // error handling
         
