@@ -2,6 +2,27 @@
 #include "tester.h"
 
 
+pok_ret_t tester_read(int entity_type, void* message, uint8_t pre_created_id, const char* pre_created_name)
+{
+    
+    switch (entity_type)
+    {
+        case BLACKBOARD:
+            ;
+            
+            // write wrapper
+            blackboard_write_wrapper(message, pre_created_id);
+            
+            // read wrapper
+            blackboard_read_wrapper(pre_created_id);
+            
+            break;
+        
+        
+        
+    }
+    
+}
 
 /*
  * one param is tested, others - autocompleted
@@ -12,7 +33,7 @@ pok_ret_t tester1 (int syscall_id, void* param, int pos, uint8_t pre_created_id,
     
     pok_ret_t ret = 0;
     
-    test_eom[0] = 1; // TODO: set it to the right place
+    //test_eom[0] = 1; // TODO: set it to the right place
     
 	switch (syscall_id)
 	{
@@ -166,6 +187,15 @@ pok_ret_t out_of_partition_range_tester(int syscall_id, void* param, int pos, ui
 	return ret;
 }
 
+pok_ret_t read_wrong_memory_tester(int syscall_id, void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
+{
+	pok_ret_t ret = 0;
+    
+	//ret = tester1 (syscall_id, 0x80000000, pos, pre_created_id, pre_created_name);
+	
+	return ret;
+}
+
 /*
  * tests one pointer parameter for one kind of pointer error
  * 
@@ -184,8 +214,15 @@ pok_ret_t pointer_error_tester(int syscall_id, int error_type, void* param, int 
 		
 		case OUT_OF_PARTITION_RANGE: // check
 			;
-			ret = null_pointer_tester(syscall_id, param, pos, pre_created_id, pre_created_name);
+			ret = out_of_partition_range_tester(syscall_id, param, pos, pre_created_id, pre_created_name);
 			break;
+        
+        /*
+        case READ_WRONG_MEMORY:
+            ;
+            ret = read_wrong_memory_tester(syscall_id, param, pos, pre_created_id, pre_created_name);
+			break;
+        */
             
         // TODO: add more types of errors
         

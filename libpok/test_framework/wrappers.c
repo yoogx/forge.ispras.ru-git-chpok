@@ -280,7 +280,7 @@ pok_ret_t pok_buffer_send_wrapper(void* param, int pos, uint8_t pre_created_id, 
     // TODO: check whether it matches the actual size of sent message (does it actually matter?)
     pok_message_size_t length = 8192;
     
-    const pok_time_t timeout  = 0; // TODO: try another values
+    const pok_time_t timeout  = 100; // TODO: try another values
     
 	switch (pos)
 	{
@@ -305,7 +305,7 @@ pok_ret_t pok_buffer_receive_wrapper(void* param, int pos, uint8_t pre_created_i
     
     pok_buffer_id_t id = pre_created_id; // pre-created buffer needed (check also with no buffer)
     
-    const pok_time_t timeout = 0; // TODO: try another values
+    const pok_time_t timeout = 100; // TODO: try another values
     
     const void* data;          // out, address of received message (we don't know the exact type in advance)
     pok_message_size_t length; // out
@@ -413,7 +413,7 @@ pok_ret_t pok_blackboard_read_wrapper(void* param, int pos, uint8_t pre_created_
     
     pok_blackboard_id_t id = pre_created_id; // pre-created blackboard needed (check also with no blackboard)
     
-    const pok_time_t timeout = 0; // TODO: try another values
+    const pok_time_t timeout = 100; // TODO: try another values
     
     void* data;                 // out, address of received message (we don't know the exact type in advance)
     pok_message_size_t len;     // out
@@ -467,6 +467,8 @@ pok_ret_t pok_blackboard_display_wrapper(void* param, int pos, uint8_t pre_creat
 pok_ret_t pok_blackboard_clear_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
+    
+    // TODO: check case with existing messages on blackboard (not empty)
     
 	switch (pos)
 	{

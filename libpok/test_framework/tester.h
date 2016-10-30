@@ -9,11 +9,15 @@
 
 pok_ret_t tester1 (int syscall_id, void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);
 
+pok_ret_t tester_read(int entity_type, void* message, uint8_t pre_created_id, const char* pre_created_name);
+
 pok_ret_t pointer_error_tester(int syscall_id, int error_type, void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);
 
 // for each type of error
 pok_ret_t null_pointer_tester           (int syscall_id, void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);
 pok_ret_t out_of_partition_range_tester (int syscall_id, void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);
+
+
 
 //pok_ret_t null_pointer_tester(int syscall_id, int pos);
 //pok_ret_t tester1 (int syscall_id, void* param, int pos);
@@ -44,3 +48,5 @@ typedef enum {
 } ERROR_TYPE;
 
 extern char* test_eom; // TODO: copy format to other
+
+

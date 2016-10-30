@@ -68,6 +68,14 @@ pok_ret_t pok_event_id_wrapper      (void* param, int pos, uint8_t pre_created_i
 pok_ret_t pok_event_status_wrapper  (void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);
 
 
+// TODO: add other types of entities
+typedef enum {
+	BLACKBOARD = 0,
+	BUFFER = 1,
+    SEMAPHORE = 2,
+    EVENT = 3
+} ENTITY_TYPE;
+
 
 /*
  *  TODO: add prototypes for all wrappers
@@ -78,3 +86,12 @@ pok_ret_t pok_event_status_wrapper  (void* param, int pos, uint8_t pre_created_i
  * events       +
  * 
 */
+
+
+pok_ret_t blackboard_write_wrapper(void* param, uint8_t pre_created_id);
+pok_ret_t blackboard_read_wrapper(uint8_t pre_created_id);
+
+
+uint8_t  create_entity (int entity_type, char* pre_created_name);
+
+
