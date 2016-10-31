@@ -2,21 +2,10 @@ from jinja2 import FileSystemLoader,Template
 import os
 import subprocess
 
-FLAG_ALLOC = 1<<1
-FLAG_WRITE = 1
-FLAG_EXECUTE = 1<<2
-jetos_path = os.environ['POK_PATH']
 
-def rouding_size_virtual_address(size_pid_for_flag):
-    size1=0
-    size2=0
-    for TLB_entry in size_pid_for_flag:
-        #print(TLB_entry)
-        if TLB_entry[3] == FLAG_EXECUTE|FLAG_ALLOC:
-            size1 = max(size1,TLB_entry[0])      
-        if TLB_entry[3] == FLAG_WRITE|FLAG_ALLOC:
-            size2 = max(size2,TLB_entry[0]) 
-    return (size1,size2)
+POK_PATH = 0
+SCONSTRUCT_DIR = 0
+PARTITIONS = 0
 
 def create_partition_ld_skript(data):
     
@@ -95,33 +84,42 @@ SECTIONS
 }
 """)
     #(size1,size2)=rouding_size_virtual_address(size_pid_for_flag)
-    with open(os.path.join(jetos_path, "boards/e500mc/ldscripts/partition.lds"), "w") as f:
+    with open(os.path.join(POK_PATH, "boards/e500mc/ldscripts/partition.lds"), "w") as f:
         f.write(template.render(data))
 
-def call_ld(name_pid,addr):
+def call_ld(name_pid):
+    print(os.path.join(SCONSTRUCT_DIR,name_pid,"build/e500mc/part.elf.map"))
     subprocess.call([
        "powerpc-elf-ld", "-o", name_f(name_pid), "-T",
-       os.path.join(jetos_path, "boards/e500mc/ldscripts/partition.lds"), 
+       os.path.join(POK_PATH, "boards/e500mc/ldscripts/partition.lds"), 
        "-Map", 
-       os.path.join(addr,name_pid,"build/e500mc/part.elf.map"), 
-       os.path.join(addr,name_pid,"build/e500mc/deployment.o"), 
-       os.path.join(addr,name_pid,"build/e500mc/main.o"), 
-       os.path.join(jetos_path, "build/e500mc/libpok/libpok.a"), 
+       os.path.join(SCONSTRUCT_DIR,name_pid,"build/e500mc/part.elf.map"), 
+       os.path.join(SCONSTRUCT_DIR,name_pid,"build/e500mc/deployment.o"), 
+       os.path.join(SCONSTRUCT_DIR,name_pid,"build/e500mc/main.o"), 
+       os.path.join(POK_PATH, "build/e500mc/libpok/libpok.a"), 
        "/opt/powerpc-elf/lib/gcc/powerpc-elf/4.9.1/libgcc.a"])
         
-        
-def main(addr):
+def write_const(env):
+    global POK_PATH
+    global SCONSTRUCT_DIR
+    global PARTITIONS 
+    POK_PATH = env['POK_PATH']
+    SCONSTRUCT_DIR = env['SCONSTRUCT_DIR']
+    PARTITIONS = env['PARTITIONS']
+
+def main(env):
+    write_const(env)
     data={'size1': 268435456,'size2': 268435456}
     create_partition_ld_skript(data)
     pid = 1
     #while os.path.exists(name_f(pid,addr)):
-    for name_pid in partitions:
-        call_ld(name_pid,addr)
+    for name_pid in PARTITIONS:
+        call_ld(name_pid)
         pid += 1
 
 
-def name_f(name_pid,addr):
-    return os.path.join(addr,name_pid,"/build/e500mc/part.elf")
+def name_f(name_pid):
+    return os.path.join(SCONSTRUCT_DIR,name_pid,"build/e500mc/part.elf")
 
 
 

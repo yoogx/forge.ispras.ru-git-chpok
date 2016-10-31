@@ -146,12 +146,26 @@ def create_sizes_c(target, source, env):
                 sizes.write(',\n')
         sizes.write('\n};\n')
 
-import all_cr
-print (env['PARTITION_BUILD_DIRS'])
-tlb_create_command = pok_env.Command(target = pok_env['BUILD_DIR']+'TLB.c',
-source = pok_env['PARTITIONS'],
-action = all_cr.create)
-pok_env.Depends(tlb_create_command, pok_env['PARTITIONS'])
+#import all_cr
+import tool
+import checker
+import creat
+import create_div
+import create_TLB1_c
+import create_partition_ld
+
+
+create_partition_ld.main(env)
+creat.main()
+create_div.main(env['SCONSTRUCT_DIR'],env['PARTITIONS'])
+tool.main()
+checker.main()
+create_TLB1_c.main(env['BUILD_DIR'])
+
+#tlb_create_command = pok_env.Command(target = pok_env['BUILD_DIR']+'TLB.c',
+#source = pok_env['PARTITIONS'],
+#action = all_cr.create)
+#pok_env.Depends(tlb_create_command, pok_env['PARTITIONS'])
 
 merge_command = pok_env.Command(target = pok_env['BUILD_DIR']+'partitions.bin',
     source = part_elf_list,
