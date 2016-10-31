@@ -25,18 +25,18 @@ typedef struct
 /* This structure (redundancy_management_data_t) describes the information needed
  * for receiving ES.
  *
- * arrival_time			-in this buffer we safe information about accepted message per SN
+ * arrival_time            -in this buffer we safe information about accepted message per SN
  *                      -time of arriving
  *
- * last_accepted_seq_numb	-sequence umber of the last accepted message from both subnetworks
- * last_accepted_msg_time	-time of the last accepted message from both subnetworks
+ * last_accepted_seq_numb    -sequence umber of the last accepted message from both subnetworks
+ * last_accepted_msg_time    -time of the last accepted message from both subnetworks
  *
  */
  typedef struct
  {
-	uint8_t					last_accepted_seq_numb;
-	pok_time_t				last_accepted_msg_time;
-	pok_time_t				arrival_time[SUBNETWORKS_COUNT][MAX_SEQUENCE_NUMBER + 1];
+    uint8_t                    last_accepted_seq_numb;
+    pok_time_t                last_accepted_msg_time;
+    pok_time_t                arrival_time[SUBNETWORKS_COUNT][MAX_SEQUENCE_NUMBER + 1];
  } redundancy_management_data_t;
 
 #endif

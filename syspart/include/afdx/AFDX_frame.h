@@ -43,8 +43,8 @@
  * (destination)
  */
  struct ip_multicast_addr {
-			uint16_t        ip_const_dst;   	// 16 bits constant (1110 0000 1100 0000 b)
-			uint16_t        vl_id;
+            uint16_t        ip_const_dst;       // 16 bits constant (1110 0000 1110 0000 b)
+            uint16_t        vl_id;
         }__attribute__((packed));
 
 
@@ -61,7 +61,7 @@ struct frame_data {
         struct mac_dst_addr {
             uint32_t  mac_const_dst;            // 32 bits (0000 0011 0000 0000 0000 0000 0000 0000 b)
             uint16_t        vl_id;
-        } __attribute__((packed)) mac_dst_addr;               			// 16 bits
+        } __attribute__((packed)) mac_dst_addr;                           // 16 bits
         //MAC Destination address ends
 
         //MAC source address begins             6 bytes
@@ -70,12 +70,12 @@ struct frame_data {
             uint8_t         network_id;         // 4 bits (0000 b) + 4 bits Domain_ID
             uint8_t         equipment_id;       // 3 bits Side_ID + 5 bits Location_ID
             uint8_t         interface_id;       // 3 bits Interface_ID
-												// (001 b) for the network A
-												// (010 b) for the network B
-												// + 5 bits (00000 b)
+                                                // (001 b) for the network A
+                                                // (010 b) for the network B
+                                                // + 5 bits (00000 b)
         } __attribute__((packed)) mac_src_addr;
         //MAC source address ends
-        uint16_t        connection_type;        // 16 bits (0x8000) IPv4
+        uint16_t        connection_type;        // 16 bits (0x0800) IPv4
     } __attribute__((packed)) mac_header;
     //IP header                                 size 20 bytes
     struct ip_header {
@@ -83,26 +83,26 @@ struct frame_data {
         uint8_t             type_of_service;    // 8 bits
         uint16_t            total_length;       // 16 bits
         uint16_t            fragment_id;        // 16 bits
-        uint16_t            flag_and_fragment_offset; 	// 3 bits, bit 0: Reserved must be zero
-														//		  bit 1: Don't fragment (DF)
-														//		  bit 2: More fragments (MF)
-														// + 13 bits Fragment offset
+        uint16_t            flag_and_fragment_offset;     // 3 bits, bit 0: Reserved must be zero
+                                                        //          bit 1: Don't fragment (DF)
+                                                        //          bit 2: More fragments (MF)
+                                                        // + 13 bits Fragment offset
         uint8_t             ttl;
-        uint8_t             protocol;          	// 8 bits (0x11) UDP, according to AFDX, ARINC 664 Tutorial, AFDX Protocol Stack Section
+        uint8_t             protocol;              // 8 bits (0x11) UDP, according to AFDX, ARINC 664 Tutorial, AFDX Protocol Stack Section
         uint16_t            header_checksum;
 
         //IP source address
         union u_src_addr {
-			struct ip_unicast_addr ip_src_addr;
-			uint32_t ip_general_src_addr;
-		} __attribute__((packed)) u_src_addr;
-		
+            struct ip_unicast_addr ip_src_addr;
+            uint32_t ip_general_src_addr;
+        } __attribute__((packed)) u_src_addr;
+
         //IP destination address Unicast or Multicast
         union u_dst_addr {
-			struct ip_unicast_addr ip_unicast_dst_addr;
-			struct ip_multicast_addr ip_multicast_dst_addr;
-			uint32_t ip_general_dst_addr;
-		} __attribute__((packed)) u_dst_addr;
+            struct ip_unicast_addr ip_unicast_dst_addr;
+            struct ip_multicast_addr ip_multicast_dst_addr;
+            uint32_t ip_general_dst_addr;
+        } __attribute__((packed)) u_dst_addr;
     } __attribute__((packed)) ip_header;
 
     // UDP Header                               size 8 bytes
