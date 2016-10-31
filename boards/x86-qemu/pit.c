@@ -16,28 +16,27 @@
 
 
 #include <errno.h>
-#include <bsp_common.h>
 #include <core/time.h>
 #include <core/sched.h>
 #include <ioports.h>
-#include <interrupt.h>
 
 #include "pic.h"
 
 #include "pit.h"
 
+#include <bsp/bsp.h>
+
 #define OSCILLATOR_RATE 1193180 /** The oscillation rate of x86 clock */
 #define PIT_BASE 0x40
-#define PIT_IRQ 0
 
-INTERRUPT_HANDLER (pit_interrupt)
+void ja_bsp_process_timer(interrupt_frame* frame)
 {
    (void) frame;
    pok_pic_eoi (PIT_IRQ);
    CLOCK_HANDLER;
 }
 
-pok_ret_t pok_x86_qemu_timer_init ()
+void pok_x86_qemu_timer_init(void)
 {
    uint16_t pit_freq;
 
@@ -47,9 +46,7 @@ pok_ret_t pok_x86_qemu_timer_init ()
    outb (PIT_BASE, (OSCILLATOR_RATE / pit_freq) & 0xff);
    outb (PIT_BASE, ((OSCILLATOR_RATE / pit_freq) >> 8) & 0xff);
 
-   pok_bsp_irq_register (PIT_IRQ, pit_interrupt);
-
-   return (POK_ERRNO_OK);
+   pok_pic_unmask (PIT_IRQ);
 }
 
 

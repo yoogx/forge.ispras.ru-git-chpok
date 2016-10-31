@@ -16,7 +16,6 @@
  * Copyright (c) 2007-2009 POK team
  */
 
-#include <depl.h>
 #include <pci.h>
 enum {
     PCI_DRIVER_TABLE_SIZE = 10,

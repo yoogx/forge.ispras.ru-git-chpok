@@ -52,7 +52,7 @@ if libpok_env.get('jdeveloper'):
     # Read list of headers for copy by executing SConsctipt in <source_dir>
     (uapi_headers, uapi_headers_syscall) = SConscript(source_dir + 'SConscript')
 
-    libpok_env.Append(
+    libpok_env.Replace(
         SOURCE_BASE_DIR = libpok_env['POK_PATH'],
         GENERATE_TITLE = template_generation.generate_title_c,
         COPY_TITLE = template_generation.copy_title_c

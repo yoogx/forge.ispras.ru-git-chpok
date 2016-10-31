@@ -23,7 +23,10 @@
 
 #include <bsp.h>
 #include "pci_internal.h"
-#include <depl.h>
+
+
+extern struct pci_driver pci_driver_table[];
+extern unsigned pci_driver_table_size;
 
 #include <libc/string.h>
 

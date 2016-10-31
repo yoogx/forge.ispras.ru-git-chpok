@@ -60,7 +60,7 @@ class TimeSlot():
     def validate(self):
         if not isinstance(self.duration, int):
             raise TypeError
-        
+
 class TimeSlotSpare(TimeSlot):
     __slots__ = []
 
@@ -218,6 +218,21 @@ class PartitionHMTable(HMTable):
     def get_action(self, system_state, error_id):
         return self.get_action_generic(system_state, error_id, 'IDLE')
 
+class Space:
+    """
+    Definition of single memory space.
+
+    - size - allocated RAM size in bytes (code + static storage)
+
+    Everything except 'size' should be automatically calculated by arch.
+
+    TODO: This should be make arch-dependent somehow.
+    TODO: Config files uses 'size' as contained stack.
+           Arch code allocates stack from other memory.
+    """
+    def __init__(self, size):
+        self.size = size
+
 # ARINC partition.
 #
 # - name - name of the partition
@@ -226,10 +241,9 @@ class PartitionHMTable(HMTable):
 # - part_index - index of the partition in the array. Filled automatically.
 class Partition:
     __slots__ = [
-        "name", 
+        "name",
         "is_system",
 
-        "size", # allocated RAM size in bytes (code + static storage)
         "num_threads", # number of user threads, _not_ counting init thread and error handler
         "ports_queueing", # list of queuing ports
         "ports_sampling", # list of sampling ports
@@ -250,7 +264,7 @@ class Partition:
         "part_index" # index of the partition in the array. Filled automatically. part_index+1 is used as PID
     ]
 
-    def __init__(self, part_id, name, size):
+    def __init__(self, part_id, name):
         self.name = name
         self.part_id = part_id
 
@@ -262,8 +276,6 @@ class Partition:
         # 'duration' is sum of all timeslots, denoted for partition.
         self.period = None
         self.duration = None
-
-        self.size = size
 
         self.num_threads = 0
 
@@ -570,7 +582,7 @@ class NetworkConfiguration:
         #        raise ValueError
         #    if not (self.mac[0] & 0x2):
         #        print("Warning! MAC address is not locally administered one", file=sys.stderr)
-        
+
         if not hasattr(self, "ip"):
             raise AttributeError
         if not isinstance(self.ip, ipaddr.IPv4Address):
@@ -629,21 +641,25 @@ class Configuration:
     error_ids_all = error_ids
 
     __slots__ = [
-        "partitions", 
+        "partitions",
         "slots", # time windows
         "channels_queueing", # queueing port channels (connections)
         "channels_sampling", # sampling port channels (connections)
         "network", # NetworkConfiguration object (or None)
         "memory_blocks"
 
-        # if this is set, POK writes a special string once 
+        "spaces", # Array of 'Space' objects.
+
+        # if this is set, POK writes a special string once
         # there are no more schedulable threads
         # it's used by test runner as a sign that POK
         # can be terminated
         "test_support_print_when_all_threads_stopped",
     ]
 
-    def __init__(self):
+    def __init__(self, arch):
+        self.arch = arch
+
         self.module_hm_table = ModuleHMTable()
 
         self.partitions = []
@@ -653,6 +669,8 @@ class Configuration:
         self.network = None
         self.memory_blocks = []
         self.memory_blocks_tlb_entries_count = 0
+
+        self.spaces = []
 
         self.test_support_print_when_all_threads_stopped = False
 
@@ -682,7 +700,7 @@ class Configuration:
             part_id_real = self.next_partition_id
             self.next_partition_id += 1
 
-        part = Partition(part_id_real, part_name, part_size)
+        part = Partition(part_id_real, part_name)
         part.set_index(len(self.partitions))
 
         self.partitions.append(part)
@@ -690,6 +708,8 @@ class Configuration:
 
         if part_id is not None:
             self.partition_ids_map[part_id] = part
+
+        self.spaces.append(Space(part_size))
 
         return part
 
@@ -704,7 +724,7 @@ class Configuration:
                 if not isinstance(connection, LocalConnection):
                     raise RuntimeError("Non-local connections are not supported now")
                 if isinstance(connection.port, SamplingPort):
-                    if channel_type is not None: 
+                    if channel_type is not None:
                         if channel_type != "sampling":
                             raise RuntimeError("Channel for ports of different types: %s and %s" %
                                 (src_connection.port.name, dst_connection.port.name))
@@ -712,7 +732,7 @@ class Configuration:
                         channel_type = "sampling"
                     connection.port.setChannel(self.next_channel_id_sampling)
                 else: # Local connection to queueing port
-                    if channel_type is not None: 
+                    if channel_type is not None:
                         if channel_type != "queueing":
                             raise RuntimeError("Channel for ports of different types: %s and %s" %
                                 (src_connection.port.name, dst_connection.port.name))
@@ -798,8 +818,8 @@ class Configuration:
         if self.network:
             self.network.validate()
 
-            if not networking_time_slot_exists: 
-                raise ValueError("Networking is enabled, but no dedicated network processing time slot is present") 
+            if not networking_time_slot_exists:
+                raise ValueError("Networking is enabled, but no dedicated network processing time slot is present")
         else:
             if networking_time_slot_exists:
                 raise ValueError("Networking is disabled, but there's (unnecessary) network processing time slot in the schedule")

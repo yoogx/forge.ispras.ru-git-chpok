@@ -13,9 +13,11 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <gdb.h>
+#ifdef POK_NEEDS_GDB
+
+#include <asp/gdb.h>
 /* Fill 'registers' array according to 'ea'. */
-void gdb_set_regs(const struct regs* ea, uint32_t* registers)
+void gdb_set_regs(const struct jet_interrupt_context* ea, uint32_t* registers)
 {
     registers[EAX] = ea->eax;
     registers[ECX] = ea->ecx;
@@ -36,8 +38,9 @@ void gdb_set_regs(const struct regs* ea, uint32_t* registers)
 }
 
 /* Fill 'ea' array according to 'registers'. */
-void gdb_get_regs(struct regs* ea, const uint32_t* registers)
+void gdb_get_regs(struct jet_interrupt_context* ea, const uint32_t* registers)
 {
     //TODO
 }
 
+#endif /* POK_NEEDS_GDB */

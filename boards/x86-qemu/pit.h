@@ -17,7 +17,7 @@
 #ifndef __POK_X86_QEMU_PIT_H__
 #define __POK_X86_QEMU_PIT_H__
 
-pok_ret_t pok_x86_qemu_timer_init ();
+void pok_x86_qemu_timer_init (void);
 
 #endif /* !__POK_X86_PIT_H_ */
 

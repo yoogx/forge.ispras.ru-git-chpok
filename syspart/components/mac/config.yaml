@@ -1,0 +1,33 @@
+- name: MAC_SENDER
+  #additional_h_files: ['<port_info.h>']
+  state_struct:
+      src_mac[6]: uint8_t
+
+  in_ports:
+      - name: portA
+        type: ethernet_packet_sender
+        implementation:
+            mac_send: mac_send
+            flush: mac_flush
+  out_ports:
+      - name: portB
+        type: preallocated_sender
+
+- name: MAC_RECEIVER
+  #additional_h_files: ['<port_info.h>']
+  state_struct:
+      my_mac[6]: uint8_t
+
+  in_ports:
+      - name: portA
+        type: message_handler
+        implementation:
+            handle: mac_receive
+
+  out_ports:
+      - name: port_UDP
+        type: message_handler
+
+      - name: port_ARP
+        type: message_handler
+

@@ -173,13 +173,12 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
             .duration = {%if part.duration is not none%}{{part.duration}}{%else%}{{part.total_time}}{%endif%},
             .partition_id = {{part.part_id}},
             
-            .space_id = {{loop.index0}},
+            .space_id = {{loop.index}},
             
             .multi_partition_hm_selector = &pok_hm_multi_partition_selector_default,
             .multi_partition_hm_table = &pok_hm_multi_partition_table_default,
         },
         
-        .size = {{part.size}},
         .nthreads = {{part.num_threads}} + 1 /*main thread*/ + 1 /* error thread */,
         .threads = partition_threads_{{loop.index0}},
         
@@ -225,7 +224,7 @@ pok_partition_t partition_monitor =
     
     .period = {{conf.major_frame}}, {#TODO: Where it is stored in conf?#}
     
-    .space_id = 0xff,
+    .space_id = 0,
     
     .multi_partition_hm_selector = &pok_hm_multi_partition_selector_default,
     .multi_partition_hm_table = &pok_hm_multi_partition_table_default,
@@ -239,7 +238,7 @@ pok_partition_t partition_gdb =
 
     .period = {{conf.major_frame}}, {#TODO: Where it is stored in conf?#}
 
-    .space_id = 0xff,
+    .space_id = 0,
 
     .multi_partition_hm_selector = &pok_hm_multi_partition_selector_default,
     .multi_partition_hm_table = &pok_hm_multi_partition_table_default,
@@ -279,9 +278,6 @@ const uint8_t pok_module_sched_n = {{conf.slots | length}};
 
 const pok_time_t pok_config_scheduling_major_frame = {{conf.major_frame}};
 
-/************************ Setup address spaces ************************/
-struct pok_space spaces[{{conf.partitions | length}}]; // As many as partitions
-
 /************************ Memory blocks ************************/
 #include <core/memblocks_config.h>
 struct memory_block jet_memory_blocks[] = {
@@ -302,32 +298,5 @@ struct memory_block jet_memory_blocks[] = {
 };
 
 size_t jet_memory_blocks_n = {{ conf.memory_blocks | length }};
-/************************ Memory mapping ************************/
-//HACK
-#ifdef __PPC__
 
-#include <arch/ppc/tlb_config.h>
-
-struct tlb_entry jet_tlb_entries[] = {
-    {%for mblock in conf.memory_blocks%}
-    // {{mblock.name}}
-    {%for pid, access_right in mblock.access.iteritems() %}
-    {
-        .virt_addr = {{mblock.virt_addr}},
-        .phys_addr = {{mblock.phys_addr}},
-        .size = E500MC_PGSIZE_{{mblock.str_size}},
-        .permissions = MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,
-        {%if mblock.cache_policy == "IO"%}
-        .cache_policy = MAS2_W | MAS2_I | MAS2_M | MAS2_G,
-        {% endif %}
-        .pid = {{pid}},
-    },
-    {%endfor%}
-
-    {%endfor%}
-
-};
-
-size_t jet_tlb_entries_n = {{ conf.memory_blocks_tlb_entries_count }};
-
-#endif
+{% include 'arch/' + conf.arch + '/deployment_kernel' %}

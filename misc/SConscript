@@ -47,9 +47,9 @@ except:
 
     vars = Variables()
     vars.AddVariables(
-        ('xml', 'xml config to be passed to parser', 'config.xml'),
         EnumVariable('bsp', 'bsp', default_board, allowed_values = boards),
-        BoolVariable('jdeveloper', 'Enables developer mode', 0)
+        BoolVariable('jdeveloper', 'Enables developer mode', 0),
+        BoolVariable('cdeveloper', 'Enables component developer mode', 0)
     )
 
     env = Environment(variables = vars, ENV = os.environ)
@@ -58,7 +58,6 @@ except:
 
     # If bsp isn't specified on the command line,
     # try to get it from bash environment
-    #if 'bsp' not in COMMAND_LINE_TARGETS:
     if ARGUMENTS.get('bsp'):
         env['BSP'] = env['bsp']
     else:
@@ -99,6 +98,7 @@ env['ARCH'] = bsp_arch_dict[env['BSP']]
 env['KERNEL_CPPPATH'] = [
     env['POK_PATH']+'/kernel/include',
     env['POK_PATH']+'/kernel/arch/' + env['ARCH'] + '/include',
+    env['POK_PATH']+'/boards/' + env['BSP'] + '/include',
 ]
 
 env['LIBPOK_CPPPATH'] = [
@@ -153,7 +153,9 @@ env.Append(CFLAGS = cflags)
 
 cflags_arch_dict = {
     'ppc':    ' -O0 -mregnames',
-    'x86':    ' -Og'
+    # TODO: Add infrastructure to enable/disable compile time parameters
+    # Quick and dirty hack: currently GDB suport is broken on x86 -- disable it
+    'x86':    ' -O0 -DPOK_DISABLE_GDB'
 }
 env.Append(CFLAGS = cflags_arch_dict[env['ARCH']])
 
@@ -167,6 +169,13 @@ bsp_cpu_dict = {
 }
 env.Append(CFLAGS = bsp_cpu_dict[env['BSP']])
 
+# Additional compile flags for kernel-only
+arch_kernel_flags_dict = {
+    'ppc':    '-msoft-float',
+}
+
+env['CFLAGS_KERNEL'] = arch_kernel_flags_dict.get(env['ARCH'], "")
+
 bsp_qemu_dict = {
     'e500mc':          ' -M ppce500 -cpu e500mc',
     'e500_highmem':    ' -M ppce500 -cpu e500mc',
@@ -178,12 +187,14 @@ env.Append(QEMU_FLAGS = bsp_qemu_dict[env['BSP']])
 env.Append(QEMU_FLAGS = ' -kernel '+env['BUILD_DIR']+'pok.elf')
 
 #env.Append(QEMU_FLAGS = ' -display none')
-
 env.Command('run_cmd', [], env['QEMU']+env['QEMU_FLAGS'])
 env.Alias('run', 'run_cmd')
 
 env.Command('run_tap_cmd', [], env['QEMU'] + env['QEMU_FLAGS'] + ' -net nic,model=virtio -net tap,ifname=tap0,script=no,downscript=no')
 env.Alias('run-tap', 'run_tap_cmd')
+
+env.Command('run_tap2_cmd', [], env['QEMU'] + env['QEMU_FLAGS'] + ' -net nic,model=virtio,vlan=0 -net nic,model=virtio,vlan=1 -net tap,ifname=tap0,script=no,downscript=no,vlan=0 -net tap,ifname=tap1,script=no,downscript=no,vlan=1')
+env.Alias('run-tap2', 'run_tap2_cmd')
 
 env.Command('run_tap_cmd_ne2k', [], env['QEMU'] + env['QEMU_FLAGS'] + ' -net nic,model=ne2k_pci,vlan=0 -net nic,model=ne2k_pci,vlan=1 -net tap,ifname=tap0,script=no,downscript=no,vlan=0, -net tap,ifname=tap1,script=no,downscript=no,vlan=1')
 env.Alias('run-tap-ne2k', 'run_tap_cmd_ne2k')
@@ -203,6 +214,17 @@ gdb_commands_file = env['BUILD_DIR'] + '/GDB_commands'
 command_debug_gdb = env.Command('debug_gdb', [gdb_commands_file,], env['GDB']+' '+env['BUILD_DIR']+'pok.elf -ex "source '+gdb_commands_file+'" \
                                                                             -ex "target extended-remote 127.0.0.1:8000"')
 env.Alias('debug-gdb', 'debug_gdb')
+
+import SCons.Node.Alias
+if env.GetOption('help'):
+    aliases = SCons.Node.Alias.default_ans.keys()
+    aliases.sort()
+
+    print('---------------')
+    print('Alias list:')
+    for x in aliases:
+        print(x)
+    print('---------------')
 
 Export('env')
 

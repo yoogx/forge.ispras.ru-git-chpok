@@ -18,7 +18,8 @@
 
 #include <config.h>
 
-#include <bsp_common.h>
+#include <asp/arch.h>
+#include <asp/bsp_common.h>
 #include <types.h>
 #include <libc.h>
 #include <ioports.h>
@@ -30,10 +31,10 @@
 #include <core/thread.h>
 #include <core/time.h>
 #include <core/error.h>
-#include <memory.h>
+#include <asp/memory.h>
 
+#include <cons.h>
 #include <core/port.h>
-#include <uaccess.h>
 
 /* Call given function without protection(with enabled interrupts). */
 static pok_ret_t unprotected_syscall(
@@ -41,7 +42,7 @@ static pok_ret_t unprotected_syscall(
    const pok_syscall_args_t*    args)
 {
    pok_ret_t ret;
-   pok_arch_preempt_enable();
+   ja_preempt_enable();
    ret = f(args);
    pok_partition_return_user();
    return ret;
@@ -63,41 +64,8 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
    {
 #if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG)
       case POK_SYSCALL_CONSWRITE:
-         // TODO: It should be a call protected with global preemption disabled.
-         POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg1 + infos->base_addr)
-         if (pok_cons_write ((const char*)args->arg1 + infos->base_addr, args->arg2))
-         {
-            return POK_ERRNO_OK;
-         }
-         else
-         {
-            return POK_ERRNO_EINVAL;
-         }
+         return jet_console_write_user((const char* __user)args->arg1, args->arg2);
          break;
-#endif
-
-#ifdef POK_NEEDS_PORTS_VIRTUAL
-      case POK_SYSCALL_MIDDLEWARE_VIRTUAL_CREATE:
-         POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg1 + infos->base_addr)
-         POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg2 + infos->base_addr)
-         return pok_port_virtual_id ( (char*) (args->arg1 + infos->base_addr), (pok_port_id_t*) (args->arg2 + infos->base_addr));
-         break;
-
-      case POK_SYSCALL_MIDDLEWARE_VIRTUAL_NB_DESTINATIONS:
-         POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg2 + infos->base_addr)
-         return pok_port_virtual_nb_destinations ( (pok_port_id_t) (args->arg1), (uint32_t*) (args->arg2 + infos->base_addr));
-         break;
-
-      case POK_SYSCALL_MIDDLEWARE_VIRTUAL_DESTINATION:
-         POK_CHECK_PTR_OR_RETURN(infos->partition, ((void*) args->arg3)+infos->base_addr)
-         return pok_port_virtual_destination ( (pok_port_id_t) (args->arg1), (uint32_t) (args->arg2), (uint32_t*) (args->arg3 + infos->base_addr));
-         break;
-
-      case POK_SYSCALL_MIDDLEWARE_VIRTUAL_GET_GLOBAL:
-         POK_CHECK_PTR_OR_RETURN(infos->partition, (void*) (args->arg2 + infos->base_addr))
-         return pok_port_virtual_get_global ((pok_port_id_t) (args->arg1), (pok_port_id_t*) (args->arg2 + infos->base_addr));
-         break;
-
 #endif
 
 #if defined POK_NEEDS_GETTICK
@@ -231,28 +199,15 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
 
       //TODO rewrite this! This two syscall needs to return pok_ret_t!
       case POK_SYSCALL_MEM_VIRT_TO_PHYS:
-          if (POK_CHECK_PTR_IN_PARTITION(infos->partition, args->arg1 + infos->base_addr))
-              return pok_virt_to_phys(args->arg1);
-          else 
-              return 0;
-
+         return pok_virt_to_phys(args->arg1);
+         break;
       case POK_SYSCALL_MEM_PHYS_TO_VIRT:
-      {
-          uintptr_t virt = pok_phys_to_virt(args->arg1);
-          //This is very strange. But current memory structure forces doing this.
-          if (POK_CHECK_PTR_IN_PARTITION(infos->partition, virt + infos->base_addr))
-              return virt;
-          else
-              return 0;
-      }
+         return pok_phys_to_virt(args->arg1);
+         break;
 
       case POK_SYSCALL_GET_BSP_INFO:
-      {
-         POK_CHECK_PTR_OR_RETURN(infos->partition, args->arg1 + infos->base_addr)
-         //TODO add check that current partition is system
-         pok_bsp_get_info((void *)(args->arg1 + infos->base_addr));
-         return 0;
-      }
+         return pok_bsp_get_info((void* __user)args->arg1);
+         break;
 
       SYSCALL_ENTRY(POK_SYSCALL_MEMORY_BLOCK_GET_STATUS)
 
@@ -281,14 +236,16 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
                             const pok_syscall_info_t*    infos)
 {
     pok_ret_t ret;
-
+#ifdef POK_NEEDS_GDB
     current_partition->entry_sp_user = global_thread_stack;
-
     pok_in_user_space = FALSE;
+#endif
 
     ret = pok_core_syscall_internal(syscall_id, args, infos);
 
-    return ret;
-
+#if POK_NEEDS_GDB
     pok_in_user_space = TRUE;
+#endif
+
+    return ret;
 }
