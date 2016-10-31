@@ -308,8 +308,7 @@ static int real_main(void)
 void main(void) {
 	
 	status = NOT_EXECUTED;
-	
-	printf("started\n");
+
 	
 	PARTITION_STATUS_TYPE part_status;
 	RETURN_CODE_TYPE ret;

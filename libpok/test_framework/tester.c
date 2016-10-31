@@ -4,24 +4,35 @@
 
 pok_ret_t tester_read(int entity_type, void* message, uint8_t pre_created_id, const char* pre_created_name)
 {
+    pok_ret_t ret = 0;
     
     switch (entity_type)
     {
-        case BLACKBOARD:
+      
+        case BUFFER:
             ;
             
             // write wrapper
             blackboard_write_wrapper(message, pre_created_id);
             
             // read wrapper
-            blackboard_read_wrapper(pre_created_id);
+            ret = blackboard_read_wrapper(pre_created_id);
             
             break;
         
-        
-        
+          case BLACKBOARD:
+            ;
+            
+            // write wrapper
+            blackboard_write_wrapper(message, pre_created_id);
+            
+            // read wrapper
+            ret = blackboard_read_wrapper(pre_created_id);
+            
+            break;
     }
     
+    return ret;
 }
 
 /*
@@ -231,8 +242,3 @@ pok_ret_t pointer_error_tester(int syscall_id, int error_type, void* param, int 
     
     return ret;
 }
-
-//pok_ret_t pre_create(int syscall_id, int error_type, void* param, int pos, int pre_created_id_type)
-//{
-//    switch(pre_created_id_type)
-//}

@@ -13,23 +13,6 @@ void entry_point_method(void)
     
 	return;	
 }
-
-/*
- * For all 1-parametrized wrappers
- * 
- * pos - position of tested param
- * 
- * other _n params are autocompleted by a wrapper
- * 
- * usefull files to write this type of wrappers:
- * - libpok/arinc653/<name>.c // for example, buffer.c for buffer syscalls
- * - kernel/include/uapi/<name>_types.h // for example, buffer_types.h for buffer syscalls
- * - kernel/include/uapi/types.h
- * - kernel/include/uapi/syscall_map_arinc.h
- * - libpok/include/uapi/syscall_map_arinc.h
- * - libpok/include/arinc653/types.h
- * - kernel/core/intra_arinc.c
- **/
  
 // TODO: fix all parameter types + default values
 
@@ -82,78 +65,72 @@ pok_ret_t pok_thread_create_wrapper(void* param, int pos)
 	
 	return ret;
 }
+*/
 
 
-pok_ret_t pok_thread_sleep_wrapper(void* param, int pos)
+
+pok_ret_t pok_thread_sleep_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    ret = pok_thread_sleep(&param); 
+    ret = pok_thread_sleep(param); 
 	
 	return ret;
 }
 
-pok_ret_t pok_thread_sleep_until_wrapper(void* param, int pos)
+/*
+// TODO: find definition
+pok_ret_t pok_thread_sleep_until_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    ret = pok_thread_sleep_until(&param);
+    ret = pok_thread_sleep_until(param);
     
     return ret;
 }
+**/
 
-pok_ret_t pok_thread_suspend_wrapper(void* param, int pos)
+pok_ret_t pok_thread_suspend_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    ret = pok_thread_suspend(&param); 
+    ret = pok_thread_suspend(param); 
 	
 	return ret;
 }
 
-pok_ret_t pok_sched_get_current_wrapper(void* param, int pos)
+pok_ret_t pok_sched_get_current_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    ret = pok_thread_suspend(&param); 
+    ret = pok_thread_suspend(param); 
 	
 	return ret;
 }
 
-// there is something wring, check it
-pok_ret_t pok_thread_get_status_wrapper(void* param, int pos)
+pok_ret_t pok_thread_get_status_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    pok_thread_id_t thread_id = 0; // TODO created thread needed!!!
+    pok_thread_id_t thread_id = pre_created_id;
+    char* name = pre_created_name;      // TODO: check whether it is name of the process
     
+    void* entry = entry_point_method;   // TODO: check the right value!!
     
-    char* name = "user1";
-    void* entry = entry_point_method;
-			
-	pok_thread_attr_t attr = {
-		.priority = 0,
-		//.entry = entry_point_method,
-		.period = INFINITE_TIME_VALUE,
-		.deadline = SOFT,
-		.time_capacity = INFINITE_TIME_VALUE,
-		.stack_size = 8096,
-	};
-		
-	pok_thread_id_t id;
+    pok_thread_status_t* status;        // out
     
 	switch (pos)
 	{
-		case 0:
+		case 1:
 			;
-			ret = pok_thread_get_status(&param, &entry, &attr, &id); 
+			ret = pok_thread_get_status(thread_id, param, entry, status); 
 			break;
 		
-		case 1:
-            ret = pok_thread_get_status(&name, &param, &attr, &id);
+		case 2:
+            ret = pok_thread_get_status(thread_id, name, param, status);
 			break;
-        case 2:
-            ret = pok_thread_get_status(&name, &entry, &param, &id);
+        case 3:
+            ret = pok_thread_get_status(thread_id, name, entry, param);
 			break;
 	}
 	
@@ -161,76 +138,76 @@ pok_ret_t pok_thread_get_status_wrapper(void* param, int pos)
 }
 
 
-pok_ret_t pok_thread_delayed_start_wrapper(void* param, int pos)
+pok_ret_t pok_thread_delayed_start_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    pok_thread_id_t thread_id = 0; // TODO: create thread (in advance)
+    pok_thread_id_t thread_id = pre_created_id;
     
-    ret = pok_thread_delayed_start(thread_id, &param);
+    ret = pok_thread_delayed_start(thread_id, param);
     
     return ret;
 }
 
-pok_ret_t pok_sched_replenish_wrapper(void* param, int pos)
+pok_ret_t pok_sched_replenish_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    ret = pok_sched_replenish(&param); 
+    ret = pok_sched_replenish(param); 
 	
 	return ret;
 }
 
-pok_ret_t pok_thread_find_wrapper(void* param, int pos)
+pok_ret_t pok_thread_find_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    char* name = "process1"; // TODO: there better be process with that name
+    char* name = pre_created_name; // TODO: there better be process with that name
 		
-	pok_thread_id_t* id; // TODO: check if it is out-param
+	pok_thread_id_t* id; // out
     
 	switch (pos)
 	{
 		case 0:
 			;
-			ret = pok_thread_find(&param, &id); 
+			ret = pok_thread_find(param, id); 
 			break;
 		
 		case 1:
-            ret = pok_thread_find(&name, &param);
+            ret = pok_thread_find(name, param);
 			break;
 	}
 	
 	return ret;                     
 }
 
-pok_ret_t pok_current_partition_get_status_wrapper(void* param, int pos)
+pok_ret_t pok_current_partition_get_status_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    ret = pok_current_partition_get_status(&param); 
+    ret = pok_current_partition_get_status(param); 
 	
 	return ret;
 }
 
-pok_ret_t pok_current_partition_inc_lock_level_wrapper(void* param, int pos)
+pok_ret_t pok_current_partition_inc_lock_level_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    ret = pok_current_partition_inc_lock_level(&param); 
+    ret = pok_current_partition_inc_lock_level(param); 
 	
 	return ret;
 }
 
-pok_ret_t pok_current_partition_dec_lock_level_wrapper(void* param, int pos)
+pok_ret_t pok_current_partition_dec_lock_level_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    ret = pok_current_partition_dec_lock_level(&param); 
+    ret = pok_current_partition_dec_lock_level(param); 
 	  
 	return ret;
 }
-*/ 
+ 
 
 /////////////////////////// BUFFERS ///////////////////////////
 
@@ -697,65 +674,69 @@ pok_ret_t pok_event_status_wrapper(void* param, int pos, uint8_t pre_created_id,
 }
 
 
-/*
 
-/////////////////////////// ERROR HANDLING ///////////////////////////
 
-pok_ret_t pok_error_thread_create_wrapper(void* param, int pos)
+/////////////////////////// ERROR HANDLING (HEALTH MONITORING ///////////////////////////
+
+pok_ret_t pok_error_thread_create_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    uint32_t stack_size; // TODO: check right value
+    uint32_t stack_size = 8096; // value from examples (TODO: 8096 of what?)
     
 	switch (pos)
 	{
 		case 1:
-            ret = pok_error_thread_create(&stack_size, &param);
+            ret = pok_error_thread_create(stack_size, &param);
 			break;
 	}
 	
 	return ret;                     
 }
 
-pok_ret_t pok_error_raise_application_error_wrapper(void* param, int pos)
+pok_ret_t pok_error_raise_application_error_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    size_t msg_size; // TODO: check right value
+    size_t msg_size = 64; // value from include/arinc653/error.h (0 .. 128)
     
 	switch (pos)
 	{
 		case 0:
 			;
-			ret = pok_error_raise_application_error(&param, &msg_size); 
+			ret = pok_error_raise_application_error(&param, msg_size); 
 			break;
 	}
 	
 	return ret;                     
 }
 
-// TODO: check what this syscall does
-pok_ret_t pok_error_get_wrapper(void* param, int pos)
+// TODO: check what msg is for
+pok_ret_t pok_error_get_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
-    pok_error_status_t* status; // TODO: check right values
-    void* msg;
+    pok_error_status_t* status; // out
+    void* msg;                  // out
     
 	switch (pos)
 	{
-		case 0:
+		case 0: // pok_error_status_t*, status, out
 			;
-			ret = pok_error_get(&param, &msg); 
+			ret = pok_error_get(param, msg); 
 			break;
 		
-		case 1:
-            ret = pok_error_get(&status, &param);
+		case 1: // ???
+            ;
+            ret = pok_error_get(status, param);
 			break;
 	}
 	
 	return ret;                     
 }
+
+
+/*
 
 //////////---////////--- MIDDLEWARE SYSCALLS ---//////////---////////////
 
