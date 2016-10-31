@@ -1,6 +1,11 @@
 - name: VIRTIO_NET_DEV
   additional_h_files: ['"virtio_network_device.h"']
   state_struct:
+      pci_bus: uint8_t
+      pci_dev: uint8_t
+      pci_fn: uint8_t
+      # КОнфигурация BAR????
+
       #not inited by glue
       info: struct virtio_network_device
       dev_index: int

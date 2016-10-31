@@ -12,23 +12,7 @@
  *
  * See the GNU General Public License version 3 for more details.
  */
-#include <depl.h>
-#include <channel_driver.h>
-#include <net/network.h>
 #include <pci_config.h>
-
-const uint32_t pok_network_ip_address;
-unsigned sys_queuing_channels_nb;
-unsigned sys_sampling_channels_nb;
-unsigned channel_drivers_nb;
-char *ipnet_netdev_name;
-unsigned mac_addr_mapping_nb;
-
-
-sys_channel_t sys_queuing_channels[] = {};
-sys_channel_t sys_sampling_channels[] = {};
-struct mac_ip mac_addr_mapping[] = {};
-channel_driver_t * channel_drivers[] = {};
 
 struct pci_dev_config pci_configs[] = {
     {
@@ -71,4 +55,4 @@ struct pci_dev_config pci_configs[] = {
         }
     },
 };
-unsigned pci_configs_nb = ARRAY_SIZE(pci_configs);
+unsigned pci_configs_nb = 2;

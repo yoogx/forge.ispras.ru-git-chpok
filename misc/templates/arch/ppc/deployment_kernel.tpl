@@ -14,6 +14,7 @@
  */
 
 #include <arch/deployment.h>
+#include <arch/mmu_ext.h>
 
 struct ja_ppc_space ja_spaces[{{conf.spaces | length}}] =
 {

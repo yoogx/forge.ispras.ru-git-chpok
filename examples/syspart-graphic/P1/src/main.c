@@ -12,13 +12,12 @@
  *
  * See the GNU General Public License version 3 for more details.
  */
+
 #include <stdio.h>
 #include <string.h>
 #include <arinc653/buffer.h>
 #include <arinc653/partition.h>
 #include <arinc653/time.h>
-#include <arinc653/queueing.h>
-#include <arinc653/sampling.h>
 
 void main(void) {
     STOP_SELF();
