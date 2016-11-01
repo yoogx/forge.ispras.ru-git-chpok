@@ -1,0 +1,45 @@
+- name: UDP_IP_SENDER
+  additional_h_files: ['"ip_addr.h"']
+  state_struct:
+      src_ip: uint32_t
+      src_port: uint16_t
+      dst_ip: uint32_t
+      dst_port: uint16_t
+      dst_mac[6]: uint8_t
+
+  in_ports:
+      - name: portA
+        type: preallocated_sender
+        implementation:
+            send: udp_ip_send
+            flush: udp_ip_flush
+  out_ports:
+      - name: portB
+        type: ethernet_packet_sender
+
+- name: UDP_RECEIVER
+  additional_h_files: ['"state_structs.h"', '"ip_addr.h"']
+  in_ports:
+      - name: portA
+        type: message_handler
+        implementation:
+            handle: udp_receive
+  out_ports:
+      - name: portB
+        type: udp_message_handler
+
+- name: ROUTER
+  additional_h_files: ['"state_structs.h"', '"ip_addr.h"']
+  state_struct:
+      map_ip_port_to_idx[10]: struct udp_ip_pair
+      map_ip_port_to_idx_len: size_t
+  in_ports:
+      - name: portA
+        type: udp_message_handler
+        implementation:
+            udp_message_handle: receive_packet
+
+  out_ports:
+      - name: portArray
+        type: message_handler
+        is_array: true

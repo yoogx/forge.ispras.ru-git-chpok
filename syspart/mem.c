@@ -18,9 +18,9 @@
 #include <types.h>
 #include <stdio.h>
 
+#include <mem.h>
 extern char dynamic_memory[];
 extern unsigned dynamic_memory_size;
-#define ALIGN_UP(addr,size) (((addr)+((size)-1))&(~((size)-1)))
 
 
 static char * end = NULL;

@@ -52,8 +52,8 @@ def parse_time(s):
         return int(s[:-1]) * (10 ** 3)
     else:
         # assume nanoseconds
-        ns = int(s) 
-    
+        ns = int(s)
+
     if ns < (10 ** 6):
             raise ValueError("specified time less than 1ms (which won't work due to 1ms timer precision)")
     return ns // (10 ** 6)
@@ -120,7 +120,7 @@ class ArincConfigParser:
         conf.validate()
 
         return conf
-    
+
     def parse_partition(self, conf, part_root):
         part_name = part_root.find("Definition").attrib["Name"]
 
@@ -181,7 +181,7 @@ class ArincConfigParser:
         for qp in ports_root.findall("Queueing_Port"):
             port_name = qp.attrib["Name"]
             port_direction = qp.attrib["Direction"]
-            port_max_message_size = int(qp.attrib["MaxMessageSize"])
+            port_max_message_size = parse_bytes(qp.attrib["MaxMessageSize"])
             port_max_nb_messages = int(qp.attrib["MaxNbMessage"])
 
             port = chpok_configuration.QueueingPort(port_name, port_direction,
@@ -197,7 +197,7 @@ class ArincConfigParser:
         for sp in ports_root.findall("Sampling_Port"):
             port_name = sp.attrib["Name"]
             port_direction = sp.attrib["Direction"]
-            port_max_message_size = int(sp.attrib["MaxMessageSize"])
+            port_max_message_size = parse_bytes(sp.attrib["MaxMessageSize"])
             port_refresh = parse_time(sp.attrib["Refresh"])
 
             port = chpok_configuration.SamplingPort(port_name, port_direction,

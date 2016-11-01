@@ -22,8 +22,7 @@ Import('syspart_env')
 ne2000 = SConscript('ne2000/SConscript')
 p3041  = SConscript('p3041/SConscript')
 pci    = SConscript('pci/SConscript')
-virtio = SConscript('virtio/SConscript')
 
-Return('ne2000', 'p3041', 'pci', 'virtio')
+Return('ne2000', 'p3041', 'pci')
 
 # EOF
