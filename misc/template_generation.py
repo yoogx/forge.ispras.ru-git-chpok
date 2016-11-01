@@ -63,6 +63,7 @@ generate_title_c = """/*
 """
 
 generate_title_c_no_track = '/* GENERATED! DO NOT MODIFY! */\n'
+generate_title_python = '# GENERATED! DO NOT MODIFY!\n'
 
 generate_title_python = """# GENERATED! DO NOT MODIFY!
 #
@@ -259,6 +260,7 @@ def TemplateRender(env, target, source, create_definitions_func,
         else:
             env.SideEffect(target_single.abspath + '.deps', t)
             env.ParseDepends(target_single.abspath + '.deps')
+
     return t
 
 ######################### Build system calls definitions ###############

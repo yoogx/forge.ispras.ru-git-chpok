@@ -1,0 +1,3 @@
+ch.hsr.sconsolidator.core.BuildSettingsPreferencePage_useParentScope=false
+eclipse.preferences.version=1
+environmentVariables=TERM\=dumb POK_PATH\=/home/user/workspace/chpok/ PATH\=${PATH}\:/home/user/workspace/powerpc-elf-4.9.1-Linux-x86_64/bin/
