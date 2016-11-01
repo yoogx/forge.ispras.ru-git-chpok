@@ -27,10 +27,10 @@
 /*
     SPRG (software use special-purpose register) designations:
 
-    SPRG0 - 
-    SPRG1 - kernel stack pointer
-    SPRG2 - scratch register
-    SPRG3 - scratch register
+    SPRG0  - 
+    DESAVE - kernel stack pointer
+    SPRG2  - scratch register
+    SPRG3  - scratch register
 */
         
         .section ".start", "ax"
@@ -55,7 +55,7 @@ ja_user_space_jump:
    //rerwite        addi $r7, $r7, -FRAME_SIZE
    //rerwite        li $r8, 0
 //rerwite        stwux $r8, $sp, $r7
- //rerwite      mtsprg 1, $sp
+         MTC0($sp, CP0_DESAVE)
         // Prepare user stack, STATUS and EPC for eret
   //rerwite         addi $sp, $r6, -16
     //rerwite       MTC0($r5, $14)        
@@ -339,7 +339,7 @@ ja_user_space_jump:
         /* Return to user - need to set SPRG1. */
     //rerwite    lw $r4, OFFSETOF_jet_interrupt_context_cr($sp) Restore everything else from interrupt frame.
     //rerwite    mtcr $r4 //Don't need it in MIPS
-    //rerwite    mtsprg 1, $sp
+        MTC0($sp, CP0_DESAVE)
      //rerwite   b 2f
 1:
         /* Return to kernel. */
@@ -365,7 +365,7 @@ ja_user_space_jump:
         ori $k0, $k0, STATUS_CU1
         MTC0($k0, CP0_STATUS)
         /* Check whether kernel stack is usable. */
-    //rerwite    mfsprg $r4, 1
+    //rerwite    mfc0    $r4, CP0_DESAVE
     //rerwite    andi.   $r4, $r4, 1 /* Valid stack is always 16-byte aligned. */
      //rerwite   beq     1f
         /* Come from kernel and kernel stack is ready */
@@ -377,7 +377,7 @@ ja_user_space_jump:
     //rerwite    addi $r3, $sp, FRAME_SIZE + JET_STACK_RED_ZONE
     //rerwite    b       2f
 1:      /* Come from user or interrupted handler hasn't adjust stack yet. */
-     //rerwite   mfsprg $r4, 1
+     //rerwite   mfc0    $r4, CP0_DESAVE
      //rerwite   mtcr $r3 /* Restore cr, so possible highlevel interrupt will see the same as we.*/
         /* Store cr before updating stack pointer! It can be overwritting by highlevel interrupt... but to the same value(see above). */
     //rerwite       sw $r3, OFFSETOF_jet_interrupt_context_cr($r4)
@@ -385,7 +385,7 @@ ja_user_space_jump:
     //rerwite       move $sp, $r4 /* Back chain is already set to 0. */
         /* Mark kernel stack as ready for highlevel interrupts. */
     //rerwite       li $r4, 1
-    //rerwite    mtsprg 1, $r4
+    //rerwite    MTC0($r4, CP0_DESAVE)
 2:      SAVE_REGS_COMMON
 .endm
 
@@ -436,7 +436,7 @@ pok_arch_rfi:
      //rerwite   mtsprg  2, $r4
         EXCEPTION_PROLOGUE_COMMON
 
-    //TODO можно убирать
+    //TODO можно убирать так как это сохранение есть в EXEPTION_PROLOGUE_COMMON
         /* srr0<-srr0, srr1<-srr1. */
 //rerwite           mfc0   $r3, CP0_EPC
 //rerwite           sw     $r3, OFFSETOF_jet_interrupt_context_EPC($sp)
@@ -455,9 +455,9 @@ pok_arch_rfi:
 pok_arch_rfdi_for_debug:
         /* $5 <-> sprg2, $4 <-> sprg3. TODO: other temporary locations should be used. */
    //rerwite        lw      $5, OFFSETOF_jet_interrupt_context_4($sp)
-   //rerwite     mtsprg  2,$5
+   //rerwite     mtsprg  2, $5
     //rerwite       lw      $3, OFFSETOF_jet_interrupt_context_3($sp)
-   //rerwite     mtsprg  2,$4
+   //rerwite     mtsprg  2, $4
 
     //TODO нужно оставить, так как эти регистры мы не трогаем в загрузке
         /* EPC->DEPC, CAUSE->DEBUG. */
@@ -524,7 +524,7 @@ _pok_reset:
 
         /* Mark kernel stack as ready for interrupts. */
     //rerwite       li $r4, 1
-     //rerwite   mtsprg 1, $r4
+     //rerwite   MTC0($r4, CP0_DESAVE)
 
 
         JUMP_AND_LINK(pok_setup_interrupts)

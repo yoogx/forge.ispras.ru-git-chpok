@@ -79,9 +79,9 @@ void pok_arch_decr_int (void)
 void ja_time_init (void)
 {
   time_inter = pok_bsp.timebase_freq / POK_TIMER_FREQUENCY;
-  //~ printf("Timer interval: %lu\n", time_inter);
+  printf("Timer interval: %u\n", time_inter);
   time_last = get_timebase ();
   set_decrementer();
-
-  //~ mtspr(SPRN_TCR, TCR_DIE); // enable decrementer
+  
+  mtsr((mfsr() | CP0_STATUS_IM7)); // enable decrementer
 }
