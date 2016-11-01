@@ -168,7 +168,7 @@ void pok_insert_tlb1(
 static inline const char* pok_ppc_tlb_size(unsigned size)
 {
     switch (size) {
-#define CASE(x) case E500MC_PGSIZE_##x: return #x;
+#define CASE(x) case MIPS_PGSIZE_##x: return #x;
         CASE(4K);
         CASE(16K);
         CASE(64K);
@@ -235,7 +235,7 @@ void pok_arch_space_init (void)
     pok_insert_tlb1(
         0,
         0,
-        E500MC_PGSIZE_256M,  //TODO make smaller
+        MIPS_PGSIZE_256M,  //TODO make smaller
         MAS3_SW | MAS3_SR | MAS3_SX,
         0,
         0, // any pid
@@ -246,7 +246,7 @@ void pok_arch_space_init (void)
      */
     unsigned limit = pok_ppc_tlb_get_nentry(1);
     pok_ppc_tlb_write(1,
-            pok_bsp.ccsrbar_base, pok_bsp.ccsrbar_base_phys, E500MC_PGSIZE_16M,
+            pok_bsp.ccsrbar_base, pok_bsp.ccsrbar_base_phys, MIPS_PGSIZE_16M,
             //MAS3_SW | MAS3_SR | MAS3_SX,
             MAS3_SW | MAS3_SR | MAS3_SX | MAS3_UW | MAS3_UR,
             MAS2_W | MAS2_I | MAS2_M | MAS2_G,
@@ -292,7 +292,7 @@ void pok_arch_handle_page_fault(
         pok_insert_tlb1(
             pok_bsp.ccsrbar_base,
             pok_bsp.ccsrbar_base_phys,
-            E500MC_PGSIZE_16M,
+            MIPS_PGSIZE_16M,
             //MAS3_SW | MAS3_SR,
             MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,
             MAS2_W | MAS2_I | MAS2_M | MAS2_G,
@@ -303,7 +303,7 @@ void pok_arch_handle_page_fault(
         pok_insert_tlb1(
             MPC8544_PCI_IO,
             MPC8544_PCI_IO,
-            E500MC_PGSIZE_64K,
+            MIPS_PGSIZE_64K,
             //MAS3_SW | MAS3_SR,
             MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,
             MAS2_W | MAS2_I | MAS2_M | MAS2_G,
@@ -321,7 +321,7 @@ void pok_arch_handle_page_fault(
         pok_insert_tlb1(
             POK_PARTITION_MEMORY_BASE,
             ja_spaces[space_id - 1].phys_base,
-            E500MC_PGSIZE_16M,
+            MIPS_PGSIZE_16M,
             MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
             0,
             0,//pid,

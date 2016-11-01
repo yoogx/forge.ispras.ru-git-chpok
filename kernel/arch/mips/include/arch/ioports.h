@@ -13,8 +13,8 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __JET_PPC_IOPORTS_H__
-#define __JET_PPC_IOPORTS_H__
+#ifndef __JET_MIPS_IOPORTS_H__
+#define __JET_MIPS_IOPORTS_H__
 
 #include <arch/linux_io.h>
 
@@ -50,4 +50,4 @@ static inline uint32_t ja_inl(unsigned int port)
     return in_le32((uint32_t *) port);
 }
 
-#endif // __JET_PPC_IOPORTS_H__
+#endif // __JET_MIPS_IOPORTS_H__

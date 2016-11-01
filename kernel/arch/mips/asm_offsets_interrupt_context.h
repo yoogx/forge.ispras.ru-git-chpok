@@ -13,8 +13,8 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __JET_PPC_ASM_OFFSETS_INTERRUPT_CONTEXT_H__
-#define __JET_PPC_ASM_OFFSETS_INTERRUPT_CONTEXT_H__
+#ifndef __JET_MIPS_ASM_OFFSETS_INTERRUPT_CONTEXT_H__
+#define __JET_MIPS_ASM_OFFSETS_INTERRUPT_CONTEXT_H__
 
 #include <config.h>
 #ifdef POK_NEEDS_GDB
@@ -25,4 +25,4 @@
 
 #define JET_STACK_RED_ZONE 128
 
-#endif /* __JET_PPC_ASM_OFFSETS_CONTEXT_H__ */
+#endif /* __JET_MIPS_ASM_OFFSETS_CONTEXT_H__ */

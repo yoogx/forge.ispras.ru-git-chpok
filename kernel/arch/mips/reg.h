@@ -1,5 +1,5 @@
-#ifndef __POK_PPC_REG_H__
-#define __POK_PPC_REG_H__
+#ifndef __POK_MIPS_REG_H__
+#define __POK_MIPS_REG_H__
 
 #define SPRN_DEC        0x016   /* Decrement Register */
 #define SPRN_TBRL       0x10C   /* Time Base Read Lower Register (user, R/O) */

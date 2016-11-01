@@ -1,5 +1,5 @@
-#ifndef __POK_PPC_TIMER_H__
-#define __POK_PPC_TIMER_H__
+#ifndef __POK_MIPS_TIMER_H__
+#define __POK_MIPS_TIMER_H__
 
 /* Called by the decrementer's interrupt handled. */
 void pok_arch_decr_int(void);

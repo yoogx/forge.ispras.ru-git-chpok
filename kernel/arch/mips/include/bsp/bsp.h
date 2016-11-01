@@ -1,5 +1,5 @@
-#ifndef __JET_PPC_BSP_H__
-#define __JET_PPC_BSP_H__
+#ifndef __JET_MIPS_BSP_H__
+#define __JET_MIPS_BSP_H__
 
 #include <types.h>
 
@@ -25,4 +25,4 @@ extern pok_bsp_t pok_bsp;
 /* Initialize bsp-related stuff. */
 void ja_bsp_init(void);
 
-#endif /* __JET_PPC_BSP_H__ */
+#endif /* __JET_MIPS_BSP_H__ */

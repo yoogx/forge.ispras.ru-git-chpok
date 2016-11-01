@@ -13,8 +13,8 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __POK_PPC_IOPORTS_H__
-#define __POK_PPC_IOPORTS_H__
+#ifndef __POK_MIPS_IOPORTS_H__
+#define __POK_MIPS_IOPORTS_H__
 
 #include <stdint.h>
 #include "linux_io.h"
@@ -57,4 +57,4 @@ static inline uint32_t inl(unsigned int port)
     return in_le32((uint32_t *) port);
 }
 
-#endif // __POK_PPC_IOPORTS_H__
+#endif // __POK_MIPS_IOPORTS_H__

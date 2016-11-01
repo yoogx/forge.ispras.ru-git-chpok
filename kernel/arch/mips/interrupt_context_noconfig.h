@@ -21,8 +21,8 @@
  * Do not use it directly, include interrupt_context.h instead.
  */
 
-#ifndef __JET_PPC_INTERRUPT_CONTEXT_NOCONFIG_H__
-#define __JET_PPC_INTERRUPT_CONTEXT_NOCONFIG_H__
+#ifndef __JET_MIPS_INTERRUPT_CONTEXT_NOCONFIG_H__
+#define __JET_MIPS_INTERRUPT_CONTEXT_NOCONFIG_H__
 
 #include <stdint.h>
 
@@ -84,4 +84,4 @@ struct jet_interrupt_context
 #endif /* POK_NEEDS_GDB */
 } __attribute__((aligned(16)));
 
-#endif /* __JET_PPC_INTERRUPT_CONTEXT_NOCONFIG_H__ */
+#endif /* __JET_MIPS_INTERRUPT_CONTEXT_NOCONFIG_H__ */

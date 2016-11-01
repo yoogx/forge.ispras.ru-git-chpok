@@ -1,5 +1,5 @@
-#ifndef __POK_PPC_SYSCALLS_H__
-#define __POK_PPC_SYSCALLS_H__
+#ifndef __POK_MIPS_SYSCALLS_H__
+#define __POK_MIPS_SYSCALLS_H__
 
 #include <types.h>
 

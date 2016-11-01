@@ -18,8 +18,8 @@
 
 /* Definitions which are used in deployment.c */
 
-#ifndef __JET_PPC_DEPLOYMENT_H__
-#define __JET_PPC_DEPLOYMENT_H__
+#ifndef __JET_MIPS_DEPLOYMENT_H__
+#define __JET_MIPS_DEPLOYMENT_H__
 
 /* 
  * Virtual address where partition's memory starts.
@@ -59,4 +59,4 @@ struct ja_ppc_space
 extern struct ja_ppc_space ja_spaces[];
 extern int ja_spaces_n;
 
-#endif /* __JET_PPC_DEPLOYMENT_H__ */
+#endif /* __JET_MIPS_DEPLOYMENT_H__ */

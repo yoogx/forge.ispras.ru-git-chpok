@@ -14,8 +14,8 @@
  * Created by julien on Thu Jan 15 23:34:13 2009 
  */
 
-#ifndef __POK_PPC_MSR_H__
-#define __POK_PPC_MSR_H__
+#ifndef __POK_MIPS_MSR_H__
+#define __POK_MIPS_MSR_H__
 
 //#define MSR_SF_LG       63              /* Enable 64 bit mode */
 //#define MSR_ISF_LG      61              /* Interrupt 64b mode valid on 630 */

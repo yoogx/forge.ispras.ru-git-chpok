@@ -13,8 +13,8 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __JET_PPC_GDB_H__
-#define __JET_PPC_GDB_H__
+#ifndef __JET_MIPS_GDB_H__
+#define __JET_MIPS_GDB_H__
 
 #define NUMREGS_FP 32
 enum fp_regnames {
@@ -38,4 +38,4 @@ r30, r31, pc, msr, cr, lr, ctr, xer
  */
 #include <../arch/ppc/interrupt_context.h>
 
-#endif /* __JET_PPC_GDB_H__ */
+#endif /* __JET_MIPS_GDB_H__ */

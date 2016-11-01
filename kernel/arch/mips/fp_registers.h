@@ -13,8 +13,8 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __JET_PPC_FP_REGISTERS_H__
-#define __JET_PPC_FP_REGISTERS_H__
+#ifndef __JET_MIPS_FP_REGISTERS_H__
+#define __JET_MIPS_FP_REGISTERS_H__
 
 #include <asp/space.h>
 
@@ -23,4 +23,4 @@ struct jet_fp_store
   double fp_regs[32];
 };
 
-#endif /* __JET_PPC_FP_REGISTERS_H__ */
+#endif /* __JET_MIPS_FP_REGISTERS_H__ */

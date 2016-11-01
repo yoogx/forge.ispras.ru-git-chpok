@@ -1,5 +1,5 @@
-#ifndef __POK_PPC_SPACE_H__
-#define __POK_PPC_SPACE_H__
+#ifndef __POK_MIPS_SPACE_H__
+#define __POK_MIPS_SPACE_H__
 
 #include <types.h>
 #include "interrupt_context.h"

@@ -45,24 +45,26 @@ reserved_0000:
 
         .globl ja_user_space_jump
 ja_user_space_jump:
-        /* r3 - kernel stack for return,
-         * r4 - user space id,
-         * r5 - entry point
-         * r6 - user stack
+        /* a0 - kernel stack for return,
+         * a1 - user space id,
+         * a2 - entry point
+         * a3 - user stack
          */
         // Prepare kernel stack for return
-//rerwite           add $r7, $r3, $sp
-   //rerwite        addi $r7, $r7, -FRAME_SIZE
-   //rerwite        li $r8, 0
-//rerwite        stwux $r8, $sp, $r7
+         add  $8, $a0, $sp
+         addi $8, $8, -FRAME_SIZE
+         li   $9, 0
+        //stwux $9, $sp, $8 in powerpc 
+         add  $sp, $sp, $8
+         sw   $9, ($sp)
          MTC0($sp, CP0_DESAVE)
         // Prepare user stack, STATUS and EPC for eret
-  //rerwite         addi $sp, $r6, -16
-    //rerwite       MTC0($r5, $14)        
-    //rerwite       /*Do $r9 = CP0_STATUS_CU1 | CP0_STATUS_FR | CP0_STATUS_IE*/
-    //rerwite       li   $r9, CP0_STATUS_CU1                              
-    //rerwite       addi $r9, CP0_STATUS_FR                            
-    //rerwite       addi $r9, CP0_STATUS_IE 
+         addi $sp, $a3, -16
+         MTC0($a2, $14)        
+        /*Do $10 = CP0_STATUS_CU1 | CP0_STATUS_FR | CP0_STATUS_IE*/
+         li   $10, CP0_STATUS_CU1                              
+         addi $10, CP0_STATUS_FR                            
+         addi $10, CP0_STATUS_IE 
 /*
  *EE	Enable/disable external interrupts  
  *
@@ -83,7 +85,7 @@ ja_user_space_jump:
  *    0 The processor can execute both user- and supervisor-level instructions.
  *    1 The processor can only execute user-level instructions.
  */
-  //rerwite         MTC0($r9, CP0_STATUS)
+        MTC0($10, CP0_STATUS)
 
         // Nullify other registers (0, 2-28, 30-31)
         move $0,  $zero
@@ -328,87 +330,87 @@ ja_user_space_jump:
 /*
  * Common part of interrupt epilogue.
  *
- * Prepare everything except EPC, CP0_STATUS, r3, r4.
+ * Prepare everything except EPC, CP0_STATUS, a0, a1.
  */
 .macro EXCEPTION_EPILOGUE_COMMON
         RESTORE_REGS_COMMON
         /* Determine whether we return to user space. */
-   //rerwite        lw $r4, OFFSETOF_jet_interrupt_context_STATUS($sp)
-     //rerwite   andi.   $r4,$r4,MSR_PR
+   //rerwite        lw $a1, OFFSETOF_jet_interrupt_context_STATUS($sp)
+     //rerwite   andi.   $a1,$a1,MSR_PR
     //rerwite    beq     1f
-        /* Return to user - need to set SPRG1. */
-    //rerwite    lw $r4, OFFSETOF_jet_interrupt_context_cr($sp) Restore everything else from interrupt frame.
-    //rerwite    mtcr $r4 //Don't need it in MIPS
+        /* Return to user - need to set DESAVE. */
+    //rerwite    lw $a1, OFFSETOF_jet_interrupt_context_cr($sp) Restore everything else from interrupt frame.
+    //rerwite    mtcr $a1 //Don't need it in MIPS
         MTC0($sp, CP0_DESAVE)
      //rerwite   b 2f
 1:
         /* Return to kernel. */
- //rerwite       lw $r4, OFFSETOF_jet_interrupt_context_cr($sp) Restore everything else from interrupt frame.
- //rerwite       mtcr $r4 //Don't need it in MIPS
+ //rerwite       lw $a1, OFFSETOF_jet_interrupt_context_cr($sp) Restore everything else from interrupt frame.
+ //rerwite       mtcr $a1 //Don't need it in MIPS
 2:
-   //rerwite        move $sp, $r3
+   //rerwite        move $sp, $a0
 .endm
 
 /*
  * Common exception prologue.
  *
  * Before the call:
- *     r3 and r4 are stored to some temporary locations before.
+ *     a0 and a1 are stored to some temporary locations before.
  *
  * After the call:
- *     r1 points to interrupt frame, where r3, r4, srr0 and srr1 should be stored.
+ *     sp points to interrupt frame, where a0, a1, STATUS and EPC should be stored.
  */
 .macro EXCEPTION_PROLOGUE_COMMON
-   //rerwite     mfcr    $r3
+   //rerwite     mfcr    $a0
         /* Enable floating point bit in status */
         mfc0 $k0, CP0_STATUS
         ori $k0, $k0, STATUS_CU1
         MTC0($k0, CP0_STATUS)
         /* Check whether kernel stack is usable. */
-    //rerwite    mfc0    $r4, CP0_DESAVE
-    //rerwite    andi.   $r4, $r4, 1 /* Valid stack is always 16-byte aligned. */
+    //rerwite    mfc0    $a1, CP0_DESAVE
+    //rerwite    andi.   $a1, $a1, 1 /* Valid stack is always 16-byte aligned. */
      //rerwite   beq     1f
         /* Come from kernel and kernel stack is ready */
     //rerwite    stwu $sp, -FRAME_SIZE-JET_STACK_RED_ZONE($sp)
-    //rerwite       sw $r3, OFFSETOF_jet_interrupt_context_cr($sp)
+    //rerwite       sw $a0, OFFSETOF_jet_interrupt_context_cr($sp)
         /* Store lr to previous backchain. */
-    //rerwite    mflr $r3
-    //rerwite       sw $r3, FRAME_SIZE + JET_STACK_RED_ZONE + OFFSETOF_jet_stack_frame_lr($sp)
-    //rerwite    addi $r3, $sp, FRAME_SIZE + JET_STACK_RED_ZONE
+    //rerwite    mflr $a0
+    //rerwite       sw $a0, FRAME_SIZE + JET_STACK_RED_ZONE + OFFSETOF_jet_stack_frame_lr($sp)
+    //rerwite    addi $a0, $sp, FRAME_SIZE + JET_STACK_RED_ZONE
     //rerwite    b       2f
 1:      /* Come from user or interrupted handler hasn't adjust stack yet. */
-     //rerwite   mfc0    $r4, CP0_DESAVE
-     //rerwite   mtcr $r3 /* Restore cr, so possible highlevel interrupt will see the same as we.*/
+     //rerwite   mfc0    $a1, CP0_DESAVE
+     //rerwite   mtcr $a0 /* Restore cr, so possible highlevel interrupt will see the same as we.*/
         /* Store cr before updating stack pointer! It can be overwritting by highlevel interrupt... but to the same value(see above). */
-    //rerwite       sw $r3, OFFSETOF_jet_interrupt_context_cr($r4)
-    //rerwite       move $r3, $sp
-    //rerwite       move $sp, $r4 /* Back chain is already set to 0. */
+    //rerwite       sw $a0, OFFSETOF_jet_interrupt_context_cr($r4)
+    //rerwite       move $a0, $sp
+    //rerwite       move $sp, $a1 /* Back chain is already set to 0. */
         /* Mark kernel stack as ready for highlevel interrupts. */
-    //rerwite       li $r4, 1
-    //rerwite    MTC0($r4, CP0_DESAVE)
+    //rerwite       li $a1, 1
+    //rerwite    MTC0($a1, CP0_DESAVE)
 2:      SAVE_REGS_COMMON
 .endm
 
 /* Return from non-critical interrupt. */
         .globl pok_arch_rfi
 pok_arch_rfi:
-        /* r4 <-> sprg2, r3 <-> sprg3 */
-    //rerwite      lw     $r4,OFFSETOF_jet_interrupt_context_4($sp)
-    //rerwite    mtsprg  2, $r4
-     //rerwite      lw     $r3,OFFSETOF_jet_interrupt_context_3($sp)
-    //rerwite    mtsprg  3, $r3
+        /* a1 <-> sprg2, a0 <-> sprg3 */
+    //rerwite      lw     $a1,OFFSETOF_jet_interrupt_context_4($sp)
+    //rerwite    mtsprg  2, $a1
+     //rerwite      lw     $a0,OFFSETOF_jet_interrupt_context_3($sp)
+    //rerwite    mtsprg  3, $a0
 
     //TODO можно убирать:
         /* srr0->srr0, srr1->srr1. */
-    //rerwite       lw     $r4, OFFSETOF_jet_interrupt_context_STATUS($sp)
-    //rerwite       MTC0($r4, CP0_STATUS)
-    //rerwite       lw     $r3, OFFSETOF_jet_interrupt_context_EPC($sp)
-    //rerwite       MTC0($r3, CP0_EPC)
+    //rerwite       lw     $a1, OFFSETOF_jet_interrupt_context_STATUS($sp)
+    //rerwite       MTC0($a1, CP0_STATUS)
+    //rerwite       lw     $a0, OFFSETOF_jet_interrupt_context_EPC($sp)
+    //rerwite       MTC0($a0, CP0_EPC)
 
         EXCEPTION_EPILOGUE_COMMON
 
-    //rerwite    mfsprg $r3, 3
-     //rerwite   mfsprg $r4, 2
+    //rerwite    mfsprg $a0, 3
+     //rerwite   mfsprg $a1, 2
         
     /*TODO: Condition*/
         b 1b
@@ -431,67 +433,67 @@ pok_arch_rfi:
 
 /* Exception prologue for non-critical interrupts. */
 .macro EXCEPTION_PROLOGUE
-        /* r3 <-> sprg3, r4 <-> sprg2*/
-     //rerwite   mtsprg  3, $r3
-     //rerwite   mtsprg  2, $r4
+        /* a0 <-> sprg3, a1 <-> sprg2*/
+     //rerwite   mtsprg  3, $a0
+     //rerwite   mtsprg  2, $a1
         EXCEPTION_PROLOGUE_COMMON
 
     //TODO можно убирать так как это сохранение есть в EXEPTION_PROLOGUE_COMMON
         /* srr0<-srr0, srr1<-srr1. */
-//rerwite           mfc0   $r3, CP0_EPC
-//rerwite           sw     $r3, OFFSETOF_jet_interrupt_context_EPC($sp)
-//rerwite           mfc0   $r4, CP0_STATUS
-//rerwite           sw     $r4, OFFSETOF_jet_interrupt_context_STATUS($sp)
+//rerwite           mfc0   $a0, CP0_EPC
+//rerwite           sw     $a0, OFFSETOF_jet_interrupt_context_EPC($sp)
+//rerwite           mfc0   $a1, CP0_STATUS
+//rerwite           sw     $a1, OFFSETOF_jet_interrupt_context_STATUS($sp)
 
-    //rerwite    mfsprg  $r4, s2
-  //rerwite         sw     $r4, OFFSETOF_jet_interrupt_context_4($sp)
-     //rerwite   mfsprg  $r3, 3
-   //rerwite        sw     $r3, OFFSETOF_jet_interrupt_context_3($sp)
+    //rerwite       mfsprg $a1, 2
+  //rerwite         sw     $a1, OFFSETOF_jet_interrupt_context_4($sp)
+     //rerwite      mfsprg $a0, 3
+   //rerwite        sw     $a0, OFFSETOF_jet_interrupt_context_3($sp)
 .endm
         
         
 /* Return from debug interrupt. */
         .globl pok_arch_rfdi_for_debug
 pok_arch_rfdi_for_debug:
-        /* $5 <-> sprg2, $4 <-> sprg3. TODO: other temporary locations should be used. */
-   //rerwite        lw      $5, OFFSETOF_jet_interrupt_context_4($sp)
-   //rerwite     mtsprg  2, $5
-    //rerwite       lw      $3, OFFSETOF_jet_interrupt_context_3($sp)
-   //rerwite     mtsprg  2, $4
+        /* $a1 <-> sprg2, $a0 <-> sprg3. TODO: other temporary locations should be used. */
+   //rerwite        lw      $a1, OFFSETOF_jet_interrupt_context_4($sp)
+   //rerwite     mtsprg  2, $a1
+    //rerwite       lw      $a0, OFFSETOF_jet_interrupt_context_3($sp)
+   //rerwite     mtsprg  2, $a0
 
     //TODO нужно оставить, так как эти регистры мы не трогаем в загрузке
         /* EPC->DEPC, CAUSE->DEBUG. */
-    //rerwite       lw      $5, OFFSETOF_jet_interrupt_context_CAUSE($sp)
-    //rerwite       MTC0($5, CP0_DEBUG)
-    //rerwite       lw      $4, OFFSETOF_jet_interrupt_context_EPC($sp)
-    //rerwite       MTC0($4, CP0_DEPC)
+    //rerwite       lw      $a1, OFFSETOF_jet_interrupt_context_CAUSE($sp)
+    //rerwite       MTC0($a1, CP0_DEBUG)
+    //rerwite       lw      $a0, OFFSETOF_jet_interrupt_context_EPC($sp)
+    //rerwite       MTC0($a0, CP0_DEPC)
 
         EXCEPTION_EPILOGUE_COMMON
 
-    //rerwite    mfsprg  $5, 2
-     //rerwite   mfsprg  $4, 3
+    //rerwite    mfsprg  $a1, 2
+     //rerwite   mfsprg  $a0, 3
 
         mfc0   $k0, CP0_DEPC
         DERET_AND_NOP
         JUMP_TO_REG($k0)        
 
 .macro EXCEPTION_PROLOGUE_DEBUG
-        /* r3 <-> sprg3, r4 <-> sprg2. TODO: use different temporaries. */
-    //rerwite    mtsprg  3, $r3
-    //rerwite    mtsprg  2, $r4
+        /* a0 <-> sprg3, a1 <-> sprg2. TODO: use different temporaries. */
+    //rerwite    mtsprg  3, $a0
+    //rerwite    mtsprg  2, $a1
         EXCEPTION_PROLOGUE_COMMON
 
     //TODO нужно оставить, так как эти регистры мы не трогаем в сохранении
         /* EPC<-DEPC, CAUSE<-DEBUG. */
-   //rerwite        mfc0    $r3, CP0_DEPC
-   //rerwite        sw      $r3, OFFSETOF_jet_interrupt_context_EPC($sp)
-   //rerwite        mfc0    $r4, CP0_DEBUG
-    //rerwite       sw      $r4, OFFSETOF_jet_interrupt_context_CAUSE($sp)
+   //rerwite        mfc0    $a0, CP0_DEPC
+   //rerwite        sw      $a0, OFFSETOF_jet_interrupt_context_EPC($sp)
+   //rerwite        mfc0    $a1, CP0_DEBUG
+    //rerwite       sw      $a1, OFFSETOF_jet_interrupt_context_CAUSE($sp)
 
-     //rerwite   mfsprg  $r3, 3
-    //rerwite       sw      $r3, OFFSETOF_jet_interrupt_context_3($sp)
-    //rerwite    mfsprg  $r4, 2
-    //rerwite       sw      $r4, OFFSETOF_jet_interrupt_context_4($sp)
+     //rerwite   mfsprg  $a0, 3
+    //rerwite       sw      $a0, OFFSETOF_jet_interrupt_context_3($sp)
+    //rerwite    mfsprg  $a1, 2
+    //rerwite       sw      $a1, OFFSETOF_jet_interrupt_context_4($sp)
 .endm
 
         . = base + 0x300
@@ -512,19 +514,19 @@ failed: b failed
         .globl _pok_reset
 system_reset_0100:
 _pok_reset:
-        /*write $4(devtree addr) to devtree_address global variable*/
+        /*write $a0(devtree addr) to devtree_address global variable*/
         //TODO fix conflict:
         //lis $sp, devtree_address
 
-        sw  $4, 0($sp)
+        sw  $a0, 0($sp)
 
         /* Setup stack */
         //TODO fix conflict:
         //lis $sp, pok_stack_end-4
 
         /* Mark kernel stack as ready for interrupts. */
-    //rerwite       li $r4, 1
-     //rerwite   MTC0($r4, CP0_DESAVE)
+    //rerwite       li $a1, 1
+     //rerwite   MTC0($a1, CP0_DESAVE)
 
 
         JUMP_AND_LINK(pok_setup_interrupts)
@@ -536,17 +538,17 @@ _pok_reset:
         /* TODO: copy .sdata, clear .bss */
         /* Copy .data */
 /*
- *         lis $r3, (__data_start-4)@h
- *         ori $r3, $r3, (__data_start-4)@l
- *         lis $r4, (__data_load-4)@h
- *         ori $r4, $r4, (__data_load-4)@l
- *         lis $r5, __data_end@h
- *         ori $r5, $r5, __data_end@l
- *         cmplw $r3, $r5
+ *         lis $a0, (__data_start-4)@h
+ *         ori $a0, $a0, (__data_start-4)@l
+ *         lis $a1, (__data_load-4)@h
+ *         ori $a1, $a1, (__data_load-4)@l
+ *         lis $a2, __data_end@h
+ *         ori $a2, $a2, __data_end@l
+ *         cmplw $a0, $a2
  *         bge 2f
- * 1:      lwzu $r6, 4($r4)
- *         stwu $r6, 4($r3)
- *         cmplw $r3, $r5
+ * 1:      lwzu $a3, 4($a1)
+ *         stwu $a3, 4($a0)
+ *         cmplw $a0, $a2
  *         blt 1b
  * 2:
  */
@@ -574,70 +576,70 @@ label##_asm:
     /* TODO: shouldn't critical interrupt level should be used there? */
     START_EXCEPTION(pok_int_critical_input)
         EXCEPTION_PROLOGUE
-        move $4, $sp
+        move $a0, $sp
         JUMP_AND_LINK(pok_int_critical_input)
         JUMP_TO_ADDR(pok_arch_rfi)
 
     /* TODO: shouldn't machine check interrupt level should be used there? */
     START_EXCEPTION(pok_int_machine_check)
         EXCEPTION_PROLOGUE
-        move $4, $sp
+        move $a0, $sp
         JUMP_AND_LINK(pok_int_machine_check)
         JUMP_TO_ADDR(pok_arch_rfi)
 
     START_EXCEPTION(pok_int_data_storage)
         EXCEPTION_PROLOGUE
-        move $4, $sp
+        move $a0, $sp
 
-        mfc0 $5, CP0_BadVAddr
-        mfc0 $6, CP0_CAUSE
-     //rerwite   mfspr $r4, SPRN_DEAR // DEAR - faulting address    DEAR = BadVAddr
-     //rerwite   mfspr $r5, SPRN_ESR // ESR - exception syndrome    ESR  = Cause.ExcCode
+        mfc0 $a1, CP0_BadVAddr
+        mfc0 $a2, CP0_CAUSE
+     //rerwite   mfspr $a1, SPRN_DEAR // DEAR - faulting address    DEAR = BadVAddr
+     //rerwite   mfspr $a2, SPRN_ESR // ESR - exception syndrome    ESR  = Cause.ExcCode
 
         JUMP_AND_LINK(pok_int_data_storage)
         JUMP_TO_ADDR(pok_arch_rfi)
 
     START_EXCEPTION(pok_int_inst_storage)
         EXCEPTION_PROLOGUE
-        move $4, $sp
-        mfc0 $5, CP0_BadVAddr
-        mfc0 $6, CP0_CAUSE
-    //rerwite     mfspr $r4, SPRN_DEAR // DEAR - faulting address    DEAR = BadVAddr
-    //rerwite    mfspr $r5, SPRN_ESR // ESR - exception syndrome    ESR  = Cause.ExcCode
+        move $a0, $sp
+        mfc0 $a1, CP0_BadVAddr
+        mfc0 $a2, CP0_CAUSE
+    //rerwite     mfspr $a1, SPRN_DEAR // DEAR - faulting address    DEAR = BadVAddr
+    //rerwite    mfspr $a2, SPRN_ESR // ESR - exception syndrome    ESR  = Cause.ExcCode
 
         JUMP_AND_LINK(pok_int_inst_storage)
         JUMP_TO_ADDR(pok_arch_rfi)
 
     START_EXCEPTION(pok_int_ext_interrupt)
         EXCEPTION_PROLOGUE
-        move $4, $sp
+        move $a0, $sp
         JUMP_AND_LINK(pok_int_ext_interrupt)
         JUMP_TO_ADDR(pok_arch_rfi)
 
     START_EXCEPTION(pok_int_alignment)
         EXCEPTION_PROLOGUE
-        move $4, $sp
+        move $a0, $sp
 
         JUMP_AND_LINK(pok_int_alignment)
         JUMP_TO_ADDR(pok_arch_rfi)
 
     START_EXCEPTION(pok_int_program)
         EXCEPTION_PROLOGUE
-        move $4, $sp
+        move $a0, $sp
 
         JUMP_AND_LINK(pok_int_program)
         JUMP_TO_ADDR(pok_arch_rfi)
 
     START_EXCEPTION(pok_int_fp_unavail)
         EXCEPTION_PROLOGUE
-        move $4, $sp
+        move $a0, $sp
 
         JUMP_AND_LINK(pok_int_fp_unavail)
         JUMP_TO_ADDR(pok_arch_rfi)
 
     START_EXCEPTION(pok_int_system_call)
         EXCEPTION_PROLOGUE
-        move $4, $sp
+        move $a0, $sp
         /* load system call arguments back from the interrupt frame */
 /*
  *       lw      $r4,OFFSETOF_jet_interrupt_context_r3($sp)
@@ -648,49 +650,49 @@ label##_asm:
  *       lw      $r9,OFFSETOF_jet_interrupt_context_r8($sp)
  */
         JUMP_AND_LINK(pok_int_system_call) 
-   //rewrite     sw      $r3,OFFSETOF_jet_interrupt_context_3($sp)
+   //rewrite     sw      $a0,OFFSETOF_jet_interrupt_context_3($sp)
 
         JUMP_TO_ADDR(pok_arch_rfi)
 
     START_EXCEPTION(pok_int_decrementer)
         EXCEPTION_PROLOGUE
-        move $4, $sp
+        move $a0, $sp
 
         JUMP_AND_LINK(pok_int_decrementer) 
         JUMP_TO_ADDR(pok_arch_rfi)
 
     START_EXCEPTION(pok_int_interval_timer)
         EXCEPTION_PROLOGUE
-        move $4, $sp
+        move $a0, $sp
 
         JUMP_AND_LINK(pok_int_interval_timer)
         JUMP_TO_ADDR(pok_arch_rfi)
 
     START_EXCEPTION(pok_int_watchdog)
         EXCEPTION_PROLOGUE
-        move $4, $sp
+        move $a0, $sp
 
         JUMP_AND_LINK(pok_int_watchdog)
         JUMP_TO_ADDR(pok_arch_rfi)
 
     START_EXCEPTION(pok_int_data_tlb_miss)
         EXCEPTION_PROLOGUE
-        move $4, $sp
-        mfc0 $5, CP0_BadVAddr
-        mfc0 $6, CP0_CAUSE
-  //rerwite      mfspr $r4, SPRN_DEAR // DEAR - faulting address    DEAR = BadVAddr
-  //rerwite      mfspr $r5, SPRN_ESR // ESR - exception syndrome    ESR  = Cause.ExcCode
+        move $a0, $sp
+        mfc0 $a1, CP0_BadVAddr
+        mfc0 $a2, CP0_CAUSE
+  //rerwite      mfspr $a1, SPRN_DEAR // DEAR - faulting address    DEAR = BadVAddr
+  //rerwite      mfspr $a2, SPRN_ESR // ESR - exception syndrome    ESR  = Cause.ExcCode
 
         JUMP_AND_LINK(pok_int_data_tlb_miss)
         JUMP_TO_ADDR(pok_arch_rfi)
 
     START_EXCEPTION(pok_int_inst_tlb_miss)
         EXCEPTION_PROLOGUE
-        move $4, $sp
-        mfc0 $5, CP0_BadVAddr
-        mfc0 $6, CP0_CAUSE
-    //rerwite    mfspr $r4, SPRN_DEAR // DEAR - faulting address    DEAR = BadVAddr
-    //rerwite    mfspr $r5, SPRN_ESR // ESR - exception syndrome    ESR  = Cause.ExcCode
+        move $a0, $sp
+        mfc0 $a1, CP0_BadVAddr
+        mfc0 $a2, CP0_CAUSE
+    //rerwite    mfspr $a1, SPRN_DEAR // DEAR - faulting address    DEAR = BadVAddr
+    //rerwite    mfspr $a2, SPRN_ESR // ESR - exception syndrome    ESR  = Cause.ExcCode
 
         JUMP_AND_LINK(pok_int_inst_tlb_miss)
         JUMP_TO_ADDR(pok_arch_rfi)

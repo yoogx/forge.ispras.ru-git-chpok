@@ -15,11 +15,11 @@
 
 /* Stack for the (kernel) thread. */
 
-#ifndef __JET_PPC_STACK_H__
-#define __JET_PPC_STACK_H__
+#ifndef __JET_MIPS_STACK_H__
+#define __JET_MIPS_STACK_H__
 
 #include <stdint.h>
 
 typedef uint32_t jet_stack_t;
 
-#endif /* __JET_PPC_STACK_H__ */
+#endif /* __JET_MIPS_STACK_H__ */

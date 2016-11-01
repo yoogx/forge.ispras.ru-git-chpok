@@ -13,26 +13,26 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __POK_PPC_MMU_H__
-#define __POK_PPC_MMU_H__
+#ifndef __POK_MIPS_MMU_H__
+#define __POK_MIPS_MMU_H__
 
-#define E500MC_PGSIZE_4K        0b00010 
-#define E500MC_PGSIZE_16K       0b00100 
-#define E500MC_PGSIZE_64K       0b00110 
-#define E500MC_PGSIZE_256K      0b01000 
-#define E500MC_PGSIZE_1M        0b01010 
-#define E500MC_PGSIZE_4M        0b01100 
-#define E500MC_PGSIZE_16M       0b01110 
-#define E500MC_PGSIZE_64M       0b10000 
-#define E500MC_PGSIZE_256M      0b10010 
-#define E500MC_PGSIZE_1G        0b10100 
-#define E500MC_PGSIZE_4G        0b10110 
+#define MIPS_PGSIZE_4K        0b00010 
+#define MIPS_PGSIZE_16K       0b00100 
+#define MIPS_PGSIZE_64K       0b00110 
+#define MIPS_PGSIZE_256K      0b01000 
+#define MIPS_PGSIZE_1M        0b01010 
+#define MIPS_PGSIZE_4M        0b01100 
+#define MIPS_PGSIZE_16M       0b01110 
+#define MIPS_PGSIZE_64M       0b10000 
+#define MIPS_PGSIZE_256M      0b10010 
+#define MIPS_PGSIZE_1G        0b10100 
+#define MIPS_PGSIZE_4G        0b10110 
 
 #if 0
 static inline int pok_arch_mmu_shift_by_size(unsigned size)
 {
     switch (size) {
-#define CASE(x) case E500MC_PGSIZE_##x: return E500MC_PGSIZE_##x##_SHFT; 
+#define CASE(x) case MIPS_PGSIZE_##x: return MIPS_PGSIZE_##x##_SHFT; 
         CASE(4K);
         CASE(16K);
         CASE(64K);

@@ -13,8 +13,8 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __JET_PPC_CONTEXT_H__
-#define __JET_PPC_CONTEXT_H__
+#ifndef __JET_MIPS_CONTEXT_H__
+#define __JET_MIPS_CONTEXT_H__
 
 #include <stdint.h>
 
@@ -53,4 +53,4 @@ struct jet_context
   uint32_t r31;
 } __attribute__((aligned(16)));
 
-#endif /* __JET_PPC_CONTEXT_H__ */
+#endif /* __JET_MIPS_CONTEXT_H__ */

@@ -15,8 +15,8 @@
 
 /* Basic stack frame */
 
-#ifndef __JET_PPC_FRAME_H__
-#define __JET_PPC_FRAME_H__
+#ifndef __JET_MIPS_FRAME_H__
+#define __JET_MIPS_FRAME_H__
 
 #include <stdint.h>
 
@@ -49,4 +49,4 @@ static inline void jet_stack_frame_link(
     child_frame->back_chain = (uint32_t) parent_frame;
 }
 
-#endif /* __JET_PPC_FRAME_H__ */
+#endif /* __JET_MIPS_FRAME_H__ */

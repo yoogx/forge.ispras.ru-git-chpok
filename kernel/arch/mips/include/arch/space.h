@@ -15,11 +15,11 @@
 
 /* (Memory) space. */
 
-#ifndef __JET_PPC_SPACE_H__
-#define __JET_PPC_SPACE_H__
+#ifndef __JET_MIPS_SPACE_H__
+#define __JET_MIPS_SPACE_H__
 
 #include <stdint.h>
 
 typedef uint32_t jet_ustack_t;
 
-#endif /* __JET_PPC_SPACE_H__ */
+#endif /* __JET_MIPS_SPACE_H__ */
