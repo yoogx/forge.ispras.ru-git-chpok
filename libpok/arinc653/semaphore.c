@@ -98,6 +98,7 @@ void CREATE_SEMAPHORE (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
 
    struct arinc_semaphore* semaphore = &arinc_semaphores[nsemaphores_used];
 
+   memcpy(semaphore->semaphore_name, SEMAPHORE_NAME, MAX_NAME_LENGTH);
    semaphore->maximum_value = MAXIMUM_VALUE;
    semaphore->current_value = CURRENT_VALUE;
    semaphore->discipline = QUEUING_DISCIPLINE;

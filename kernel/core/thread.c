@@ -806,12 +806,25 @@ pok_ret_t jet_msection_wait(struct msection* __user section,
     msection_entering->owner = JET_THREAD_ID_NONE;
     // ... And use common wait.
     thread_wait_common(thread_current, *kernel_timeout);
+
+    /* 
+     * It is possible, that current thread wasn't the highest-priority
+     * thread. Because of that, `thread_wait_common` may do not cause
+     * scheduling invalidation.
+     * 
+     * From the other side, waiting on msection and leaving msection
+     * are the only possible state-modifications for non-highest-priority
+     * thread. Normal msection leaving is followed by jet_resched(),
+     * which invalidates scheduling.
+     * 
+     * So, explicitely invalidate scheduling here.
+     */
+    pok_sched_local_invalidate();
     // After the releasing we will be in common 'msection_entering' state.
 out:
     pok_preemption_local_enable();
 
     return -(unsigned long)thread_current->wait_private;
-
 }
 
 pok_ret_t jet_msection_notify(struct msection* __user section,
