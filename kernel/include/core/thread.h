@@ -25,8 +25,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_THREADS
-
 // Note: Should come before possible inclusion of <core/partition.h>
 
 #include <uapi/thread_types.h>
@@ -41,54 +39,8 @@
 
 #include <core/space.h>
 
-/*
- * In POK, we add a kernel thread and an idle thread. The kernel
- * thread is used to execute kernel code while the idle thread
- * is used to save processor resources.
- *
- * Additionally, if networking is enabled, 
- * there's another thread that polls the network card.
- */
-
-
-#ifdef POK_NEEDS_NETWORKING
-
-#define NETWORK_THREAD POK_CONFIG_NB_THREADS-4
-#define POK_KERNEL_THREADS 4
-
-#else
-
-#define POK_KERNEL_THREADS 3
-
-#endif
-
-
-#define MONITOR_THREAD POK_CONFIG_NB_THREADS-3
-#define KERNEL_THREAD		POK_CONFIG_NB_THREADS -2
-#define IDLE_THREAD        POK_CONFIG_NB_THREADS -1
-
-#define POK_THREAD_DEFAULT_TIME_CAPACITY 10
-
-/*
- * Maximum priority value available to "ordinary" threads.
- *
- * Must be less than maximum value of priority type,
- * otherwise, priority for error handler will overflow
- * (which is defined to be larger than maximum).
- */
-#define POK_THREAD_MAX_PRIORITY  200
-
-
-/*
- * IDLE_STACK_SIZE is the stack size of the idle thread
- * DEFAULT_STACK_SIZE if the stack size of regulard threads
- */
-#define IDLE_STACK_SIZE		1024
+/* Default stack size for main process */
 #define DEFAULT_STACK_SIZE	4096
-
-#ifndef POK_USER_STACK_SIZE
-#define POK_USER_STACK_SIZE 8192
-#endif
 
 #ifdef POK_NEEDS_ERROR_HANDLING
 
@@ -277,6 +229,74 @@ typedef struct _pok_thread
      * something like "state stack", which would be overkill.
      */
     pok_bool_t          suspended;
+
+    /*
+     * If preempted process entering the msection, it is a pointer to it.
+     * 
+     * Otherwise NULL.
+     * 
+     * When process continues to execute, it enters msection automatically.
+     * 
+     * This field is also set when the process waits via 'msection_wait()'.
+     */
+    struct msection* __kuser msection_entering;
+
+    /*
+     * Relations between callers and targets of STOP() function.
+     * 
+     * Relation is initiated when the target of STOP() function needs to
+     * execute code (until it leaves the last msection) before terminating.
+     * 
+     * Such execution may be performed on *donating* basis:
+     * thread, which needs some other one to terminate, donates its time for
+     * other thread.
+     * 
+     * 
+     * General form of such relation is a list of threads (STOP() *callers*),
+     * each of them may continue to work, when a single thread
+     * (STOP() *target*) is stopped.
+     * 
+     * If any thread in the list is a target for some STOP() call, then
+     * caller of that function should be *after* given thread in the list.
+     * 
+     * Such list organization is possible, because:
+     * 1. After being STOP() *target*, thread cannot call STOP().
+     *     (calling STOP() within msection is prohibited).
+     */
+    struct {
+        /* 
+         * First element in the list, which needs to donate execution time
+         * to us for being able to do any progress.
+         * 
+         * Invariant (if not NULL):
+         *   t->relations_stop.first_donator->donate_target == t
+         * 
+         * NULL if no one STOP()'s us.
+         */
+        struct _pok_thread* first_donator;
+        /* 
+         * Next element in the list, which needs to donate execution time
+         * to the same '.donate_target' as we have.
+         * 
+         * Has a sence only if '.donate_target' is not NULL.
+         * 
+         * Invariant(if not NULL):
+         *   t->relations_stop.donate_target ==
+         *   t->relations_stop.next_donator->relations_stop.donate_target
+         * 
+         * NULL if there is no other threads.
+         */
+        struct _pok_thread* next_donator;
+        /* 
+         * Target for our donation.
+         * 
+         * Whenever this field is cleared for part->thread_selected,
+         * pok_sched_local_invalidate() should be called.
+         * 
+         * NULL if we need no one to terminate.
+         */
+        struct _pok_thread* donate_target;
+    } relations_stop;
 
     /*
      * Process entry point.
@@ -485,8 +505,5 @@ pok_ret_t pok_sched_end_period(void);
 pok_ret_t pok_sched_replenish(const pok_time_t* __user budget);
 
 pok_ret_t pok_sched_get_current(pok_thread_id_t* __user thread_id);
-
-
-#endif /* __POK_NEEDS_THREADS */
 
 #endif /* __POK_THREAD_H__ */

@@ -20,6 +20,7 @@
 #include <asp/cswitch.h>
 #include <common.h>
 #include <errno.h>
+#include <uapi/kernel_shared_data.h>
 
 /* 
  * Arch header should define:
@@ -55,6 +56,16 @@ struct jet_space_layout
 /* Fill layout for given user space. */
 void ja_space_layout_get(jet_space_id space_id,
     struct jet_space_layout* space_layout);
+
+/*
+ * Maximum alignment for user space objects.
+ * 
+ * This alignment is used for allocate heap.
+ */
+extern size_t ja_user_space_maximum_alignment;
+
+/* Return pointer to the kernel shared data for given space. */
+struct jet_kernel_shared_data* __kuser ja_space_shared_data(jet_space_id space_id);
 
 /**
  * Jump to the user space.

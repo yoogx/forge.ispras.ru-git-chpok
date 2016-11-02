@@ -41,7 +41,7 @@ if arch_env.get('jdeveloper'):
             GENERATE_TITLE = template_generation.generate_title_c),
     ]
 
-    arch_env.Depends(arch, asm_offsets)
+    arch_env.Depends('regenerate', asm_offsets)
 
 
 Return('arch')

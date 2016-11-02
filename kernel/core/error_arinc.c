@@ -31,6 +31,7 @@
 #include <core/uaccess.h>
 #include "thread_internal.h"
 #include <message.h>
+#include <cons.h>
 
 static inline pok_error_kind_t get_error_kind(pok_error_id_t error_id)
 {
@@ -85,6 +86,9 @@ pok_ret_t pok_error_thread_create (uint32_t stack_size, void* __user entry)
 
     if(!thread_create(t))
        return POK_ERRNO_UNAVAILABLE;
+
+    // Update kernel shared data
+    part->kshd->error_thread_id = part->nthreads_used;
 
     part->nthreads_used++;
 
@@ -351,6 +355,29 @@ pok_ret_t pok_error_raise_application_error (const char* __user msg, size_t msg_
 
     return POK_ERRNO_OK;
 }
+
+pok_ret_t pok_error_raise_os_error (const char* __user msg, size_t msg_size)
+{
+    const char* __kuser k_msg;
+
+    if (msg_size == 0) goto out; // Cannot return. Just ignore message.
+
+    k_msg = jet_user_to_kernel_ro(msg, msg_size);
+
+    if (!k_msg) goto out; // Cannot return. Just ignore message.
+
+    jet_console_write(k_msg, msg_size);
+
+out:
+    if(process_error_partition(POK_SYSTEM_STATE_OS_PART, POK_ERROR_ID_APPLICATION_ERROR))
+        return POK_ERRNO_OK;
+
+    // Should never return.
+    while(1)
+        process_error_partition(POK_SYSTEM_STATE_OS_PART,
+            POK_ERROR_ID_UNHANDLED_INT);
+}
+
 
 void error_check_after_handler(void)
 {

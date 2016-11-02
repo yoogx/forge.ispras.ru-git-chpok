@@ -16,6 +16,8 @@
 #ifndef __JET_UAPI_PARTITION_ARINC_H__
 #define __JET_UAPI_PARTITION_ARINC_H__
 
+#include <uapi/partition_types.h>
+
 /**
  * \enum pok_partition_mode_t
  * \brief The different modes of a partition

@@ -102,27 +102,27 @@ pok_bool_t ja_check_access_exec(void* __user addr, jet_space_id space_id)
 static pok_bool_t x86_is_kernel_area(const void* addr, size_t size)
 {
     return ((unsigned long)addr >= 0
-        && ((unsigned long)addr + size) < POK_PARTITION_MEMORY_PHYS_START)
+        && ((unsigned long)addr + size) < POK_PARTITION_MEMORY_PHYS_START);
 }
 
-static pok_bool_t x86_check_access_gdb(const void* addr, size_t size,
-    jet_space_id space_id)
-{
-    // All threads have access to kernel part.
-    if((unsigned long)addr >= 0
-        && ((unsigned long)addr + size) < POK_PARTITION_MEMORY_PHYS_START)
-        return TRUE;
-
-    if(space_id != 0)
-    {
-        // User partitions have access to their user space.
-        return x86_check_access(addr, size, space_id);
-    }
-    else
-    {
-        return FALSE;
-    }
-}
+//~ static pok_bool_t x86_check_access_gdb(const void* addr, size_t size,
+    //~ jet_space_id space_id)
+//~ {
+    //~ // All threads have access to kernel part.
+    //~ if((unsigned long)addr >= 0
+        //~ && ((unsigned long)addr + size) < POK_PARTITION_MEMORY_PHYS_START)
+        //~ return TRUE;
+//~ 
+    //~ if(space_id != 0)
+    //~ {
+        //~ // User partitions have access to their user space.
+        //~ return x86_check_access(addr, size, space_id);
+    //~ }
+    //~ else
+    //~ {
+        //~ return FALSE;
+    //~ }
+//~ }
 
 
 void* ja_addr_to_gdb(void* addr, size_t size,
