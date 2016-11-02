@@ -38,7 +38,7 @@
 /* 
  * Description of one user space.
  */
-struct ja_ppc_space
+struct ja_mips_space
 {
     /* Physical address of memory chunk. */
     uintptr_t   phys_base;
@@ -56,7 +56,7 @@ struct ja_ppc_space
  * 
  * Should be defined in deployment.c.
  */
-extern struct ja_ppc_space ja_spaces[];
+extern struct ja_mips_space ja_spaces[];
 extern int ja_spaces_n;
 
 #endif /* __JET_MIPS_DEPLOYMENT_H__ */

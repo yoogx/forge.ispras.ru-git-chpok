@@ -116,21 +116,21 @@ static size_t iostream_read_debug(char* s, size_t length)
     return iostream_read_common(s, length, 1);
 }
 
-struct jet_iostream ppc_stream_main =
+struct jet_iostream mips_stream_main =
 {
     .write = &iostream_write_main,
     .read  = &iostream_read_main
 };
-struct jet_iostream ppc_stream_debug =
+struct jet_iostream mips_stream_debug =
 {
     .write = &iostream_write_debug,
     .read  = &iostream_read_debug
 };
 
-struct jet_iostream* ja_stream_default_read = &ppc_stream_main;
-struct jet_iostream* ja_stream_default_write = &ppc_stream_main;
-struct jet_iostream* ja_stream_default_read_debug = &ppc_stream_debug;
-struct jet_iostream* ja_stream_default_write_debug = &ppc_stream_debug;
+struct jet_iostream* ja_stream_default_read = &mips_stream_main;
+struct jet_iostream* ja_stream_default_write = &mips_stream_main;
+struct jet_iostream* ja_stream_default_read_debug = &mips_stream_debug;
+struct jet_iostream* ja_stream_default_write_debug = &mips_stream_debug;
 
 #else
 

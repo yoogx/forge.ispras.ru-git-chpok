@@ -36,6 +36,6 @@ r30, r31, pc, msr, cr, lr, ctr, xer
  * 
  * TODO: should be removed when no longer needed.
  */
-#include <../arch/ppc/interrupt_context.h>
+#include <../arch/mips/interrupt_context.h>
 
 #endif /* __JET_MIPS_GDB_H__ */

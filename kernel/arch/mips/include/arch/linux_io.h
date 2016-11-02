@@ -43,16 +43,12 @@ typedef uint64_t u64;
 
 #define DEF_MMIO_IN_X(name, size, insn)				\
 static inline u##size name(const volatile u##size  *addr)	\
-{									\
-    asm ("sync");               \
-    return 0;                   \
+{									                            \
+	u##size ret;							                    \
+	__asm__ __volatile__("sync;"#insn" %0,%y1;twi 0,%0,0;synci"	\
+		: "=r" (ret) : "Z" (*addr) : "memory");			        \
+	return ret;							                        \
 }
-
-	//~ u##size ret;							
-	//~ __asm__ __volatile__("sync;"#insn" %0,%y1;twi 0,%0,0;isync"	
-		//~ : "=r" (ret) : "Z" (*addr) : "memory");			
-	//~ return ret;							
-//~ }
 
 #define DEF_MMIO_OUT_X(name, size, insn)				\
 static inline void name(volatile u##size  *addr, u##size val)	\
@@ -72,7 +68,7 @@ static inline u##size name(const volatile u##size  *addr)	\
 }
 
 	//~ u##size ret;							
-	//~ __asm__ __volatile__("sync;"#insn"%U1%X1 %0,%1;twi 0,%0,0;isync"
+	//~ __asm__ __volatile__("sync;"#insn"%U1%X1 %0,%1;twi 0,%0,0;synci"
 		//~ : "=r" (ret) : "m" (*addr) : "memory");			
 	//~ return ret;							
 //~ }
@@ -87,29 +83,37 @@ static inline void name(volatile u##size  *addr, u##size val)	\
 		//~ : "=m" (*addr) : "r" (val) : "memory");			
 //~ }
 
-DEF_MMIO_IN_D(in_8,     8, lbz);
-DEF_MMIO_OUT_D(out_8,   8, stb);
+DEF_MMIO_IN_D(in_8,     8, lb);
+DEF_MMIO_OUT_D(out_8,   8, sb);
 
 #ifdef __BIG_ENDIAN__
-DEF_MMIO_IN_D(in_be16, 16, lhz);
-DEF_MMIO_IN_D(in_be32, 32, lwz);
-DEF_MMIO_IN_X(in_le16, 16, lhbrx);
-DEF_MMIO_IN_X(in_le32, 32, lwbrx);
+DEF_MMIO_IN_D(in_be16, 16, lh);
+DEF_MMIO_IN_D(in_be32, 32, lw);
+//~ DEF_MMIO_IN_X(in_le16, 16, lhbrx);
+DEF_MMIO_IN_X(in_le16, 16, lh);
+//~ DEF_MMIO_IN_X(in_le32, 32, lwbrx);
+DEF_MMIO_IN_X(in_le32, 32, lw);
 
-DEF_MMIO_OUT_D(out_be16, 16, sth);
-DEF_MMIO_OUT_D(out_be32, 32, stw);
-DEF_MMIO_OUT_X(out_le16, 16, sthbrx);
-DEF_MMIO_OUT_X(out_le32, 32, stwbrx);
+DEF_MMIO_OUT_D(out_be16, 16, sh);
+DEF_MMIO_OUT_D(out_be32, 32, sw);
+//~ DEF_MMIO_OUT_X(out_le16, 16, sthbrx);
+DEF_MMIO_OUT_X(out_le16, 16, sh);
+//~ DEF_MMIO_OUT_X(out_le32, 32, stwbrx);
+DEF_MMIO_OUT_X(out_le32, 32, sw);
 #else
-DEF_MMIO_IN_X(in_be16, 16, lhbrx);
-DEF_MMIO_IN_X(in_be32, 32, lwbrx);
-DEF_MMIO_IN_D(in_le16, 16, lhz);
-DEF_MMIO_IN_D(in_le32, 32, lwz);
+//~ DEF_MMIO_IN_X(in_be16, 16, lhbrx);
+DEF_MMIO_IN_X(in_be16, 16, lh);
+//~ DEF_MMIO_IN_X(in_be32, 32, lwbrx);
+DEF_MMIO_IN_X(in_be32, 32, lw);
+DEF_MMIO_IN_D(in_le16, 16, lh);
+DEF_MMIO_IN_D(in_le32, 32, lw);
 
-DEF_MMIO_OUT_X(out_be16, 16, sthbrx);
-DEF_MMIO_OUT_X(out_be32, 32, stwbrx);
-DEF_MMIO_OUT_D(out_le16, 16, sth);
-DEF_MMIO_OUT_D(out_le32, 32, stw);
+//~ DEF_MMIO_OUT_X(out_be16, 16, sthbrx);
+DEF_MMIO_OUT_X(out_be16, 16, sh);
+//~ DEF_MMIO_OUT_X(out_be32, 32, stwbrx);
+DEF_MMIO_OUT_X(out_be32, 32, sw);
+DEF_MMIO_OUT_D(out_le16, 16, sh);
+DEF_MMIO_OUT_D(out_le32, 32, sw);
 
 #endif /* __BIG_ENDIAN */
 

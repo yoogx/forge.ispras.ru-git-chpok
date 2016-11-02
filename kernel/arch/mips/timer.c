@@ -53,7 +53,7 @@ static int set_decrementer(void)
   }
   else
   {
-    mtc0(time_new, CP0_COMPARE);
+    mtc0(CP0_COMPARE, time_new);
     return POK_ERRNO_OK;
   }
 }
@@ -63,8 +63,8 @@ void pok_arch_decr_int (void)
 {
   int err;
 
-  // clear pending intrerrupt
-  //~ mtspr(SPRN_TSR, TSR_DIS);
+  // clear pending intrerrupt, but MIPS doesn't need it
+  mtc0(CP0_CAUSE, CP0_CAUSE_IP7);
 
   do
   {

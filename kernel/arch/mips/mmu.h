@@ -113,7 +113,7 @@ static inline int pok_arch_mmu_shift_by_size(unsigned size)
 /*
  * @ requires tlbsel < 2;
  */
-void pok_ppc_tlb_write(
+void pok_mips_tlb_write(
         unsigned tlbsel,
         uint32_t virtual, 
         uint64_t physical, 
@@ -131,7 +131,7 @@ void pok_ppc_tlb_write(
 /*
  * @ requires tlbsel < 2;
  */
-void pok_ppc_tlb_clear_entry(
+void pok_mips_tlb_clear_entry(
         unsigned tlbsel,
         unsigned entry
     );
@@ -139,7 +139,7 @@ void pok_ppc_tlb_clear_entry(
 /*
  * @ requires tlbsel < 2;
  */
-void pok_ppc_tlb_read_entry(
+void pok_mips_tlb_read_entry(
         unsigned tlbsel,
         unsigned entry,
         unsigned *valid, 
@@ -150,11 +150,11 @@ void pok_ppc_tlb_read_entry(
 /*
  * @ requires tlbsel < 5;
  */
-// unsigned pok_ppc_get_tlb_nentry(
+// unsigned pok_mips_get_tlb_nentry(
 //        unsigned tlbsel;
 //    );
 
-#define pok_ppc_tlb_get_nentry(tlbsel) 0
+#define pok_mips_tlb_get_nentry(tlbsel) 0
 //FIXIT
     //~ (mfspr((SPRN_TLB ## tlbsel ## CFG)) & TLBnCFG_N_ENTRY_MASK)
 

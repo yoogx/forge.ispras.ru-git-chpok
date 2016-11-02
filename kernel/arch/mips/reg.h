@@ -79,7 +79,7 @@
                                                                     : "=r" (rval)); rval;})
                                                                     
 
-#define mtc0(v, rn)    asm volatile("mtc0 %0, " __stringify(rn)";"       \
+#define mtc0(rn, v)    asm volatile("mtc0 %0, " __stringify(rn)";"       \
                                              " nop; nop; nop;":          \
                                              : "r" ((unsigned long)(v))  \
                                              : "memory")
@@ -88,13 +88,13 @@
                                 asm volatile("mfc1 %0, " __stringify(rn) \
                                                                     : "=r" (rval)); rval;})
                                                                     
-#define mtc1(v, rn)    asm volatile("mtc1 %0, " __stringify(rn)";"       \
+#define mtc1(rn, v)    asm volatile("mtc1 %0, " __stringify(rn)";"       \
                                              " nop;":                    \
                                              : "r" ((unsigned long)(v))  \
                                              : "memory")
 
 #define mfsr()         mfc0(CP0_STATUS)
-#define mtsr(v)        mtc0(v, CP0_STATUS)
+#define mtsr(v)        mtc0(CP0_STATUS, v)
 
 #endif // __ASSEMBLY__
 

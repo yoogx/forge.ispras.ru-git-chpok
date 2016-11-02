@@ -18,7 +18,7 @@
 #include <assert.h>
 
 // TODO: Revisit (see also pok_space_* code in arch.h)
-static pok_bool_t ppc_check_access(const void* __user addr, size_t size,
+static pok_bool_t mips_check_access(const void* __user addr, size_t size,
     jet_space_id space_id)
 {
     assert(space_id != 0);
@@ -27,7 +27,7 @@ static pok_bool_t ppc_check_access(const void* __user addr, size_t size,
     unsigned long start = (unsigned long)addr;
     unsigned long end = start + size;
 
-    struct ja_ppc_space* space = &ja_spaces[space_id - 1];
+    struct ja_mips_space* space = &ja_spaces[space_id - 1];
 
     /*
      * Currently, there are 2 segments accessible to user:
@@ -56,7 +56,7 @@ static pok_bool_t ppc_check_access(const void* __user addr, size_t size,
 void* __kuser ja_user_to_kernel_space(void* __user addr, size_t size,
     jet_space_id space_id)
 {
-    if(ppc_check_access(addr, size, space_id))
+    if(mips_check_access(addr, size, space_id))
        return (void* __kuser)addr;
     else
        return NULL;
@@ -65,7 +65,7 @@ void* __kuser ja_user_to_kernel_space(void* __user addr, size_t size,
 const void* __kuser ja_user_to_kernel_ro_space(const void* __user addr,
     size_t size, jet_space_id space_id)
 {
-    if(ppc_check_access(addr, size, space_id))
+    if(mips_check_access(addr, size, space_id))
        return (const void* __kuser)addr;
     else
        return NULL;
@@ -77,7 +77,7 @@ pok_bool_t ja_check_access_exec(void* __user addr, jet_space_id space_id)
 
     unsigned long start = (unsigned long)addr;
 
-    struct ja_ppc_space* space = &ja_spaces[space_id - 1];
+    struct ja_mips_space* space = &ja_spaces[space_id - 1];
 
     /*
      * Only single segment could be executed by user:
@@ -91,7 +91,7 @@ pok_bool_t ja_check_access_exec(void* __user addr, jet_space_id space_id)
 
 #ifdef POK_NEEDS_GDB
 
-static pok_bool_t ppc_check_access_gdb(const void* addr, size_t size,
+static pok_bool_t mips_check_access_gdb(const void* addr, size_t size,
     jet_space_id space_id)
 {
     // All threads have access to kernel part.
@@ -102,7 +102,7 @@ static pok_bool_t ppc_check_access_gdb(const void* addr, size_t size,
     if(space_id != 0)
     {
         // User partitions have access to their user space.
-        return ppc_check_access((const void* __user)addr, size, space_id);
+        return mips_check_access((const void* __user)addr, size, space_id);
     }
     else
     {
@@ -114,7 +114,7 @@ static pok_bool_t ppc_check_access_gdb(const void* addr, size_t size,
 void* ja_addr_to_gdb(void* addr, size_t size,
     jet_space_id space_id)
 {
-    if(ppc_check_access_gdb(addr, size, space_id))
+    if(mips_check_access_gdb(addr, size, space_id))
         return addr;
     else
         return NULL;
@@ -123,7 +123,7 @@ void* ja_addr_to_gdb(void* addr, size_t size,
 const void* ja_addr_to_gdb_ro(const void* addr, size_t size,
     jet_space_id space_id)
 {
-    if(ppc_check_access_gdb(addr, size, space_id))
+    if(mips_check_access_gdb(addr, size, space_id))
         return addr;
     else
         return NULL;

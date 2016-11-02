@@ -27,7 +27,7 @@
  *
  * TODO: document parameters
  */
-void pok_ppc_tlb_write(
+void pok_mips_tlb_write(
         unsigned tlbsel,
         uint32_t virtual, 
         uint64_t physical, 
@@ -66,11 +66,11 @@ void pok_ppc_tlb_write(
     //~ asm volatile("synci; tlbwe; synci":::"memory");
 }
 
-void pok_ppc_tlb_clear_entry(
+void pok_mips_tlb_clear_entry(
         unsigned tlbsel,
         unsigned entry
     ) {
-    //pok_ppc_tlb_write(tlbsel,
+    //pok_mips_tlb_write(tlbsel,
         //0, 0,
         //0,
         //0, 0, 0,
@@ -96,7 +96,7 @@ void pok_ppc_tlb_clear_entry(
 
 }
 /*
-unsigned pok_ppc_get_tlb_nentry(unsigned tlbsel) {
+unsigned pok_mips_get_tlb_nentry(unsigned tlbsel) {
     static unsigned regid[] =  { SPRN_TLB0CFG,
         SPRN_TLB1CFG, 
         SPRN_TLB2CFG, 
@@ -109,7 +109,7 @@ unsigned pok_ppc_get_tlb_nentry(unsigned tlbsel) {
 }
 */
 
-void pok_ppc_tlb_read_entry(
+void pok_mips_tlb_read_entry(
         unsigned tlbsel,
         unsigned entry,
         unsigned *valid, 

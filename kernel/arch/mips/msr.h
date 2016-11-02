@@ -75,12 +75,24 @@
 #define Status_KX_LG        7              /* Определяет режим разрядности при адресации в режиме Kernel*/
 #define Status_SX_LG        6              /* Определяет режим разрядности при адресации в режиме Supervisor*/
 #define Status_UX_LG        5              /* Определяет режим разрядности при адресации в режиме User*/
+#define Status_KSU_1_LG     4              /* Код в этом поле определяет текущий режим привилегий:                                                  */
+#define Status_KSU_2_LG     3              /*                                  Код:               00 режим Kernel                                   */
+                                           /*                                                     01 режим Supervisor                               */
+                                           /*                                                     10 режим User                                     */
+                                           /*                                                     11 Зарезервирован. Запись кода аппаратно запрещена*/
 #define Status_ERL_LG       2              /* Error Level. Устанавливается аппаратно при возникновении исключений Reset, Soft Reset, NMI или Cache Error*/
 #define Status_EXL_LG       1              /* Exception Level. Устанавливается аппаратно, если 
                                                                             происходит исключение, отличное от Reset, Soft Reset, NMI или Cache Error*/
 #define Status_IE_LG        0              /* Разрешение прерываний*/
 
 #define Cause_IV_LG         23             /* Показывает, использует ли исключение по прерыванию общий вектор исключений или специальный вектор прерываний*/
+#define Cause_IP7_LG        15             /* Установленный бит показывает, что возникло соответствующие внешнее прерывание.
+                                                                            Аппаратное прерывание 5, таймер(регистр Count) или счетчик производительности*/
+#define Cause_IP6_LG        14             /* Установленный бит показывает, что возникло соответствующие внешнее прерывание. Аппаратное прерывание 4*/
+#define Cause_IP5_LG        13             /* Установленный бит показывает, что возникло соответствующие внешнее прерывание. Аппаратное прерывание 3*/
+#define Cause_IP4_LG        12             /* Установленный бит показывает, что возникло соответствующие внешнее прерывание. Аппаратное прерывание 2*/
+#define Cause_IP3_LG        11             /* Установленный бит показывает, что возникло соответствующие внешнее прерывание. Аппаратное прерывание 1*/
+#define Cause_IP2_LG        10             /* Установленный бит показывает, что возникло соответствующие внешнее прерывание. Аппаратное прерывание 0*/
 
 #define __MASK(X)       (1<<(X))
 
@@ -145,11 +157,23 @@
 #define CP0_STATUS_KX       __MASK(Status_KX_LG)              /* Определяет режим разрядности при адресации в режиме Kernel*/
 #define CP0_STATUS_SX       __MASK(Status_SX_LG)              /* Определяет режим разрядности при адресации в режиме Supervisor*/
 #define CP0_STATUS_UX       __MASK(Status_UX_LG)              /* Определяет режим разрядности при адресации в режиме User*/
+#define CP0_STATUS_KSU_1    __MASK(Status_KSU_1_LG)           /* Код в этом поле определяет текущий режим привилегий:                                                  */
+#define CP0_STATUS_KSU_2    __MASK(Status_KSU_2_LG)           /*                                  Код:               00 режим Kernel                                   */
+                                                              /*                                                     01 режим Supervisor                               */
+                                                              /*                                                     10 режим User                                     */
+                                                              /*                                                     11 Зарезервирован. Запись кода аппаратно запрещена*/
 #define CP0_STATUS_ERL      __MASK(Status_ERL_LG)             /* Error Level. Устанавливается аппаратно при возникновении исключений Reset, Soft Reset, NMI или Cache Error*/
 #define CP0_STATUS_EXL      __MASK(Status_EXL_LG)             /* Exception Level. Устанавливается аппаратно, если происходит исключение, отличное от Reset, Soft Reset, NMI или Cache Error*/
 #define CP0_STATUS_IE       __MASK(Status_IE_LG)              /* Разрешение прерываний*/
 
 #define CP0_CAUSE_IV        __MASK(Cause_IV_LG)               /* Роказывает, использует ли исключение по прерыванию общий вектор исключений или специальный вектор прерываний*/
+#define CP0_CAUSE_IP7       __MASK(Cause_IP7_LG)              /* Установленный бит показывает, что возникло соответствующие внешнее прерывание.
+                                                                                          Аппаратное прерывание 5, таймер(регистр Count) или счетчик производительности*/
+#define CP0_CAUSE_IP6       __MASK(Cause_IP6_LG)              /* Установленный бит показывает, что возникло соответствующие внешнее прерывание. Аппаратное прерывание 4*/
+#define CP0_CAUSE_IP5       __MASK(Cause_IP5_LG)              /* Установленный бит показывает, что возникло соответствующие внешнее прерывание. Аппаратное прерывание 3*/
+#define CP0_CAUSE_IP4       __MASK(Cause_IP4_LG)              /* Установленный бит показывает, что возникло соответствующие внешнее прерывание. Аппаратное прерывание 2*/
+#define CP0_CAUSE_IP3       __MASK(Cause_IP3_LG)              /* Установленный бит показывает, что возникло соответствующие внешнее прерывание. Аппаратное прерывание 1*/
+#define CP0_CAUSE_IP2       __MASK(Cause_IP2_LG)              /* Установленный бит показывает, что возникло соответствующие внешнее прерывание. Аппаратное прерывание 0*/
 
 #define CP0_INDEX         $0    /* Index       Register*/ /* Номер строки TLB и бит ошибки */    
 #define CP0_RANDOM        $1    /* Random      Register*/ /* Псевдослучайное число в диапазоне [63..wired] */
@@ -159,12 +183,12 @@
 #define CP0_PAGEMASK      $5    /* PageMask    Register*/ /* Битовая маска TLB */
 #define CP0_WIRED         $6    /* Wired       Register*/ /* Минимальное значение, вырабатываемое в регистре Random */
 #define CP0_BadVAddr      $8    /* BadVAddr    Register*/ /* Регистр BadVAddr содержит последний из адресов, вызвавших одно из следующих исключений: 
-                                                                                                                     //~ Address error (AdEL or AdES);
-                                                                                                                     //~ TLB/XTLB Refill;
-                                                                                                                     //~ TLB Invalid (TLBL, TLBS);
-                                                                                                                     //~ TLB Modified*/
+                                                                                                                      Address error (AdEL or AdES);
+                                                                                                                      TLB/XTLB Refill;
+                                                                                                                      TLB Invalid (TLBL, TLBS);
+                                                                                                                      TLB Modified*/
 #define CP0_COUNT         $9    /* Count       Register*/ /* Счетчик тактов процессора*/
-#define CP0_ENTRYHI       $10   /* EntryHi     Register*/ /*  */
+#define CP0_ENTRYHI       $10   /* EntryHi     Register*/ /* Старшая часть строки TLB*/
 #define CP0_COMPARE       $11   /* Compare     Register*/ /* Величина для сравнения с регистром Count, когда Count становится равным Compare происходит прерывание IM7 (прерывание по таймеру)*/
 #define CP0_STATUS        $12   /* Status      Register*/ /* Описывает состояние системы */
 #define CP0_CAUSE         $13   /* Cause       Register*/ /* Информация о прерывании */

@@ -1,7 +1,7 @@
 /*
  * GENERATED! DO NOT MODIFY!
  *
- * Instead of modifying this file, modify the one it generated from (kernel/arch/ppc/asm_offsets_stack_frame.def).
+ * Instead of modifying this file, modify the one it generated from (kernel/arch/mips/asm_offsets_stack_frame.def).
  */
 /*
  * Institute for System Programming of the Russian Academy of Sciences

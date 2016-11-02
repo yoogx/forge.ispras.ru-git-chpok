@@ -15,7 +15,7 @@
 
 #include <arch/deployment.h>
 
-struct ja_ppc_space ja_spaces[{{conf.spaces | length}}] =
+struct ja_mips_space ja_spaces[{{conf.spaces | length}}] =
 {
 {%for space in conf.spaces%}
     {
