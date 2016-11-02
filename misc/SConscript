@@ -154,9 +154,7 @@ env.Append(CFLAGS = cflags)
 
 cflags_arch_dict = {
     'ppc':    ' -O0 -mregnames',
-    # TODO: Add infrastructure to enable/disable compile time parameters
-    # Quick and dirty hack: currently GDB suport is broken on x86 -- disable it
-    'x86':    ' -O0 -DPOK_DISABLE_GDB'
+    'x86':    ' -O0'
 }
 env.Append(CFLAGS = cflags_arch_dict[env['ARCH']])
 
