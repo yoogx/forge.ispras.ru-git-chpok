@@ -56,9 +56,9 @@ CONTEXT_RESTORE:
         lw     $1,  OFFSETOF_jet_context_lo($sp)
         MTlo($1)
         lw     $1,  OFFSETOF_jet_context_hi($sp)
-        MTHi($1)
+        MThi($1)
         lw     $1,  OFFSETOF_jet_context_FCCR($sp)
-        mtc1   $1,  $24
+        MTC1($1,  CP1_FCCR)
         lw     $sp, OFFSETOF_jet_stack_frame_back_chain($sp)
         lw     $ra, OFFSETOF_jet_stack_frame_lr($sp)
         JUMP_TO_REG($ra)
@@ -71,7 +71,7 @@ ja_context_switch:
         /*mflr   $1*/
         sw     $ra,FRAME_SIZE + OFFSETOF_jet_stack_frame_lr($sp)
         /* Save registers.  */
-        mfc1   $1,  $24 /* FCCR */
+        mfc1   $1,  CP1_FCCR
         sw     $1,  OFFSETOF_jet_context_FCCR($sp)
         mfhi   $1                               
         sw     $1,  OFFSETOF_jet_context_hi($sp) 

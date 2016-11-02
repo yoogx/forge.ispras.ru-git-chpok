@@ -97,7 +97,7 @@ void pok_int_program(struct jet_interrupt_context* ea) {
 //    //~ printf("\n\n            In pok_int_programm:\n");
 //    //~ printf("addr = 0x%lx\n",(uint32_t) ea);
 //    //~ printf("offset1 = 0x%lx\n",ea->offset1);
-//    //~ printf("cr = 0x%lx\n",ea->cr);
+//    //~ printf("FCCR = 0x%lx\n",ea->cr);
 //    //~ printf("ctr = 0x%lx\n",ea->ctr);
 //    //~ printf("xer = 0x%lx\n",ea->xer);
 //    //~ printf("srr0 or pc = 0x%lx\n",ea->srr0); 

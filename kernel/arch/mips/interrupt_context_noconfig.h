@@ -74,10 +74,11 @@ struct jet_interrupt_context
   uint32_t r29;
   uint32_t r30;
   uint32_t r31;
-  uint32_t LO;
-  uint32_t HI;
+  uint32_t lo;
+  uint32_t hi;
   uint32_t EPC;
-  uint32_t BVADDR;
+  uint32_t FCCR;
+  uint32_t BadVAddr;
   uint32_t STATUS;
   uint32_t CAUSE;
 #ifdef POK_NEEDS_GDB

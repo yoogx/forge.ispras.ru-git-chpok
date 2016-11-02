@@ -152,13 +152,17 @@ ja_user_space_jump:
                  sw   $10, OFFSETOF_jet_interrupt_context_r10($sp) 
                  sw   $11, OFFSETOF_jet_interrupt_context_r11($sp) 
                  sw   $12, OFFSETOF_jet_interrupt_context_r12($sp) 
-                 sw   $3,  OFFSETOF_jet_interrupt_context_HI($sp)   
+                 sw   $3,  OFFSETOF_jet_interrupt_context_hi($sp)   
                  mflo $3                                       
                  sw   $13, OFFSETOF_jet_interrupt_context_r13($sp) 
                  sw   $14, OFFSETOF_jet_interrupt_context_r14($sp) 
                  sw   $15, OFFSETOF_jet_interrupt_context_r15($sp) 
                  sw   $24, OFFSETOF_jet_interrupt_context_r24($sp) 
-                 sw   $3,  OFFSETOF_jet_interrupt_context_LO($sp)   
+                 sw   $3,  OFFSETOF_jet_interrupt_context_lo($sp) 
+                 mfc1 $3,  CP1_FCCR
+                 sw   $3,  OFFSETOF_jet_interrupt_context_FCCR($sp)  
+                 mfc0 $3,  CP0_BadVAddr
+                 sw   $3,  OFFSETOF_jet_interrupt_context_BadVAddr($sp) 
 .endm
                                                                  
                                                                  
@@ -224,10 +228,15 @@ ja_user_space_jump:
                                                                   
                                                                   
 .macro RESTORE_TEMP                                               
-                 lw   $24, OFFSETOF_jet_interrupt_context_LO($sp)   
+                 /*FIXME: There is an error if uncoment this*/
+                 //~lw   $24,  OFFSETOF_jet_interrupt_context_BadVAddr($sp) 
+                 //~MTC0($24,  CP0_BadVAddr)
+                 //~lw   $24,  OFFSETOF_jet_interrupt_context_FCCR($sp)  
+                 //~MTC1($24,  CP1_FCCR)
+                 lw   $24, OFFSETOF_jet_interrupt_context_lo($sp)   
                  MTlo($24)                                        
-                 lw   $24, OFFSETOF_jet_interrupt_context_HI($sp)   
-                 MTHi($24)                                        
+                 lw   $24, OFFSETOF_jet_interrupt_context_hi($sp)   
+                 MThi($24)                                        
                  lw   $8,  OFFSETOF_jet_interrupt_context_r8($sp)    
                  lw   $9,  OFFSETOF_jet_interrupt_context_r9($sp)    
                  lw   $10, OFFSETOF_jet_interrupt_context_r10($sp)  

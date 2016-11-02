@@ -187,34 +187,34 @@
                                                                                                                       TLB/XTLB Refill;
                                                                                                                       TLB Invalid (TLBL, TLBS);
                                                                                                                       TLB Modified*/
-#define CP0_COUNT         $9    /* Count       Register*/ /* Счетчик тактов процессора*/
-#define CP0_ENTRYHI       $10   /* EntryHi     Register*/ /* Старшая часть строки TLB*/
-#define CP0_COMPARE       $11   /* Compare     Register*/ /* Величина для сравнения с регистром Count, когда Count становится равным Compare происходит прерывание IM7 (прерывание по таймеру)*/
-#define CP0_STATUS        $12   /* Status      Register*/ /* Описывает состояние системы */
-#define CP0_CAUSE         $13   /* Cause       Register*/ /* Информация о прерывании */
+#define CP0_COUNT         $9    /* Count       Register*/               /* Счетчик тактов процессора*/
+#define CP0_ENTRYHI       $10   /* EntryHi     Register*/               /* Старшая часть строки TLB*/
+#define CP0_COMPARE       $11   /* Compare     Register*/               /* Величина для сравнения с регистром Count, когда Count становится равным Compare происходит прерывание IM7 (прерывание по таймеру)*/
+#define CP0_STATUS        $12   /* Status      Register*/               /* Описывает состояние системы */
+#define CP0_CAUSE         $13   /* Cause       Register*/               /* Информация о прерывании */
 #define CP0_EPC           $14   /* Exception Program Counter Register*/ /* Значение счетчика инструкций (виртуальный адрес команды) в момент возникновения исключительной ситуации. */
 #define CP0_PRID          $15   /* Processor Identification  Register*/ /* Информация об производителе процессора */
-#define CP0_EBASE         $15   /* Exception Base Register*/
-#define CP0_CONFIG        $16   /* Configuration Register (select 0)*/ /*  */
-#define CP0_CONFIG_1      $16   /* Configuration Register (select 1)*/ /*  */
-#define CP0_CONFIG_2      $16   /* Configuration Register (select 2)*/ /*  */
-#define CP0_CONFIG_3      $16   /* Configuration Register (select 3)*/ /*  */
-#define CP0_LLADDR        $17   /*Load Linked Address  Register*/ /* Это поле содержит разряды 35..4 физического адреса, считанного командой Load Linked. */
-#define CP0_WATCHLO       $18   /* WatchLo     Register*/ /* Виртуальный адрес watchpoint'а */
-#define CP0_WATCHHI       $19   /* WatchHi     Register*/ /* Настройка watchpoint'а */
-#define CP0_XCONTEXT      $20   /* Xcontext    Register*/ /*  */
-#define CP0_ChipMemCtrl   $22   /* ChipMemCtrl Register*/ /*  */
-#define CP0_DEBUG         $23   /* Debug       Register*/ /* Настройки для debug прерываний */
-#define CP0_DEPC          $24   /* DEPC        Register*/ /* Адрес, по которому будет продолжено выполнение программы при выходу из режима DebugMode */
+#define CP0_EBASE         $15   /* Exception Base Register*/            /*  */
+#define CP0_CONFIG        $16   /* Configuration Register (select 0)*/  /*  */
+#define CP0_CONFIG_1      $16   /* Configuration Register (select 1)*/  /*  */
+#define CP0_CONFIG_2      $16   /* Configuration Register (select 2)*/  /*  */
+#define CP0_CONFIG_3      $16   /* Configuration Register (select 3)*/  /*  */
+#define CP0_LLADDR        $17   /* Load Linked Address  Register*/      x/* Это поле содержит разряды 35..4 физического адреса, считанного командой Load Linked. */
+#define CP0_WATCHLO       $18   /* WatchLo     Register*/               /* Виртуальный адрес watchpoint'а */
+#define CP0_WATCHHI       $19   /* WatchHi     Register*/               /* Настройка watchpoint'а */
+#define CP0_XCONTEXT      $20   /* Xcontext    Register*/               /*  */
+#define CP0_ChipMemCtrl   $22   /* ChipMemCtrl Register*/               /*  */
+#define CP0_DEBUG         $23   /* Debug       Register*/               /* Настройки для debug прерываний */
+#define CP0_DEPC          $24   /* DEPC        Register*/               /* Адрес, по которому будет продолжено выполнение программы при выходу из режима DebugMode */
 #define CP0_PC_0          $25   /* Performance Counter Register (select 0,2)*/ /*  */
 #define CP0_PC_1          $25   /* Performance Counter Register (select 1,3)*/ /*  */
 #define CP0_ECC           $26   /* Error Checking and Correction Register*/ /*  */
-#define CP0_CACHEERR      $27   /* Cache Error Register*/ /* Информация об ошибках в кэше */
-#define CP0_TAGLO         $28   /* TagLo       Register*/ /* Настройки кэша */
-#define CP0_TAGHI         $29   /* TagHi       Register (select 0)*/ /* PTag – разряды [35:12] физического адреса. */
-#define CP0_DATAHI        $29   /* DataHi      Register (select 1)*/ /* Двойное слово, считанное из кэш-памяти. */
+#define CP0_CACHEERR      $27   /* Cache Error Register*/               /* Информация об ошибках в кэше */
+#define CP0_TAGLO         $28   /* TagLo       Register*/               /* Настройки кэша */
+#define CP0_TAGHI         $29   /* TagHi       Register (select 0)*/    /* PTag – разряды [35:12] физического адреса. */
+#define CP0_DATAHI        $29   /* DataHi      Register (select 1)*/    /* Двойное слово, считанное из кэш-памяти. */
 #define CP0_ERROREPC      $30   /* Error Exception Program Counter Register*/ /* Адрес команды, вызвавшей исключение NMI, Reset или Soft Reset */
-#define CP0_DESAVE        $31   /* DESAVE      Register*/ /* Регистр для хранения промежуточных данных */
+#define CP0_DESAVE        $31   /* DESAVE      Register*/               /* Регистр для хранения промежуточных данных */
 
 
 
@@ -253,7 +253,7 @@
         mtc1 arg1, arg2;  \
         nop               
 
-#define MTHi(arg1)        \
+#define MThi(arg1)        \
         mthi arg1;        \
         nop               
         

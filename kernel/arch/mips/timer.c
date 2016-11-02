@@ -63,7 +63,8 @@ void pok_arch_decr_int (void)
 {
   int err;
 
-  // clear pending intrerrupt, but MIPS doesn't need it
+  // FIXME: MIPS doesn't need to clear this bit
+  // clear pending intrerrupt
   mtc0(CP0_CAUSE, CP0_CAUSE_IP7);
 
   do

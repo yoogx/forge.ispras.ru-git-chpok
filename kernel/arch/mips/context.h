@@ -29,7 +29,7 @@ struct jet_context
 {
   struct jet_stack_frame stack_frame;
   
-  uint32_t cr;
+  uint32_t fccr;
   uint32_t r2;
   uint32_t r13;
   uint32_t r14;
