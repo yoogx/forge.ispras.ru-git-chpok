@@ -1,4 +1,3 @@
-
 #include "tester.h"
 
 pok_ret_t tester_create(int syscall_id, int error_type, void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)

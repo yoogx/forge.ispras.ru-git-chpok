@@ -8,6 +8,41 @@ uint8_t  create_entity (int entity_type, char* pre_created_name)
     
     switch (entity_type)
     {
+        case STARTED_PROCESS:
+            ;
+            
+		    PROCESS_ATTRIBUTE_TYPE process_attrs = {
+		        .PERIOD = INFINITE_TIME_VALUE,
+		        .TIME_CAPACITY = INFINITE_TIME_VALUE,
+		        .STACK_SIZE = 8096, // the only accepted stack size!
+		        .BASE_PRIORITY = MIN_PRIORITY_VALUE,
+		        .DEADLINE = SOFT,
+		    };
+		
+		    // create process
+		    process_attrs.ENTRY_POINT = entry_point_method;
+		    strncpy(process_attrs.NAME, "process 1", sizeof(PROCESS_NAME_TYPE));
+		
+		    CREATE_PROCESS(&process_attrs, &id, &ReturnCode);
+		    if (ReturnCode != NO_ERROR) {
+		        printf("couldn't create process 1: %d\n", (int) ReturnCode);
+		        return 1;
+		    } else {
+		        printf("process 1 created\n");
+		    }
+		    
+		    // start process
+		    START(ReturnCode, &ReturnCode);
+		    if (ret != NO_ERROR) {
+		        printf("couldn't start process 1: %d\n", (int) ReturnCode);
+		        return 1;
+		    } else {
+		        printf("process 1 \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
+		    }
+            
+            
+            break;
+            
         case BUFFER:
             ;
             
@@ -68,4 +103,16 @@ uint8_t  create_entity (int entity_type, char* pre_created_name)
             return id;
             break;
     }
+}
+
+void entry_point_method(void)
+{
+	// add some output (print log)
+    
+    
+    // actually this prints only
+    // if partition state is in INIT mode
+    printf("the created process is working");  
+    
+	return;	
 }

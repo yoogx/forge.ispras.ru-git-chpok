@@ -111,11 +111,11 @@ pok_ret_t pok_error_get_wrapper                     (void* param, int pos, uint8
 
 // TODO: add other types of entities
 typedef enum {
-	BLACKBOARD  = 0,
-	BUFFER      = 1,
-    SEMAPHORE   = 2,
-    EVENT       = 3,
-    PROCESS     = 4
+	BLACKBOARD      = 0,
+	BUFFER          = 1,
+    SEMAPHORE       = 2,
+    EVENT           = 3,
+    STARTED_PROCESS = 4
 } ENTITY_TYPE;
 
 
@@ -135,5 +135,3 @@ pok_ret_t buffer_read_wrapper(uint8_t pre_created_id);
 
 pok_ret_t blackboard_write_wrapper(void* param, uint8_t pre_created_id);
 pok_ret_t blackboard_read_wrapper(uint8_t pre_created_id);
-
-uint8_t  create_entity (int entity_type, char* pre_created_name);

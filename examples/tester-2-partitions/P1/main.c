@@ -21,11 +21,6 @@ void first_process(void)
     
     // THREAD NP
     
-    //ret = pointer_error_tester(POK_SYSCALL_THREAD_CREATE,             NULL_POINTER, param, 0, pre_created_id, pre_created_name);
-    //ret = pointer_error_tester(POK_SYSCALL_THREAD_CREATE,             NULL_POINTER, param, 1, pre_created_id, pre_created_name);
-    //ret = pointer_error_tester(POK_SYSCALL_THREAD_CREATE,             NULL_POINTER, param, 2, pre_created_id, pre_created_name);
-    //ret = pointer_error_tester(POK_SYSCALL_THREAD_CREATE,             NULL_POINTER, param, 3, pre_created_id, pre_created_name);
-    
     //ret = pointer_error_tester(POK_SYSCALL_THREAD_SLEEP,              NULL_POINTER, param, 0, pre_created_id, pre_created_name);
     
     // here should be sleep_until
@@ -54,11 +49,6 @@ void first_process(void)
     
     
     // THREAD OPR
-    
-    //ret = pointer_error_tester(POK_SYSCALL_THREAD_CREATE,             OUT_OF_PARTITION_RANGE, param, 0, pre_created_id, pre_created_name);
-    //ret = pointer_error_tester(POK_SYSCALL_THREAD_CREATE,             OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name);
-    //ret = pointer_error_tester(POK_SYSCALL_THREAD_CREATE,             OUT_OF_PARTITION_RANGE, param, 2, pre_created_id, pre_created_name);
-    //ret = pointer_error_tester(POK_SYSCALL_THREAD_CREATE,             OUT_OF_PARTITION_RANGE, param, 3, pre_created_id, pre_created_name);
     
     //ret = pointer_error_tester(POK_SYSCALL_THREAD_SLEEP,              OUT_OF_PARTITION_RANGE, param, 0, pre_created_id, pre_created_name);
     
@@ -278,7 +268,17 @@ static int real_main(void)
     
     pre_created_id = create_entity(BLACKBOARD, pre_created_name);
     
+    //ret = pointer_error_tester(POK_SYSCALL_THREAD_CREATE,             OUT_OF_PARTITION_RANGE, param, 0, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_THREAD_CREATE,             OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_THREAD_CREATE,             OUT_OF_PARTITION_RANGE, param, 2, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_THREAD_CREATE,             OUT_OF_PARTITION_RANGE, param, 3, pre_created_id, pre_created_name);
     
+    //ret = pointer_error_tester(POK_SYSCALL_THREAD_CREATE,             NULL_POINTER, param, 0, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_THREAD_CREATE,             NULL_POINTER, param, 1, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_THREAD_CREATE,             NULL_POINTER, param, 2, pre_created_id, pre_created_name);
+    //ret = pointer_error_tester(POK_SYSCALL_THREAD_CREATE,             NULL_POINTER, param, 3, pre_created_id, pre_created_name);
+    
+    //ret = tester_create(POK_SYSCALL_INTRA_BUFFER_CREATE,       NULL_POINTER, param, 0, pre_created_id, pre_created_name);
     //ret = tester_create(POK_SYSCALL_INTRA_BUFFER_CREATE,       NULL_POINTER, param, 4, pre_created_id, pre_created_name);
     
     //ret = tester_create(POK_SYSCALL_INTRA_BUFFER_CREATE,       OUT_OF_PARTITION_RANGE, param, 0, pre_created_id, pre_created_name);

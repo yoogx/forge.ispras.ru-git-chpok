@@ -1,18 +1,4 @@
 #include "wrappers.h"
-
-
-// TODO: seems that it's just not apropriate place for this function
-void entry_point_method(void)
-{
-	// add some output (print log)
-    
-    
-    // actually this prints only
-    // if partition state is in INIT mode
-    printf("the created process is working");  
-    
-	return;	
-}
  
 // TODO: fix all parameter types + default values
 
