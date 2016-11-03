@@ -79,9 +79,6 @@ void first_process(void)
     
     // BUFFER NP
     
-    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_CREATE,       NULL_POINTER, param, 0, pre_created_id, pre_created_name);
-    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_CREATE,       NULL_POINTER, param, 4, pre_created_id, pre_created_name);
-    
     //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_SEND,       NULL_POINTER, param, 1, pre_created_id, pre_created_name); // 2
     //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_SEND,       NULL_POINTER, param, 3, pre_created_id, pre_created_name); // 2
     
@@ -95,9 +92,6 @@ void first_process(void)
     //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_STATUS,     NULL_POINTER, param, 1, pre_created_id, pre_created_name); // 2
     
     // BUFFER OPR
-    
-    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_CREATE,       OUT_OF_PARTITION_RANGE, param, 0, pre_created_id, pre_created_name);
-    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_CREATE,       OUT_OF_PARTITION_RANGE, param, 4, pre_created_id, pre_created_name);
     
     //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_SEND,       OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name); // 2
     //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_BUFFER_SEND,       OUT_OF_PARTITION_RANGE, param, 3, pre_created_id, pre_created_name); // 2
@@ -114,27 +108,21 @@ void first_process(void)
     
     // BB NP
     
-    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_CREATE,       NULL_POINTER, param, 0, pre_created_id, pre_created_name);
-    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_CREATE,       NULL_POINTER, param, 2, pre_created_id, pre_created_name);
-    
     //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_DISPLAY,    NULL_POINTER, param, 1, pre_created_id, pre_created_name); // 2
     
     //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_READ,       NULL_POINTER, param, 1, pre_created_id, pre_created_name); // 2
     //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_READ,       NULL_POINTER, param, 2, pre_created_id, pre_created_name); // 2
     //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_READ,       NULL_POINTER, param, 3, pre_created_id, pre_created_name); // 2
     
-    //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_CLEAR,      NULL_POINTER, param, 0, pre_created_id, pre_created_name); // TEST FAILED
+    ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_CLEAR,      NULL_POINTER, param, 0, pre_created_id, pre_created_name); // TEST FAILED
     
     //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_ID,         NULL_POINTER, param, 0, pre_created_id, pre_created_name); // 11
-    ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_ID,         NULL_POINTER, param, 1, pre_created_id, pre_created_name); // FATAL ERROR - FIX
+    //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_ID,         NULL_POINTER, param, 1, pre_created_id, pre_created_name); // FATAL ERROR - FIX
     
     //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_STATUS,     NULL_POINTER, param, 1, pre_created_id, pre_created_name); // 2
     
     
     // BB OPR
-    
-    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_CREATE,       OUT_OF_PARTITION_RANGE, param, 0, pre_created_id, pre_created_name);
-    //ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_CREATE,       OUT_OF_PARTITION_RANGE, param, 2, pre_created_id, pre_created_name);
     
     //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_BLACKBOARD_DISPLAY,    OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name); // 2
     
@@ -153,9 +141,6 @@ void first_process(void)
     
     // SEM NP
     
-    //ret = pointer_error_tester(POK_SYSCALL_INTRA_SEMAPHORE_CREATE,    NULL_POINTER, param, 0, pre_created_id, pre_created_name);
-    //ret = pointer_error_tester(POK_SYSCALL_INTRA_SEMAPHORE_CREATE,    NULL_POINTER, param, 4, pre_created_id, pre_created_name);
-    
     //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_SEMAPHORE_WAIT,    NULL_POINTER, param, 1, pre_created_id, pre_created_name); // 2
     
     //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_SEMAPHORE_ID,      NULL_POINTER, param, 0, pre_created_id, pre_created_name); // 11
@@ -164,9 +149,6 @@ void first_process(void)
     //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_SEMAPHORE_STATUS,  NULL_POINTER, param, 1, pre_created_id, pre_created_name); // 2
     
     // SEM OPR
-    
-    //ret = pointer_error_tester(POK_SYSCALL_INTRA_SEMAPHORE_CREATE,    OUT_OF_PARTITION_RANGE, param, 0, pre_created_id, pre_created_name);
-    //ret = pointer_error_tester(POK_SYSCALL_INTRA_SEMAPHORE_CREATE,    OUT_OF_PARTITION_RANGE, param, 4, pre_created_id, pre_created_name);
     
     //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_SEMAPHORE_WAIT,    OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name); // 2
     
@@ -178,9 +160,6 @@ void first_process(void)
     
     // EVENT NP
     
-    //ret = pointer_error_tester(POK_SYSCALL_INTRA_EVENT_CREATE,    NULL_POINTER, param, 0, pre_created_id, pre_created_name);
-    //ret = pointer_error_tester(POK_SYSCALL_INTRA_EVENT_CREATE,    NULL_POINTER, param, 1, pre_created_id, pre_created_name);
-    
     //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_EVENT_WAIT,    NULL_POINTER, param, 1, pre_created_id, pre_created_name); // 2
     
     //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_EVENT_ID,      NULL_POINTER, param, 0, pre_created_id, pre_created_name); // 11
@@ -189,9 +168,7 @@ void first_process(void)
     //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_EVENT_STATUS,  NULL_POINTER, param, 1, pre_created_id, pre_created_name); // 2
     
     // EVENT OPR
-    
-    //ret = pointer_error_tester(POK_SYSCALL_INTRA_EVENT_CREATE,    OUT_OF_PARTITION_RANGE, param, 0, pre_created_id, pre_created_name);
-    //ret = pointer_error_tester(POK_SYSCALL_INTRA_EVENT_CREATE,    OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name);
+
     
     //~ ret = pointer_error_tester(POK_SYSCALL_INTRA_EVENT_WAIT,    OUT_OF_PARTITION_RANGE, param, 1, pre_created_id, pre_created_name); // 2
     

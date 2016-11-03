@@ -1,5 +1,4 @@
-#include "wrappers.h"
-
+#include "create_wrappers.h"
 
 uint8_t  create_entity (int entity_type, char* pre_created_name)
 {
@@ -21,23 +20,23 @@ uint8_t  create_entity (int entity_type, char* pre_created_name)
 		
 		    // create process
 		    process_attrs.ENTRY_POINT = entry_point_method;
-		    strncpy(process_attrs.NAME, "process 1", sizeof(PROCESS_NAME_TYPE));
+		    strncpy(process_attrs.NAME, "pre_created process", sizeof(PROCESS_NAME_TYPE));
 		
 		    CREATE_PROCESS(&process_attrs, &id, &ReturnCode);
 		    if (ReturnCode != NO_ERROR) {
-		        printf("couldn't create process 1: %d\n", (int) ReturnCode);
+		        printf("couldn't create pre_created process: %d\n", (int) ReturnCode);
 		        return 1;
 		    } else {
-		        printf("process 1 created\n");
+		        printf("pre_created process created\n");
 		    }
 		    
 		    // start process
 		    START(ReturnCode, &ReturnCode);
-		    if (ret != NO_ERROR) {
-		        printf("couldn't start process 1: %d\n", (int) ReturnCode);
+		    if (ReturnCode != NO_ERROR) {
+		        printf("couldn't start pre_created process: %d\n", (int) ReturnCode);
 		        return 1;
 		    } else {
-		        printf("process 1 \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
+		        printf("pre_created process \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
 		    }
             
             
@@ -103,16 +102,4 @@ uint8_t  create_entity (int entity_type, char* pre_created_name)
             return id;
             break;
     }
-}
-
-void entry_point_method(void)
-{
-	// add some output (print log)
-    
-    
-    // actually this prints only
-    // if partition state is in INIT mode
-    printf("the created process is working");  
-    
-	return;	
 }

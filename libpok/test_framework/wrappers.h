@@ -57,6 +57,8 @@
 
 /////////////////////////// THREAD (PROCESS) ///////////////////////////
 
+void entry_point_method(void);
+
 pok_ret_t pok_thread_create_wrapper                     (void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);
 pok_ret_t pok_thread_sleep_wrapper                      (void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);
 pok_ret_t pok_thread_sleep_until_wrapper                (void* param, int pos, uint8_t pre_created_id, const char* pre_created_name);

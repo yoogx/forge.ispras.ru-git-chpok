@@ -24,8 +24,18 @@
 
 /////////////////////////// THREADS ///////////////////////////
 
+void entry_point_method(void)
+{
+	// TODO: add some output (print log)
+    
+    
+    printf("the pre_created process started to run");  
+    
+	return;	
+}
+
 // call before partition becomes NORMAL
-pok_ret_t pok_thread_create_wrapper(void* param, int pos)
+pok_ret_t pok_thread_create_wrapper(void* param, int pos, uint8_t pre_created_id, const char* pre_created_name)
 {
 	pok_ret_t ret = 0;
     
