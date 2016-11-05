@@ -144,20 +144,13 @@ uint16_t fill_afdx_frame(frame_data_t *p,
         p->ip_header.u_dst_addr.ip_multicast_dst_addr.vl_id =  hton16(vl_data[vl_data_index].vl_id);
     }
 //UDP
-        //
-        p->udp_header.afdx_src_port = hton16(arinc_to_afdx_port->src_afdx_port);
-        p->udp_header.afdx_dst_port = hton16(arinc_to_afdx_port->dst_afdx_port);
-        //
+    p->udp_header.afdx_src_port = hton16(arinc_to_afdx_port->src_afdx_port);
+    p->udp_header.afdx_dst_port = hton16(arinc_to_afdx_port->dst_afdx_port);
     p->udp_header.udp_length = hton16(payload_size + UDP_H_LENGTH); //udp_length = (payload size + udp header size)
-    p->udp_header.udp_checksum = hton16(udp_checksum(&p->udp_header,
-                                                    payload_size + UDP_H_LENGTH,
-                                                    p->ip_header.u_src_addr.ip_general_src_addr,
-                                                    p->ip_header.u_dst_addr.ip_general_dst_addr));
-
+    p->udp_header.udp_checksum = 0;
     //переписал стуктуру кадра добавив в юнионы uint32_t для того, чтобы использовать их потом в udp_checksum  
 
 //PAYLOAD
-    //uint16_t k;
     memcpy(p->afdx_payload, afdx_payload, payload_size);
 
     if (payload_size < MIN_PAYLOAD_SIZE)
@@ -165,11 +158,17 @@ uint16_t fill_afdx_frame(frame_data_t *p,
         memcpy((p->afdx_payload + payload_size), 0, pad_size);
     }
 
+//UDP Checksum
+p->udp_header.udp_checksum = udp_checksum(&p->udp_header,
+                                                    payload_size + UDP_H_LENGTH,
+                                                    hton32(p->ip_header.u_src_addr.ip_general_src_addr),
+                                                    hton32(p->ip_header.u_dst_addr.ip_general_dst_addr));
     //scp ifg?
     if (pad_size == 0)
         return (payload_size + HEADER_LENGTH);  //FCS_LENGTH
     else
         return (payload_size + pad_size + HEADER_LENGTH);
+
 }
 void fill_afdx_interface_id (frame_data_t *p, int net_card)
 {
@@ -191,72 +190,50 @@ uint16_t udp_checksum(void *buff, size_t len, uint32_t src_addr, uint32_t dest_a
         //hexDump("udp_checksum", buff, len);
         //printf("");
 
-        const uint16_t *buf=buff;
-        uint16_t *ip_src=(void *)&src_addr;
-        uint16_t *ip_dst=(void *)&dest_addr;
+        const uint16_t *buf = buff;
+        uint16_t *ip_src = (void *)&src_addr;
+        uint16_t *ip_dst = (void *)&dest_addr;
         uint32_t sum;
-        size_t length=len;
+        size_t length = len;
 
         // Calculate the sum
         sum = 0;
         while (len > 1)
         {
-            sum += *buf++;
+            sum += *(buf++);
             if (sum & 0x80000000)
-                        sum = (sum & 0xFFFF) + (sum >> 16);
+                sum = (sum & hton16(0xFF00)) + (sum >> 16);
             len -= 2;
          }
  
-         if ( len & 1 )
-                // Add the padding if the packet lenght is odd
-                sum += *((uint8_t *)buf);
-        //~ printf("sum_1 %u\n", sum);
+        if ( len & 1 )
+            // Add the padding if the packet lenght is odd
+            sum += *(uint8_t *)buf;
+            //~ uint32_t zero;
+            //~ zero = 0;
+            //~ *((unsigned char *)&zero) = *(unsigned char *)buf;
+            //~ sum += zero;
+
          // Add the pseudo-header
-         sum += *(ip_src++);
-        //~ printf("sum_2 %u\n", sum);
-         sum += *ip_src;
-        //~ printf("sum_3 %u\n", sum);
-         sum += *(ip_dst++);
-        //~ printf("sum_4 %u\n", sum); 
-         sum += *ip_dst;
-        //~ printf("sum_5 %u\n", sum);
-         sum += hton16(IPPROTO_UDP);
-        //~ printf("sum_6 %u\n", sum);
-         sum += hton16(length);
-        //~ printf("sum_7 %u\n", sum);
+        sum += *(ip_src++);
+        sum += *ip_src;
+        sum += *(ip_dst++);
+        sum += *ip_dst;
+        sum += ntoh16(IPPROTO_UDP + length);
+
          // Add the carries
          while (sum >> 16)
                  sum = (sum & 0xFFFF) + (sum >> 16);
 
          // Return the one's complement of sum
-         return ( (uint16_t)(~sum)  );
+         return (uint16_t)(~sum);
 }
+
 /*
  * brief Calculate the IP header checksum.
- * param buf The IP header content.
- * param hdr_len The IP header length.
+ * param IP header.
  * return The result of the checksum.
  */
-uint16_t ip_checksum(const void *buf, uint16_t hdr_len)
-{
-        unsigned long sum = 0;
-        const uint16_t *ip1;
-
-        ip1 = buf;
-        while (hdr_len > 1)
-        {
-                sum += *ip1++;
-                if (sum & 0x80000000)
-                        sum = (sum & 0xFFFF) + (sum >> 16);
-                hdr_len -= 2;
-        }
-
-        while (sum >> 16)
-                sum = (sum & 0xFFFF) + (sum >> 16);
- 
-        return(~sum);
-}
-
 uint16_t ip_hdr_checksum_2(const struct ip_header *ip_hdr)
 {
     uint32_t acc = 0;
@@ -282,5 +259,3 @@ void add_seq_numb(void * buf, uint16_t * f_size, uint8_t * s_number)
     memcpy((buf + (*f_size)), s_number, sizeof(uint8_t));
     *f_size = *f_size + (uint16_t)(sizeof(uint8_t));   
 }
-
- 
