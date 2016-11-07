@@ -43,7 +43,7 @@ static struct arinc_semaphore* find_semaphore(const char* name)
    for(int i = 0; i < nsemaphores_used; i++)
    {
       struct arinc_semaphore* semaphore = &arinc_semaphores[i];
-      if(strncmp(semaphore->semaphore_name, name, MAX_NAME_LENGTH) == 0)
+      if(strncasecmp(semaphore->semaphore_name, name, MAX_NAME_LENGTH) == 0)
          return semaphore;
    }
 
@@ -62,8 +62,6 @@ void CREATE_SEMAPHORE (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
       *RETURN_CODE = INVALID_MODE;
       return;
    }
-
-   strtoupper(SEMAPHORE_NAME);
 
    if(find_semaphore(SEMAPHORE_NAME) != NULL) {
       // Semaphore with given name already exists.
@@ -213,7 +211,6 @@ void GET_SEMAPHORE_ID (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
                        SEMAPHORE_ID_TYPE *SEMAPHORE_ID,
                        RETURN_CODE_TYPE *RETURN_CODE )
 {
-   strtoupper(SEMAPHORE_NAME);
 
    struct arinc_semaphore* semaphore = find_semaphore(SEMAPHORE_NAME);
    if(semaphore == NULL) {
