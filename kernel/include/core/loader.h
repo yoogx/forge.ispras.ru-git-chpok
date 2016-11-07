@@ -26,9 +26,13 @@
  * Load elf into given space.
  * 
  * Entry point is returned via 'entry' parameter.
+ * 
+ * If 'heap_size' is not 0, allocates heap of given size and setup heap
+ * in kernel_shared_data.
  */
-pok_ret_t jet_loader_elf_load   (uint8_t elf_id,
+void jet_loader_elf_load   (uint8_t elf_id,
                                  jet_space_id space_id,
+                                 size_t heap_size,
                                  void (** entry)(void));
 #endif /* __JET_LOADER_H__ */
 

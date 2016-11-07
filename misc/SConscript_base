@@ -84,8 +84,6 @@ for xml in part_xmls.findall(etree.QName(part_xmls[0], 'include')):
 for part in env['PARTITIONS']:
     SConscript(os.path.join(env['SCONSTRUCT_DIR'], part, 'SConscript'), exports = 'env')
 
-env.Append(GENERATE_TITLE = template_generation.generate_title_c_no_track)
-
 # Generate "deployment.c" for kernel
 env.TemplateRender(
     target = os.path.join(env['BUILD_DIR'], "deployment.c"),
@@ -93,23 +91,20 @@ env.TemplateRender(
         [os.path.join(env['SCONSTRUCT_DIR'], part_xml) for part_xml in part_xml_list],
     create_definitions_func = get_pok_definitions,
     template_main = "deployment_kernel",
-    template_dir = env['POK_PATH'] + "/misc/templates"
+    template_dir = env['POK_PATH'] + "/misc/templates",
+    GENERATE_TITLE = template_generation.generate_title_c_no_track
     )
 
 
-gdb_env = env.Clone()
-AddMethod(gdb_env, template_generation.TemplateRender)
-gdb_env['GENERATE_TITLE'] = template_generation.generate_title_python
-
 # Generate file with commands for GDB for possible debugging
-
-gdb_env.TemplateRender(
-    target = gdb_env['BUILD_DIR'] + "/GDB_commands",
-    source = [gdb_env['XML']] +
-        [os.path.join(gdb_env['SCONSTRUCT_DIR'], part_xml) for part_xml in part_xml_list],
+env.TemplateRender(
+    target = env['BUILD_DIR'] + "/GDB_commands",
+    source = [env['XML']] +
+        [os.path.join(env['SCONSTRUCT_DIR'], part_xml) for part_xml in part_xml_list],
     create_definitions_func = get_pok_gdb_definitions,
     template_main = "GDB_commands",
-    template_dir = gdb_env['POK_PATH'] + "/misc/templates"
+    template_dir = env['POK_PATH'] + "/misc/templates",
+    GENERATE_TITLE = template_generation.generate_title_python_no_track
     )
 
 pok_env = env.Clone()
@@ -120,9 +115,6 @@ env.Program(target = env['BUILD_DIR']+'kernel.lo', source = [
 env['POK_PATH']+'/build/'+env['BSP']+'/kernel/core.lo',
 env['POK_PATH']+'/build/'+env['BSP']+'/boards/bsp.lo',
 env['BUILD_DIR']+'deployment.c'])
-
-ldscript = pok_env['POK_PATH']+'/boards/'+pok_env['BSP']+'/ldscripts/kernel.lds'
-pok_env['LINKFLAGS'] = str(' -T '+ldscript+' -Map build/'+pok_env['BSP']+'/pok.elf.map')
 
 # there should (perhaps) also be padding to get aligned file size
 def merge_partitions(target, source, env):
@@ -162,11 +154,16 @@ compile_sizes = pok_env.Command(target = pok_env['BUILD_DIR']+'sizes.o',
         pok_env['OBJCOPY']+' --add-section .archive2='+pok_env['BUILD_DIR']+'partitions.bin '+pok_env['BUILD_DIR']+'sizes.o'])
 pok_env.Depends(compile_sizes, [part_elf_list, merge_command])
 
+ldscript_kernel = pok_env['LDSCRIPT_KERNEL']
+# Rewrite LINKFLAGS, as we build '.elf'.
+pok_env['LINKFLAGS'] = ' -T ' + ldscript_kernel
+
+
 pok_target = pok_env.Program(target = pok_env['BUILD_DIR']+'pok.elf', source = [
     pok_env['BUILD_DIR']+'sizes.o',
     pok_env['BUILD_DIR']+'kernel.lo',
     pok_env['LIBGCC']])
-pok_env.Depends(pok_target, [compile_sizes, ldscript])
+pok_env.Depends(pok_target, [compile_sizes, ldscript_kernel])
 Default(pok_target)
 
 # EOF

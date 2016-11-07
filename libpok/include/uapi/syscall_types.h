@@ -53,6 +53,13 @@ typedef enum
      POK_SYSCALL_THREAD_REPLENISH                    =  67,
      POK_SYSCALL_THREAD_FIND                         =  68,
 
+     POK_SYSCALL_RESCHED                             =  80,
+     POK_SYSCALL_MSECTION_ENTER_HELPER               =  81,
+     POK_SYSCALL_MSECTION_WAIT                       =  82,
+     POK_SYSCALL_MSECTION_NOTIFY                     =  83,
+     POK_SYSCALL_MSECTION_WQ_NOTIFY                  =  84,
+     POK_SYSCALL_MSECTION_WQ_SIZE                    =  85,
+
 #ifdef POK_NEEDS_PORTS_SAMPLING
      POK_SYSCALL_MIDDLEWARE_SAMPLING_ID              = 101,
      POK_SYSCALL_MIDDLEWARE_SAMPLING_READ            = 102,
@@ -68,43 +75,6 @@ typedef enum
      POK_SYSCALL_MIDDLEWARE_QUEUEING_ID              = 113,
      POK_SYSCALL_MIDDLEWARE_QUEUEING_STATUS          = 114,
 #endif
-#ifdef POK_NEEDS_PORTS_VIRTUAL
-     POK_SYSCALL_MIDDLEWARE_VIRTUAL_CREATE           = 150,
-     POK_SYSCALL_MIDDLEWARE_VIRTUAL_NB_DESTINATIONS  = 151,
-     POK_SYSCALL_MIDDLEWARE_VIRTUAL_DESTINATION      = 152,
-     POK_SYSCALL_MIDDLEWARE_VIRTUAL_GET_GLOBAL       = 153,
-#endif
-
-#ifdef POK_NEEDS_BUFFERS
-     POK_SYSCALL_INTRA_BUFFER_CREATE                 = 201,
-     POK_SYSCALL_INTRA_BUFFER_SEND                   = 202,
-     POK_SYSCALL_INTRA_BUFFER_RECEIVE                = 203,
-     POK_SYSCALL_INTRA_BUFFER_ID                     = 204,
-     POK_SYSCALL_INTRA_BUFFER_STATUS                 = 205,
-#endif
-#ifdef POK_NEEDS_BLACKBOARDS
-     POK_SYSCALL_INTRA_BLACKBOARD_CREATE             = 211,
-     POK_SYSCALL_INTRA_BLACKBOARD_READ               = 212,
-     POK_SYSCALL_INTRA_BLACKBOARD_DISPLAY            = 213,
-     POK_SYSCALL_INTRA_BLACKBOARD_CLEAR              = 214,
-     POK_SYSCALL_INTRA_BLACKBOARD_ID                 = 215,
-     POK_SYSCALL_INTRA_BLACKBOARD_STATUS             = 216,
-#endif
-#ifdef POK_NEEDS_SEMAPHORES
-     POK_SYSCALL_INTRA_SEMAPHORE_CREATE              = 221,
-     POK_SYSCALL_INTRA_SEMAPHORE_WAIT                = 222,
-     POK_SYSCALL_INTRA_SEMAPHORE_SIGNAL              = 223,
-     POK_SYSCALL_INTRA_SEMAPHORE_ID                  = 224,
-     POK_SYSCALL_INTRA_SEMAPHORE_STATUS              = 225,
-#endif
-#ifdef POK_NEEDS_EVENTS
-     POK_SYSCALL_INTRA_EVENT_CREATE                  = 231,
-     POK_SYSCALL_INTRA_EVENT_SET                     = 232,
-     POK_SYSCALL_INTRA_EVENT_RESET                   = 233,
-     POK_SYSCALL_INTRA_EVENT_WAIT                    = 234,
-     POK_SYSCALL_INTRA_EVENT_ID                      = 235,
-     POK_SYSCALL_INTRA_EVENT_STATUS                  = 236,
-#endif
 
 #ifdef POK_NEEDS_ERROR_HANDLING
      POK_SYSCALL_ERROR_HANDLER_CREATE                = 301,
@@ -112,6 +82,9 @@ typedef enum
      POK_SYSCALL_ERROR_GET                           = 304,
      POK_SYSCALL_ERROR_IS_HANDLER                    = 305,
 #endif
+
+     POK_SYSCALL_ERROR_RAISE_OS_ERROR       = 310,
+
 #ifdef POK_NEEDS_PARTITIONS
      POK_SYSCALL_PARTITION_SET_MODE                  = 404,
      POK_SYSCALL_PARTITION_GET_STATUS                = 405,

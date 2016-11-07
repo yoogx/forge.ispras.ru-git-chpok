@@ -34,7 +34,6 @@
 
 // Renames for system calls
 #define pok_thread_period pok_sched_end_period
-#define pok_thread_id pok_sched_get_current
 #define pok_thread_status pok_thread_get_status
 
 #endif /* __POK_NEEDS_THREADS */

@@ -241,7 +241,9 @@ class Space:
 # - part_index - index of the partition in the array. Filled automatically.
 class Partition:
     __slots__ = [
+        "arch", # Value propagated from 'Configuration' object.
         "name",
+
         "is_system",
 
         "num_threads", # number of user threads, _not_ counting init thread and error handler
@@ -264,7 +266,8 @@ class Partition:
         "part_index" # index of the partition in the array. Filled automatically. part_index+1 is used as PID
     ]
 
-    def __init__(self, part_id, name):
+    def __init__(self, arch, part_id, name):
+        self.arch = arch
         self.name = name
         self.part_id = part_id
 
@@ -368,6 +371,35 @@ class Partition:
 
     def get_port_by_name(self, port_name):
         return self.port_names_map[port_name]
+
+    # Return size of memory, needed by single buffer structure.
+    # TODO: This should be arch-specific somehow.
+    def get_buffer_size(self):
+        return 150
+
+    # Return size of memory, needed by single blackboard structure.
+    # TODO: This should be arch-specific somehow.
+    def get_blackboard_size(self):
+        return 100
+
+    # Return size of memory, needed by single semaphore structure.
+    # TODO: This should be arch-specific somehow.
+    def get_semaphore_size(self):
+        return 50
+
+    # Return size of memory, needed by single event structure.
+    # TODO: This should be arch-specific somehow.
+    def get_event_size(self):
+        return 50
+
+    # Return memory size, needed by intra-partition communication mechanisms.
+    def get_intra_size(self):
+        return ( self.buffer_data_size + self.blackboard_data_size
+            + self.num_arinc653_buffers * self.get_buffer_size()
+            + self.num_arinc653_blackboards * self.get_blackboard_size()
+            + self.num_arinc653_semaphores * self.get_semaphore_size()
+            + self.num_arinc653_events * self.get_event_size()
+        )
 
 def _get_port_direction(port):
     direction = port.direction.lower()
@@ -700,7 +732,7 @@ class Configuration:
             part_id_real = self.next_partition_id
             self.next_partition_id += 1
 
-        part = Partition(part_id_real, part_name)
+        part = Partition(self.arch, part_id_real, part_name)
         part.set_index(len(self.partitions))
 
         self.partitions.append(part)

@@ -38,12 +38,9 @@
 #include <uapi/partition_types.h>
 #include <uapi/partition_arinc_types.h>
 #include <uapi/port_types.h>
-#include <uapi/buffer_types.h>
-#include <uapi/blackboard_types.h>
-#include <uapi/semaphore_types.h>
-#include <uapi/event_types.h>
 #include <uapi/error_arinc_types.h>
 #include <uapi/memblock_types.h>
+#include <uapi/msection.h>
 
 SYSCALL_DECLARE(POK_SYSCALL_THREAD_CREATE, pok_thread_create,
    const char*, name,
@@ -70,11 +67,6 @@ SYSCALL_DECLARE(POK_SYSCALL_THREAD_SUSPEND, pok_thread_suspend,
    const pok_time_t*, time)
 #endif
 
-#ifdef POK_NEEDS_THREAD_ID
-//! User name - pok_thread_id
-SYSCALL_DECLARE(POK_SYSCALL_THREAD_ID, pok_sched_get_current,
-   pok_thread_id_t*, thread_id)
-#endif
 //! User name - pok_thread_status
 SYSCALL_DECLARE(POK_SYSCALL_THREAD_STATUS, pok_thread_get_status,
    pok_thread_id_t, thread_id,
@@ -112,6 +104,31 @@ SYSCALL_DECLARE(POK_SYSCALL_THREAD_FIND, pok_thread_find,
    const char*, name,
    pok_thread_id_t*, id)
 
+
+SYSCALL_DECLARE(POK_SYSCALL_RESCHED, jet_resched)
+
+SYSCALL_DECLARE(POK_SYSCALL_MSECTION_ENTER_HELPER, jet_msection_enter_helper,
+   struct msection*, section)
+
+SYSCALL_DECLARE(POK_SYSCALL_MSECTION_WAIT, jet_msection_wait,
+   struct msection*, section,
+   const pok_time_t*, timeout)
+
+SYSCALL_DECLARE(POK_SYSCALL_MSECTION_NOTIFY, jet_msection_notify,
+   struct msection*, section,
+   pok_thread_id_t, thread_id)
+
+SYSCALL_DECLARE(POK_SYSCALL_MSECTION_WQ_NOTIFY, jet_msection_wq_notify,
+   struct msection*, section,
+   struct msection_wq*, wq,
+   pok_bool_t, is_all)
+
+SYSCALL_DECLARE(POK_SYSCALL_MSECTION_WQ_SIZE, jet_msection_wq_size,
+   struct msection*, section,
+   struct msection_wq*, wq,
+   size_t*, size)
+
+
 #ifdef POK_NEEDS_PARTITIONS
 //! User name - pok_partition_set_mode
 SYSCALL_DECLARE(POK_SYSCALL_PARTITION_SET_MODE, pok_partition_set_mode_current,
@@ -129,112 +146,6 @@ SYSCALL_DECLARE(POK_SYSCALL_PARTITION_DEC_LOCK_LEVEL, pok_current_partition_dec_
    int32_t*, lock_level)
 #endif
 
-#ifdef POK_NEEDS_BUFFERS
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_BUFFER_CREATE, pok_buffer_create,
-   char*, name,
-   pok_message_size_t, max_message_size,
-   pok_message_range_t, max_nb_message,
-   pok_queuing_discipline_t, discipline,
-   pok_buffer_id_t*, id)
-
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_BUFFER_SEND, pok_buffer_send,
-   pok_buffer_id_t, id,
-   const void*, data,
-   pok_message_size_t, length,
-   const pok_time_t*, timeout)
-   
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_BUFFER_RECEIVE, pok_buffer_receive,
-   pok_buffer_id_t, id,
-   const pok_time_t*, timeout,
-   void*, data,
-   pok_message_size_t*, length)
-
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_BUFFER_ID, pok_buffer_get_id,
-   char*, name,
-   pok_buffer_id_t*, id)
-                        
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_BUFFER_STATUS, pok_buffer_status,
-   pok_buffer_id_t, id,
-   pok_buffer_status_t*, status)
-#endif
-
-#ifdef POK_NEEDS_BLACKBOARDS
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_BLACKBOARD_CREATE, pok_blackboard_create,
-   const char*, name,
-   pok_message_size_t, max_message_size,
-   pok_blackboard_id_t*, id)
-
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_BLACKBOARD_READ, pok_blackboard_read,
-   pok_blackboard_id_t, id,
-   const pok_time_t*, timeout,
-   void*, data,
-   pok_message_size_t*, len)
-   
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_BLACKBOARD_DISPLAY, pok_blackboard_display,
-   pok_blackboard_id_t, id,
-   const void*, message,
-   pok_message_size_t, len)
-   
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_BLACKBOARD_CLEAR, pok_blackboard_clear,
-   pok_blackboard_id_t, id)
-
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_BLACKBOARD_ID, pok_blackboard_id,
-   const char*, name,
-   pok_blackboard_id_t*, id)
-
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_BLACKBOARD_STATUS, pok_blackboard_status,
-   pok_blackboard_id_t, id,
-   pok_blackboard_status_t*, status)
-#endif
-
-#ifdef POK_NEEDS_SEMAPHORES
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_SEMAPHORE_CREATE, pok_semaphore_create,
-   const char*, name,
-   pok_sem_value_t, value,
-   pok_sem_value_t, max_value,
-   pok_queuing_discipline_t, discipline,
-   pok_sem_id_t*, id)
-
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_SEMAPHORE_WAIT, pok_semaphore_wait,
-   pok_sem_id_t, id,
-   const pok_time_t*, timeout)
-
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_SEMAPHORE_SIGNAL, pok_semaphore_signal,
-   pok_sem_id_t, id)
-
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_SEMAPHORE_ID, pok_semaphore_id,
-   const char*, name,
-   pok_sem_id_t*, id)
-
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_SEMAPHORE_STATUS, pok_semaphore_status,
-   pok_sem_id_t, id,
-   pok_semaphore_status_t*, status)
-#endif
-
-#ifdef POK_NEEDS_EVENTS
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_EVENT_CREATE, pok_event_create,
-   const char*, name,
-   pok_event_id_t*, id)
-
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_EVENT_SET, pok_event_set,
-   pok_event_id_t, id)
-   
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_EVENT_RESET, pok_event_reset,
-   pok_event_id_t, id)
-
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_EVENT_WAIT, pok_event_wait,
-   pok_event_id_t, id,
-   const pok_time_t*, timeout)
-
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_EVENT_ID, pok_event_id,
-   const char*, name,
-   pok_event_id_t*, id)
-
-SYSCALL_DECLARE(POK_SYSCALL_INTRA_EVENT_STATUS, pok_event_status,
-   pok_event_id_t, id,
-   pok_event_status_t*, status)
-#endif
-
 
 #ifdef POK_NEEDS_ERROR_HANDLING
 //! Used directly for CREATE_ERROR_HANDLER
@@ -249,11 +160,14 @@ SYSCALL_DECLARE(POK_SYSCALL_ERROR_RAISE_APPLICATION_ERROR, pok_error_raise_appli
 SYSCALL_DECLARE(POK_SYSCALL_ERROR_GET, pok_error_get,
    pok_error_status_t*, status,
    void*, msg)
-
-//!SYSCALL_DECLARE(POK_SYSCALL_ERROR_IS_HANDLER, pok_error_is_handler)
 #endif
 
-         /* Middleware syscalls */
+SYSCALL_DECLARE(POK_SYSCALL_ERROR_RAISE_OS_ERROR, pok_error_raise_os_error,
+   const char*, msg,
+   size_t, msg_size)
+
+
+   /* Middleware syscalls */
 #ifdef POK_NEEDS_PORTS_SAMPLING
 //! User function accepts uint64_t and transforms it to uint32_t without checks
 SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_SAMPLING_CREATE, pok_port_sampling_create,
