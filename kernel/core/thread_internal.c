@@ -243,11 +243,11 @@ void thread_wake_up(pok_thread_t* t)
         // Cancel wait on object.
         list_del_init(&t->wait_elem);
         // Set flag that we has been interrupted by timeout.
-        t->wait_private = (void*)(-(unsigned long)POK_ERRNO_TIMEOUT);
+        t->wait_result = POK_ERRNO_TIMEOUT;
     }
     else if(t->msection_entering)
     {
-	t->wait_private = (void*)(-(unsigned long)POK_ERRNO_TIMEOUT);
+	t->wait_result = POK_ERRNO_TIMEOUT;
     }
 
     if(!t->suspended)
@@ -283,7 +283,7 @@ static void thread_resume_waited(pok_thread_t* t)
     t->state = POK_STATE_RUNNABLE;
 
     // Set flag that we has been interrupted by timeout.
-    t->wait_private = (void*)(-(long)POK_ERRNO_TIMEOUT);
+    t->wait_result = POK_ERRNO_TIMEOUT;
 
     thread_set_eligible(t);
 }
@@ -309,7 +309,7 @@ void thread_resume(pok_thread_t* t)
 	thread_delay_event_cancel(t);
 
         // Set flag that we doesn't hit timeout.
-        t->wait_private = 0;
+        t->wait_result = POK_ERRNO_OK;
     }
 
     if(t->state == POK_STATE_RUNNABLE)

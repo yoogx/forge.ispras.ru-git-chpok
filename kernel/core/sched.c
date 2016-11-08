@@ -64,7 +64,7 @@ uint32_t idle_stack;
 static void idle_function(void)
 {
     pok_preemption_enable();
-    
+
     ja_inf_loop();
 }
 #endif
@@ -86,6 +86,8 @@ static void pok_partition_reset(pok_partition_t* part)
     {
         part->partition_generation = 1;
     }
+
+    part->partition_event_begin = part->partition_event_end = 0;
 }
 
 
@@ -95,15 +97,15 @@ static void start_partition(void)
 {
     // Initialize state for started partition.
     current_partition->state.bytes_all = 0;
-    
+
     current_partition->preempt_local_disabled = 1;
-    
+
     /* It is safe to enable preemption on new stack. */
     pok_preemption_enable();
-    
+
     if(current_partition->part_ops && current_partition->part_ops->start)
         current_partition->part_ops->start();
-        
+
     ja_inf_loop();
 }
 
@@ -111,17 +113,17 @@ static void start_partition(void)
 static void intra_partition_switch(void)
 {
     struct jet_context** old_sp = &current_partition->sp;
-    
+
 #ifdef POK_NEEDS_MONITOR
     struct jet_context** new_sp = old_sp;
     if(current_partition_is_paused) old_sp = &idle_sp;
     if(current_partition->is_paused) new_sp = &idle_sp;
-    
+
     if(old_sp != new_sp)
     {
         /* Need to switch context */
         current_partition_is_paused = current_partition->is_paused;
-        
+
         if(*old_sp == NULL)
         {
             /* 
@@ -129,7 +131,7 @@ static void intra_partition_switch(void)
              * (new context is idle, so it doesn't need restart.)
              * 
              * Perform jump instead of switch.
-             */ 
+             */
              jet_context_jump(*new_sp);
              return;
         }
@@ -140,7 +142,7 @@ static void intra_partition_switch(void)
              * (current context is idle, so it doesn't need restart.)
              * 
              * Need to initialize new context before switch.
-             */ 
+             */
             *new_sp = jet_context_init(
                 current_partition->initial_sp,
                 &start_partition);
@@ -148,7 +150,7 @@ static void intra_partition_switch(void)
         jet_context_switch(old_sp, *new_sp);
         return;
     }
-    
+
 #endif /* POK_NEEDS_MONITOR */
     // old_sp == new_sp
     if(*old_sp == NULL) /* Same context, restart requested. */
@@ -186,7 +188,7 @@ static void inter_partition_switch(pok_partition_t* part)
         // Idle thread is continued. Nothing to do.
         return;
     }
-    
+
     current_partition_is_paused = part->is_paused;
 #endif /* POK_NEEDS_MONITOR */
     // old_sp != new_sp
@@ -201,7 +203,7 @@ static void inter_partition_switch(pok_partition_t* part)
          */
         *new_sp = jet_context_init(part->initial_sp, &start_partition);
     }
-    
+
     if(*old_sp == NULL)
     {
         jet_context_jump(*new_sp);
@@ -226,18 +228,18 @@ void pok_sched_restart (void)
 
     sched_need_recheck = 0; // Acquire semantic
     barrier();
-   
+
     // Navigate to the first slot
     pok_sched_current_slot = 0;
     pok_sched_next_major_frame = first_frame_starts + pok_config_scheduling_major_frame;
     pok_sched_next_deadline = pok_module_sched[0].duration + first_frame_starts;
-    
+
     current_partition = pok_module_sched[0].partition;
-    
+
     new_sp = &current_partition->sp;
 #ifdef POK_NEEDS_MONITOR
     if(current_partition->is_paused) new_sp = &idle_sp;
-    current_partition_is_paused = current_partition->is_paused;    
+    current_partition_is_paused = current_partition->is_paused;
 #endif /*POK_NEEDS_MONITOR */
     if(*new_sp == 0)
     {
@@ -271,12 +273,12 @@ static void pok_sched(void)
 {
     pok_partition_t* new_partition;
     pok_time_t now;
-    
+
     if(!flag_test_and_reset(sched_need_recheck)) return;
-    
+
     now = POK_GETTICK();
     if(pok_sched_next_deadline > now) goto same_partition;
-    
+
     pok_sched_current_slot = (pok_sched_current_slot + 1);
     if(pok_sched_current_slot == pok_module_sched_n)
     {
@@ -286,14 +288,14 @@ static void pok_sched(void)
     pok_sched_next_deadline += pok_module_sched[pok_sched_current_slot].duration;
 
     new_partition = pok_module_sched[pok_sched_current_slot].partition;
-    
+
     if(new_partition == current_partition) goto same_partition;
-    
+
     inter_partition_switch(new_partition);
-    
+
     // After interpartition switch we return back.
     flag_set(current_partition->state.bytes.control_returned);
-    
+
     return;
 
 same_partition:
@@ -311,7 +313,7 @@ void pok_preemption_disable(void)
 void pok_preemption_enable(void)
 {
     assert(!ja_preempt_enabled());
-    
+
     pok_sched();
     if(current_partition->preempt_local_disabled
         || !current_partition->state.bytes_all)
@@ -322,18 +324,18 @@ void pok_preemption_enable(void)
     }
 
     current_partition->preempt_local_disabled = 1;
-    
+
     // Until partition "consume" all state bits or enables preemption.
-    do    
+    do
     {
         ja_preempt_enable();
-    
+
         current_partition->part_sched_ops->on_event();
-        
+
         ja_preempt_disable();
     } while(current_partition->preempt_local_disabled
         && current_partition->state.bytes_all);
-    
+
     current_partition->preempt_local_disabled = 0;
     ja_preempt_enable();
 }
@@ -516,5 +518,6 @@ void pok_partition_restart(void)
 
 void pok_sched_init(void)
 {
+    pok_partition_init(&partition_idle);
     partition_idle.initial_sp = pok_stack_alloc(4096);
 }

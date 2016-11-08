@@ -63,10 +63,18 @@ pok_channel_queuing_t pok_channels_queuing[{{ conf.channels_queueing | length }}
     {%for channel_queueing in conf.channels_queueing%}
     {
         .max_message_size = {{channel_queueing.max_message_size}},
-        .max_nb_message_send = {{channel_queueing.max_nb_message_send}},
-        .max_nb_message_receive = {{channel_queueing.max_nb_message_receive}},
-        .receiver = {{connection_partition(channel_queueing.dst)}},
-        .sender = {{connection_partition(channel_queueing.src)}},
+
+        .recv = {
+            .max_nb_message = {{channel_queueing.max_nb_message_receive}},
+            .part = {{connection_partition(channel_queueing.dst)}},
+        },
+        .send = {
+            .max_nb_message = {{channel_queueing.max_nb_message_send}},
+            .part = {{connection_partition(channel_queueing.src)}},
+        },
+
+        // Currently hardcoded.
+        .overflow_strategy = JET_CHANNEL_QUEUING_SENDER_BLOCK,
     },
     {%endfor%}
 };
@@ -158,6 +166,9 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
         .base_part = {
             .name = "{{part.name}}",
 
+            // Allocate 1 event slot per queuing port.
+            .partition_event_max = {{part.ports_queueing | length}},
+
             .period = {%if part.period is not none%}{{part.period}}{%else%}{{conf.major_frame}}{%endif%},
             .duration = {%if part.duration is not none%}{{part.duration}}{%else%}{{part.total_time}}{%endif%},
             .partition_id = {{part.part_id}},
@@ -198,6 +209,8 @@ pok_partition_t partition_monitor =
 {
     .name = "Monitor",
 
+    .partition_event_max = 0,
+
     .period = {{conf.major_frame}}, {#TODO: Where it is stored in conf?#}
 
     .space_id = 0,
@@ -211,6 +224,8 @@ pok_partition_t partition_monitor =
 pok_partition_t partition_gdb =
 {
     .name = "GDB",
+
+    .partition_event_max = 0,
 
     .period = {{conf.major_frame}}, {#TODO: Where it is stored in conf?#}
 

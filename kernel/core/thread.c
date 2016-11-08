@@ -506,12 +506,7 @@ suspend_timed:
 
     pok_preemption_local_enable();
 
-    // Extract result from `wait_private` field.
-
-    long wait_result = (long)t->wait_private;
-
-    if(wait_result) return (pok_ret_t)(-wait_result);
-    else return POK_ERRNO_OK;
+    return t->wait_result;
 }
 
 pok_ret_t pok_thread_stop_target(pok_thread_id_t id)
@@ -570,7 +565,7 @@ pok_ret_t pok_thread_stop_target(pok_thread_id_t id)
         {
             // Interrupt waiting on msection.
             thread_wake_up(t);
-            t->wait_private = (void*)(-(unsigned long)POK_ERRNO_CANCELLED);
+            t->wait_result = POK_ERRNO_CANCELLED;
         }
 
         thread_current->relations_stop.donate_target = t;
@@ -797,7 +792,7 @@ pok_ret_t jet_msection_wait(struct msection* __user section,
 
     if(thread_current->relations_stop.first_donator != NULL)
     {
-        thread_current->wait_private = (void*)(-(unsigned long)POK_ERRNO_CANCELLED);
+        thread_current->wait_result = POK_ERRNO_CANCELLED;
         goto out;
     }
 
@@ -824,7 +819,7 @@ pok_ret_t jet_msection_wait(struct msection* __user section,
 out:
     pok_preemption_local_enable();
 
-    return -(unsigned long)thread_current->wait_private;
+    return thread_current->wait_result;
 }
 
 pok_ret_t jet_msection_notify(struct msection* __user section,
@@ -858,7 +853,7 @@ pok_ret_t jet_msection_notify(struct msection* __user section,
 
     thread_wake_up(t);
 
-    t->wait_private = (void*)(unsigned long)POK_ERRNO_OK;
+    t->wait_result = POK_ERRNO_OK;
     ret = POK_ERRNO_OK;
 
 out:
@@ -963,7 +958,7 @@ pok_ret_t jet_msection_wq_notify(struct msection* __user section,
         else
         {
             thread_wake_up(t);
-            t->wait_private = (void*)(unsigned long)POK_ERRNO_OK;
+            t->wait_result = POK_ERRNO_OK;
             ret = POK_ERRNO_OK;
 
             if(!is_all) break;

@@ -84,34 +84,27 @@ static void port_queuing_fired(pok_port_queuing_t* port_queuing)
         while(!pok_thread_wq_is_empty(&port_queuing->waiters))
         {
             pok_thread_t* t;
-            int n;
+            pok_message_size_t message_size; // Just for function's call.
 
-            if(!pok_channel_queuing_r_get_message(port_queuing->channel, TRUE))
+            if(!pok_channel_queuing_r_get_message(port_queuing->channel,
+                &message_size, TRUE))
                 break; // wait again
 
-            n = pok_channel_queuing_r_n_messages(port_queuing->channel);
+            t = pok_thread_wq_wake_up(&port_queuing->waiters);
 
-            for(; n > 0; n--)
-            {
-                t = pok_thread_wq_wake_up(&port_queuing->waiters);
-                if(!t) break;
-
-                port_queuing_receive(port_queuing, t);
-            }
+            port_queuing_receive(port_queuing, t);
         }
     }
     else // if(port_queuing->direction == POK_PORT_DIRECTION_OUT)
     {
         while(!pok_thread_wq_is_empty(&port_queuing->waiters))
         {
-            pok_message_t* m;
             pok_thread_t* t;
 
-            m = pok_channel_queuing_s_get_message(port_queuing->channel, TRUE);
-            if(!m) break; // wait again
+            if(!pok_channel_queuing_s_get_message(port_queuing->channel, TRUE))
+                break; // wait again
 
             t = pok_thread_wq_wake_up(&port_queuing->waiters);
-            assert(t);
 
             port_queuing_send(port_queuing, t);
         }
@@ -211,12 +204,21 @@ static void sched_arinc(void)
 
     if(flag_test_and_reset(part->base_part.state.bytes.outer_notification))
     {
-        pok_port_queuing_t* port_queuing = part->ports_queuing;
-        pok_port_queuing_t* port_queuing_end = port_queuing + part->nports_queuing;
+        struct jet_partition_event event;
 
-        for(;port_queuing < port_queuing_end; port_queuing++)
+        while(pok_partition_get_event(&event))
         {
-            port_queuing_fired(port_queuing);
+            pok_port_queuing_t* port_queuing;
+
+            switch(event.event_type) {
+                case JET_PARTITION_EVENT_TYPE_PORT_SEND_AVAILABLE:
+                case JET_PARTITION_EVENT_TYPE_PORT_RECEIVE_AVAILABLE:
+                    port_queuing = &part->ports_queuing[event.handler_id];
+                    port_queuing_fired(port_queuing);
+                    break;
+                default:
+                    unreachable();
+            }
         }
     }
 
