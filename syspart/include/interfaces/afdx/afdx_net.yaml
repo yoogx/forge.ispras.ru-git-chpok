@@ -1,0 +1,8 @@
+- name: afdx_queue_enqueer 
+  #afdx_queue_adder
+  additional_h_files: ['<ret_type.h>']
+  functions:
+      - name: add
+        return_type: ret_t
+        # component, packet, packet size
+        args_type: [self_t *, char *, size_t]

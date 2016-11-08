@@ -1,0 +1,39 @@
+- name: AFDX_FILLER
+  additional_h_files: ['<stdint.h>', '<afdx/AFDX_filling.h>', '<net/byteorder.h>', '<string.h>', '<stdio.h>', '<afdx/AFDX_ES_config.h>']
+  state_struct:
+      # vl identificator
+      vl_id: uint16_t
+      ttl: uint8_t
+      src_partition_id: uint8_t
+      dst_partition_id: uint8_t
+      afdx_src_port: uint16_t
+      afdx_dst_port: uint16_t
+
+
+  init_func: afdx_filler_init
+  
+  in_ports:
+    - name: portA
+      type: preallocated_sender
+      implementation:
+          handle: afdx_filling
+
+  out_ports:
+    - name: portB
+      type: afdx_queue_enqueer
+        
+        
+- name: QUEUE
+  additional_h_files: []
+  state_struct:
+      BAG:
+      queue:
+  init_func: queue_init
+  
+  in_ports:
+    - name: portB
+      type: afdx_queue_enqueer
+      
+  out_ports:
+    - name: portA
+      type: preallocated_sender
