@@ -16,17 +16,18 @@ ENTRY(__pok_partition_start)
 
 SECTIONS
 {
-	. = 0x80000000;
+	kshd = 0x80000000; /* This should coincide with ja_space_shared_data() in the kernel. */
+
+  . = 0x80001000;
 
 	__partition_begin = . ;
        
         .text           :
         {
            *(.text .text.*)
-           . = ALIGN(4);
            __text_end = .;
         }
-        . = ALIGN({{size1}});
+        . = ALIGN(0x{{"%x" % size2}});
         .rodata :
         {
           *(.rodata .rodata.*)
@@ -34,6 +35,7 @@ SECTIONS
           . = ALIGN(4);
           __rodata_end = .;
         }
+
         .sdata2 :
         {
           __sdata2_start = .;
@@ -68,7 +70,7 @@ SECTIONS
           __sbss_end = .;
         }
         . = ALIGN(0x{{"%x" % size2}});
-        .bss :
+        .bss  :
         {
           __bss_start = .;
           *(.dynbss)
@@ -79,19 +81,19 @@ SECTIONS
 
           _end = .;
         }
-       
 	__partition_end = . ;
+
 }
 """)
     #(size1,size2)=rouding_size_virtual_address(size_pid_for_flag)
-    with open(os.path.join(POK_PATH, "boards/e500mc/ldscripts/partition.lds"), "w") as f:
+    with open(os.path.join(POK_PATH, "kernel/arch/ppc/ldscripts/partition.lds"), "w") as f:
         f.write(template.render(data))
 
 def call_ld(name_pid):
     print(os.path.join(SCONSTRUCT_DIR,name_pid,"build/e500mc/part.elf.map"))
     subprocess.call([
        "powerpc-elf-ld", "-o", name_f(name_pid), "-T",
-       os.path.join(POK_PATH, "boards/e500mc/ldscripts/partition.lds"), 
+       os.path.join(POK_PATH, "kernel/arch/ppc/ldscripts/partition.lds"), 
        "-Map", 
        os.path.join(SCONSTRUCT_DIR,name_pid,"build/e500mc/part.elf.map"), 
        os.path.join(SCONSTRUCT_DIR,name_pid,"build/e500mc/deployment.o"), 

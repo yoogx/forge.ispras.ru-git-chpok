@@ -145,7 +145,6 @@ void thread_wake_up(pok_thread_t* t);
  */
 void thread_suspend(pok_thread_t* t);
 
-
 /* 
  * Suspend given thread for given period of time.
  * 
@@ -156,14 +155,12 @@ void thread_suspend(pok_thread_t* t);
  */
 void thread_suspend_timed(pok_thread_t* t, pok_time_t time);
 
-
 /* 
  * Resume given thread.
  * 
  * Thread should be suspended.
  */
 void thread_resume(pok_thread_t* t);
-
 
 /*
  * Stop given thread in NORMAL mode.
@@ -178,20 +175,10 @@ void thread_stop(pok_thread_t* t);
  * Whether waiting is allowed in the current context.
  * 
  * Note: Doesn't require disabled local preemption.
+ * 
+ * DEV: Not suitable for check waiting on msection.
  */
-static inline pok_bool_t thread_is_waiting_allowed(void)
-{
-	pok_partition_arinc_t* part = current_partition_arinc;
-	
-	if(part->lock_level // In the INIT_* mode lock level is positive, no need to check it explicitely.
-#ifdef POK_NEEDS_ERROR_HANDLING
-		|| part->thread_error == current_thread /* error thread cannot wait */
-#endif		
-      )
-      return FALSE;
-
-   return TRUE;
-}
+pok_bool_t thread_is_waiting_allowed(void);
 
 /* 
  * Mark given thread as runnable in NORMAL mode.

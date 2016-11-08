@@ -4,6 +4,7 @@
 #include <types.h>
 #include "interrupt_context.h"
 #include <arch/deployment.h>
+#include <asp/space.h>
 
 typedef enum {
     PF_DATA_TLB_MISS,

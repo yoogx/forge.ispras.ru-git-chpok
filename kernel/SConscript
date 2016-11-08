@@ -69,8 +69,6 @@ if kernel_env.get('jdeveloper'):
             template_main = 'syscall_declarations_kernel',
             template_dir = kernel_env['POK_PATH'] + '/misc/templates'))
 
-    kernel_headers = kernel_env.Alias("kernel-headers", kernel_syscall_headers)
-
-    kernel_env.Depends(kernel_objects, kernel_headers)
+    kernel_env.Depends('regenerate', kernel_syscall_headers)
 
 # EOF

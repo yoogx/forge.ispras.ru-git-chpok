@@ -20,13 +20,19 @@
 pok_bool_t thread_create(pok_thread_t* t)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
-    
+
     t->init_stack_addr = ja_ustack_alloc(
         part->base_part.space_id,
         t->user_stack_size);
-    
+
     if(t->init_stack_addr == 0) return FALSE;
-    
+
+    // Initialize thread shared data
+    struct jet_thread_shared_data* tshd_t = part->kshd->tshd
+	+ (t - part->threads);
+    tshd_t->msection_count = 0;
+    tshd_t->msection_entering = NULL;
+
     /* 
      * Do not modify stack here: it will be filled when thread will run.
      */
@@ -34,18 +40,24 @@ pok_bool_t thread_create(pok_thread_t* t)
 #ifdef POK_NEEDS_GDB
     t->entry_sp_user = NULL;
 #endif
-    
+
     t->priority = t->base_priority;
     t->state = POK_STATE_STOPPED;
-    
+
     t->suspended = FALSE;
-    
+
+    t->relations_stop.donate_target = NULL;
+    t->relations_stop.first_donator = NULL;
+    t->relations_stop.next_donator = NULL;
+
+    t->msection_entering = NULL;
+
     delayed_event_init(&t->thread_deadline_event);
     delayed_event_init(&t->thread_delayed_event);
     INIT_LIST_HEAD(&t->wait_elem);
     INIT_LIST_HEAD(&t->eligible_elem);
     INIT_LIST_HEAD(&t->error_elem);
-    
+
     return TRUE;
 }
 
@@ -91,7 +103,7 @@ out:
     if(t->eligible_elem.prev == &part->eligible_threads)
     {
         // Thread is inserted into the first position.
-        pok_sched_local_invalidate(); 
+        pok_sched_local_invalidate();
     }
 }
 
@@ -104,7 +116,7 @@ void thread_yield(pok_thread_t *t)
         if(t->eligible_elem.prev == &part->eligible_threads)
         {
             // Thread is removed from the first position.
-            pok_sched_local_invalidate(); 
+            pok_sched_local_invalidate();
         }
         list_del_init(&t->eligible_elem);
         thread_set_eligible(t);
@@ -124,7 +136,7 @@ static void thread_set_uneligible(pok_thread_t* t)
         if(t->eligible_elem.prev == &part->eligible_threads)
         {
             // Thread is removed from the first position.
-            pok_sched_local_invalidate(); 
+            pok_sched_local_invalidate();
         }
 	list_del_init(&t->eligible_elem);
     }
@@ -163,7 +175,39 @@ void thread_stop(pok_thread_t* t)
         t->is_unrecoverable = FALSE;
         part->nthreads_unrecoverable--;
     }
+
+    t->msection_entering = NULL;
 }
+
+pok_bool_t thread_is_waiting_allowed(void)
+{
+    pok_partition_arinc_t* part = current_partition_arinc;
+    pok_thread_t* thread_current = part->thread_current;
+
+    if(part->lock_level // In the INIT_* mode lock level is positive, no need to check it explicitely.
+#ifdef POK_NEEDS_ERROR_HANDLING
+	|| part->thread_error == thread_current /* error thread cannot wait */
+#endif
+    ) {
+        return FALSE;
+    }
+
+    struct jet_thread_shared_data* kshd_current = part->kshd->tshd
+	+ (thread_current - part->threads);
+
+    // It is prohibited to call waiting function inside msection.
+    assert_os(kshd_current->msection_count == 0);
+
+    /*
+     * It is prohibited to call waiting function when someone waits us for terminate.
+     * 
+     * Yes, we doesn't trust 'msection_count', which can be set from user space.
+     */
+    assert_os(thread_current->relations_stop.first_donator == NULL);
+
+    return TRUE;
+}
+
 
 void thread_start(pok_thread_t* t)
 {
@@ -200,6 +244,10 @@ void thread_wake_up(pok_thread_t* t)
         list_del_init(&t->wait_elem);
         // Set flag that we has been interrupted by timeout.
         t->wait_private = (void*)(-(unsigned long)POK_ERRNO_TIMEOUT);
+    }
+    else if(t->msection_entering)
+    {
+	t->wait_private = (void*)(-(unsigned long)POK_ERRNO_TIMEOUT);
     }
 
     if(!t->suspended)

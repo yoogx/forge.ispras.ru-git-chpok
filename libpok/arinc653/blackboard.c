@@ -1,182 +1,282 @@
 /*
- *                               POK header
- * 
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *                                      Copyright (c) 2007-2009 POK team 
- *
- * This file also incorporates work covered by the following 
- * copyright and license notice:
- *
- *  Copyright (C) 2013-2014 Maxim Malkov, ISPRAS <malkov@ispras.ru> 
- *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *  
- * Created by julien on Thu Jan 15 23:34:13 2009 
+ * See the GNU General Public License version 3 for more details.
  */
 
 #include <config.h>
 
 #ifdef POK_NEEDS_ARINC653_BLACKBOARD
 
+#include "blackboard.h"
+
 #include <arinc653/types.h>
 #include <arinc653/blackboard.h>
-#include <core/blackboard.h>
 #include <utils.h>
 
-#define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
-#define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
- 
-void CREATE_BLACKBOARD ( 
-       /*in */ BLACKBOARD_NAME_TYPE     BLACKBOARD_NAME, 
-       /*in */ MESSAGE_SIZE_TYPE        MAX_MESSAGE_SIZE, 
-       /*out*/ BLACKBOARD_ID_TYPE       *BLACKBOARD_ID, 
-       /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
+#include <kernel_shared_data.h>
+#include <core/assert_os.h>
+
+#include <libc/string.h>
+#include "arinc_alloc.h"
+#include <arinc_config.h>
+#include "arinc_process_queue.h"
+
+static size_t nblackboards_used = 0;
+
+/* Find blackboard by name (in UPPERCASE). Returns NULL if not found. */
+static struct arinc_blackboard* find_blackboard(const char* name)
 {
-
-   pok_blackboard_id_t  core_id;
-   pok_ret_t            core_ret;
-
-   core_ret = pok_blackboard_create (BLACKBOARD_NAME, MAX_MESSAGE_SIZE, &core_id);
-
-   switch (core_ret) {
-      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-      MAP_ERROR(POK_ERRNO_EXISTS, NO_ACTION);
-      MAP_ERROR(POK_ERRNO_SIZE, INVALID_PARAM);
-      MAP_ERROR(POK_ERRNO_EINVAL, INVALID_PARAM);
-      MAP_ERROR(POK_ERRNO_PARTITION_MODE, INVALID_MODE);
-      MAP_ERROR_DEFAULT(INVALID_CONFIG);
+   for(int i = 0; i < nblackboards_used; i++)
+   {
+      struct arinc_blackboard* blackboard = &arinc_blackboards[i];
+      if(strncasecmp(blackboard->blackboard_name, name, MAX_NAME_LENGTH) == 0)
+         return blackboard;
    }
 
-   *BLACKBOARD_ID = core_id + 1;
+   return NULL;
 }
- 
-void DISPLAY_BLACKBOARD ( 
-       /*in */ BLACKBOARD_ID_TYPE       BLACKBOARD_ID, 
-       /*in */ MESSAGE_ADDR_TYPE        MESSAGE_ADDR,       /* by reference */ 
-       /*in */ MESSAGE_SIZE_TYPE        LENGTH, 
+
+
+void CREATE_BLACKBOARD (
+       /*in */ BLACKBOARD_NAME_TYPE     BLACKBOARD_NAME,
+       /*in */ MESSAGE_SIZE_TYPE        MAX_MESSAGE_SIZE,
+       /*out*/ BLACKBOARD_ID_TYPE       *BLACKBOARD_ID,
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-   pok_ret_t core_ret;
-   
-   if (BLACKBOARD_ID == 0) {
-      core_ret = POK_ERRNO_EINVAL;
-   } else {
-      core_ret = pok_blackboard_display (BLACKBOARD_ID - 1, MESSAGE_ADDR, LENGTH);
+   if(kshd.partition_mode == POK_PARTITION_MODE_NORMAL) {
+      // Cannot create blackboard in NORMAL mode
+      *RETURN_CODE = INVALID_MODE;
+      return;
    }
-  
-   switch (core_ret) {
-      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-      MAP_ERROR(POK_ERRNO_SIZE, INVALID_PARAM);
-      MAP_ERROR(POK_ERRNO_EINVAL, INVALID_PARAM);
-      MAP_ERROR_DEFAULT(INVALID_PARAM);
+
+   if(find_blackboard(BLACKBOARD_NAME) != NULL) {
+      // Blackboard with given name already exists.
+      *RETURN_CODE = NO_ACTION;
+      return;
    }
+
+   if(nblackboards_used == arinc_config_nblackboards) {
+      // Too many blackboards
+      *RETURN_CODE = INVALID_CONFIG;
+      return;
+   }
+
+   if(MAX_MESSAGE_SIZE <= 0 || MAX_MESSAGE_SIZE > SYSTEM_LIMIT_MESSAGE_SIZE) {
+      // Message size is non-positive or too high.
+      *RETURN_CODE = INVALID_PARAM;
+      return;
+   }
+
+   struct arinc_blackboard* blackboard = &arinc_blackboards[nblackboards_used];
+
+   blackboard->max_message_size = MAX_MESSAGE_SIZE;
+
+   // Optimize message for copiing.
+   blackboard->message = arinc_alloc(blackboard->max_message_size, __alignof__(int));
+
+   if(blackboard->message == NULL)
+   {
+      // Failed to allocate message.
+      *RETURN_CODE = INVALID_CONFIG;
+      return;
+   }
+
+   memcpy(blackboard->blackboard_name, BLACKBOARD_NAME, MAX_NAME_LENGTH);
+   blackboard->message_size = 0;
+   msection_init(&blackboard->section);
+   msection_wq_init(&blackboard->process_queue);
+
+   *BLACKBOARD_ID = nblackboards_used + 1;// Avoid 0 value.
+
+   nblackboards_used++;
+
+   *RETURN_CODE = NO_ERROR;
 }
- 
-void READ_BLACKBOARD ( 
-       /*in */ BLACKBOARD_ID_TYPE       BLACKBOARD_ID, 
-       /*in */ SYSTEM_TIME_TYPE         TIME_OUT, 
-       /*out*/ MESSAGE_ADDR_TYPE        MESSAGE_ADDR, 
-       /*out*/ MESSAGE_SIZE_TYPE        *LENGTH, 
+
+void DISPLAY_BLACKBOARD (
+       /*in */ BLACKBOARD_ID_TYPE       BLACKBOARD_ID,
+       /*in */ MESSAGE_ADDR_TYPE        MESSAGE_ADDR,       /* by reference */
+       /*in */ MESSAGE_SIZE_TYPE        LENGTH,
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-   pok_ret_t core_ret;
-   pok_message_size_t len = 0;
-   pok_time_t ms = TIME_OUT < 0 ? INFINITE_TIME_VALUE : arinc_time_to_ms(TIME_OUT);
-
-   if (BLACKBOARD_ID == 0) {
-      core_ret = POK_ERRNO_EINVAL;
-   } else {
-       core_ret = pok_blackboard_read (BLACKBOARD_ID - 1, &ms, MESSAGE_ADDR, &len);
+   if (BLACKBOARD_ID <= 0 || BLACKBOARD_ID > nblackboards_used) {
+      // Incorrect blackboard identificator.
+      *RETURN_CODE = INVALID_PARAM;
+      return;
    }
 
-   *LENGTH = len;
+   struct arinc_blackboard* blackboard = &arinc_blackboards[BLACKBOARD_ID - 1];
 
-   switch (core_ret) {
-      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-      MAP_ERROR(POK_ERRNO_EINVAL, INVALID_PARAM);
-      MAP_ERROR(POK_ERRNO_EMPTY, NOT_AVAILABLE);
-      MAP_ERROR(POK_ERRNO_UNAVAILABLE, NOT_AVAILABLE);
-      MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
-      MAP_ERROR(POK_ERRNO_TIMEOUT, TIMED_OUT);
-      MAP_ERROR_DEFAULT(INVALID_PARAM);
+   if(LENGTH <= 0 || LENGTH > blackboard->max_message_size) {
+      // LENGTH is non-positive or too big.
+      *RETURN_CODE = INVALID_PARAM;
+      return;
    }
+
+   msection_enter(&blackboard->section);
+
+   memcpy(blackboard->message, MESSAGE_ADDR, LENGTH);
+   blackboard->message_size = LENGTH;
+
+   if(msection_wq_notify(&blackboard->section, &blackboard->process_queue, TRUE)
+      == POK_ERRNO_OK) {
+      // There are processes waiting on an empty blackboard.
+      // We are already woken up them.
+      pok_thread_id_t t = blackboard->process_queue.first;
+
+      do {
+         char* w_dest = kshd.tshd[t].wq_buffer.dst;
+         memcpy(w_dest, blackboard->message, blackboard->message_size);
+         kshd.tshd[t].wq_len = blackboard->message_size;
+
+         msection_wq_del(&blackboard->process_queue, t);
+
+         t = blackboard->process_queue.first;
+      } while(t != JET_THREAD_ID_NONE);
+   }
+
+   msection_leave(&blackboard->section);
+   *RETURN_CODE = NO_ERROR;
 }
- 
-void CLEAR_BLACKBOARD ( 
-       /*in */ BLACKBOARD_ID_TYPE       BLACKBOARD_ID, 
-       /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
-{
-   pok_ret_t core_ret;
-   if (BLACKBOARD_ID == 0) {
-      core_ret = POK_ERRNO_EINVAL;
-   } else {
-      core_ret = pok_blackboard_clear(BLACKBOARD_ID - 1);
-   }
-   switch (core_ret) {
-      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-      MAP_ERROR(POK_ERRNO_EINVAL, INVALID_PARAM);
-      MAP_ERROR_DEFAULT(INVALID_PARAM);
-   }
-}
- 
-void GET_BLACKBOARD_ID ( 
-       /*in */ BLACKBOARD_NAME_TYPE     BLACKBOARD_NAME, 
-       /*out*/ BLACKBOARD_ID_TYPE       *BLACKBOARD_ID, 
-       /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
-{
-   pok_ret_t core_ret;
-   pok_blackboard_id_t id;
-   core_ret = pok_blackboard_id(BLACKBOARD_NAME, &id);
-   switch (core_ret) {
-      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-      MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG);
-      MAP_ERROR(POK_ERRNO_UNAVAILABLE, INVALID_CONFIG);
-      MAP_ERROR_DEFAULT(INVALID_PARAM);
-   }
-   if (core_ret == POK_ERRNO_OK) {
-      *BLACKBOARD_ID = id + 1;
-   }
-}
- 
-void GET_BLACKBOARD_STATUS ( 
-       /*in */ BLACKBOARD_ID_TYPE       BLACKBOARD_ID, 
-       /*out*/ BLACKBOARD_STATUS_TYPE   *BLACKBOARD_STATUS, 
-       /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
-{
-    pok_ret_t core_ret;
-    pok_blackboard_status_t status;
-    if (BLACKBOARD_ID == 0) {
-      core_ret = POK_ERRNO_EINVAL;
-    } else {
-      core_ret = pok_blackboard_status(BLACKBOARD_ID - 1, &status);
-    }
 
-    if (core_ret == POK_ERRNO_OK) {
-        BLACKBOARD_STATUS->EMPTY_INDICATOR = status.is_empty ? EMPTY : OCCUPIED;
-        BLACKBOARD_STATUS->MAX_MESSAGE_SIZE = status.max_message_size;
-        BLACKBOARD_STATUS->WAITING_PROCESSES = status.waiting_processes;
+void READ_BLACKBOARD (
+       /*in */ BLACKBOARD_ID_TYPE       BLACKBOARD_ID,
+       /*in */ SYSTEM_TIME_TYPE         TIME_OUT,
+       /*out*/ MESSAGE_ADDR_TYPE        MESSAGE_ADDR,
+       /*out*/ MESSAGE_SIZE_TYPE        *LENGTH,
+       /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
+{
+   if (BLACKBOARD_ID <= 0 || BLACKBOARD_ID > nblackboards_used) {
+      // Incorrect blackboard identificator.
+      *RETURN_CODE = INVALID_PARAM;
+      return;
+   }
 
-        *RETURN_CODE = NO_ERROR;
-    } else {
-        *RETURN_CODE = INVALID_PARAM;
-    }
+   struct arinc_blackboard* blackboard = &arinc_blackboards[BLACKBOARD_ID - 1];
+
+   msection_enter(&blackboard->section);
+
+   if(blackboard->message_size > 0) {
+      // There is a message in the blackboard.
+      memcpy(MESSAGE_ADDR, blackboard->message, blackboard->message_size);
+      *LENGTH = blackboard->message_size;
+      *RETURN_CODE = NO_ERROR;
+   }
+   else if(TIME_OUT == 0)
+   {
+      // There is no message in blackboard but waiting is not requested.
+      *LENGTH = 0;
+      *RETURN_CODE = NOT_AVAILABLE;
+   }
+   else {
+      // Blackboard is empty and waiting is *requested* by the caller.
+      // (whether waiting is *allowed* will be checked by the kernel.)
+      pok_thread_id_t t = kshd.current_thread_id;
+
+      kshd.tshd[t].wq_buffer.dst = MESSAGE_ADDR;
+
+      /*
+       * ARINC explicitely says, that:
+       * 
+       * If processes were waiting on the empty blackboard, the
+       * processes will be released on a priority followed by FIFO (when
+       * priorities are equal) basis.
+       */
+      arinc_process_queue_add_common(&blackboard->process_queue, PRIORITY);
+
+      switch(msection_wait(&blackboard->section, TIME_OUT))
+      {
+      case POK_ERRNO_OK:
+         // Message is already copied from the blackboard by the notifier.
+         *LENGTH = kshd.tshd[t].wq_len;
+         *RETURN_CODE = NO_ERROR;
+         break;
+      case POK_ERRNO_MODE: // Waiting is not allowed
+      case POK_ERRNO_CANCELLED: // Thread has been STOP()-ed or [IPPC] server thread has been cancelled.
+         msection_wq_del(&blackboard->process_queue, t);
+         *LENGTH = 0;
+         *RETURN_CODE = INVALID_MODE;
+         break;
+      case POK_ERRNO_TIMEOUT:
+         // Timeout
+         msection_wq_del(&blackboard->process_queue, t);
+         *LENGTH = 0;
+         *RETURN_CODE = TIMED_OUT;
+         break;
+      default:
+         assert_os(FALSE);
+      }
+   }
+
+   msection_leave(&blackboard->section);
+}
+
+void CLEAR_BLACKBOARD (
+       /*in */ BLACKBOARD_ID_TYPE       BLACKBOARD_ID,
+       /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
+{
+   if (BLACKBOARD_ID <= 0 || BLACKBOARD_ID > nblackboards_used) {
+      // Incorrect blackboard identificator.
+      *RETURN_CODE = INVALID_PARAM;
+      return;
+   }
+
+   struct arinc_blackboard* blackboard = &arinc_blackboards[BLACKBOARD_ID - 1];
+
+   msection_enter(&blackboard->section);
+   blackboard->message_size = 0;
+   msection_leave(&blackboard->section);
+
+   *RETURN_CODE = NO_ERROR;
+}
+
+void GET_BLACKBOARD_ID (
+       /*in */ BLACKBOARD_NAME_TYPE     BLACKBOARD_NAME,
+       /*out*/ BLACKBOARD_ID_TYPE       *BLACKBOARD_ID,
+       /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
+{
+   struct arinc_blackboard* blackboard = find_blackboard(BLACKBOARD_NAME);
+   if(blackboard == NULL) {
+      *RETURN_CODE = INVALID_CONFIG;
+      return;
+   }
+
+   *BLACKBOARD_ID = (blackboard - arinc_blackboards) + 1;
+   *RETURN_CODE = NO_ERROR;
+}
+
+void GET_BLACKBOARD_STATUS (
+       /*in */ BLACKBOARD_ID_TYPE       BLACKBOARD_ID,
+       /*out*/ BLACKBOARD_STATUS_TYPE   *BLACKBOARD_STATUS,
+       /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
+{
+   if (BLACKBOARD_ID <= 0 || BLACKBOARD_ID > nblackboards_used) {
+      // Incorrect blackboard identificator.
+      *RETURN_CODE = INVALID_PARAM;
+      return;
+   }
+
+   struct arinc_blackboard* blackboard = &arinc_blackboards[BLACKBOARD_ID - 1];
+
+   BLACKBOARD_STATUS->MAX_MESSAGE_SIZE = blackboard->max_message_size;
+
+   msection_enter(&blackboard->section);
+   BLACKBOARD_STATUS->EMPTY_INDICATOR = (blackboard->message_size == 0)
+      ? EMPTY: OCCUPIED;
+   BLACKBOARD_STATUS->WAITING_PROCESSES =
+      msection_wq_size(&blackboard->section, &blackboard->process_queue);
+   msection_leave(&blackboard->section);
+
+   *RETURN_CODE = NO_ERROR;
 }
 #endif

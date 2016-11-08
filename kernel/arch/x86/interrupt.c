@@ -17,7 +17,7 @@
 
 #include "interrupt.h"
 #include "tss.h"
-
+#include <gdb.h>
 #include <libc.h>
 
 extern void * pok_trap_addr;
@@ -41,7 +41,6 @@ void save_frame(interrupt_frame* frame)
 
 void process_breakpoint(interrupt_frame* frame)
 {
-   (void)frame;
    printf("EXCEPTION breakpoint\n");
    frame->eip --;
 //// pok_trap_addr = address of pok_trap in entry.S
@@ -51,22 +50,22 @@ void process_breakpoint(interrupt_frame* frame)
    }else{
         handle_exception(3, frame);
     }
-    printf("es = 0x%lx\n",frame->es);
-    printf("ds = 0x%lx\n",frame->ds);
-    printf("edi = 0x%lx\n",frame->edi);
-    printf("esi = 0x%lx\n",frame->esi);
-    printf("ebp = 0x%lx\n",frame->ebp);
-    printf("__esp = 0x%lx\n",frame->__esp);
-    printf("ebx = 0x%lx\n",frame->ebx);
-    printf("edx = 0x%lx\n",frame->edx);
-    printf("ecx = 0x%lx\n",frame->ecx);
-    printf("eax = 0x%lx\n",frame->eax);
-    printf("error = 0x%lx\n",frame->error);
-    printf("eip = 0x%lx\n",frame->eip);
-    printf("cs = 0x%lx\n",frame->cs);
-    printf("eflags = 0x%lx\n",frame->eflags);
-    printf("esp = 0x%lx\n",frame->esp);
-    printf("ss = 0x%lx\n",frame->ss);
+    //printf("es = 0x%lx\n",frame->es);
+    //printf("ds = 0x%lx\n",frame->ds);
+    //printf("edi = 0x%lx\n",frame->edi);
+    //printf("esi = 0x%lx\n",frame->esi);
+    //printf("ebp = 0x%lx\n",frame->ebp);
+    //printf("__esp = 0x%lx\n",frame->__esp);
+    //printf("ebx = 0x%lx\n",frame->ebx);
+    //printf("edx = 0x%lx\n",frame->edx);
+    //printf("ecx = 0x%lx\n",frame->ecx);
+    //printf("eax = 0x%lx\n",frame->eax);
+    //printf("error = 0x%lx\n",frame->error);
+    //printf("eip = 0x%lx\n",frame->eip);
+    //printf("cs = 0x%lx\n",frame->cs);
+    //printf("eflags = 0x%lx\n",frame->eflags);
+    //printf("esp = 0x%lx\n",frame->esp);
+    //printf("ss = 0x%lx\n",frame->ss);
     if (!was_breakpoint){
         frame->eip++;
     }
