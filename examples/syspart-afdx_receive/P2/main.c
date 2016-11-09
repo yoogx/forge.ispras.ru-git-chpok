@@ -40,21 +40,23 @@
 #include <channel_driver.h>
 /*==============================*/
 #define PRINT
+#define PRINT_RECEIVE
+#define PRINT_REDUNDANCY
 /*==============================*/
 
 #define UDP_H_LENGTH            8
-#define SIZE_OF_HEADER			42
-#define SECOND 					1000000000LL
+#define SIZE_OF_HEADER            42
+#define SECOND                     1000000000LL
 
-#define MAX_AFDX_FRAME_SIZE		114
-//~ #define MAX_AFDX_PAYLOAD_SIZE 	64
+#define MAX_AFDX_FRAME_SIZE        114
+//~ #define MAX_AFDX_PAYLOAD_SIZE     64
 
-//~ #define MAX_NB_MESSAGE 			10
+//~ #define MAX_NB_MESSAGE             10
 
-//~ #define POK_NETWORK_UDP 		(14 + 20 + 8)
-//~ #define POK_NETWORK_OVERHEAD 	(POK_NETWORK_UDP)
-#define NETWORK_CARD_A			0
-#define NETWORK_CARD_B			1
+//~ #define POK_NETWORK_UDP         (14 + 20 + 8)
+//~ #define POK_NETWORK_OVERHEAD     (POK_NETWORK_UDP)
+#define NETWORK_CARD_A            0
+#define NETWORK_CARD_B            1
 
 QUEUING_PORT_ID_TYPE QP1, QP2;
 
@@ -80,7 +82,7 @@ int arinc_two[] = {0, 0, 0, 0, 4, 0};
 //~ pok_network_buffer_callback_t callback;
 void send_callback_m(void *pointer)
 {
-	printf("yes");
+    printf("yes");
 }
 /* This function search vl_index in configurations ports
  * INPUT: vl_id
@@ -128,14 +130,14 @@ void integrity_checking_init()
 }
 
 /*
- * Comparisons last_in_seq_numb and sn (for each of the subnets), 
- * if the difference between sn and last_in_seq_numb is 1 or 2, 
- * we accept this message 
+ * Comparisons last_in_seq_numb and sn (for each of the subnets),
+ * if the difference between sn and last_in_seq_numb is 1 or 2,
+ * we accept this message
  * (PS do not forget that zero message is sent immediately after the restart
- * of the system is sn = 0, 
- * and the remaining messages are numbered from 1 to 255 
+ * of the system is sn = 0,
+ * and the remaining messages are numbered from 1 to 255
  * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * INPUT: 
+ * INPUT:
  *  - sequence_number
  *  - index of VL id in array of ports
  * OUTPUT:
@@ -152,8 +154,8 @@ pok_bool_t integrity_checking(uint8_t seq_numb, int vl_index)
         return TRUE;
     }
 
-    /* 
-     * The first message is not received 
+    /*
+     * The first message is not received
      * accept any message
      */
     if (vl_data[vl_index].integrity_check_data[network_card].first_message_received == FALSE)
@@ -220,26 +222,29 @@ pok_bool_t redundancy_management(uint8_t seq_numb, int vl_index, pok_time_t msg_
     
     if (network_card == NETWORK_CARD_A)
     {
+    #ifdef PRINT_REDUNDANCY
         printf("Compare with card B\n");
         printf("arrival_time   %lli\n", msg_arrival_time);
         printf("ar_t_in_arr    %lli\n", vl_data[vl_index].redundancy_management_data.arrival_time[NETWORK_CARD_B][seq_numb]);
         printf("diff           %lli\n", (msg_arrival_time - vl_data[vl_index].redundancy_management_data.arrival_time[NETWORK_CARD_B][seq_numb]));
         printf("skew_max       %lli\n", vl_data[vl_index].skew_max);
-        
+    #endif
         if ((msg_arrival_time - vl_data[vl_index].redundancy_management_data.arrival_time[NETWORK_CARD_B][seq_numb]) < vl_data[vl_index].skew_max)
         return FALSE;
-    }else 
+    }else
     {
+    #ifdef PRINT_REDUNDANCY
         printf("arrival_time   %lli\n", msg_arrival_time);
         printf("ar_t_in_arr    %lli\n", vl_data[vl_index].redundancy_management_data.arrival_time[NETWORK_CARD_A][seq_numb]);
         printf("diff           %lli\n", (msg_arrival_time - vl_data[vl_index].redundancy_management_data.arrival_time[NETWORK_CARD_A][seq_numb]));
         printf("skew_max       %lli\n", vl_data[vl_index].skew_max);
-        
+
         printf("Compare with card A\n");
+    #endif
         if ((msg_arrival_time - vl_data[vl_index].redundancy_management_data.arrival_time[NETWORK_CARD_A][seq_numb]) < vl_data[vl_index].skew_max)
         return FALSE;
     }
-    
+
     /* Step 2 */
     if ((msg_arrival_time - vl_data[vl_index].redundancy_management_data.last_accepted_msg_time) > vl_data[vl_index].skew_max)
     {
@@ -270,7 +275,7 @@ pok_bool_t redundancy_management(uint8_t seq_numb, int vl_index, pok_time_t msg_
     }
     
     return FALSE;
-    
+
 }
 
 /*
@@ -281,7 +286,7 @@ void packet_receive(const char *buffer, size_t size)
 {
     
     RETURN_CODE_TYPE ret;
-	int vl_temp;
+    int vl_temp;
     char afdx_message[MAX_AFDX_FRAME_SIZE];
     uint8_t sequence_number;
     frame_data_t *afdx_frame = (frame_data_t *) buffer;
@@ -302,7 +307,7 @@ void packet_receive(const char *buffer, size_t size)
     /* identify vl_index in vl_data */
     vl_temp = identify_vl_index(afdx_frame->mac_header.mac_dst_addr.vl_id);
 
-#ifdef PRINT
+#ifdef PRINT_RECEIVE
     printf("VL_index =     %d\n", vl_temp);
     
     /* Just Now VL_ID's start from 1, until indexes which star from 0*/
@@ -314,7 +319,7 @@ void packet_receive(const char *buffer, size_t size)
     /* Integrity checking */
     memcpy(&sequence_number, (buffer + size - sizeof(uint8_t)), sizeof(uint8_t));
 
-#ifdef PRINT
+#ifdef PRINT_RECEIVE
     printf("SN =           %d\n", sequence_number);
 #endif
     
@@ -323,8 +328,9 @@ void packet_receive(const char *buffer, size_t size)
     if (integrity_checking(sequence_number, vl_temp) == TRUE)
     {
         if (redundancy_management(sequence_number, vl_temp, msg_arrival_time)== TRUE)
-        printf("RM_Message accepted\n");
+            printf("RM_Message accepted\n");
         else printf("RM_Message NOT accepted\n");
+
     }
     else
     {

@@ -87,20 +87,20 @@ void drivers_init()
 uint16_t config_queuing_port_list_size = 2;
 
 queuing_port_config_t config_queuing_port_list[] = {
-	{
-		.name = "QP2",
-		.msg_size = MAX_AFDX_PAYLOAD_SIZE,
-		.max_nb_msg = MAX_NB_MESSAGE,
-		.port_dir = DESTINATION,
-		.que_disc = FIFO,
-	},
-	{
-		.name = "QP4",
-		.msg_size = MAX_AFDX_PAYLOAD_SIZE,
-		.max_nb_msg = MAX_NB_MESSAGE,
-		.port_dir = DESTINATION,
-		.que_disc = FIFO,
-	}
+    {
+        .name = "QP2",
+        .msg_size = MAX_AFDX_PAYLOAD_SIZE,
+        .max_nb_msg = MAX_NB_MESSAGE,
+        .port_dir = DESTINATION,
+        .que_disc = FIFO,
+    },
+    {
+        .name = "QP4",
+        .msg_size = MAX_AFDX_PAYLOAD_SIZE,
+        .max_nb_msg = MAX_NB_MESSAGE,
+        .port_dir = DESTINATION,
+        .que_disc = FIFO,
+    }
 };
-	
+    
 
