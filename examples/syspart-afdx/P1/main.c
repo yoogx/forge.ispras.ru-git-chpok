@@ -70,7 +70,7 @@ static void first_process(void)
             check_ret(ret);
             i = 1 -i;
 
-            TIMED_WAIT(2 * SECOND, &ret);
+            TIMED_WAIT(SECOND / 3, &ret);
     }
 }
 

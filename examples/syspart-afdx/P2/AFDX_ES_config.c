@@ -31,7 +31,7 @@
     vl_data_t vl_data[VIRTUAL_LINKS_COUNT] = {
         {
             .vl_id = 1,
-            .BAG = SECOND,
+            .BAG = SECOND / 4,
             .L_max = 1516,
             .L_min = 62,
             .TTL = 5,
@@ -44,7 +44,7 @@
         },
         {
             .vl_id = 2,
-            .BAG = SECOND,
+            .BAG = SECOND / 4,
             .L_max = 1516,
             .L_min = 62,
             .TTL = 5,
