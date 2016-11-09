@@ -35,8 +35,8 @@ struct tlb_entry jet_tlb_entries[] = {
     // {{mblock.name}}
     {%for pid, access_right in mblock.access.iteritems() %}
     {
-        .virt_addr = {{mblock.virt_addr}},
-        .phys_addr = {{mblock.phys_addr}},
+        .virt_addr = {{"0x%x" | format(mblock.virt_addr)}},
+        .phys_addr = {{"0x%x" | format(mblock.phys_addr)}},
         .size = E500MC_PGSIZE_{{mblock.str_size}},
         .permissions = MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,
         {%if mblock.cache_policy == "IO"%}
