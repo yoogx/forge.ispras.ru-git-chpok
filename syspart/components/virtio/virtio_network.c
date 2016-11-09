@@ -166,6 +166,9 @@ ret_t send_frame(VIRTIO_NET_DEV * self,
         size_t size,
         size_t max_back_step)
 {
+    if (!self->state.info.inited)
+        return EINVAL; //FIXME
+
     if (max_back_step != 0)
         return EINVAL;
 
@@ -306,6 +309,9 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
 
 ret_t flush_send(VIRTIO_NET_DEV *self)
 {
+    if (!self->state.info.inited)
+        return EINVAL; //FIXME
+
     struct virtio_network_device *dev = &self->state.info;
 
     outw(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_QUEUE_NOTIFY, (uint16_t) VIRTIO_NETWORK_TX_VIRTQUEUE);
@@ -321,6 +327,10 @@ static pok_bool_t init_device(struct virtio_network_device *dev)
 {
     //TODO get from config
     pci_get_dev_by_bdf(0, 2, 0, &dev->pci_device);
+    if (dev->pci_device.vendor_id == 0xFFFF) {
+        PRINTF("have not found virtio device\n");
+        return FALSE;
+    }
 
     dev->pci_device.resources[PCI_RESOURCE_BAR0].addr &= ~0xFU;
 
@@ -368,7 +378,6 @@ static pok_bool_t init_device(struct virtio_network_device *dev)
     // 7. send buffers allocation
     dev->send_buffers = smalloc(sizeof(*dev->send_buffers) * dev->tx_vq.vring.num);
 
-    dev->inited = 1;
     return TRUE;
 }
 
@@ -387,5 +396,6 @@ void virtio_init(VIRTIO_NET_DEV *self)
 
     //TODO delete if
     if (self->state.dev_index == 0)
-        init_device(&self->state.info);
+        if (init_device(&self->state.info))
+            self->state.info.inited = 1;
 }
