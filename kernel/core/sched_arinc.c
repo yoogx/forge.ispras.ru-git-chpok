@@ -59,7 +59,7 @@ void sched_arinc_start(void)
 static void thread_deadline_occured(struct delayed_event* event)
 {
     pok_thread_t* thread = container_of(event, typeof(*thread), thread_deadline_event);
-    printf_debug("Deadline occured for thread %s (%d)\n", thread->name, (int)(thread - current_partition_arinc->threads));
+    printf_debug("Deadline miss occured for thread \"%s\" (#%d) of partition \"%s\"\n", thread->name, (int)(thread - current_partition_arinc->threads), current_partition_arinc->base_part.name);
     pok_thread_emit_deadline_missed(thread);
     
     // TODO: if error was ignored, what to do?
