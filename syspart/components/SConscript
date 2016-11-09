@@ -25,7 +25,7 @@ COMPONENTS_DIRS = [
         'arinc',
         'udp_ip',
         'mac',
-#        'virtio',
+        'virtio',
         'arp'
         ]
 COMPONENTS_PATH = os.path.join(syspart_env["POK_PATH"], "syspart/components")

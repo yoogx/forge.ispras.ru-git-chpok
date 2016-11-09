@@ -36,32 +36,7 @@
 #define VIRTIO_NETWORK_RX_VIRTQUEUE 0
 #define VIRTIO_NETWORK_TX_VIRTQUEUE 1
 
-// FIXME
-#define DRV_NAME "virtio-net"
-#define DEV_NAME_PREFIX DRV_NAME
-#define DEV_NAME_LEN 20
-
-#define PRINTF(fmt, ...) printf("virtio_network: " fmt, ##__VA_ARGS__)
-
-struct receive_buffer {
-    struct virtio_net_hdr virtio_net_hdr;
-    struct ether_hdr ether_hdr;
-    char payload[ETH_DATA_LENGTH];
-} __attribute__((packed));
-
-struct virtio_network_device {
-    s_pci_dev pci_device;
-
-    struct virtio_virtqueue rx_vq, tx_vq;
-
-    uint8_t mac[ETH_ALEN];
-
-    void (*packet_received_callback)(const char *, size_t);
-
-    struct receive_buffer receive_buffers[POK_MAX_RECEIVE_BUFFERS];
-};
-
-struct virtio_network_device *tmp_vdevice[2];
+#define PRINTF(fmt, ...) printf("VIRTIO_NET_DEV: " fmt, ##__VA_ARGS__)
 
 static void reclaim_send_buffers(struct virtio_network_device *info);
 /*
@@ -100,11 +75,11 @@ static void setup_virtqueue(
         struct virtio_virtqueue *vq)
 {
     // queue selector
-    outw(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_SEL, index);
+    outw(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_QUEUE_SEL, index);
 
     // get queue size
 
-    uint16_t queue_size = inw(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_NUM);
+    uint16_t queue_size = inw(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_QUEUE_NUM);
 
     // allocate memory and fill in vq fields
     void *mem = virtio_virtqueue_setup(vq, queue_size, VIRTIO_PCI_VRING_ALIGN);
@@ -117,14 +92,14 @@ static void setup_virtqueue(
         return;
     }
 
-    outl(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_PFN, phys_addr / VIRTIO_PCI_VRING_ALIGN);
+    outl(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_QUEUE_PFN, phys_addr / VIRTIO_PCI_VRING_ALIGN);
 
 }
 
 static void set_status_bit(s_pci_dev *pcidev, uint8_t bit)
 {
-    bit |= inb(pcidev->bar[0] + VIRTIO_PCI_STATUS);
-    outb(pcidev->bar[0] + VIRTIO_PCI_STATUS, bit);
+    bit |= inb(pcidev->resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_STATUS);
+    outb(pcidev->resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_STATUS, bit);
 }
 
 static void read_mac_address(struct virtio_network_device *dev)
@@ -133,7 +108,7 @@ static void read_mac_address(struct virtio_network_device *dev)
 
     int i;
     for (i = 0; i < ETH_ALEN; i++) {
-        mac[i] = inb(dev->pci_device.bar[0] + VIRTIO_PCI_CONFIG_OFF(FALSE) + i);
+        mac[i] = inb(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_CONFIG_OFF(FALSE) + i);
     }
 }
 
@@ -173,7 +148,7 @@ static void use_receive_buffer(struct virtio_network_device *dev, struct receive
 // must be called after one or more receive buffers has been added to rx avail. ring
 static void notify_receive_buffers(struct virtio_network_device *dev)
 {
-    outw(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_NOTIFY, (uint16_t) VIRTIO_NETWORK_RX_VIRTQUEUE);
+    outw(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_QUEUE_NOTIFY, (uint16_t) VIRTIO_NETWORK_RX_VIRTQUEUE);
 }
 
 static void setup_receive_buffers(struct virtio_network_device *dev)
@@ -333,7 +308,7 @@ ret_t flush_send(VIRTIO_NET_DEV *self)
 {
     struct virtio_network_device *dev = &self->state.info;
 
-    outw(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_NOTIFY, (uint16_t) VIRTIO_NETWORK_TX_VIRTQUEUE);
+    outw(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_QUEUE_NOTIFY, (uint16_t) VIRTIO_NETWORK_TX_VIRTQUEUE);
     return EOK;
 }
 
@@ -342,15 +317,12 @@ ret_t flush_send(VIRTIO_NET_DEV *self)
  * PCI part
  */
 
-static pok_bool_t probe_device(struct pci_dev *pci_dev)
+static pok_bool_t init_device(struct virtio_network_device *dev)
 {
-    static int dev_count = 0;
-    struct virtio_network_device *dev = tmp_vdevice[dev_count];
-    dev_count ++;
+    //TODO get from config
+    pci_get_dev_by_bdf(0, 2, 0, &dev->pci_device);
 
-    dev->pci_device = *pci_dev;
-    //TODO change to ioaddr everywhere
-    dev->pci_device.bar[0] &= ~0xFU;
+    dev->pci_device.resources[PCI_RESOURCE_BAR0].addr &= ~0xFU;
 
     //subsystem = pci_read_reg(dev, PCI_REG_SUBSYSTEM) >> 16;
     //if (subsystem != VIRTIO_ID_NET)
@@ -358,7 +330,7 @@ static pok_bool_t probe_device(struct pci_dev *pci_dev)
 
 
     // 1. Reset the device
-    outb(dev->pci_device.bar[0] + VIRTIO_PCI_STATUS, 0x0);
+    outb(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_STATUS, 0x0);
 
     // 2. ACK status bit
     set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_ACKNOWLEDGE);
@@ -376,7 +348,7 @@ static pok_bool_t probe_device(struct pci_dev *pci_dev)
 
     // 5. Device feature bits
 
-    uint32_t features = inl(dev->pci_device.bar[0] + VIRTIO_PCI_HOST_FEATURES);
+    uint32_t features = inl(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_HOST_FEATURES);
     uint32_t recognized_features = 0;
 
     if (features & (1 << VIRTIO_NET_F_MAC)) {
@@ -388,7 +360,7 @@ static pok_bool_t probe_device(struct pci_dev *pci_dev)
         return FALSE;
     }
 
-    outl(dev->pci_device.bar[0] + VIRTIO_PCI_GUEST_FEATURES, recognized_features);
+    outl(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_GUEST_FEATURES, recognized_features);
 
     // 6. DRIVER_OK status bit
     set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_DRIVER_OK);
@@ -399,17 +371,6 @@ static pok_bool_t probe_device(struct pci_dev *pci_dev)
     dev->inited = 1;
     return TRUE;
 }
-
-const struct pci_dev_id virtio_pci_devid_tbl[] = {
-    { VIRTIO_PCI_VENDORID, PCI_ANY_ID},
-};
-
-struct pci_driver virtio_pci_driver = {
-    .name     = DRV_NAME,
-    .probe    = probe_device,
-    .id_table = virtio_pci_devid_tbl
-};
-
 
 void virtio_receive_activity(VIRTIO_NET_DEV *self)
 {
@@ -422,11 +383,9 @@ void virtio_receive_activity(VIRTIO_NET_DEV *self)
  */
 void virtio_init(VIRTIO_NET_DEV *self)
 {
-    tmp_vdevice[self->state.dev_index] = &self->state.info;
-    int static t = 0;
-    if (t == 0) {
-        printf("register pci_driver\n");
-        t++;
-        register_pci_driver(&virtio_pci_driver);
-    }
+    PRINTF("%s_ dev index %d\n", __func__, self->state.dev_index);
+
+    //TODO delete if
+    if (self->state.dev_index == 0)
+        init_device(&self->state.info);
 }
