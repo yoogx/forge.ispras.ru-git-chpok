@@ -70,57 +70,6 @@ void register_pci_driver(struct pci_driver *driver)
     pci_driver_table[pci_driver_table_used_cnt++] = *driver;
 }
 
-//Depricated
-uint32_t pci_read(
-        uint32_t bus,
-        uint32_t dev,
-        uint32_t fn,
-        uint32_t reg)
-{
-    uint32_t addr = (1 << 31) | (bus << 16) | (dev << 11) | 
-        (fn << 8) | (reg & 0xfc);
-    uint32_t val = -1;
-
-#ifdef __PPC__
-    out_be32((uint32_t *) bridge.cfg_addr, addr);
-    val = in_le32((uint32_t *) bridge.cfg_data);
-#else
-    outl(PCI_CONFIG_ADDRESS, addr);
-    val = inl(PCI_CONFIG_DATA);
-#endif
-
-    return (val >> ((reg & 3) << 3));
-}
-
-void pci_write_word(s_pci_dev *d, uint32_t reg, uint16_t val)
-{
-    uint32_t addr = (1 << 31) | (d->bus << 16) | (d->dev << 11) | 
-        (d->fn << 8) | (reg & 0xfc);
-
-#ifdef __PPC__
-    out_be32((uint32_t *) bridge.cfg_addr, addr);
-    out_le16((uint16_t *) bridge.cfg_data, val);
-#else
-    outl(PCI_CONFIG_ADDRESS, addr);
-    outw(PCI_CONFIG_DATA, val);
-#endif
-
-}
-void pci_write_dword(s_pci_dev *d, uint32_t reg, uint32_t val)
-{
-    uint32_t addr = (1 << 31) | (d->bus << 16) | (d->dev << 11) | 
-        (d->fn << 8) | (reg & 0xfc);
-
-#ifdef __PPC__
-    out_be32((uint32_t *) bridge.cfg_addr, addr);
-    out_le32((uint32_t *) bridge.cfg_data, val);
-#else
-    outl(PCI_CONFIG_ADDRESS, addr);
-    outw(PCI_CONFIG_DATA, val);
-#endif
-
-}
-
 
 int pci_read_config_byte(struct pci_dev *dev, int where, uint8_t *val)
 {
@@ -601,8 +550,6 @@ void LAW_list()
 
 void pci_init()
 {
-    printf("\nPCI\n");
-
 #ifdef __PPC__
     pok_bsp_t pok_bsp;
     pok_bsp_get_info(&pok_bsp);
@@ -655,14 +602,16 @@ void pci_init()
         pci_dev.dev = dev_config->dev;
         pci_dev.fn =  dev_config->fn;
 
-        uint16_t vendor_id;
-        pci_read_config_word(&pci_dev, PCI_VENDOR_ID, &vendor_id);
+        {
+            uint16_t vendor_id;
+            pci_read_config_word(&pci_dev, PCI_VENDOR_ID, &vendor_id);
 
-        if (vendor_id == 0xFFFF) {
-            printf("Not found\n");
-            continue;
+            if (vendor_id == 0xFFFF) {
+                printf("Not found\n");
+                continue;
+            }
+            printf("OK\n");
         }
-        printf("OK\n");
 
         int command = 0;
         for (int i = 0; i < PCI_RESOURCE_ROM; i++) {
