@@ -69,7 +69,7 @@ static void maybe_unlock_preemption(const pok_bool_t *saved)
     */
 }
 
-static void setup_virtqueue(
+static pok_bool_t setup_virtqueue(
         struct virtio_network_device *dev, 
         int16_t index, 
         struct virtio_virtqueue *vq)
@@ -80,6 +80,10 @@ static void setup_virtqueue(
     // get queue size
 
     uint16_t queue_size = inw(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_QUEUE_NUM);
+    if (queue_size < 1) {
+        PRINTF("wrong queue size\n");
+        return FALSE;
+    }
 
     // allocate memory and fill in vq fields
     void *mem = virtio_virtqueue_setup(vq, queue_size, VIRTIO_PCI_VRING_ALIGN);
@@ -89,10 +93,11 @@ static void setup_virtqueue(
 
     if (phys_addr == 0) {
         printf("%s: kernel says that virtual address is wrong\n", __func__);
-        return;
+        return FALSE;
     }
 
     outl(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_QUEUE_PFN, phys_addr / VIRTIO_PCI_VRING_ALIGN);
+    return TRUE;
 
 }
 
@@ -349,8 +354,9 @@ static pok_bool_t init_device(struct virtio_network_device *dev)
     set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_DRIVER);
 
     // 4. Device-specific setup
-    setup_virtqueue(dev, VIRTIO_NETWORK_RX_VIRTQUEUE, &dev->rx_vq);
-    setup_virtqueue(dev, VIRTIO_NETWORK_TX_VIRTQUEUE, &dev->tx_vq);
+    if (!setup_virtqueue(dev, VIRTIO_NETWORK_RX_VIRTQUEUE, &dev->rx_vq)
+        || !setup_virtqueue(dev, VIRTIO_NETWORK_TX_VIRTQUEUE, &dev->tx_vq))
+        return FALSE;
 
     setup_receive_buffers(dev);
 
