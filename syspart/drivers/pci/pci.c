@@ -24,14 +24,9 @@
 #include <bsp.h>
 #include "pci_internal.h"
 
-
-extern struct pci_driver pci_driver_table[];
-extern unsigned pci_driver_table_size;
-
 #include <libc/string.h>
 
 #define OK 0
-unsigned pci_driver_table_used_cnt = 0;
 
 #ifdef __PPC__
 struct pci_bridge bridge;
@@ -53,21 +48,6 @@ static char *get_pci_class_name(int classcode) {
         i++;
     }
     return "Unknown";
-}
-
-
-
-int pci_match_device(const struct pci_dev_id *id, const struct pci_dev *dev)
-{
-    if ((id->vendor == PCI_ANY_ID || id->vendor == dev->vendor_id) &&
-            (id->device == PCI_ANY_ID || id->device == dev->device_id))
-        return 1;
-    return 0;
-}
-
-void register_pci_driver(struct pci_driver *driver)
-{
-    pci_driver_table[pci_driver_table_used_cnt++] = *driver;
 }
 
 

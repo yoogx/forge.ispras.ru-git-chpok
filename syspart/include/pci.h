@@ -92,10 +92,6 @@
 #define  PCI_COMMAND_FAST_BACK    0x200   /* Enable back-to-back writes */
 #define  PCI_COMMAND_INTX_DISABLE 0x400 /* INTx Emulation Disable */
 
-//This from wiki.osdev.org/Pci
-#define BAR_IOADDR_MASK 0xFFFFFFFC //depricated
-
-
 /*
  * For pci devices resources numbers are
  *  0-5  BAR (base address)
@@ -160,12 +156,6 @@ typedef struct pci_dev
     uint16_t    class_code; //class code and sub class
     uint8_t     hdr_type;
     struct pci_resource resources[PCI_NUM_RESOURCES];
-
-    uint32_t    bar[6]; //depricated!!
-    uint32_t    ioaddr; //depricated!!
-    uint16_t    irq_line;//depricated!!
-    uint16_t    io_range; //depricated!!
-    void       *irq_handler; //depricated!!
 } s_pci_dev;
 
 void pci_init(void);
@@ -191,25 +181,5 @@ void pci_get_dev_by_bdf(uint8_t bus, uint8_t dev, uint8_t fn, struct pci_dev *pc
 
 //convert legacy port to mem address that can be used in ioread/iowrite functions
 uintptr_t pci_convert_legacy_port(struct pci_dev *dev, uint16_t port);
-
-
-
-
-/* depricated  */
-#define PCI_ANY_ID (uint16_t)(~0)
-
-struct pci_dev_id {
-    uint16_t vendor;
-    uint16_t device;
-};
-
-struct pci_driver {
-    const char *name;
-    pok_bool_t (*probe) (struct pci_dev *dev);
-    const struct pci_dev_id *id_table;
-};
-
-
-void register_pci_driver(struct pci_driver *driver);
 
 # endif /* __POK_PCI_H__ */
