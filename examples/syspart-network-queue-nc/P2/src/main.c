@@ -67,9 +67,6 @@ static int real_main(void)
         printf("process 1 \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
     }
 
-    pci_init();
-
-
     // transition to NORMAL operating mode
     // N.B. if everything is OK, this never returns
     printf("going to NORMAL mode...\n");
@@ -84,6 +81,7 @@ static int real_main(void)
 }
 
 void main(void) {
+    pci_init();
     glue_main();
     real_main();
     STOP_SELF();
