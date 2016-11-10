@@ -328,10 +328,14 @@ ret_t flush_send(VIRTIO_NET_DEV *self)
  * PCI part
  */
 
-static pok_bool_t init_device(struct virtio_network_device *dev)
+static pok_bool_t init_device(VIRTIO_NET_DEV_state *state)
 {
-    //TODO get from config
-    pci_get_dev_by_bdf(0, 2, 0, &dev->pci_device);
+    struct virtio_network_device *dev = &state->info;
+
+    pci_get_dev_by_bdf(state->pci_bus,
+            state->pci_dev,
+            state->pci_fn,
+            &dev->pci_device);
     if (dev->pci_device.vendor_id == 0xFFFF) {
         PRINTF("have not found virtio device\n");
         return FALSE;
@@ -398,10 +402,6 @@ void virtio_receive_activity(VIRTIO_NET_DEV *self)
  */
 void virtio_init(VIRTIO_NET_DEV *self)
 {
-    PRINTF("%s_ dev index %d\n", __func__, self->state.dev_index);
-
-    //TODO delete if
-    if (self->state.dev_index == 0)
-        if (init_device(&self->state.info))
-            self->state.info.inited = 1;
+    if (init_device(&self->state))
+        self->state.info.inited = 1;
 }

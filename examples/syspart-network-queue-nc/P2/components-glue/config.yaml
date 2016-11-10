@@ -32,7 +32,9 @@ components:
       instances:
         - name: virtio_net_dev_1
           state:
-              dev_index: 0
+              pci_bus: 0
+              pci_dev: 2
+              pci_fn: 0
 
     - type: ARP_ANSWERER
       instances:
@@ -58,7 +60,9 @@ components:
       instances:
         - name: virtio_net_dev_2
           state:
-              dev_index: 1
+              pci_bus: 0
+              pci_dev: 3
+              pci_fn: 0
 
     - type: ARP_ANSWERER
       instances:
