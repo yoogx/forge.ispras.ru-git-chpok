@@ -135,6 +135,8 @@ typedef uint32_t pok_partition_generation_t;
 /* Type of outer event for partition. */
 enum jet_partition_event_type
 {
+    /* Partition's timer is expired. */
+    JET_PARTITION_EVENT_TYPE_TIMER,
     /* Space is available for send message into the queuing port. */
     JET_PARTITION_EVENT_TYPE_PORT_SEND_AVAILABLE,
     /* Message is available for receive it from the queuing port. */
@@ -176,41 +178,27 @@ typedef struct _pok_partition
     uint16_t partition_event_end;
 
     /* 
-     * State of the partition.
+     * If this field is positive, partition will receive event
+     * (with handler_id = 0) when current time will be equal-or-more
+     * than this value.
      * 
-     * This is like "state register" notion used for architectures.
+     * When timer event is fired, the field is reset to 0.
+     * 
+     * DEV: There are 2 slots for timer events. So it is allowable to
+     * set this field without preliminary reseting it and checking for
+     * events.
      */
-    union {
-        /* 
-         * State flags (bytes). Can be 0 or 1.
-         * 
-         * Because flags are bytes (not bits), they can be (re)set
-         * atomically without locked operations.
-         */
-        struct {
-            /*
-             * Set when time is changed.
-             */
-            uint8_t time_changed;
-            /*
-             * Set after time slot is changed from other partition to given one.
-             */
-            uint8_t control_returned;
-            /*
-             * Set when outer event queue becomes not empty.
-             */
-            uint8_t outer_notification;
+    volatile pok_time_t timer;
 
-            uint8_t unused;
-        } bytes;
-        /* 
-         * All flags at once.
-         * 
-         * This value may be checked by partition after enabling preemption
-         * for ensure, that it hasn't miss other flags.
-         */
-        uint32_t bytes_all;
-    } state;
+    /*
+     * Whether event has been fired.
+     * 
+     * This field is set when event is added to empty queue.
+     * 
+     * The field should be reset to 0 by partition before last event is
+     * consumed.
+     */
+    pok_bool_t is_event;
 
     /*
      * Whether local preemption is disabled.
@@ -348,6 +336,15 @@ void pok_partition_add_event(pok_partition_t* part,
  * Should be called with local preemption disabled.
  */
 pok_bool_t pok_partition_get_event(struct jet_partition_event* event);
+
+/* 
+ * Set timer for given partition.
+ * Setting to 0 means reseting.
+ * 
+ * Event queue should be drained before setting timer once more.
+ */
+void pok_partition_set_timer(pok_partition_t* part,
+    pok_time_t timer_new);
 
 /* Initialize partition. */
 void pok_partition_init(pok_partition_t* part);

@@ -142,11 +142,61 @@ static void thread_set_uneligible(pok_thread_t* t)
     }
 }
 
+/* Calls thread_delayed_event for thread with given id.
+ * 
+ * Callback for delayed_event_add.
+ */
+static void thread_process_delayed_event(uint16_t handler_id)
+{
+    pok_thread_t* t = &current_partition_arinc->threads[handler_id];
+    t->thread_delayed_func(t);
+}
+
+void thread_delay_event(pok_thread_t* t, pok_time_t delay_time,
+	void (*thread_delayed_func)(pok_thread_t* t))
+{
+    pok_partition_arinc_t* part = current_partition_arinc;
+
+    t->thread_delayed_func = thread_delayed_func;
+
+    delayed_event_add(&part->partition_delayed_events,
+	&t->thread_delayed_event, delay_time,
+	t - part->threads,
+	&thread_process_delayed_event);
+}
+
+/* 
+ * Emit deadline event for the thread.
+ * 
+ * Callback for delayed_event_add.
+ */
+static void thread_deadline_occured(uint16_t handler_id)
+{
+    pok_thread_t* thread = &current_partition_arinc->threads[handler_id];
+    printf_debug("Deadline occured for thread %s (%d)\n", thread->name, (int)(thread - current_partition_arinc->threads));
+    pok_thread_emit_deadline_missed(thread);
+
+    // TODO: if error was ignored, what to do?
+}
+
 void thread_set_deadline(pok_thread_t* t, pok_time_t deadline_time)
 {
-    delayed_event_add(&t->thread_deadline_event, deadline_time,
-        &current_partition_arinc->queue_deadline);
+    pok_partition_arinc_t* part = current_partition_arinc;
+
+    delayed_event_add(&part->partition_delayed_events,
+	&t->thread_deadline_event, deadline_time,
+        t - part->threads,
+	&thread_deadline_occured);
 }
+
+void thread_delay_event_cancel(pok_thread_t* t)
+{
+    pok_partition_arinc_t* part = current_partition_arinc;
+
+    delayed_event_remove(&part->partition_delayed_events,
+	&t->thread_delayed_event);
+}
+
 
 void thread_stop(pok_thread_t* t)
 {
@@ -160,7 +210,8 @@ void thread_stop(pok_thread_t* t)
     // Remove thread from all queues except one for error handler.
     thread_delay_event_cancel(t);
 
-    delayed_event_remove(&t->thread_deadline_event);
+    delayed_event_remove(&part->partition_delayed_events,
+	&t->thread_deadline_event);
 
     pok_thread_wq_remove(t);
 
@@ -263,7 +314,6 @@ void thread_wait_timed(pok_thread_t *thread, pok_time_t time)
     assert(!pok_time_is_infinity(time));
 
     thread_wait(thread);
-
     thread_delay_event(thread, time, &thread_wake_up);
 }
 

@@ -95,16 +95,18 @@ static pok_bool_t sched_need_recheck;
 
 static void start_partition(void)
 {
+    pok_partition_t* part = current_partition;
     // Initialize state for started partition.
-    current_partition->state.bytes_all = 0;
+    part->is_event = FALSE;
+    part->partition_event_begin = part->partition_event_end = 0;
 
-    current_partition->preempt_local_disabled = 1;
+    part->preempt_local_disabled = 1;
 
     /* It is safe to enable preemption on new stack. */
     pok_preemption_enable();
 
-    if(current_partition->part_ops && current_partition->part_ops->start)
-        current_partition->part_ops->start();
+    if(part->part_ops && part->part_ops->start)
+        part->part_ops->start();
 
     ja_inf_loop();
 }
@@ -271,6 +273,7 @@ void pok_sched_start (void)
  */
 static void pok_sched(void)
 {
+    pok_partition_t* part = current_partition;
     pok_partition_t* new_partition;
     pok_time_t now;
 
@@ -289,12 +292,20 @@ static void pok_sched(void)
 
     new_partition = pok_module_sched[pok_sched_current_slot].partition;
 
-    if(new_partition == current_partition) goto same_partition;
+    if(new_partition == part) goto same_partition;
 
     inter_partition_switch(new_partition);
 
-    // After interpartition switch we return back.
-    flag_set(current_partition->state.bytes.control_returned);
+    /*
+     * If original partition's timer expires during other partition work,
+     * deliver timer event now.
+     */
+    now = POK_GETTICK();
+    if(part->timer != 0 && part->timer <= now)
+    {
+        pok_partition_add_event(part, JET_PARTITION_EVENT_TYPE_TIMER, 0);
+        part->timer = 0;
+    }
 
     return;
 
@@ -316,7 +327,7 @@ void pok_preemption_enable(void)
 
     pok_sched();
     if(current_partition->preempt_local_disabled
-        || !current_partition->state.bytes_all)
+        || !current_partition->is_event)
     {
         // Partition doesn't require notifications. Common case.
         ja_preempt_enable();
@@ -334,7 +345,7 @@ void pok_preemption_enable(void)
 
         ja_preempt_disable();
     } while(current_partition->preempt_local_disabled
-        && current_partition->state.bytes_all);
+        && current_partition->is_event);
 
     current_partition->preempt_local_disabled = 0;
     ja_preempt_enable();
@@ -402,10 +413,15 @@ void pok_sched_on_time_changed(void)
 
     pok_bool_t preempt_local_disabled_old = current_partition->preempt_local_disabled;
 
-    part->state.bytes.time_changed = 1;
+    pok_time_t current_time = POK_GETTICK();
 
-    if(preempt_local_disabled_old) goto out;
+    if(part->timer != 0 && part->timer <= current_time)
+    {
+        pok_partition_add_event(part, JET_PARTITION_EVENT_TYPE_TIMER, 0);
+        part->timer = 0;
+    }
 
+    if(preempt_local_disabled_old || !part->is_event) goto out;
     // Emit events for partition.
     do
     {
@@ -413,7 +429,7 @@ void pok_sched_on_time_changed(void)
         ja_preempt_enable();
         part->part_sched_ops->on_event();
         ja_preempt_disable();
-    } while(part->preempt_local_disabled && part->state.bytes_all);
+    } while(part->preempt_local_disabled && part->is_event);
 
     part->preempt_local_disabled = 0;
 
@@ -436,7 +452,7 @@ static void pok_partition_return_user_common(void)
 
     // Emit events for partition.
     while(part->preempt_local_disabled
-        && part->state.bytes_all)
+        && part->is_event)
     {
         part->preempt_local_disabled = 1;
         ja_preempt_enable();

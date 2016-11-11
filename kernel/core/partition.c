@@ -71,6 +71,9 @@ void pok_partition_add_event(pok_partition_t* part,
     enum jet_partition_event_type event_type,
     uint16_t handler_id)
 {
+   // Whether it is needed to set is_event flag for partition.
+   pok_bool_t set_event =
+      (part->partition_event_end == part->partition_event_begin);
    /* 
     * TODO: This is a result of configuration error, when partition
     * doesn't expect events at all.
@@ -93,7 +96,9 @@ void pok_partition_add_event(pok_partition_t* part,
     */
    assert(part->partition_event_end != part->partition_event_begin);
 
-   part->state.bytes.outer_notification = 1;
+   if(set_event) {
+      part->is_event = TRUE;
+   }
 }
 
 
@@ -120,6 +125,12 @@ pok_bool_t pok_partition_get_event(struct jet_partition_event* event)
          0: partition_event_begin + 1;
 
    return TRUE;
+}
+
+void pok_partition_set_timer(pok_partition_t* part,
+    pok_time_t timer_new)
+{
+     part->timer = timer_new;
 }
 
 

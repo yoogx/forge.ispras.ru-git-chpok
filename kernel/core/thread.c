@@ -182,10 +182,12 @@ pok_ret_t pok_thread_sleep(const pok_time_t* __user time)
 
     pok_preemption_local_disable();
 
-    if(kernel_time == 0)
+    if(kernel_time == 0) {
         thread_yield(current_thread);
-    else
+    }
+    else {
         thread_wait_common(current_thread, kernel_time);
+    }
 
 	pok_preemption_local_enable();
 
@@ -701,7 +703,8 @@ pok_ret_t pok_sched_replenish(const pok_time_t* __user budget)
             goto out;
         }
 
-        delayed_event_remove(&t->thread_deadline_event);
+        delayed_event_remove(&part->partition_delayed_events,
+            &t->thread_deadline_event);
         ret = POK_ERRNO_OK;
     }
     else

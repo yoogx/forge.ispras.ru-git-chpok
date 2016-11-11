@@ -52,14 +52,8 @@ pok_bool_t thread_create(pok_thread_t* t);
  * 
  * Called with local preemption disabled.
  */
-static inline void thread_delay_event(pok_thread_t* t, pok_time_t delay_time,
-	void (*thread_delayed_func)(pok_thread_t* t))
-{
-	t->thread_delayed_func = thread_delayed_func;
-
-	delayed_event_add(&t->thread_delayed_event, delay_time,
-		&current_partition_arinc->queue_delayed);
-}
+void thread_delay_event(pok_thread_t* t, pok_time_t delay_time,
+	void (*thread_delayed_func)(pok_thread_t* t));
 
 
 /*
@@ -67,10 +61,7 @@ static inline void thread_delay_event(pok_thread_t* t, pok_time_t delay_time,
  * 
  * Called with local preemption disabled.
  */
-static inline void thread_delay_event_cancel(pok_thread_t* t)
-{
-	delayed_event_remove(&t->thread_delayed_event);
-}
+void thread_delay_event_cancel(pok_thread_t* t);
 
 /*
  * Set deadline for given thread.
@@ -109,10 +100,12 @@ void thread_wait_timed(pok_thread_t *thread, pok_time_t time);
 static inline void thread_wait_common(pok_thread_t* t, pok_time_t duration)
 {
     assert(duration != 0);
-    if(pok_time_is_infinity(duration))
-	thread_wait(t);
-    else
+    if(pok_time_is_infinity(duration)) {
+        thread_wait(t);
+    }
+    else {
         thread_wait_timed(t, POK_GETTICK() + duration);
+    }
 }
 
 /*
