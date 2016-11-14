@@ -308,8 +308,8 @@ void packet_receive(const char *buffer, size_t size)
     vl_temp = identify_vl_index(afdx_frame->mac_header.mac_dst_addr.vl_id);
 
 #ifdef PRINT_RECEIVE
-    printf("VL_index =     %d\n", vl_temp);
-    
+    printf("VL_index =     %d \n", vl_temp);
+
     /* Just Now VL_ID's start from 1, until indexes which star from 0*/
     printf("Arinc Port #   %d\n", arinc_ports[afdx_frame->mac_header.mac_dst_addr.vl_id - 1][queuing_arinc_to_afdx_ports[vl_temp].dst_afdx_port]);
     

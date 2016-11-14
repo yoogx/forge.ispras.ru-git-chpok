@@ -240,7 +240,7 @@ static void second_process(void)
             PERIODIC_WAIT(&ret_b);
         } else
         {
-            printf("couldn'd receive from the %s: %d\n", vl_data[vl_id_index].afdx_buf_name, (int) ret_b);
+            printf("couldn'd receive from the %s: %u\n", vl_data[vl_id_index].afdx_buf_name, (int) ret_b); //???
             break;
             /* It is necessary to check this situation, everythihg falls down */
         }
@@ -334,7 +334,7 @@ static int real_main(void)
     for (i = 0; i < VIRTUAL_LINKS_COUNT; i++)
     {
         process_attrs.PERIOD = vl_data[i].BAG;
-        process_attrs.TIME_CAPACITY = vl_data[i].BAG / 2;
+        process_attrs.TIME_CAPACITY = vl_data[i].BAG / 2;    //???
         process_attrs.ENTRY_POINT = second_process;
 
         snprintf(name, sizeof(name), "process vl %d", vl_data[i].vl_id);

@@ -98,7 +98,6 @@ uint16_t fill_afdx_frame(frame_data_t *p,
                          char afdx_payload[],
                          uint16_t payload_size)
 {
-    uint8_t pad_size = 0;
     size_t vl_data_index = find_suitable_struct(src_arinc_port, arinc_port_type)->vl_data_index;
     
     afdx_dst_info_t *arinc_to_afdx_port =  find_suitable_struct(src_arinc_port, arinc_port_type);
@@ -153,16 +152,19 @@ uint16_t fill_afdx_frame(frame_data_t *p,
 //PAYLOAD
     memcpy(p->afdx_payload, afdx_payload, payload_size);
 
+    // add pad if it's necessary
+    uint8_t pad_size = 0;
     if (payload_size < MIN_PAYLOAD_SIZE)
     {
-        memcpy((p->afdx_payload + payload_size), 0, pad_size);
+        pad_size = MIN_PAYLOAD_SIZE - payload_size;
+        memset((p->afdx_payload + payload_size), 0, pad_size);
     }
 
 //UDP Checksum
-p->udp_header.udp_checksum = udp_checksum(&p->udp_header,
-                                                    payload_size + UDP_H_LENGTH,
-                                                    hton32(p->ip_header.u_src_addr.ip_general_src_addr),
-                                                    hton32(p->ip_header.u_dst_addr.ip_general_dst_addr));
+    p->udp_header.udp_checksum = udp_checksum(&p->udp_header,
+                                                    hton16(payload_size + UDP_H_LENGTH),
+                                                    (p->ip_header.u_src_addr.ip_general_src_addr),
+                                                    (p->ip_header.u_dst_addr.ip_general_dst_addr));
     //scp ifg?
     if (pad_size == 0)
         return (payload_size + HEADER_LENGTH);  //FCS_LENGTH
@@ -185,45 +187,46 @@ void fill_afdx_interface_id (frame_data_t *p, int net_card)
  * \param dest_addr The IP destination address (in network format).
  * \return The result of the checksum.
  */
-uint16_t udp_checksum(void *buff, size_t len, uint32_t src_addr, uint32_t dest_addr)    //uint_32
+uint16_t udp_checksum(void *buff, uint16_t len, uint32_t src_addr, uint32_t dest_addr)    //uint_32
 {
-        //hexDump("udp_checksum", buff, len);
-        //printf("");
 
-        const uint16_t *buf = buff;
-        uint16_t *ip_src = (void *)&src_addr;
-        uint16_t *ip_dst = (void *)&dest_addr;
+        uint16_t *buf;
+        buf = (uint16_t *) buff;
+        uint16_t *ip_src = (uint16_t *)&src_addr;
+        uint16_t *ip_dst = (uint16_t *)&dest_addr;
         uint32_t sum;
-        size_t length = len;
+        uint16_t length = ntoh16(len);
 
         // Calculate the sum
         sum = 0;
-        while (len > 1)
+        //~ while (length > 1)
+        for (sum = 0; length > 1; length -= 2)
         {
             sum += *(buf++);
-            if (sum & 0x80000000)
-                sum = (sum & hton16(0xFF00)) + (sum >> 16);
-            len -= 2;
-         }
- 
-        if ( len & 1 )
-            // Add the padding if the packet lenght is odd
-            sum += *(uint8_t *)buf;
-            //~ uint32_t zero;
-            //~ zero = 0;
-            //~ *((unsigned char *)&zero) = *(unsigned char *)buf;
-            //~ sum += zero;
+        }
 
+        if ( length > 0 ) {
+#ifdef BIG_ENDIAN
+             /* Add the last byte as the high byte. */
+            sum += ((uint8_t) *(uint8_t *)buf) << 8;
+#else
+             /* Add the last byte as the low byte. */
+            sum += *(uint8_t *)buf;
+#endif
+        }
          // Add the pseudo-header
         sum += *(ip_src++);
-        sum += *ip_src;
+        sum += *(ip_src);
         sum += *(ip_dst++);
-        sum += *ip_dst;
-        sum += ntoh16(IPPROTO_UDP + length);
+        sum += *(ip_dst);
+        sum += ntoh16(IPPROTO_UDP);
+        sum += len;
 
-         // Add the carries
-         while (sum >> 16)
-                 sum = (sum & 0xFFFF) + (sum >> 16);
+         //~ // Add the carries
+
+        CARRY_ADD(sum, sum, 0);
+        CARRY_ADD(sum, sum, 0);         
+        
 
          // Return the one's complement of sum
          return (uint16_t)(~sum);

@@ -131,7 +131,7 @@ typedef struct
     uint64_t                last_sending_BAG_numb;
     const pok_time_t        skew_max;
     char                    afdx_buf_name[12];
-    BUFFER_ID_TYPE            afdx_buf_id;
+    BUFFER_ID_TYPE          afdx_buf_id;
 
 /*
  * this data is needed for receive ES

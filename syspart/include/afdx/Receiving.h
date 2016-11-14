@@ -34,7 +34,7 @@ typedef struct
  */
  typedef struct
  {
-    uint8_t                    last_accepted_seq_numb;
+    uint8_t                   last_accepted_seq_numb;
     pok_time_t                last_accepted_msg_time;
     pok_time_t                arrival_time[SUBNETWORKS_COUNT][MAX_SEQUENCE_NUMBER + 1];
  } redundancy_management_data_t;
