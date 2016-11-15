@@ -81,6 +81,7 @@ SConsignFile(None)
 
 # Flags common for all architectures
 env['PRINT_CMD_LINE_FUNC'] = print_cmd_line
+# Linker flags for '.lo' objects, but not for '.elf'
 env['LINKFLAGS'] = '-r'
 env['QEMU_FLAGS'] = ' -serial stdio'
 # 16 MBytes
@@ -182,6 +183,24 @@ arch_kernel_flags_dict = {
 
 env['CFLAGS_KERNEL'] = arch_kernel_flags_dict.get(env['ARCH'], "")
 
+# ldscript for kernel.
+arch_kernel_ldscript_dict = {
+    'ppc' : env['POK_PATH'] + '/kernel/arch/ppc/ldscripts/kernel.lds',
+    'mips': env['POK_PATH'] + '/kernel/arch/mips/ldscripts/kernel.lds',
+    'x86' : env['POK_PATH'] + '/boards/' + env['BSP'] + '/ldscripts/kernel.lds'
+}
+
+env['LDSCRIPT_KERNEL'] = arch_kernel_ldscript_dict.get(env['ARCH'])
+
+# ldscript for partitions.
+arch_partition_ldscript_dict = {
+    'ppc' : env['POK_PATH'] + '/kernel/arch/ppc/ldscripts/partition.lds',
+    'mips': env['POK_PATH'] + '/kernel/arch/mips/ldscripts/partition.lds',
+    'x86' : env['POK_PATH'] + '/boards/' + env['BSP'] + '/ldscripts/partition.lds'
+}
+
+env['LDSCRIPT_PARTITION'] = arch_partition_ldscript_dict.get(env['ARCH'])
+
 bsp_qemu_dict = {
     'e500mc':          ' -M ppce500 -cpu e500mc',
     'e500_highmem':    ' -M ppce500 -cpu e500mc',
@@ -221,6 +240,11 @@ gdb_commands_file = env['BUILD_DIR'] + '/GDB_commands'
 command_debug_gdb = env.Command('debug_gdb', [gdb_commands_file,], env['GDB']+' '+env['BUILD_DIR']+'pok.elf -ex "source '+gdb_commands_file+'" \
                                                                             -ex "target extended-remote 127.0.0.1:8000"')
 env.Alias('debug-gdb', 'debug_gdb')
+
+if env.get('jdeveloper'):
+    # Fake command for suppress "Nothing to be done" for alias target.
+    env.Command('regenerate-command', [], "")
+    env.Alias('regenerate', 'regenerate-command')
 
 import SCons.Node.Alias
 if env.GetOption('help'):

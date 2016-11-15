@@ -124,6 +124,477 @@ int pok_get_next_tlb1_index(int is_resident)
     return res;
 }
 
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//~ 
+//~ 
+//~ 
+//~ extern void build_tlb_refill_handler(void);
+//~ 
+//~ /*
+ //~ * LOONGSON-2 has a 4 entry itlb which is a subset of jtlb, LOONGSON-3 has
+ //~ * a 4 entry itlb and a 4 entry dtlb which are subsets of jtlb. Unfortunately,
+ //~ * itlb/dtlb are not totally transparent to software.
+ //~ */
+//~ static inline void flush_micro_tlb(void)
+//~ {
+    //~ mtc0(CP0_ChipMemCtrl, LOONGSON_DIAG_ITLB | LOONGSON_DIAG_DTLB);
+    //~ break;
+//~ }
+//~ 
+//~ static inline void flush_micro_tlb_vm(struct vm_area_struct *vma)
+//~ {
+        //~ if (vma->vm_flags & VM_EXEC)
+                //~ flush_micro_tlb();
+//~ }
+//~ 
+//~ void local_flush_tlb_all(void)
+//~ {
+        //~ unsigned long flags;
+        //~ unsigned long old_ctx;
+        //~ int entry, ftlbhighset;
+//~ 
+        //~ local_irq_save(flags);
+        //~ /* Save old context and create impossible VPN2 value */
+        //~ old_ctx = mfc0(CP0_ENTRYHI);
+        //~ htw_stop();
+        //~ mtc0(CP0_ENTRYLO0, 0);
+        //~ mtc0(CP0_ENTRYLO1, 0);
+//~ 
+        //~ entry = mfc0(CP0_WIRED);
+//~ 
+        //~ /* Blast 'em all away. */
+        //~ if (cpu_has_tlbinv) {
+                //~ if (current_cpu_data.tlbsizevtlb) {
+                        //~ mtc0(CP0_INDEX, 0);
+                        //~ 
+                        //~ tlbinvf();  /* invalidate VTLB */
+                //~ }
+                //~ ftlbhighset = current_cpu_data.tlbsizevtlb +
+                        //~ current_cpu_data.tlbsizeftlbsets;
+                //~ for (entry = current_cpu_data.tlbsizevtlb;
+                     //~ entry < ftlbhighset;
+                     //~ entry++) {
+                        //~ mtc0(CP0_INDEX, entry);
+                        //~ 
+                        //~ tlbinvf();  /* invalidate one FTLB set */
+                //~ }
+        //~ } else {
+                //~ while (entry < current_cpu_data.tlbsize) {
+                        //~ /* Make sure all entries differ. */
+                        //~ mtc0(CP0_ENTRYHI, UNIQUE_ENTRYHI(entry));
+                        //~ mtc0(CP0_INDEX, entry);
+                        //~ 
+                        //~ tlb_write_indexed();
+                        //~ entry++;
+                //~ }
+        //~ }
+        //~ 
+        //~ mtc0(CP0_ENTRYHI, old_ctx);
+        //~ htw_start();
+        //~ flush_micro_tlb();
+        //~ local_irq_restore(flags);
+//~ }
+//~ EXPORT_SYMBOL(local_flush_tlb_all);
+//~ 
+//~ /* All entries common to a mm share an asid.  To effectively flush
+   //~ these entries, we just bump the asid. */
+//~ void local_flush_tlb_mm(struct mm_struct *mm)
+//~ {
+        //~ int cpu;
+//~ 
+        //~ preempt_disable();
+//~ 
+        //~ cpu = smp_processor_id();
+//~ 
+        //~ if (cpu_context(cpu, mm) != 0) {
+                //~ drop_mmu_context(mm, cpu);
+        //~ }
+//~ 
+        //~ preempt_enable();
+//~ }
+//~ 
+//~ void local_flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
+        //~ unsigned long end)
+//~ {
+        //~ struct mm_struct *mm = vma->vm_mm;
+        //~ int cpu = smp_processor_id();
+//~ 
+        //~ if (cpu_context(cpu, mm) != 0) {
+                //~ unsigned long size, flags;
+//~ 
+                //~ local_irq_save(flags);
+                //~ start = round_down(start, PAGE_SIZE << 1);
+                //~ end = round_up(end, PAGE_SIZE << 1);
+                //~ size = (end - start) >> (PAGE_SHIFT + 1);
+                //~ if (size <= (current_cpu_data.tlbsizeftlbsets ?
+                             //~ current_cpu_data.tlbsize / 8 :
+                             //~ current_cpu_data.tlbsize / 2)) {
+                        //~ int oldpid = mfc0(CP0_ENTRYHI);
+                        //~ int newpid = cpu_asid(cpu, mm);
+//~ 
+                        //~ htw_stop();
+                        //~ while (start < end) {
+                                //~ int idx;
+//~ 
+                                //~ mtc0(CP0_ENTRYHI, start | newpid);
+                                //~ start += (PAGE_SIZE << 1);
+                                //~ 
+                                //~ __asm__ __volatile__("tlbp");
+                                //~ 
+                                //~ idx = mfc0(CP0_INDEX);
+                                //~ mtc0(CP0_ENTRYLO0, 0);
+                                //~ mtc0(CP0_ENTRYLO1, 0);
+                                //~ if (idx < 0)
+                                        //~ continue;
+                                //~ /* Make sure all entries differ. */
+                                //~ mtc0(CP0_ENTRYHI, UNIQUE_ENTRYHI(idx));
+                                //~ 
+                                //~ tlb_write_indexed();
+                        //~ }
+                        //~ 
+                        //~ mtc0(CP0_ENTRYHI, oldpid);
+                        //~ htw_start();
+                //~ } else {
+                        //~ drop_mmu_context(mm, cpu);
+                //~ }
+                //~ flush_micro_tlb();
+                //~ local_irq_restore(flags);
+        //~ }
+//~ }
+//~ 
+//~ void local_flush_tlb_kernel_range(unsigned long start, unsigned long end)
+//~ {
+        //~ unsigned long size, flags;
+//~ 
+        //~ local_irq_save(flags);
+        //~ size = (end - start + (PAGE_SIZE - 1)) >> PAGE_SHIFT;
+        //~ size = (size + 1) >> 1;
+        //~ if (size <= (current_cpu_data.tlbsizeftlbsets ?
+                     //~ current_cpu_data.tlbsize / 8 :
+                     //~ current_cpu_data.tlbsize / 2)) {
+                //~ int pid = mfc0(CP0_ENTRYHI);
+//~ 
+                //~ start &= (PAGE_MASK << 1);
+                //~ end += ((PAGE_SIZE << 1) - 1);
+                //~ end &= (PAGE_MASK << 1);
+                //~ htw_stop();
+//~ 
+                //~ while (start < end) {
+                        //~ int idx;
+//~ 
+                        //~ mtc0(CP0_ENTRYHI, start);
+                        //~ start += (PAGE_SIZE << 1);
+                        //~ 
+                        //~ __asm__ __volatile__("tlbp");
+                        //~ 
+                        //~ idx = mfc0(CP0_INDEX);
+                        //~ mtc0(CP0_ENTRYLO0, 0);
+                        //~ mtc0(CP0_ENTRYLO1, 0);
+                        //~ if (idx < 0)
+                                //~ continue;
+                        //~ /* Make sure all entries differ. */
+                        //~ mtc0(CP0_ENTRYHI, UNIQUE_ENTRYHI(idx));
+                        //~ 
+                        //~ tlb_write_indexed();
+                //~ }
+                //~ 
+                //~ mtc0(CP0_ENTRYHI, pid);
+                //~ htw_start();
+        //~ } else {
+                //~ local_flush_tlb_all();
+        //~ }
+        //~ flush_micro_tlb();
+        //~ local_irq_restore(flags);
+//~ }
+//~ 
+//~ void local_flush_tlb_page(struct vm_area_struct *vma, unsigned long page)
+//~ {
+        //~ int cpu = smp_processor_id();
+//~ 
+        //~ if (cpu_context(cpu, vma->vm_mm) != 0) {
+                //~ unsigned long flags;
+                //~ int oldpid, newpid, idx;
+//~ 
+                //~ newpid = cpu_asid(cpu, vma->vm_mm);
+                //~ page &= (PAGE_MASK << 1);
+                //~ local_irq_save(flags);
+                //~ oldpid = mfc0(CP0_ENTRYHI);
+                //~ htw_stop();
+                //~ mtc0(CP0_ENTRYHI, page | newpid);
+                //~ 
+                //~ __asm__ __volatile__("tlbp");
+                //~ 
+                //~ idx = mfc0(CP0_INDEX);
+                //~ mtc0(CP0_ENTRYLO0, 0);
+                //~ mtc0(CP0_ENTRYLO1, 0);
+                //~ if (idx < 0)
+                        //~ goto finish;
+                //~ /* Make sure all entries differ. */
+                //~ mtc0(CP0_ENTRYHI, UNIQUE_ENTRYHI(idx));
+                //~ 
+                //~ tlb_write_indexed();
+                //~ 
+//~ 
+        //~ finish:
+                //~ mtc0(CP0_ENTRYHI, oldpid);
+                //~ htw_start();
+                //~ flush_micro_tlb_vm(vma);
+                //~ local_irq_restore(flags);
+        //~ }
+//~ }
+//~ 
+//~ /*
+ //~ * This one is only used for pages with the global bit set so we don't care
+ //~ * much about the ASID.
+ //~ */
+//~ void local_flush_tlb_one(unsigned long page)
+//~ {
+        //~ unsigned long flags;
+        //~ int oldpid, idx;
+//~ 
+        //~ local_irq_save(flags);
+        //~ oldpid = mfc0(CP0_ENTRYHI);
+        //~ htw_stop();
+        //~ page &= (PAGE_MASK << 1);
+        //~ mtc0(CP0_ENTRYHI, page);
+        //~ 
+        //~ __asm__ __volatile__("tlbp");
+        //~ 
+        //~ idx = mfc0(CP0_INDEX);
+        //~ mtc0(CP0_ENTRYLO0, 0);
+        //~ mtc0(CP0_ENTRYLO1, 0);
+        //~ if (idx >= 0) {
+                //~ /* Make sure all entries differ. */
+                //~ mtc0(CP0_ENTRYHI, UNIQUE_ENTRYHI(idx));
+                //~ 
+                //~ tlb_write_indexed();
+                //~ 
+        //~ }
+        //~ mtc0(CP0_ENTRYHI, oldpid);
+        //~ htw_start();
+        //~ flush_micro_tlb();
+        //~ local_irq_restore(flags);
+//~ }
+//~ 
+//~ /*
+ //~ * We will need multiple versions of update_mmu_cache(), one that just
+ //~ * updates the TLB with the new pte(s), and another which also checks
+ //~ * for the R4k "end of page" hardware bug and does the needy.
+ //~ */
+//~ void __update_tlb(struct vm_area_struct * vma, unsigned long address, pte_t pte)
+//~ {
+        //~ unsigned long flags;
+        //~ pgd_t *pgdp;
+        //~ pud_t *pudp;
+        //~ pmd_t *pmdp;
+        //~ pte_t *ptep;
+        //~ int idx, pid;
+//~ 
+        //~ /*
+         //~ * Handle debugger faulting in for debugee.
+         //~ */
+        //~ if (current->active_mm != vma->vm_mm)
+                //~ return;
+//~ 
+        //~ local_irq_save(flags);
+//~ 
+        //~ htw_stop();
+        //~ pid = mfc0(CP0_ENTRYHI) & cpu_asid_mask(&current_cpu_data);
+        //~ address &= (PAGE_MASK << 1);
+        //~ mtc0(CP0_ENTRYHI, address | pid);
+        //~ pgdp = pgd_offset(vma->vm_mm, address);
+        //~ 
+         //~ __asm__ __volatile__("tlbp");
+        //~ 
+        //~ pudp = pud_offset(pgdp, address);
+        //~ pmdp = pmd_offset(pudp, address);
+        //~ idx = mfc0(CP0_INDEX);
+            //~ ptep = pte_offset_map(pmdp, address);
+//~ 
+//~ 
+            //~ mtc0(CP0_ENTRYLO0, ptep->pte_high);
+            //~ ptep++;
+            //~ mtc0(CP0_ENTRYLO1, ptep->pte_high);
+            //~ 
+            //~ if (idx < 0)
+                    //~ tlb_write_random();
+            //~ else
+                    //~ tlb_write_indexed();
+        //~ 
+        //~ htw_start();
+        //~ flush_micro_tlb_vm(vma);
+        //~ local_irq_restore(flags);
+//~ }
+//~ 
+//~ void add_wired_entry(unsigned long entrylo0, unsigned long entrylo1,
+                     //~ unsigned long entryhi, unsigned long pagemask)
+//~ {
+        //~ unsigned long flags;
+        //~ unsigned long wired;
+        //~ unsigned long old_pagemask;
+        //~ unsigned long old_ctx;
+//~ 
+        //~ local_irq_save(flags);
+        //~ /* Save old context and create impossible VPN2 value */
+        //~ old_ctx = mfc0(CP0_ENTRYHI);
+        //~ htw_stop();
+        //~ old_pagemask = mfc0(CP0_PAGEMASK);
+        //~ wired = mfc0(CP0_WIRED);
+        //~ mtc0(CP0_WIRED, wired + 1);
+        //~ mtc0(CP0_INDEX, wired);
+        //~ 
+        //~ mtc0(CP0_PAGEMASK, pagemask);
+        //~ mtc0(CP0_ENTRYHI, entryhi);
+        //~ mtc0(CP0_ENTRYLO0, entrylo0);
+        //~ mtc0(CP0_ENTRYLO1, entrylo1);
+        //~ 
+        //~ tlb_write_indexed();
+        //~ 
+//~ 
+        //~ mtc0(CP0_ENTRYHI, old_ctx);
+         //~ 
+        //~ htw_start();
+        //~ mtc0(CP0_PAGEMASK, old_pagemask);
+        //~ local_flush_tlb_all();
+        //~ local_irq_restore(flags);
+//~ }
+
+//~ /*
+ //~ * Used for loading TLB entries before trap_init() has started, when we
+ //~ * don't actually want to add a wired entry which remains throughout the
+ //~ * lifetime of the system
+ //~ */
+//~ 
+//~ int temp_tlb_entry;
+//~ 
+//~ ////~ __init int add_temporary_entry(unsigned long entrylo0, unsigned long entrylo1,
+//~ //                               //~ unsigned long entryhi, unsigned long pagemask)
+//~ ////~ {
+//~ //        //~ int ret = 0;
+//~ //        //~ unsigned long flags;
+//~ //        //~ unsigned long wired;
+//~ //        //~ unsigned long old_pagemask;
+//~ //        //~ unsigned long old_ctx;
+//~ ////~ 
+//~ //        //~ local_irq_save(flags);
+//~ //        //~ /* Save old context and create impossible VPN2 value */
+//~ //        //~ htw_stop();
+//~ //        //~ old_ctx = mfc0(CP0_ENTRYHI);
+//~ //        //~ old_pagemask = mfc0(CP0_PAGEMASK);
+//~ //        //~ wired = mfc0(CP0_WIRED);
+//~ //        //~ if (--temp_tlb_entry < wired) {
+//~ //                //~ printk(KERN_WARNING
+//~ //                       //~ "No TLB space left for add_temporary_entry\n");
+//~ //                //~ ret = -ENOSPC;
+//~ //                //~ goto out;
+//~ //        //~ }
+//~ ////~ 
+//~ //        //~ mtc0(CP0_INDEX, temp_tlb_entry);
+//~ //        //~ mtc0(CP0_PAGEMASK, pagemask);
+//~ //        //~ mtc0(CP0_ENTRYHI, entryhi);
+//~ //        //~ mtc0(CP0_ENTRYLO0, entrylo0);
+//~ //        //~ mtc0(CP0_ENTRYLO1, entrylo1);
+//~ //        //~ 
+//~ //        //~ tlb_write_indexed();
+//~ //        //~ 
+//~ ////~ 
+//~ //        //~ mtc0(CP0_ENTRYHI, old_ctx);
+//~ //        //~ mtc0(CP0_PAGEMASK, old_pagemask);
+//~ //        //~ htw_start();
+//~ ////~ out:
+//~ //        //~ local_irq_restore(flags);
+//~ //        //~ return ret;
+//~ ////~ }
+//~ 
+//~ static int ntlb;
+//~ static int __init set_ntlb(char *str)
+//~ {
+        //~ get_option(&str, &ntlb);
+        //~ return 1;
+//~ }
+//~ 
+//~ __setup("ntlb=", set_ntlb);
+//~ 
+//~ /*
+ //~ * Configure TLB (for init or after a CPU has been powered off).
+ //~ */
+//~ static void r4k_tlb_configure(void)
+//~ {
+        //~ /*
+         //~ * You should never change this register:
+         //~ *   - On R4600 1.7 the tlbp never hits for pages smaller than
+         //~ *     the value in the c0_pagemask register.
+         //~ *   - The entire mm handling assumes the c0_pagemask register to
+         //~ *     be set to fixed-size pages.
+         //~ */
+        //~ mtc0(CP0_PAGEMASK, PM_DEFAULT_MASK);
+        //~ 
+        //~ if (mfc0(CP0_PAGEMASK) != PM_DEFAULT_MASK)
+                //~ panic("MMU doesn't support PAGE_SIZE=0x%lx", PAGE_SIZE);
+//~ 
+        //~ mtc0(CP0_WIRED, 0);
+//~ 
+//~ 
+        //~ temp_tlb_entry = current_cpu_data.tlbsize - 1;
+//~ 
+        //~ /* From this point on the ARC firmware is dead.  */
+        //~ local_flush_tlb_all();
+//~ 
+        //~ /* Did I tell you that ARC SUCKS?  */
+//~ }
+//~ 
+//~ void tlb_init(void)
+//~ {
+        //~ r4k_tlb_configure();
+//~ 
+        //~ if (ntlb) {
+                //~ if (ntlb > 1 && ntlb <= current_cpu_data.tlbsize) {
+                        //~ int wired = current_cpu_data.tlbsize - ntlb;
+                        //~ mtc0(CP0_WIRED, wired);
+                        //~ mtc0(CP0_INDEX, wired-1);
+                        //~ printk("Restricting TLB to %d entries\n", ntlb);
+                //~ } else
+                        //~ printk("Ignoring invalid argument ntlb=%d\n", ntlb);
+        //~ }
+//~ 
+        //~ build_tlb_refill_handler();
+//~ }
+//~ 
+//~ static int r4k_tlb_pm_notifier(struct notifier_block *self, unsigned long cmd,
+                               //~ void *v)
+//~ {
+        //~ switch (cmd) {
+        //~ case CPU_PM_ENTER_FAILED:
+        //~ case CPU_PM_EXIT:
+                //~ r4k_tlb_configure();
+                //~ break;
+        //~ }
+//~ 
+        //~ return NOTIFY_OK;
+//~ }
+//~ 
+//~ static struct notifier_block r4k_tlb_pm_notifier_block = {
+        //~ .notifier_call = r4k_tlb_pm_notifier,
+//~ };
+//~ 
+//~ static int __init r4k_tlb_init_pm(void)
+//~ {
+        //~ return cpu_pm_register_notifier(&r4k_tlb_pm_notifier_block);
+//~ }
+//~ arch_initcall(r4k_tlb_init_pm);
+//~ 
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
 /*
  *  Quotes from the manual:
  *

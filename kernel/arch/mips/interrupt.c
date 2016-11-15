@@ -78,11 +78,11 @@ void pok_int_program(struct jet_interrupt_context* ea) {
 //    printf("DBSR = %lx\n", mfspr(SPRN_DBSR));
 //    printf("DAC1 = %lx\n", mfspr(SPRN_DAC1));
 //    printf("DAC2 = %lx\n", mfspr(SPRN_DAC1));
-//    printf("srr0 = 0x%lx\n", ea->srr0);
-//    printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
+//    printf("EPC = 0x%lx\n", ea->EPC);
+//    printf("instr = 0x%lx\n", *(uint32_t *)ea->EPC);
 //#endif
 //
-//    if (ea->srr0 == (unsigned) (& pok_trap_addr)){
+//    if (ea->EPC == (unsigned) (& pok_trap_addr)){
 //        k++;
 //#ifdef DEBUG_GDB
 //        printf("Reason: SIGINT\n");
@@ -97,11 +97,10 @@ void pok_int_program(struct jet_interrupt_context* ea) {
 //    //~ printf("\n\n            In pok_int_programm:\n");
 //    //~ printf("addr = 0x%lx\n",(uint32_t) ea);
 //    //~ printf("offset1 = 0x%lx\n",ea->offset1);
-//    //~ printf("FCCR = 0x%lx\n",ea->cr);
-//    //~ printf("ctr = 0x%lx\n",ea->ctr);
-//    //~ printf("xer = 0x%lx\n",ea->xer);
-//    //~ printf("srr0 or pc = 0x%lx\n",ea->srr0); 
-//    //~ printf("srr1 = 0x%lx\n",ea->srr1);
+//    //~ printf("FCCR = 0x%lx\n",ea->FCCR);
+//    //~ printf("CAUSE = 0x%lx\n",ea->CAUSE);
+//    //~ printf("EPC or pc = 0x%lx\n",ea->EPC); 
+//    //~ printf("STATUS = 0x%lx\n",ea->STATUS);
 //    //~ printf("r0 = 0x%lx\n",ea->r0);
 //    //~ printf("r1 = 0x%lx\n",ea->r1);
 //    //~ printf("r2 = 0x%lx\n",ea->r2);
@@ -134,36 +133,27 @@ void pok_int_program(struct jet_interrupt_context* ea) {
 //    //~ printf("r29 = 0x%lx\n",ea->r29);
 //    //~ printf("r30 = 0x%lx\n",ea->r30);
 //    //~ printf("r31 = 0x%lx\n",ea->r31);
-//    //~ printf("offset2 = 0x%lx\n",ea->offset2);
-//    //~ printf("offset3 = 0x%lx\n",ea->offset3);
-//    //~ printf("offset4 = 0x%lx\n",ea->offset4);
-//    //~ printf("offset5 = 0x%lx\n",ea->offset5);
-//    //~ printf("offset6 = 0x%lx\n",ea->offset6);
-//    //~ printf("lr = 0x%lx\n",ea->lr);
 //
 //
 //    if (k == 1){
 ///*
-// * it was a trap from gdb.c (in gdb.c function)
+// * it was a trap from gdb.c (in gdb.c function), probably we don't need it here.
 // */ 
-//        ea->srr0 += 4;
+//        ea->EPC += 4;
 //#ifdef DEBUG_GDB
-//        printf("Change SRR0");
+//        printf("Change EPC");
 //#endif
 //    }
 //    k=0;
 //#ifdef DEBUG_GDB
-//    printf("srr0 = 0x%lx\n", ea->srr0);
-//    printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
-//    //~ asm volatile("isync");
-//    printf("instr = 0x%lx\n", *(uint32_t *)(ea->srr0));
+//    printf("EPC = 0x%lx\n", ea->EPC);
+//    printf("instr = 0x%lx\n", *(uint32_t *)ea->EPC);
+//    //~ asm volatile("synci");
+//    printf("instr = 0x%lx\n", *(uint32_t *)(ea->EPC));
 //    DBCR0 = mfspr(SPRN_DBCR0);
 //    printf("DBCR0 = 0x%x\n", DBCR0);
 //    printf("\n          Exit from handle exception\n");
-//#endif
-//    
-////~ asm volatile("acbi");  
-//    
+//#endif    
 //////    pok_fatal("Program interrupt");
 }
 
@@ -210,16 +200,16 @@ void pok_int_debug(struct jet_interrupt_context* ea) {
 //    printf("DBCR0 = 0x%x\n", DBCR0);
 //    printf("DAC1 = %lx\n", mfspr(SPRN_DAC1));
 //    printf("DAC2 = %lx\n", mfspr(SPRN_DAC2));
-//    printf("srr0 = 0x%lx\n", ea->srr0);
-//    printf("srr1 = 0x%lx\n", ea->srr1);
+//    printf("EPC = 0x%lx\n", ea->EPC);
+//    printf("STATUS = 0x%lx\n", ea->STATUS);
 //    printf("Reason: Watchpoint\n");   
 //#endif
 //    handle_exception(1, ea); 
 //#ifdef DEBUG_GDB
-//    printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
+//    printf("instr = 0x%lx\n", *(uint32_t *)ea->EPC);
 //    DBCR0 = mfspr(SPRN_DBCR0);
 //    printf("DBCR0 = 0x%x\n", DBCR0);
-//    asm volatile("dcbst 0, %0; sync; icbi 0,%0; sync; isync" : : "r" ((char *) ea->srr0));
+//    asm volatile("dcbst 0, %0; sync; icbi 0,%0; sync; synci" : : "r" ((char *) ea->srr0));
 //    printf("Exit from debug event\n");    
 //    //~ k = 1;
 //    //~ pok_fatal("Debug interrupt");

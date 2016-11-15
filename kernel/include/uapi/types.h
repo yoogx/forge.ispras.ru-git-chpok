@@ -57,4 +57,10 @@ typedef enum {
 
 #define MAX_NAME_LENGTH 30
 
+/*
+ * Special value of type pok_thread_id_t, which cannot be id of actual thread.
+ */
+#define JET_THREAD_ID_NONE (pok_thread_id_t)(-1)
+
+
 #endif /* __JET_UAPI_TYPES_H__ */

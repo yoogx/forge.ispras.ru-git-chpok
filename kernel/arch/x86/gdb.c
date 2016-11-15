@@ -13,6 +13,8 @@
  * See the GNU General Public License version 3 for more details.
  */
 
+#include <config.h>
+
 #ifdef POK_NEEDS_GDB
 
 #include <asp/gdb.h>

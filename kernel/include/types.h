@@ -35,10 +35,10 @@ static inline pok_bool_t pok_time_is_infinity(pok_time_t t)
  * without null-bytes, or have null-byte in the first MAX_NAME_LENGTH
  * bytes.
  */
-int   strncmp(const char *s1, const char *s2, size_t size);
+int   strncasecmp(const char *s1, const char *s2, size_t size);
 static inline int pok_compare_names(const char* name1, const char* name2)
 {
-    return strncmp(name1, name2, MAX_NAME_LENGTH);
+    return strncasecmp(name1, name2, MAX_NAME_LENGTH);
 }
 
 #endif

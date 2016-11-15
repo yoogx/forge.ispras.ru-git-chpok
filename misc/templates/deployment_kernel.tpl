@@ -149,17 +149,6 @@ static pok_port_sampling_t partition_ports_sampling_{{loop.index0}}[{{part.ports
 {%endfor%}
 };
 
-// Buffers array
-static pok_buffer_t partition_buffers_{{loop.index0}}[{{part.num_arinc653_buffers}}];
-
-// Blackboards array
-static pok_blackboard_t partition_blackboards_{{loop.index0}}[{{part.num_arinc653_blackboards}}];
-
-// Semaphores array
-static pok_semaphore_t partition_semaphores_{{loop.index0}}[{{part.num_arinc653_semaphores}}];
-
-// Events array
-static pok_event_t partition_events_{{loop.index0}}[{{part.num_arinc653_events}}];
 {%endfor%}{#partitions loop#}
 
 /*************** Setup partitions array *******************************/
@@ -168,21 +157,23 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
     {
         .base_part = {
             .name = "{{part.name}}",
-            
+
             .period = {%if part.period is not none%}{{part.period}}{%else%}{{conf.major_frame}}{%endif%},
             .duration = {%if part.duration is not none%}{{part.duration}}{%else%}{{part.total_time}}{%endif%},
             .partition_id = {{part.part_id}},
-            
+
             .space_id = {{loop.index}},
-            
+
             .multi_partition_hm_selector = &pok_hm_multi_partition_selector_default,
             .multi_partition_hm_table = &pok_hm_multi_partition_table_default,
         },
-        
+
         .nthreads = {{part.num_threads}} + 1 /*main thread*/ + 1 /* error thread */,
         .threads = partition_threads_{{loop.index0}},
-        
+
         .main_user_stack_size = 8192, {# TODO: This should be set in config somehow. #}
+
+        .heap_size = {{part.get_intra_size()}},
 
         .ports_queuing = partition_ports_queuing_{{loop.index0}},
         .nports_queuing = {{part.ports_queueing | length}},
@@ -190,23 +181,8 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
         .ports_sampling = partition_ports_sampling_{{loop.index0}},
         .nports_sampling = {{part.ports_sampling | length}}, {#TODO: ports#}
 
-
-        .intra_memory_size = {{part.buffer_data_size}} + {{part.blackboard_data_size}}, // Memory for intra-partition communication
-
-        .buffers = partition_buffers_{{loop.index0}},
-        .nbuffers = {{part.num_arinc653_buffers}},
-
-        .blackboards = partition_blackboards_{{loop.index0}},
-        .nblackboards = {{part.num_arinc653_blackboards}},
-        
-        .semaphores = partition_semaphores_{{loop.index0}},
-        .nsemaphores = {{part.num_arinc653_semaphores}},
-
-        .events = partition_events_{{loop.index0}},
-        .nevents = {{part.num_arinc653_events}},
-
         .partition_hm_selector = &partition_hm_selector_{{loop.index0}},
-    
+
         .thread_error_info = &partition_thread_error_info_{{loop.index0}},
 
         .partition_hm_table = &partition_hm_table_{{loop.index0}},
@@ -221,11 +197,11 @@ const uint8_t pok_partitions_arinc_n = {{conf.partitions | length}};
 pok_partition_t partition_monitor =
 {
     .name = "Monitor",
-    
+
     .period = {{conf.major_frame}}, {#TODO: Where it is stored in conf?#}
-    
+
     .space_id = 0,
-    
+
     .multi_partition_hm_selector = &pok_hm_multi_partition_selector_default,
     .multi_partition_hm_table = &pok_hm_multi_partition_table_default,
 };

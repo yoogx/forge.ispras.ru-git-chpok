@@ -86,12 +86,15 @@ static void partition_arinc_start(void)
 	if(part->base_part.restarted_externally)
 	{
 		part->base_part.restarted_externally = FALSE;
-		current_partition_arinc->mode = POK_PARTITION_MODE_INIT_COLD;
+		part->mode = POK_PARTITION_MODE_INIT_COLD;
 	}
 
 	jet_loader_elf_load(part->base_part.space_id - 1, /* elf_id*/
 		part->base_part.space_id,
+		part->heap_size,
 		&part->main_entry);
+
+	part->kshd = ja_space_shared_data(part->base_part.space_id);
 
 	for(int i = 0; i < part->nports_queuing; i++)
 	{
@@ -116,12 +119,6 @@ static void partition_arinc_start(void)
 	
 	part->nthreads_used = 0;
 	
-	part->intra_memory_size_used = 0;
-	part->nbuffers_used = 0;
-	part->nblackboards_used = 0;
-	part->nsemaphores_used = 0;
-	part->nevents_used = 0;
-
 	part->thread_current = NULL;
 #ifdef POK_NEEDS_ERROR_HANDLING
 	part->thread_error = NULL;
@@ -141,6 +138,11 @@ static void partition_arinc_start(void)
     if(!thread_create(thread_main)) unreachable(); // Configurator should check stack size for main thread.
 
 	part->nthreads_used = POK_PARTITION_ARINC_MAIN_THREAD_ID + 1;
+
+	// Fill initial kernel shared data.
+	part->kshd->current_thread_id = JET_THREAD_ID_NONE;
+	part->kshd->max_n_threads = part->nthreads;
+	part->kshd->partition_mode = part->mode;
 
 	sched_arinc_start();
 
@@ -302,55 +304,7 @@ void pok_partition_arinc_init(pok_partition_arinc_t* part)
 	
 	part->base_part.part_ops = &arinc_ops;
 	part->base_part.part_sched_ops = &arinc_sched_ops;
-	
-	part->intra_memory = part->intra_memory_size
-		? jet_mem_alloc(part->intra_memory_size)
-		: NULL;
 }
-
-void* partition_arinc_im_get(size_t size, size_t alignment)
-{
-	pok_partition_arinc_t* part = current_partition_arinc;
-	
-	size_t start = ALIGN_VAL(part->intra_memory_size_used, alignment);
-	
-	// TODO: revisit boundary check
-	if(start <= part->intra_memory_size
-		&&	start + size <= part->intra_memory_size) {
-		
-		part->intra_memory_size_used = start + size;
-		return part->intra_memory + start;
-	}
-	
-	return NULL;
-}
-
-
-/* 
- * Return current state of partition's intra memory.
- * 
- * Value return may be used in partition_arinc_im_rollback().
- */
-void* partition_arinc_im_current(void)
-{
-	return (void*)current_partition_arinc->intra_memory_size_used;
-}
-
-/*
- * Revert all intra memory usage requests since given state.
- * 
- * `state` should be obtains with partition_arinc_im_current().
- */
-void partition_arinc_im_rollback(void* prev_state)
-{
-	pok_partition_arinc_t* part = current_partition_arinc;
-	size_t size_used = (size_t)prev_state;
-	
-	assert(size_used <= part->intra_memory_size);
-	
-	part->intra_memory_size_used = size_used;
-}
-
 
 /*
  * Transition from INIT_* mode to NORMAL.
@@ -440,7 +394,10 @@ static pok_ret_t partition_set_mode_internal (const pok_partition_mode_t mode)
 	default:
 		return POK_ERRNO_EINVAL;
 	}
-	
+
+	// Update kernel shared data
+	part->kshd->partition_mode = part->mode;
+
 	return POK_ERRNO_OK;
 }
 

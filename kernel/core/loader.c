@@ -48,8 +48,9 @@ extern char __archive2_begin;
  *
  *  @param file
  */
-pok_ret_t jet_loader_elf_load   (uint8_t elf_id,
+void jet_loader_elf_load   (uint8_t elf_id,
                                  jet_space_id space_id,
+                                 size_t heap_size,
                                  void (** entry)(void))
 {
     size_t elf_offset, elf_size;
@@ -68,18 +69,7 @@ pok_ret_t jet_loader_elf_load   (uint8_t elf_id,
     {
          printf("Attempt to load elf %u of size %zx into space of size %zx.\n",
             elf_id, elf_size, space_layout.size);
-//TODO: How to emit partition's error?
-//#ifdef POK_NEEDS_ERROR_HANDLING
-//        pok_error_raise_partition(part_id, POK_ERROR_KIND_PARTITION_CONFIGURATION);
-//#else
-#ifdef POK_NEEDS_DEBUG
-      /* We consider that even if errors are not raised, we must print an error
-       * for such error
-       * So, when we are using the debug mode, we print a fatal error.
-       */
-        pok_fatal ("Partition size is not correct\n");
-#endif
-//#endif
+         pok_raise_error(POK_ERROR_ID_CONFIG_ERROR, FALSE, NULL);
     }
 
     const char* elf_start = &__archive2_begin + elf_offset;
@@ -95,12 +85,16 @@ pok_ret_t jet_loader_elf_load   (uint8_t elf_id,
          elf_header->e_ident[2] != 'L' ||
          elf_header->e_ident[3] != 'F')
     {
-        return POK_ERRNO_NOTFOUND;
+        printf("Partition's ELF has incorrect format");
+        pok_raise_error(POK_ERROR_ID_PARTLOAD_ERROR, FALSE, NULL);
     }
 
     *entry = (void (*)(void)) elf_header->e_entry;
 
     elf_phdr = (Elf32_Phdr*)(elf_start + elf_header->e_phoff);
+
+    // First user space address after the elf.
+    char* elf_end_user = space_layout.user_addr;
 
     for (int i = 0; i < elf_header->e_phnum; ++i)
     {
@@ -109,16 +103,43 @@ pok_ret_t jet_loader_elf_load   (uint8_t elf_id,
         size_t memsz = elf_phdr[i].p_memsz;
 
         assert((user_dest >= space_layout.user_addr)
-               && (user_dest + filesz < space_layout.user_addr + space_layout.size)
-               && (user_dest + memsz < space_layout.user_addr + space_layout.size));
+               && (user_dest + filesz <= space_layout.user_addr + space_layout.size)
+               && (user_dest + memsz <= space_layout.user_addr + space_layout.size));
 
         char* kernel_dest = space_layout.kernel_addr + (user_dest - space_layout.user_addr);
 
         memcpy (kernel_dest, elf_phdr[i].p_offset + elf_start, filesz);
         memset (kernel_dest + filesz, 0, memsz - filesz);
+
+        // Where given section ends(in user space).
+        char* elf_section_end_user = user_dest + memsz;
+
+        if(elf_end_user < elf_section_end_user) {
+           elf_end_user = elf_section_end_user;
+        }
     }
 
-    return POK_ERRNO_OK;
+    struct jet_kernel_shared_data* __kuser kshd = ja_space_shared_data(space_id);
+
+    if(heap_size > 0) {
+       // Allocate heap after the elf.
+       char* heap_start = (char*)ALIGN_VAL((unsigned long)elf_end_user,
+         ja_user_space_maximum_alignment);
+       char* heap_end = heap_start + heap_size;
+       if(heap_end > (space_layout.user_addr + space_layout.size))
+       {
+           printf("Insufficient space for partition's heap.");
+           pok_raise_error(POK_ERROR_ID_CONFIG_ERROR, FALSE, NULL);
+       }
+
+       kshd->heap_start = heap_start;
+       kshd->heap_end = heap_end;
+   }
+   else {
+      // No heap requested.
+      kshd->heap_start = NULL;
+      kshd->heap_end = NULL;
+   }
 }
 
 #endif /* POK_NEEDS_PARTITIONS */
