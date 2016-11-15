@@ -156,7 +156,7 @@ pok_env.Depends(compile_sizes, [part_elf_list, merge_command])
 
 ldscript_kernel = pok_env['LDSCRIPT_KERNEL']
 # Rewrite LINKFLAGS, as we build '.elf'.
-pok_env['LINKFLAGS'] = ' -T ' + ldscript_kernel
+pok_env['LINKFLAGS'] = ' -T ' + ldscript_kernel + ' -Map build/'+pok_env['BSP']+'/pok.elf.map'
 
 
 pok_target = pok_env.Program(target = pok_env['BUILD_DIR']+'pok.elf', source = [
