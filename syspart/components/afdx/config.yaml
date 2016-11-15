@@ -1,39 +1,44 @@
 - name: AFDX_FILLER
-  additional_h_files: ['<stdint.h>', '<afdx/AFDX_filling.h>', '<net/byteorder.h>', '<string.h>', '<stdio.h>', '<afdx/AFDX_ES_config.h>']
+  additional_h_files: ['<stdint.h>', '<arinc653/queueing.h>', '<arinc653/sampling.h>', '<afdx/AFDX_ES_config.h>', '<afdx/AFDX_filling.h>', '<net/byteorder.h>', '<string.h>', '<stdio.h>']
   state_struct:
       # vl identificator
-      vl_id: uint16_t
-      ttl: uint8_t
-      src_partition_id: uint8_t
-      dst_partition_id: uint8_t
-      afdx_src_port: uint16_t
-      afdx_dst_port: uint16_t
-
+        vl_id: uint16_t
+        ttl: uint8_t
+        src_partition_id: uint8_t
+        dst_partition_id: uint8_t
+        afdx_src_port: uint16_t
+        afdx_dst_port: uint16_t
+        sn: uint8_t
 
   init_func: afdx_filler_init
-  
+  activity: afdx_filling
+
   in_ports:
-    - name: portA
-      type: preallocated_sender
-      implementation:
-          handle: afdx_filling
+      - name: portA
+        type: preallocated_sender
+        implementation:
+           handle: afdx_filler
 
   out_ports:
-    - name: portB
-      type: afdx_queue_enqueer
+      - name: portB
+        type: afdx_queue_enqueer
         
         
-- name: QUEUE
-  additional_h_files: []
+- name: AFDX_QUEUE_ENQUEER
+  additional_h_files: ['<stdint.h>', '<afdx/AFDX_ES_config.h>', '<afdx/AFDX_frame.h>', '<afdx/AFDX_filling.h>', '<afdx/AFDX_ES.h>', '<afdx/AFDX_ES_config.h>']
   state_struct:
-      BAG:
-      queue:
-  init_func: queue_init
-  
+        BAG: pok_time_t
+        queue: char*
+
+  init_func: afdx_queue_init
+  #activity: afdx_queue_enqueer_activity
+
   in_ports:
-    - name: portB
-      type: afdx_queue_enqueer
+      - name: portB
+        type: afdx_queue_enqueer
+        implementation:
+            handle: afdx_enqueer_implementation
       
-  out_ports:
-    - name: portA
-      type: preallocated_sender
+ out_ports:
+      - name: portA
+        type: preallocated_sender

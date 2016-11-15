@@ -2,7 +2,7 @@
   #afdx_queue_adder
   additional_h_files: ['<ret_type.h>']
   functions:
-      - name: add
+      - name: afdx_add_to_queue
         return_type: ret_t
         # component, packet, packet size
         args_type: [self_t *, char *, size_t]
