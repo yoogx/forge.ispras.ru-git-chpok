@@ -18,6 +18,8 @@
 
 #include <core/syscall.h>
 
+#define ALIGN_UP(addr,size) (((addr)+((size)-1))&(~((size)-1)))
+
 static inline uintptr_t pok_virt_to_phys(void * virt) {
    return pok_syscall1(POK_SYSCALL_MEM_VIRT_TO_PHYS, (uintptr_t) virt);
 }

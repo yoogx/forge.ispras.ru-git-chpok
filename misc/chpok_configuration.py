@@ -59,7 +59,7 @@ class TimeSlot():
     def validate(self):
         if not isinstance(self.duration, int):
             raise TypeError
-        
+
 class TimeSlotSpare(TimeSlot):
     __slots__ = []
 
@@ -240,7 +240,9 @@ class Space:
 # - part_index - index of the partition in the array. Filled automatically.
 class Partition:
     __slots__ = [
-        "name", 
+        "arch", # Value propagated from 'Configuration' object.
+        "name",
+
         "is_system",
 
         "num_threads", # number of user threads, _not_ counting init thread and error handler
@@ -261,7 +263,8 @@ class Partition:
         "ports_sampling_system", # list of sampling ports with non-empty protocol set
     ]
 
-    def __init__(self, part_id, name):
+    def __init__(self, arch, part_id, name):
+        self.arch = arch
         self.name = name
         self.part_id = part_id
 
@@ -359,6 +362,35 @@ class Partition:
 
     def get_port_by_name(self, port_name):
         return self.port_names_map[port_name]
+
+    # Return size of memory, needed by single buffer structure.
+    # TODO: This should be arch-specific somehow.
+    def get_buffer_size(self):
+        return 150
+
+    # Return size of memory, needed by single blackboard structure.
+    # TODO: This should be arch-specific somehow.
+    def get_blackboard_size(self):
+        return 100
+
+    # Return size of memory, needed by single semaphore structure.
+    # TODO: This should be arch-specific somehow.
+    def get_semaphore_size(self):
+        return 50
+
+    # Return size of memory, needed by single event structure.
+    # TODO: This should be arch-specific somehow.
+    def get_event_size(self):
+        return 50
+
+    # Return memory size, needed by intra-partition communication mechanisms.
+    def get_intra_size(self):
+        return ( self.buffer_data_size + self.blackboard_data_size
+            + self.num_arinc653_buffers * self.get_buffer_size()
+            + self.num_arinc653_blackboards * self.get_blackboard_size()
+            + self.num_arinc653_semaphores * self.get_semaphore_size()
+            + self.num_arinc653_events * self.get_event_size()
+        )
 
 def _get_port_direction(port):
     direction = port.direction.lower()
@@ -573,7 +605,7 @@ class NetworkConfiguration:
         #        raise ValueError
         #    if not (self.mac[0] & 0x2):
         #        print("Warning! MAC address is not locally administered one", file=sys.stderr)
-        
+
         if not hasattr(self, "ip"):
             raise AttributeError
         if not isinstance(self.ip, ipaddr.IPv4Address):
@@ -587,7 +619,7 @@ class Configuration:
     error_ids_all = error_ids
 
     __slots__ = [
-        "partitions", 
+        "partitions",
         "slots", # time windows
         "channels_queueing", # queueing port channels (connections)
         "channels_sampling", # sampling port channels (connections)
@@ -595,7 +627,7 @@ class Configuration:
 
         "spaces", # Array of 'Space' objects.
 
-        # if this is set, POK writes a special string once 
+        # if this is set, POK writes a special string once
         # there are no more schedulable threads
         # it's used by test runner as a sign that POK
         # can be terminated
@@ -641,7 +673,7 @@ class Configuration:
             part_id_real = self.next_partition_id
             self.next_partition_id += 1
 
-        part = Partition(part_id_real, part_name)
+        part = Partition(self.arch, part_id_real, part_name)
         part.set_index(len(self.partitions))
 
         self.partitions.append(part)
@@ -665,7 +697,7 @@ class Configuration:
                 if not isinstance(connection, LocalConnection):
                     raise RuntimeError("Non-local connections are not supported now")
                 if isinstance(connection.port, SamplingPort):
-                    if channel_type is not None: 
+                    if channel_type is not None:
                         if channel_type != "sampling":
                             raise RuntimeError("Channel for ports of different types: %s and %s" %
                                 (src_connection.port.name, dst_connection.port.name))
@@ -673,7 +705,7 @@ class Configuration:
                         channel_type = "sampling"
                     connection.port.setChannel(self.next_channel_id_sampling)
                 else: # Local connection to queueing port
-                    if channel_type is not None: 
+                    if channel_type is not None:
                         if channel_type != "queueing":
                             raise RuntimeError("Channel for ports of different types: %s and %s" %
                                 (src_connection.port.name, dst_connection.port.name))
@@ -747,8 +779,8 @@ class Configuration:
         if self.network:
             self.network.validate()
 
-            if not networking_time_slot_exists: 
-                raise ValueError("Networking is enabled, but no dedicated network processing time slot is present") 
+            if not networking_time_slot_exists:
+                raise ValueError("Networking is enabled, but no dedicated network processing time slot is present")
         else:
             if networking_time_slot_exists:
                 raise ValueError("Networking is disabled, but there's (unnecessary) network processing time slot in the schedule")

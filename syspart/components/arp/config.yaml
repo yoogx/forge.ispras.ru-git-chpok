@@ -1,0 +1,15 @@
+- name: ARP_ANSWERER
+  #additional_h_files: ['"arp_ip_list.h"']
+  state_struct:
+      good_ips[10]: uint32_t
+      good_ips_len: uint32_t
+      src_mac[6]: uint8_t
+  in_ports:
+      - name: portA
+        type: message_handler
+        implementation:
+            handle: arp_receive
+
+  out_ports:
+      - name: portB
+        type: ethernet_packet_sender

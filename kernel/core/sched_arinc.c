@@ -21,6 +21,8 @@
 #include <cswitch.h>
 #include <core/space.h>
 #include <asp/arch.h>
+#include <core/syscall.h>
+#include <core/uaccess.h>
 
 static void thread_start_func(void)
 {
@@ -48,6 +50,8 @@ void sched_arinc_start(void)
 
 	thread_main->state = POK_STATE_RUNNABLE;
     part->thread_current = thread_main;
+    // Update kernel shared data.
+    part->kshd->current_thread_id = POK_PARTITION_ARINC_MAIN_THREAD_ID;
 
 	// Direct jump into main thread.
     part->base_part.fp_store_current = thread_main->fp_store;
@@ -61,7 +65,7 @@ static void thread_deadline_occured(struct delayed_event* event)
     pok_thread_t* thread = container_of(event, typeof(*thread), thread_deadline_event);
     printf_debug("Deadline miss occured for thread \"%s\" (#%d) of partition \"%s\"\n", thread->name, (int)(thread - current_partition_arinc->threads), current_partition_arinc->base_part.name);
     pok_thread_emit_deadline_missed(thread);
-    
+
     // TODO: if error was ignored, what to do?
 }
 
@@ -81,17 +85,17 @@ static void port_queuing_fired(pok_port_queuing_t* port_queuing)
         {
             pok_thread_t* t;
             int n;
-            
+
             if(!pok_channel_queuing_r_get_message(port_queuing->channel, TRUE))
                 break; // wait again
-            
+
             n = pok_channel_queuing_r_n_messages(port_queuing->channel);
-            
+
             for(; n > 0; n--)
             {
                 t = pok_thread_wq_wake_up(&port_queuing->waiters);
                 if(!t) break;
-                
+
                 port_queuing_receive(port_queuing, t);
             }
         }
@@ -102,17 +106,16 @@ static void port_queuing_fired(pok_port_queuing_t* port_queuing)
         {
             pok_message_t* m;
             pok_thread_t* t;
-            
+
             m = pok_channel_queuing_s_get_message(port_queuing->channel, TRUE);
             if(!m) break; // wait again
-            
+
             t = pok_thread_wq_wake_up(&port_queuing->waiters);
             assert(t);
-            
+
             port_queuing_send(port_queuing, t);
         }
     }
-
 }
 
 /*
@@ -122,16 +125,83 @@ static void port_queuing_fired(pok_port_queuing_t* port_queuing)
 static void do_nothing_func(void)
 {
     pok_preemption_local_enable();
-    
+
     ja_inf_loop();
 }
 
+/*
+ * Select given thread.
+ * 
+ * Return thread which should be run.
+ */
+static pok_thread_t* select_thread(pok_thread_t* selected_thread)
+{
+    pok_partition_arinc_t* part = current_partition_arinc;
+
+    part->thread_selected = selected_thread;
+    if(part->waiting_section)
+    {
+        // Clear waiting section for possibly set it after.
+        part->waiting_section->msection_kernel_flags = 0;
+        part->waiting_section = NULL;
+    }
+
+    if(selected_thread == NULL) return NULL;
+
+    pok_thread_t* new_thread = selected_thread;
+
+    if(new_thread->relations_stop.donate_target)
+    {
+        /* We should wait for other thread to stop. */
+        new_thread = new_thread->relations_stop.donate_target;
+    }
+
+    // Check that given thread is able to continue.
+    struct msection* waiting_section = new_thread->msection_entering;
+    if(waiting_section != NULL)
+    {
+        /* Limit number of attempts to determine current thread. TODO: this should be configurable constant. */
+        int n_attempts = 5;
+
+        do {
+            pok_thread_id_t owner = waiting_section->owner;
+            if(owner == JET_THREAD_ID_NONE || owner == (new_thread - part->threads))
+            {
+                waiting_section->owner = (new_thread - part->threads);
+                new_thread->msection_entering = NULL;
+                break;
+            }
+
+            assert_os(owner < part->nthreads_used);
+            // Contention on msection is possible only in NORMAL mode, when main thread is not executed.
+            assert_os(owner > POK_PARTITION_ARINC_MAIN_THREAD_ID);
+
+            new_thread = part->threads + owner;
+            assert_os(new_thread->state == POK_STATE_RUNNABLE);
+            // TODO: other consistency checks
+            part->waiting_section = waiting_section;
+
+            waiting_section = new_thread->msection_entering;
+
+            assert(n_attempts);
+            n_attempts--;
+
+        } while(waiting_section != NULL);
+    }
+
+    if(part->waiting_section)
+    {
+        part->waiting_section->msection_kernel_flags = MSECTION_KERNEL_FLAG_RESCHED_AFTER_LEAVE;
+    }
+
+    return new_thread;
+}
 
 // Called with local preemption disabled.
 static void sched_arinc(void)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
-    
+
     if(flag_test_and_reset(part->base_part.state.bytes.control_returned))
     {
         // Currently ignore this flag
@@ -143,7 +213,7 @@ static void sched_arinc(void)
     {
         pok_port_queuing_t* port_queuing = part->ports_queuing;
         pok_port_queuing_t* port_queuing_end = port_queuing + part->nports_queuing;
-        
+
         for(;port_queuing < port_queuing_end; port_queuing++)
         {
             port_queuing_fired(port_queuing);
@@ -153,12 +223,12 @@ static void sched_arinc(void)
     if(flag_test_and_reset(part->base_part.state.bytes.time_changed))
     {
         pok_time_t now = POK_GETTICK();
-        
+
         delayed_event_queue_check(&part->queue_deadline, now, &thread_deadline_occured);
-        
+
         delayed_event_queue_check(&part->queue_delayed, now, &thread_delayed_event_func);
     }
-    
+
     if(!flag_test_and_reset(part->sched_local_recheck_needed)) return;
 
     part->base_part.is_error_handler = FALSE; // Will be set if needed.
@@ -168,7 +238,7 @@ static void sched_arinc(void)
 
 
     assert(part->mode != POK_PARTITION_MODE_IDLE); // Idle mode is implemented via function with preemption disabled.
-    
+
     if(part->mode != POK_PARTITION_MODE_NORMAL)
     {
         new_thread = &part->threads[POK_PARTITION_ARINC_MAIN_THREAD_ID];
@@ -195,12 +265,12 @@ static void sched_arinc(void)
     {
         // Start error handler (aperiodic, no timeout).
         new_thread = part->thread_error;
-        
+
         new_thread->priority = new_thread->base_priority;
         new_thread->sp = NULL;
-      
+
         new_thread->state = POK_STATE_RUNNABLE;
-        
+
         part->base_part.is_error_handler = TRUE;
     }
 #endif
@@ -218,12 +288,14 @@ static void sched_arinc(void)
         new_thread = NULL;
     }
 
+    new_thread = select_thread(new_thread);
+
     if(new_thread == old_thread)
     {
         if(new_thread == NULL) return; // "do_nothing" continues
 
         if(new_thread->sp != 0) return; // Thread continues its execution.
-        
+
         /* 
          * None common thread can restart itself: someone *other* should
          * call START function for it.
@@ -242,10 +314,13 @@ static void sched_arinc(void)
 
     // Switch between different threads
     part->thread_current = new_thread;
-    
+    // Update kernel shared data
+    if(new_thread)
+        part->kshd->current_thread_id = new_thread - part->threads;
+
     struct jet_context** old_sp = old_thread? &old_thread->sp : &part->idle_sp;
     struct jet_context* new_sp;
-    
+
     if(new_thread)
     {
         new_sp = new_thread->sp;
@@ -300,40 +375,107 @@ static void sched_arinc(void)
 void pok_preemption_local_disable(void)
 {
     assert(!current_partition_arinc->base_part.preempt_local_disabled);
-    
+
     flag_set(current_partition_arinc->base_part.preempt_local_disabled);
 }
 
 void pok_preemption_local_enable(void)
 {
     assert(current_partition_arinc->base_part.preempt_local_disabled);
-    
+
     sched_arinc();
-    
+
     barrier();
-    
+
     flag_reset(current_partition_arinc->base_part.preempt_local_disabled);
-    
+
     // Check that we do not miss events since sched_arinc() starts.
-    
+
     while(ACCESS_ONCE(current_partition_arinc->base_part.state.bytes_all))
     {
         flag_set(current_partition_arinc->base_part.preempt_local_disabled);
 
         sched_arinc();
-        
+
         barrier();
-        
+
         flag_reset(current_partition_arinc->base_part.preempt_local_disabled);
     }
 }
 
 void pok_sched_arinc_on_event(void)
 {
+    pok_partition_arinc_t* part = current_partition_arinc;
+    pok_thread_t* thread_current = part->thread_current;
+
+    if(thread_current)
+    {
+        //Update information according to current kernel shared data.
+        struct jet_thread_shared_data* tshd_current = part->kshd->tshd
+            + (thread_current - part->threads);
+
+        if(tshd_current->msection_entering != NULL)
+        {
+            struct msection * __kuser msection_entering =
+                jet_user_to_kernel_typed(tshd_current->msection_entering);
+
+            assert_os(msection_entering);
+
+            thread_current->msection_entering = msection_entering;
+        }
+    }
     sched_arinc();
 }
 
 void pok_sched_local_invalidate(void)
 {
     flag_set(current_partition_arinc->sched_local_recheck_needed);
+}
+
+pok_ret_t jet_resched(void)
+{
+    pok_partition_arinc_t* part = current_partition_arinc;
+
+    pok_thread_t* thread_current = part->thread_current;
+
+    struct jet_thread_shared_data* tshd_current = part->kshd->tshd
+        + (thread_current - part->threads);
+
+    pok_preemption_local_disable();
+
+    if(part->waiting_section != NULL && part->waiting_section->owner == JET_THREAD_ID_NONE)
+        pok_sched_local_invalidate(); // msecation we await for has been released.
+
+    if(thread_current->relations_stop.first_donator != NULL
+        && tshd_current->msection_count == 0)
+    {
+        // It is safe to terminate thread now and resume all its donators.
+        pok_thread_t* donator = thread_current->relations_stop.first_donator;
+
+        thread_current->relations_stop.first_donator = NULL;
+        thread_stop(thread_current);
+
+        // Resume donators.
+        do {
+            pok_thread_t* next_donator;
+
+            donator->relations_stop.donate_target = NULL;
+            if(donator == part->thread_selected)
+                pok_sched_local_invalidate();
+
+            next_donator = donator->relations_stop.next_donator;
+
+            if(donator->relations_stop.first_donator)
+            {
+                donator->relations_stop.first_donator = NULL;
+                thread_stop(donator); // Donator itself needs to be terminated.
+            }
+            donator->relations_stop.next_donator = NULL;
+            donator = next_donator;
+        } while(donator != NULL);
+    }
+
+    pok_preemption_local_enable();
+
+    return POK_ERRNO_OK;
 }

@@ -16,6 +16,7 @@
 #ifndef __POK_NET_BYTEORDER_H__
 #define __POK_NET_BYTEORDER_H__
 
+#include <stdint.h>
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 

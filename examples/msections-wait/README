@@ -1,0 +1,25 @@
+Scenario for waiting on msection.
+
+Two processes are created within single partition.
+
+High priority process (the second) starts first.process with high priority starts 20 ms after switching into NORMAL mode.
+It enters into critical section, check 'completion' variable and waits if it is 0.
+
+Low priority process (the first) starts then.
+It enters into critical section, sets 'completion' variable to 1 and notify the second thread.
+
+Possible partition's output is:
+
+---
+process 1 created
+process 1 "started" (it won't actually run until operating mode becomes NORMAL)
+process 2 created
+process 2 "started" (it won't actually run until operating mode becomes NORMAL)
+Second process starts.
+Second process waits for completion.
+First process starts.
+Notify second thread
+Second process resumes.
+Second process is finishing.
+First process is finishing.
+---
