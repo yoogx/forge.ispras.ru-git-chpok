@@ -30,6 +30,8 @@
 #define SYSTEM_LIMIT_NUMBER_OF_BLACKBOARDS    256  /* partition scope */
 #define SYSTEM_LIMIT_NUMBER_OF_SEMAPHORES     256  /* partition scope */
 #define SYSTEM_LIMIT_NUMBER_OF_EVENTS         256  /* partition scope */
+#define SYSTEM_LIMIT_NUMBER_OF_MUTEXES        256  /* partition scope */
+
 
 /*----------------------*/
 /* Base APEX types        */
