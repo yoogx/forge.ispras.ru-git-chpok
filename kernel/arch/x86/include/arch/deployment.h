@@ -34,25 +34,39 @@ struct ja_x86_space
     uintptr_t   phys_base;
     
     /* 
-     * Total size for partition's use.
-     * 
-     * Calculated upon space initialization.
-     */
-    size_t size_total;
-    
-    /* 
-     * Size of the memory for normal use.
+     * Size of the memory  (code and static data).
      * 
      * Set in deployment.c.
      */
     size_t      size_normal;
+
+    /* 
+     * Size of the memory  (heap).
+     * 
+     * Set in deployment.c.
+     */
+    size_t      size_heap;
+
     /*
-     * Size of the memory for stacks, above size_normal.
+     * Size of the memory for stacks.
      * 
      * Set in deployment.c.
      */
     size_t size_stack;
     
+    /* 
+     * Total size for partition's use.
+     * 
+     * Calculated upon space initialization.
+     */
+    size_t size_total;
+
+    /*
+     * Offset from the beginning of the space to the ending of the heap.
+     * 
+     * Calculated upon space initialization.
+     */
+    size_t heap_end;
     /*
      * Memory currently used for stacks.
      */

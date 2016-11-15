@@ -19,6 +19,7 @@
 #include <ioports.h>
 
 #include <mem.h>
+#include <smalloc.h>
 
 #include "virtio_config.h"
 #include "virtio_ids.h"

@@ -222,15 +222,15 @@ class Space:
     Definition of single memory space.
 
     - size - allocated RAM size in bytes (code + static storage)
-
-    Everything except 'size' should be automatically calculated by arch.
+    - part - partition, which should fit into given space.
 
     TODO: This should be make arch-dependent somehow.
     TODO: Config files uses 'size' as contained stack.
            Arch code allocates stack from other memory.
     """
-    def __init__(self, size):
+    def __init__(self, size, part):
         self.size = size
+        self.part = part
 
 # ARINC partition.
 #
@@ -244,6 +244,11 @@ class Partition:
         "name",
 
         "is_system",
+
+        # Requested size of the heap.
+        #
+        # Note: ARINC requirements for buffers and co. shouldn't be counted here.
+        "heap",
 
         "num_threads", # number of user threads, _not_ counting init thread and error handler
         "ports_queueing", # list of queuing ports
@@ -276,6 +281,8 @@ class Partition:
         # 'duration' is sum of all timeslots, denoted for partition.
         self.period = None
         self.duration = None
+
+        self.heap = 0
 
         self.num_threads = 0
 
@@ -391,6 +398,12 @@ class Partition:
             + self.num_arinc653_semaphores * self.get_semaphore_size()
             + self.num_arinc653_events * self.get_event_size()
         )
+
+    def get_heap_size(self):
+        heap_size = self.get_intra_size()
+        if self.heap > 0:
+            heap_size += self.heap + 16 # alignment. TODO: this should be arch-specific.
+        return heap_size
 
 def _get_port_direction(port):
     direction = port.direction.lower()
@@ -682,7 +695,7 @@ class Configuration:
         if part_id is not None:
             self.partition_ids_map[part_id] = part
 
-        self.spaces.append(Space(part_size))
+        self.spaces.append(Space(part_size, part))
 
         return part
 

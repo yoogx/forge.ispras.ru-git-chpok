@@ -124,11 +124,12 @@ class ArincConfigParser:
     def parse_partition(self, conf, part_root):
         part_name = part_root.find("Definition").attrib["Name"]
 
-        part_size = parse_bytes(part_root.find("Memory").attrib["Bytes"])
+        memory_size = parse_bytes(part_root.find("Memory").attrib["Bytes"])
+        heap_size = parse_bytes(part_root.find("Memory").attrib.get('Heap', default='0'))
 
         # FIXME support partition period, which is simply a fixed attribute
         #       with no real meaning (except it can be introspected)
-        part = conf.add_partition(part_name, part_size)
+        part = conf.add_partition(part_name, memory_size)
 
         part.is_system = False
         if "System" in part_root.find("Definition").attrib:
@@ -136,6 +137,8 @@ class ArincConfigParser:
 
         # FIXME support partition period, which is simply a fixed attribute
         #       with no real meaning (except it can be introspected)
+
+        part.heap = heap_size
 
         part.num_threads = int(part_root.find("Threads").attrib["Count"])
 

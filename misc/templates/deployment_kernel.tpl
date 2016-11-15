@@ -168,12 +168,12 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
             .multi_partition_hm_table = &pok_hm_multi_partition_table_default,
         },
 
-        .nthreads = {{part.num_threads}} + 1 /*main thread*/ + 1 /* error thread */,
+        .nthreads = {{part.get_needed_threads()}},
         .threads = partition_threads_{{loop.index0}},
 
         .main_user_stack_size = 8192, {# TODO: This should be set in config somehow. #}
 
-        .heap_size = {{part.get_intra_size()}},
+        .heap_size = {{part.get_heap_size()}},
 
         .ports_queuing = partition_ports_queuing_{{loop.index0}},
         .nports_queuing = {{part.ports_queueing | length}},

@@ -15,7 +15,7 @@
 
 #include <kernel_shared_data.h>
 #include <init_arinc.h>
-#include <alloc.h>
+#include <smalloc.h>
 
 int main();
 

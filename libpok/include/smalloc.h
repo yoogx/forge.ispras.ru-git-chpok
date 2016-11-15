@@ -24,7 +24,7 @@
  * 
  * May be used only in init mode.
  */
-void* aligned_alloc(size_t size, size_t alignment);
+void* smalloc_aligned(size_t size, size_t alignment);
 
 /* 
  * Allocate memory region of given size and alignment, suitable for any
@@ -32,7 +32,17 @@ void* aligned_alloc(size_t size, size_t alignment);
  * 
  * May be used only in init mode.
  */
-void* malloc(size_t size);
+void* smalloc(size_t size);
+
+/* 
+ * Allocate memory region for array with given number of elements,
+ * which element has given size and alignment, suitable for any
+ * object of size less-or-equal than given one.
+ * 
+ * May be used only in init mode.
+ */
+void* scalloc(size_t nmemb, size_t size);
+
 
 // free() is not supported.
 
@@ -40,18 +50,6 @@ void* malloc(size_t size);
 
 // Set by the init, used by the alloc implementation.
 extern char* heap_current;
-
-static inline unsigned long ALIGN_VAL(unsigned long val, unsigned long align)
-{
-    unsigned long mask = align - 1;
-    return (val + mask) & ~mask;
-}
-
-static inline void* ALIGN_PTR(void* ptr, unsigned long align)
-{
-    return (void*)ALIGN_VAL((unsigned long)ptr, align);
-}
-
 
 #endif /* __LIBJET_ALLOC_H__ */
 

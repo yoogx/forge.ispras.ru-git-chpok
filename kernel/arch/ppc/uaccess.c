@@ -31,7 +31,7 @@ static pok_bool_t ppc_check_access(const void* __user addr, size_t size,
 
     /*
      * Currently, there are 2 segments accessible to user:
-     * 1. [POK_PARTITION_MEMORY_BASE; POK_PARTITION_MEMORY_BASE + space->size_normal)
+     * 1. [POK_PARTITION_MEMORY_BASE; POK_PARTITION_MEMORY_BASE + space->size_total)
      *    code and data
      * 2. [space->ustack_state; POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE)
      *    stacks
@@ -39,7 +39,7 @@ static pok_bool_t ppc_check_access(const void* __user addr, size_t size,
 
     if(end < start) return FALSE; // Segments doesn't cross NULL.
 
-    if(end <= space->size_normal + POK_PARTITION_MEMORY_BASE)
+    if(end <= space->size_total + POK_PARTITION_MEMORY_BASE)
     {
         return (start >= POK_PARTITION_MEMORY_BASE);
     }
@@ -81,11 +81,11 @@ pok_bool_t ja_check_access_exec(void* __user addr, jet_space_id space_id)
 
     /*
      * Only single segment could be executed by user:
-     *   [POK_PARTITION_MEMORY_BASE; POK_PARTITION_MEMORY_BASE + space->size_normal)
+     *   [POK_PARTITION_MEMORY_BASE; POK_PARTITION_MEMORY_BASE + space->size_total)
      *    code and data
      */
 
-    return (start < POK_PARTITION_MEMORY_BASE + space->size_normal)
+    return (start < POK_PARTITION_MEMORY_BASE + space->size_total)
         && (start >= POK_PARTITION_MEMORY_BASE);
 }
 

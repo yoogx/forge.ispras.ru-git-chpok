@@ -13,20 +13,20 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __POK_SYSNET_MEM_H__
-#define __POK_SYSNET_MEM_H__
+#ifndef __LIBJET_ASSERT_H__
+#define __LIBJET_ASSERT_H__
 
-#include <core/syscall.h>
+#include <stdlib.h>
 
-#define ALIGN_UP(addr,size) (((addr)+((size)-1))&(~((size)-1)))
-
-static inline uintptr_t pok_virt_to_phys(void * virt) {
-   return pok_syscall1(POK_SYSCALL_MEM_VIRT_TO_PHYS, (uintptr_t) virt);
-}
-
-static inline void* pok_phys_to_virt(uintptr_t phys) {
-   return (void *) pok_syscall1(POK_SYSCALL_MEM_PHYS_TO_VIRT, phys);
-}
-
+#ifdef NDEBUG
+#define assert(expr) ((void)0)
+#else
+#define assert(expr) do {                                                   \
+    if(!(expr)) {                                                           \
+        printf("Assertion failed: `%s', function %s, file %s, line %d\n",   \
+            #expr, __func__, __FILE__, __LINE__);                           \
+        abort();                                                            \
+    }} while(0)
 #endif
 
+#endif /* __LIBJET_ASSERT_H__ */

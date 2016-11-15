@@ -34,7 +34,6 @@ syspart_program = syspart_env.Program(target = 'syspart.lo', source = [
     drivers,
     components,
     'config.c',
-    'mem.c',
     'pool.c'
 ])
 syspart_env.Depends(syspart_program, env['POK_PATH']+'/libpok/')

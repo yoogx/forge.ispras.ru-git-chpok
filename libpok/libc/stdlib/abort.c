@@ -13,19 +13,12 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <arch/deployment.h>
+#include <stdlib.h>
+#include <core/syscall.h>
 
-struct ja_x86_space ja_spaces[{{conf.spaces | length}}] =
+void abort(void)
 {
-{%for space in conf.spaces%}
-    {
-        //.phys_base is filled upon initialization
-        .size_normal = {{space.size}},
-        .size_heap = {{space.part.get_heap_size()}},
-        // Currently stack size is hardcoded to 8K.
-        .size_stack = {{space.part.get_needed_threads()}} * 8 * 1024
-    },
-{%endfor%}
-};
+    static const char abort_message[] = "Aborted";
 
-int ja_spaces_n = {{conf.spaces | length}};
+    pok_error_raise_application_error (abort_message, sizeof(abort_message));
+}
