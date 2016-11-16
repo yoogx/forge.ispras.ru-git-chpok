@@ -245,6 +245,10 @@
    #endif
 #endif
 
+#ifdef POK_NEEDS_ARINC653_MUTEX
+   #define POK_NEEDS_MUTEXES      1
+#endif
+
 #ifdef POK_NEEDS_MUTEXES
    #ifndef POK_NEEDS_FUNCTION_TIME_GETTICK
    #define POK_NEEDS_FUNCTION_TIME_GETTICK
@@ -335,6 +339,7 @@
 #define POK_NEEDS_BUFFERS               1
 #define POK_NEEDS_BLACKBOARDS           1
 #define POK_NEEDS_SEMAPHORES            1
+#define POK_NEEDS_MUTEXES               1
 
 /* string.h functions */
 #define POK_CONFIG_NEEDS_FUNC_MEMCPY         1

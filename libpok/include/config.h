@@ -57,6 +57,9 @@
 #define POK_CONFIG_ARINC653_NB_EVENTS pok_config_arinc653_nb_events
 #define POK_CONFIG_NB_EVENTS pok_config_nb_events
 
+#define POK_NEEDS_MUTEXES 1
+#define POK_NEEDS_ARINC653_MUTEX 1
+
 #define POK_CONFIG_NB_THREADS pok_config_nb_threads
 
 extern unsigned pok_config_nb_buffers;
