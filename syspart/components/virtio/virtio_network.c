@@ -30,6 +30,7 @@
 
 #include "VIRTIO_NET_DEV_gen.h"
 
+#include <arinc653/process.h>
 
 #define VIRTIO_PCI_VENDORID 0x1AF4
 
@@ -39,34 +40,25 @@
 #define PRINTF(fmt, ...) printf("VIRTIO_NET_DEV: " fmt, ##__VA_ARGS__)
 
 static void reclaim_send_buffers(struct virtio_network_device *info);
-/*
- * When we're in interrupt context (e.g. system call or timer),
- * preemption is already disabled, and we certainly don't want to
- * enable it there.
- *
- * On the other hand, in the network thread context, preemption is
- * enabled, and we need some critical sections, you know.
- */
-static void maybe_lock_preemption(pok_bool_t *saved)
+
+static void lock_preemption(pok_bool_t *saved)
 {
-    return;
-    /*
-    *saved = pok_arch_preempt_enabled();
-    if (*saved) {
-        pok_arch_preempt_disable();
-    }
-    */
+    LOCK_LEVEL_TYPE LOCK_LEVEL;
+    RETURN_CODE_TYPE ret_code;
+    LOCK_PREEMPTION(&LOCK_LEVEL, &ret_code);
+    if (ret_code != NO_ERROR)
+        PRINTF("error in LOCK_PREEMPTION %d\n", ret_code);
 }
 
 
-static void maybe_unlock_preemption(const pok_bool_t *saved)
+static void unlock_preemption(const pok_bool_t *saved)
 {
-    return;
-    /*
-    if (*saved) {
-        pok_arch_preempt_enable();
-    }
-    */
+    LOCK_LEVEL_TYPE LOCK_LEVEL;
+    RETURN_CODE_TYPE ret_code;
+    UNLOCK_PREEMPTION(&LOCK_LEVEL, &ret_code);
+    if (ret_code != NO_ERROR)
+        PRINTF("error in UNLOCK_PREEMPTION %d\n", ret_code);
+
 }
 
 static pok_bool_t setup_virtqueue(
@@ -237,7 +229,7 @@ static void reclaim_send_buffers(struct virtio_network_device *info)
     // in single critical section without worrying too much
     
     pok_bool_t saved_preemption;
-    maybe_lock_preemption(&saved_preemption);
+    lock_preemption(&saved_preemption);
     while (vq->last_seen_used != vq->vring.used->idx) {
         uint16_t index = vq->last_seen_used & (vq->vring.num-1);
         struct vring_used_elem *e = &vq->vring.used->ring[index];
@@ -260,7 +252,7 @@ static void reclaim_send_buffers(struct virtio_network_device *info)
         vq->last_seen_used++;
     }
     
-    maybe_unlock_preemption(&saved_preemption);
+    unlock_preemption(&saved_preemption);
 }
 
 static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
@@ -269,7 +261,7 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
     struct virtio_virtqueue *vq = &dev->rx_vq;
 
     pok_bool_t saved_preemption;
-    maybe_lock_preemption(&saved_preemption);
+    lock_preemption(&saved_preemption);
 
     uint16_t old_last_seen_used = vq->last_seen_used;
 
@@ -281,6 +273,7 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
         struct receive_buffer *buf = pok_phys_to_virt(desc->addr);
         if (buf == 0) {
             printf("%s: kernel says that physical address is wrong\n", __func__);
+            unlock_preemption(&saved_preemption);
             return;
         }
 
@@ -291,7 +284,7 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
         vq->num_free++;
         desc->next = vq->free_index;
         vq->free_index = e->id;
-        
+
         vq->last_seen_used++;
 
         // reclaim buffer
@@ -299,8 +292,8 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
         use_receive_buffer(dev, buf);
 
         // preemption point
-        maybe_unlock_preemption(&saved_preemption);
-        maybe_lock_preemption(&saved_preemption);
+        unlock_preemption(&saved_preemption);
+        lock_preemption(&saved_preemption);
     }
 
     if (old_last_seen_used != vq->last_seen_used) {
@@ -308,8 +301,8 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
         // used to avail ring
         notify_receive_buffers(dev);
     }
-        
-    maybe_unlock_preemption(&saved_preemption);
+
+    unlock_preemption(&saved_preemption);
 }
 
 ret_t flush_send(VIRTIO_NET_DEV *self)
