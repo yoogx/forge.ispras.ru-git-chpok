@@ -15,13 +15,28 @@
 
 #include <string.h>
 
-/* GCC requires this function even for freestanding environment. */
-void *memset(void *s, int c, size_t n)
+char *strchr(const char *s, int c)
 {
-    unsigned char *d = (unsigned char *)s;
+    for(; *s; s++) {
+        if((int)*s == c) break;
+    }
 
-    while (n--)
-        *d++ = (unsigned char)c;
+    return ((int)*s == c) ? (char*)s : NULL;
+}
 
-    return s;
+char *strrchr(const char *s, int c)
+{
+    // Diffirentiate case when search for null-character.
+    if(c == 0) {
+        while(*s) s++;
+        return (char*)s;
+    }
+
+    const char *res = NULL;
+
+    for(; *s; s++) {
+        if((int)*s == c) res = s;
+    }
+
+    return (char*)res;
 }

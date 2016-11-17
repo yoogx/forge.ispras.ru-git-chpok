@@ -15,13 +15,27 @@
 
 #include <string.h>
 
-/* GCC requires this function even for freestanding environment. */
-void *memset(void *s, int c, size_t n)
+char *strcat(char * restrict dest, const char * restrict src)
 {
-    unsigned char *d = (unsigned char *)s;
+    char* dest_iter = dest;
 
-    while (n--)
-        *d++ = (unsigned char)c;
+    while(*dest_iter) ++dest_iter;
+    while(*src) *dest_iter++ = *src++;
 
-    return s;
+    *dest_iter = '\0';
+
+    return dest;
+}
+
+char *strncat(char * restrict dest, const char * restrict src, size_t n)
+{
+    char* dest_iter = dest;
+    const char* src_end = src + n;
+
+    while(*dest_iter) ++dest_iter;
+    while(*src && src != src_end) *dest_iter++ = *src++;
+
+    *dest_iter = '\0';
+
+    return dest;
 }

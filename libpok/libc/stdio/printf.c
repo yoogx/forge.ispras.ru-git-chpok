@@ -19,7 +19,7 @@
 #include <types.h>
 #include <core/syscall.h>
 #include <libc/stdio.h>
-#include <libc/string.h>
+#include <string.h>
 
 static const char digits[] = "0123456789abcdef";
 

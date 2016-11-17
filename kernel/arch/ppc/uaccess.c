@@ -81,11 +81,11 @@ pok_bool_t ja_check_access_exec(void* __user addr, jet_space_id space_id)
 
     /*
      * Only single segment could be executed by user:
-     *   [POK_PARTITION_MEMORY_BASE; POK_PARTITION_MEMORY_BASE + space->size_total)
-     *    code and data
+     *   [POK_PARTITION_MEMORY_BASE; POK_PARTITION_MEMORY_BASE + space->size_normal)
+     *    code
      */
 
-    return (start < POK_PARTITION_MEMORY_BASE + space->size_total)
+    return (start < POK_PARTITION_MEMORY_BASE + space->size_normal)
         && (start >= POK_PARTITION_MEMORY_BASE);
 }
 

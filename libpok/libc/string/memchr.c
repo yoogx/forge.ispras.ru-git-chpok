@@ -15,13 +15,15 @@
 
 #include <string.h>
 
-/* GCC requires this function even for freestanding environment. */
-void *memset(void *s, int c, size_t n)
+void *memchr(const void *s, int c, size_t n)
 {
-    unsigned char *d = (unsigned char *)s;
+    const unsigned char *mem = (const unsigned char *)s;
+    const unsigned char* mem_end = mem + n;
 
-    while (n--)
-        *d++ = (unsigned char)c;
+    for(; mem != mem_end && *mem != (unsigned char)c; mem++);
 
-    return s;
+    return (mem != mem_end) ? (void*)mem : NULL;
 }
+
+
+

@@ -15,13 +15,26 @@
 
 #include <string.h>
 
-/* GCC requires this function even for freestanding environment. */
-void *memset(void *s, int c, size_t n)
+size_t strcspn(const char *s1, const char *s2)
 {
-    unsigned char *d = (unsigned char *)s;
+    // Forward implementation, O(m^2)
+    const char* s1_iter = s1;
 
-    while (n--)
-        *d++ = (unsigned char)c;
+    for(; *s1_iter; s1_iter++) {
+       if(strchr(s2, *s1_iter)) break;
+    }
 
-    return s;
+    return s1_iter - s1;
+}
+
+size_t strspn(const char *s1, const char *s2)
+{
+    // Forward implementation, O(m^2)
+    const char* s1_iter = s1;
+
+    for(; *s1_iter; s1_iter++) {
+        if(!strchr(s2, *s1_iter)) break;
+    }
+
+    return s1_iter - s1;
 }

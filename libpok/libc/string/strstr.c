@@ -15,13 +15,15 @@
 
 #include <string.h>
 
-/* GCC requires this function even for freestanding environment. */
-void *memset(void *s, int c, size_t n)
+char *strstr(const char *s1, const char *s2)
 {
-    unsigned char *d = (unsigned char *)s;
+    // Forward implementation, O(n*m)
+    size_t s2_len = strlen(s2);
+    if(s2_len == 0) return (char*)s1; // Nothing to search.
+    
+    for(; *s1; s1++) {
+        if(memcmp(s1, s2, s2_len) == 0) return (char*)s1;
+    }
 
-    while (n--)
-        *d++ = (unsigned char)c;
-
-    return s;
+    return NULL;
 }

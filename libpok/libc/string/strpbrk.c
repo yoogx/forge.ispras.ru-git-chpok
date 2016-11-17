@@ -15,13 +15,16 @@
 
 #include <string.h>
 
-/* GCC requires this function even for freestanding environment. */
-void *memset(void *s, int c, size_t n)
+char *strpbrk(const char *s1, const char *s2)
 {
-    unsigned char *d = (unsigned char *)s;
+    char c1 = *s1;
 
-    while (n--)
-        *d++ = (unsigned char)c;
+    for(; c1; s1++, c1 = *s1) {
+        const char* s2_iter = s2;
+        char c2 = *s2_iter;
+        for(; c2; s2_iter++, c2 = *s2_iter)
+            if(c1 == c2) return (char*)s1;
+    }
 
-    return s;
+    return NULL;
 }

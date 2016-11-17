@@ -27,7 +27,7 @@
 #include <kernel_shared_data.h>
 #include <core/assert_os.h>
 
-#include <libc/string.h>
+#include <string.h>
 #include "arinc_alloc.h"
 #include <arinc_config.h>
 #include "arinc_process_queue.h"

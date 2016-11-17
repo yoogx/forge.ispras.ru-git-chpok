@@ -42,7 +42,7 @@
 #include <arinc653/arincutils.h>
 #include <arinc653/types.h>
 #include <arinc653/process.h>
-#include <libc/string.h>
+#include <string.h>
 
 #include <utils.h>
 #include <core/partition.h>
