@@ -19,13 +19,11 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define RAND_MAX 256
+#define RAND_MAX 32767
 
 void abort(void);
 
 int rand (void);
-void *calloc (size_t nmemb, size_t size);
-void *malloc (size_t size);
-void free (void* ptr);
+void srand(unsigned int seed);
 
 #endif /* __LIBJET_STDLIB_H__*/

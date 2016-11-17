@@ -313,16 +313,6 @@
 #define POK_NEEDS_SEMAPHORES            1
 
 /* string.h functions */
-#define POK_CONFIG_NEEDS_FUNC_MEMCPY         1
-#define POK_CONFIG_NEEDS_FUNC_MEMSET         1
-#define POK_CONFIG_NEEDS_FUNC_MEMCMP         1
-#define POK_CONFIG_NEEDS_FUNC_STRCMP         1
-#define POK_CONFIG_NEEDS_FUNC_STRNCMP        1
-#define POK_CONFIG_NEEDS_FUNC_STRCPY         1
-#define POK_CONFIG_NEEDS_FUNC_STRNCPY        1
-#define POK_CONFIG_NEEDS_FUNC_STRLEN         1
-#define POK_CONFIG_NEEDS_FUNC_STREQ          1
-#define POK_CONFIG_NEEDS_FUNC_ITOA           1
 #define POK_CONFIG_NEEDS_FUNC_UDIVDI3        1
 
 /*
