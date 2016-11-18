@@ -7,7 +7,7 @@ pok_ret_t pok_memory_block_get_status(
         jet_memory_block_status_t* __user status)
 {
     int i;
-    int current_pid = current_partition->space_id + 1;
+    int current_pid = current_partition->space_id;
 
     for (i = 0; i < jet_memory_blocks_n; i++) {
         if (strncmp(jet_memory_blocks[i].name, name, MAX_NAME_LENGTH) == 0)
