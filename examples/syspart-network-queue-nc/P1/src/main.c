@@ -23,6 +23,19 @@
 QUEUING_PORT_ID_TYPE QP1;
 QUEUING_PORT_ID_TYPE QP2;
 #define SECOND 1000000000LL
+#define MILLISECOND (SECOND / 1000)
+
+static void printCurrentTime(const char *prefix, const char *suffix) {
+    RETURN_CODE_TYPE ret;
+    SYSTEM_TIME_TYPE time;
+
+    GET_TIME(&time, &ret);
+    if (ret == NO_ERROR) {
+        printf("%scurrent time is %lld ms%s", prefix, time / MILLISECOND, suffix);
+    } else {
+        printf("PR1: GET_TIME error: %u\n", ret);
+    }
+}
 
 static void first_process(void)
 {
@@ -36,8 +49,12 @@ static void first_process(void)
         printf("P1: sending %d msg\n", i);
         snprintf(msg, 64, "Hello %d\n", i);
         SEND_QUEUING_MESSAGE(QP1, (MESSAGE_ADDR_TYPE) &msg, sizeof(msg), INFINITE_TIME_VALUE, &ret);
+        if (ret != NO_ERROR) {
+            printf("P1: unable to send queuing message to QP1.\n");
+        }
         //TIMED_WAIT(SECOND/5, &ret);
 
+        printCurrentTime("  ", "\n");
     }
 
     while (1) {
@@ -47,8 +64,13 @@ static void first_process(void)
         RECEIVE_QUEUING_MESSAGE(QP2, INFINITE_TIME_VALUE, (MESSAGE_ADDR_TYPE) &msg, &len, &ret);
 
         if (ret == NO_ERROR) {
-            msg[len] = '\0';
+            msg[(len >= 9) ? len - 1 - 8 : len - 1] = '\0';
             printf("%s", msg);
+            if (len >= 9) {
+                printf(" x: %d, y: %d", *((int *) (msg + len - 8)), *((int *) (msg + len - 4)));
+            }
+            printCurrentTime(", ", "");
+            printf("\n");
         } else {
             printf("PR1: qp error: %u\n", ret);
         }
