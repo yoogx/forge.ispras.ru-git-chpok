@@ -39,7 +39,7 @@ static struct arinc_event* find_event(const char* name)
    for(int i = 0; i < nevents_used; i++)
    {
       struct arinc_event* event = &arinc_events[i];
-      if(strncmp(event->event_name, name, MAX_NAME_LENGTH) == 0)
+      if(strncasecmp(event->event_name, name, MAX_NAME_LENGTH) == 0)
          return event;
    }
 
@@ -56,8 +56,6 @@ void CREATE_EVENT (EVENT_NAME_TYPE EVENT_NAME,
       *RETURN_CODE = INVALID_MODE;
       return;
    }
-
-   strtoupper(EVENT_NAME);
 
    if(find_event(EVENT_NAME) != NULL) {
       // Event with given name already exists.
@@ -200,7 +198,6 @@ void GET_EVENT_ID (EVENT_NAME_TYPE EVENT_NAME,
                    EVENT_ID_TYPE *EVENT_ID,
                    RETURN_CODE_TYPE *RETURN_CODE)
 {
-   strtoupper(EVENT_NAME);
 
    struct arinc_event* event = find_event(EVENT_NAME);
    if(event == NULL) {

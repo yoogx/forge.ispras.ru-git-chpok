@@ -39,7 +39,7 @@ static struct arinc_blackboard* find_blackboard(const char* name)
    for(int i = 0; i < nblackboards_used; i++)
    {
       struct arinc_blackboard* blackboard = &arinc_blackboards[i];
-      if(strncmp(blackboard->blackboard_name, name, MAX_NAME_LENGTH) == 0)
+      if(strncasecmp(blackboard->blackboard_name, name, MAX_NAME_LENGTH) == 0)
          return blackboard;
    }
 
@@ -58,8 +58,6 @@ void CREATE_BLACKBOARD (
       *RETURN_CODE = INVALID_MODE;
       return;
    }
-
-   strtoupper(BLACKBOARD_NAME);
 
    if(find_blackboard(BLACKBOARD_NAME) != NULL) {
       // Blackboard with given name already exists.
@@ -247,7 +245,6 @@ void GET_BLACKBOARD_ID (
        /*out*/ BLACKBOARD_ID_TYPE       *BLACKBOARD_ID,
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-   strtoupper(BLACKBOARD_NAME);
 
    struct arinc_blackboard* blackboard = find_blackboard(BLACKBOARD_NAME);
    if(blackboard == NULL) {

@@ -39,7 +39,6 @@ void CREATE_SAMPLING_PORT (
 			 /*out*/ SAMPLING_PORT_ID_TYPE      *SAMPLING_PORT_ID,
 			 /*out*/ RETURN_CODE_TYPE           *RETURN_CODE )
 {
-	 strtoupper(SAMPLING_PORT_NAME);
 	 pok_port_direction_t core_direction;
 	 pok_port_id_t        core_id;
 	 pok_ret_t            core_ret;
@@ -148,7 +147,6 @@ void GET_SAMPLING_PORT_ID (
 			 /*out*/ SAMPLING_PORT_ID_TYPE      *SAMPLING_PORT_ID,
 			 /*out*/ RETURN_CODE_TYPE           *RETURN_CODE )
 {
-    strtoupper(SAMPLING_PORT_NAME);
     pok_ret_t core_ret;
     pok_port_id_t id;
 
