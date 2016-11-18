@@ -47,8 +47,9 @@ static void first_process(void)
         RECEIVE_QUEUING_MESSAGE(QP2, INFINITE_TIME_VALUE, (MESSAGE_ADDR_TYPE) &msg, &len, &ret);
 
         if (ret == NO_ERROR) {
-            msg[len] = '\0';
+            msg[len - 1 - 8] = '\0';
             printf("%s", msg);
+            printf(" x: %d, y: %d\n", *((int *) (msg + len - 8)), *((int *) (msg + len - 4)));
         } else {
             printf("PR1: qp error: %u\n", ret);
         }
