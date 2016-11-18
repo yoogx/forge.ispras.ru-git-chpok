@@ -54,7 +54,7 @@
 //#define POK_NEEDS_DEPRECIATED 1
 #define POK_TEST_SUPPORT_PRINT_WHEN_ALL_THREADS_STOPPED 1
 
-//#define POK_NEEDS_SIMULATION 1
+#define POK_NEEDS_SIMULATION 1
 
 // #define POK_CONFIG_NB_THREADS pok_config_nb_threads
 // #define POK_CONFIG_PARTITIONS_NTHREADS pok_config_partitions_nthreads
