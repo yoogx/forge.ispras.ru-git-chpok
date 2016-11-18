@@ -40,7 +40,7 @@ static struct arinc_buffer* find_buffer(const char* name)
    for(int i = 0; i < nbuffers_used; i++)
    {
       struct arinc_buffer* buffer = &arinc_buffers[i];
-      if(strncmp(buffer->buffer_name, name, MAX_NAME_LENGTH) == 0)
+      if(strncasecmp(buffer->buffer_name, name, MAX_NAME_LENGTH) == 0)
          return buffer;
    }
 
@@ -79,7 +79,6 @@ void CREATE_BUFFER (
       return;
    }
 
-   strtoupper(BUFFER_NAME);
 
    if(find_buffer(BUFFER_NAME) != NULL) {
       // Buffer with given name already exists.
@@ -334,7 +333,6 @@ void GET_BUFFER_ID (
        /*out*/ BUFFER_ID_TYPE           *BUFFER_ID,
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-   strtoupper(BUFFER_NAME);
 
    struct arinc_buffer* buffer = find_buffer(BUFFER_NAME);
    if(buffer == NULL) {
