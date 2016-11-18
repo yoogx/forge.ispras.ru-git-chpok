@@ -36,6 +36,9 @@ static void first_process(void)
         printf("P1: sending %d msg\n", i);
         snprintf(msg, 64, "Hello %d\n", i);
         SEND_QUEUING_MESSAGE(QP1, (MESSAGE_ADDR_TYPE) &msg, sizeof(msg), INFINITE_TIME_VALUE, &ret);
+        if (ret != NO_ERROR) {
+            printf("P1: unable to send queuing message to QP1.\n");
+        }
         //TIMED_WAIT(SECOND/5, &ret);
 
     }
