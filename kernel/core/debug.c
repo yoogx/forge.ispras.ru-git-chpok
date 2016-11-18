@@ -78,8 +78,16 @@ void pok_debug_print_current_state ()
    printf ("entry             : 0x%p\n", POK_CURRENT_THREAD.entry);*/
 }
 
+#ifdef POK_NEEDS_SIMULATION
+#include <core/time.h>
+#endif //POK_NEEDS_SIMULATION
+
 void pok_fatal (const char* message)
 {
+#ifdef POK_NEEDS_SIMULATION
+   sim_stop_tick = UINT64_MAX;
+#endif //POK_NEEDS_SIMULATION
+
   // it can be called from a kernel thread
   // with preemption enabled
   // also, some bugs somehow reenable preemption
