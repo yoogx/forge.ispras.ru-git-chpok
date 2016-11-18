@@ -40,6 +40,7 @@ struct legacy_io {
 
 #endif
 
+#ifdef PCI_DEBUG
 static char *get_pci_class_name(int classcode) {
     int i = 0;
     while (pci_classnames[i].name != NULL) {
@@ -49,6 +50,7 @@ static char *get_pci_class_name(int classcode) {
     }
     return "Unknown";
 }
+#endif
 
 
 int pci_read_config_byte(struct pci_dev *dev, int where, uint8_t *val)
@@ -242,57 +244,9 @@ void pci_get_dev_by_bdf(uint8_t bus, uint8_t dev, uint8_t fn, struct pci_dev *pc
 
 }
 
-void pci_enumerate()
-{
-    struct pci_dev pci_dev;
-    for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
-      for (unsigned int dev = 0; dev < PCI_DEV_MAX; dev++)
-        for (unsigned int fn = 0; fn < PCI_FN_MAX; fn++)
-        {
-            pci_get_dev_by_bdf(bus, dev, fn, &pci_dev);
-
-            if (pci_dev.vendor_id == 0xFFFF) {
-                continue;
-            }
-
-            printf("%02x:%02x:%02x %s\n",
-                    bus, dev, fn, get_pci_class_name(pci_dev.class_code));
-            printf("\t PCI device %04x:%04x (header 0x%02x)\n",
-                    pci_dev.vendor_id,
-                    pci_dev.device_id,
-                    pci_dev.hdr_type);
-
-            if (pci_dev.hdr_type != 0) {
-                continue;
-            }
-
-            for (int i = 0; i < PCI_NUM_RESOURCES; i++) {
-                struct pci_resource *res = &pci_dev.resources[i];
-                if (res->size == 0)
-                    continue;
-
-                if (res->type != PCI_RESOURCE_TYPE_ROM){
-                    printf("\t BAR%d: ", i);
-                    if (res->type == PCI_RESOURCE_TYPE_BAR_IO) {
-                        printf("I/O ");
-                    } else {
-                        printf("%s bit %smemory ",
-                            res->mem_flags & PCI_RESOURCE_MEM_MASK_32 ? "32": "<UNSUPPORTED> 64",
-                            res->mem_flags & PCI_RESOURCE_MEM_MASK_PREFETCH ? "prefetchable ":"");
-                    }
-                }
-                else {
-                    printf("\t ROM: ");
-                }
-                printf("[size=0x%zx]\n", res->size);
-
-            }
-        }
-}
-
-
 void pci_list()
 {
+#ifdef PCI_DEBUG
     struct pci_dev pci_dev;
     for (unsigned int bus = 0; bus < PCI_BUS_MAX; bus++)
       for (unsigned int dev = 0; dev < PCI_DEV_MAX; dev++)
@@ -378,6 +332,7 @@ void pci_list()
 
             }
         }
+#endif
 }
 
 //dev will be usefull when bridge is not hardcoded
@@ -475,6 +430,7 @@ void pci_ATMU_windows_clear()
 
 void pci_ATMU_windows_list()
 {
+#ifdef PCI_DEBUG
     struct pci_atmu_windows *atmu = (struct pci_atmu_windows *)(bridge.cfg_addr + PEX1_PEXOTAR0);
 
     printf("ATMU:\n");
@@ -497,7 +453,7 @@ void pci_ATMU_windows_list()
                 atmu->piw[i].piwbar, atmu->piw[i].piwbear,
                 atmu->piw[i].piwar);
     }
-
+#endif
 }
 
 struct LAW_regs {
@@ -509,7 +465,7 @@ struct LAW_regs {
 
 void LAW_list()
 {
-
+#ifdef PCI_DEBUG
     //FIXME
     struct LAW_regs *law = (struct LAW_regs *)(ccsrbar_base + 0xC00);
 
@@ -524,6 +480,7 @@ void LAW_list()
                 law[i].ar);
     }
 
+#endif
 }
 
 #endif
@@ -567,7 +524,7 @@ void pci_init()
     //printf("PCI enumeration:\n");
     //pci_enumerate();
 
-    printf("PCI initialization using configuration\n");
+    printf("PCI initialization using configuration:\n");
 
     for (int i = 0; i < pci_configs_nb; i++) {
         struct pci_dev_config *dev_config = &pci_configs[i];
@@ -615,7 +572,7 @@ void pci_init()
 
         pci_write_config_word(&pci_dev, PCI_COMMAND, command);
     }
-    printf("PCI init result:\n");
+    //printf("PCI init result:\n");
     pci_list();
     printf("\n");
 }
