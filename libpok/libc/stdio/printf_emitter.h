@@ -13,17 +13,18 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <core/assert_os.h>
+/* Emits characters, produced by printf-like format, in a generic way.*/
 
-#include <core/syscall.h>
-#include <stdio.h>
+#ifndef __LIBJET_STDIO_PRINTF_EMITTER_H__
+#define __LIBJET_STDIO_PRINTF_EMITTER_H__
 
-void assertion_os_fail(const char *expression, const char *file, int line)
-{
-    static char msg[128];
-    
-    snprintf(msg, sizeof(msg), "Assertion failed (%s) in %s:%d\n",
-        expression, file, line);
-    
-    pok_error_raise_os_error(msg, sizeof(msg));
-}
+#include <stdarg.h>
+
+/* Emit single character. */
+typedef void (*emit_character_t)(int c, void *private_data);
+
+/* For each character, determined by format and args, call emit_character().*/
+void printf_emitter(emit_character_t emit_character, void *private_data,
+    const char* format, va_list arg);
+
+#endif /* __LIBJET_STDIO_PRINTF_EMITTER_H_ */

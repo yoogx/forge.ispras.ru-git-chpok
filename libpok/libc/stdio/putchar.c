@@ -13,14 +13,14 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __POK_LIBC_STDIO_H__
-#define __POK_LIBC_STDIO_H__
+#include <stdio.h>
+#include "stream.h"
 
-#include <stdarg.h>
+int putchar(int c)
+{
+    stdout->bytes_written = 0; // Just for the case.
+    stdio_stream_emit_character(c, stdout);
+    stdio_stream_complete_operation(stdout);
 
-int printf(const char *format, ...)__attribute__ ((format(printf, 1, 2)));
-void hexdump (const void *addr, int len);
-void snprintf(char *dst, unsigned size, const char *format, ...)__attribute__ ((format(printf, 3, 4)));;
-
-
-#endif /* __POK_LIBC_STDIO_H_ */
+    return c;
+}

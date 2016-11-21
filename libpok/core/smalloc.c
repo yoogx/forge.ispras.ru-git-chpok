@@ -16,7 +16,7 @@
 #include <smalloc.h>
 #include <kernel_shared_data.h>
 #include <core/assert_os.h>
-#include <libc/stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <utils.h>
 

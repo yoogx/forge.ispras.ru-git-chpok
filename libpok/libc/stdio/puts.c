@@ -13,17 +13,16 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <core/assert_os.h>
-
-#include <core/syscall.h>
 #include <stdio.h>
+#include "stream.h"
 
-void assertion_os_fail(const char *expression, const char *file, int line)
+int puts(const char *s)
 {
-    static char msg[128];
-    
-    snprintf(msg, sizeof(msg), "Assertion failed (%s) in %s:%d\n",
-        expression, file, line);
-    
-    pok_error_raise_os_error(msg, sizeof(msg));
+    stdout->bytes_written = 0; // Just for the case.
+    for(; *s; s++)
+        stdio_stream_emit_character(*s, stdout);
+    stdio_stream_emit_character('\n', stdout);
+    stdio_stream_complete_operation(stdout);
+
+    return 0;
 }

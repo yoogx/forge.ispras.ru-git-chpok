@@ -13,17 +13,9 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <core/assert_os.h>
+#ifndef __LIBJET_DEBUG_H__
+#define __LIBJET_DEBUG_H__
 
-#include <core/syscall.h>
-#include <stdio.h>
+void hexdump (const void *addr, int len);
 
-void assertion_os_fail(const char *expression, const char *file, int line)
-{
-    static char msg[128];
-    
-    snprintf(msg, sizeof(msg), "Assertion failed (%s) in %s:%d\n",
-        expression, file, line);
-    
-    pok_error_raise_os_error(msg, sizeof(msg));
-}
+#endif /* __LIBJET_DEBUG_H__ */
