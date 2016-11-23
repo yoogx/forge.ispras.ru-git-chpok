@@ -36,7 +36,9 @@
  */
 void pok_arch_init (void)
 {
-/*MSR_IP |*/   mtsr(CP0_STATUS_XX);
+//~ /*MSR_IP |*/   mtsr(CP0_STATUS_XX);
+
+  asm volatile("MFHC1 $a1, $1");
 
   pok_arch_space_init();
 
@@ -47,20 +49,21 @@ void pok_arch_init (void)
 
 void ja_preempt_disable(void)
 {
-  asm("DI");
+
+  asm(".word 0x41606000");
+  //~ asm("di");
 
 }
 
 void ja_preempt_enable(void)
 {
-  asm("EI");
+  asm(".word 0x41606020");
+  //~ asm("ei");
 }
 
 pok_bool_t ja_preempt_enabled(void)
 {
-  
-  ///FIX
-  return 0;//!!(mfmsr() & MSR_EE);
+  return 0;//(mfcr(CP0_STATUS) & CP0_STATUS_IE);
 }
 
 void ja_inf_loop(void)
@@ -71,13 +74,12 @@ void ja_inf_loop(void)
    }
 }
 
-#include <arch/linux_io.h>
 #define DCFG_RSTCR 0xb0
 #define RSTCR_RESET_REQ 0x2
 void ja_cpu_reset(void)
 {
     uintptr_t addr = pok_bsp.ccsrbar_base + pok_bsp.dcfg_offset + DCFG_RSTCR;
-    out_be32((void*)addr, RSTCR_RESET_REQ);
+    * (uint32_t *) addr = RSTCR_RESET_REQ;
 }
 
 pok_ret_t pok_bsp_get_info(void * __user addr) {

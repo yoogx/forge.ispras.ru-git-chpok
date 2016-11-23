@@ -137,7 +137,7 @@
 #define CP0_STATUS_CU2      __MASK(Status_CU2_LG)             /* Разрешается доступ к сопроцессору 2 */
 #define CP0_STATUS_CU1      __MASK(Status_CU1_LG)             /* Разрешается доступ к сопроцессору 1 */
 #define CP0_STATUS_CU0      __MASK(Status_CU0_LG)             /* Разрешается доступ к сопроцессору 0 */
-#define CP0_STATUS_FP       __MASK(Status_FR_LG)              /* Контролирует режим работы вещественного регистрового файла (регистрового файла CP1)*/
+#define CP0_STATUS_FR       __MASK(Status_FR_LG)              /* Контролирует режим работы вещественного регистрового файла (регистрового файла CP1)*/
 #define CP0_STATUS_PX       __MASK(Status_PX_LG)              /* Обеспечивает доступ к 64-разрядным инструкциям в пользовательском режиме (User)*/
 #define CP0_STATUS_BEV      __MASK(Status_BEV_LG)             /* Контролирует размещение векторов исключений*/
 #define CP0_STATUS_SR       __MASK(Status_SR_LG)              /* Показывает, что возникло исключение Soft Reset*/
@@ -166,6 +166,16 @@
 #define CP0_STATUS_EXL      __MASK(Status_EXL_LG)             /* Exception Level. Устанавливается аппаратно, если происходит исключение, отличное от Reset, Soft Reset, NMI или Cache Error*/
 #define CP0_STATUS_IE       __MASK(Status_IE_LG)              /* Разрешение прерываний*/
 
+#define CP0_STATUS_USER     CP0_STATUS_KSU_1                  /* Режим пользователя*/
+#define CP0_STATUS_KERNEL   0x0                               /* Режим ядра*/
+#define CP0_STATUS_SETTINGS    (CP0_STATUS_CU1|CP0_STATUS_FR|CP0_STATUS_IE)
+#define CP0_STATUS_ALL_INT_ON    CP0_STATUS_IM7 | CP0_STATUS_IM7 | CP0_STATUS_IM7 | CP0_STATUS_IM7 | CP0_STATUS_IM7 | CP0_STATUS_IM7 | CP0_STATUS_IM7 | CP0_STATUS_IE
+
+
+
+
+
+
 #define CP0_CAUSE_IV        __MASK(Cause_IV_LG)               /* Роказывает, использует ли исключение по прерыванию общий вектор исключений или специальный вектор прерываний*/
 #define CP0_CAUSE_IP7       __MASK(Cause_IP7_LG)              /* Установленный бит показывает, что возникло соответствующие внешнее прерывание.
                                                                                           Аппаратное прерывание 5, таймер(регистр Count) или счетчик производительности*/
@@ -174,6 +184,11 @@
 #define CP0_CAUSE_IP4       __MASK(Cause_IP4_LG)              /* Установленный бит показывает, что возникло соответствующие внешнее прерывание. Аппаратное прерывание 2*/
 #define CP0_CAUSE_IP3       __MASK(Cause_IP3_LG)              /* Установленный бит показывает, что возникло соответствующие внешнее прерывание. Аппаратное прерывание 1*/
 #define CP0_CAUSE_IP2       __MASK(Cause_IP2_LG)              /* Установленный бит показывает, что возникло соответствующие внешнее прерывание. Аппаратное прерывание 0*/
+
+
+
+
+
 
 #define CP0_INDEX         $0    /* Index       Register*/ /* Номер строки TLB и бит ошибки */    
 #define CP0_RANDOM        $1    /* Random      Register*/ /* Псевдослучайное число в диапазоне [63..wired] */
@@ -195,7 +210,7 @@
 #define CP0_EPC           $14   /* Exception Program Counter Register*/ /* Значение счетчика инструкций (виртуальный адрес команды) в момент возникновения исключительной ситуации. */
 #define CP0_PRID          $15   /* Processor Identification  Register*/ /* Информация об производителе процессора */
 #define CP0_EBASE         $15   /* Exception Base Register*/            /*  */
-#define CP0_CONFIG        $16   /* Configuration Register (select 0)*/  /*  */
+#define CP0_CONFIG        $16   /* Configuration Register (select 0)*/  /* Не поддерживается */
 #define CP0_CONFIG_1      $16   /* Configuration Register (select 1)*/  /*  */
 #define CP0_CONFIG_2      $16   /* Configuration Register (select 2)*/  /*  */
 #define CP0_CONFIG_3      $16   /* Configuration Register (select 3)*/  /*  */
@@ -215,7 +230,6 @@
 #define CP0_DATAHI        $29   /* DataHi      Register (select 1)*/    /* Двойное слово, считанное из кэш-памяти. */
 #define CP0_ERROREPC      $30   /* Error Exception Program Counter Register*/ /* Адрес команды, вызвавшей исключение NMI, Reset или Soft Reset */
 #define CP0_DESAVE        $31   /* DESAVE      Register*/               /* Регистр для хранения промежуточных данных */
-
 
 
 
@@ -274,7 +288,6 @@
         nop;                   \
         nop;                   \
         nop                    
-
 
 
 #endif
