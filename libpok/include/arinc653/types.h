@@ -37,10 +37,10 @@
 /*  The actual size of these base types is system specific and the          */
 /*  sizes must match the sizes used by the implementation of the            */
 /*  underlying Operating System.                                            */
-typedef   unsigned char    APEX_BYTE;               /* 8-bit unsigned */
-typedef   long             APEX_INTEGER;            /* 32-bit signed */
-typedef   unsigned long    APEX_UNSIGNED;           /* 32-bit unsigned */
-typedef   long long        APEX_LONG_INTEGER;       /* 64-bit signed */
+typedef   uint8_t    APEX_BYTE;               /* 8-bit unsigned */
+typedef   int32_t    APEX_INTEGER;            /* 32-bit signed */
+typedef   uint32_t   APEX_UNSIGNED;           /* 32-bit unsigned */
+typedef   int64_t    APEX_LONG_INTEGER;       /* 64-bit signed */
 /*----------------------*/
 /* General APEX types     */
 /*----------------------*/
