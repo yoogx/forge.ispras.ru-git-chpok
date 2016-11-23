@@ -22,7 +22,8 @@ Import('libpok_env')
 stdio  = SConscript('stdio/SConscript')
 string = SConscript('string/SConscript')
 stdlib = SConscript('stdlib/SConscript')
+ctype = SConscript('ctype/SConscript')
 
-Return('stdio', 'string', 'stdlib')
+Return('stdio', 'string', 'stdlib', 'ctype')
 
 # EOF

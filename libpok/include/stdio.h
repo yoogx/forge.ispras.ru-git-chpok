@@ -29,6 +29,8 @@
 // Input/output is not buffered at all.
 #define _IONBF 3
 
+#define EOF ((int)(-1))
+
 typedef struct stdio_stream FILE;
 
 extern FILE* stderr;
