@@ -30,7 +30,7 @@
 /*
  * Size of memory in the single chunk.
  * 
- * DEV: This size corresponds to E500MC_PGSIZE_16M constant, used
+ * DEV: This size corresponds to MIPS_PGSIZE_16M constant, used
  * for memory mapping.
  */
 #define POK_PARTITION_MEMORY_SIZE 0x1000000ULL 

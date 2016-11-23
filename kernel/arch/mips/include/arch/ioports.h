@@ -16,38 +16,38 @@
 #ifndef __JET_MIPS_IOPORTS_H__
 #define __JET_MIPS_IOPORTS_H__
 
-#include <arch/linux_io.h>
+#include <stdint.h>
 
 #define JET_ARCH_DECLARE_IO_PORT 1
 
 static inline void ja_outb(unsigned int port, uint8_t value)
 {
-    out_8((uint8_t *) port, value);
+    *(uint8_t *) port = value;
 }
 
 static inline uint8_t ja_inb(unsigned int port)
 {
-    return in_8((uint8_t *) port);
+    return *(uint8_t *) port;
 }
 
 static inline void ja_outw(unsigned int port, uint16_t value)
 {
-    out_le16((uint16_t *) port, value);
+    *(uint16_t *) port = value;
 }
 
 static inline uint16_t ja_inw(unsigned int port)
 {
-    return in_le16((uint16_t *) port);
+    return *(uint16_t *) port;
 }
 
 static inline void ja_outl(unsigned int port, uint32_t value)
 {
-    out_le32((uint32_t *) port, value);
+    *(uint32_t *) port = value;
 }
 
 static inline uint32_t ja_inl(unsigned int port)
 {
-    return in_le32((uint32_t *) port);
+    return *(uint32_t *) port;
 }
 
 #endif // __JET_MIPS_IOPORTS_H__
