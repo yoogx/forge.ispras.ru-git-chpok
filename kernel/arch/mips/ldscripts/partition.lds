@@ -1,13 +1,18 @@
-OUTPUT_FORMAT("elf32-tradbigmips");
-OUTPUT_ARCH("mips")
+/* Script for -z combreloc: combine and sort reloc sections */
+/* Copyright (C) 2014-2015 Free Software Foundation, Inc.
+   Copying and distribution of this script, with or without modification,
+   are permitted in any medium without royalty provided the copyright
+   notice and this notice are preserved.  */
+OUTPUT_FORMAT("elf32-tradbigmips")
+OUTPUT_ARCH(mips)
 ENTRY(__pok_partition_start)
-
 SECTIONS
 {
-	. = 0x80000000;
+	kshd = 0x80000000; /* This should coincide with ja_space_shared_data() in the kernel. */
+
+  . = 0x80001000;
 
 	__partition_begin = . ;
-       
         .text           :
         {
            *(.text .text.*)
@@ -36,6 +41,9 @@ SECTIONS
           . = ALIGN(4);
           __sbss2_end = .;
         }
+        .eh_frame_hdr : { *(.eh_frame_hdr) *(.eh_frame_entry .eh_frame_entry.*) }
+        .eh_frame       : ONLY_IF_RO { KEEP (*(.eh_frame)) *(.eh_frame.*) }
+    
         .data :
         {
           __data_start = .;
@@ -46,6 +54,7 @@ SECTIONS
           . = ALIGN(4);
           __data_end = .;
         }
+
         .sbss :
         {
           __sbss_start = .;
@@ -54,8 +63,6 @@ SECTIONS
           *(.scommon)
           __sbss_end = .;
         }
-        
-        
         .bss  :
         {
           __bss_start = .;
@@ -67,6 +74,8 @@ SECTIONS
 
           _end = .;
         }
+        HIDDEN (_gp = ALIGN (16) + 0x7ff0);
+        .got            : { *(.got) }
 	__partition_end = . ;
-
 }
+

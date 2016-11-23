@@ -23,18 +23,19 @@
 #include <asp/entries.h>
 
 pok_bsp_t pok_bsp = {
-    .ccsrbar_size = 0x1000000ULL,
-    .ccsrbar_base = 0xE0000000ULL,
-    .ccsrbar_base_phys = 0xE0000000ULL,
-    .dcfg_offset = 0xE0000ULL,
-    .serial0_regs_offset = 0x4500ULL,
-    .serial1_regs_offset = 0x4600ULL,
-    .timebase_freq = 400000000,
+
+    .ccsrbar_size = 0x1000000ULL, //?
+    .ccsrbar_base = 0x01FF00000ULL,
+    .ccsrbar_base_phys = 0x01FF00000ULL,
+    .dcfg_offset = 0xE0000ULL, //?
+    .serial0_regs_offset = 0x70000ULL,
+    .serial1_regs_offset = 0x70008ULL,
+    .timebase_freq = 400000000, //?
     .pci_bridge = {
-        .cfg_addr = 0xe0008000,
-        .cfg_data = 0xe0008004,
-        .iorange =  0xe1000000
-    }
+        .cfg_addr = 0xe0008000, //?
+        .cfg_data = 0xe0008004, //?
+        .iorange =  0xe1000000  //?
+    }///FIXIT for RS-232C controller
 };
 
 extern char _end[];

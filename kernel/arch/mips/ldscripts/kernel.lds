@@ -74,13 +74,8 @@ SECTIONS
     . = ALIGN(4);
     __sbss2_end = .;
   }
-  .eh_frame :
-  {
-  .eh_frame_start = .;
-  *(.eh_frame*)
-  . = ALIGN (4);
-  .eh_frame_end = .;
-  }
+  .eh_frame_hdr : { *(.eh_frame_hdr) *(.eh_frame_entry .eh_frame_entry.*) }
+  .eh_frame       : ONLY_IF_RO { KEEP (*(.eh_frame)) *(.eh_frame.*) }
   .bss  :
   {
    __bss_start = .;
