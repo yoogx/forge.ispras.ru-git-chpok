@@ -1,12 +1,11 @@
 #include <config.h>
 
 #ifdef POK_NEEDS_GDB
-#include <gdb.h>
 
 #define PC_REGNUM 64
 #define SP_REGNUM 1
  
-//~ #define DEBUG_GDB
+//#define DEBUG_GDB
 #define QEMU
 #define MULTIPROCESS
 
@@ -142,7 +141,7 @@ struct gdb_thread
     void* part_private;
 };
 
-// Currently executed thread
+/* Currently executed thread */
 static struct gdb_thread gdb_thread_current;
 
 /* Whether t1 and t2 actually refers to the same thread. */
@@ -164,13 +163,13 @@ static inline void gdb_thread_copy(struct gdb_thread* dest,
 
 /* Variables used in callbacks for 'for_each_partition'.*/
 
-// Index of the partition.
+/* Index of the partition. */
 int _partition_index;
-// Partition at given index.
+/* Partition at given index. */
 pok_partition_t* _partition_at_index;
-// Index of currently iterated partition.
+/* Index of currently iterated partition. */
 int _partition_index_current;
-// Whether we enumerate kernel-only partitions or user-space ones.
+/* Whether we enumerate kernel-only partitions or user-space ones. */
 pok_bool_t _partition_is_kernel;
 
 /* 
@@ -406,7 +405,7 @@ static struct jet_interrupt_context* gdb_thread_get_regs(const struct gdb_thread
 {
     if(t->inferior_id == 1)
     {
-        // Kernel threads always current for partition.
+        /* Kernel threads always current for partition. */
         return t->part->entry_sp;
     }
 
@@ -423,6 +422,7 @@ static struct jet_interrupt_context* gdb_thread_get_regs(const struct gdb_thread
     }
 }
 
+#ifdef NUMREGS_FP
 /* 
  * Return floating-point registers(arch-specific) for non-current thread.
  */
@@ -438,7 +438,7 @@ void gdb_thread_set_fp_regs(struct gdb_thread* t, const uint32_t* registers)
 {
     //TODO: Currently floating point registers are not stored.
 }
-
+#endif
 
 /************************************************************************
  *
@@ -511,7 +511,6 @@ hex (ch)
 static char remcomInBuffer[BUFMAX];
 static char remcomOutBuffer[BUFMAX];
 
-#ifdef __PPC__
 /* scan for the sequence $<data>#<checksum>     */
 static void
 getpacket(char *buffer)
@@ -528,7 +527,8 @@ getpacket(char *buffer)
 
     do {
         /* wait around for the start character, ignore all other
-         * characters */
+         * characters 
+         */
         while ((ch = (getDebugChar() & 0x7f)) != '$') ;
         
         checksum = 0;
@@ -574,81 +574,6 @@ getpacket(char *buffer)
     printf("\n");
 #endif
 }
-#endif
-#ifdef __i386__
-unsigned char *
-getpacket (void)
-{
-#ifdef DEBUG_GDB
-    printf("Lets getpacket <---\n");
-#endif
-    unsigned char *buffer = (unsigned char *) (&remcomInBuffer[0]);
-    unsigned char checksum;
-    unsigned char xmitcsum;
-    int count;
-    char ch;
-
-    while (1)
-    {
-      /* wait around for the start character, ignore all other characters */
-        while ((ch = getDebugChar ()) != '$')
-        ;
-        retry:
-        checksum = 0;
-        xmitcsum = -1;
-        count = 0;
-
-      /* now, read until a # or end of buffer is found */
-        while (count < BUFMAX - 1)
-        {
-            ch = getDebugChar ();
-            if (ch == '$')
-                goto retry;
-            if (ch == '#')
-                break;
-            checksum = checksum + ch;
-            buffer[count] = ch;
-            count = count + 1;
-        }
-        buffer[count] = 0;
-
-        if (ch == '#')
-        {
-            ch = getDebugChar ();
-            xmitcsum = hex (ch) << 4;
-            ch = getDebugChar ();
-            xmitcsum += hex (ch);
-
-            if (checksum != xmitcsum)
-            {
-                putDebugChar ('-');   /* failed checksum */
-            }
-            else
-            {
-          
-            }
-      
-            {
-                putDebugChar ('+');   /* successful transfer */
-
-                /* if a sequence char is present, reply the sequence ID */
-                if (buffer[2] == ':')
-                {
-                    putDebugChar (buffer[0]);
-                    putDebugChar (buffer[1]);
-
-                    return &buffer[3];
-                }
-
-            return &buffer[0];
-            }
-        }
-    }
-#ifdef DEBUG_GDB
-    printf("\n");
-#endif
-}
-#endif
 
 
 /* send the packet in buffer.  */
@@ -696,8 +621,10 @@ putpacket (unsigned char *buffer)
 /* Address of a routine to RTE to if we get a memory fault.  */
 static void (*volatile mem_fault_routine) () = NULL;
 
-/* Indicate to caller of mem2hex or hex2mem that there has been an
-   error.  */
+/*
+ *  Indicate to caller of mem2hex or hex2mem
+ *  that there has been an error.  
+ */
 static volatile int mem_err = 0;
 
 void
@@ -706,10 +633,12 @@ set_mem_err (void)
     mem_err = 1;
 }
 
-/* These are separate functions so that they are so short and sweet
-   that the compiler won't save any registers (if there is a fault
-   to mem_fault, they won't get restored, so there better not be any
-   saved).  */
+/*
+ * These are separate functions so that they are so short and sweet
+ * that the compiler won't save any registers (if there is a fault
+ * to mem_fault, they won't get restored, so there better not be any
+ * saved).  
+ */
 int
 get_char (const char *addr)
 {
@@ -720,14 +649,24 @@ void
 set_char (char *addr, int val)
 {
     *addr = val;
+/*
+ * Instructions sync
+ */
+#ifdef __PPC__
 asm volatile("dcbst 0, %0; sync; icbi 0,%0; sync; isync" : : "r" (addr));
-}
+#endif
+#ifdef __i386__
+//FIX FOR X86
+#endif
 
-/* convert the memory pointed to by mem into hex, placing result in buf */
-/* return a pointer to the last char put in buf (null) */
-/* If MAY_FAULT is non-zero, then we should set mem_err in response to
-   a fault; if zero treat a fault like any other fault in the stub.  */
-char *
+}
+/*
+ * Convert the memory pointed to by mem into hex, placing result in buf 
+ * return a pointer to the last char put in buf (null) 
+ * If MAY_FAULT is non-zero, then we should set mem_err in response to
+ * a fault; if zero treat a fault like any other fault in the stub.  
+ */
+char * 
 mem2hex (mem, buf, count, may_fault)
      const char *mem;
      char *buf;
@@ -753,8 +692,10 @@ mem2hex (mem, buf, count, may_fault)
     return (buf);
 }
 
-/* convert the hex array pointed to by buf into binary to be placed in mem */
-/* return a pointer to the character AFTER the last byte written */
+/*
+ * Convert the hex array pointed to by buf into binary to be placed in mem.
+ * Return a pointer to the character AFTER the last byte written.
+ */
 char *
 hex2mem (buf, mem, count, may_fault)
      char *buf;
@@ -780,8 +721,10 @@ hex2mem (buf, mem, count, may_fault)
     return (mem);
 }
 
-/* this function takes the 386 exception vector and attempts to
-   translate this number into a unix compatible signal value */
+/*
+ * This function takes the 386 exception vector and attempts to
+ * translate this number into a unix compatible signal value 
+ */
 int
 computeSignal (int exceptionVector)
 {
@@ -833,7 +776,7 @@ computeSignal (int exceptionVector)
         case 16:
             sigval = 7;
             break;            /* coprocessor error */
-        case 17:            /* SIGINT  */
+        case 17:              /* SIGINT  */
             sigval = 2;
             break;
         default:
@@ -880,6 +823,21 @@ int addr_instr = 0;
 char instr2[8] = "00000000";
 int addr_instr2 = 0;
 char trap[8] = "7fe00008";
+
+#define SPRN_PID        0x030   /* Process ID */
+
+#define __stringify_1(x)        #x
+#define __stringify(x)          __stringify_1(x)
+
+#define mfspr(rn)       ({unsigned long rval; \
+                                asm volatile("mfspr %0," __stringify(rn) \
+                                                                    : "=r" (rval)); rval;})
+#define mtspr(rn, v)    asm volatile("mtspr " __stringify(rn) ",%0" : \
+                                             : "r" ((unsigned long)(v)) \
+                                             : "memory")
+#define MSR_EE      1<<(15)              /* External Interrupt Enable */
+
+
 #endif
 #ifdef __i386__
 char instr[2] = "00";
@@ -899,92 +857,6 @@ static inline void set_msr(int msr)
     asm volatile("mtmsr %0" : : "r" (msr));
 }
 
-#ifdef __PPC__
-#define SPRN_PID        0x030   /* Process ID */
-
-#define __stringify_1(x)        #x
-#define __stringify(x)          __stringify_1(x)
-
-#define mfspr(rn)       ({unsigned long rval; \
-                                asm volatile("mfspr %0," __stringify(rn) \
-                                                                    : "=r" (rval)); rval;})
-#define mtspr(rn, v)    asm volatile("mtspr " __stringify(rn) ",%0" : \
-                                             : "r" ((unsigned long)(v)) \
-                                             : "memory")
-#endif
-
-
-#ifdef __PPC__
-#define MSR_EE      1<<(15)              /* External Interrupt Enable */
-#endif
-
-/*int current_part_id(){
-#ifdef __PPC__
-    return  mfspr(SPRN_PID);
-#endif
-#ifdef __i386__
-    return current_segment();
-#endif
-}*/
-
-/*void switch_part_id(int old_pid, int new_pid){
-#ifdef __PPC__
-    (void) old_pid;
-    mtspr(SPRN_PID, new_pid);
-#endif
-
-#ifdef __i386__
-    pok_space_switch(old_pid, new_pid);
-#endif
-}*/
-
-/*static char info_thread[59] = "StoppedRunnableWaitingLockWait next activationDelayed start";
-
-
-static int pok_thread_info(pok_state_t State, int * info_offset){
-  switch (State){
-        case POK_STATE_STOPPED: // DORMANT (must be started first)
-        {
-            *info_offset = 0;
-            return  7;
-        }
-        case POK_STATE_RUNNABLE: // READY
-        {
-            *info_offset = 7;
-            return 8;
-        }
-        case POK_STATE_WAITING: // WAITING (sleeping for specified time OR waiting for a lock with timeout)
-        {
-            *info_offset = 15;
-            return 7;
-        }
-        case POK_STATE_LOCK:  // WAITING (waiting for a lock without timeout)
-        {
-            *info_offset = 22;
-            return 4;
-        }
-        case POK_STATE_WAIT_NEXT_ACTIVATION:  // WAITING (for next activation aka "release point")
-        {
-            *info_offset = 26;
-            return 20;
-        }
-        case POK_STATE_DELAYED_START:  // WAITING (waitng for partition mode NORMAL)
-        {
-            *info_offset = 46;
-            return 13;
-        }
-    }
-    return 0;
-}*/
-
-
-/*int   POK_CHECK_ADDR_IN_PARTITION(int pid,uintptr_t address){
-    if (pid > 0)
-        return ((POK_CHECK_VPTR_IN_PARTITION(pid - 1,address)) || (address >= 0x0 && address <  pok_partitions[0].base_addr));
-    else
-        return address >= 0x0 && address <  pok_partitions[0].base_addr;
-}*/
-
 
 
 #define max_breakpoints  20
@@ -996,14 +868,7 @@ int Connect_to_new_inferior = -1;
 struct T_breakpoint breakpoints[max_breakpoints];
 int Head_of_breakpoints;
 int last_breakpoint;
-  
-/*pok_partition_id_t give_part_num_of_thread(int thread_num){
 
-    for (int i = 0; i < POK_CONFIG_NB_PARTITIONS; i++){
-        if (pok_partitions[i].thread_index_high + 1 > thread_num) return i + 1;
-    }
-    return 0;
-}*/
 
 pok_bool_t watchpoint_is_set = FALSE;
 /*
@@ -1012,21 +877,7 @@ pok_bool_t watchpoint_is_set = FALSE;
  *           3 -   Read watchpoint
  *           4 - Access watchpoint
  */
-
-/*uintptr_t gdb_pok_virt_to_phys(uintptr_t virt, int pid)
-{
-    if (pid > 0)
-        return virt - pok_partitions[pid - 1].base_vaddr + pok_partitions[pid - 1].base_addr;
-    return virt;
-}
-uintptr_t gdb_pok_phys_to_virt(uintptr_t phys, int pid)
-{
-    if (pid > 0)
-        return phys - pok_partitions[pid - 1].base_addr + pok_partitions[pid - 1].base_vaddr;
-    return phys;
-}*/
- 
-
+//FIX IT - архитектурно зависимый код
 #define SPRN_DBCR0      0x134   /* Debug Control Register 0 */
 #define SPRN_DBCR2       0x136   /* Debug Control Register 2 */
 #define SPRN_DAC1       0x13C   /* Data Address Compare 1 */
@@ -1035,21 +886,35 @@ uintptr_t gdb_pok_phys_to_virt(uintptr_t phys, int pid)
 #define SPRN_DBSRWR       0x132   /* Debug Status Register Write Register*/
 
 
-// Helper: writes identificator of the thread into output packet.
+/*
+ * Helper: writes identificator of the thread into output packet.
+ */
+
 static char* write_thread_id(char* ptr, const struct gdb_thread* t)
 {
 #ifdef MULTIPROCESS
     *ptr++ = 'p';
+#ifdef __PPC__
     ptr = mem2hex( (char *)(&t->inferior_id), ptr, 4);
+#endif
+#ifdef __i386__
+    ptr = mem2hex( (char *)(&t->inferior_id), ptr, 1);
+#endif
     *ptr++ = '.';
 #endif
+#ifdef __PPC__
     ptr = mem2hex( (char *)(&t->thread_id), ptr, 4);
-
+#endif
+#ifdef __i386__
+    ptr = mem2hex( (char *)(&t->thread_id), ptr, 1);
+#endif
     return ptr;
 }
 
 
-// Helper: reads identificator of the thread from input packet.
+/*
+ * Helper: reads identificator of the thread from input packet.
+ */
 static char* read_thread_id(char* ptr, struct gdb_thread* t)
 {
 #ifdef MULTIPROCESS
@@ -1070,7 +935,9 @@ struct packet_write_cb_data
     // TODO: Maximum length should be there
 };
 
-// Callback of type print_cb_t for write into gdb packet.
+/*
+ * Callback of type print_cb_t for write into gdb packet.
+ */
 void packet_write_cb(const void* data, size_t len, void* cb_data)
 {
     struct packet_write_cb_data* cb_data_real = cb_data;
@@ -1109,14 +976,21 @@ static void gdb_state_store_registers(struct gdb_state* tc)
     {
         ea = gdb_thread_get_regs(&tc->t);
 
+#ifdef NUMREGS_FP
         gdb_thread_set_fp_regs(&tc->t, fp_registers);
+#endif
     }
     else
     {
         ea = tc->current_ea;
     }
-
+#ifdef __PPC__
     printf("Flush registers. pc = 0x%lx\n", registers[pc]);
+#endif
+#ifdef __i386__
+    printf("Flush registers. PC = 0x%lx\n", registers[PC]);
+#endif
+
     gdb_get_regs(ea, registers);
 }
 
@@ -1129,7 +1003,9 @@ static void gdb_state_fill_registers(struct gdb_state* tc)
     {
         ea = gdb_thread_get_regs(&tc->t);
 
+#ifdef NUMREGS_FP
         gdb_thread_get_fp_regs(&tc->t, fp_registers);
+#endif
     }
     else
     {
@@ -1162,6 +1038,8 @@ void clear_breakpoints(){
         breakpoints[i].addr = 0;
 }
 
+//Work only on bared metal p3041
+
 void add_watchpoint(uintptr_t addr, int length, const struct gdb_thread* t, int type)
 {
 #ifdef QEMU
@@ -1186,8 +1064,6 @@ void add_watchpoint(uintptr_t addr, int length, const struct gdb_thread* t, int 
     int new_pid = gdb_thread_get_space(t);
     pok_space_switch(new_pid);
 
-    //~ addr = gdb_pok_virt_to_phys(addr, give_part_num_of_thread(*using_thread + 1));
-
     mtspr(SPRN_DAC1, addr); // Use original address, as it is not accessed immediately.
     mtspr(SPRN_DAC2, addr + length);
     uint32_t DBCR2 = mfspr(SPRN_DBCR2);
@@ -1207,7 +1083,6 @@ void add_watchpoint(uintptr_t addr, int length, const struct gdb_thread* t, int 
     printf("After DBCR0 = 0x%lx\n", DBCR0);
 #endif
     mtspr(SPRN_DBCR0, DBCR0);
-    //~ ea->srr1 |= 0x400000;
     ((struct regs *)pok_threads[*using_thread].entry_sp)->srr1 |= 0x200;
     watchpoint_is_set = TRUE;
     strcpy(remcomOutBuffer, "OK");
@@ -1264,34 +1139,18 @@ void remove_watchpoint(uintptr_t addr, int length, const struct gdb_thread* t, i
     uint32_t DBCR2 = mfspr(SPRN_DBCR2);
     DBCR2 &= (~0x800000);
     mtspr(SPRN_DBCR2, DBCR2);
-
-    //~ ea->srr1 &= (~0x400000);
-
 #endif    
 }
 
 void add_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t){
-    //int old_pid = current_part_id();
-    //int new_pid = give_part_num_of_thread(*using_thread + 1);
-//#ifdef DEBUG_GDB
-//    printf("New_pid = %d\n",new_pid);
-//    printf("Old_pid = %d\n",old_pid);
-//#endif
+    uint8_t old_space_id = pok_space_get_current();
 
     uintptr_t gdb_addr = gdb_thread_write_addr(t, addr, length);
 
     if(!gdb_addr) goto err;
 
-    uint8_t old_space_id = pok_space_get_current();
     uint8_t space_id = gdb_thread_get_space(t);
     pok_space_switch(space_id);
-    //if (POK_CHECK_ADDR_IN_PARTITION(new_pid, addr))
-    //{
-//#ifdef DEBUG_GDB
-        //printf("Load new_pid\n");
-//#endif
-        //switch_part_id(old_pid, new_pid);
-    //}
 
     int i;
     for (i = 0; i < max_breakpoint; i++){
@@ -1308,16 +1167,6 @@ void add_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t){
     breakpoints[Head_of_breakpoints].Reason = 2;
     breakpoints[Head_of_breakpoints].addr = gdb_addr;
     if (!mem2hex((char *)gdb_addr, &(breakpoints[Head_of_breakpoints].Instr), length)) goto err;
-        //strcpy (remcomOutBuffer, "E22");
-        //switch_part_id(new_pid, old_pid);
-        //return;
-    //}
-    //~ Head_of_breakpoints++;
-    //~ if (Head_of_breakpoints == max_breakpoint){
-        //~ strcpy(remcomOutBuffer, "E22");
-        //~ switch_part_id(new_pid, old_pid);
-        //~ return;
-    //~ }
 
     if (!hex2mem(trap, (char *)gdb_addr, length)) goto err;
 
@@ -1333,14 +1182,11 @@ err:
 }
 
 void remove_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t){
-#ifdef DEBUG_GDB
-    printf("            Z0, breakpoint[0].addr = 0x%x\n",breakpoints[0].addr);
-#endif
+    int old_pid = pok_space_get_current();
     uintptr_t gdb_addr = gdb_thread_write_addr(t, addr, length);
     if(!gdb_addr) goto err;
 
     int i = 0;
-    int old_pid = pok_space_get_current();
     int new_pid = gdb_thread_get_space(t);
 #ifdef DEBUG_GDB
     printf("New_pid = %d\n",new_pid);
@@ -1365,9 +1211,6 @@ void remove_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t)
     if (!hex2mem(breakpoints[i].Instr, (char *)gdb_addr, length)) goto err;
 
     strcpy(remcomOutBuffer, "OK");
-#ifdef DEBUG_GDB
-    printf("hex2mem: addr = 0x%x; instr = 0x%lx", addr, *(uint32_t *)addr);
-#endif
 
     pok_space_switch(old_pid);
     return;
@@ -1384,13 +1227,6 @@ void
 handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
 {
     Connect_to_new_inferior = -1;
-    /*Add regs*/
-    //uint32_t old_entryS = pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp;
-    //pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = (uint32_t) ea;
-
-    //set_regs(ea);
-    //int using_thread = POK_SCHED_CURRENT_THREAD;
-    //int number_of_thread = 0;
 
     gdb_thread_get_current();
     // Cached thread for current operation.
@@ -1420,12 +1256,6 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
             addr_instr2 = 0;
         }
 #endif
-//~ #ifdef __i386__
-    //~ if (addr_instr2 != 0){
-        //~ hex2mem(instr, (char *) (addr_instr), 1);
-        //~ addr_instr = 0;
-    //~ }
-//~ #endif
     }
 
   /* reply to host that an exception has occurred */
@@ -1505,8 +1335,7 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
     *ptr++ = 'a';
     *ptr++ = 'd';
     *ptr++ = ':';
-    int thread_num = POK_SCHED_CURRENT_THREAD + 1;
-    ptr = mem2hex( (char *)&thread_num, ptr, 1); 
+    ptr = write_thread_id(ptr, &gdb_thread_current);
     *ptr++ = ';';
   *ptr = 0;
 #endif      
@@ -1516,20 +1345,13 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
 
     
     while (1) {
-#ifdef __PPC__
     data_to_read_1();
 
     remcomOutBuffer[0] = 0;
-    
-    getpacket(remcomInBuffer);
-    //~ if (flag == 0){
-        //~ while (data_to_read_1()){
-            //~ getDebugChar();
-        //~ }
-        //~ flag = 1;
-    //~ }
-    switch (remcomInBuffer[0]) {
 
+    getpacket(remcomInBuffer);
+
+    switch (remcomInBuffer[0]) {
         case 'T':               /*Find out if the thread thread-id is alive*/
             ptr = &remcomInBuffer[1];
             ptr = read_thread_id(ptr, &t);
@@ -1615,43 +1437,26 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
                 if (Connect_to_new_inferior == 1){
                     Connect_to_new_inferior = -1;
                     putpacket ( (unsigned char *) remcomOutBuffer);
-                    //pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = old_entryS;?
                
                     ptr = &remcomInBuffer[1];
                     if (hexToInt(&ptr, &addr)) {
                         //ea->srr0 = addr;
                     }
                     
+#ifdef __PPC__
                     ea->srr0 = ea->srr0 - 4;
+#endif
+#ifdef __i386__
+                    ea->eip--;
+#endif 
                     return;
                 }
 
                 break;
             }
             if (strncmp(ptr, "Offsets", 7) == 0){
-                //~ strcpy(remcomOutBuffer,"OK");
-                //~ break;
-                ////FIX IT
-                //~ if (SS == 0){
-                    //~ SS ++;
-                    //~ ptr = remcomOutBuffer;
-                    //~ break;
-                //~ }
                 ptr = remcomOutBuffer;
-                //~ *ptr++ = 'T';
-                //~ *ptr++ = 'e';
-                //~ *ptr++ = 'x';
-                //~ *ptr++ = 't';
-                //~ *ptr++ = 'S';
-//~ 
-                //~ *ptr++ = 'e';
-                //~ *ptr++ = 'g';
-                //~ *ptr++ = '=';
-                    //~ uint32_t offset = 0x10000;
-                //~ ptr = mem2hex((char *) offset, ptr, 4);
                 *ptr++ = 0;
-            //~ sprintf(ptr, "Text=%8.8x;Data=%8.8x;Bss=%8.8x",
-                //~ &_start, &sdata, &__bss_start);
                 break;
             }
             if (strncmp(ptr, "Attached:", 9) == 0){
@@ -1659,10 +1464,7 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
                 int part_id;
                 hexToInt(&ptr, (uintptr_t *)(&part_id));
                 ptr = remcomOutBuffer;
-//~ #ifdef MULTIPROCESS
-                //~ if (part_id <= POK_CONFIG_NB_PARTITIONS + 2 && part_id >= 1)
-//~ #endif
-                    *ptr++ = '1';
+                *ptr++ = '1';
                 *ptr = 0;
                 break;
             }
@@ -1720,7 +1522,6 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
                 }
 
                 *ptr++ = 'm';
-
                 ptr = write_thread_id(ptr, &t);
                 *ptr++ = 0;
                 break;
@@ -1758,16 +1559,12 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
         {
             ptr = remcomOutBuffer;
 
+#ifdef __PPC__
             gdb_state_fill_registers(&tc);
-
-            //uint32_t old_pc = registers[pc];
             /* General Purpose Regs */
             ptr = mem2hex((char *)registers, ptr, 32 * 4);
             /* Floating Point registers - FIXME */
             ptr = mem2hex((char *)fp_registers, ptr, 32 * 8);
-            //~ for(i=0; i<(32*8*2); i++) { /* 2chars/byte */
-                //~ ptr[i] = '0';
-            //~ }
             //~ ptr += 32*8*2;
             /* pc, msr, cr, lr, ctr, xer, (mq is unused) */
             ptr = mem2hex((char *)&registers[pc], ptr, 4);
@@ -1776,14 +1573,20 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
             ptr = mem2hex((char *)&registers[lr]/*[link]*/, ptr, 4);
             ptr = mem2hex((char *)&registers[ctr], ptr, 4);
             ptr = mem2hex((char *)&registers[xer], ptr, 4);
-            //registers[pc] = old_pc;
-        }
+#endif
+#ifdef __i386__
+            gdb_state_fill_registers(&tc);
+            mem2hex ((char *) registers, remcomOutBuffer, NUMREGBYTES);
+#endif
+
             break;
+        }
 
         case 'G':   /* set the value of the CPU registers */
         {
             ptr = &remcomInBuffer[1];
 
+#ifdef __PPC__
             /*
              * If the stack pointer has moved, you should pray.
              * (cause only god can help you).
@@ -1802,8 +1605,12 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
             ptr = hex2mem(ptr, (char *)&registers[lr]/*[link]*/, 4);
             ptr = hex2mem(ptr, (char *)&registers[ctr], 4);
             ptr = hex2mem(ptr, (char *)&registers[xer], 4);
-
+#endif
+#ifdef __i386__
+            hex2mem (ptr, (char *) registers, NUMREGBYTES, 0);
+#endif
             gdb_state_store_registers(&tc);
+
 
             strcpy(remcomOutBuffer,"OK");
             }
@@ -1811,14 +1618,6 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
         case 'H':                   /*Set thread for subsequent operations (‘m’, ‘M’, ‘g’, ‘G’, et.al.). */
             ptr = &remcomInBuffer[1];
             if ( *ptr == 'c'){
-                /*ptr++;
-                ptr = read_thread_id(ptr, &t);
-                if(!gdb_thread_equal(&t, &tc.gdb_thread_current)) {
-                    // Only current thread can be single-stepped or continued
-                    strcpy(remcomOutBuffer, "E22");
-                } else {
-                    strcpy(remcomOutBuffer, "OK");
-                }*/
                 // Ignore thread id and assume it to be current one.
                 strcpy(remcomOutBuffer, "OK");
             }else if (*ptr == 'g'){
@@ -1924,15 +1723,18 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
             if (strncmp(ptr, "Cont;c", 6) == 0) {
                 ptr = &remcomInBuffer[1];
                 if (hexToInt(&ptr, &addr)) {
+#ifdef __PPC__
                     registers[pc]/*nip*/ = addr;
+#endif
+#ifdef __i386__
+                    registers[PC]/*eip*/ = addr;
+#endif
                 }
                 return;
             }         
             Connect_to_new_inferior = 1;
 
             break;
-            //~ putpacket((unsigned char *)remcomOutBuffer);            
-            //~ return;
         }
         
         case 'D':               /*
@@ -1955,30 +1757,14 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
             putpacket((unsigned char *)remcomOutBuffer);            
         }
 #endif
-        case 'k':    /* kill the program, actually just continue */
-        case 'c':    /* cAA..AA  Continue; address AA..AA optional */
-            /* try to read optional parameter, pc unchanged if no parm */
-
-            ptr = &remcomInBuffer[1];
-            if (hexToInt(&ptr, &addr)) {
-                gdb_sate_set_thread(&tc, &gdb_thread_current);
-                gdb_state_fill_registers(&tc);
-                registers[pc]/*nip*/ = addr;
-                gdb_state_store_registers(&tc);
-            }
-
-            return;
-
         case 's':
         {
-            ////TODO:Use special registers for single step instruction
+#ifdef __PPC__
             gdb_sate_set_thread(&tc, &gdb_thread_current);
             gdb_state_fill_registers(&tc);
 
             uint32_t inst = *((uint32_t *)registers[pc]);
-            //~ printf("inst=0x%lx;\n",inst);
             uint32_t c_inst = registers[pc];
-            //~ printf("c_inst=0x%lx;\n",c_inst);
             ea->srr1 &= (~((uint32_t)MSR_EE));
 
 /*  
@@ -1990,7 +1776,6 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
                     if (inst >> 25){
                         inst = inst | 0xFE000000;
                     }
-                    //~ printf("%lx\n",(inst + c_inst));
                     inst = inst + c_inst;
                     mem2hex((char *)(registers[pc]+4), instr,4);            
                     hex2mem(trap, (char *)(registers[pc]+4), 4);
@@ -2000,7 +1785,6 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
                     addr_instr2 = inst;
                     return;
                 }else{
-                    //~ printf("%lx\n",((inst << 6) >> 8) << 2);
                     inst = ((inst << 6) >> 8) << 2;
                     mem2hex((char *)(registers[pc]+4), instr,4);            
                     hex2mem(trap, (char *)(registers[pc]+4), 4);
@@ -2022,19 +1806,16 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
                     if (inst >> 15){
                         inst=inst | 0xFFFF8000;
                     }
-                    //~ printf("%lx\n",(inst + c_inst));
                     inst = inst + c_inst;
                     mem2hex((char *)(registers[pc]+4), instr,4);            
                     hex2mem(trap, (char *)(registers[pc]+4), 4);
                     addr_instr = registers[pc] + 4;
-                    //~ printf("%lx\n",(inst + c_inst));
                     mem2hex((char *)(inst), instr2,4);            
                     hex2mem(trap, (char *)(inst), 4);
                     addr_instr2 = inst;
                     return;
             
                 }else{
-                    //~ printf("%lx\n",((inst << 16) >> 18) << 2);
                     inst = ((inst << 16) >> 18) << 2;
                     mem2hex((char *)(registers[pc]+4), instr,4);            
                     hex2mem(trap, (char *)(registers[pc]+4), 4);
@@ -2051,7 +1832,6 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
  *  If it's a 'brl' instruction
  */            
             if ((inst >> (6*4+2)) == 0x13){
-                //~ printf("lr=%lx\n",registers[lr]);
                 mem2hex((char *)(registers[lr]), instr,4);            
                 hex2mem(trap, (char *)(registers[lr]), 4);
                 addr_instr = registers[lr];                
@@ -2064,189 +1844,65 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
             hex2mem(trap, (char *)(registers[pc]+4), 4);
             addr_instr = registers[pc] + 4;
             return;
+#endif
+#ifdef __i386__
+            stepping = TRUE;
+#endif
         }
+
+        case 'k':    /* kill the program, actually just continue */
+        case 'c':    /* cAA..AA  Continue; address AA..AA optional */
+            /* try to read optional parameter, pc unchanged if no parm */
+
+            ptr = &remcomInBuffer[1];
+            if (hexToInt(&ptr, &addr)) {
+                gdb_sate_set_thread(&tc, &gdb_thread_current);
+                gdb_state_fill_registers(&tc);
+#ifdef __PPC__
+                registers[pc]/*nip*/ = addr;
+#endif
+#ifdef __i386__
+                registers[PC]/*eip*/ = addr;
+#endif
+                gdb_state_store_registers(&tc);
+            }
+#ifdef __i386__
+      /* clear the trace bit */
+            registers[PS] &= 0xfffffeff;
+            ea->eflags = registers[PS];
+      /* set the trace bit if we're stepping */
+            if (stepping){
+#ifdef DEBUG_GDB
+                printf("\n\n\nStepping\n\n\n");
+#endif
+                stepping=FALSE; 
+                registers[PS] |= 0x100;
+                ea->eflags = registers[PS];      
+            }
+#endif
+
+            return;
+
         case 'r':       /* Reset (if user process..exit ???)*/
 ////            panic("kgdb reset.");
             break;
-        }           /* switch */
-        /* reply to the request */
-        putpacket((unsigned char *)remcomOutBuffer);
-#endif
-#ifdef __i386__
-    remcomOutBuffer[0] = 0;
-    ptr = (char *)getpacket ();
 
-    switch (*ptr++)
-    {
-            /*
-             * Insert (‘Z’) or remove (‘z’) a type breakpoint or watchpoint starting at address address of kind kind.
-             */
-        case 'Z':
-        case 'z':
-            {
-                if (new_start == 1) {
-#ifdef DEBUG_GDB
-                    printf("New_start = %d",new_start);
-#endif
-                    new_start = 0;
-#ifdef DEBUG_GDB
-                    printf("New_start = %d",new_start);
-#endif
-                    clear_breakpoints();
-                }         
-                ptr = &remcomInBuffer[1];
-                int type = -1;
-                hexToInt(&ptr, &type);
-                if (type == -1) break;
-                if (*ptr != ',') break;
-                ptr++;
-                hexToInt(&ptr, &addr);
-                if (*ptr != ',') break;
-                ptr++;
-                int kind = -1;
-                hexToInt(&ptr, &kind);
-                if (kind == -1) break;
-                if (type == 0){
-                    if (remcomInBuffer[0] == 'Z') 
-                            add_0_breakpoint(&addr,&kind,&using_thread);
-                        else
-                            remove_0_breakpoint(&addr,&kind,&using_thread);
-                }
-                break;
-            }
-        case 'T':               /*Find out if the thread thread-id is alive*/
-            ptr = &remcomInBuffer[1];
-            int thread_num = -1;
-            hexToInt(&ptr, &thread_num);
-            if ( thread_num > 0 && thread_num < POK_CONFIG_NB_THREADS + 1){
-                remcomOutBuffer[0] = 'O';
-                remcomOutBuffer[1] = 'K';
-                remcomOutBuffer[2] = 0;
-            }
-            break;
-        case 'q': /* this screws up gdb for some reason...*/
-        {
-            //~ extern long _start, sdata, __bss_start;
-            ptr = &remcomInBuffer[1];
-            if (strncmp(ptr, "C", 1) == 0){
-                ptr = remcomOutBuffer;
-                *ptr++ = 'Q';
-                *ptr++ = 'C';
-                uint32_t p = POK_SCHED_CURRENT_THREAD + 1;
-                ptr = mem2hex( (char *)(&p),ptr,1); 
-                *ptr++ = 0;
-                break;
-            }
-            if (strncmp(ptr, "Offsets", 7) == 0){
-                //~ strcpy(remcomOutBuffer,"OK");
-                //~ break;
-                ptr = remcomOutBuffer;
-            //~ sprintf(ptr, "Text=%8.8x;Data=%8.8x;Bss=%8.8x",
-                //~ &_start, &sdata, &__bss_start);
-                break;
-            }
-            if (strncmp(ptr, "Supported", 9) == 0){
-                /*FIX IT*/
-                //~ char * answer = "multiprocess+";
-                //~ ptr = remcomOutBuffer;
-                //~ for (int i=0; i < 13; i++)
-                    //~ *ptr++ = answer[i];
-                //~ *ptr++ = 0;
-                
-                
-                break;
-                
-            }
-            if (strncmp(ptr, "fThreadInfo", 11) == 0)   {
-                number_of_thread = 1;
-#ifdef DEBUG_GDB
-                printf("in first if\n");
-#endif
-                ptr = remcomOutBuffer;  
-                *ptr++ = 'm';
-                int previous_thread = 1;
-                ptr = mem2hex( (char *)(&previous_thread), ptr, 1); 
-                *ptr++ = 0;
-                number_of_thread++;
-                break;
-            }
-            if (strncmp(ptr, "sThreadInfo", 11) == 0){
-                if (number_of_thread == POK_CONFIG_NB_THREADS +1){
-                    ptr = remcomOutBuffer;
-                    *ptr++ = 'l';
-                    *ptr++ = 0;
-                    break;
-                }
-                ptr = remcomOutBuffer;
-                *ptr++ = 'm';
-                int previous_thread = number_of_thread;
-                ptr = mem2hex( (char *)(&previous_thread), ptr, 1); 
-                number_of_thread++;
-                *ptr++ = 0;
-                break;
-             }
-             if (strncmp(ptr, "ThreadExtraInfo", 15) == 0){
-                ptr += 16;
-                int thread_num;
-                /*FIX IT*/
-                hexToInt(&ptr, &thread_num);
-                thread_num --;
- #ifdef DEBUG_GDB
-                printf("thread_num=%d\n",thread_num);
-                printf("pok_threads[%d].state=%d\n",thread_num,pok_threads[thread_num].state);
-#endif
-                //~ struct thread_stack * id = (struct thread_stack *) pok_threads[thread_num].sp;
-
-
-                ptr = remcomOutBuffer;
-                int info_offset = 0;
-                int lengh = pok_thread_info(pok_threads[thread_num].state, &info_offset);
-                if (thread_num == POK_SCHED_CURRENT_THREAD){
-                    ptr = mem2hex( (char *) &("* "), ptr, 2);
-                }
-                if (thread_num == MONITOR_THREAD){
-                    ptr = mem2hex( (char *) &("MONITOR "), ptr, 8);
-                }
-                if (thread_num == GDB_THREAD){
-                    ptr = mem2hex( (char *) &("GDB "), ptr, 4);
-                }
-                if (thread_num == IDLE_THREAD){
-                    ptr = mem2hex( (char *) &("IDLE "), ptr, 5);
-                }
-#ifdef DEBUG_GDB
-                printf("lengh = %d\n",lengh);
-                printf("info_offset = %d\n",info_offset);
-                printf("%c%c%c\n",info_thread[info_offset],info_thread[info_offset+1],info_thread[info_offset+2]);
-#endif
-                //~ strcpy(ptr,info);
-                ptr = mem2hex( (char *) (&info_thread[info_offset]), ptr, lengh);
-                *ptr++ = 0;
-                break;
-            }
-
-        break;
-        }
-        case '?':
-            remcomOutBuffer[0] = 'S';
-            remcomOutBuffer[1] = hexchars[sigval >> 4];
-            remcomOutBuffer[2] = hexchars[sigval % 16];
-            remcomOutBuffer[3] = 0;
-            break;
-        case 'g':       /* return the value of the CPU registers */
-            mem2hex ((char *) registers, remcomOutBuffer, NUMREGBYTES);
-            break;
-        case 'G':       /* set the value of the CPU registers - return OK */
-            hex2mem (ptr, (char *) registers, NUMREGBYTES, 0);
-            strcpy (remcomOutBuffer, "OK");
-            break;
+/*
+ * 'P' and 'p' commands don't work yet.
+ */
         case 'P':       /* set the value of a single CPU register - return OK */
         {
-            int regno;
-
-            if (hexToInt (&ptr, &regno) && *ptr++ == '=')
-                if (regno >= 0 && regno < NUMREGS)
+            int regno_offset;
+            ptr = &remcomInBuffer[1];
+            if (hexToInt (&ptr, (uintptr_t *)&regno_offset) && *ptr++ == '=')
+                if (regno_offset >= 0 && regno_offset < NUMREGS * 8) /* 8 - max length of each register*/
                 {
-                    hex2mem (ptr, (char *) &registers[regno], 4, 0);
+#ifdef __PPC__
+                    hex2mem (ptr, (char *) &registers[regno_offset >> 3], 4, 0);
+#endif
+#ifdef __i386__
+                    hex2mem (ptr, (char *) &registers[regno_offset >> 3], 1, 0);
+#endif
                     strcpy (remcomOutBuffer, "OK");
                     break;
                 }
@@ -2256,25 +1912,18 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
         }
         case 'p':       /* Read the value of register; Register is in hex. */
         {
-            int regno;
-
-            if (hexToInt (&ptr, &regno))
+            int regno_offset;
+            ptr = &remcomInBuffer[1];
+            if (hexToInt (&ptr, (uintptr_t *)&regno_offset))
             {
-                //~ printf("Regno = %d\n",regno);
-                ///FIXME
-                //~ if (regno == 64){
-                    //~ mem2hex ((char *) &registers[PC], remcomOutBuffer, 4, 0);
-                    //~ break;
-                //~ }
-                //~ if (regno == 67){
-                    //~ mem2hex ((char *) &registers[Д], remcomOutBuffer, 4, 0);
-                    //~ break;
-                //~ }                
-                if (regno >= 0 && regno < NUMREGS)
+                if (regno_offset >= 0 && regno_offset < NUMREGS * 8) /* 8 - max length of each register*/
                 {
-                    
-                    mem2hex ((char *) &registers[regno], remcomOutBuffer, 4, 0);
-                    strcpy (remcomOutBuffer, "OK");
+#ifdef __PPC__
+                    mem2hex ((char *) &registers[regno_offset >> 3], remcomOutBuffer, 4, 0);
+#endif
+#ifdef __i386__
+                    mem2hex ((char *) &registers[regno_offset >> 3], remcomOutBuffer, 1, 0);
+#endif
                     break;
                 }
             }
@@ -2282,208 +1931,11 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
             break;
         }
 
-        //~ case 'm':
-      //~ /* TRY TO READ %x,%x.  IF SUCCEED, SET PTR = 0 */
-            //~ if (hexToInt (&ptr, &addr))
-                //~ if (*(ptr++) == ',')
-                    //~ if (hexToInt (&ptr, &length))
-                    //~ {
-                        //~ ptr = 0;
-                        //~ mem_err = 0;
-                        //~ mem2hex ((char *) addr, remcomOutBuffer, length, 1);
-                        //~ if (mem_err)
-                        //~ {
-                            //~ strcpy (remcomOutBuffer, "E03");
-                        //~ }
-                    //~ }
-//~ 
-            //~ if (ptr)
-            //~ {
-                //~ strcpy (remcomOutBuffer, "E01");
-            //~ }
-            //~ break;
-      /* mAA..AA,LLLL  Read LLLL bytes at address AA..AA */
-        case 'm':   /* mAA..AA,LLLL  Read LLLL bytes at address AA..AA */
-                /* Try to read %x,%x.  */
-            {
-                ptr = &remcomInBuffer[1];
-                int old_pid = current_part_id();
-                int new_pid = give_part_num_of_thread(using_thread + 1);
-#ifdef DEBUG_GDB
-                printf("New_pid = %d\n",new_pid);
-                printf("Old_pid = %d\n",old_pid);
-#endif
-                if (hexToInt(&ptr, &addr)
-                    && *ptr++ == ','
-                    && hexToInt(&ptr, &length)) {
-                    if (!POK_CHECK_ADDR_IN_PARTITION(new_pid,addr)){
-                        
-                        strcpy (remcomOutBuffer, "E03");
-                        break;
-                    }else{ 
-#ifdef DEBUG_GDB
-                        printf("Load new_pid\n");
-#endif
-                        switch_part_id(old_pid, new_pid);
-                    }
-                    if (mem2hex((char *)addr, remcomOutBuffer,length)){
-                        switch_part_id(new_pid, old_pid);
-                        break;
-                    }
-                    strcpy (remcomOutBuffer, "E03");
-                    if (POK_CHECK_ADDR_IN_PARTITION(new_pid,addr))
-                        switch_part_id(new_pid, old_pid);
-                } else {
-                    strcpy(remcomOutBuffer,"E01");
-                }
-                break;
-            }
-
-      //~ /* MAA..AA,LLLL: Write LLLL bytes at address AA.AA return OK */
-        //~ case 'M':
-      //~ /* TRY TO READ '%x,%x:'.  IF SUCCEED, SET PTR = 0 */
-            //~ if (hexToInt (&ptr, &addr))
-                //~ if (*(ptr++) == ',')
-                    //~ if (hexToInt (&ptr, &length))
-                        //~ if (*(ptr++) == ':')
-                        //~ {
-                            //~ mem_err = 0;
-                            //~ hex2mem (ptr, (char *) addr, length, 1);
-                            //~ if (mem_err)
-                            //~ {
-                                //~ strcpy (remcomOutBuffer, "E03");
-                            //~ }else{
-                                //~ strcpy (remcomOutBuffer, "OK");
-                            //~ }
-//~ 
-                            //~ ptr = 0;
-                        //~ }
-            //~ if (ptr)
-            //~ {
-                //~ strcpy (remcomOutBuffer, "E02");
-            //~ }
-            //~ break;
-        case 'M': /* MAA..AA,LLLL: Write LLLL bytes at address AA.AA return OK */
-            /* Try to read '%x,%x:'.  */
-            {
-
-                ptr = &remcomInBuffer[1];
-                int old_pid = current_part_id();
-                int new_pid = give_part_num_of_thread(using_thread + 1);
-                if (hexToInt(&ptr, &addr)
-                    && *ptr++ == ','
-                    && hexToInt(&ptr, &length)
-                    && *ptr++ == ':') {
-                    if (POK_CHECK_ADDR_IN_PARTITION(new_pid,addr))
-                        switch_part_id(old_pid, new_pid);
-                    else{
-                        strcpy (remcomOutBuffer, "E03");
-                        break;
-                    }
-                    if (strncmp(ptr, "7d821008", 8) == 0)
-                        ptr = trap;
-                    if (hex2mem(ptr, (char *)addr, length)) {
-                        strcpy(remcomOutBuffer, "OK");
-                    } else {
-                        strcpy(remcomOutBuffer, "E03");
-                    }
-                    if (POK_CHECK_ADDR_IN_PARTITION(new_pid,addr))
-                        switch_part_id(new_pid, old_pid);
-                } else {
-                    strcpy(remcomOutBuffer, "E02");
-                }
-                break;
-            }
 
 
-        case 'H':                   /*Set thread for subsequent operations (‘m’, ‘M’, ‘g’, ‘G’, et.al.). */
-        {
-            if (number_of_thread == 1){
-            //TODO: FIX IT
-                strcpy(remcomOutBuffer,"OK");
-#ifdef DEBUG_GDB
-                printf("\nH break\n");
-#endif
-                break;
-            }    
-            ptr = &remcomInBuffer[1];
-            if ( *ptr == 'c'){
-                using_thread = POK_SCHED_CURRENT_THREAD;
-#ifdef DEBUG_GDB
-                printf("pok_threads[%d].sp=0x%lx\n",using_thread,pok_threads[using_thread].sp);
-                printf("pok_threads[%d].entry_sp=0x%lx\n",using_thread,pok_threads[using_thread].entry_sp);
-#endif
-                set_regs((struct regs *)pok_threads[using_thread].entry_sp);
-#ifdef DEBUG_GDB
-                printf("registers [eip] = 0x%lx\n",registers[PC]);
-#endif            
-            }else if (*ptr++ == 'g'){
-            /*FIX IT*/
-                //~ while (*ptr != '.')
-                    //~ ptr++;
-                //~ ptr++;
-                hexToInt(&ptr, &addr);
-                if (addr != -1 && addr != 0) 
-                {
-                    using_thread = addr;
-                    using_thread --;
-                    //~ strcpy(remcomOutBuffer,"OK");
-                    //~ printf("\nH-1 break\n");
-                    //~ break;
-            
-                }else using_thread = POK_SCHED_CURRENT_THREAD;
-#ifdef DEBUG_GDB
-                printf("pok_threads[%d].sp=0x%lx\n",using_thread,pok_threads[using_thread].sp);
-                printf("pok_threads[%d].entry_sp=0x%lx\n",using_thread,pok_threads[using_thread].entry_sp);
-                printf("POK_CONFIG_NB_THREADS = %d\n\n",POK_CONFIG_NB_THREADS);
-                printf("MONITOR_THREAD = %d\n\n",MONITOR_THREAD);
-                printf("POK_SCHED_CURRENT_THREAD = %d\n\n",POK_SCHED_CURRENT_THREAD);
-#endif
-                set_regs((struct regs *)pok_threads[using_thread].entry_sp);
-#ifdef DEBUG_GDB
-                printf("\nentry= 0x%lx\n",(uint32_t) pok_threads[using_thread].entry);
-#endif
-            }
-#ifdef DEBUG_GDB
-            printf("\nH\n");
-#endif        
-            strcpy(remcomOutBuffer,"OK");
-            break;
-        }
-      /* cAA..AA    Continue at address AA..AA(optional) */
-      /* sAA..AA   Step one instruction from AA..AA(optional) */
-        case 's':
-            stepping = TRUE;
-        case 'k':       /* do nothing */
-        case 'c':
-            pok_threads[POK_SCHED_CURRENT_THREAD].entry_sp = old_entryS;
-       
-            set_regs(ea);
-
-      /* try to read optional parameter, pc unchanged if no parm */
-            if (hexToInt (&ptr, &addr))
-                registers[PC] = addr;
-
-
-      /* clear the trace bit */
-            registers[PS] &= 0xfffffeff;
-            ea->eflags = registers[PS];
-      /* set the trace bit if we're stepping */
-            if (stepping){
-#ifdef DEBUG_GDB
-                printf("\n\n\nStepping\n\n\n");
-#endif
-                stepping=FALSE;
-                registers[PS] |= 0x100;
-                ea->eflags = registers[PS];      
-            }
-            return;
-
-    }           /* switch */
-
-      /* reply to the request */
-      putpacket ((unsigned char *)remcomOutBuffer);
-#endif
+        }/* switch */
+    /* reply to the request */
+    putpacket((unsigned char *)remcomOutBuffer);
     } /* while(1) */
     ////printf("\n\n\n          End of handle_exeption\n\n");
 }

@@ -24,11 +24,9 @@
 #include <uapi/partition_types.h>
 #include <uapi/partition_arinc_types.h>
 #include <uapi/port_types.h>
-#include <uapi/buffer_types.h>
-#include <uapi/blackboard_types.h>
-#include <uapi/semaphore_types.h>
-#include <uapi/event_types.h>
 #include <uapi/error_arinc_types.h>
+#include <uapi/memblock_types.h>
+#include <uapi/msection.h>
 
 static inline pok_ret_t pok_thread_create(const char* name,
     void* entry,
@@ -80,15 +78,6 @@ static inline pok_ret_t pok_thread_suspend(const pok_time_t* time)
 #undef POK_SYSCALL_THREAD_SUSPEND
 #endif
 
-#ifdef POK_NEEDS_THREAD_ID
-static inline pok_ret_t pok_sched_get_current(pok_thread_id_t* thread_id)
-{
-    return pok_syscall1(POK_SYSCALL_THREAD_ID,
-        (uint32_t)thread_id);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_THREAD_ID
-#endif
 static inline pok_ret_t pok_thread_get_status(pok_thread_id_t thread_id,
     char* name,
     void** entry,
@@ -179,6 +168,67 @@ static inline pok_ret_t pok_thread_find(const char* name,
 // Syscall should be accessed only by function
 #undef POK_SYSCALL_THREAD_FIND
 
+
+static inline pok_ret_t jet_resched(void)
+{
+    return pok_syscall0(POK_SYSCALL_RESCHED);
+}
+// Syscall should be accessed only by function
+#undef POK_SYSCALL_RESCHED
+
+static inline pok_ret_t jet_msection_enter_helper(struct msection* section)
+{
+    return pok_syscall1(POK_SYSCALL_MSECTION_ENTER_HELPER,
+        (uint32_t)section);
+}
+// Syscall should be accessed only by function
+#undef POK_SYSCALL_MSECTION_ENTER_HELPER
+
+static inline pok_ret_t jet_msection_wait(struct msection* section,
+    const pok_time_t* timeout)
+{
+    return pok_syscall2(POK_SYSCALL_MSECTION_WAIT,
+        (uint32_t)section,
+        (uint32_t)timeout);
+}
+// Syscall should be accessed only by function
+#undef POK_SYSCALL_MSECTION_WAIT
+
+static inline pok_ret_t jet_msection_notify(struct msection* section,
+    pok_thread_id_t thread_id)
+{
+    return pok_syscall2(POK_SYSCALL_MSECTION_NOTIFY,
+        (uint32_t)section,
+        (uint32_t)thread_id);
+}
+// Syscall should be accessed only by function
+#undef POK_SYSCALL_MSECTION_NOTIFY
+
+static inline pok_ret_t jet_msection_wq_notify(struct msection* section,
+    struct msection_wq* wq,
+    pok_bool_t is_all)
+{
+    return pok_syscall3(POK_SYSCALL_MSECTION_WQ_NOTIFY,
+        (uint32_t)section,
+        (uint32_t)wq,
+        (uint32_t)is_all);
+}
+// Syscall should be accessed only by function
+#undef POK_SYSCALL_MSECTION_WQ_NOTIFY
+
+static inline pok_ret_t jet_msection_wq_size(struct msection* section,
+    struct msection_wq* wq,
+    size_t* size)
+{
+    return pok_syscall3(POK_SYSCALL_MSECTION_WQ_SIZE,
+        (uint32_t)section,
+        (uint32_t)wq,
+        (uint32_t)size);
+}
+// Syscall should be accessed only by function
+#undef POK_SYSCALL_MSECTION_WQ_SIZE
+
+
 #ifdef POK_NEEDS_PARTITIONS
 static inline pok_ret_t pok_partition_set_mode_current(pok_partition_mode_t mode)
 {
@@ -213,254 +263,6 @@ static inline pok_ret_t pok_current_partition_dec_lock_level(int32_t* lock_level
 #undef POK_SYSCALL_PARTITION_DEC_LOCK_LEVEL
 #endif
 
-#ifdef POK_NEEDS_BUFFERS
-static inline pok_ret_t pok_buffer_create(char* name,
-    pok_message_size_t max_message_size,
-    pok_message_range_t max_nb_message,
-    pok_queuing_discipline_t discipline,
-    pok_buffer_id_t* id)
-{
-    return pok_syscall5(POK_SYSCALL_INTRA_BUFFER_CREATE,
-        (uint32_t)name,
-        (uint32_t)max_message_size,
-        (uint32_t)max_nb_message,
-        (uint32_t)discipline,
-        (uint32_t)id);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_BUFFER_CREATE
-
-static inline pok_ret_t pok_buffer_send(pok_buffer_id_t id,
-    const void* data,
-    pok_message_size_t length,
-    const pok_time_t* timeout)
-{
-    return pok_syscall4(POK_SYSCALL_INTRA_BUFFER_SEND,
-        (uint32_t)id,
-        (uint32_t)data,
-        (uint32_t)length,
-        (uint32_t)timeout);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_BUFFER_SEND
-   
-static inline pok_ret_t pok_buffer_receive(pok_buffer_id_t id,
-    const pok_time_t* timeout,
-    void* data,
-    pok_message_size_t* length)
-{
-    return pok_syscall4(POK_SYSCALL_INTRA_BUFFER_RECEIVE,
-        (uint32_t)id,
-        (uint32_t)timeout,
-        (uint32_t)data,
-        (uint32_t)length);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_BUFFER_RECEIVE
-
-static inline pok_ret_t pok_buffer_get_id(char* name,
-    pok_buffer_id_t* id)
-{
-    return pok_syscall2(POK_SYSCALL_INTRA_BUFFER_ID,
-        (uint32_t)name,
-        (uint32_t)id);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_BUFFER_ID
-                        
-static inline pok_ret_t pok_buffer_status(pok_buffer_id_t id,
-    pok_buffer_status_t* status)
-{
-    return pok_syscall2(POK_SYSCALL_INTRA_BUFFER_STATUS,
-        (uint32_t)id,
-        (uint32_t)status);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_BUFFER_STATUS
-#endif
-
-#ifdef POK_NEEDS_BLACKBOARDS
-static inline pok_ret_t pok_blackboard_create(const char* name,
-    pok_message_size_t max_message_size,
-    pok_blackboard_id_t* id)
-{
-    return pok_syscall3(POK_SYSCALL_INTRA_BLACKBOARD_CREATE,
-        (uint32_t)name,
-        (uint32_t)max_message_size,
-        (uint32_t)id);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_BLACKBOARD_CREATE
-
-static inline pok_ret_t pok_blackboard_read(pok_blackboard_id_t id,
-    const pok_time_t* timeout,
-    void* data,
-    pok_message_size_t* len)
-{
-    return pok_syscall4(POK_SYSCALL_INTRA_BLACKBOARD_READ,
-        (uint32_t)id,
-        (uint32_t)timeout,
-        (uint32_t)data,
-        (uint32_t)len);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_BLACKBOARD_READ
-   
-static inline pok_ret_t pok_blackboard_display(pok_blackboard_id_t id,
-    const void* message,
-    pok_message_size_t len)
-{
-    return pok_syscall3(POK_SYSCALL_INTRA_BLACKBOARD_DISPLAY,
-        (uint32_t)id,
-        (uint32_t)message,
-        (uint32_t)len);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_BLACKBOARD_DISPLAY
-   
-static inline pok_ret_t pok_blackboard_clear(pok_blackboard_id_t id)
-{
-    return pok_syscall1(POK_SYSCALL_INTRA_BLACKBOARD_CLEAR,
-        (uint32_t)id);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_BLACKBOARD_CLEAR
-
-static inline pok_ret_t pok_blackboard_id(const char* name,
-    pok_blackboard_id_t* id)
-{
-    return pok_syscall2(POK_SYSCALL_INTRA_BLACKBOARD_ID,
-        (uint32_t)name,
-        (uint32_t)id);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_BLACKBOARD_ID
-
-static inline pok_ret_t pok_blackboard_status(pok_blackboard_id_t id,
-    pok_blackboard_status_t* status)
-{
-    return pok_syscall2(POK_SYSCALL_INTRA_BLACKBOARD_STATUS,
-        (uint32_t)id,
-        (uint32_t)status);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_BLACKBOARD_STATUS
-#endif
-
-#ifdef POK_NEEDS_SEMAPHORES
-static inline pok_ret_t pok_semaphore_create(const char* name,
-    pok_sem_value_t value,
-    pok_sem_value_t max_value,
-    pok_queuing_discipline_t discipline,
-    pok_sem_id_t* id)
-{
-    return pok_syscall5(POK_SYSCALL_INTRA_SEMAPHORE_CREATE,
-        (uint32_t)name,
-        (uint32_t)value,
-        (uint32_t)max_value,
-        (uint32_t)discipline,
-        (uint32_t)id);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_SEMAPHORE_CREATE
-
-static inline pok_ret_t pok_semaphore_wait(pok_sem_id_t id,
-    const pok_time_t* timeout)
-{
-    return pok_syscall2(POK_SYSCALL_INTRA_SEMAPHORE_WAIT,
-        (uint32_t)id,
-        (uint32_t)timeout);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_SEMAPHORE_WAIT
-
-static inline pok_ret_t pok_semaphore_signal(pok_sem_id_t id)
-{
-    return pok_syscall1(POK_SYSCALL_INTRA_SEMAPHORE_SIGNAL,
-        (uint32_t)id);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_SEMAPHORE_SIGNAL
-
-static inline pok_ret_t pok_semaphore_id(const char* name,
-    pok_sem_id_t* id)
-{
-    return pok_syscall2(POK_SYSCALL_INTRA_SEMAPHORE_ID,
-        (uint32_t)name,
-        (uint32_t)id);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_SEMAPHORE_ID
-
-static inline pok_ret_t pok_semaphore_status(pok_sem_id_t id,
-    pok_semaphore_status_t* status)
-{
-    return pok_syscall2(POK_SYSCALL_INTRA_SEMAPHORE_STATUS,
-        (uint32_t)id,
-        (uint32_t)status);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_SEMAPHORE_STATUS
-#endif
-
-#ifdef POK_NEEDS_EVENTS
-static inline pok_ret_t pok_event_create(const char* name,
-    pok_event_id_t* id)
-{
-    return pok_syscall2(POK_SYSCALL_INTRA_EVENT_CREATE,
-        (uint32_t)name,
-        (uint32_t)id);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_EVENT_CREATE
-
-static inline pok_ret_t pok_event_set(pok_event_id_t id)
-{
-    return pok_syscall1(POK_SYSCALL_INTRA_EVENT_SET,
-        (uint32_t)id);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_EVENT_SET
-   
-static inline pok_ret_t pok_event_reset(pok_event_id_t id)
-{
-    return pok_syscall1(POK_SYSCALL_INTRA_EVENT_RESET,
-        (uint32_t)id);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_EVENT_RESET
-
-static inline pok_ret_t pok_event_wait(pok_event_id_t id,
-    const pok_time_t* timeout)
-{
-    return pok_syscall2(POK_SYSCALL_INTRA_EVENT_WAIT,
-        (uint32_t)id,
-        (uint32_t)timeout);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_EVENT_WAIT
-
-static inline pok_ret_t pok_event_id(const char* name,
-    pok_event_id_t* id)
-{
-    return pok_syscall2(POK_SYSCALL_INTRA_EVENT_ID,
-        (uint32_t)name,
-        (uint32_t)id);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_EVENT_ID
-
-static inline pok_ret_t pok_event_status(pok_event_id_t id,
-    pok_event_status_t* status)
-{
-    return pok_syscall2(POK_SYSCALL_INTRA_EVENT_STATUS,
-        (uint32_t)id,
-        (uint32_t)status);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_INTRA_EVENT_STATUS
-#endif
-
 
 #ifdef POK_NEEDS_ERROR_HANDLING
 static inline pok_ret_t pok_error_thread_create(uint32_t stack_size,
@@ -492,10 +294,20 @@ static inline pok_ret_t pok_error_get(pok_error_status_t* status,
 }
 // Syscall should be accessed only by function
 #undef POK_SYSCALL_ERROR_GET
-
 #endif
 
-         /* Middleware syscalls */
+static inline pok_ret_t pok_error_raise_os_error(const char* msg,
+    size_t msg_size)
+{
+    return pok_syscall2(POK_SYSCALL_ERROR_RAISE_OS_ERROR,
+        (uint32_t)msg,
+        (uint32_t)msg_size);
+}
+// Syscall should be accessed only by function
+#undef POK_SYSCALL_ERROR_RAISE_OS_ERROR
+
+
+   /* Middleware syscalls */
 #ifdef POK_NEEDS_PORTS_SAMPLING
 static inline pok_ret_t pok_port_sampling_create(const char* name,
     pok_port_size_t size,
@@ -629,3 +441,13 @@ static inline pok_ret_t pok_port_queuing_status(pok_port_id_t id,
 // Syscall should be accessed only by function
 #undef POK_SYSCALL_MIDDLEWARE_QUEUEING_STATUS
 #endif /* POK_NEEDS_PORTS_QUEUEING */
+
+static inline pok_ret_t pok_memory_block_get_status(const char* name,
+    jet_memory_block_status_t* status)
+{
+    return pok_syscall2(POK_SYSCALL_MEMORY_BLOCK_GET_STATUS,
+        (uint32_t)name,
+        (uint32_t)status);
+}
+// Syscall should be accessed only by function
+#undef POK_SYSCALL_MEMORY_BLOCK_GET_STATUS

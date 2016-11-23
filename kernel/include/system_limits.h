@@ -31,8 +31,6 @@
 
 // SYSTEM_LIMIT_NUMBER_OF_.. should be constrainted by integrator.
 
-#define MAX_SEMAPHORE_VALUE 32767
-
 #define MAX_LOCK_LEVEL 16
 
 #define MIN_PRIORITY_VALUE 1

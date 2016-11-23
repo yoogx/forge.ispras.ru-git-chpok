@@ -14,6 +14,7 @@
  */
 
 #include <arch/deployment.h>
+#include <arch/mmu_ext.h>
 
 struct ja_ppc_space ja_spaces[{{conf.spaces | length}}] =
 {
@@ -26,3 +27,27 @@ struct ja_ppc_space ja_spaces[{{conf.spaces | length}}] =
 };
 
 int ja_spaces_n = {{conf.spaces | length}};
+
+/************************ Memory mapping ************************/
+
+struct tlb_entry jet_tlb_entries[] = {
+    {%for mblock in conf.memory_blocks%}
+    // {{mblock.name}}
+    {%for pid, access_right in mblock.access.iteritems() %}
+    {
+        .virt_addr = {{"0x%x" | format(mblock.virt_addr)}},
+        .phys_addr = {{"0x%x" | format(mblock.phys_addr)}},
+        .size = E500MC_PGSIZE_{{mblock.str_size}},
+        .permissions = MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,
+        {%if mblock.cache_policy == "IO"%}
+        .cache_policy = MAS2_W | MAS2_I | MAS2_M | MAS2_G,
+        {% endif %}
+        .pid = {{pid}},
+    },
+    {%endfor%}
+
+    {%endfor%}
+
+};
+
+size_t jet_tlb_entries_n = {{ conf.memory_blocks_tlb_entries_count }};

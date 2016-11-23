@@ -29,7 +29,9 @@
 
 typedef struct VIRTIO_NET_DEV_state {
     struct virtio_network_device info;
-    int dev_index;
+    uint8_t pci_fn;
+    uint8_t pci_dev;
+    uint8_t pci_bus;
 }VIRTIO_NET_DEV_state;
 
 typedef struct {

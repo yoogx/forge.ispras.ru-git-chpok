@@ -59,4 +59,21 @@ struct ja_ppc_space
 extern struct ja_ppc_space ja_spaces[];
 extern int ja_spaces_n;
 
+
+/*
+ * TLB for memory maping
+ */
+
+struct tlb_entry {
+    uint32_t virt_addr;
+    uint64_t phys_addr;
+    unsigned size;
+    unsigned permissions;
+    unsigned cache_policy;
+    unsigned pid;
+};
+
+extern struct tlb_entry jet_tlb_entries[];
+extern size_t jet_tlb_entries_n;
+
 #endif /* __JET_PPC_DEPLOYMENT_H__ */

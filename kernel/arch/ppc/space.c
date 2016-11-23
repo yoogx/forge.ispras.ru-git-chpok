@@ -36,6 +36,9 @@
 #include "core/partition_arinc.h"
 #include "core/error.h"
 
+//FIXME
+#include <arch/deployment.h>
+
 void ja_space_layout_get(jet_space_id space_id,
     struct jet_space_layout* space_layout)
 {
@@ -45,6 +48,14 @@ void ja_space_layout_get(jet_space_id space_id,
     space_layout->user_addr = (char*) POK_PARTITION_MEMORY_BASE;
     space_layout->size = ja_spaces[space_id - 1].size_normal;
 }
+
+
+struct jet_kernel_shared_data* __kuser ja_space_shared_data(jet_space_id space_id)
+{
+    return (struct jet_kernel_shared_data* __kuser)POK_PARTITION_MEMORY_BASE;
+}
+
+size_t ja_user_space_maximum_alignment = 16;
 
 void ja_space_switch (jet_space_id space_id)
 {
@@ -197,34 +208,6 @@ static inline const char* pok_ppc_tlb_size(unsigned size)
 // XXX not implemented
 void pok_insert_tlb0();
 
-static int pok_ccsrbar_ready = 0;
-
-static void pok_ppc_tlb_print(unsigned tlbsel) {
-    unsigned limit = pok_ppc_tlb_get_nentry(1);
-
-    for (unsigned i = 0; i < limit; i++) {
-        unsigned valid;
-        unsigned tsize;
-        uint32_t epn;
-        uint64_t rpn;
-        pok_ppc_tlb_read_entry(tlbsel, i,
-                &valid,
-                &tsize,
-                &epn,
-                &rpn
-                );
-        //~ if (valid) {
-            //~ printf("DEBUG: tlb entry %d:%d:\r\n", tlbsel, i);
-            //~ printf("DEBUG:   Valid\r\n");
-            //~ printf("DEBUG:   Effective: %p\r\n", (void*)epn);
-            //~ // FIXME This is wrong. We print only 32 bits out of 36
-            //~ printf("DEBUG:   Physical: %x:%p\r\n",
-                    //~ (unsigned)(rpn>>32), (void*)(unsigned)rpn);
-            //~ printf("DEBUG:   Size: %s\r\n", pok_ppc_tlb_size(tsize));
-//~
-        //~ }
-    }
-}
 
 void pok_arch_space_init (void)
 {
@@ -240,10 +223,15 @@ void pok_arch_space_init (void)
         0, // any pid
         TRUE
     );
+
     /*
      * Clear all other mappings. For instance, those created by u-boot.
      */
     unsigned limit = pok_ppc_tlb_get_nentry(1);
+//    pok_ppc_tlb_clear_entry(1, 2);
+    for (unsigned i = 1; i < limit; i++) {
+        pok_ppc_tlb_clear_entry(1, i);
+    }
     pok_ppc_tlb_write(1,
             pok_bsp.ccsrbar_base, pok_bsp.ccsrbar_base_phys, E500MC_PGSIZE_16M,
             //MAS3_SW | MAS3_SR | MAS3_SX,
@@ -251,21 +239,24 @@ void pok_arch_space_init (void)
             MAS2_W | MAS2_I | MAS2_M | MAS2_G,
             0,
             limit-1,
-            TRUE
-            );
-    pok_ccsrbar_ready = 1;
-
-    pok_ppc_tlb_print(0);
-    pok_ppc_tlb_print(1);
-//    pok_ppc_tlb_clear_entry(1, 2);
-    for (unsigned i = 1; i < limit-1; i++) {
-        pok_ppc_tlb_clear_entry(1, i);
-    }
+            TRUE);
 
     // DIRTY HACK
     // By some reason P3041 DUART blocks when TLB entry #1 is overrriden.
     // Preserve it, let's POK write it's entries starting 2
     next_non_resident = next_resident = 2;
+
+    for (int i = 0; i < jet_tlb_entries_n; i++) {
+        pok_insert_tlb1(
+                jet_tlb_entries[i].virt_addr,
+                jet_tlb_entries[i].phys_addr,
+                jet_tlb_entries[i].size,
+                jet_tlb_entries[i].permissions,
+                jet_tlb_entries[i].cache_policy,
+                jet_tlb_entries[i].pid,
+                TRUE
+                );
+    }
 
     for(int i = 0; i < ja_spaces_n; i++)
     {
@@ -286,30 +277,7 @@ void pok_arch_handle_page_fault(
 {
     int tlb_miss = (type == PF_INST_TLB_MISS || type == PF_DATA_TLB_MISS);
     unsigned pid = mfspr(SPRN_PID);
-
-    if (tlb_miss && faulting_address >= pok_bsp.ccsrbar_base && faulting_address < pok_bsp.ccsrbar_base + pok_bsp.ccsrbar_size) {
-        pok_insert_tlb1(
-            pok_bsp.ccsrbar_base,
-            pok_bsp.ccsrbar_base_phys,
-            E500MC_PGSIZE_16M,
-            //MAS3_SW | MAS3_SR,
-            MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,
-            MAS2_W | MAS2_I | MAS2_M | MAS2_G,
-            0, /* any pid */
-            TRUE
-        );
-    } else if (tlb_miss && faulting_address >= MPC8544_PCI_IO && faulting_address < MPC8544_PCI_IO + MPC8544_PCI_IO_SIZE) {
-        pok_insert_tlb1(
-            MPC8544_PCI_IO,
-            MPC8544_PCI_IO,
-            E500MC_PGSIZE_64K,
-            //MAS3_SW | MAS3_SR,
-            MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR,
-            MAS2_W | MAS2_I | MAS2_M | MAS2_G,
-            0, /* any pid */
-            TRUE
-        );
-    } else if (
+    if (
             tlb_miss &&
             pid != 0 &&
             faulting_address >= POK_PARTITION_MEMORY_BASE &&
@@ -327,6 +295,7 @@ void pok_arch_handle_page_fault(
             FALSE
         );
     } else {
+#ifdef POK_NEEDS_DEBUG
         if (vctx->srr1 & MSR_PR) {
             printf("USER ");
         } else {
@@ -338,13 +307,8 @@ void pok_arch_handle_page_fault(
         } else {
             printf("code at %p address tried to execute code at %p address\n", (void *)vctx->lr, (void*)vctx->srr0);
         }
-#ifdef PARTITION_DEBUG_MODE
-        pok_fatal("page fault");
-#else
-        printf("raising error in pagefault addr %p  syndrome 0x%lx\n", (void*) faulting_address, syndrome);
-        POK_ERROR_CURRENT_THREAD(POK_ERROR_KIND_MEMORY_VIOLATION);
 #endif
-        //pok_fatal("bad memory access");
+        pok_raise_error(POK_ERROR_ID_MEMORY_VIOLATION, vctx->srr1 & MSR_PR, (void*) faulting_address);
     }
 }
 

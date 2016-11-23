@@ -18,17 +18,16 @@ struct port_ops{
     void *owner;
 };
 
-{% for comp in components%}
-    #include <{{comp.type}}_gen.h>
-    {% for i in comp.instances %}
-        void __{{comp.type}}_init__({{comp.type}}*);
-        void __{{comp.type}}_activity__({{comp.type}}*);
+{% for i in components%}
+    #include <{{i.type}}_gen.h>
+        void __{{i.type}}_init__({{i.type}}*);
+        void __{{i.type}}_activity__({{i.type}}*);
         {% if i.name in port_array_dict %}
          {% for port, size in port_array_dict[i.name].iteritems() %}
             struct port_ops {{i.name}}_array_for_{{port}}[{{size + 1}}];
          {% endfor %}
         {% endif %}
-        {{comp.type}} {{i.name}} = {
+        {{i.type}} {{i.name}} = {
             {% if i.state %}
             .state = {
               {% for name, val in i.state.iteritems()%}
@@ -45,17 +44,14 @@ struct port_ops{
             }
             {% endif %}
         };
-    {% endfor %}
 
 {% endfor %}
 
 
 void __components_init__()
 {
-    {% for comp in components%}
-        {% for i in comp.instances %}
-            __{{comp.type}}_init__(&{{i.name}});
-        {% endfor %}
+    {% for i in components%}
+            __{{i.type}}_init__(&{{i.name}});
 
     {% endfor %}
 
@@ -74,10 +70,8 @@ void __components_init__()
 void __components_activity__()
 {
     while (1) {
-        {% for comp in components%}
-            {% for i in comp.instances %}
-                __{{comp.type}}_activity__(&{{i.name}});
-            {% endfor %}
+        {% for i in components%}
+                __{{i.type}}_activity__(&{{i.name}});
         {% endfor %}
     }
 

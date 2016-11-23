@@ -44,4 +44,13 @@
             </Destination>
         </Channel>
     </Connection_Table>
+
+    <Memory_Blocks>
+        <Memory_Block
+            Name="PCI_IO"
+            VirtualAddress ="0xe1000000"
+            PhysicalAddress="0xe1000000"
+            Size="0x10000"
+            />
+    </Memory_Blocks>
 </chpok-configuration>

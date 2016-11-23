@@ -496,6 +496,8 @@ label##_asm:
     START_EXCEPTION(pok_int_alignment)
         EXCEPTION_PROLOGUE
         mr %r3, %r1
+        mfspr %r4, SPRN_DEAR // DEAR - faulting address
+        mfspr %r5, SPRN_ESR // ESR - exception syndrome
 
         bl pok_int_alignment
         b pok_arch_rfi
