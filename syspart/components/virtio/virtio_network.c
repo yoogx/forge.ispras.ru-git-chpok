@@ -172,7 +172,8 @@ static void setup_receive_buffers(struct virtio_network_device *dev)
 ret_t send_frame(VIRTIO_NET_DEV * self,
         char *buffer,
         size_t size,
-        size_t max_back_step)
+        size_t max_back_step,
+        size_t frontstep)
 {
     if (max_back_step != 0)
         return EINVAL;

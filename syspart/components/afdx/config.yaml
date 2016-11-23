@@ -6,39 +6,42 @@
         ttl: uint8_t
         src_partition_id: uint8_t
         dst_partition_id: uint8_t
-        afdx_src_port: uint16_t
-        afdx_dst_port: uint16_t
+        src_afdx_port: uint16_t
+        dst_afdx_port: uint16_t
         sn: uint8_t
+        type_of_packet: PACKET_TYPE
 
-  init_func: afdx_filler_init
-  activity: afdx_filling
+# init_func: afdx_filler_init
 
   in_ports:
       - name: portA
         type: preallocated_sender
         implementation:
-           handle: afdx_filler
+           send: afdx_filler_send
+           flush: afdx_filler_flush
 
   out_ports:
-      - name: portB
-        type: afdx_queue_enqueer
-        
-        
-- name: AFDX_QUEUE_ENQUEER
+       - name: portB
+         type: afdx_queue_enqueuer
+
+- name: AFDX_QUEUE_ENQUEUER
   additional_h_files: ['<stdint.h>', '<afdx/AFDX_ES_config.h>', '<afdx/AFDX_frame.h>', '<afdx/AFDX_filling.h>', '<afdx/AFDX_ES.h>', '<afdx/AFDX_ES_config.h>']
   state_struct:
         BAG: pok_time_t
-        queue: char*
+        queue[15200]: uint8_t
 
   init_func: afdx_queue_init
-  #activity: afdx_queue_enqueer_activity
+  activity: afdx_queue_enqueuer_activity
 
   in_ports:
       - name: portB
-        type: afdx_queue_enqueer
+        type: afdx_queue_enqueuer
         implementation:
-            handle: afdx_enqueer_implementation
-      
- out_ports:
-      - name: portA
+            afdx_add_to_queue: afdx_enqueuer_implementation
+
+  out_ports:
+      - name: portNetA
+        type: preallocated_sender
+
+      - name: portNetB
         type: preallocated_sender

@@ -3,8 +3,8 @@
   functions:
       - name: send
         return_type: ret_t
-        # component, payload, size, max_backstep
-        args_type: [self_t *, char *, size_t, size_t]
+        # component, payload, size, max_backstep, frontstep
+        args_type: [self_t *, char *, size_t, size_t, size_t]
 
       - name: flush
         return_type: ret_t

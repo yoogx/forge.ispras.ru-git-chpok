@@ -54,7 +54,7 @@ typedef struct {
 
 
 
-      ret_t ARINC_SENDER_call_portA_send(ARINC_SENDER *, char *, size_t, size_t);
+      ret_t ARINC_SENDER_call_portA_send(ARINC_SENDER *, char *, size_t, size_t, size_t);
       ret_t ARINC_SENDER_call_portA_flush(ARINC_SENDER *);
 
 

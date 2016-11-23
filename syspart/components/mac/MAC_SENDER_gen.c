@@ -35,13 +35,13 @@
 
 
 
-      ret_t MAC_SENDER_call_portB_send(MAC_SENDER *self, char * arg1, size_t arg2, size_t arg3)
+      ret_t MAC_SENDER_call_portB_send(MAC_SENDER *self, char * arg1, size_t arg2, size_t arg3, size_t arg4)
       {
          if (self->out.portB.ops == NULL) {
              printf("WRONG CONFIG: out port portB of component MAC_SENDER was not initialized\n");
              //fatal_error?
          }
-         return self->out.portB.ops->send(self->out.portB.owner, arg1, arg2, arg3);
+         return self->out.portB.ops->send(self->out.portB.owner, arg1, arg2, arg3, arg4);
       }
       ret_t MAC_SENDER_call_portB_flush(MAC_SENDER *self)
       {

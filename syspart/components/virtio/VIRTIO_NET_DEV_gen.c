@@ -23,9 +23,9 @@
 
 
 
-    static ret_t __wrapper_send_frame(self_t *arg0, char * arg1, size_t arg2, size_t arg3)
+    static ret_t __wrapper_send_frame(self_t *arg0, char * arg1, size_t arg2, size_t arg3, size_t arg4)
     {
-        return send_frame((VIRTIO_NET_DEV*) arg0, arg1, arg2, arg3);
+        return send_frame((VIRTIO_NET_DEV*) arg0, arg1, arg2, arg3, arg4);
     }
 
     static ret_t __wrapper_flush_send(self_t *arg0)

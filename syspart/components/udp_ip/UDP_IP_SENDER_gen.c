@@ -23,9 +23,9 @@
 
 
 
-    static ret_t __wrapper_udp_ip_send(self_t *arg0, char * arg1, size_t arg2, size_t arg3)
+    static ret_t __wrapper_udp_ip_send(self_t *arg0, char * arg1, size_t arg2, size_t arg3, size_t arg4)
     {
-        return udp_ip_send((UDP_IP_SENDER*) arg0, arg1, arg2, arg3);
+        return udp_ip_send((UDP_IP_SENDER*) arg0, arg1, arg2, arg3, arg4);
     }
 
     static ret_t __wrapper_udp_ip_flush(self_t *arg0)

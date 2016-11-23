@@ -63,7 +63,8 @@ ret_t udp_ip_send(
         UDP_IP_SENDER *self,
         char *payload,
         size_t payload_size,
-        size_t max_backstep
+        size_t max_backstep,
+        size_t frontstep
         )
 {
     if (max_backstep < UDP_IP_HEADER_SIZE)

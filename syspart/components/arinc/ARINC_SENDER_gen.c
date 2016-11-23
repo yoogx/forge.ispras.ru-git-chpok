@@ -25,13 +25,13 @@
 
 
 
-      ret_t ARINC_SENDER_call_portA_send(ARINC_SENDER *self, char * arg1, size_t arg2, size_t arg3)
+      ret_t ARINC_SENDER_call_portA_send(ARINC_SENDER *self, char * arg1, size_t arg2, size_t arg3, size_t arg4)
       {
          if (self->out.portA.ops == NULL) {
              printf("WRONG CONFIG: out port portA of component ARINC_SENDER was not initialized\n");
              //fatal_error?
          }
-         return self->out.portA.ops->send(self->out.portA.owner, arg1, arg2, arg3);
+         return self->out.portA.ops->send(self->out.portA.owner, arg1, arg2, arg3, arg4);
       }
       ret_t ARINC_SENDER_call_portA_flush(ARINC_SENDER *self)
       {

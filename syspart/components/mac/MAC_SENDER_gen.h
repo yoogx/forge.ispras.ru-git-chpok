@@ -50,7 +50,7 @@ typedef struct {
       ret_t mac_send(MAC_SENDER *, char *, size_t, size_t, uint8_t *, enum ethertype);
       ret_t mac_flush(MAC_SENDER *);
 
-      ret_t MAC_SENDER_call_portB_send(MAC_SENDER *, char *, size_t, size_t);
+      ret_t MAC_SENDER_call_portB_send(MAC_SENDER *, char *, size_t, size_t, size_t);
       ret_t MAC_SENDER_call_portB_flush(MAC_SENDER *);
 
 

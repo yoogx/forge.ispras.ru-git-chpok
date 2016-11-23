@@ -84,7 +84,8 @@ void arinc_sender_activity(ARINC_SENDER *self)
     ret_t res = ARINC_SENDER_call_portA_send(self,
             dst_place->data + self->state.overhead,
             dst_place->message_size,
-            self->state.overhead
+            self->state.overhead,
+            0
             );
 
     if (res != EOK)

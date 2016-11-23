@@ -66,7 +66,8 @@ ret_t mac_send(MAC_SENDER *self,
     MAC_SENDER_call_portB_send(self,
             mac_packet,
             payload_size + MAC_HEADER_SIZE,
-            max_backstep - MAC_HEADER_SIZE
+            max_backstep - MAC_HEADER_SIZE,
+            0
             );
     return EOK;
 }

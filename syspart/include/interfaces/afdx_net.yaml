@@ -1,4 +1,4 @@
-- name: afdx_queue_enqueer 
+- name: afdx_queue_enqueuer
   #afdx_queue_adder
   additional_h_files: ['<ret_type.h>']
   functions:

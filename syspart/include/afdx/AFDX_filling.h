@@ -36,11 +36,4 @@
     (Result) = (Sum & 0xFFFF) + (Sum >> 16);            \
 }
 
-uint16_t fill_afdx_frame(frame_data_t *p, uint16_t src_arinc_port, ARINC_PORT_TYPE arinc_port_type, char afdx_payload[], uint16_t payload_size);
-uint16_t udp_checksum(void *buff, uint16_t len, uint32_t src_addr, uint32_t dest_addr);
-uint16_t ip_hdr_checksum_2(const struct ip_header *ip_hdr);
-
-void fill_afdx_interface_id (frame_data_t *p, int net_card);
-void add_seq_numb(void * buf, uint16_t * size, uint8_t * number);
-
 #endif
