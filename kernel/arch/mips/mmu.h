@@ -16,17 +16,13 @@
 #ifndef __POK_MIPS_MMU_H__
 #define __POK_MIPS_MMU_H__
 
-#define MIPS_PGSIZE_4K        0b00010 
-#define MIPS_PGSIZE_16K       0b00100 
-#define MIPS_PGSIZE_64K       0b00110 
-#define MIPS_PGSIZE_256K      0b01000 
-#define MIPS_PGSIZE_1M        0b01010 
-#define MIPS_PGSIZE_4M        0b01100 
-#define MIPS_PGSIZE_16M       0b01110 
-#define MIPS_PGSIZE_64M       0b10000 
-#define MIPS_PGSIZE_256M      0b10010 
-#define MIPS_PGSIZE_1G        0b10100 
-#define MIPS_PGSIZE_4G        0b10110 
+#define MIPS_PGSIZE_4K        0x000
+#define MIPS_PGSIZE_16K       0x003 
+#define MIPS_PGSIZE_64K       0x00F 
+#define MIPS_PGSIZE_256K      0x03F 
+#define MIPS_PGSIZE_1M        0x0FF 
+#define MIPS_PGSIZE_4M        0x3FF 
+#define MIPS_PGSIZE_16M       0xFFF 
 
 #if 0
 static inline int pok_arch_mmu_shift_by_size(unsigned size)
@@ -40,14 +36,49 @@ static inline int pok_arch_mmu_shift_by_size(unsigned size)
         CASE(1M);
         CASE(4M);
         CASE(16M);
-        CASE(64M);
-        CASE(256M);
-        CASE(1G);
-        CASE(4G);
 #undef CASE
     }
 }
 #endif
+
+
+#define EntryHi_VPN2(x)         (x << 13)           /*Биты VA 39..13 виртуального адреса (номер виртуальной страницы / 2).*/
+#define EntryHi_ASID(x)         (x << 0)            /*Идентификатор виртуального адресного пространства*/
+#define EntryHi_R(x)            ((x >> 4) << 29)    /*Сегмент виртуальной памяти, соответствующий   VA (63..62 битам).
+                                                              Код            Значение
+                                                              00              XUSEG. Пользовательский сегмент
+                                                              01              XSSEG. Сегмент супервизора.
+                                                              10              Зарезервировано.
+                                                              11              XKSEG. Сегмент ядра.*/
+#define EntryLo0_PFN(x)         (x << 6)            /*Номер страницы. Соответствует битам [35..12] физического адреса*/
+#define EntryLo0_C(x)           (x << 3)            /*Код политики кэширования*/
+#define EntryLo0_D(x)           (x & 0x4)           /*Бит, показывающий, что страница доступна для записи.*/
+#define EntryLo0_V(x)           (x & 0x2)           /*Бит, показывающий, что содержимое TLB доступно для чтения.*/
+#define EntryLo0_G(x)           (x << 0)            /*Бит, показывающий, что поле ASID при обращении в данную страницу не проверяется.
+                                                       При записи в TLB, логическое «И» G битов из регистров EntryLo0 и EntryLo1 становится G битом
+                                                       в записываемой строке TLB.*/
+#define EntryLo1_PFN(x)         (x << 6)            /*Номер страницы. Соответствует битам [35..12] физического адреса*/
+#define EntryLo1_C(x)           (x << 3)            /*Код политики кэширования*/
+#define EntryLo1_D(x)           (x & 0x4)           /*Бит, показывающий, что страница доступна для записи.*/
+#define EntryLo1_V(x)           (x & 0x2)           /*Бит, показывающий, что содержимое TLB доступно для чтения.*/
+#define EntryLo1_G(x)           (x << 0)            /*Бит, показывающий, что поле ASID при обращении в данную страницу не проверяется.
+                                                       При записи в TLB, логическое «И» G битов из регистров EntryLo0 и EntryLo1 становится G битом
+                                                       в записываемой строке TLB.*/
+
+#define PageSize_Mask_SHIFT        7
+#define PageSize_Mask(x)           ((x) << PageSize_Mask_SHIFT)
+
+#define EntryHi_USEG           0x0
+#define EntryHi_SSEG           0x1
+#define EntryHi_KSEG           0x3
+
+#define EntryLo_R              0x2                 /*Защита чтения*/
+#define EntryLo_W              0x4                 /*Защита записи*/
+
+
+
+
+
 
 #define TLBnCFG_N_ENTRY_MASK    0x00000fff
 

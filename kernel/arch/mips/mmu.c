@@ -16,6 +16,7 @@
 #include <types.h>
 #include "mmu.h"
 #include "reg.h"
+#include "msr.h"
 
 #include <assert.h>
 
@@ -46,6 +47,31 @@ void pok_mips_tlb_write(
      * instruction is executed, the TLB entry information stored in MAS0–MAS3, MAS5, MAS7, and MAS8 is
      * written into the selected TLB entry in the TLB1 array.
      */
+    
+    mtc0(CP0_PAGEMASK, pgsize_enum);
+    
+    if (pid == 0) //any pid 
+    {
+        mtc0(CP0_ENTRYLO0, EntryLo0_G(0));
+        mtc0(CP0_ENTRYLO1, EntryLo1_G(0));
+    }else{
+        mtc0(CP0_ENTRYLO0, EntryLo0_G(1));
+        mtc0(CP0_ENTRYLO1, EntryLo1_G(1));
+    }        
+    
+    mtc0(CP0_ENTRYHI,  EntryHi_R(permissions) | EntryHi_ASID(pid));
+    mtc0(CP0_ENTRYHI,  EntryHi_VPN2(virtual));
+    mtc0(CP0_ENTRYLO0, EntryLo0_PFN(physical));
+    mtc0(CP0_ENTRYLO0, EntryLo0_D(permissions) | EntryLo0_V(permissions));
+    mtc0(CP0_ENTRYLO1, EntryLo1_PFN(physical));
+    mtc0(CP0_ENTRYLO1, EntryLo1_D(permissions) | EntryLo1_V(permissions));
+    
+    int test = 0;
+    asm volatile("synci 0(%0)":: "r" (test));
+    asm volatile("tlbwr":::"memory");
+    asm volatile("synci 0(%0)":: "r" (test));
+
+
 //~ 
     //~ uint32_t mas0, mas1, mas2, mas3, mas7;
 //~ 
@@ -62,20 +88,21 @@ void pok_mips_tlb_write(
     //~ mtspr(SPRN_MAS2, mas2);
     //~ mtspr(SPRN_MAS3, mas3);
     //~ mtspr(SPRN_MAS7, mas7);
-
-    //~ asm volatile("synci; tlbwe; synci":::"memory");
+    //~ int test = 0;
+    //~ asm volatile("synci 0(%0)":: "r" (test));
+    //~ asm volatile("synci; tlbwr; synci":::"memory");
 }
 
 void pok_mips_tlb_clear_entry(
         unsigned tlbsel,
         unsigned entry
     ) {
-    //pok_mips_tlb_write(tlbsel,
-        //0, 0,
-        //0,
-        //0, 0, 0,
-        //entry,
-        //FALSE);
+    pok_mips_tlb_write(tlbsel,
+        0, 0,
+        0,
+        0, 0, 0,
+        entry,
+        FALSE);
     //~ uint32_t mas0, mas1, mas2, mas3, mas7;
 //~ 
     //~ assert(tlbsel <= 1) ;
@@ -117,9 +144,14 @@ void pok_mips_tlb_read_entry(
         uint32_t *epn,
         uint64_t *rpn)
 {
-    //~ uint32_t mas0, mas1;
+    //~ uint32_t entrylo1, entrylo0, entryhi, pagesize;
 
     //~ assert(tlbsel <= 1) ;
+    //~ entrylo1 = mfc0(CP0_ENTRYLO0);
+    //~ entrylo1 = mfc0(CP0_ENTRYLO1);
+    //~ entryhi  = mfc0(CP0_ENTRYHI);
+    //~ pagesize = mfc0(CP0_PAGEMASK);
+    
 
     //~ mas0 = MAS0_TLBSEL(tlbsel) | MAS0_ESEL(entry);
 

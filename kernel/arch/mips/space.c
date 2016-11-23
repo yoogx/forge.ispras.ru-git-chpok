@@ -35,7 +35,6 @@
 #include "core/partition.h"
 #include "core/partition_arinc.h"
 #include "core/error.h"
-
 void ja_space_layout_get(jet_space_id space_id,
     struct jet_space_layout* space_layout)
 {
@@ -46,15 +45,22 @@ void ja_space_layout_get(jet_space_id space_id,
     space_layout->size = ja_spaces[space_id - 1].size_normal;
 }
 
+
+struct jet_kernel_shared_data* __kuser ja_space_shared_data(jet_space_id space_id)
+{
+    return (struct jet_kernel_shared_data* __kuser)POK_PARTITION_MEMORY_BASE;
+}
+
+size_t ja_user_space_maximum_alignment = 16;
+
 void ja_space_switch (jet_space_id space_id)
 {
-    mtc0(CP0_ENTRYHI, space_id);
+    //~ mtspr(SPRN_PID, space_id);
 }
 
 jet_space_id ja_space_get_current (void)
 {
-    return (jet_space_id) mfc0(CP0_ENTRYHI) ;
-    return 0;
+    return 0;//~(jet_space_id)mfspr(SPRN_PID);
 }
 
 
@@ -80,7 +86,7 @@ jet_ustack_t ja_ustack_alloc (jet_space_id space_id, size_t stack_size)
 
     return result;
 }
-
+    
 static unsigned next_resident = 0;
 static unsigned next_non_resident = 0;
 
@@ -647,10 +653,6 @@ static inline const char* pok_mips_tlb_size(unsigned size)
         CASE(1M);
         CASE(4M);
         CASE(16M);
-        CASE(64M);
-        CASE(256M);
-        CASE(1G);
-        CASE(4G);
 #undef CASE
         default:
         return "Unknown";
@@ -706,7 +708,7 @@ void pok_arch_space_init (void)
     pok_insert_tlb1(
         0,
         0,
-        MIPS_PGSIZE_256M,  //TODO make smaller
+        MIPS_PGSIZE_16M,  //TODO make smaller
         MAS3_SW | MAS3_SR | MAS3_SX,
         0,
         0, // any pid
@@ -757,7 +759,7 @@ void pok_arch_handle_page_fault(
         pf_type_t type)
 {
     int tlb_miss = (type == PF_INST_TLB_MISS || type == PF_DATA_TLB_MISS);
-    unsigned pid= mfc0(CP0_ENTRYHI);
+    unsigned pid = mfc0(CP0_ENTRYHI);
 
     if (tlb_miss && faulting_address >= pok_bsp.ccsrbar_base && faulting_address < pok_bsp.ccsrbar_base + pok_bsp.ccsrbar_size) {
         pok_insert_tlb1(
