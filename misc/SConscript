@@ -157,11 +157,11 @@ env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -Wuninitialized -ffreesta
 env.Append(CFLAGS = cflags)
 
 cflags_arch_dict = {
-    'ppc':    ' -O0 -mregnames',
+    'ppc':    ' -mregnames',
     # TODO: Add infrastructure to enable/disable compile time parameters
     # Quick and dirty hack: currently GDB suport is broken on x86 -- disable it
-    'x86':    ' -O0 -DPOK_DISABLE_GDB',
-    'mips':   ' -O0 -fno-asynchronous-unwind-tables'
+    'x86':    ' -DPOK_DISABLE_GDB',
+    'mips':   ''
 }
 env.Append(CFLAGS = cflags_arch_dict[env['ARCH']])
 
