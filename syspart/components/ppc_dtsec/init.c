@@ -137,10 +137,9 @@ int fm_eth_send(struct fm_eth *fm_eth, void *buf, int len)
     return 1;
 }
 
-#if 0
-static int fm_eth_recv(struct dev_state *dev_state)
+int fm_eth_recv(DTSEC_NET_DEV *self)
 {
-    struct fm_eth *fm_eth = dev_state->current_fm;
+    struct fm_eth *fm_eth = self->state.dev_state.current_fm;
     struct fm_port_global_pram *pram;
     struct fm_port_bd *rxbd, *rxbd_base;
     uint16_t status, len;
@@ -157,7 +156,7 @@ static int fm_eth_recv(struct dev_state *dev_state)
             //XXX phys_to_virt?
             data = (void *)pok_phys_to_virt(rxbd->buf_ptr_lo);
             len = rxbd->len;
-            dev_state->packet_received_callback(data, len);
+            DTSEC_NET_DEV_call_portB_handle(self, data, len);
         } else {
             printf("%s: Rx error\n", DRV_NAME);
             ret = 0;
@@ -188,12 +187,6 @@ static int fm_eth_recv(struct dev_state *dev_state)
 
     return ret;
 }
-
-static void reclaim_receive_buffers(pok_netdevice_t *dev)
-{
-    fm_eth_recv(dev->info);
-}
-#endif
 
 static int fm_eth_tx_port_parameter_init(struct dev_state *dev_state)
 {

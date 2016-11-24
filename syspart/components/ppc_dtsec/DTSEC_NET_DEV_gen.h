@@ -58,6 +58,7 @@ typedef struct {
 
     void dtsec_component_init(DTSEC_NET_DEV *);
 
+    void dtsec_receive_activity(DTSEC_NET_DEV *);
 
 
 #endif

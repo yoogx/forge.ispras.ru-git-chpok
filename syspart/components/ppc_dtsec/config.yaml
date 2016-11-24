@@ -5,6 +5,7 @@
       dev_state: struct dev_state
 
   init_func: dtsec_component_init
+  activity:  dtsec_receive_activity
 
   in_ports:
       - name: portA

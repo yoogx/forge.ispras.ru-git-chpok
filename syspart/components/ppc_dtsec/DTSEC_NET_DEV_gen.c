@@ -55,4 +55,5 @@ void __DTSEC_NET_DEV_init__(DTSEC_NET_DEV *self)
 
 void __DTSEC_NET_DEV_activity__(DTSEC_NET_DEV *self)
 {
+        dtsec_receive_activity(self);
 }
