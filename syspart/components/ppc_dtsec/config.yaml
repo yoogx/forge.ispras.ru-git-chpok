@@ -1,8 +1,10 @@
 - name: DTSEC_NET_DEV
+  additional_h_files: ['"dtsec_state.h"']
   state_struct:
       dtsec_num: uint8_t
+      dev_state: struct dev_state
 
-  init_func: dtsec_init
+  init_func: dtsec_component_init
 
   in_ports:
       - name: portA

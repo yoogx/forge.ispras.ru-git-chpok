@@ -50,7 +50,7 @@ void __DTSEC_NET_DEV_init__(DTSEC_NET_DEV *self)
             self->in.portA.ops.send = __wrapper_dtsec_send_frame;
             self->in.portA.ops.flush = __wrapper_dtsec_flush_send;
 
-        dtsec_init(self);
+        dtsec_component_init(self);
 }
 
 void __DTSEC_NET_DEV_activity__(DTSEC_NET_DEV *self)

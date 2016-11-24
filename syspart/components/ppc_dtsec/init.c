@@ -29,43 +29,22 @@
  */
 #include <syspart_config.h>
 
-#ifdef SYS_NEEDS_DRIVER_P3041
-
 #ifdef __PPC__
 #include <stdio.h>
 #include <ioports.h>
 #include <string.h>
-#include <net/network.h>
-#include <net/netdevices.h>
 #include <mem.h>
 #include "fm.h"
+#include "dtsec_state.h"
+#include "DTSEC_NET_DEV_gen.h"
 
 #define DRV_NAME "dtsec_drv"
 #define DEV_NAME_DTSEC3 "dtsec3"
 #define DEV_NAME_DTSEC4 "dtsec4"
 
-struct send_state{
-    unsigned send_last_seen; //Truly points to first nonseen element
-    struct send_callback send_callbacks[TX_BD_RING_SIZE];
-};
-
-struct init_buffers {
-    char tx_buffer_pseudo_malloc[sizeof(struct fm_port_bd) * TX_BD_RING_SIZE];
-    char rx_ring_pseudo_malloc  [sizeof(struct fm_port_bd) * RX_BD_RING_SIZE];
-    char rx_pool_pseudo_malloc  [MAX_RXBUF_LEN * RX_BD_RING_SIZE];
-};
-
 
 struct fm_eth dtsec3;
 struct fm_eth dtsec4;
-
-struct dev_state{
-    struct fm_eth *current_fm;
-    struct send_state send_state;
-    struct init_buffers init_buffers;
-    uint8_t macaddr[6];
-    void (*packet_received_callback)(const char *, size_t);
-};
 
 struct fm_muram muram;
 
@@ -112,7 +91,7 @@ static void fm_init_muram(int fm_idx, void *reg)
 }
 
 
-
+#if 0
 static int fm_eth_send(struct dev_state *dev_state,
                        void *buf,
                        int len,
@@ -246,6 +225,7 @@ static void reclaim_receive_buffers(pok_netdevice_t *dev)
 {
     fm_eth_recv(dev->info);
 }
+#endif
 
 static int fm_eth_tx_port_parameter_init(struct dev_state *dev_state)
 {
@@ -421,11 +401,11 @@ static void dtsec_get_mac_addr(struct dtsec *regs, uint8_t *mac_addr)
     mac_addr[4] = mac1>>16 & 0xff;
     mac_addr[5] = mac1>>24 & 0xff;
 
-    //printf("mac_addr ");
-    //for (int i=0; i<6; i++) {
-    //    printf("%02x ", mac_addr[i]);
-    //}
-    //printf("\n");
+    printf("mac_addr ");
+    for (int i=0; i<6; i++) {
+        printf("%02x ", mac_addr[i]);
+    }
+    printf("\n");
 }
 
 static void fm_eth_open(struct dev_state *dev_state)
@@ -442,57 +422,9 @@ static void fm_eth_open(struct dev_state *dev_state)
 }
 
 
-
-static pok_bool_t send_frame(
-        pok_netdevice_t *dev,
-        char *buffer,
-        size_t size,
-        pok_network_buffer_callback_t callback,
-        void *callback_arg)
+static void init_device(struct fm_eth *fm_eth, DTSEC_NET_DEV_state *state)
 {
-    fm_eth_send(dev->info, buffer, size, callback, callback_arg);
-    return 1;
-}
-
-
-pok_bool_t dummy_send_frame_gather(
-        pok_netdevice_t *netdev,
-        const pok_network_sg_list_t *sg_list,
-        size_t sg_list_len,
-        pok_network_buffer_callback_t callback,
-        void *callback_arg)
-{
-    printf("%s\n", __func__);
-    return 0;
-}
-
-void set_packet_received_callback(
-        pok_netdevice_t *dev,
-        void (*f)(const char *, size_t))
-{
-    struct dev_state *dev_state = dev->info;
-    dev_state->packet_received_callback = f;
-}
-
-void dummy_flush_send(pok_netdevice_t *dev)
-{
-    (void) dev; 
-    //TODO
-}
-
-static const pok_network_driver_ops_t driver_ops = {
-    .send_frame = send_frame,
-    .send_frame_gather =            dummy_send_frame_gather,
-    .set_packet_received_callback = set_packet_received_callback,
-    .reclaim_send_buffers =         reclaim_send_buffers,
-    .reclaim_receive_buffers =      reclaim_receive_buffers,
-    .flush_send =                   dummy_flush_send,
-};
-
-static void register_dtsec(struct fm_eth *fm_eth, char *name)
-{
-    struct dev_state *dev_state;
-    dev_state = smalloc(sizeof(*dev_state));
+    struct dev_state *dev_state = &state->dev_state;
     dev_state->current_fm = fm_eth;
 
     dtsec_get_mac_addr(dev_state->current_fm->reg_addr, dev_state->macaddr);
@@ -501,15 +433,9 @@ static void register_dtsec(struct fm_eth *fm_eth, char *name)
     fm_eth_tx_port_parameter_init(dev_state);
 
     fm_eth_open(dev_state);
-
-    pok_netdevice_t *netdevice = smalloc(sizeof(*netdevice));
-    netdevice->ops = &driver_ops,
-    netdevice->mac = dev_state->macaddr,
-    netdevice->info = dev_state,
-    register_netdevice(name, netdevice);
 }
 
-void dtsec_init(void)
+void dtsec_init(DTSEC_NET_DEV *self)
 {
     //TODO move constants to .h file
     dtsec3.rx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC3_RX_PORT*0x1000);
@@ -524,9 +450,13 @@ void dtsec_init(void)
     /* XXX HACK. Depend on u-boot! qmi_common and bmi_common are initialized in this memory by u-boot */
     muram.alloc = muram.base + 0x21000;
 
-    register_dtsec(&dtsec3, DEV_NAME_DTSEC3);
-    register_dtsec(&dtsec4, DEV_NAME_DTSEC4);
+
+    if (self->state.dtsec_num == 3)
+        init_device(&dtsec3, &self->state);
+    else if (self->state.dtsec_num == 4)
+        init_device(&dtsec4, &self->state);
+    else
+        printf("unsupported dtsec_num %d\n", self->state.dtsec_num);
 }
 
 #endif /* PPC */
-#endif /* SYS_NEEDS_DRIVER_P3041 */

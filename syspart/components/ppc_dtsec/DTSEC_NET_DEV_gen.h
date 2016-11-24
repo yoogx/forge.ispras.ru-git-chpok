@@ -21,6 +21,7 @@
 #ifndef __DTSEC_NET_DEV_GEN_H__
 #define __DTSEC_NET_DEV_GEN_H__
 
+    #include "dtsec_state.h"
 
     #include <interfaces/preallocated_sender_gen.h>
 
@@ -28,6 +29,7 @@
 
 typedef struct DTSEC_NET_DEV_state {
     uint8_t dtsec_num;
+    struct dev_state dev_state;
 }DTSEC_NET_DEV_state;
 
 typedef struct {
@@ -54,7 +56,7 @@ typedef struct {
 
 
 
-    void dtsec_init(DTSEC_NET_DEV *);
+    void dtsec_component_init(DTSEC_NET_DEV *);
 
 
 
