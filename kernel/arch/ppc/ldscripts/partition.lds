@@ -1,3 +1,4 @@
+
 OUTPUT_FORMAT("elf32-powerpc");
 OUTPUT_ARCH("powerpc")
 ENTRY(__pok_partition_start)
@@ -6,7 +7,7 @@ SECTIONS
 {
 	kshd = 0x80000000; /* This should coincide with ja_space_shared_data() in the kernel. */
 
-  . = 0x80001000;
+  . = 0x80010000;
 
 	__partition_begin = . ;
        
@@ -15,6 +16,7 @@ SECTIONS
            *(.text .text.*)
            __text_end = .;
         }
+        . = ALIGN(0x10000000);
         .rodata :
         {
           *(.rodata .rodata.*)
@@ -38,6 +40,7 @@ SECTIONS
           . = ALIGN(4);
           __sbss2_end = .;
         }
+        . = ALIGN(0x10000000);
         .data :
         {
           __data_start = .;
@@ -68,4 +71,5 @@ SECTIONS
           _end = .;
         }
 	__partition_end = . ;
+
 }

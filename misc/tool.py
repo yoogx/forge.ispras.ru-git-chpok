@@ -1,7 +1,25 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
 import json
 from collections import OrderedDict
 
-#from target_descripter import *
 TLBs = 0
 E500MC_PGSIZE = 0
 flags = 0
@@ -145,10 +163,6 @@ def create_size_pid_for_flag_from_dict(dict):
                 hex(int(va,16))])
     return size_pid_for_flag
     
-#def find_nessesary_name_TLB(size_pid_for_flag):
-#    size_pid_for_flag.sort(reverse=True)
-    
-    
 def main():
     readtarget()
     name = 'entry1.json'
@@ -156,8 +170,6 @@ def main():
     size_pid_for_flag = create_size_pid_for_flag_from_dict(s)
     
     size_pid_for_flag = find_allowable_separation(size_pid_for_flag)
-    
-    #size_pid_for_flag = find_nessesary_name_TLB(size_pid_for_flag)
     
     
     d = create_d_TLB_entry(size_pid_for_flag)

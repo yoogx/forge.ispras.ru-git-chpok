@@ -39,6 +39,7 @@ static void first_process(void)
 static void second_process(void)
 {
     RETURN_CODE_TYPE ret;
+    printf("-------------received------------");
     while (1) {
         int i;
         MESSAGE_SIZE_TYPE len;

@@ -95,7 +95,7 @@ void jet_loader_elf_load   (uint8_t elf_id,
 
     // First user space address after the elf.
     char* elf_end_user = space_layout.user_addr;
-
+    //printf("----------------1----------------------");
     for (int i = 0; i < elf_header->e_phnum; ++i)
     {
         char* user_dest = (char *)elf_phdr[i].p_vaddr;
@@ -128,11 +128,11 @@ void jet_loader_elf_load   (uint8_t elf_id,
         } else{
             unreachable();
         }
-        printf("user_dest ---- = %p\n", user_dest);
-        printf("user_dest1 ---- = %p\n", space_layout.user_addr);
-        printf("user_dest1 ---- = %p\n", user_dest + filesz);
-        printf("user_dest1 ---- = %p\n", user_dest + memsz);
-        printf("user_dest1 ---- = %p\n", space_layout.user_addr + space_layout.size);
+        //printf("user_dest ---- = %p\n", user_dest);
+        //printf("user_dest1 ---- = %p\n", space_layout.user_addr);
+        //printf("user_dest1 ---- = %p\n", user_dest + filesz);
+        //printf("user_dest1 ---- = %p\n", user_dest + memsz);
+        //printf("user_dest1 ---- = %p\n", space_layout.user_addr + space_layout.size);
        /* assert((user_dest >= space_layout.user_addr)
                && (user_dest + filesz < space_layout.user_addr + space_layout.size)
                && (user_dest + memsz < space_layout.user_addr + space_layout.size));
@@ -150,7 +150,7 @@ void jet_loader_elf_load   (uint8_t elf_id,
            elf_end_user = elf_section_end_user;
         }
     }
-
+    
     struct jet_kernel_shared_data* __kuser kshd = ja_space_shared_data(space_id);
 
     if(heap_size > 0) {
@@ -160,6 +160,8 @@ void jet_loader_elf_load   (uint8_t elf_id,
        char* heap_end = heap_start + heap_size;
        if(heap_end > (space_layout.user_addr + space_layout.size))
        {
+               printf("----------------1----------------------");
+
            printf("Insufficient space for partition's heap.");
            pok_raise_error(POK_ERROR_ID_CONFIG_ERROR, FALSE, NULL);
        }

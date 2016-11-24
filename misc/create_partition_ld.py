@@ -1,3 +1,22 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
 from jinja2 import FileSystemLoader,Template
 import os
 import subprocess
@@ -18,7 +37,7 @@ SECTIONS
 {
 	kshd = 0x80000000; /* This should coincide with ja_space_shared_data() in the kernel. */
 
-  . = 0x80001000;
+  . = 0x80010000;
 
 	__partition_begin = . ;
        
@@ -51,6 +70,7 @@ SECTIONS
           . = ALIGN(4);
           __sbss2_end = .;
         }
+        . = ALIGN(0x{{"%x" % size2}});
         .data :
         {
           __data_start = .;
@@ -69,7 +89,6 @@ SECTIONS
           *(.scommon)
           __sbss_end = .;
         }
-        . = ALIGN(0x{{"%x" % size2}});
         .bss  :
         {
           __bss_start = .;
@@ -90,7 +109,6 @@ SECTIONS
         f.write(template.render(data))
 
 def call_ld(name_pid):
-    print(os.path.join(SCONSTRUCT_DIR,name_pid,"build/e500mc/part.elf.map"))
     subprocess.call([
        "powerpc-elf-ld", "-o", name_f(name_pid), "-T",
        os.path.join(POK_PATH, "kernel/arch/ppc/ldscripts/partition.lds"), 
@@ -114,7 +132,6 @@ def main(env):
     data={'size1': 268435456,'size2': 268435456}
     create_partition_ld_skript(data)
     pid = 1
-    #while os.path.exists(name_f(pid,addr)):
     for name_pid in PARTITIONS:
         call_ld(name_pid)
         pid += 1

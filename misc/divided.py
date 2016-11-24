@@ -1,3 +1,23 @@
+
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
 import os.path
 import json
 from elftools.elf.elffile import ELFFile
@@ -18,11 +38,11 @@ def name_f(addr,name_part):
 
 def full_sizes(flag,addr,name_part):
     sizes = 0
-    f = open(name_f(addr,name_part), 'rb')
-    elffile = ELFFile(f)
-    for section in elffile.iter_sections():
-        if section['sh_flags'] == flag:
-            sizes = sizes + section['sh_size']
+    with open(name_f(addr,name_part), 'rb') as f:
+        elffile = ELFFile(f)
+        for section in elffile.iter_sections():
+            if section['sh_flags'] == flag:
+                sizes = sizes + section['sh_size']
     return sizes
 
 def divide_by_TLB_entry(pid,size_pid_for_flag,addr,name_part):
@@ -35,33 +55,33 @@ def divide_by_TLB_entry(pid,size_pid_for_flag,addr,name_part):
     return size_pid_for_flag
 
 def find_va(flag,addr,name_part):
-    f = open(name_f(addr,name_part), 'rb')
-    elffile = ELFFile(f)
-    for section in elffile.iter_sections():
-        if section['sh_flags'] == flag:
-            return section['sh_addr']
+    with open(name_f(addr,name_part), 'rb') as f:
+        elffile = ELFFile(f)
+        for section in elffile.iter_sections():
+            if section['sh_flags'] == flag:
+                return section['sh_addr']
 
 
 def divided_by_flag_and_pid(addr,names_part):
     size_pid_for_flag=[]
     for i in range(len(names_part)):
-        size_pid_for_flag = divide_by_TLB_entry(i, 
+        size_pid_for_flag = divide_by_TLB_entry(i+1, 
                                                 size_pid_for_flag,addr,names_part[i])
     return size_pid_for_flag
 
 def create_json_entry_section(size_pid_for_flag,addr,names_part):
+    
     entries={}
     for entry in size_pid_for_flag:
         entries[entry[1]] = []
     
     for entry in size_pid_for_flag:
-        d = {"virtual_addres" : hex(find_va(entry[2],addr,names_part[entry[1]])), 
+        d = {"virtual_addres" : hex(find_va(entry[2],addr,names_part[entry[1]-1])), 
              "flag" : flag[entry[2]], 
              "size" : entry[0]}
         entries[entry[1]].append(d)
-    f = open('entry1.json','w')
-    f.write(json.dumps(entries , indent = 4))
-    f.close()
+    with open('entry1.json','w') as f:
+        f.write(json.dumps(entries , indent = 4))
 
 def main(addr,names_part):
     size_pid_for_flag = divided_by_flag_and_pid(addr,names_part)

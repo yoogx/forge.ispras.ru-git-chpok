@@ -138,42 +138,28 @@ def create_sizes_c(target, source, env):
                 sizes.write(',\n')
         sizes.write('\n};\n')
 
-#import all_cr
-import tool
-import checker
-import creat
-import create_div
-import create_TLB1_c
-import create_partition_ld
+import tlb_create
 
-
-create_partition_ld.main(env)
-creat.main()
-create_div.main(env['SCONSTRUCT_DIR'],env['PARTITIONS'])
-tool.main()
-checker.main()
-create_TLB1_c.main(env['BUILD_DIR'])
-
-#tlb_create_command = pok_env.Command(target = pok_env['BUILD_DIR']+'TLB.c',
-#source = pok_env['PARTITIONS'],
-#action = all_cr.create)
-#pok_env.Depends(tlb_create_command, pok_env['PARTITIONS'])
+tlb_create_command = pok_env.Command(target = env['BUILD_DIR']+'TLB.c',
+source = part_elf_list,
+action = tlb_create.create)
+pok_env.Depends(tlb_create_command, part_elf_list)
 
 merge_command = pok_env.Command(target = pok_env['BUILD_DIR']+'partitions.bin',
-    source = part_elf_list,
-    action = merge_partitions)
+source = part_elf_list,
+action = merge_partitions)
 pok_env.Depends(merge_command, part_elf_list)
 
 sizes_c_command = pok_env.Command(target = pok_env['BUILD_DIR']+'sizes.c',
-    source = part_elf_list,
-    action = create_sizes_c)
+source = part_elf_list,
+action = create_sizes_c)
 pok_env.Depends(sizes_c_command, part_elf_list)
 
 compile_sizes = pok_env.Command(target = pok_env['BUILD_DIR']+'sizes.o',
-    source = pok_env['BUILD_DIR']+'sizes.c',
-    action = [
-        pok_env['CC']+' -c -o '+pok_env['BUILD_DIR']+'sizes.o '+pok_env['CFLAGS']+' -I'+pok_env['POK_PATH']+'/kernel/include '+
-        pok_env['BUILD_DIR']+'sizes.c',
+source = pok_env['BUILD_DIR']+'sizes.c',
+action = [
+    pok_env['CC']+' -c -o '+pok_env['BUILD_DIR']+'sizes.o '+pok_env['CFLAGS']+' -I'+pok_env['POK_PATH']+'/kernel/include '+
+    pok_env['BUILD_DIR']+'sizes.c',
         pok_env['OBJCOPY']+' --add-section .archive2='+pok_env['BUILD_DIR']+'partitions.bin '+pok_env['BUILD_DIR']+'sizes.o'])
 pok_env.Depends(compile_sizes, [part_elf_list, merge_command])
 

@@ -272,6 +272,7 @@ void pok_arch_space_init (void)
     }
     
     for(int i=0 ; i < number_TLB_entry1 ;i++) {
+        //printf("-----------------%lld---------------1\n",(long long int)TLB_entries[i].virtual);
         pok_insert_tlb1(
             (long long int)TLB_entries1[i].virtual,
             (long long int)TLB_entries1[i].physical,
@@ -370,6 +371,8 @@ void pok_def_tlb_with_nesessary_flag()
     }
     for(int i=0 ; i < number_TLB_entry ;i++) 
     {
+                //printf("-----------------%lld---------------1\n",(long long int)TLB_entries[i].virtual);
+
             pok_insert_tlb1(
                 (long long int)TLB_entries[i].virtual,
                 (long long int)TLB_entries[i].physical,

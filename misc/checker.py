@@ -1,5 +1,23 @@
-#import tool
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 import json
+
 TLBs = 0
 E500MC_PGSIZE = 0
 flags = 0
@@ -8,9 +26,7 @@ max_memory_TLB_entries = 0
 all_TLB_sizes = 0
 
 def readtarget():
-    f = open('target.json')
-    a = f.read() 
-    d = json.loads(a)
+    d = readjson('target.json')
     global TLBs
     global E500MC_PGSIZE
     global flags
@@ -102,8 +118,8 @@ def check_virtual_TLB(entries):
     print('Virtual address: '+verdict)
 
 def readjson(name):
-    f = open(name)
-    a = f.read() 
+    with open(name) as f:
+        a = f.read() 
     return json.loads(a)
 
 def main():
