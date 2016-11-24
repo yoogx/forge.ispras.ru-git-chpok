@@ -90,20 +90,11 @@ static void fm_init_muram(int fm_idx, void *reg)
     muram.top = base + CONFIG_SYS_FM_MURAM_SIZE;
 }
 
-
-#if 0
-static int fm_eth_send(struct dev_state *dev_state,
-                       void *buf,
-                       int len,
-                       pok_network_buffer_callback_t callback,
-                       void *callback_arg
-                      )
+int fm_eth_send(struct fm_eth *fm_eth, void *buf, int len)
 {
-    struct fm_eth *fm_eth = dev_state->current_fm;
     struct fm_port_global_pram *pram;
     struct fm_port_bd *txbd, *txbd_base;
     uint16_t offset_in;
-    int c_idx;
 
     pram = fm_eth->tx_pram;
     txbd = fm_eth->cur_txbd;
@@ -126,10 +117,6 @@ static int fm_eth_send(struct dev_state *dev_state,
     /* update TxQD, let RISC to send the packet */
     offset_in = in_be16(&pram->txqd.offset_in);
 
-    c_idx = offset_in / sizeof(struct fm_port_bd);
-    dev_state->send_state.send_callbacks[c_idx].func = callback;
-    dev_state->send_state.send_callbacks[c_idx].argument = callback_arg;
-
     offset_in += sizeof(struct fm_port_bd);
     if (offset_in >= in_be16(&pram->txqd.bd_ring_size))
         offset_in = 0;
@@ -143,33 +130,14 @@ static int fm_eth_send(struct dev_state *dev_state,
     txbd_base = (struct fm_port_bd *)fm_eth->tx_bd_ring;
     if (txbd >= (txbd_base + TX_BD_RING_SIZE))
         txbd = txbd_base;
+
     /* update current txbd */
     fm_eth->cur_txbd = (void *)txbd;
 
     return 1;
 }
 
-static void reclaim_send_buffers(pok_netdevice_t *dev)
-{
-    //send_last_seen is initialized by zero as member of static global structure
-    struct dev_state *dev_state = dev->info;
-    struct fm_eth *fm_eth = dev_state->current_fm;
-    size_t bd_size = sizeof(struct fm_port_bd);
-    size_t bd_ring_size = bd_size * TX_BD_RING_SIZE;
-    struct send_state *send_state = &dev_state->send_state;
-
-    // Sets by NIC
-    uint16_t offset_out = in_be16(&fm_eth->tx_pram->txqd.offset_out);
-
-    while ((offset_out + bd_ring_size - send_state->send_last_seen * bd_size)%bd_ring_size >= bd_size) {
-        uint16_t idx = send_state->send_last_seen;
-        struct send_callback cb = send_state->send_callbacks[idx];
-        cb.func(cb.argument);
-        send_state->send_last_seen = (send_state->send_last_seen + 1) % TX_BD_RING_SIZE;
-    }
-
-}
-
+#if 0
 static int fm_eth_recv(struct dev_state *dev_state)
 {
     struct fm_eth *fm_eth = dev_state->current_fm;
@@ -422,7 +390,7 @@ static void fm_eth_open(struct dev_state *dev_state)
 }
 
 
-static void init_device(struct fm_eth *fm_eth, DTSEC_NET_DEV_state *state)
+static void init_device(DTSEC_NET_DEV_state *state, struct fm_eth *fm_eth)
 {
     struct dev_state *dev_state = &state->dev_state;
     dev_state->current_fm = fm_eth;
@@ -452,9 +420,9 @@ void dtsec_init(DTSEC_NET_DEV *self)
 
 
     if (self->state.dtsec_num == 3)
-        init_device(&dtsec3, &self->state);
+        init_device(&self->state, &dtsec3);
     else if (self->state.dtsec_num == 4)
-        init_device(&dtsec4, &self->state);
+        init_device(&self->state, &dtsec4);
     else
         printf("unsupported dtsec_num %d\n", self->state.dtsec_num);
 }
