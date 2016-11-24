@@ -1,0 +1,16 @@
+- name: DTSEC_NET_DEV
+  state_struct:
+      dtsec_num: uint8_t
+
+  init_func: dtsec_init
+
+  in_ports:
+      - name: portA
+        type: preallocated_sender
+        implementation:
+            send: dtsec_send_frame
+            flush: dtsec_flush_send
+
+  out_ports:
+      - name: portB
+        type: message_handler
