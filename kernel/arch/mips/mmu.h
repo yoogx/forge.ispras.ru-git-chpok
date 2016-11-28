@@ -50,7 +50,7 @@ static inline int pok_arch_mmu_shift_by_size(unsigned size)
                                                               01              XSSEG. Сегмент супервизора.
                                                               10              Зарезервировано.
                                                               11              XKSEG. Сегмент ядра.*/
-#define EntryLo0_PFN(x)         (x << 6)            /*Номер страницы. Соответствует битам [35..12] физического адреса*/
+#define EntryLo0_PFN(x)         (x >> 12) << 6            /*Номер страницы. Соответствует битам [35..12] физического адреса*/
 #define EntryLo0_C(x)           (x << 3)            /*Код политики кэширования*/
 #define EntryLo0_D(x)           (x & 0x4)           /*Бит, показывающий, что страница доступна для записи.*/
 #define EntryLo0_V(x)           (x & 0x2)           /*Бит, показывающий, что содержимое TLB доступно для чтения.*/
@@ -145,14 +145,12 @@ static inline int pok_arch_mmu_shift_by_size(unsigned size)
  * @ requires tlbsel < 2;
  */
 void pok_mips_tlb_write(
-        unsigned tlbsel,
         uint32_t virtual, 
         uint64_t physical, 
         unsigned pgsize_enum, 
         unsigned permissions,
         unsigned wimge,
         unsigned pid,
-        unsigned entry,
         pok_bool_t valid
     );
 
@@ -162,21 +160,18 @@ void pok_mips_tlb_write(
 /*
  * @ requires tlbsel < 2;
  */
-void pok_mips_tlb_clear_entry(
-        unsigned tlbsel,
-        unsigned entry
-    );
 
 /*
  * @ requires tlbsel < 2;
  */
 void pok_mips_tlb_read_entry(
-        unsigned tlbsel,
-        unsigned entry,
         unsigned *valid, 
         unsigned *tsize, 
         uint32_t *epn,
         uint64_t *rpn);
+
+void dump_tlb(int first, int last);
+
 
 /*
  * @ requires tlbsel < 5;
