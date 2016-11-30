@@ -23,8 +23,8 @@
              A653_SamplingPortType and A653_QueueingPortType
              defined in the standard
         -->
-        <Queueing_Port Name="UIN"  Protocol="UDP" MaxMessageSize="64" Direction="SOURCE" MaxNbMessage="10" />
-        <Queueing_Port Name="UOUT" Protocol="UDP" MaxMessageSize="64" Direction="DESTINATION" MaxNbMessage="10" />
+        <Queueing_Port Name="UIN"  Protocol="UDP" MaxMessageSize="4096" Direction="SOURCE" MaxNbMessage="150" />
+        <Queueing_Port Name="UOUT" Protocol="UDP" MaxMessageSize="4096" Direction="DESTINATION" MaxNbMessage="150" />
     </ARINC653_Ports>
 
     <HM_Table>

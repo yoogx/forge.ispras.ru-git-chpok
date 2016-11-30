@@ -24,33 +24,65 @@ QUEUING_PORT_ID_TYPE QP1;
 QUEUING_PORT_ID_TYPE QP2;
 #define SECOND 1000000000LL
 
+#define BIG_ARRAY_SIZE 10000
+char BIG_ARRAY[BIG_ARRAY_SIZE];
+
 static void first_process(void)
 {
     RETURN_CODE_TYPE ret;
-    char msg[64];
+    MESSAGE_SIZE_TYPE len;
 
     /* Wait a little until second partition is initialized */
     TIMED_WAIT(SECOND/5, &ret);
 
-    for (int i = 0; i < 30; i++) {
-        printf("P1: sending %d msg\n", i);
-        snprintf(msg, 64, "Hello %d\n", i);
-        SEND_QUEUING_MESSAGE(QP1, (MESSAGE_ADDR_TYPE) &msg, sizeof(msg), INFINITE_TIME_VALUE, &ret);
-        //TIMED_WAIT(SECOND/5, &ret);
+    SEND_QUEUING_MESSAGE(QP1, (MESSAGE_ADDR_TYPE) "Hello", 6, INFINITE_TIME_VALUE, &ret);
 
+    /*
+    while (1) {
+        BIG_ARRAY[0] = 0;
+        RECEIVE_QUEUING_MESSAGE(QP2, 5*SECOND, (MESSAGE_ADDR_TYPE) BIG_ARRAY, &len, &ret);
+
+        if (ret != NO_ERROR) {
+            printf("haven't get any packet\n");
+            continue;
+        }
+        printf("got packet %d. Sending back\n", BIG_ARRAY[0]);
+
+        BIG_ARRAY[0] = (BIG_ARRAY[0] + 1) % 255;
+        SEND_QUEUING_MESSAGE(QP1, (MESSAGE_ADDR_TYPE) BIG_ARRAY, len, INFINITE_TIME_VALUE, &ret);
+
+        if (ret != NO_ERROR) {
+            printf("error while sending %d\n", ret);
+        }
     }
+    */
 
     while (1) {
-        MESSAGE_SIZE_TYPE len;
-        //VALIDITY_TYPE validity;
-
-        RECEIVE_QUEUING_MESSAGE(QP2, INFINITE_TIME_VALUE, (MESSAGE_ADDR_TYPE) &msg, &len, &ret);
-
+        RECEIVE_QUEUING_MESSAGE(QP2, SECOND, (MESSAGE_ADDR_TYPE) BIG_ARRAY, &len, &ret);
         if (ret == NO_ERROR) {
-            msg[len] = '\0';
-            printf("%s", msg);
-        } else {
-            printf("PR1: qp error: %u\n", ret);
+            int COUNT = BIG_ARRAY[0];
+            printf("START. sending %d\n", COUNT);
+
+            for (int i = 0; i < COUNT; i++) {
+                //if (i%10 == 0)
+                //    printf("P1: sending %d packet\n", i);
+                BIG_ARRAY[0] = i;
+                SEND_QUEUING_MESSAGE(QP1, (MESSAGE_ADDR_TYPE) BIG_ARRAY, len, INFINITE_TIME_VALUE, &ret);
+                if (ret != NO_ERROR) {
+                    printf("error while sending %d\n", ret);
+                }
+            }
+
+            //for (int i = 0; i < COUNT; i++) {
+            //    MESSAGE_SIZE_TYPE len;
+            //    BIG_ARRAY[0] = 0;
+            //    RECEIVE_QUEUING_MESSAGE(QP2, SECOND, (MESSAGE_ADDR_TYPE) BIG_ARRAY, &len, &ret);
+
+            //    if (ret != NO_ERROR || BIG_ARRAY[0] == i + 1) {
+            //        printf("lost packet :(\n");
+            //    }
+            //}
+            printf("STOP\n");
         }
     }
 }
@@ -90,8 +122,10 @@ static int real_main(void)
 
 
     // create ports
-    CREATE_QUEUING_PORT("QP1", 64, 10, SOURCE,      FIFO, &QP1, &ret);
-    CREATE_QUEUING_PORT("QP2", 64, 10, DESTINATION, FIFO, &QP2, &ret);
+    CREATE_QUEUING_PORT("QP1", 4096, 150, SOURCE,      FIFO, &QP1, &ret);
+    if (ret != NO_ERROR) printf("P1: cannot create QP1\n");
+    CREATE_QUEUING_PORT("QP2", 4096, 150, DESTINATION, FIFO, &QP2, &ret);
+    if (ret != NO_ERROR) printf("P1: cannot create QP2\n");
 
 
     // transition to NORMAL operating mode

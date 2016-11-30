@@ -29,8 +29,8 @@ struct port_ops{
         ARINC_SENDER arinc_sender_1 = {
             .state = {
                 .port_direction = DESTINATION,
-                .q_port_max_nb_messages = 10,
-                .port_max_message_size = 64,
+                .q_port_max_nb_messages = 150,
+                .port_max_message_size = 4096,
                 .port_name = "UOUT",
                 .overhead = 42,
                 .is_queuing_port = 1,
@@ -45,7 +45,7 @@ struct port_ops{
             .state = {
                 .src_ip = IP_ADDR(192, 168, 56, 101),
                 .dst_ip = IP_ADDR(192, 168, 56, 1),
-                .dst_mac = {0x08, 0x00, 0x27, 0x00, 0x88, 0xAD},
+                .dst_mac = {0x50, 0x46, 0x5d, 0x37, 0x63, 0x13},
                 .src_port = 10002,
                 .dst_port = 10003,
             },
@@ -65,7 +65,7 @@ struct port_ops{
     #include <DTSEC_NET_DEV_gen.h>
         void __DTSEC_NET_DEV_init__(DTSEC_NET_DEV*);
         void __DTSEC_NET_DEV_activity__(DTSEC_NET_DEV*);
-        DTSEC_NET_DEV dtsec_net_dev_1 = {
+        DTSEC_NET_DEV net_dev_1 = {
             .state = {
                 .dtsec_num = 3,
             },
@@ -104,11 +104,11 @@ struct port_ops{
     #include <ROUTER_gen.h>
         void __ROUTER_init__(ROUTER*);
         void __ROUTER_activity__(ROUTER*);
-            struct port_ops router_array_for_portArray[2];
+            struct port_ops router_array_for_portArray[1];
         ROUTER router = {
             .state = {
-                .map_ip_port_to_idx = {{IP_ADDR(192, 168, 56, 101), 10001},{IP_ADDR(192, 168, 56, 102), 10005}},
-                .map_ip_port_to_idx_len = 2,
+                .map_ip_port_to_idx = {{IP_ADDR(192, 168, 56, 101), 10001}},
+                .map_ip_port_to_idx_len = 1,
             },
 
             .out = {
@@ -123,19 +123,9 @@ struct port_ops{
             .state = {
                 .port_direction = SOURCE,
                 .is_queuing_port = 1,
-                .port_max_message_size = 64,
+                .port_max_message_size = 4096,
                 .port_name = "UIN",
-                .q_port_max_nb_messages = 10,
-            },
-
-        };
-
-    #include <ARINC_RECEIVER_gen.h>
-        void __ARINC_RECEIVER_init__(ARINC_RECEIVER*);
-        void __ARINC_RECEIVER_activity__(ARINC_RECEIVER*);
-        ARINC_RECEIVER arinc_receiver_2 = {
-            .state = {
-                .port_name = "__test__",
+                .q_port_max_nb_messages = 150,
             },
 
         };
@@ -150,7 +140,7 @@ void __components_init__()
 
             __MAC_SENDER_init__(&mac_sender_1);
 
-            __DTSEC_NET_DEV_init__(&dtsec_net_dev_1);
+            __DTSEC_NET_DEV_init__(&net_dev_1);
 
             __ARP_ANSWERER_init__(&arp_answerer_1);
 
@@ -162,17 +152,15 @@ void __components_init__()
 
             __ARINC_RECEIVER_init__(&arinc_receiver_1);
 
-            __ARINC_RECEIVER_init__(&arinc_receiver_2);
-
 
         arinc_sender_1.out.portA.ops = &udp_ip_sender_1.in.portA.ops;
         arinc_sender_1.out.portA.owner = &udp_ip_sender_1;
         udp_ip_sender_1.out.portB.ops = &mac_sender_1.in.portA.ops;
         udp_ip_sender_1.out.portB.owner = &mac_sender_1;
-        mac_sender_1.out.portB.ops = &dtsec_net_dev_1.in.portA.ops;
-        mac_sender_1.out.portB.owner = &dtsec_net_dev_1;
-        dtsec_net_dev_1.out.portB.ops = &mac_receiver_1.in.portA.ops;
-        dtsec_net_dev_1.out.portB.owner = &mac_receiver_1;
+        mac_sender_1.out.portB.ops = &net_dev_1.in.portA.ops;
+        mac_sender_1.out.portB.owner = &net_dev_1;
+        net_dev_1.out.portB.ops = &mac_receiver_1.in.portA.ops;
+        net_dev_1.out.portB.owner = &mac_receiver_1;
         mac_receiver_1.out.port_ARP.ops = &arp_answerer_1.in.portA.ops;
         mac_receiver_1.out.port_ARP.owner = &arp_answerer_1;
         arp_answerer_1.out.portB.ops = &mac_sender_1.in.portA.ops;
@@ -183,8 +171,6 @@ void __components_init__()
         udp_receiver.out.portB.owner = &router;
         router.out.portArray[0].ops = &arinc_receiver_1.in.portA.ops;
         router.out.portArray[0].owner = &arinc_receiver_1;
-        router.out.portArray[1].ops = &arinc_receiver_2.in.portA.ops;
-        router.out.portArray[1].owner = &arinc_receiver_2;
 
 }
 
@@ -194,13 +180,12 @@ void __components_activity__()
                 __ARINC_SENDER_activity__(&arinc_sender_1);
                 __UDP_IP_SENDER_activity__(&udp_ip_sender_1);
                 __MAC_SENDER_activity__(&mac_sender_1);
-                __DTSEC_NET_DEV_activity__(&dtsec_net_dev_1);
+                __DTSEC_NET_DEV_activity__(&net_dev_1);
                 __ARP_ANSWERER_activity__(&arp_answerer_1);
                 __MAC_RECEIVER_activity__(&mac_receiver_1);
                 __UDP_RECEIVER_activity__(&udp_receiver);
                 __ROUTER_activity__(&router);
                 __ARINC_RECEIVER_activity__(&arinc_receiver_1);
-                __ARINC_RECEIVER_activity__(&arinc_receiver_2);
     }
 
 }
