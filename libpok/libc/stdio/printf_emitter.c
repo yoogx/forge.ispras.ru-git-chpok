@@ -98,7 +98,7 @@ static void print_float(emit_character_t emit_character,
 //XXX for now precision is used only for floating points
 static const char * handle_fmt(
     emit_character_t emit_character, void *private_data,
-    const char* format, va_list arg)
+    const char* format, va_list* parg)
 {
     unsigned l = 0;
     int pad = 0;
@@ -138,7 +138,7 @@ static const char * handle_fmt(
            case 's':
                 {
                     //TODO implement l!=0 case
-                    const char *s = va_arg(arg, const char *);
+                    const char *s = va_arg(*parg, const char *);
                     if (!s)
                         s = (const char *)"(null)";
                     int len = strlen(s);
@@ -160,11 +160,11 @@ static const char * handle_fmt(
                     long long value;
 
                     if (l == 2)
-                        value = va_arg(arg, unsigned long long);
+                        value = va_arg(*parg, unsigned long long);
                     else if (l == 1)
-                        value = va_arg(arg, unsigned long);
+                        value = va_arg(*parg, unsigned long);
                     else
-                        value = va_arg(arg, unsigned );
+                        value = va_arg(*parg, unsigned );
 
                     print_num(emit_character, private_data,
                         value, 16, pad, 0, pad_with_zero);
@@ -175,11 +175,11 @@ static const char * handle_fmt(
                 {
                     long long value;
                     if (l == 2)
-                        value = va_arg(arg, long long);
+                        value = va_arg(*parg, long long);
                     else if (l == 1)
-                        value = va_arg(arg, long);
+                        value = va_arg(*parg, long);
                     else
-                        value = va_arg(arg, int);
+                        value = va_arg(*parg, int);
                     int neg = value < 0;
                     if (neg)
                         value = -value;
@@ -191,11 +191,11 @@ static const char * handle_fmt(
                 {
                     long long value;
                     if (l == 2)
-                        value = va_arg(arg, unsigned long long);
+                        value = va_arg(*parg, unsigned long long);
                     else if (l == 1)
-                        value = va_arg(arg, unsigned long);
+                        value = va_arg(*parg, unsigned long);
                     else
-                        value = va_arg(arg, unsigned );
+                        value = va_arg(*parg, unsigned );
 
                     print_num(emit_character, private_data,
                         value, 10, pad, 0, pad_with_zero);
@@ -205,9 +205,9 @@ static const char * handle_fmt(
                 {
                     long double value;
                     if (l == 2)
-                        value = va_arg(arg, long double);
+                        value = va_arg(*parg, long double);
                     else
-                        value = va_arg(arg, double);
+                        value = va_arg(*parg, double);
                     int neg = value < 0;
                     if (neg)
                         value = -value;
@@ -219,7 +219,7 @@ static const char * handle_fmt(
                 }
             case 'c':
                 //TODO implement l!=0 case
-                PUTC(va_arg(arg, unsigned ));
+                PUTC(va_arg(*parg, unsigned ));
                 return ++format;
             case '%':
                 PUTC('%');
@@ -238,12 +238,32 @@ static const char * handle_fmt(
 void printf_emitter(emit_character_t emit_character, void *private_data,
     const char* format, va_list arg)
 {
+    /* 
+     * For some reason, we cannot pass reference to our 'va_list' argument
+     * on PPC.
+     * 
+     * Because of that we create our copy of the arg.
+     * 
+     * TODO: rewrite this part by do not propagating 'arg' to non-single
+     * inner calls.
+     */
+    va_list arg1;
+
+    /* 
+     * Avoid using __va_copy as it is a GNU extension.
+     * 
+     * After va_copy() do not forget to call va_end() at the end.
+     */
+    va_copy(arg1, arg);
+
     while(*format) {
         if (*format == '%') {
             format++;
-            format = handle_fmt(emit_character, private_data, format, arg);
+            format = handle_fmt(emit_character, private_data, format, &arg1);
         }
         else
             PUTC(*format++);
     }
+
+    va_end(arg1);
 }

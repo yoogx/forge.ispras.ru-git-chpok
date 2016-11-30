@@ -350,7 +350,7 @@ void pok_channel_sampling_send_message(
     
     pok_preemption_disable();
     channel->read_pos_next = read_pos_next = channel->write_pos;
-    channel->timestamps[read_pos_next] = POK_GETTICK();
+    channel->timestamps[read_pos_next] = jet_system_time();
 
     /*
      * The only choice for `write_pos`, which can differ from both

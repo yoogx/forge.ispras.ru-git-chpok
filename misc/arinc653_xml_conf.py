@@ -47,16 +47,14 @@ def parse_time(s):
         ns = int(s[:-2])
         # see the end of the function
     elif s.endswith("ms"):
-        return int(s[:-2])
+        ns = int(s[:-2]) * (10 ** 6)
     elif s.endswith("s"):
-        return int(s[:-1]) * (10 ** 3)
+        ns = int(s[:-1]) * (10 ** 9)
     else:
         # assume nanoseconds
         ns = int(s)
 
-    if ns < (10 ** 6):
-            raise ValueError("specified time less than 1ms (which won't work due to 1ms timer precision)")
-    return ns // (10 ** 6)
+    return ns
 
 class ArincConfigParser:
     # Static map: error code (without prefix) -> error description

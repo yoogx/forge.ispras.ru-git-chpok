@@ -41,6 +41,8 @@ void jet_boot(void);
  */
 void jet_console_init_all(void);
 
+/* Should be called on timer tick with interrupts disabled. */
+void jet_on_tick(void);
 
 
 #endif /* __JET_ASP_ENTRIES_H__ */

@@ -217,7 +217,7 @@ void pok_sched_restart (void)
 {
     struct jet_context** new_sp;
 
-    first_frame_starts = POK_GETTICK();
+    first_frame_starts = jet_system_time();
 #ifdef POK_NEEDS_MONITOR
     idle_sp = jet_context_init(idle_stack, &idle_function);
 #endif /*POK_NEEDS_MONITOR */
@@ -274,7 +274,7 @@ static void pok_sched(void)
     
     if(!flag_test_and_reset(sched_need_recheck)) return;
     
-    now = POK_GETTICK();
+    now = jet_system_time();
     if(pok_sched_next_deadline > now) goto same_partition;
     
     pok_sched_current_slot = (pok_sched_current_slot + 1);
@@ -382,6 +382,8 @@ pok_time_t get_next_periodic_processing_start(void)
 
 void pok_sched_on_time_changed(void)
 {
+    assert(!ja_preempt_enabled());
+
     pok_partition_t* part = current_partition;
     sched_need_recheck = TRUE;
 

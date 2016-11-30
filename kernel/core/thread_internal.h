@@ -112,7 +112,7 @@ static inline void thread_wait_common(pok_thread_t* t, pok_time_t duration)
     if(pok_time_is_infinity(duration))
 	thread_wait(t);
     else
-        thread_wait_timed(t, POK_GETTICK() + duration);
+        thread_wait_timed(t, jet_system_time() + duration);
 }
 
 /*

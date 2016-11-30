@@ -328,7 +328,7 @@ static void partition_set_mode_normal(void)
 	pok_partition_arinc_t* part = current_partition_arinc;
 
 	// Cached value of current time.
-	pok_time_t current_time = POK_GETTICK();
+	pok_time_t current_time = jet_system_time();
 	/*
 	 * Cached value of first release point.
 	 * 

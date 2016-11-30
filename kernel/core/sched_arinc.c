@@ -222,7 +222,7 @@ static void sched_arinc(void)
 
     if(flag_test_and_reset(part->base_part.state.bytes.time_changed))
     {
-        pok_time_t now = POK_GETTICK();
+        pok_time_t now = jet_system_time();
 
         delayed_event_queue_check(&part->queue_deadline, now, &thread_deadline_occured);
 

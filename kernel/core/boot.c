@@ -48,9 +48,6 @@ void jet_boot (void)
    pok_network_init();
 #endif
 
-#if defined (POK_NEEDS_TIME) || defined (POK_NEEDS_SCHED) || defined (POK_NEEDS_THREADS)
-   pok_time_init();
-#endif
 #ifdef POK_NEEDS_PARTITIONS
    pok_partition_arinc_init_all();
 #endif

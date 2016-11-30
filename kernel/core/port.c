@@ -624,7 +624,7 @@ pok_ret_t pok_port_sampling_read(
         memcpy(k_data, message->content, message->size);
         *k_len = (pok_port_size_t)message->size;
 
-        pok_time_t current_time = POK_GETTICK();
+        pok_time_t current_time = jet_system_time();
         port_sampling->last_message_validity =
             ((ts + port_sampling->refresh_period) >= current_time)
             ? TRUE: FALSE;

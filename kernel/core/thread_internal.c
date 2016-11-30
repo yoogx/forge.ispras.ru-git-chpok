@@ -293,7 +293,7 @@ void thread_suspend_timed(pok_thread_t* t, pok_time_t time)
     t->suspended = TRUE;
     thread_set_uneligible(t);
     thread_wait(t);
-    thread_delay_event(t, POK_GETTICK() + time, &thread_resume_waited);
+    thread_delay_event(t, jet_system_time() + time, &thread_resume_waited);
 }
 
 

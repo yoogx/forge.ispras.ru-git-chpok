@@ -54,6 +54,9 @@ class TimeSlot():
         pass
 
     def __init__(self, duration):
+        if duration < (10 ** 6):
+            raise ValueError("Minimum value for Slot duration is 1000000 (1ms).")
+
         self.duration = duration
 
     def validate(self):
@@ -469,6 +472,9 @@ class SamplingPort(Port):
 
     def __init__(self, name, direction, max_message_size, refresh):
         Port.__init__(self, name, direction, max_message_size)
+        if refresh < (10 ** 6):
+                raise ValueError("Minimum value for refresh is 1000000 (1ms).")
+
         self.refresh = refresh
 
     def validate(self):
