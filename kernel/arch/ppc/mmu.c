@@ -134,3 +134,51 @@ void pok_ppc_tlb_read_entry(
     *rpn |= ((uint64_t)mfspr(SPRN_MAS7)) << 32;
 }
 
+
+static inline const char* pok_ppc_tlb_size(unsigned size)
+{
+    switch (size) {
+#define CASE(x) case E500MC_PGSIZE_##x: return #x; 
+        CASE(4K);
+        CASE(16K);
+        CASE(64K);
+        CASE(256K);
+        CASE(1M);
+        CASE(4M);
+        CASE(16M);
+        CASE(64M);
+        CASE(256M);
+        CASE(1G);
+        CASE(4G);
+#undef CASE
+        default:
+        return "Unknown";
+    }
+}
+
+void pok_ppc_tlb_print(unsigned tlbsel)
+{
+    unsigned limit = pok_ppc_tlb_get_nentry(1);
+
+    for (unsigned i = 0; i < limit; i++) {
+        unsigned valid;
+        unsigned tsize;
+        uint32_t epn;
+        uint64_t rpn;
+        pok_ppc_tlb_read_entry(tlbsel, i,
+                &valid,
+                &tsize,
+                &epn,
+                &rpn
+                );
+        if (valid) {
+            printf("DEBUG: tlb entry %d:%d:\r\n", tlbsel, i);
+            printf("DEBUG:   Valid\r\n");
+            printf("DEBUG:   Effective: %p\r\n", (void*)epn);
+            // FIXME This is wrong. We print only 32 bits out of 36
+            printf("DEBUG:   Physical: %x:%p\r\n",
+                    (unsigned)(rpn>>32), (void*)(unsigned)rpn);
+            printf("DEBUG:   Size: %s\r\n", pok_ppc_tlb_size(tsize));
+        }
+    }
+}

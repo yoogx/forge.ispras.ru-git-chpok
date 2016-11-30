@@ -33,7 +33,6 @@ components = SConscript('components/SConscript')
 syspart_program = syspart_env.Program(target = 'syspart.lo', source = [
     drivers,
     components,
-    'config.c',
     'pool.c'
 ])
 syspart_env.Depends(syspart_program, env['POK_PATH']+'/libpok/')

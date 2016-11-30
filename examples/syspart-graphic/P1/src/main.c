@@ -11,15 +11,14 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
  * See the GNU General Public License version 3 for more details.
- *
- * This file also incorporates work covered by POK License.
- * Copyright (c) 2007-2009 POK team
  */
 
-#include <pci.h>
-enum {
-    PCI_DRIVER_TABLE_SIZE = 10,
-};
+#include <stdio.h>
+#include <string.h>
+#include <arinc653/buffer.h>
+#include <arinc653/partition.h>
+#include <arinc653/time.h>
 
-struct pci_driver pci_driver_table[PCI_DRIVER_TABLE_SIZE];
-unsigned pci_driver_table_size = PCI_DRIVER_TABLE_SIZE;
+void main(void) {
+    STOP_SELF();
+}

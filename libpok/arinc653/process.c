@@ -62,7 +62,6 @@ void GET_PROCESS_ID(
     PROCESS_ID_TYPE   *process_id,
     RETURN_CODE_TYPE  *return_code)
 {
-	strtoupper(process_name);
     pok_thread_id_t id;
     pok_ret_t core_ret;
     
@@ -142,7 +141,6 @@ void CREATE_PROCESS (
     PROCESS_ID_TYPE         *process_id,
     RETURN_CODE_TYPE        *return_code)
 {
-    strtoupper(attributes->NAME);
     pok_thread_attr_t core_attr;
     pok_ret_t         core_ret;
     pok_thread_id_t   core_process_id;
@@ -165,10 +163,8 @@ void CREATE_PROCESS (
     }
     core_attr.time_capacity   = attributes->TIME_CAPACITY;
     core_attr.stack_size      = attributes->STACK_SIZE;
-    
     core_ret = pok_thread_create (attributes->NAME, attributes->ENTRY_POINT,
         &core_attr, &core_process_id);
-
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
         MAP_ERROR(POK_ERRNO_EXISTS, NO_ACTION);

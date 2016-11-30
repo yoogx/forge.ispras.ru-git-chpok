@@ -110,6 +110,11 @@ class ArincConfigParser:
 
         conf.network = self.parse_network(root.find("Network"))
 
+        mem_blocks = root.find("Memory_Blocks")
+        if mem_blocks is not None:
+            for mem_block_root in mem_blocks.findall("Memory_Block"):
+                self.parse_memory_block(conf, mem_block_root)
+
         # Use some default value for module HM table.
         module_error_level_selector_per_state = {error_id: 1 for error_id in conf.error_ids_all }
         for s in ['ERROR_HANDLER', 'USER']:
@@ -151,6 +156,8 @@ class ArincConfigParser:
         self.parse_ports(part, part_root.find("ARINC653_Ports"))
 
         self.parse_hm(part.hm_table, part_root.find("HM_Table"))
+
+        self.parse_partition_memory_blocks(part, part_root.find("Memory_Blocks"))
 
     def parse_schedule(self, conf, slot_root):
         for x in slot_root.findall("Slot"):
@@ -252,6 +259,38 @@ class ArincConfigParser:
         #    res.mac = None
 
         return res
+
+    def parse_partition_memory_blocks(self, part, memory_blocks):
+        if memory_blocks is None:
+            return
+        for mem_block in memory_blocks.findall("Memory_Block"):
+            self.parse_partition_memory_block(part, mem_block)
+
+    def parse_partition_memory_block(self, part, mroot):
+        name = mroot.attrib["NameRef"]
+        if "UserAccess" in mroot.attrib:
+            user_access = mroot.attrib["UserAccess"]
+        else:
+            user_access = None
+        part.add_mem_block(name, user_access)
+
+
+    def parse_memory_block(self, conf, mroot):
+        name = mroot.attrib["Name"]
+        size = int(mroot.attrib["Size"], 0)
+
+        mblock = conf.add_memory_block(name, size)
+
+        mblock.virt_addr = int(mroot.attrib["VirtualAddress"], 0)
+        mblock.phys_addr = int(mroot.attrib["PhysicalAddress"], 0)
+
+        if "CachePolicy" in mroot.attrib:
+            mblock.cache_policy = mroot.attrib["CachePolicy"]
+
+        if "KernelAccess" in mroot.attrib:
+            mblock.set_kernel_access(mroot.attrib["KernelAccess"])
+
+        print("found memblock", mblock)
 
     def parse_hm(self, table, root):
         if root is None:

@@ -44,7 +44,7 @@ typedef struct
 
 typedef struct
 {
-    s_pci_device  pci;
+    s_pci_dev  pci;
     unsigned int  addr;
     uint8_t       mac[6];
     void (*packet_received_callback)(const char *, size_t);

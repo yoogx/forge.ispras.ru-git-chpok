@@ -43,6 +43,7 @@
 
 
     .rodata
+    .align 4 # 4 words = 16 bytes
 zero_fp:
     .quad 0
     

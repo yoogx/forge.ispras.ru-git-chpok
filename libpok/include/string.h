@@ -49,4 +49,7 @@ void *memset(void *s, int c, size_t n);
 
 size_t strlen(const char *s);
 
+/* POSIX */
+int	strncasecmp(const char *s1, const char *s2, size_t n);
+
 #endif /* __LIBJET_STRING_H__ */

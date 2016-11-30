@@ -36,7 +36,7 @@ struct send_buffer {
 } __attribute__((packed));
 
 struct virtio_network_device {
-    s_pci_device pci_device;
+    s_pci_dev pci_device;
 
     struct virtio_virtqueue rx_vq, tx_vq;
 
