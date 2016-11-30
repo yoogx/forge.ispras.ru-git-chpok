@@ -19,11 +19,6 @@
 
 char *asctime(const struct tm *timeptr)
 {
-    assert(timeptr->tm_year >= 0);
-    assert((timeptr->tm_mon >= 0) && (timeptr->tm_mon < 12));
-    assert((timeptr->tm_mday >= 1) && (timeptr->tm_mday <= 31));
-    assert((timeptr->tm_yday >= 0) && (timeptr->tm_yday < 366));
-
     /*
      * Full implementation is taken from the C99 standard
      * with replacement sprintf->snprintf.
@@ -39,18 +34,9 @@ char *asctime(const struct tm *timeptr)
         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
     };
     static char result[26];
-/*    snprintf(result, sizeof(result), "%.3s %.3s%3d %02d:%02d:%02d %d\n",
+    snprintf(result, sizeof(result), "%.3s %.3s%3d %02d:%02d:%02d %d\n",
         wday_name[timeptr->tm_wday],
         mon_name[timeptr->tm_mon],
-        timeptr->tm_mday, timeptr->tm_hour,
-        timeptr->tm_min, timeptr->tm_sec,
-        1900 + timeptr->tm_year); */
-    
-    int l = snprintf(result, sizeof(result), "%.3s %.3s",
-        wday_name[timeptr->tm_wday],
-        mon_name[timeptr->tm_mon]);
-    
-    snprintf(result + l, sizeof(result) - l, "%3d %02d:%02d:%02d %d\n",
         timeptr->tm_mday, timeptr->tm_hour,
         timeptr->tm_min, timeptr->tm_sec,
         1900 + timeptr->tm_year);
