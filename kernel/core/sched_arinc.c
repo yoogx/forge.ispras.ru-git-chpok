@@ -60,21 +60,6 @@ void sched_arinc_start(void)
         &thread_start_func, &thread_main->sp);
 }
 
-static void thread_deadline_occured(struct delayed_event* event)
-{
-    pok_thread_t* thread = container_of(event, typeof(*thread), thread_deadline_event);
-    printf_debug("Deadline occured for thread %s (%d)\n", thread->name, (int)(thread - current_partition_arinc->threads));
-    pok_thread_emit_deadline_missed(thread);
-
-    // TODO: if error was ignored, what to do?
-}
-
-static void thread_delayed_event_func(struct delayed_event* event)
-{
-    pok_thread_t* thread = container_of(event, typeof(*thread), thread_delayed_event);
-    thread->thread_delayed_func(thread);
-}
-
 
 /* Notification is received for given queuing port. */
 static void port_queuing_fired(pok_port_queuing_t* port_queuing)
@@ -84,34 +69,27 @@ static void port_queuing_fired(pok_port_queuing_t* port_queuing)
         while(!pok_thread_wq_is_empty(&port_queuing->waiters))
         {
             pok_thread_t* t;
-            int n;
+            pok_message_size_t message_size; // Just for function's call.
 
-            if(!pok_channel_queuing_r_get_message(port_queuing->channel, TRUE))
+            if(!pok_channel_queuing_r_get_message(port_queuing->channel,
+                &message_size, TRUE))
                 break; // wait again
 
-            n = pok_channel_queuing_r_n_messages(port_queuing->channel);
+            t = pok_thread_wq_wake_up(&port_queuing->waiters);
 
-            for(; n > 0; n--)
-            {
-                t = pok_thread_wq_wake_up(&port_queuing->waiters);
-                if(!t) break;
-
-                port_queuing_receive(port_queuing, t);
-            }
+            port_queuing_receive(port_queuing, t);
         }
     }
     else // if(port_queuing->direction == POK_PORT_DIRECTION_OUT)
     {
         while(!pok_thread_wq_is_empty(&port_queuing->waiters))
         {
-            pok_message_t* m;
             pok_thread_t* t;
 
-            m = pok_channel_queuing_s_get_message(port_queuing->channel, TRUE);
-            if(!m) break; // wait again
+            if(!pok_channel_queuing_s_get_message(port_queuing->channel, TRUE))
+                break; // wait again
 
             t = pok_thread_wq_wake_up(&port_queuing->waiters);
-            assert(t);
 
             port_queuing_send(port_queuing, t);
         }
@@ -202,31 +180,47 @@ static void sched_arinc(void)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
 
-    if(flag_test_and_reset(part->base_part.state.bytes.control_returned))
+again:
+    if(flag_test_and_reset(part->base_part.is_event))
     {
-        // Currently ignore this flag
-        // As if time has been changed too.
-        flag_set(part->base_part.state.bytes.time_changed);
-    }
+        struct jet_partition_event event;
 
-    if(flag_test_and_reset(part->base_part.state.bytes.outer_notification))
-    {
-        pok_port_queuing_t* port_queuing = part->ports_queuing;
-        pok_port_queuing_t* port_queuing_end = port_queuing + part->nports_queuing;
-
-        for(;port_queuing < port_queuing_end; port_queuing++)
+        while(pok_partition_get_event(&event))
         {
-            port_queuing_fired(port_queuing);
+            switch(event.event_type) {
+                case JET_PARTITION_EVENT_TYPE_TIMER:
+                    delayed_event_queue_check(&part->partition_delayed_events, jet_system_time());
+                    break;
+                case JET_PARTITION_EVENT_TYPE_PORT_SEND_AVAILABLE:
+                case JET_PARTITION_EVENT_TYPE_PORT_RECEIVE_AVAILABLE:
+                    port_queuing_fired(&part->ports_queuing[event.handler_id]);
+                    break;
+                default:
+                    unreachable();
+            }
         }
     }
 
-    if(flag_test_and_reset(part->base_part.state.bytes.time_changed))
-    {
-        pok_time_t now = jet_system_time();
+    // Update timer.
+    pok_time_t timer_new = delayed_event_queue_get_check_time(
+        &part->partition_delayed_events);
 
-        delayed_event_queue_check(&part->queue_deadline, now, &thread_deadline_occured);
+    pok_partition_set_timer(&part->base_part, timer_new);
 
-        delayed_event_queue_check(&part->queue_delayed, now, &thread_delayed_event_func);
+    if(timer_new != 0) {
+        /* 
+         * Check wether timer is not expired before we set it.
+         * 
+         * Such a way we eliminate consiquenses of possible race between
+         * setting the timer and checking it in the global scheduler.
+         */
+        pok_time_t time_now = jet_system_time();
+        if(time_now >= timer_new) {
+            // Recheck delayed events.
+            delayed_event_queue_check(&part->partition_delayed_events, time_now);
+            // Need to redrain events before setting timer again.
+            goto again;
+        }
     }
 
     if(!flag_test_and_reset(part->sched_local_recheck_needed)) return;
@@ -235,7 +229,6 @@ static void sched_arinc(void)
 
     pok_thread_t* old_thread = part->thread_current;
     pok_thread_t* new_thread;
-
 
     assert(part->mode != POK_PARTITION_MODE_IDLE); // Idle mode is implemented via function with preemption disabled.
 
@@ -381,19 +374,21 @@ void pok_preemption_local_disable(void)
 
 void pok_preemption_local_enable(void)
 {
-    assert(current_partition_arinc->base_part.preempt_local_disabled);
+    pok_partition_arinc_t* part = current_partition_arinc;
+
+    assert(part->base_part.preempt_local_disabled);
 
     sched_arinc();
 
     barrier();
 
-    flag_reset(current_partition_arinc->base_part.preempt_local_disabled);
+    flag_reset(part->base_part.preempt_local_disabled);
 
     // Check that we do not miss events since sched_arinc() starts.
 
-    while(ACCESS_ONCE(current_partition_arinc->base_part.state.bytes_all))
+    while(ACCESS_ONCE(part->base_part.is_event))
     {
-        flag_set(current_partition_arinc->base_part.preempt_local_disabled);
+        flag_set(part->base_part.preempt_local_disabled);
 
         sched_arinc();
 

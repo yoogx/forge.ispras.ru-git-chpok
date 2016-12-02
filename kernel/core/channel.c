@@ -26,22 +26,30 @@
 void pok_channel_queuing_init(pok_channel_queuing_t* channel)
 {
     channel->max_nb_message =
-        channel->max_nb_message_receive + channel->max_nb_message_send;
-    
-    channel->r_start = 0;
-    channel->border = 0;
-    channel->s_end = 0;
-    
-    channel->message_stride = POK_MESSAGE_STRUCT_SIZE(channel->max_message_size);
-    
-    channel->buffer = jet_mem_alloc(
-        channel->message_stride * channel->max_nb_message);
-    
-    channel->notify_receiver = FALSE;
-    channel->notify_sender = FALSE;
-    
-    channel->sender_generation = 0;
-    channel->receiver_generation = 0;
+        channel->recv.max_nb_message + channel->send.max_nb_message;
+
+    channel->border = channel->recv.next_message = channel->send.next_message = 0;
+
+    const unsigned int message_alignment = __alignof__(int);
+
+    channel->message_stride = ALIGN_VAL(channel->max_message_size,
+        message_alignment);
+
+    channel->messages = ja_mem_alloc_aligned(
+        channel->message_stride * channel->max_nb_message,
+        message_alignment);
+
+    channel->message_sizes = ja_mem_alloc_aligned(
+        sizeof(*channel->message_sizes) * channel->max_nb_message,
+        __alignof__(*channel->message_sizes));
+
+    channel->send.generation = 0;
+    channel->send.is_notify = FALSE;
+
+    channel->recv.generation = 0;
+    channel->recv.is_notify = FALSE;
+
+    channel->message_discarded = FALSE;
 }
 
 /*
@@ -55,7 +63,7 @@ uint16_t channel_queuing_cyclic_add(pok_channel_queuing_t* channel,
 {
     uint16_t sum = pos + index;
     if(sum >= channel->max_nb_message) sum -= channel->max_nb_message;
-    
+
     return sum;
 }
 
@@ -74,212 +82,223 @@ pok_message_range_t channel_queuing_cyclic_sub(pok_channel_queuing_t* channel,
 }
 
 /* Helper: Return message in the buffer at given index. */
-static inline pok_message_t* channel_queuing_message_at(
+static inline char* channel_queuing_message_at(
     pok_channel_queuing_t* channel, pok_message_range_t pos)
 {
     assert(pos < channel->max_nb_message);
-    
-    return (pok_message_t*)&channel->buffer[channel->message_stride * pos];
+
+    return &channel->messages[channel->message_stride * pos];
 }
 
 /* 
- * Helper: notify sender if requested.
+ * Helper: notify side of the channel.
  * 
- * Should be executed with preemption disabled.
+ * Should be executed with global preemption disabled.
  * 
- * Should be called only after consuming messages from the sender.
- * That is, sender is initialized at this stage.
+ * Should be called only after space/messages *become* available.
+ * That is, the side should be initialized at this stage.
  */
-static inline void channel_queuing_notify_sender(pok_channel_queuing_t* channel)
+static inline void channel_queuing_side_notify(struct pok_channel_queuing_side* side,
+    enum jet_partition_event_type event_type)
 {
-    if(channel->notify_sender)
+    if(side->is_notify)
     {
-        channel->notify_sender = FALSE;
-        channel->sender->state.bytes.outer_notification = 1;
+        side->is_notify = FALSE;
+        pok_partition_add_event(side->part, event_type, side->handler_id);
     }
 }
 
-void pok_channel_queuing_r_init(pok_channel_queuing_t* channel)
+void pok_channel_queuing_side_init(pok_channel_queuing_t* channel,
+    struct pok_channel_queuing_side* side,
+    uint16_t handler_id)
 {
     pok_preemption_disable();
-    channel->r_start = channel->border;
-    channel->notify_receiver = FALSE;
-    channel->receiver_generation = channel->receiver->partition_generation;
+    side->next_message = channel->border;
+    side->is_notify = FALSE;
+    side->generation = side->part->partition_generation;
+    side->handler_id = handler_id;
 
     __pok_preemption_enable();
 }
 
-size_t pok_channel_queuing_r_n_messages(pok_channel_queuing_t* channel)
+pok_message_range_t pok_channel_queuing_r_n_messages(pok_channel_queuing_t* channel)
 {
-    // Both boundaries are modified by receiver itself. No needs critical section.
-    return channel_queuing_cyclic_sub(channel,
+    pok_preemption_disable();
+
+    size_t n_messages = channel_queuing_cyclic_sub(channel,
         channel->border,
-        channel->r_start);
+        channel->recv.next_message);
+
+    __pok_preemption_enable();
+
+    return n_messages;
 }
 
-pok_message_t* pok_channel_queuing_r_get_message(
+const char* pok_channel_queuing_r_get_message(
     pok_channel_queuing_t* channel,
+    pok_message_size_t* size,
     pok_bool_t subscribe)
 {
-    pok_message_t* msg;
+    const char* message;
 
-    if(!subscribe)
-    {
-        // fastpath without locks. TODO: revisit
-        return (channel->border != channel->r_start)
-            ? channel_queuing_message_at(channel, channel->r_start)
-            : NULL;
-    }
-    
     pok_preemption_disable();
-    
 
-    if(channel->border != channel->r_start)
+    if(channel->recv.next_message != channel->border)
     {
-        msg = channel_queuing_message_at(channel, channel->r_start);
+        message = channel_queuing_message_at(channel, channel->recv.next_message);
+        *size = channel->message_sizes[channel->recv.next_message];
     }
     else
     {
-        msg = NULL;
-        channel->notify_receiver = TRUE;
+        message = NULL;
+        if(subscribe) channel->recv.is_notify = TRUE;
     }
 
     __pok_preemption_enable();
-    
-    return msg;
+
+    return message;
 }
 
 
 void pok_channel_queuing_r_consume_message(
-    pok_channel_queuing_t* channel)
+    pok_channel_queuing_t* channel,
+    pok_bool_t* message_discarded)
 {
-    assert(channel->r_start != channel->border);
-    
+    assert(channel->recv.next_message != channel->border);
+
     pok_preemption_disable();
-    
-    channel->r_start = channel_queuing_cyclic_add(channel,
-        channel->r_start, 1);
-    
-    if(channel->sender->partition_generation == channel->sender_generation
-        && channel->border != channel->s_end)
+
+    channel->recv.next_message = channel_queuing_cyclic_add(channel,
+        channel->recv.next_message, 1);
+
+    if(channel->send.part->partition_generation == channel->send.generation
+        && channel->border != channel->send.next_message)
     {
         channel->border = channel_queuing_cyclic_add(channel,
             channel->border, 1);
-        channel_queuing_notify_sender(channel);
+        channel_queuing_side_notify(&channel->send,
+            JET_PARTITION_EVENT_TYPE_PORT_SEND_AVAILABLE);
     }
-    
-    __pok_preemption_enable();
+
+    *message_discarded = channel->message_discarded;
+    channel->message_discarded = FALSE;
+    pok_preemption_enable();
 }
 
-void pok_channel_queuing_s_init(pok_channel_queuing_t* channel)
-{
-    pok_preemption_disable();
-    channel->s_end = channel->border;
-    channel->notify_sender = FALSE;
-    channel->sender_generation = channel->sender->partition_generation;
-
-    __pok_preemption_enable();
-}
-
-pok_message_t* pok_channel_queuing_s_get_message(
+char* pok_channel_queuing_s_get_message(
     pok_channel_queuing_t* channel,
     pok_bool_t subscribe)
 {
     pok_message_range_t n_used;
-    pok_message_t* msg = NULL;
+    char* message;
 
     pok_preemption_disable();
 
     n_used = channel_queuing_cyclic_sub(channel,
-        channel->s_end, ACCESS_ONCE(channel->border));
+        channel->send.next_message, channel->border);
 
-    if(n_used < channel->max_nb_message_send)
+    if(n_used < channel->send.max_nb_message)
     {
-        msg = channel_queuing_message_at(channel, channel->s_end);
+        message = channel_queuing_message_at(channel, channel->send.next_message);
     }
-    else if(subscribe)
+    else
     {
-        channel->notify_sender = TRUE;
+        message = NULL;
+        if(subscribe)
+            channel->send.is_notify = TRUE;
     }
 
     __pok_preemption_enable();
-    
-    return msg;
+
+    return message;
 }
 
 void pok_channel_queuing_s_produce_message(
-    pok_channel_queuing_t* channel)
+    pok_channel_queuing_t* channel,
+    pok_message_size_t size)
 {
-    assert(channel_queuing_cyclic_sub(channel, channel->s_end,
-        ACCESS_ONCE(channel->border)) < channel->max_nb_message_send);
-    
-    assert(channel_queuing_message_at(channel, channel->s_end)->size > 0);
+    assert(channel_queuing_cyclic_sub(channel, channel->send.next_message,
+        channel->border) < channel->send.max_nb_message);
 
-    assert(channel_queuing_message_at(channel, channel->s_end)->size
-        <= channel->max_message_size);
+    assert(size > 0);
+    assert(size <= channel->max_message_size);
 
     pok_preemption_disable();
-    
-    channel->s_end = channel_queuing_cyclic_add(channel, channel->s_end, 1);
-    
-    if(channel->receiver->partition_generation == channel->receiver_generation)
+
+    channel->message_sizes[channel->send.next_message] = size;
+    channel->send.next_message = channel_queuing_cyclic_add(channel,
+        channel->send.next_message, 1);
+
+    if(channel->recv.part->partition_generation == channel->recv.generation)
     {
         // Receiver is ready.
         pok_message_range_t nb_message_receive = channel_queuing_cyclic_sub(
-            channel, channel->border, channel->r_start);
-        
-        if(nb_message_receive < channel->max_nb_message_receive)
+            channel, channel->border, channel->recv.next_message);
+
+        if(nb_message_receive < channel->recv.max_nb_message)
         {
             // Move message to the receiver buffer
-            channel->border = channel->s_end;
+            channel->border = channel->send.next_message;
             // And notify receiver, if requested.
-            if(channel->notify_receiver)
-            {
-                channel->notify_receiver = FALSE;
-                channel->receiver->state.bytes.outer_notification = 1;
-            }
+            channel_queuing_side_notify(&channel->recv,
+                JET_PARTITION_EVENT_TYPE_PORT_RECEIVE_AVAILABLE);
+        }
+        else if(channel->overflow_strategy == JET_CHANNEL_QUEUING_RECEIVER_DISCARD)
+        {
+            /* Discard message and store note about that.*/
+            channel->send.next_message = channel->border;
+            channel->message_discarded = TRUE;
         }
     }
     else
     {
         // Just drop the message and all previous ones which have been received.
-        channel->border = channel->s_end;
+        channel->border = channel->send.next_message;
     }
 
-    __pok_preemption_enable();
+    pok_preemption_enable();
 }
 
 pok_message_range_t pok_channel_queuing_s_n_messages(pok_channel_queuing_t* channel)
 {
-    return channel_queuing_cyclic_sub(channel, channel->s_end,
-        ACCESS_ONCE(channel->border));
+    pok_preemption_disable();
+
+    pok_message_range_t n_messages = channel_queuing_cyclic_sub(channel,
+        channel->send.next_message, channel->border);
+
+    __pok_preemption_enable();
+
+    return n_messages;
 }
 
 /*********************** Sampling channel *****************************/
 
 void pok_channel_sampling_init(pok_channel_sampling_t* channel)
 {
-    channel->message_stride = POK_MESSAGE_STRUCT_SIZE(channel->max_message_size);
-    
-    channel->buffer = jet_mem_alloc(3 * channel->message_stride);
-    
+    const unsigned int message_alignment = __alignof__(int);
+
+    channel->message_stride = ALIGN_VAL(channel->max_message_size,
+        message_alignment);
+    channel->messages = ja_mem_alloc_aligned(3 * channel->message_stride,
+        message_alignment);
+
     channel->read_pos_next = 0;
     channel->read_pos = 0;
-    
+
     // Mark the first message as empty.
-    ((pok_message_t*)channel->buffer)->size = 0;
-    
+    channel->message_sizes[0] = 0;
+
     channel->write_pos = 1;
 }
 
-static pok_message_t* channel_sampling_message_at(
+char* channel_sampling_message_at(
     pok_channel_sampling_t* channel, int pos)
 {
     assert(pos <= 2);
-    
-    return (pok_message_t*)&channel->buffer[pos * channel->message_stride];
+
+    return &channel->messages[pos * channel->message_stride];
 }
-    
+
 
 /*
  * Get pointer to the message for read it.
@@ -291,31 +310,30 @@ static pok_message_t* channel_sampling_message_at(
  * NOTE: Every new function's call invalidates previous value.
  * Using this semantic, receiver doesn't need to mark message as consumed.
  */
-pok_message_t* pok_channel_sampling_r_get_message(
-    pok_channel_sampling_t* channel, pok_time_t* timestamp)
+const char* pok_channel_sampling_r_get_message(
+    pok_channel_sampling_t* channel,
+    pok_message_size_t* size,
+    pok_time_t* timestamp)
 {
-    pok_message_t* m;
     uint8_t read_pos;
-    
+
     pok_preemption_disable();
     read_pos = channel->read_pos = channel->read_pos_next;
     __pok_preemption_enable();
-    
-    m = channel_sampling_message_at(channel, read_pos);
-    
-    if(m->size)
-    {
-        *timestamp = channel->timestamps[read_pos];
-        return m;
-    }
-    
-    return NULL;
+
+    pok_message_size_t message_size = channel->message_sizes[read_pos];
+    if(!message_size) return NULL;
+
+    *size = message_size;
+    *timestamp = channel->timestamps[read_pos];
+
+    return channel_sampling_message_at(channel, read_pos);;
 }
 
 void pok_channel_sampling_r_clear_message(pok_channel_sampling_t* channel)
 {
     pok_preemption_disable();
-    channel_sampling_message_at(channel, channel->read_pos)->size = 0;
+    channel->message_sizes[channel->read_pos] = 0;
     __pok_preemption_enable();
 }
 
@@ -335,22 +353,24 @@ pok_bool_t pok_channel_sampling_r_check_new_message(pok_channel_sampling_t* chan
     return ret;
 }
 
-pok_message_t* pok_channel_sampling_s_get_message(
+char* pok_channel_sampling_s_get_message(
     pok_channel_sampling_t* channel)
 {
     return channel_sampling_message_at(channel, channel->write_pos);
 }
 
 void pok_channel_sampling_send_message(
-    pok_channel_sampling_t* channel)
+    pok_channel_sampling_t* channel,
+    pok_message_size_t size)
 {
     uint8_t read_pos_next;
 
-    assert(channel_sampling_message_at(channel, channel->write_pos)->size);
-    
+    assert(size);
+
     pok_preemption_disable();
     channel->read_pos_next = read_pos_next = channel->write_pos;
     channel->timestamps[read_pos_next] = jet_system_time();
+    channel->message_sizes[read_pos_next] = size;
 
     /*
      * The only choice for `write_pos`, which can differ from both
@@ -373,7 +393,7 @@ void pok_channel_sampling_s_clear_message(pok_channel_sampling_t* channel)
 void pok_channels_init_all(void)
 {
     int i;
-    
+
     for(i = 0; i < pok_channels_queuing_n; i++)
     {
         pok_channel_queuing_init(&pok_channels_queuing[i]);
@@ -383,5 +403,4 @@ void pok_channels_init_all(void)
     {
         pok_channel_sampling_init(&pok_channels_sampling[i]);
     }
-
 }

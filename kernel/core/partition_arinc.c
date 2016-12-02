@@ -121,8 +121,7 @@ static void partition_arinc_start(void)
 	ja_ustack_init(part->base_part.space_id);
 
 	INIT_LIST_HEAD(&part->eligible_threads);
-	delayed_event_queue_init(&part->queue_deadline);
-	delayed_event_queue_init(&part->queue_delayed);
+	delayed_event_queue_init(&part->partition_delayed_events);
 
 	for(int i = 0; i < part->nthreads; i++)
 	{
@@ -307,6 +306,8 @@ static const struct pok_partition_operations arinc_ops = {
 
 void pok_partition_arinc_init(pok_partition_arinc_t* part)
 {
+	pok_partition_init(&part->base_part);
+
 	part->base_part.initial_sp = pok_stack_alloc(DEFAULT_STACK_SIZE);
 
 	for(int i = 0; i < part->nthreads; i++)
