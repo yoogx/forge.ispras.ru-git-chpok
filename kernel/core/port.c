@@ -427,6 +427,24 @@ pok_ret_t pok_port_queuing_id(
     return POK_ERRNO_OK;
 }
 
+pok_ret_t pok_port_queuing_clear(pok_port_id_t id)
+{
+    pok_port_queuing_t* port_queuing = get_port_queuing(id);
+
+    if(!port_queuing) return POK_ERRNO_PORT;
+
+    if(port_queuing->direction != POK_PORT_DIRECTION_IN)
+        return POK_ERRNO_MODE;
+
+    pok_preemption_local_disable();
+    pok_channel_queuing_side_init(port_queuing->channel,
+            &port_queuing->channel->recv,
+            port_queuing - current_partition_arinc->ports_queuing);
+    pok_preemption_local_enable();
+
+    return POK_ERRNO_OK;
+}
+
 /**********************************************************************/
 /* 
  * Find *configured* sampling port by name, which comes from user space.

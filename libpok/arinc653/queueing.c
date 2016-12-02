@@ -200,10 +200,16 @@ void GET_QUEUING_PORT_STATUS (
 
 void CLEAR_QUEUING_PORT (
       /*in */ QUEUING_PORT_ID_TYPE      QUEUING_PORT_ID,
-      /*out*/ RETURN_CODE_TYPE          *return_code)
+      /*out*/ RETURN_CODE_TYPE          *RETURN_CODE)
 {
-  (void) QUEUING_PORT_ID;
-  *return_code = NOT_AVAILABLE;
+   pok_ret_t core_ret = pok_port_queuing_clear(QUEUING_PORT_ID - 1);
+
+   switch (core_ret) {
+        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR(POK_ERRNO_PORT, INVALID_PARAM);
+        MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
+        MAP_ERROR_DEFAULT(INVALID_CONFIG);
+    }
 }
 
 #endif

@@ -107,6 +107,8 @@ pok_ret_t pok_port_queuing_id(
     const char* __user name,
     pok_port_id_t* __user id);
 
+pok_ret_t pok_port_queuing_clear(pok_port_id_t id);
+
 /* 
  * Receive message from the port into specified process.
  * 
