@@ -25,6 +25,7 @@
 #include <uapi/partition_arinc_types.h>
 #include <uapi/port_types.h>
 #include <uapi/error_arinc_types.h>
+#include <uapi/memblock_types.h>
 #include <uapi/msection.h>
 
 pok_ret_t pok_thread_create(const char* __user name,
@@ -400,3 +401,12 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_QUEUEING_STAT
         (pok_port_queuing_status_t* __user)args->arg2);
 }
 #endif /* POK_NEEDS_PORTS_QUEUEING */
+
+pok_ret_t pok_memory_block_get_status(const char* __user name,
+    jet_memory_block_status_t* __user status);
+static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MEMORY_BLOCK_GET_STATUS(const pok_syscall_args_t* args)
+{
+    return pok_memory_block_get_status(
+        (const char* __user)args->arg1,
+        (jet_memory_block_status_t* __user)args->arg2);
+}

@@ -19,10 +19,13 @@
 
 Import('syspart_env')
 
-ne2000 = SConscript('ne2000/SConscript')
-p3041  = SConscript('p3041/SConscript')
-pci    = SConscript('pci/SConscript')
+DRIVERS_LIST = ['ne2000', 'p3041', 'pci', 'qemu_vga', 'radeon']
 
-Return('ne2000', 'p3041', 'pci')
+res_obj_list = []
+for driver_dir in DRIVERS_LIST:
+    objs = SConscript(driver_dir + '/SConscript')
+    res_obj_list.append(objs)
+
+Return('res_obj_list')
 
 # EOF

@@ -67,7 +67,9 @@ struct port_ops{
         void __VIRTIO_NET_DEV_activity__(VIRTIO_NET_DEV*);
         VIRTIO_NET_DEV virtio_net_dev_1 = {
             .state = {
-                .dev_index = 0,
+                .pci_fn = 0,
+                .pci_dev = 2,
+                .pci_bus = 0,
             },
 
         };
@@ -109,7 +111,9 @@ struct port_ops{
         void __VIRTIO_NET_DEV_activity__(VIRTIO_NET_DEV*);
         VIRTIO_NET_DEV virtio_net_dev_2 = {
             .state = {
-                .dev_index = 1,
+                .pci_fn = 0,
+                .pci_dev = 3,
+                .pci_bus = 0,
             },
 
         };
