@@ -148,18 +148,9 @@ typedef struct _pok_patition_arinc
     struct list_head       eligible_threads; 
 
     /**
-     * Queue of threads with deadline events.
-     * 
-     * Corresponded thread's field is .thread_deadline_event.
+     * Queue of all timed events.
      */
-    struct delayed_event_queue queue_deadline;
-    /** 
-     * Queue of delayed events, which should awoke thread
-     * (or make it closer to RUNNING state).
-     * 
-     * Corresponded thread's field is .thread_delayed_event.
-     */
-    struct delayed_event_queue queue_delayed;
+    struct delayed_event_queue partition_delayed_events;
     
     /* 
      * After main partition's thread creates start thread,

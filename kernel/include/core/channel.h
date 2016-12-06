@@ -21,11 +21,56 @@
 #define __POK_KERNEL_CHANNEL_H__
 
 #include <types.h>
-#include <message.h>
 
 #include <core/partition.h>
 
 /*********************** Queuing channel ******************************/
+
+/* One side of the channel: receiver or sender. */
+struct pok_channel_queuing_side
+{
+    /* Maximum number of messages on this side. Set in deployment.c. */
+    pok_message_range_t max_nb_message;
+    /* 
+     * Next message on this side:
+     * 
+     * For receiver: the next message it will consume.
+     * For sender: the next message it will fill.
+     */
+    pok_message_range_t next_message;
+
+    /* Partition corresponded for this side. Set in deployment.c */
+    pok_partition_t* part;
+
+    /* Generation of the side when it has its connection initialized. */
+    pok_partition_generation_t generation;
+
+    /* Whether needs to notify this side about messages/space available. */
+    pok_bool_t is_notify;
+
+    /* Identificator for use in notification event. Set on port creation. */
+    uint16_t handler_id;
+};
+
+/* What to do when receiving buffer is full and new message is sent. */
+enum jet_channel_queuing_overflow_strategy
+{
+    /* 
+     * Fill sender buffer.
+     * 
+     * If it is full, sender should wait.
+     */
+    JET_CHANNEL_QUEUING_SENDER_BLOCK,
+    /* 
+     * Discard new message.
+     * 
+     * Receiver will be notified about that discarding.
+     * 
+     * With that strategy no reason to have sender buffer to accomodate
+     * more than single message.
+     */
+    JET_CHANNEL_QUEUING_RECEIVER_DISCARD
+};
 
 /* 
  * Queuing channel between partitions.
@@ -38,49 +83,34 @@
  * accumulated on sender side until it is possible to transmit them.
  */
 typedef struct {
-    pok_message_size_t max_message_size; // Maximum size of single message.
-    pok_message_size_t message_stride; //Size of single message structure.
-    
-    pok_message_range_t max_nb_message_receive; // Buffer limit for receiver
-    pok_message_range_t max_nb_message_send; // Buffer limit for sender
-    
+    /* Maximum size of single message. Set in deployment.c*/
+    pok_message_size_t max_message_size;
+    /* Distance between messages in the array. */
+    pok_message_size_t message_stride;
+
+    /* Sides of the channel. */
+    struct pok_channel_queuing_side send, recv;
+
     pok_message_range_t max_nb_message; // Total buffer capasity.
-    char* buffer; // Array of messages, max_nb_message * message_stride
 
-    /*
-     * Beginning of receiver buffer.
+    char* messages; // Array of messages
+    pok_message_size_t* message_sizes; // Array of messages sizes.
+
+    /* Border between receiver and sender buffers.
      * 
-     * Advanced when messages is consumed (on receiver side).
+     * When buffer for a channel side is empty, .next_message field
+     * of the side is equal to that border.
      */
-    pok_message_range_t r_start;
-    /*
-     * Border between receiver and sender buffers.
-     * 
-     * Advanced when message is transmitted from sender to receiver.
+    pok_message_size_t border;
+
+    /* Overflow strategy for given channel. Set in deployment.c. */
+    enum jet_channel_queuing_overflow_strategy overflow_strategy;
+    /* 
+     * Flag is set when message is discarded.
+     * Flag is cleared after receiver is notified about that.
      */
-    pok_message_range_t border;
-    /*
-     * End of sender buffer.
-     * 
-     * Advanced when messages is produced (on sender side).
-     */
-    pok_message_range_t s_end;
+    pok_bool_t message_discarded;
 
-    /* Whether it is needed to notify receiver */
-    pok_bool_t notify_receiver;
-    /* Whether it is needed to notify sender */
-    pok_bool_t notify_sender;
-
-    /* Receiver partition. */
-    pok_partition_t* receiver;
-    /* Receiver's generation when it has its connection initialized. */
-    pok_partition_generation_t receiver_generation;
-    /* Sender partition. */
-    pok_partition_t* sender;
-    /* Sender's generation when it has its connection initialized. */
-    pok_partition_generation_t sender_generation;
-
-    
 } pok_channel_queuing_t;
 
 /* 
@@ -89,10 +119,20 @@ typedef struct {
  * Fields should be set before calling this function:
  * 
  *   - max_message_size
- *   - max_nb_messages_receive 
- *   - max_nb_messages_send
+ *   - send.max_nb_messages
+ *   - recv.max_nb_messages
  */
 void pok_channel_queuing_init(pok_channel_queuing_t* channel);
+
+/* 
+ * (Re)initialize given side of the channel.
+ * 
+ * Should be called before all other functions for that side.
+ */
+void pok_channel_queuing_side_init(pok_channel_queuing_t* channel,
+    struct pok_channel_queuing_side* side,
+    uint16_t handler_id);
+
 
 /**** Operations for receiver. Should be serialized wrt themselves ****/
 /* (Re)initialize receiver connection to the channel. */
@@ -101,27 +141,32 @@ void pok_channel_queuing_r_init(pok_channel_queuing_t* channel);
 /*
  * Return number of messages on the receiver side.
  */
-size_t pok_channel_queuing_r_n_messages(pok_channel_queuing_t* channel);
+pok_message_range_t pok_channel_queuing_r_n_messages(pok_channel_queuing_t* channel);
 
 /* 
- * Return the first message at receiver side.
+ * Return pointer to the first message at receiver side.
  * 
- * If no message is available, return NULL. In that case, if 'subscribe'
- * is non-zero, receiver partition will be notified
- * (via `.outer_notification` flag) when new message will be available.
+ * If no message is available, return NULL.
+ * 
+ * In that case, if 'subscribe' is non-zero, receiver partition will be
+ * notified when new message will be available.
  */
-pok_message_t* pok_channel_queuing_r_get_message(
+const char* pok_channel_queuing_r_get_message(
     pok_channel_queuing_t* channel,
+    pok_message_size_t* size,
     pok_bool_t subscribe);
 
-/* Consume the first message at receiver side. */
+/* 
+ * Consume the first message at receiver side.
+ * 
+ * Set 'message_discarded' parameter to one in the channel field,
+ * and reset the field.
+ */
 void pok_channel_queuing_r_consume_message(
-    pok_channel_queuing_t* channel);
+    pok_channel_queuing_t* channel,
+    pok_bool_t* message_discarded);
 
 /***** Operations for sender. Should be serialized wrt themselves *****/
-/* (Re)initialize sender connection to the channel. */
-void pok_channel_queuing_s_init(pok_channel_queuing_t* channel);
-
 /* 
  * Return pointer to the message for being filled at sender side.
  * 
@@ -130,17 +175,20 @@ void pok_channel_queuing_s_init(pok_channel_queuing_t* channel);
  * If there is no space in the sender buffer and @subscribe parameter
  * is TRUE, subscribe to notifications when the space will be released.
  */
-pok_message_t* pok_channel_queuing_s_get_message(
+char* pok_channel_queuing_s_get_message(
     pok_channel_queuing_t* channel,
     pok_bool_t subscribe);
 
 /*
  * Mark (already filled) message as produced.
  * 
- * The message is ready for being sent.
+ * If possible, the message is sent immediately.
+ * Otherwise it will be automatically sent when there will be sufficient
+ * space in the receiver buffer.
  */
 void pok_channel_queuing_s_produce_message(
-    pok_channel_queuing_t* channel);
+    pok_channel_queuing_t* channel,
+    pok_message_size_t size);
 
 /*
  * Return number of messages on the sender side.
@@ -166,16 +214,20 @@ pok_message_range_t pok_channel_queuing_s_n_messages(pok_channel_queuing_t* chan
  * message is treated as sent until it is received.
  */
 typedef struct {
+    /* Maximum size of the message. Set in deployment.c. */
     pok_message_size_t max_message_size;
-    
-    pok_message_size_t message_stride; //Size of of one message structure.
-    char* buffer; // Buffer of messages, 3 * message_stride
-    
+    /* Distance between messages in the array. */
+    pok_message_size_t message_stride;
+    /* Array of 3 messages. */
+    char* messages;
+    /* Array of message sizes.*/
+    pok_message_size_t message_sizes[3];
+
     // Positions in range 0..2
     uint8_t read_pos;
     uint8_t read_pos_next;
     uint8_t write_pos;
-    
+
     /* The simplest implementation: timestamp per message. */
     pok_time_t timestamps[3];
 } pok_channel_sampling_t;
@@ -199,11 +251,13 @@ void pok_channel_sampling_init(pok_channel_sampling_t* channel);
  * 
  * If there is no message available for read, return NULL.
  * 
- * NOTE: Every new function's call invalidates previous value.
+ * NOTE: Every new function's call invalidates previous return value.
  * Using this semantic, receiver doesn't need to mark message as consumed.
  */
-pok_message_t* pok_channel_sampling_r_get_message(
-    pok_channel_sampling_t* channel, pok_time_t* timestamp);
+const char* pok_channel_sampling_r_get_message(
+    pok_channel_sampling_t* channel,
+    pok_message_size_t* size,
+    pok_time_t* timestamp);
 
 /*
  * Clear message received.
@@ -222,14 +276,15 @@ pok_bool_t pok_channel_sampling_r_check_new_message(pok_channel_sampling_t* chan
 /*
  * Get pointer to the message for fill it.
  */
-pok_message_t* pok_channel_sampling_s_get_message(
+char* pok_channel_sampling_s_get_message(
     pok_channel_sampling_t* channel);
 
 /*
  * Send message which has been fully filled.
  */
 void pok_channel_sampling_send_message(
-    pok_channel_sampling_t* channel);
+    pok_channel_sampling_t* channel,
+    pok_message_size_t size);
 
 /*
  * Clear message sent.

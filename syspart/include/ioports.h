@@ -16,7 +16,7 @@
 #ifndef __JET__IOPORTS_H__
 #define __JET__IOPORTS_H__
 
-#include <libc/string.h>
+#include <string.h>
 #ifdef __PPC__
 #include <arch/ppc/ioports.h>
 #endif

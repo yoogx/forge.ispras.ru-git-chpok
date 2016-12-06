@@ -1,31 +1,29 @@
 /*
- *                               POK header
- * 
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *                                      Copyright (c) 2007-2009 POK team 
- *
- * Created by julien on Sat Jan 31 20:12:07 2009 
+ * See the GNU General Public License version 3 for more details.
  */
 
-#include <core/dependencies.h>
+#include <stdlib.h>
 
-#ifdef POK_CONFIG_NEEDS_FUNC_RAND
-
-#include <types.h>
-#include <libc/stdlib.h>
-
-static uint32_t next = 1;
-
-int rand()
+// Implementation is taken from the example in C99.
+static unsigned long int next = 1;
+int rand(void) // RAND_MAX assumed to be 32767
 {
-	/* LINTED integer overflow */
-	return (int)((next = next * 1103515245 + 12345) % ((uint32_t)RAND_MAX + 1));
+    next = next * 1103515245 + 12345;
+    return (unsigned int)(next/65536) % 32768;
 }
-#endif
+
+void srand(unsigned int seed)
+{
+    next = seed;
+}

@@ -23,25 +23,7 @@
 #include <types.h>
 #include <errno.h>
 #include <core/syscall.h>
-
-/*
- * Get the amount of milliseconds expired since the system starts.
- */
-#define pok_time_get(v) pok_time_gettick(v)
-
-/*
- * Build a time according to the amount of time given in the first
- * parameter
- * Similar to: pok_time_t pok_time_milliseconds (const uint32_t ms);
- */
-#define pok_time_milliseconds(value) value
-
-/*
- * Build a time value according to the time given in the first
- * parameter
- * Could be considered as: pok_time_t pok_time_seconds (const uint32_t s);
- */
-#define pok_time_seconds(s) s*1000;
+#include <time.h>
 
 /*
  * Compute a deadline from now according to the first parameter.
@@ -50,10 +32,16 @@
 pok_ret_t pok_time_compute_deadline (const pok_time_t relative, pok_time_t* absolute);
 
 /*
- * Get number of ticks that passed since the system starts
- * Similar to : pok_ret_t   pok_time_gettick (uint64_t* value);
+ * Get number of nanoseconds that passed since the system starts.
  */
-#define pok_time_gettick(value) pok_syscall2(POK_SYSCALL_GETTICK,(uint32_t)value,0);
+static inline pok_time_t pok_time_get(void)
+{
+    pok_time_t res;
+
+    pok_syscall2(POK_SYSCALL_CLOCK_GETTIME, (unsigned long)CLOCK_REALTIME, (unsigned long)&res);
+
+    return res;
+}
 
 #define pok_thread_replenish pok_sched_replenish
 

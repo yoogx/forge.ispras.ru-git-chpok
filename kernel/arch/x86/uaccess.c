@@ -31,15 +31,15 @@ static pok_bool_t x86_check_access(const void* __user addr, size_t size,
 
     /*
      * Currently, there are 2 segments accessible to user:
-     * 1. [POK_PARTITION_MEMORY_BASE; POK_PARTITION_MEMORY_BASE + space->size_normal)
-     *    code and data
+     * 1. [POK_PARTITION_MEMORY_BASE; POK_PARTITION_MEMORY_BASE + space->heap_end)
+     *    code,data and heap
      * 2. [POK_PARTITION_MEMORY_BASE + space->size_total - space->size_stack_used; POK_PARTITION_MEMORY_BASE + space->size_total)
      *    stacks
      */
 
     if(end < start) return FALSE; // Segments doesn't cross NULL.
 
-    if(end <= space->size_normal + POK_PARTITION_MEMORY_BASE)
+    if(end <= space->heap_end + POK_PARTITION_MEMORY_BASE)
     {
         return (start >= POK_PARTITION_MEMORY_BASE);
     }

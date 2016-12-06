@@ -226,7 +226,12 @@ SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_QUEUEING_ID, pok_port_queuing_id,
 SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_QUEUEING_STATUS, pok_port_queuing_status,
    pok_port_id_t, id,
    pok_port_queuing_status_t*, status)
+
+SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_QUEUEING_CLEAR, pok_port_queuing_clear,
+   pok_port_id_t, id)
+
 #endif /* POK_NEEDS_PORTS_QUEUEING */
+
 
 SYSCALL_DECLARE(POK_SYSCALL_MEMORY_BLOCK_GET_STATUS, pok_memory_block_get_status,
    const char*, name,

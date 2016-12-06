@@ -17,6 +17,8 @@
 #include "arinc_alloc.h"
 #include <arinc_config.h>
 
+#include <smalloc.h>
+
 #include "buffer.h"
 #include "blackboard.h"
 #include "event.h"
@@ -46,23 +48,23 @@ char* arinc_intra_heap = NULL;
 void libjet_arinc_init(void)
 {
 #ifdef POK_NEEDS_ARINC653_BUFFER
-    arinc_buffers = malloc(arinc_config_nbuffers * sizeof(*arinc_buffers));
+    arinc_buffers = smalloc(arinc_config_nbuffers * sizeof(*arinc_buffers));
 #endif /* POK_NEEDS_ARINC653_BUFFER */
 
 #ifdef POK_NEEDS_ARINC653_BLACKBOARD
-    arinc_blackboards = malloc(arinc_config_nblackboards * sizeof(*arinc_blackboards));
+    arinc_blackboards = smalloc(arinc_config_nblackboards * sizeof(*arinc_blackboards));
 #endif /* POK_NEEDS_ARINC653_BLACKBOARD */
 
 #ifdef POK_NEEDS_ARINC653_SEMAPHORE
-    arinc_semaphores = malloc(arinc_config_nsemaphores * sizeof(*arinc_semaphores));
+    arinc_semaphores = smalloc(arinc_config_nsemaphores * sizeof(*arinc_semaphores));
 #endif /* POK_NEEDS_ARINC653_SEMAPHORE */
 
 #ifdef POK_NEEDS_ARINC653_EVENT
-    arinc_events = malloc(arinc_config_nevents * sizeof(*arinc_events));
+    arinc_events = smalloc(arinc_config_nevents * sizeof(*arinc_events));
 #endif /* POK_NEEDS_ARINC653_EVENT */
 
 
 #if defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD)
-    arinc_intra_heap = malloc(arinc_config_messages_memory_size);
+    arinc_intra_heap = smalloc(arinc_config_messages_memory_size);
 #endif /* defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD) */
 }
