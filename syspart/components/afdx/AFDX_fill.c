@@ -26,7 +26,7 @@
  
 #include <stdint.h>
 #include <afdx/AFDX_ES_config.h>
-#include <afdx/AFDX_filling.h>
+#include "afdx.h"
 #include <net/byteorder.h>
 #include <string.h>
 #include <stdio.h>
@@ -66,19 +66,12 @@
 
 #define MIN_PAYLOAD_SIZE    17
 
-//~ void afdx_filler_init(AFDX_FILLER *self)
-//~ {
-    //~ RETURN_CODE_TYPE ret;
-    //~ ret = NO_ERROR;
-    //~ if (ret == NO_ERROR)
-        //~ printf(C_NAME"Hello\n");
-//~ }
-
 /* basic functions for filling the package */
 
 /*
  * UDP (User Datagram Protocol) packet type.
  * filling depends on bytes order
+ * param x: Array of three elements
 */
 void set_mac_addr_const_part(uint8_t x[3])
 {
@@ -89,61 +82,61 @@ void set_mac_addr_const_part(uint8_t x[3])
 }
 
 /* Calculate the UDP checksum (calculated with the whole packet).
- * \param buff The UDP packet.
- * \param len The UDP packet length. (header + payload)
- * \param src_addr The IP source address (in network format).
- * \param dest_addr The IP destination address (in network format).
- * \return The result of the checksum.
+ * param buff: The UDP packet.
+ * param len: The UDP packet length. (header + payload)
+ * param src_addr: The IP source address (in network format).
+ * param dest_addr: The IP destination address (in network format).
+ *
+ * return: The result of the checksum.
  */
 uint16_t udp_checksum(void *buff, uint16_t len, uint32_t src_addr, uint32_t dest_addr)
 {
 
-        uint16_t *buf;
-        buf = (uint16_t *) buff;
-        uint16_t *ip_src = (uint16_t *)&src_addr;
-        uint16_t *ip_dst = (uint16_t *)&dest_addr;
-        uint32_t sum;
-        uint16_t length = ntoh16(len);
+    uint16_t *buf;
+    buf = (uint16_t *) buff;
+    uint16_t *ip_src = (uint16_t *)&src_addr;
+    uint16_t *ip_dst = (uint16_t *)&dest_addr;
+    uint32_t sum;
+    uint16_t length = ntoh16(len);
 
-        // Calculate the sum
-        sum = 0;
-        //~ while (length > 1)
-        for (sum = 0; length > 1; length -= 2)
-        {
-            sum += *(buf++);
-        }
+    // Calculate the sum
+    sum = 0;
+    //~ while (length > 1)
+    for (sum = 0; length > 1; length -= 2)
+    {
+        sum += *(buf++);
+    }
 
-        if ( length > 0 ) {
+    if ( length > 0 ) {
 #ifdef BIG_ENDIAN
-             /* Add the last byte as the high byte. */
-            sum += ((uint8_t) *(uint8_t *)buf) << 8;
+         /* Add the last byte as the high byte. */
+        sum += ((uint8_t) *(uint8_t *)buf) << 8;
 #else
-             /* Add the last byte as the low byte. */
-            sum += *(uint8_t *)buf;
+         /* Add the last byte as the low byte. */
+        sum += *(uint8_t *)buf;
 #endif
-        }
-         // Add the pseudo-header
-        sum += *(ip_src++);
-        sum += *(ip_src);
-        sum += *(ip_dst++);
-        sum += *(ip_dst);
-        sum += ntoh16(IPPROTO_UDP);
-        sum += len;
+    }
+    // Add the pseudo-header
+    sum += *(ip_src++);
+    sum += *(ip_src);
+    sum += *(ip_dst++);
+    sum += *(ip_dst);
+    sum += ntoh16(IPPROTO_UDP);
+    sum += len;
 
-         //~ // Add the carries
+    // Add the carries
+    CARRY_ADD(sum, sum, 0);
+    CARRY_ADD(sum, sum, 0);
 
-        CARRY_ADD(sum, sum, 0);
-        CARRY_ADD(sum, sum, 0);
-
-
-         // Return the one's complement of sum
-         return (uint16_t)(~sum);
+    // Return the one's complement of sum
+    return (uint16_t)(~sum);
 }
 
 /*
  * brief Calculate the IP header checksum.
- * param IP header.
- * return The result of the checksum.
+ * param: pointer to IP header.
+ *
+ * return: The result of the checksum.
  */
 uint16_t ip_hdr_checksum_2(const struct ip_header *ip_hdr)
 {
@@ -165,7 +158,7 @@ uint16_t ip_hdr_checksum_2(const struct ip_header *ip_hdr)
  * and increases frame_size by 1
  */
 
-void add_seq_numb(void * buf, uint16_t * f_size, uint8_t * s_number)
+void add_seq_numb(void * buf, size_t * f_size, uint8_t * s_number)
 {
     memcpy((buf + (*f_size)), s_number, sizeof(uint8_t));
     *f_size = *f_size + (uint16_t)(sizeof(uint8_t));
@@ -181,9 +174,6 @@ uint16_t fill_afdx_frame(AFDX_FILLER_state *state,
                          char afdx_payload[],
                          uint16_t payload_size)
 {
-    //~ size_t vl_data_index = find_suitable_struct(src_arinc_port, arinc_port_type)->vl_data_index;
-
-    //~ afdx_dst_info_t *arinc_to_afdx_port =  find_suitable_struct(src_arinc_port, arinc_port_type);
 //MAC
     p->mac_header.mac_dst_addr.mac_const_dst = hton32(MAC_CONST_DST);
     p->mac_header.mac_dst_addr.vl_id = hton16(state->vl_id);
@@ -202,7 +192,7 @@ uint16_t fill_afdx_frame(AFDX_FILLER_state *state,
                                                                                                 //fragment_offset = 0
     p->ip_header.ttl = state->ttl;
     p->ip_header.protocol = IPPROTO_UDP;
-    //
+
     p->ip_header.header_checksum = 0;
     p->ip_header.header_checksum = ip_hdr_checksum_2(&p->ip_header);
     //src
@@ -211,8 +201,7 @@ uint16_t fill_afdx_frame(AFDX_FILLER_state *state,
     p->ip_header.u_src_addr.ip_src_addr.equipment_id = (SIDE_ID << 5 | LOCATION_ID);
     //
     p->ip_header.u_src_addr.ip_src_addr.partition_id = (IP_PARTITION_ID_1 << 3 | state->src_partition_id);
-    //dst??
-    //~ // !
+    //dst !
     if (state->type_of_packet == UNICAST_PACKET)
     {
         p->ip_header.u_dst_addr.ip_unicast_dst_addr.ip_const_src = IP_CONST_SRC;
@@ -255,6 +244,11 @@ uint16_t fill_afdx_frame(AFDX_FILLER_state *state,
 
 }
 
+void afdx_filler_init(AFDX_FILLER *self)
+{
+    self->state.sn = 0;
+}
+
 ret_t afdx_filler_send(
         AFDX_FILLER *self,
         char *payload,
@@ -266,15 +260,28 @@ ret_t afdx_filler_send(
   	if (max_backstep < HEADER_LENGTH)
         return EINVAL;
 
-    uint16_t frame_size;
+    //~ printf(C_NAME"get message %s\n", payload);
     frame_data_t *afdx_frame = (frame_data_t *)(payload - HEADER_LENGTH);
 
-    frame_size = fill_afdx_frame(&self->state, afdx_frame, payload, payload_size);
+    payload_size = fill_afdx_frame(&self->state, afdx_frame, payload, payload_size);
+    max_backstep -= HEADER_LENGTH;
 
+    if (frontstep < 1)
+        return EINVAL;
 
-	return AFDX_FILLER_call_portB_afdx_add_to_queue(self,
+    add_seq_numb(afdx_frame, &payload_size, &self->state.sn);
+    frontstep -= 1;
+
+    //~ char buffy[150];
+    //~ memcpy(buffy, afdx_frame, payload_size);
+    //~ printf("sn = %d\n", self->state.sn);
+    //~ printf("SN = %d\n", buffy[payload_size - 1]);
+
+    self->state.sn++;
+
+    return AFDX_FILLER_call_portB_afdx_add_to_queue(self,
             (char *) afdx_frame,
-            frame_size);
+            payload_size);
 }
 
 ret_t afdx_filler_flush(AFDX_FILLER *self) {

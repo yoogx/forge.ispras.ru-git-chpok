@@ -35,20 +35,14 @@
 
 #define SECOND                     1000000000LL
 
-//~ #define SUBNETWORKS_COUNT  2                    // replaced in AFDX_ES.h
-#define VIRTUAL_LINKS_COUNT 2                        //max(65535)
-//#define ARRAY_SIZE(sys_queuing_ports) 4
-//#define ARRAY_SIZE(sys_sampling_ports) 4
-#define ES_QUEUING_ARINC_PORTS_COUNT     2//ARRAY_SIZE(queuing_arinc_to_afdx_ports)         // in tests 4
-#define ES_SAMPLING_ARINC_PORTS_COUNT     0//ARRAY_SIZE(sampling_arinc_to_afdx_ports)                 // in tests 0
-#define DOMAIN_ID        0xA    //The 0000 and 1111 are forbidden values.
-                            //Will be specified for each hosting equipment
+#define DOMAIN_ID        0xA        //The 0000 and 1111 are forbidden values.
+                                    //Will be specified for each hosting equipment
 
-#define SIDE_ID            0x4    //The 000 and 111 are forbidden values.
-                            //Will be specified for each hosting equipment
+#define SIDE_ID            0x4      //The 000 and 111 are forbidden values.
+                                    //Will be specified for each hosting equipment
 
-#define LOCATION_ID        0x5    //The 00000 and 11111 are forbidden values.
-                            //Will be specified for each hosting equipment
+#define LOCATION_ID        0x5      //The 00000 and 11111 are forbidden values.
+                                    //Will be specified for each hosting equipment
 
 
 /********************************************/
@@ -63,16 +57,6 @@ typedef enum
 } ARINC_PORT_TYPE;
 
 /********************************************/
-/*
- * This structure  describes packeges types
- * The packet may be unicast or multicast
- */
-typedef enum
-{
-   UNICAST_PACKET       = 0,
-   MULTICAST_PACKET     = 1,
-} PACKET_TYPE;
-
 
 /*
  * This structure (afdx_dst_info_t) describes a statically AFDX ports for system
@@ -93,7 +77,7 @@ typedef struct
     uint16_t        dst_afdx_port;
     size_t          vl_data_index;
     uint8_t         dst_partition_id;
-    PACKET_TYPE     type_of_packet;
+    //PACKET_TYPE     type_of_packet;
     
 } afdx_dst_info_t;
 

@@ -341,7 +341,6 @@ static pok_bool_t init_device(VIRTIO_NET_DEV_state *state)
     //if (subsystem != VIRTIO_ID_NET)
     //    printf("WARNING: wrong subsystem in virtio net device");
 
-
     // 1. Reset the device
     outb(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_STATUS, 0x0);
 

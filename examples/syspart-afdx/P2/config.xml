@@ -23,8 +23,17 @@
              A653_SamplingPortType and A653_QueueingPortType
              defined in the standard
         -->
+
+<!--
         <Queueing_Port Name="UIN"  Protocol="UDP" MaxMessageSize="64" Direction="SOURCE" MaxNbMessage="10" />
         <Queueing_Port Name="UOUT" Protocol="UDP" MaxMessageSize="64" Direction="DESTINATION" MaxNbMessage="10" />
+-->
+
+
+        <Sampling_Port Name="UIN" MaxMessageSize="64" Direction="SOURCE" Refresh="1s" />
+        <Sampling_Port Name="UOUT" MaxMessageSize="64" Direction="DESTINATION" Refresh="1s" />
+
+
     </ARINC653_Ports>
 
     <HM_Table>
@@ -42,8 +51,13 @@
         <Error Code="POK_ERROR_KIND_NUMERIC_ERROR" Level="PROCESS" ErrorCode="NUMERIC_ERROR" Action="COLD_START" />
         <Error Code="POK_ERROR_KIND_ILLEGAL_REQUEST" Level="PROCESS" ErrorCode="ILLEGAL_REQUEST" Action="COLD_START" />
         <Error Code="POK_ERROR_KIND_STACK_OVERFLOW" Level="PROCESS" ErrorCode="STACK_OVERFLOW" Action="COLD_START" />
-        <Error Code="POK_ERROR_KIND_MEMORY_VIOLATION" Level="PROCESS" ErrorCode="MEMORY_VIOLATION" Action="COLD_START" />
+        <Error Code="POK_ERROR_KIND_MEMORY_VIOLATION" Level="PROCESS" ErrorCode="MEMORY_VIOLATION" Action="IDLE" />
         <Error Code="POK_ERROR_KIND_HARDWARE_FAULT" Level="PROCESS" ErrorCode="HARDWARE_FAULT" Action="COLD_START" />
         <Error Code="POK_ERROR_KIND_POWER_FAIL" Level="PROCESS" ErrorCode="POWER_FAIL" Action="COLD_START" />
     </HM_Table>
+
+    <Memory_Blocks>
+        <Memory_Block NameRef="PCI_IO" UserAccess="READ_WRITE"/>
+    </Memory_Blocks>
+
 </Partition>

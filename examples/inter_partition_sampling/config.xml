@@ -29,10 +29,10 @@
     <Connection_Table>
         <Channel>
             <Source>
-                <Standard_Partition PartitionName="P1" PortName="SP1" />
+                <Standard_Partition PartitionName="P1" PortName="QP1" />
             </Source>
             <Destination>
-                <Standard_Partition PartitionName="P2" PortName="SP2" />
+                <Standard_Partition PartitionName="P2" PortName="QP2" />
             </Destination>
         </Channel>
     </Connection_Table>
