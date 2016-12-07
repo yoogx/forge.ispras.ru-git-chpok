@@ -1,0 +1,77 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+# List tuples described examples.
+#
+# First element of the tuple is an example's directory,
+# other elements - subdirectories with partitions.
+
+examples_dirs = [
+    ('inter_partition_queuing', 'P1', 'P2'),
+    ('inter_partition_sampling', 'P1', 'P2'),
+    ('memblocks', 'P1', 'P2'),
+    ('msections-basic', 'P1'),
+    ('msections-wait', 'P1'),
+    ('msections-wait-several', 'P1'),
+    ('pure-arinc653-buffer', 'P1'),
+    ('syspart-graphic', 'P1', 'P2'),
+    ('syspart-network-queue-nc', 'P1', 'P2'),
+]
+
+vars = Variables()
+vars.AddVariables(
+	BoolVariable('jdeveloper', 'Enables developer mode', 0),
+)
+
+env = Environment(variables = vars)
+
+if not env.get('jdeveloper', False):
+	print "Error: This SConstruct is only for JetOS developers ['jdeveloper' option should be true]."
+	Exit(1)
+
+# Do not use JETOS_HOME environment variable, as we are definitely in our package
+JETOS_HOME = Dir('..').abspath
+
+print "JETOS_HOME: " + JETOS_HOME
+
+import sys
+import os
+sys.path.insert(1, os.path.join(JETOS_HOME, "misc"))
+import template_generation
+env['SOURCE_BASE_DIR'] = JETOS_HOME
+env['COPY_TITLE'] = """# COPIED! DO NOT MODIFY!
+# Instead of modifying this file, modify original one (%source%).
+#
+# When copy a file outside of JetOS project, remove this line and the lines above.
+"""
+
+for example_dirs in examples_dirs:
+	for index, example_dir in enumerate(example_dirs):
+		if index == 0:
+			# Module's directory
+			module_dir = example_dir
+			env.Command(target = module_dir + '/SConstruct',
+				source = 'SConstruct_module',
+				action = template_generation.CopyWithTitle)
+		else:
+			# Partition's directory
+			partition_dir = module_dir + '/' + example_dir
+			env.Command(target = partition_dir + '/SConstruct',
+				source = 'SConstruct_partition',
+				action = template_generation.CopyWithTitle)

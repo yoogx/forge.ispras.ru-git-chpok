@@ -17,8 +17,20 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-Import('part_env')
+"""
+Environment definitions for PowerPC architecture.
+"""
 
-part_env['src_dirs'] = ['src']
-part_env['XML'] = 'config.xml'
-part_env['src_script_dirs'] = ['components-glue']
+Import('env')
+
+env['PREFIX'] = 'powerpc-elf-'
+
+env['QEMU'] = 'qemu-system-ppc'
+
+env.Append(CFLAGS = ' -mregnames')
+env.Append(ASFLAGS = ' -mregnames')
+
+env.Append(CFLAGS_KERNEL = '-msoft-float')
+
+env['LDSCRIPT_KERNEL'] = env['POK_PATH'] + '/kernel/arch/ppc/ldscripts/kernel.lds'
+env['LDSCRIPT_PARTITION'] = env['POK_PATH'] + '/kernel/arch/ppc/ldscripts/partition.lds'

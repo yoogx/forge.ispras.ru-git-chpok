@@ -1,0 +1,218 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+"""
+Build module according to module definition script and partition definition
+scripts.
+"""
+
+# This script is called from SConscript, when it builds whole module.
+#
+# The script Import()s variable 'env' contained main environment.
+# After that, it Import()s variable 'module_def' and execute script,
+# pointed by it. That script setups 'env' variables,
+# which determines module's components and configuration:
+#
+# - 'BUILD_DIR' - where module's elf should be built.
+# (Absolute path).
+#
+# - 'XML' - xml or other file(s), from which configuration of module
+# may be extracted.
+# Note: per-partition 'XML' shouldn't be listed there.
+# (Single absolute path or list of absolute paths).
+#
+# - 'PARSE_CONFIGURATION' - parser of files listed in 'XML', which should
+# return object of type 'chpok_configuration.Configuration'.
+# (Function with signature '(sources, env)').
+#
+# - 'PARTITION_DEFS' - list of script files, each of them describes its
+# own partition.
+# (List of absolute paths).
+#
+# After module's definition script returns, iterates variable
+# 'partition_def' over partition definition scripts listed in
+# env['PARTITION_DEFS']. On each iteration calls script SConscript_partition
+# with variable 'part_env', cloned from 'env' and with additional variable
+# part_env['PARTITION_INDEX'] set to the index of iteration (counted from 0),
+# and with variable 'partition_def'.
+#
+# Return target which builds module's elf.
+
+import os
+import shutil
+
+import chpok_configuration
+import template_generation
+
+Import('env')
+Import('module_def')
+
+SConscript(module_def, exports = 'env')
+
+partition_build_dirs = []
+partition_xmls = []
+partition_elfs = []
+
+for part_index, partition_def in enumerate(env['PARTITION_DEFS']):
+	part_env = env.PartitionEnvironment()
+	part_env.Append(part_index = part_index)
+	part_elf = SConscript('SConscript_partition', exports = ['part_env', 'partition_def'])
+	partition_elfs.append(part_elf)
+	partition_build_dirs.append(part_env['BUILD_DIR'])
+	partition_xmls.append(part_env['XML'])
+
+AddMethod(env, template_generation.TemplateRender)
+
+def get_pok_definitions(source, env):
+    return dict(conf = env['PARSE_CONFIGURATION'](source, env))
+
+
+def get_pok_gdb_definitions(source, env):
+    defs = dict(conf = env['PARSE_CONFIGURATION'](source, env),
+		partition_build_dirs = partition_build_dirs)
+
+    return defs
+
+if not os.path.exists(env['BUILD_DIR']):
+    os.makedirs(env['BUILD_DIR'])
+for pdir in partition_build_dirs:
+    if not os.path.exists(pdir):
+        os.makedirs(pdir)
+
+# Generate "deployment.c" for kernel
+deployment_kernel = env.TemplateRender(
+    target = os.path.join(env['BUILD_DIR'], "deployment.c"),
+    source = [env['XML']] + partition_xmls,
+    create_definitions_func = get_pok_definitions,
+    template_main = "deployment_kernel",
+    template_dir = env['POK_PATH'] + "/misc/templates",
+    GENERATE_TITLE = template_generation.generate_title_c_no_track
+    )
+
+
+# Generate file with commands for GDB for possible debugging
+gdb_commands = env.TemplateRender(
+    target = env['BUILD_DIR'] + "/GDB_commands",
+    source = [env['XML']] + partition_xmls,
+    create_definitions_func = get_pok_gdb_definitions,
+    template_main = "GDB_commands",
+    template_dir = env['POK_PATH'] + "/misc/templates",
+    GENERATE_TITLE = template_generation.generate_title_python_no_track
+    )
+
+gdb_commands_file = gdb_commands[0].abspath
+
+pok_env = env.KernelEnvironment()
+
+pok_env.Program(target = env['BUILD_DIR']+'kernel.lo', source = [
+	env['KERNEL_CORE_TARGET'],
+	env['BSP_TARGET']] + deployment_kernel)
+
+# there should (perhaps) also be padding to get aligned file size
+def merge_partitions(target, source, env):
+    with open(str(target[0]), 'wb') as part:
+        for s in source:
+            with open(str(s), 'rb') as orig_part:
+                shutil.copyfileobj(orig_part, part)
+
+def create_sizes_c(target, source, env):
+    with open(str(target[0]), 'w') as sizes:
+        sizes.write('#include <types.h>\n')
+        sizes.write('uint32_t pok_elf_sizes[] = {\n')
+        for s in source:
+            part_size = os.path.getsize(str(s))
+            if part_size > pok_env['MAX_PART_SIZE']:
+                raise RuntimeError('Partition size must not exceed %d bytes' % pok_env['MAX_PART_SIZE'])
+            sizes.write(str(part_size))
+            if source.index(s) != len(source) - 1:
+                sizes.write(',\n')
+        sizes.write('\n};\n')
+
+merge_command = pok_env.Command(target = pok_env['BUILD_DIR']+'partitions.bin',
+    source = partition_elfs,
+    action = merge_partitions)
+pok_env.Depends(merge_command, partition_elfs)
+
+sizes_c_command = pok_env.Command(target = pok_env['BUILD_DIR']+'sizes.c',
+    source = partition_elfs,
+    action = create_sizes_c)
+pok_env.Depends(sizes_c_command, partition_elfs)
+
+compile_sizes = pok_env.Command(target = pok_env['BUILD_DIR']+'sizes.o',
+    source = pok_env['BUILD_DIR']+'sizes.c',
+    action = [
+        pok_env['CC']+' -c -o '+pok_env['BUILD_DIR']+'sizes.o '+pok_env['CFLAGS']+' -I'+pok_env['POK_PATH']+'/kernel/include '+
+        pok_env['BUILD_DIR']+'sizes.c',
+        pok_env['OBJCOPY']+' --add-section .archive2='+pok_env['BUILD_DIR']+'partitions.bin '+pok_env['BUILD_DIR']+'sizes.o'])
+pok_env.Depends(compile_sizes, [partition_elfs, merge_command])
+
+pok_elf_env = pok_env.Clone()
+
+ldscript_kernel = pok_env['LDSCRIPT_KERNEL']
+# Rewrite LINKFLAGS, as we build '.elf'.
+pok_elf_env['LINKFLAGS'] = ' -T ' + ldscript_kernel
+
+
+pok_target = pok_elf_env.Program(target = pok_env['BUILD_DIR']+'pok.elf', source = [
+    pok_env['BUILD_DIR']+'sizes.o',
+    pok_env['BUILD_DIR']+'kernel.lo',
+    pok_env['LIBGCC']])
+pok_env.Depends(pok_target, [compile_sizes, ldscript_kernel])
+
+pok_target_file = pok_target[0].abspath
+
+env.Append(QEMU_FLAGS = ' -kernel '+pok_target_file)
+
+#env.Append(QEMU_FLAGS = ' -display none')
+env.Command('run_cmd', [], env['QEMU']+env['QEMU_FLAGS'])
+env.Alias('run', 'run_cmd')
+
+env.Command('run_tap_cmd', [], env['QEMU'] + env['QEMU_FLAGS'] + ' -net nic,model=virtio -net tap,ifname=tap0,script=no,downscript=no')
+env.Alias('run-tap', 'run_tap_cmd')
+
+env.Command('run_tap2_cmd', [], env['QEMU'] + env['QEMU_FLAGS'] + ' -net nic,model=virtio,vlan=0 -net nic,model=virtio,vlan=1 -net tap,ifname=tap0,script=no,downscript=no,vlan=0 -net tap,ifname=tap1,script=no,downscript=no,vlan=1')
+env.Alias('run-tap2', 'run_tap2_cmd')
+
+env.Command('run_tap_cmd_ne2k', [], env['QEMU'] + env['QEMU_FLAGS'] + ' -net nic,model=ne2k_pci,vlan=0 -net nic,model=ne2k_pci,vlan=1 -net tap,ifname=tap0,script=no,downscript=no,vlan=0, -net tap,ifname=tap1,script=no,downscript=no,vlan=1')
+env.Alias('run-tap-ne2k', 'run_tap_cmd_ne2k')
+
+env.Command('run_with_2_ports', [], env['QEMU']+env['QEMU_FLAGS']+' -serial tcp::8000,server')
+env.Alias('run-gdb', 'run_with_2_ports')
+
+env.Command('run_debug_cmd', [], env['QEMU']+env['QEMU_FLAGS']+' -S -s')
+env.Alias('rundbg', 'run_debug_cmd')
+
+env.Command('debug_cmd', [], env['GDB']+' '+pok_target_file+' -ex "target remote :1234"')
+env.Alias('debug', 'debug_cmd')
+
+command_debug_gdb = env.Command('debug_gdb', gdb_commands, env['GDB']+' '+pok_target_file+' -ex "source '+gdb_commands_file+'" \
+                                                                            -ex "target extended-remote 127.0.0.1:8000"')
+env.Alias('debug-gdb', 'debug_gdb')
+
+clean_directories = [env['BUILD_DIR']] + partition_build_dirs
+
+env.RemoveDirectories('clean_module_cmd', clean_directories)
+env.Alias('clean', 'clean_module_cmd')
+env.Alias('distclean', 'clean_module_cmd')
+env.Clean('#/local', clean_directories)
+env.Clean('#/all', clean_directories)
+
+Return('pok_target')
+
+# EOF

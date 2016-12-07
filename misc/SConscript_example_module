@@ -17,8 +17,10 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-Import('part_env')
+mode = 'module'
+module_def = 'SConscript_example_module_def'
+environment_data = dict(EXAMPLE_DIR = Dir('#').abspath)
 
-part_env['src_dirs'] = ['src']
-part_env['XML'] = 'config.xml'
-part_env['src_script_dirs'] = ['components-glue']
+env = SConscript('SConscript', exports = ['mode', 'module_def', 'environment_data'])
+
+Return('env')

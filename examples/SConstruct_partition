@@ -17,8 +17,13 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-Import('part_env')
+import os
 
-part_env['src_dirs'] = ['src']
-part_env['XML'] = 'config.xml'
-part_env['src_script_dirs'] = ['components-glue']
+pok_path = os.environ.get('POK_PATH', "")
+
+if pok_path == "":
+	print "ERROR: Environment variable 'POK_PATH' is not set."
+	print "HINT:Environment variable 'POK_PATH' should point to the JetOS root directory."
+	Exit(1)
+
+env = SConscript(pok_path+'/misc/SConscript_example_partition')

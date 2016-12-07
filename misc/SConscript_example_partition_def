@@ -1,0 +1,109 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+"""
+Definitions for partition in examples.
+Should be called from main SConscript via 'partition_def'.
+"""
+
+# In imported environment, expects part_env['ENVIRONMENT_DATA']['EXAMPLE_DIR']
+# to contain directory with partition's example.
+#
+# Calls SConscript from example's directory, and pass 'part_env' to it.
+#
+# Example's SConscript may set environment variables:
+#
+# - 'src_dirs': directories from which source files of partition should
+# be GLOB'ed.
+# (List of absolute/relative (from partition's directory) paths, optional).
+#
+# - 'src_script_dirs': directories from which SConscripts should be executed.
+# Each SConscript should return target for built into partition.
+# (List of absolute/relative (from partition's directory) paths, optional).
+#
+# - 'XML' .xml file with configuration of the partition.
+# (Absolute or relative (from example's directory) path, required).
+
+
+from lxml import etree
+import arinc653_xml_conf
+import chpok_configuration
+import os
+
+Import('part_env')
+
+def get_jet_partition_config(source, env):
+    if type(source) is list:
+        source = source[0]
+
+    root = etree.parse(source.path)
+
+    parser = arinc653_xml_conf.ArincConfigParser(env['ARCH'])
+
+    conf = chpok_configuration.Configuration(env['ARCH'])
+    parser.parse_partition(conf, root)
+
+    return conf.partitions[0]
+
+part_index = part_env.get('part_index', None)
+
+if part_index is None:
+    part_example_dir = part_env['ENVIRONMENT_DATA']['EXAMPLE_DIR']
+else:
+    part_example_dir = part_env['PARTITION_SOURCE_DIRS'][part_index]
+
+def to_abs_path(path):
+    if not path.startswith('/'):
+        return part_example_dir + '/' + path
+    else:
+        return path
+
+part_env['PARSE_CONFIGURATION'] = get_jet_partition_config
+part_env['BUILD_DIR'] = os.path.join(part_example_dir, 'build', part_env['BSP'])
+part_env['CLEAN_DIRS'] = os.path.join(part_example_dir, 'build')
+part_env['PARTITION_SOURCES'] = []
+part_env['src_script_dirs'] = []
+part_env['src_dirs'] = []
+
+SConscript(part_example_dir + '/SConscript', exports = 'part_env')
+
+# Make path in part_env['XML'] absolute.
+part_env['XML'] = to_abs_path(part_env['XML'])
+
+root = etree.parse(part_env['XML'])
+definition_attrib = root.find("Definition").attrib
+part_is_system = ("System" in definition_attrib) and (arinc653_xml_conf.parse_bool(definition_attrib["System"]))
+
+if part_is_system:
+    part_env.Append(CPPPATH = part_env['POK_PATH']+'/syspart/include')
+    part_env['SYSTEM_PARTITION'] = True
+
+partition_sources = []
+for d in part_env['src_dirs']:
+    d = to_abs_path(d)
+    sources = Glob(d + '/*.c')
+    for src in sources:
+        target_file = part_env['BUILD_DIR'] + "/" + os.path.splitext(os.path.basename(str(src)))[0]
+        partition_sources.extend(part_env.StaticObject(target_file, src))
+
+for d in part_env['src_script_dirs']:
+    d = to_abs_path(d)
+    partition_sources.extend(SConscript(os.path.join(d, 'SConscript'), exports = 'part_env'))
+
+part_env['PARTITION_SOURCES'].extend(partition_sources)

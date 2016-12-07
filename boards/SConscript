@@ -22,6 +22,7 @@ Import('env')
 bsp_env = env.Clone()
 bsp_env.Append(CPPPATH = bsp_env['KERNEL_CPPPATH'])
 
-bsp_env.Program(target = 'bsp.lo', source = Glob(bsp_env['BSP']+'/*.[Sc]'))
+bsp_target = bsp_env.Program(target = 'bsp.lo', source = Glob(bsp_env['BSP']+'/*.[Sc]'))
 
+Return('bsp_target')
 # EOF

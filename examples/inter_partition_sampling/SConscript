@@ -17,8 +17,7 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-Import('part_env')
+Import('env')
 
-part_env['src_dirs'] = ['src']
-part_env['XML'] = 'config.xml'
-part_env['src_script_dirs'] = ['components-glue']
+env['PARTITIONS'] = ['P1', 'P2']
+env['XML'] = 'config.xml'

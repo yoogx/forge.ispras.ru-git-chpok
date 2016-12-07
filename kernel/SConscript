@@ -39,7 +39,7 @@ arch = SConscript('arch/SConscript')
 
 kernel_objects=[core, libc, arch]
 
-kernel_env.Program(target = 'core.lo', source = kernel_objects)
+kernel_core_target = kernel_env.Program(target = 'core.lo', source = kernel_objects)
 
 if kernel_env.get('jdeveloper'):
     import sys
@@ -71,4 +71,5 @@ if kernel_env.get('jdeveloper'):
 
     kernel_env.Depends('regenerate', kernel_syscall_headers)
 
+Return('kernel_core_target')
 # EOF

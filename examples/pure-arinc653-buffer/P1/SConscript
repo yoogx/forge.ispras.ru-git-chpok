@@ -19,15 +19,8 @@
 
 import os
 
-Import('env')
+Import('part_env')
 
-part_dir = Dir('.').abspath
-part_build_dir = os.path.join(part_dir, 'build', env['BSP'], '')
+part_env['src_dirs'] = ['src']
+part_env['XML'] = 'config.xml'
 
-src_dirs = [os.path.join(part_dir, 'src', '')]
-src_script_dirs = []
-
-part_xml = os.path.join(part_dir, 'config.xml')
-
-SConscript(env['POK_PATH']+'/misc/SConscript_partition',
-    exports = ['part_build_dir', 'src_dirs', 'src_script_dirs', 'part_xml'])

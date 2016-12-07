@@ -1,0 +1,26 @@
+When copy example into your private location (your own package), cleanup
+heading lines of:
+
+    <example>/SConstruct
+
+and (for every partition in it)
+
+    <example>/<partition>/SConstruct
+
+Since copiing, you are free to modify these files.
+
+Up-to-day content of these files in JetOS is located in files
+
+    SConstruct_module
+
+and
+
+    SConstruct_partition
+
+correspondingly.
+
+
+DEVELOPER:
+
+Whenever example is added or removed or partition's list in it is modified,
+update 'examples_dirs' variable in SConstruct accordingly.

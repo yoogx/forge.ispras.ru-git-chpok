@@ -19,11 +19,9 @@
 
 Import('env')
 
-syspart_env = env.Clone()
+syspart_env = env.PartitionEnvironment()
 
-syspart_env['CPPPATH'] = env['LIBPOK_CPPPATH'] + [
-        env['POK_PATH']+'/syspart/include',
-        ]
+syspart_env['CPPPATH'].append([env['POK_PATH']+'/syspart/include'])
 
 Export('syspart_env')
 
@@ -37,6 +35,7 @@ syspart_program = syspart_env.Program(target = 'syspart.lo', source = [
     'mem.c',
     'pool.c'
 ])
-syspart_env.Depends(syspart_program, env['POK_PATH']+'/libpok/')
+
+Return('syspart_program')
 
 # EOF

@@ -31,8 +31,6 @@ CONFIG = "config.yaml"
 import os
 
 Import('part_env')
-Import('part_build_dir')
-
 
 P2_env = part_env.Clone()
 P2_env.Append(CFLAGS = ' -O3')
@@ -98,6 +96,6 @@ if part_env.get('cdeveloper'):
 objs = []
 sources = Glob('*.c')
 for src in sources:
-    objs += P2_env.StaticObject(part_build_dir + str(src)[:-2], src)
+    objs += P2_env.StaticObject(part_env['BUILD_DIR'] + "/" + str(src)[:-2], src)
 
 Return('objs')

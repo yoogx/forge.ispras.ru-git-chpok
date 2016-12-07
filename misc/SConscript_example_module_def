@@ -1,0 +1,74 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+"""
+Definitions for module in examples.
+Should be called from main SConscript via 'module_def'.
+"""
+
+# In imported environment, expects env['ENVIRONMENT_DATA']['EXAMPLE_DIR']
+# to contain directory with example.
+#
+# Calls SConscript from example's directory, and pass 'env' to it.
+#
+# Example's SConscript should set environment variables:
+#
+# - 'PARTITIONS': subdirectories with partitions.
+# (List of relative paths/names).
+#
+# - 'XML' .xml file with configuration of the module.
+# (Absolute or relative (from example's directory) path).
+
+
+import os
+from lxml import etree
+import arinc653_xml_conf
+import chpok_configuration
+
+Import('env')
+
+def get_jet_config(source, env):
+    source = source[0]
+
+    root = etree.parse(source.path)
+    root.xinclude()
+
+    parser = arinc653_xml_conf.ArincConfigParser(env['ARCH'])
+    conf = parser.parse(root)
+
+    return conf
+
+env['PARSE_CONFIGURATION'] = get_jet_config
+
+example_dir = env['ENVIRONMENT_DATA']['EXAMPLE_DIR']
+env['BUILD_DIR'] = os.path.join(example_dir, 'build', env['BSP'], '')
+
+SConscript(example_dir + '/SConscript', exports = 'env')
+
+partition_defs = []
+partition_source_dirs = []
+for part in env['PARTITIONS']:
+    partition_defs.append(env['POK_PATH'] + '/misc/SConscript_example_partition_def')
+    partition_source_dirs.append('' + example_dir + '/' + part)
+
+env['PARTITION_DEFS'] = partition_defs
+env['PARTITION_SOURCE_DIRS'] = partition_source_dirs
+
+if not env['XML'].startswith('/'):
+    env['XML'] = example_dir + '/' + env['XML']

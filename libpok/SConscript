@@ -19,9 +19,7 @@
 
 Import('env')
 
-libpok_env = env.Clone()
-
-libpok_env['CPPPATH'] = libpok_env['LIBPOK_CPPPATH']
+libpok_env = env.PartitionEnvironment()
 
 Export('libpok_env')
 
@@ -36,7 +34,7 @@ utils       =  SConscript('utils/SConscript')
 
 user_objects = [arch, arinc653, core, libc, libm, middleware, protocols, utils]
 
-libpok_env.StaticLibrary(target = 'pok',
+libpok_target = libpok_env.StaticLibrary(target = 'pok',
     source = user_objects)
 
 if libpok_env.get('jdeveloper'):
@@ -74,4 +72,6 @@ if libpok_env.get('jdeveloper'):
             template_dir = libpok_env['POK_PATH'] + '/misc/templates'))
 
     libpok_env.Depends('regenerate', user_syscall_headers + uapi_copy_headers)
+
+Return('libpok_target')
 # EOF

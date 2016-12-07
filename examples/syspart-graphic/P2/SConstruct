@@ -1,3 +1,7 @@
+# COPIED! DO NOT MODIFY!
+# Instead of modifying this file, modify original one (examples/SConstruct_partition).
+#
+# When copy a file outside of JetOS project, remove this line and the lines above.
 #******************************************************************
 #
 # Institute for System Programming of the Russian Academy of Sciences
@@ -16,15 +20,14 @@
 # See the GNU General Public License version 3 for more details.
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
 import os
 
-cflags = ''
-SConscript(os.environ['POK_PATH']+'/misc/SConscript', exports = 'cflags')
+pok_path = os.environ.get('POK_PATH', "")
 
-Import('env')
-SConscript(env['POK_PATH']+'/misc/SConscript_partition_base')
+if pok_path == "":
+	print "ERROR: Environment variable 'POK_PATH' is not set."
+	print "HINT:Environment variable 'POK_PATH' should point to the JetOS root directory."
+	Exit(1)
 
-env.Clean('chpok', env['POK_PATH']+'/build/')
-env.Clean('local', 'build')
-
-# EOF
+env = SConscript(pok_path+'/misc/SConscript_example_partition')
