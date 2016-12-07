@@ -440,7 +440,17 @@ static inline pok_ret_t pok_port_queuing_status(pok_port_id_t id,
 }
 // Syscall should be accessed only by function
 #undef POK_SYSCALL_MIDDLEWARE_QUEUEING_STATUS
+
+static inline pok_ret_t pok_port_queuing_clear(pok_port_id_t id)
+{
+    return pok_syscall1(POK_SYSCALL_MIDDLEWARE_QUEUEING_CLEAR,
+        (uint32_t)id);
+}
+// Syscall should be accessed only by function
+#undef POK_SYSCALL_MIDDLEWARE_QUEUEING_CLEAR
+
 #endif /* POK_NEEDS_PORTS_QUEUEING */
+
 
 static inline pok_ret_t pok_memory_block_get_status(const char* name,
     jet_memory_block_status_t* status)

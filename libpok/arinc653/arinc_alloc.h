@@ -23,7 +23,6 @@
 #if defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD)
 
 #include <types.h>
-#include <alloc.h>
 
 // Heap for ARINC messages and message queues. Used in arinc_init().
 extern char* arinc_intra_heap;

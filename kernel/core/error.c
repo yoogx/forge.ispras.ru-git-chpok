@@ -44,9 +44,10 @@ static void perform_module_action(pok_error_module_action_t action)
 
     case POK_ERROR_MODULE_ACTION_SHUTDOWN:
         // TODO: Shutdown module
+        ja_inf_loop();
         break;
 
-    //default:
+    default:
         /*
          * Incorrect configuration table.
          *
@@ -55,6 +56,7 @@ static void perform_module_action(pok_error_module_action_t action)
          * Forse shutdown.
          */
         // TODO: Force shutdown
+        ja_inf_loop();
     }
 }
 

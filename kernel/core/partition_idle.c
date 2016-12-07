@@ -43,9 +43,11 @@ pok_partition_t partition_idle =
 {
     .name = "Idle",
 
-    .period = 0, 
+    .partition_event_max = 0,
+
+    .period = 0,
     .space_id = 0,
-    
+
     .part_sched_ops = &partition_sched_ops_kernel,
     .part_ops = &partition_idle_operations,
 

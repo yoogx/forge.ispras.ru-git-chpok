@@ -24,7 +24,7 @@
 #include <bsp.h>
 #include "pci_internal.h"
 
-#include <libc/string.h>
+#include <string.h>
 
 #define OK 0
 

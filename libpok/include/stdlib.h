@@ -1,22 +1,29 @@
 /*
- *                               POK header
- * 
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *                                      Copyright (c) 2007-2009 POK team 
- *
- * Created by julien on Tue Mar 10 14:26:18 2009 
+ * See the GNU General Public License version 3 for more details.
  */
 
-#include <libc/stdlib.h>
-/*
- * This file was written to ensure portability and have
- * working compilation with files that contain
- * #include <stdlib.h>
- */
+#ifndef __LIBJET_STDLIB_H__
+#define __LIBJET_STDLIB_H__
+
+#include <stdint.h>
+#include <stddef.h>
+
+#define RAND_MAX 32767
+
+void abort(void);
+
+int rand (void);
+void srand(unsigned int seed);
+
+#endif /* __LIBJET_STDLIB_H__*/

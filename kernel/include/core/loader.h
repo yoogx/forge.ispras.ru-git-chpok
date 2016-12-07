@@ -32,7 +32,6 @@
  */
 void jet_loader_elf_load   (uint8_t elf_id,
                                  jet_space_id space_id,
-                                 size_t heap_size,
                                  void (** entry)(void));
 #endif /* __JET_LOADER_H__ */
 

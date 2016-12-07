@@ -69,10 +69,12 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
 #endif
 
 #if defined POK_NEEDS_GETTICK
-      case POK_SYSCALL_GETTICK:
-         return pok_gettick_by_pointer ((pok_time_t* __user) args->arg1);
+      case POK_SYSCALL_CLOCK_GETTIME:
+         return pok_clock_gettime ((clockid_t)args->arg1, (pok_time_t* __user)args->arg2);
          break;
 #endif
+      case POK_SYSCALL_TIME:
+         return jet_time((time_t*)args->arg1);
 
       SYSCALL_ENTRY(POK_SYSCALL_THREAD_CREATE)
 
@@ -141,6 +143,7 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
    SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_QUEUEING_RECEIVE)
    SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_QUEUEING_ID)
    SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_QUEUEING_STATUS)
+   SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_QUEUEING_CLEAR)
 #endif /* POK_NEEDS_PORTS_QUEUEING */
 
 #ifdef POK_NEEDS_IO

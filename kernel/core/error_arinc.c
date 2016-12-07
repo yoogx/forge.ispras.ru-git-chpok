@@ -30,7 +30,6 @@
 #include <libc.h>
 #include <core/uaccess.h>
 #include "thread_internal.h"
-#include <message.h>
 #include <cons.h>
 
 static inline pok_error_kind_t get_error_kind(pok_error_id_t error_id)
@@ -317,7 +316,6 @@ pok_ret_t pok_error_raise_application_error (const char* __user msg, size_t msg_
 
     pok_system_state_t partition_state;
     const char* __kuser k_msg;
-    pok_message_send_t message_send;
 
     if (msg_size > POK_ERROR_MAX_MSG_SIZE || msg_size == 0) {
         return POK_ERRNO_EINVAL;
@@ -342,10 +340,8 @@ pok_ret_t pok_error_raise_application_error (const char* __user msg, size_t msg_
     assert(part->thread_error);
     assert(part->thread_current != part->thread_error);
 
-    message_send.size = msg_size;
-    message_send.data = k_msg;
-
-    thread->wait_private = &message_send;
+    thread->wait_buffer.src = k_msg;
+    thread->wait_len = msg_size;
 
     pok_preemption_local_disable();
 
@@ -446,11 +442,9 @@ pok_ret_t pok_error_get (pok_error_status_t* __user status,
 
          if(part->sync_error == POK_ERROR_ID_APPLICATION_ERROR)
          {
-             pok_message_send_t* message_send = thread->wait_private;
-
-             k_status->msg_size = message_send->size;
+             k_status->msg_size = thread->wait_len;
              k_status->error_kind = get_error_kind(POK_ERROR_ID_APPLICATION_ERROR);
-             memcpy(k_msg, message_send->data, message_send->size);
+             memcpy(k_msg, thread->wait_buffer.src, thread->wait_len);
          }
          else
          {
