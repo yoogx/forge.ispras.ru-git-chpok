@@ -45,7 +45,7 @@ struct port_ops{
             .state = {
                 .src_ip = IP_ADDR(192, 168, 56, 101),
                 .dst_ip = IP_ADDR(192, 168, 56, 1),
-                .dst_mac = {0x50, 0x46, 0x5d, 0x37, 0x63, 0x13},
+                .dst_mac = {0xc2, 0xc0, 0x31, 0xe9, 0x2c, 0xfe},
                 .src_port = 10002,
                 .dst_port = 10003,
             },
@@ -62,12 +62,14 @@ struct port_ops{
 
         };
 
-    #include <DTSEC_NET_DEV_gen.h>
-        void __DTSEC_NET_DEV_init__(DTSEC_NET_DEV*);
-        void __DTSEC_NET_DEV_activity__(DTSEC_NET_DEV*);
-        DTSEC_NET_DEV net_dev_1 = {
+    #include <VIRTIO_NET_DEV_gen.h>
+        void __VIRTIO_NET_DEV_init__(VIRTIO_NET_DEV*);
+        void __VIRTIO_NET_DEV_activity__(VIRTIO_NET_DEV*);
+        VIRTIO_NET_DEV net_dev_1 = {
             .state = {
-                .dtsec_num = 3,
+                .pci_fn = 0,
+                .pci_dev = 2,
+                .pci_bus = 0,
             },
 
         };
@@ -140,7 +142,7 @@ void __components_init__()
 
             __MAC_SENDER_init__(&mac_sender_1);
 
-            __DTSEC_NET_DEV_init__(&net_dev_1);
+            __VIRTIO_NET_DEV_init__(&net_dev_1);
 
             __ARP_ANSWERER_init__(&arp_answerer_1);
 
@@ -180,7 +182,7 @@ void __components_activity__()
                 __ARINC_SENDER_activity__(&arinc_sender_1);
                 __UDP_IP_SENDER_activity__(&udp_ip_sender_1);
                 __MAC_SENDER_activity__(&mac_sender_1);
-                __DTSEC_NET_DEV_activity__(&net_dev_1);
+                __VIRTIO_NET_DEV_activity__(&net_dev_1);
                 __ARP_ANSWERER_activity__(&arp_answerer_1);
                 __MAC_RECEIVER_activity__(&mac_receiver_1);
                 __UDP_RECEIVER_activity__(&udp_receiver);

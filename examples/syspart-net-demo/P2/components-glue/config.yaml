@@ -17,24 +17,24 @@ components:
           dst_ip: IP_ADDR(192, 168, 56, 1)
           dst_port: 10003
           #dst_mac: '{0x08, 0x00, 0x27, 0x00, 0x88, 0xAD}'
-          dst_mac: '{0x50, 0x46, 0x5d, 0x37, 0x63, 0x13}'
+          dst_mac: '{0xc2, 0xc0, 0x31, 0xe9, 0x2c, 0xfe}'
 
     - name: mac_sender_1
       type: MAC_SENDER
       state:
           src_mac: '{0x52, 0x54, 0x00, 0x01, 0x02, 0x03}'
 
-    #- name: net_dev_1
-    #  type: VIRTIO_NET_DEV
-    #  state:
-    #     pci_bus: 0
-    #     pci_dev: 2
-    #     pci_fn: 0
-
     - name: net_dev_1
-      type: DTSEC_NET_DEV
+      type: VIRTIO_NET_DEV
       state:
-          dtsec_num: 3
+         pci_bus: 0
+         pci_dev: 2
+         pci_fn: 0
+
+    #- name: net_dev_1
+    #  type: DTSEC_NET_DEV
+    #  state:
+    #      dtsec_num: 3
 
     - name: arp_answerer_1
       type: ARP_ANSWERER
