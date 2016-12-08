@@ -29,7 +29,7 @@
 #include <config.h>
 
 #include <protocols/des.h>
-#include <libc/string.h>
+#include <string.h>
 #include <types.h>
 #include "des.h"
 

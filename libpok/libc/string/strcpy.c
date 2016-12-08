@@ -1,50 +1,46 @@
 /*
- *                               POK header
- * 
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *                                      Copyright (c) 2007-2009 POK team 
- *
- * Created by julien on Thu Jan 15 23:34:13 2009 
+ * See the GNU General Public License version 3 for more details.
  */
 
-#include <core/dependencies.h>
-#include <libc/string.h>
+#include <string.h>
 
-#ifdef POK_CONFIG_NEEDS_FUNC_STRCPY
-
-__attribute__ ((weak))
-char		*strcpy(char *dest, const char *str)
+char *strcpy(char * restrict dest, const char * restrict src)
 {
-  unsigned int i;
-  for (i = 0; str[i];i++)
-    dest[i] = str[i];
-  dest[i] = '\0';
-  return dest;
+    char* dest_iter = dest;
+
+    while(*src)
+        *dest_iter++ = *src++;
+
+    *dest_iter = '\0';
+
+    return dest;
 }
 
-#endif
-
-#ifdef POK_CONFIG_NEEDS_FUNC_STRNCPY
-
-__attribute__ ((weak))
-char *strncpy(char *dest, const char *str, size_t size)
+char *strncpy(char * restrict dest, const char * restrict src, size_t n)
 {
-  unsigned int i;
-  for (i = 0; i < size; i++)
-  {
-    dest[i] = str[i];
-    if (str[i] == '\0')
-      break;
-  }
-  return dest;
+    char* dest_iter = dest;
+    int i = 0;
+
+    while(i < n && *src) {
+        *dest_iter++ = *src++;
+        i++;
+    }
+
+    *dest_iter = '\0';
+    // The rest bytes should also be filled
+    for(; i < n; i++)
+      *(++dest_iter) = '\0';
+
+    return dest;
 }
-
-#endif
-

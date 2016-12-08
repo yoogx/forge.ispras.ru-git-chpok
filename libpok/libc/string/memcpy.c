@@ -1,41 +1,30 @@
 /*
- *                               POK header
- * 
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *                                      Copyright (c) 2007-2009 POK team 
- *
- * Created by julien on Thu Jan 15 23:34:13 2009 
+ * See the GNU General Public License version 3 for more details.
  */
 
-#include <core/dependencies.h>
-#include <libc/string.h>
+#include <string.h>
 
-#if defined (POK_CONFIG_NEEDS_FUNC_MEMCPY) || (defined (__sparc__) && defined (POK_NEEDS_FUNC_PRINTF))
-/*
- * For printf, the SPARC architecture needs memcpy() func
- */
-
-__attribute__ ((weak))
-void		*memcpy(void *dest, const void *src, size_t count)
+/* GCC requires this function even for freestanding environment. */
+void *memcpy(void * restrict dest, const void * restrict src, size_t n)
 {
-  const unsigned char *s = (const unsigned char*) src;
-  unsigned char *d = (unsigned char*) dest;
+    const unsigned char *s = (const unsigned char*) src;
+    unsigned char *d = (unsigned char*) dest;
 
-  while (count--)
-  {
-    *d++ = *s++;
-  }
+    while (n--)
+    {
+        *d++ = *s++;
+    }
 
-  return (dest);
+    return dest;
 }
-
-
-#endif
-

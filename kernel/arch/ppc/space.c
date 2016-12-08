@@ -56,7 +56,15 @@ struct jet_kernel_shared_data* __kuser ja_space_shared_data(jet_space_id space_i
     return (struct jet_kernel_shared_data* __kuser)POK_PARTITION_MEMORY_BASE;
 }
 
-size_t ja_user_space_maximum_alignment = 16;
+static const size_t ja_user_space_maximum_alignment = 16;
+
+void __user* ja_space_get_heap(jet_space_id space_id)
+{
+   struct ja_ppc_space* space = &ja_spaces[space_id - 1];
+
+   return POK_PARTITION_MEMORY_BASE + (char __user*)
+    ALIGN_VAL((unsigned long)space->size_normal, ja_user_space_maximum_alignment);
+}
 
 void ja_space_switch (jet_space_id space_id)
 {
@@ -272,8 +280,15 @@ void pok_arch_space_init (void)
 
     for(int i = 0; i < ja_spaces_n; i++)
     {
+        struct ja_ppc_space* space = &ja_spaces[i];
+
+        space->size_total = space->size_normal;
+        if(space->size_heap > 0) {
+            space->size_total = ALIGN_VAL((unsigned long)space->size_total, ja_user_space_maximum_alignment)
+            + space->size_heap;
+        }
         // This should be checked when generate deployment.c too.
-        assert(ja_spaces[i].size_normal < POK_PARTITION_MEMORY_SIZE);
+        assert(space->size_total < POK_PARTITION_MEMORY_SIZE);
     }
 }
 

@@ -57,12 +57,8 @@ struct jet_space_layout
 void ja_space_layout_get(jet_space_id space_id,
     struct jet_space_layout* space_layout);
 
-/*
- * Maximum alignment for user space objects.
- * 
- * This alignment is used for allocate heap.
- */
-extern size_t ja_user_space_maximum_alignment;
+/* Return pointer to the heap for given space. */
+void* ja_space_get_heap(jet_space_id space_id);
 
 /* Return pointer to the kernel shared data for given space. */
 struct jet_kernel_shared_data* __kuser ja_space_shared_data(jet_space_id space_id);

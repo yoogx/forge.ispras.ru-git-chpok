@@ -42,13 +42,14 @@ struct ja_ppc_space
 {
     /* Physical address of memory chunk. */
     uintptr_t   phys_base;
-    /* 
-     * Size of the memory for normal use. 
-     * Everything above is used for stack.
-     */
+    /* Size of the memory for code and static data. */
     size_t      size_normal;
-    
-    uint32_t    ustack_state; // State of the user stack allocator.
+    /* Size of the memory for heap */
+    size_t      size_heap;
+    /* Total size of memory block */
+    size_t      size_total;
+    /* State of the user stack allocator. */
+    uint32_t    ustack_state;
 };
 
 /*

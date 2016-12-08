@@ -199,6 +199,9 @@ def template_render_action(target, source, env):
         except jinja2.TemplateError as e:
             print "Error while rendering templates: " + e.message
             return 1
+        except RuntimeError as e:
+            print "Error while interpret template data: " + e.message
+            return 1
 
 # Pseudo builder(method).
 #

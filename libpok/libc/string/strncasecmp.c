@@ -14,38 +14,24 @@
  */
  
 #include <core/dependencies.h>
-#include <libc/string.h>
+#include <string.h>
+
+#include <ctype.h>
 
 #ifdef POK_CONFIG_NEEDS_FUNC_STRNCASECMP
 
 __attribute__ ((weak))
-int strncasecmp(const char *s1, const char *s2, size_t size)
+int strncasecmp(const char *s1, const char *s2, size_t n)
 {
   unsigned int i;
-  for (i = 0; i < size; i++)
+  for (i = 0; i < n; i++)
   { 
       if (s1[i] == '\0' && s2[i] == '\0')
           return 0;
-      if ((s1[i]>='a' && s1[i]<='z')&&(s2[i]<'a' || s2[i]>'z'))
-      {
-          if (s1[i]+'A' - 'a' < s2[i])
-                return -1;
-          if (s1[i]+'A' - 'a' > s2[i])
-                return 1;
-      }else
-          if ((s2[i]>='a' && s2[i]<='z')&&(s1[i]<'a' || s1[i]>'z'))
-          {    if (s1[i] < s2[i]+'A' - 'a')
-                  return -1;
-              if (s1[i] > s2[i]+'A' - 'a')
-                  return 1;
-      }
-      else
-      {
-              if (s1[i] < s2[i])
-                  return -1;
-              if (s1[i] > s2[i])
-                  return 1;
-      }
+      
+      int diff = tolower(s1[i]) - tolower(s2[i]); // As POSIX.1-2008 requires.
+      
+      if(diff) return diff;
   }
   return 0;
 }

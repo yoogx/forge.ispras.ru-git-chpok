@@ -1,36 +1,32 @@
 /*
- *                               POK header
- * 
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *                                      Copyright (c) 2007-2009 POK team 
- *
- * Created by julien on Tue Dec  8 15:53:28 2009 
+ * See the GNU General Public License version 3 for more details.
  */
 
-#include <core/dependencies.h>
-#include <types.h>
+#include <string.h>
 
-#ifdef POK_CONFIG_NEEDS_FUNC_MEMCMP
-
-int memcmp (const void* v1, const void* v2, size_t n)
+/* GCC requires this function even for freestanding environment. */
+int memcmp(const void *s1, const void *s2, size_t n)
 {
-   const unsigned char *s1 = v1;
-   const unsigned char *s2 = v2;
-   size_t  i;
+    const unsigned char *mem1 = s1;
+    const unsigned char *mem2 = s2;
+    const unsigned char *mem1_end = mem1 + n;
 
-   for (i = 0; i < n; i++) {
-      int diff = s1[i] - s2[i];
-      if (diff) return diff;
-   }
-   return 0;
+    for(; mem1 != mem1_end; ++mem1, ++mem2)
+    {
+        int d = *mem1 - *mem2;
+        if(d) return d;
+    }
+
+    return 0;
 }
-
-#endif
-

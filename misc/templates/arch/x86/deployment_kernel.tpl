@@ -21,7 +21,9 @@ struct ja_x86_space ja_spaces[{{conf.spaces | length}}] =
     {
         //.phys_base is filled upon initialization
         .size_normal = {{space.size}},
-        .size_stack = 10*8*1024 // Currently hardcoded.
+        .size_heap = {{space.part.get_heap_size()}},
+        // Currently stack size is hardcoded to 8K.
+        .size_stack = {{space.part.get_needed_threads()}} * 8 * 1024
     },
 {%endfor%}
 };

@@ -22,6 +22,8 @@ struct ja_ppc_space ja_spaces[{{conf.spaces | length}}] =
     {
         .phys_base = 0x4000000UL + {{loop.index0}} * POK_PARTITION_MEMORY_SIZE,
         .size_normal = {{space.size}},
+        .size_heap = {{space.part.get_heap_size()}},
+        // .size_total is calculated on initialization.
     },
 {%endfor%}
 };
