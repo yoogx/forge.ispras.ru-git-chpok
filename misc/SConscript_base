@@ -149,6 +149,7 @@ merge_command = pok_env.Command(target = pok_env['BUILD_DIR']+'partitions.bin',
 source = part_elf_list,
 action = merge_partitions)
 pok_env.Depends(merge_command, part_elf_list)
+AlwaysBuild(merge_command)
 
 sizes_c_command = pok_env.Command(target = pok_env['BUILD_DIR']+'sizes.c',
 source = part_elf_list,

@@ -211,8 +211,7 @@ void pok_insert_tlb0();
 
 
 void pok_arch_space_init (void)
-{    printf("------------------------------122212-----------------");
-
+{ 
     // overwrites first TLB1 entry
     // we just need to change access bits for the kernel,
     // so user won't be able to access it
@@ -225,7 +224,6 @@ void pok_arch_space_init (void)
         0, // any pid
         TRUE
     );
-    printf("------------------------------122212-----------------");
 
     /*
      * Clear all other mappings. For instance, those created by u-boot.
@@ -244,18 +242,7 @@ void pok_arch_space_init (void)
             limit-1,
             TRUE);
             
-    printf("------------------------------122212-----------------");
-
-    pok_ppc_tlb_print(0);
-    pok_ppc_tlb_print(1);
-    printf("------------------------------122212-----------------");
-//    pok_ppc_tlb_clear_entry(1, 2);
-    for (unsigned i = 1; i < limit-1; i++) {
-        pok_ppc_tlb_clear_entry(1, i);
-    }
-    
     for(int i=0 ; i < number_TLB_entry1 ;i++) {
-        //printf("-----------------%lld---------------1\n",(long long int)TLB_entries[i].virtual);
         pok_insert_tlb1(
             (long long int)TLB_entries1[i].virtual,
             (long long int)TLB_entries1[i].physical,
@@ -308,7 +295,8 @@ void pok_arch_handle_page_fault(
             faulting_address >= POK_PARTITION_MEMORY_BASE &&
             faulting_address < POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE)
     {
-        /*pok_insert_tlb1(
+        jet_space_id space_id = pid;
+        pok_insert_tlb1(
             POK_PARTITION_MEMORY_BASE,
             ja_spaces[space_id - 1].phys_base,
             E500MC_PGSIZE_16M,
@@ -316,7 +304,7 @@ void pok_arch_handle_page_fault(
             0,
             pid,
             FALSE
-        );*/
+        );
     } else {
 #ifdef POK_NEEDS_DEBUG
         if (vctx->srr1 & MSR_PR) {
@@ -344,8 +332,6 @@ void pok_def_tlb_with_nesessary_flag()
     }
     for(int i=0 ; i < number_TLB_entry ;i++) 
     {
-                //printf("-----------------%lld---------------1\n",(long long int)TLB_entries[i].virtual);
-
             pok_insert_tlb1(
                 (long long int)TLB_entries[i].virtual,
                 (long long int)TLB_entries[i].physical,
