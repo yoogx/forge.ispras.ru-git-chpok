@@ -16,8 +16,8 @@
 #include "arinc_alloc.h"
 #if defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD)
 
-#include <alloc.h>
 #include <arinc_config.h>
+#include <utils.h>
 
 size_t arinc_intra_heap_size_current = 0;
 
@@ -29,7 +29,7 @@ size_t arinc_intra_heap_size_current = 0;
  */
 void* arinc_alloc(size_t size, size_t alignment)
 {
-    size_t size_start = ALIGN_VAL(arinc_intra_heap_size_current, alignment);
+    size_t size_start = ALIGN(arinc_intra_heap_size_current, alignment);
     size_t size_end = size_start + size;
 
     if(size_end > arinc_config_messages_memory_size) return NULL;

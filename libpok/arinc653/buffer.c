@@ -27,7 +27,7 @@
 #include <kernel_shared_data.h>
 #include <core/assert_os.h>
 
-#include <libc/string.h>
+#include <string.h>
 #include "arinc_alloc.h"
 #include <arinc_config.h>
 #include "arinc_process_queue.h"
@@ -115,7 +115,7 @@ void CREATE_BUFFER (
 
    buffer->max_message_size = MAX_MESSAGE_SIZE;
    // Optimize messages for copiing.
-   buffer->message_stride = ALIGN_VAL(buffer->max_message_size, __alignof__(int));
+   buffer->message_stride = ALIGN(buffer->max_message_size, __alignof__(int));
    buffer->max_nb_message = MAX_NB_MESSAGE;
 
    arinc_allocator_state astate = arinc_allocator_get_state();

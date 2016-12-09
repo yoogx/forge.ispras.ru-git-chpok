@@ -26,7 +26,8 @@ COMPONENTS_DIRS = [
         'udp_ip',
         'mac',
         'virtio',
-        'arp'
+        'arp',
+        'ppc_dtsec'
         ]
 COMPONENTS_PATH = os.path.join(syspart_env["POK_PATH"], "syspart/components")
 CONFIG = "config.yaml"

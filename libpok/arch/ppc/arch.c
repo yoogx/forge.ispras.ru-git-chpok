@@ -16,7 +16,7 @@
 
 
 #include <arch.h>
-#include <alloc.h>
+#include <asp/alloc.h>
 
 void pok_arch_idle (void)
 {

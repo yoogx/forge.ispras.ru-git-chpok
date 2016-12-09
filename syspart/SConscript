@@ -31,8 +31,6 @@ components = SConscript('components/SConscript')
 syspart_program = syspart_env.Program(target = 'syspart.lo', source = [
     drivers,
     components,
-    'config.c',
-    'mem.c',
     'pool.c'
 ])
 

@@ -47,16 +47,14 @@ def parse_time(s):
         ns = int(s[:-2])
         # see the end of the function
     elif s.endswith("ms"):
-        return int(s[:-2])
+        ns = int(s[:-2]) * (10 ** 6)
     elif s.endswith("s"):
-        return int(s[:-1]) * (10 ** 3)
+        ns = int(s[:-1]) * (10 ** 9)
     else:
         # assume nanoseconds
         ns = int(s)
 
-    if ns < (10 ** 6):
-            raise ValueError("specified time less than 1ms (which won't work due to 1ms timer precision)")
-    return ns // (10 ** 6)
+    return ns
 
 class ArincConfigParser:
     # Static map: error code (without prefix) -> error description
@@ -129,11 +127,12 @@ class ArincConfigParser:
     def parse_partition(self, conf, part_root):
         part_name = part_root.find("Definition").attrib["Name"]
 
-        part_size = parse_bytes(part_root.find("Memory").attrib["Bytes"])
+        memory_size = parse_bytes(part_root.find("Memory").attrib["Bytes"])
+        heap_size = parse_bytes(part_root.find("Memory").attrib.get('Heap', default='0'))
 
         # FIXME support partition period, which is simply a fixed attribute
         #       with no real meaning (except it can be introspected)
-        part = conf.add_partition(part_name, part_size)
+        part = conf.add_partition(part_name, memory_size)
 
         part.is_system = False
         if "System" in part_root.find("Definition").attrib:
@@ -141,6 +140,8 @@ class ArincConfigParser:
 
         # FIXME support partition period, which is simply a fixed attribute
         #       with no real meaning (except it can be introspected)
+
+        part.heap = heap_size
 
         part.num_threads = int(part_root.find("Threads").attrib["Count"])
 

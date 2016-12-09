@@ -42,26 +42,20 @@
 #include <core/thread.h>
 #include <core/time.h>
 #include <types.h>
-#include <utils.h>
 
 #define MAP_ERROR(from, to) case (from): *return_code = (to); break
 #define MAP_ERROR_DEFAULT(to) default: *return_code = (to); break
 
 void TIMED_WAIT (SYSTEM_TIME_TYPE delay_time, RETURN_CODE_TYPE *return_code)
 {
-   pok_time_t delay_ms = arinc_time_to_ms(delay_time);
-   if (delay_ms > INT32_MAX) {
-       *return_code = INVALID_PARAM;
-       return;
-   }
-   if (delay_ms < 0) {
+   if (delay_time < 0) {
        // arinc doesn't allow infinite sleep
        *return_code = INVALID_PARAM;
        return;
    }
 
    pok_ret_t core_ret;
-   core_ret = pok_thread_sleep(&delay_ms);
+   core_ret = pok_thread_sleep(&delay_time);
     
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
@@ -83,16 +77,13 @@ void PERIODIC_WAIT (RETURN_CODE_TYPE *return_code)
 
 void GET_TIME (SYSTEM_TIME_TYPE *system_time, RETURN_CODE_TYPE *return_code)
 {
-   uint64_t time;
-   pok_time_get(&time);
-   *system_time = ms_to_arinc_time(time);
+   *system_time = pok_time_get();
    *return_code = NO_ERROR;
 }
 
 void REPLENISH (SYSTEM_TIME_TYPE budget_time, RETURN_CODE_TYPE *return_code)
 {
-    pok_time_t ms = arinc_time_to_ms(budget_time);
-    pok_ret_t core_ret = pok_thread_replenish(&ms);
+    pok_ret_t core_ret = pok_thread_replenish(&budget_time);
 
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);

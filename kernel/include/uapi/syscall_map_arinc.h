@@ -400,7 +400,16 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_QUEUEING_STAT
         (pok_port_id_t)args->arg1,
         (pok_port_queuing_status_t* __user)args->arg2);
 }
+
+pok_ret_t pok_port_queuing_clear(pok_port_id_t id);
+static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_QUEUEING_CLEAR(const pok_syscall_args_t* args)
+{
+    return pok_port_queuing_clear(
+        (pok_port_id_t)args->arg1);
+}
+
 #endif /* POK_NEEDS_PORTS_QUEUEING */
+
 
 pok_ret_t pok_memory_block_get_status(const char* __user name,
     jet_memory_block_status_t* __user status);

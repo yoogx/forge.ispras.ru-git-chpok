@@ -1,53 +1,33 @@
 /*
- *                               POK header
- * 
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *                                      Copyright (c) 2007-2009 POK team 
- *
- * Created by julien on Thu Jan 15 23:34:13 2009 
- */
-
-/**
- * \file    core/time.c
- * \author  François Goudal
- * \author  Julien Delange
- * \date    2008-2009
+ * See the GNU General Public License version 3 for more details.
  */
 
 #include <config.h>
-
-#if defined (POK_NEEDS_TIME) || defined (POK_NEEDS_SCHED) || defined (POK_NEEDS_THREADS)
 
 #include <types.h>
 #include <errno.h>
 
 #include <core/time.h>
-#include <core/thread.h>
-#include <core/sched.h>
-#include <core/partition.h>
 #include <core/uaccess.h>
+#include <core/sched.h>
 
-/**
- * A global variable that contains the number
- * of elapsed ticks since the beginning
- */
-uint64_t pok_tick_counter = 0;
+#include <asp/entries.h> /* jet_on_tick() declaration. */
 
-/**
- * \brief Init the timing service.
- */
-void pok_time_init (void)
+void jet_on_tick(void)
 {
-   pok_tick_counter = 0;
+    pok_sched_on_time_changed();
 }
-
 
 #ifdef POK_NEEDS_GETTICK
 /**
@@ -56,14 +36,30 @@ void pok_time_init (void)
  * Returns POK_ERRNO_OK
  * Need the GETTICK service (POK_NEEDS_GETTICKS maccro)
  */
-pok_ret_t pok_gettick_by_pointer (pok_time_t* __user clk_val)
+pok_ret_t   pok_clock_gettime (clockid_t clk_id, pok_time_t* __user val)
 {
-   pok_time_t* __kuser k_clk_val = jet_user_to_kernel_typed(clk_val);
-   if(!k_clk_val) return POK_ERRNO_EFAULT;
+   pok_time_t* __kuser k_val = jet_user_to_kernel_typed(val);
+   if(!k_val) return POK_ERRNO_EFAULT;
    
-   *k_clk_val = POK_GETTICK();
+   switch(clk_id) {
+      case CLOCK_REALTIME:
+         *k_val = jet_system_time();
+         break;
+      default:
+         *k_val = -1; // Not supported
+         return POK_ERRNO_EINVAL;
+   }
+
    return POK_ERRNO_OK;
 }
 #endif
 
-#endif /* POK_NEEDS_... */
+pok_ret_t   jet_time(time_t* __user val)
+{
+   time_t* __kuser k_val = jet_user_to_kernel_typed(val);
+   if(!k_val) return POK_ERRNO_EFAULT;
+
+   *k_val =  jet_calendar_time();
+
+   return POK_ERRNO_OK;
+}

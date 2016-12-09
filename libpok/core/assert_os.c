@@ -16,7 +16,7 @@
 #include <core/assert_os.h>
 
 #include <core/syscall.h>
-#include <libc/stdio.h>
+#include <stdio.h>
 
 void assertion_os_fail(const char *expression, const char *file, int line)
 {
