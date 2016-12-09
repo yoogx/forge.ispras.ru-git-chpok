@@ -33,6 +33,8 @@
         tail: uint8_t
         count: uint8_t
         empty: pok_bool_t
+        back_overhead: unsigned
+        front_overhead: unsigned
         last_time: SYSTEM_TIME_TYPE
 #temporary solution until we can generate a periodic process components
 

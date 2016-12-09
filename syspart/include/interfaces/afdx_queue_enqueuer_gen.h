@@ -26,7 +26,7 @@
     #include <ret_type.h>
 
 typedef struct {
-    ret_t (*afdx_add_to_queue)(self_t *, char *, size_t);
+    ret_t (*afdx_add_to_queue)(self_t *, char *, size_t, size_t, size_t);
 } afdx_queue_enqueuer;
 
 

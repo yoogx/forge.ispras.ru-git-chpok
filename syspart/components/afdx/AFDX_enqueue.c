@@ -30,6 +30,8 @@
 #include <stdio.h>
 
 #include <arinc653/time.h>
+#include <arinc653/partition.h>
+
 #include <utils.h>
 
 #include "afdx.h"
@@ -43,7 +45,6 @@
 
 #define C_NAME  "AFDX_QUEUE_ENQUEUER: "
 
-// подумать куда перенести
 #define SIZE_OF_HEADER              42
 #define UDP_H_LENGTH                8
 
@@ -56,12 +57,6 @@
 
 // information for queue
 #define PACKET_COUNT    10
-
-//-----DEBUG INFO-------------
-//~ #define PRINT_IMPL
-//~ #define PRINT_QUEUE
-//~ #define PRINT_ACT
-//----------------------------
 
 void fill_afdx_interface_id (frame_data_t *p, int net_card)
 {
@@ -116,7 +111,6 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
          * 2. send packet
          * 3. Increase the head by 1
          * 4. decreace count by 1
-         * 
          */
         if (self->state.empty == FALSE)
         {
@@ -133,8 +127,8 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
                 AFDX_QUEUE_ENQUEUER_call_portNetA_send(self,
                         data_buffer,
                         self->state.buffer[self->state.head].size,
-                        0,
-                        0
+                        self->state.back_overhead,
+                        self->state.front_overhead
                         );
 
                 AFDX_QUEUE_ENQUEUER_call_portNetA_flush(self);
@@ -148,8 +142,8 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
                 AFDX_QUEUE_ENQUEUER_call_portNetB_send(self,
                         data_buffer,
                         self->state.buffer[self->state.head].size,
-                        0,
-                        0
+                        self->state.back_overhead,
+                        self->state.front_overhead
                         );
 
                 AFDX_QUEUE_ENQUEUER_call_portNetB_flush(self);
@@ -165,7 +159,6 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
             self->state.count--;
             if (self->state.count == 0)
                 self->state.empty = TRUE;
-            //printf("AM = %d\n", self->state.count);
             return;
         }
         return;
@@ -177,9 +170,16 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
 ret_t afdx_enqueuer_implementation(
         AFDX_QUEUE_ENQUEUER *self,
         char * afdx_frame,
-        size_t frame_size
+        size_t frame_size,
+        size_t max_backstep,
+        size_t frontstep
         )
 {
+    RETURN_CODE_TYPE ret;
+
+    self->state.back_overhead = max_backstep;
+    self->state.front_overhead = frontstep;
+
     memcpy(&(self->state.buffer[self->state.tail].data), afdx_frame, frame_size);
     self->state.buffer[self->state.tail].size = frame_size;
     self->state.tail++;
@@ -191,34 +191,11 @@ ret_t afdx_enqueuer_implementation(
     }
     if (self->state.count >= PACKET_COUNT) {
         printf("ERROR QUEUE if FULL \n");
-        
+        printf("Partition P2 will be stopped\n");
         //kill partition
-        *(int*) 0x2000c = 1;
+        SET_PARTITION_MODE(IDLE, &ret);
         return -1;
     }
-
- #ifdef PRINT_QUEUE
-        printf(C_NAME"afdx_enqueuer_implementation \n");
-        printf("empty = FALSE\n");
-        printf("tail = %ld\n", self->state.tail);
-        printf("head = %ld\n", self->state.head);
-
-        char afdx_message_1[MAX_AFDX_FRAME_SIZE];
-        frame_data_t *afdx_frame_1 = (frame_data_t *)afdx_frame;
-        memcpy(afdx_message_1, &(self->state.queue[head_temp + SIZE_OF_HEADER]), (afdx_frame_1->udp_header.udp_length - UDP_H_LENGTH));
-
-        printf(C_NAME" %s\n", afdx_message_1);
-        printf("====\n");
-
-#endif
-
- #ifdef PRINT_IMPL
-        char afdx_message[MAX_AFDX_FRAME_SIZE];
-        frame_data_t *afdx_frame_2 = (frame_data_t *)afdx_frame;
-        strncpy(afdx_message, afdx_frame_2->afdx_payload, afdx_frame_2->udp_header.udp_length - UDP_H_LENGTH);
-
-        printf(C_NAME" %s\n", afdx_message);
-#endif
 
     return 0;
 }

@@ -23,9 +23,9 @@
 
 
 
-    static ret_t __wrapper_afdx_enqueuer_implementation(self_t *arg0, char * arg1, size_t arg2)
+    static ret_t __wrapper_afdx_enqueuer_implementation(self_t *arg0, char * arg1, size_t arg2, size_t arg3, size_t arg4)
     {
-        return afdx_enqueuer_implementation((AFDX_QUEUE_ENQUEUER*) arg0, arg1, arg2);
+        return afdx_enqueuer_implementation((AFDX_QUEUE_ENQUEUER*) arg0, arg1, arg2, arg3, arg4);
     }
 
 

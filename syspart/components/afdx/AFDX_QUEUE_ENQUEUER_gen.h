@@ -32,7 +32,9 @@
 typedef struct AFDX_QUEUE_ENQUEUER_state {
     uint8_t count;
     uint8_t head;
+    unsigned back_overhead;
     afdx_buffer * buffer;
+    unsigned front_overhead;
     pok_time_t BAG;
     uint8_t tail;
     SYSTEM_TIME_TYPE last_time;
@@ -60,7 +62,7 @@ typedef struct {
 
 
 
-      ret_t afdx_enqueuer_implementation(AFDX_QUEUE_ENQUEUER *, char *, size_t);
+      ret_t afdx_enqueuer_implementation(AFDX_QUEUE_ENQUEUER *, char *, size_t, size_t, size_t);
 
       ret_t AFDX_QUEUE_ENQUEUER_call_portNetA_send(AFDX_QUEUE_ENQUEUER *, char *, size_t, size_t, size_t);
       ret_t AFDX_QUEUE_ENQUEUER_call_portNetA_flush(AFDX_QUEUE_ENQUEUER *);

@@ -35,13 +35,13 @@
 
 
 
-      ret_t AFDX_FILLER_call_portB_afdx_add_to_queue(AFDX_FILLER *self, char * arg1, size_t arg2)
+      ret_t AFDX_FILLER_call_portB_afdx_add_to_queue(AFDX_FILLER *self, char * arg1, size_t arg2, size_t arg3, size_t arg4)
       {
          if (self->out.portB.ops == NULL) {
              printf("WRONG CONFIG: out port portB of component AFDX_FILLER was not initialized\n");
              //fatal_error?
          }
-         return self->out.portB.ops->afdx_add_to_queue(self->out.portB.owner, arg1, arg2);
+         return self->out.portB.ops->afdx_add_to_queue(self->out.portB.owner, arg1, arg2, arg3, arg4);
       }
 
 

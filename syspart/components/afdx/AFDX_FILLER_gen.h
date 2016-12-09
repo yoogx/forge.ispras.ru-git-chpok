@@ -58,7 +58,7 @@ typedef struct {
       ret_t afdx_filler_send(AFDX_FILLER *, char *, size_t, size_t, size_t);
       ret_t afdx_filler_flush(AFDX_FILLER *);
 
-      ret_t AFDX_FILLER_call_portB_afdx_add_to_queue(AFDX_FILLER *, char *, size_t);
+      ret_t AFDX_FILLER_call_portB_afdx_add_to_queue(AFDX_FILLER *, char *, size_t, size_t, size_t);
 
 
 

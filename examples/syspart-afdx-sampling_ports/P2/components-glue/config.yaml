@@ -1,29 +1,3 @@
-#~ components:
-    #~ - name: arinc_sender_1
-      #~ type: ARINC_SENDER
-      #~ state:
-          #~ port_name: '"UOUT"'
-          #~ port_direction: DESTINATION
-          #~ overhead: 42 #14+20+8
-          #~ port_max_message_size: 64
-          #~ is_queuing_port: 1
-          #~ q_port_max_nb_messages: 10
-#~
-    #~ - name: afdx_filler_1
-      #~ type: AFDX_FILLER
-      #~ state:
-          #~ vl_id: 1
-          #~ ttl: 5
-          #~ src_partition_id: 1
-          #~ dst_partition_id: 2
-          #~ src_afdx_port: 1
-          #~ dst_afdx_port: 2
-          #~ type_of_packet: UNICAST_PACKET
-#~
-    #~ - name: afdx_queue_enqueuer_1
-      #~ type: AFDX_QUEUE_ENQUEUER
-      #~ state:
-          #~ BAG: SECOND
 # SAMPLING PORT
 components:
     - name: arinc_sender_1
@@ -52,7 +26,7 @@ components:
       type: AFDX_QUEUE_ENQUEUER
       state:
           BAG: SECOND
-# sampling end
+
     - name: virtio_net_dev_1
       type: VIRTIO_NET_DEV
       state:

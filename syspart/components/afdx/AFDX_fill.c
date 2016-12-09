@@ -238,7 +238,7 @@ uint16_t fill_afdx_frame(AFDX_FILLER_state *state,
                                                     (p->ip_header.u_dst_addr.ip_general_dst_addr));
     //scp ifg?
     if (pad_size == 0)
-        return (payload_size + HEADER_LENGTH);  //FCS_LENGTH
+        return (payload_size + HEADER_LENGTH);
     else
         return (payload_size + pad_size + HEADER_LENGTH);
 
@@ -260,7 +260,6 @@ ret_t afdx_filler_send(
   	if (max_backstep < HEADER_LENGTH)
         return EINVAL;
 
-    //~ printf(C_NAME"get message %s\n", payload);
     frame_data_t *afdx_frame = (frame_data_t *)(payload - HEADER_LENGTH);
 
     payload_size = fill_afdx_frame(&self->state, afdx_frame, payload, payload_size);
@@ -272,16 +271,16 @@ ret_t afdx_filler_send(
     add_seq_numb(afdx_frame, &payload_size, &self->state.sn);
     frontstep -= 1;
 
-    //~ char buffy[150];
-    //~ memcpy(buffy, afdx_frame, payload_size);
-    //~ printf("sn = %d\n", self->state.sn);
-    //~ printf("SN = %d\n", buffy[payload_size - 1]);
-
     self->state.sn++;
+    if (self->state.sn == 0)
+        self->state.sn = 1;
 
     return AFDX_FILLER_call_portB_afdx_add_to_queue(self,
             (char *) afdx_frame,
-            payload_size);
+            payload_size,
+            max_backstep,
+            frontstep
+            );
 }
 
 ret_t afdx_filler_flush(AFDX_FILLER *self) {

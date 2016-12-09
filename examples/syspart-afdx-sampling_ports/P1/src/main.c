@@ -24,9 +24,6 @@
 #define PRINT
 /* ============================== */
 
-//~ #include <afdx/AFDX_ES.h>
-//~ #include <afdx/AFDX_ES_config.h>
-
 #define SECOND 1000000000LL
 
 #define MAX_AFDX_FRAME_SIZE    1518
@@ -62,7 +59,7 @@ static void first_process(void)
     int i = 0;
     RETURN_CODE_TYPE ret;
 
-    TIMED_WAIT(2 * SECOND, &ret);
+    TIMED_WAIT(1 * SECOND, &ret);
 
     while (1) {
             if (i == 0){
