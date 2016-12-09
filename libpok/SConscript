@@ -40,18 +40,18 @@ libpok_target = libpok_env.StaticLibrary(target = 'pok',
 if libpok_env.get('jdeveloper'):
     import sys
     import os
-    sys.path.insert(1, os.path.join(os.environ["POK_PATH"], "misc"))
+    sys.path.insert(1, os.path.join(os.environ["JETOS_HOME"], "misc"))
     import template_generation
     AddMethod(libpok_env, template_generation.BuildSyscallDefinition)
 
-    source_dir = libpok_env["POK_PATH"] + '/kernel/include/uapi/'
-    target_dir = libpok_env['POK_PATH'] + '/libpok/include/uapi/'
+    source_dir = libpok_env["JETOS_HOME"] + '/kernel/include/uapi/'
+    target_dir = libpok_env['JETOS_HOME'] + '/libpok/include/uapi/'
 
     # Read list of headers for copy by executing SConsctipt in <source_dir>
     (uapi_headers, uapi_headers_syscall) = SConscript(source_dir + 'SConscript')
 
     libpok_env.Replace(
-        SOURCE_BASE_DIR = libpok_env['POK_PATH'],
+        SOURCE_BASE_DIR = libpok_env['JETOS_HOME'],
         GENERATE_TITLE = template_generation.generate_title_c,
         COPY_TITLE = template_generation.copy_title_c
     )
@@ -69,7 +69,7 @@ if libpok_env.get('jdeveloper'):
             target = target_dir + uapi_header_syscall,
             source = source_dir + uapi_header_syscall + '.in',
             template_main = 'syscall_declarations_user',
-            template_dir = libpok_env['POK_PATH'] + '/misc/templates'))
+            template_dir = libpok_env['JETOS_HOME'] + '/misc/templates'))
 
     libpok_env.Depends('regenerate', user_syscall_headers + uapi_copy_headers)
 

@@ -31,6 +31,7 @@ examples_dirs = [
     ('msections-wait-several', 'P1'),
     ('pure-arinc653-buffer', 'P1'),
     ('syspart-graphic', 'P1', 'P2'),
+    ('syspart-net-demo', 'P1', 'P2'),
     ('syspart-network-queue-nc', 'P1', 'P2'),
 ]
 
@@ -47,8 +48,6 @@ if not env.get('jdeveloper', False):
 
 # Do not use JETOS_HOME environment variable, as we are definitely in our package
 JETOS_HOME = Dir('..').abspath
-
-print "JETOS_HOME: " + JETOS_HOME
 
 import sys
 import os

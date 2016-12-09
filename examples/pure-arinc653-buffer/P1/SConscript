@@ -17,10 +17,7 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-import os
-
 Import('part_env')
 
 part_env['src_dirs'] = ['src']
 part_env['XML'] = 'config.xml'
-

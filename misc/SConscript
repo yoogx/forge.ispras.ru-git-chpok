@@ -24,8 +24,8 @@ In the case of the module additional commands are created for run this
 module or debug it.
 """
  
-# Expects 'POK_PATH' os environment variable to point to the parent dir.
-# (so the script itself is located at '$POK_PATH/misc/SConscript').
+# Expects 'JETOS_HOME' os environment variable to point to the parent dir.
+# (so the script itself is located at '$JETOS_HOME/misc/SConscript').
 #
 # Expects 'bsp' parameter of the scons call or `POK_BSP` os environment
 # variable to contain BSP for build against.
@@ -94,7 +94,7 @@ def print_cmd_line(s, target, src, env):
     # For now len is always 1
     if len(target) == 1:
         x = str(target[0])
-        sys.stdout.write("%s ...\n" % os.path.relpath(x, start=env['POK_PATH']))
+        sys.stdout.write("%s ...\n" % os.path.relpath(x, start=env['JETOS_HOME']))
     else:
         sys.stdout.write("Making %s...\n" %(' and '.join([str(x) for x in target])))
 
@@ -122,7 +122,7 @@ else:
 	except:
 		env['BSP'] = env['bsp']
 
-env['POK_PATH'] = os.path.join(os.environ['POK_PATH'], '')
+env['JETOS_HOME'] = os.path.join(os.environ['JETOS_HOME'], '')
 env['LAUNCHDIR'] = GetLaunchDir()
 
 log_file_opened = False
@@ -132,7 +132,7 @@ log_file_opened = False
 SConsignFile(None)
 
 # Cache built files
-#CacheDir(env['POK_PATH']+'/cache')
+#CacheDir(env['JETOS_HOME']+'/cache')
 
 # Flags common for all architectures
 env['PRINT_CMD_LINE_FUNC'] = print_cmd_line
@@ -146,18 +146,18 @@ env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -Wuninitialized -ffreesta
 
 env['ASFLAGS'] = env['CFLAGS']
 
-SConscript(os.path.join(env['POK_PATH'], 'misc/boards', env['BSP'], 'SConscript'),
+SConscript(os.path.join(env['JETOS_HOME'], 'misc/boards', env['BSP'], 'SConscript'),
 	exports = 'env')
 
 env['KERNEL_CPPPATH'] = [
-    env['POK_PATH']+'/kernel/include',
-    env['POK_PATH']+'/kernel/arch/' + env['ARCH'] + '/include',
-    env['POK_PATH']+'/boards/' + env['BSP'] + '/include',
+    env['JETOS_HOME']+'/kernel/include',
+    env['JETOS_HOME']+'/kernel/arch/' + env['ARCH'] + '/include',
+    env['JETOS_HOME']+'/boards/' + env['BSP'] + '/include',
 ]
 
 env['LIBPOK_CPPPATH'] = [
-    env['POK_PATH']+'/libpok/include',
-    env['POK_PATH']+'/libpok/arch/' + env['ARCH'] + '/include',
+    env['JETOS_HOME']+'/libpok/include',
+    env['JETOS_HOME']+'/libpok/arch/' + env['ARCH'] + '/include',
 ]
 
 # These might be specified as Linux environment variables
@@ -214,7 +214,7 @@ def PartitionEnvironment(env):
 	"""
 	part_env = env.Clone()
 	part_env['CPPPATH'] = env['LIBPOK_CPPPATH']
-	part_env.Append(CFLAGS = ' -include '+ part_env['POK_PATH']+'libpok/include/config.h')
+	part_env.Append(CFLAGS = ' -include '+ part_env['JETOS_HOME']+'libpok/include/config.h')
 	return part_env
 
 env.AddMethod(KernelEnvironment)
@@ -227,8 +227,8 @@ def RemoveDirectories(env, target, dirs):
 	if type(dirs) is not list:
 		dirs = [dirs]
 
-	# Currently command line for all scons commands a unconditionally replaced
-	# in print_cmd_line.
+	# Currently command line for all scons commands is unconditionally replaced
+	# in print_cmd_line().
 	# So do not bother with pretty command line of given command.
 	return env.Command(target, [], Delete(dirs))
 
@@ -267,7 +267,7 @@ else:
     print "Should be 'module' or 'partition'"
     raise RuntimeError("Invalid 'mode' parameter")
 
-clean_directories = [env['POK_PATH'] + '/build']
+clean_directories = [env['JETOS_HOME'] + '/build']
 
 env.RemoveDirectories('clean_os_cmd', clean_directories)
 env.Alias('distclean', 'clean_os_cmd')

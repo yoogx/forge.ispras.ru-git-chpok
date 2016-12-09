@@ -57,17 +57,20 @@ def get_jet_config(source, env):
 env['PARSE_CONFIGURATION'] = get_jet_config
 
 example_dir = env['ENVIRONMENT_DATA']['EXAMPLE_DIR']
-env['BUILD_DIR'] = os.path.join(example_dir, 'build', env['BSP'], '')
+env['BUILD_DIR'] = os.path.join(example_dir, 'build', env['BSP'])
+env['CLEAN_DIRS'] = os.path.join(example_dir, 'build')
 
 SConscript(example_dir + '/SConscript', exports = 'env')
 
 partition_defs = []
 partition_source_dirs = []
 for part in env['PARTITIONS']:
-    partition_defs.append(env['POK_PATH'] + '/misc/SConscript_example_partition_def')
+    partition_defs.append(env['JETOS_HOME'] + '/misc/SConscript_example_partition_def')
     partition_source_dirs.append('' + example_dir + '/' + part)
 
 env['PARTITION_DEFS'] = partition_defs
+# Store list of partitions source directories for extract directory
+# in 'SConscript_example_partition_def' by index.
 env['PARTITION_SOURCE_DIRS'] = partition_source_dirs
 
 if not env['XML'].startswith('/'):

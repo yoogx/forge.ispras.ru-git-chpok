@@ -17,11 +17,7 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-import os
-
 Import('env')
 
 env['PARTITIONS'] = ['P1', 'P2']
 env['XML'] = 'config.xml'
-
-# EOF

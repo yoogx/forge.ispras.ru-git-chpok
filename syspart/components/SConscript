@@ -29,9 +29,9 @@ COMPONENTS_DIRS = [
         'arp',
         'ppc_dtsec'
         ]
-COMPONENTS_PATH = os.path.join(syspart_env["POK_PATH"], "syspart/components")
+COMPONENTS_PATH = os.path.join(syspart_env["JETOS_HOME"], "syspart/components")
 CONFIG = "config.yaml"
-INTERFACES_DIR = os.path.join(syspart_env["POK_PATH"], "syspart/include/interfaces/")
+INTERFACES_DIR = os.path.join(syspart_env["JETOS_HOME"], "syspart/include/interfaces/")
 
 
 comp_env = syspart_env.Clone()
@@ -75,7 +75,7 @@ def generate_interfaces():
                 source = os.path.join(cwd, config_file),
                 create_definitions_func = dummy_create_func,
                 template_main = "interfaces.h",
-                template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
+                template_dir = os.path.join(comp_env['JETOS_HOME'],"misc/templates"),
                 jinja_env = jinja_env
                 )
             comp_env.Depends(COMPONENTS_DEFAULT_TARGET, t)
@@ -97,7 +97,7 @@ def generate_component_files():
                     source = cur_config_file,
                     create_definitions_func = dummy_create_func,
                     template_main = "component.c",
-                    template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
+                    template_dir = os.path.join(comp_env['JETOS_HOME'],"misc/templates"),
                     jinja_env = jinja_env
                     )
             comp_env.Depends(COMPONENTS_DEFAULT_TARGET, t)
@@ -107,7 +107,7 @@ def generate_component_files():
                     source = cur_config_file,
                     create_definitions_func = dummy_create_func,
                     template_main = "component.h",
-                    template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
+                    template_dir = os.path.join(comp_env['JETOS_HOME'],"misc/templates"),
                     jinja_env = jinja_env
                     )
             comp_env.Depends(COMPONENTS_DEFAULT_TARGET, t)
@@ -116,12 +116,12 @@ if syspart_env.get('cdeveloper'):
     import sys
     import yaml
     import glob
-    sys.path.insert(1, os.path.join(comp_env["POK_PATH"], "misc"))
+    sys.path.insert(1, os.path.join(comp_env["JETOS_HOME"], "misc"))
     import template_generation
     AddMethod(comp_env, template_generation.TemplateRender)
     comp_env.Append(
             NO_DEPS = 1,
-            SOURCE_BASE_DIR = comp_env['POK_PATH'],
+            SOURCE_BASE_DIR = comp_env['JETOS_HOME'],
             GENERATE_TITLE = template_generation.generate_title_c
             )
     COMPONENTS_DEFAULT_TARGET = os.path.join(COMPONENTS_PATH, 'generate_components_files')

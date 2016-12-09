@@ -91,7 +91,7 @@ definition_attrib = root.find("Definition").attrib
 part_is_system = ("System" in definition_attrib) and (arinc653_xml_conf.parse_bool(definition_attrib["System"]))
 
 if part_is_system:
-    part_env.Append(CPPPATH = part_env['POK_PATH']+'/syspart/include')
+    part_env.Append(CPPPATH = part_env['JETOS_HOME']+'/syspart/include')
     part_env['SYSTEM_PARTITION'] = True
 
 partition_sources = []

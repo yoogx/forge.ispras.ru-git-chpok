@@ -77,8 +77,8 @@ SConscript(partition_def, exports = 'part_env')
 
 part_build_dir = part_env['BUILD_DIR']
 
-#part_env.Command('clean_cmd', [], Delete('build/'))
-#part_env.Alias('clean', 'clean_cmd')
+if not os.path.exists(part_build_dir):
+    os.makedirs(part_build_dir)
 
 AddMethod(part_env, template_generation.TemplateRender)
 
@@ -90,7 +90,7 @@ deployment_target = part_env.TemplateRender(
     source = part_env['XML'],
     create_definitions_func = get_pok_partition_definitions,
     template_main = "deployment_user",
-    template_dir = part_env['POK_PATH'] + "/misc/templates"
+    template_dir = part_env['JETOS_HOME'] + "/misc/templates"
     )
 
 part_elf_env = part_env.Clone()
@@ -113,20 +113,21 @@ part_elf = part_elf_env.Program(target = part_build_dir+'/part.elf',
 part_elf_env.Depends(part_elf, ldscript_partition)
 
 
-part_clean_dir = part_env.get('CLEAN_DIRS', part_build_dir)
-if type(part_clean_dir) is not list:
-	part_clean_dir = [part_clean_dir]
+part_clean_dirs = part_env.get('CLEAN_DIRS', part_build_dir)
+if type(part_clean_dirs) is not list:
+	part_clean_dirs = [part_clean_dirs]
+	part_env['CLEAN_DIRS'] = part_clean_dirs
 
 if 'part_index' in part_env:
 	# If build as a part of the module, SConscript_module cares about
 	# deletion of partition's build directory.
 	pass
 else:
-	part_env.RemoveDirectories('part_clean_cmd', part_clean_dir)
+	part_env.RemoveDirectories('part_clean_cmd', part_clean_dirs)
 	part_env.Alias('clean', 'part_clean_cmd')
 	part_env.Alias('distclean', 'part_clean_cmd')
-	part_env.Clean('#/local', part_clean_dir)
-	part_env.Clean('#/all', part_clean_dir)
+	part_env.Clean('#/local', part_clean_dirs)
+	part_env.Clean('#/all', part_clean_dirs)
 
 Return('part_elf')
 

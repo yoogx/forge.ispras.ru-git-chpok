@@ -32,6 +32,9 @@ scripts.
 # - 'BUILD_DIR' - where module's elf should be built.
 # (Absolute path).
 #
+# - 'CLEAN_DIRS' - which directories should be clean on `scons -c local`.
+# (Absolute path or list of absolute paths; by default equal to BUILD_DIR).
+#
 # - 'XML' - xml or other file(s), from which configuration of module
 # may be extracted.
 # Note: per-partition 'XML' shouldn't be listed there.
@@ -65,7 +68,13 @@ Import('module_def')
 
 SConscript(module_def, exports = 'env')
 
+module_build_dir = env['BUILD_DIR']
+
+if not os.path.exists(module_build_dir):
+    os.makedirs(module_build_dir)
+
 partition_build_dirs = []
+partition_clean_dirs = []
 partition_xmls = []
 partition_elfs = []
 
@@ -75,6 +84,7 @@ for part_index, partition_def in enumerate(env['PARTITION_DEFS']):
 	part_elf = SConscript('SConscript_partition', exports = ['part_env', 'partition_def'])
 	partition_elfs.append(part_elf)
 	partition_build_dirs.append(part_env['BUILD_DIR'])
+	partition_clean_dirs.extend(part_env['CLEAN_DIRS'])
 	partition_xmls.append(part_env['XML'])
 
 AddMethod(env, template_generation.TemplateRender)
@@ -89,30 +99,24 @@ def get_pok_gdb_definitions(source, env):
 
     return defs
 
-if not os.path.exists(env['BUILD_DIR']):
-    os.makedirs(env['BUILD_DIR'])
-for pdir in partition_build_dirs:
-    if not os.path.exists(pdir):
-        os.makedirs(pdir)
-
 # Generate "deployment.c" for kernel
 deployment_kernel = env.TemplateRender(
-    target = os.path.join(env['BUILD_DIR'], "deployment.c"),
+    target = os.path.join(module_build_dir, "deployment.c"),
     source = [env['XML']] + partition_xmls,
     create_definitions_func = get_pok_definitions,
     template_main = "deployment_kernel",
-    template_dir = env['POK_PATH'] + "/misc/templates",
+    template_dir = env['JETOS_HOME'] + "/misc/templates",
     GENERATE_TITLE = template_generation.generate_title_c_no_track
     )
 
 
 # Generate file with commands for GDB for possible debugging
 gdb_commands = env.TemplateRender(
-    target = env['BUILD_DIR'] + "/GDB_commands",
+    target = module_build_dir + "/GDB_commands",
     source = [env['XML']] + partition_xmls,
     create_definitions_func = get_pok_gdb_definitions,
     template_main = "GDB_commands",
-    template_dir = env['POK_PATH'] + "/misc/templates",
+    template_dir = env['JETOS_HOME'] + "/misc/templates",
     GENERATE_TITLE = template_generation.generate_title_python_no_track
     )
 
@@ -120,7 +124,7 @@ gdb_commands_file = gdb_commands[0].abspath
 
 pok_env = env.KernelEnvironment()
 
-pok_env.Program(target = env['BUILD_DIR']+'kernel.lo', source = [
+kernel_lo = pok_env.Program(target = module_build_dir+'/kernel.lo', source = [
 	env['KERNEL_CORE_TARGET'],
 	env['BSP_TARGET']] + deployment_kernel)
 
@@ -133,7 +137,7 @@ def merge_partitions(target, source, env):
 
 def create_sizes_c(target, source, env):
     with open(str(target[0]), 'w') as sizes:
-        sizes.write('#include <types.h>\n')
+        sizes.write('#include <stdint.h>\n')
         sizes.write('uint32_t pok_elf_sizes[] = {\n')
         for s in source:
             part_size = os.path.getsize(str(s))
@@ -144,23 +148,24 @@ def create_sizes_c(target, source, env):
                 sizes.write(',\n')
         sizes.write('\n};\n')
 
-merge_command = pok_env.Command(target = pok_env['BUILD_DIR']+'partitions.bin',
+merge_target = pok_env.Command(target = module_build_dir+'/partitions.bin',
     source = partition_elfs,
     action = merge_partitions)
-pok_env.Depends(merge_command, partition_elfs)
+pok_env.Depends(merge_target, partition_elfs)
 
-sizes_c_command = pok_env.Command(target = pok_env['BUILD_DIR']+'sizes.c',
+merge_file = merge_target[0].abspath
+
+sizes_c_target = pok_env.Command(target = module_build_dir+'/sizes.c',
     source = partition_elfs,
     action = create_sizes_c)
-pok_env.Depends(sizes_c_command, partition_elfs)
+pok_env.Depends(sizes_c_target, partition_elfs)
 
-compile_sizes = pok_env.Command(target = pok_env['BUILD_DIR']+'sizes.o',
-    source = pok_env['BUILD_DIR']+'sizes.c',
+compile_sizes = pok_env.Command(target = module_build_dir+'/sizes.o',
+    source = sizes_c_target,
     action = [
-        pok_env['CC']+' -c -o '+pok_env['BUILD_DIR']+'sizes.o '+pok_env['CFLAGS']+' -I'+pok_env['POK_PATH']+'/kernel/include '+
-        pok_env['BUILD_DIR']+'sizes.c',
-        pok_env['OBJCOPY']+' --add-section .archive2='+pok_env['BUILD_DIR']+'partitions.bin '+pok_env['BUILD_DIR']+'sizes.o'])
-pok_env.Depends(compile_sizes, [partition_elfs, merge_command])
+        pok_env['CC']+' -c -o $TARGET '+pok_env['CFLAGS']+' $SOURCE',
+        pok_env['OBJCOPY']+' --add-section .archive2='+merge_file+' $TARGET'])
+pok_env.Depends(compile_sizes, merge_target)
 
 pok_elf_env = pok_env.Clone()
 
@@ -169,11 +174,9 @@ ldscript_kernel = pok_env['LDSCRIPT_KERNEL']
 pok_elf_env['LINKFLAGS'] = ' -T ' + ldscript_kernel
 
 
-pok_target = pok_elf_env.Program(target = pok_env['BUILD_DIR']+'pok.elf', source = [
-    pok_env['BUILD_DIR']+'sizes.o',
-    pok_env['BUILD_DIR']+'kernel.lo',
-    pok_env['LIBGCC']])
-pok_env.Depends(pok_target, [compile_sizes, ldscript_kernel])
+pok_target = pok_elf_env.Program(target = module_build_dir+'/pok.elf',
+	source = compile_sizes + kernel_lo + [pok_env['LIBGCC']])
+pok_env.Depends(pok_target, [ldscript_kernel])
 
 pok_target_file = pok_target[0].abspath
 
@@ -205,7 +208,13 @@ command_debug_gdb = env.Command('debug_gdb', gdb_commands, env['GDB']+' '+pok_ta
                                                                             -ex "target extended-remote 127.0.0.1:8000"')
 env.Alias('debug-gdb', 'debug_gdb')
 
-clean_directories = [env['BUILD_DIR']] + partition_build_dirs
+module_clean_dirs = env.get('CLEAN_DIRS', module_build_dir)
+if type(module_clean_dirs) is not list:
+	module_clean_dirs = [module_clean_dirs]
+	part_env['CLEAN_DIRS'] = module_clean_dirs
+
+
+clean_directories = module_clean_dirs + partition_clean_dirs
 
 env.RemoveDirectories('clean_module_cmd', clean_directories)
 env.Alias('clean', 'clean_module_cmd')

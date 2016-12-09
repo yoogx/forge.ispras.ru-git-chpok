@@ -32,5 +32,5 @@ env.Append(ASFLAGS = ' -mregnames')
 
 env.Append(CFLAGS_KERNEL = '-msoft-float')
 
-env['LDSCRIPT_KERNEL'] = env['POK_PATH'] + '/kernel/arch/ppc/ldscripts/kernel.lds'
-env['LDSCRIPT_PARTITION'] = env['POK_PATH'] + '/kernel/arch/ppc/ldscripts/partition.lds'
+env['LDSCRIPT_KERNEL'] = env['JETOS_HOME'] + '/kernel/arch/ppc/ldscripts/kernel.lds'
+env['LDSCRIPT_PARTITION'] = env['JETOS_HOME'] + '/kernel/arch/ppc/ldscripts/partition.lds'

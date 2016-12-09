@@ -653,7 +653,7 @@ def BuildAsmOffsets(env, target, source, **kargs):
     precompile_env.AppendUnique(CCFLAGS = '-S')
     # Include directory with header defined DEFINE and other macros.
     precompile_env.Append(CPPPATH =
-        os.path.join(precompile_env['POK_PATH'], "misc/asm_offsets")
+        os.path.join(precompile_env['JETOS_HOME'], "misc/asm_offsets")
     )
 
     source_dir = os.path.dirname(source_node.srcnode().abspath)

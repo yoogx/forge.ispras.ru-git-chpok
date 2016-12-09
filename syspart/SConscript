@@ -21,7 +21,7 @@ Import('env')
 
 syspart_env = env.PartitionEnvironment()
 
-syspart_env['CPPPATH'].append([env['POK_PATH']+'/syspart/include'])
+syspart_env['CPPPATH'].append([env['JETOS_HOME']+'/syspart/include'])
 
 Export('syspart_env')
 
