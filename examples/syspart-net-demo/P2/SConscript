@@ -17,15 +17,17 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-Import('syspart_env')
+import os
 
-DRIVERS_LIST = ['ne2000', 'pci', 'qemu_vga', 'radeon']
+Import('env')
 
-res_obj_list = []
-for driver_dir in DRIVERS_LIST:
-    objs = SConscript(driver_dir + '/SConscript')
-    res_obj_list.append(objs)
+part_dir = Dir('.').abspath
+part_build_dir = os.path.join(part_dir, 'build', env['BSP'], '')
 
-Return('res_obj_list')
+src_dirs = [os.path.join(part_dir, 'src', '')]
+src_script_dirs = [os.path.join(part_dir, 'components-glue/', '')]
 
-# EOF
+part_xml = os.path.join(part_dir, 'config.xml')
+
+SConscript(env['POK_PATH']+'/misc/SConscript_partition',
+    exports = ['part_build_dir', 'src_dirs', 'src_script_dirs', 'part_xml'])

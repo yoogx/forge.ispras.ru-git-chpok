@@ -19,13 +19,8 @@
 
 Import('syspart_env')
 
-DRIVERS_LIST = ['ne2000', 'pci', 'qemu_vga', 'radeon']
+objs = syspart_env.StaticObject(source = Glob('*.c'))
 
-res_obj_list = []
-for driver_dir in DRIVERS_LIST:
-    objs = SConscript(driver_dir + '/SConscript')
-    res_obj_list.append(objs)
-
-Return('res_obj_list')
+Return('objs')
 
 # EOF

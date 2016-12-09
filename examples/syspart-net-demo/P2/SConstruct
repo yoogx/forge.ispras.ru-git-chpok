@@ -17,15 +17,15 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-Import('syspart_env')
+import os
 
-DRIVERS_LIST = ['ne2000', 'pci', 'qemu_vga', 'radeon']
+cflags = ''
+SConscript(os.environ['POK_PATH']+'/misc/SConscript', exports = 'cflags')
 
-res_obj_list = []
-for driver_dir in DRIVERS_LIST:
-    objs = SConscript(driver_dir + '/SConscript')
-    res_obj_list.append(objs)
+Import('env')
+SConscript('SConscript')
 
-Return('res_obj_list')
+env.Clean('chpok', env['POK_PATH']+'/build/')
+env.Clean('local', 'build')
 
 # EOF

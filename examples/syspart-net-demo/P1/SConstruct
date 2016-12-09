@@ -17,20 +17,15 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-Import('syspart_env')
+import os
 
-p3041_env = syspart_env.Clone()
+cflags = ''
+SConscript(os.environ['POK_PATH']+'/misc/SConscript', exports = 'cflags')
 
-p3041_env.Append(CPPPATH = syspart_env['POK_PATH']+'/syspart/drivers/p3041/include')
+Import('env')
+SConscript('SConscript')
 
-#syspart_env.Program(target = 'p3041.lo', source = Glob('fm/*.c'))
-p3041 = p3041_env.StaticObject(source = ['init.c'])
-
-Return('p3041')
-
-#Export('syspart_env')
-#
-#SConscript('net/SConscript')
-#SConscript('drivers/SConscript')
+env.Clean('chpok', env['POK_PATH']+'/build/')
+env.Clean('local', 'build')
 
 # EOF
