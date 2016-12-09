@@ -172,7 +172,8 @@ void add_seq_numb(void * buf, size_t * f_size, uint8_t * s_number)
 uint16_t fill_afdx_frame(AFDX_FILLER_state *state,
                          frame_data_t *p,
                          char afdx_payload[],
-                         uint16_t payload_size)
+                         uint16_t payload_size
+                         )
 {
 //MAC
     p->mac_header.mac_dst_addr.mac_const_dst = hton32(MAC_CONST_DST);
