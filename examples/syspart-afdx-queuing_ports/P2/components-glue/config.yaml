@@ -1,0 +1,71 @@
+components:
+    - name: arinc_sender_1
+      type: ARINC_SENDER
+      state:
+          port_name: '"UOUT"'
+          port_direction: DESTINATION
+          back_overhead: 42 #14+20+8
+          front_overhead: 1
+          port_max_message_size: 64
+          is_queuing_port: 1
+          q_port_max_nb_messages: 10          
+
+    - name: afdx_filler_1
+      type: AFDX_FILLER
+      state:
+          vl_id: 1
+          ttl: 5
+          src_partition_id: 1
+          dst_partition_id: 2
+          src_afdx_port: 1
+          dst_afdx_port: 2
+          type_of_packet: UNICAST_PACKET
+
+    - name: afdx_queue_enqueuer_1
+      type: AFDX_QUEUE_ENQUEUER
+      state:
+          BAG: SECOND
+
+    - name: virtio_net_dev_1
+      type: VIRTIO_NET_DEV
+      state:
+          pci_bus: 0
+          pci_dev: 1
+          pci_fn: 0
+
+    - name: virtio_net_dev_2
+      type: VIRTIO_NET_DEV
+      state:
+          pci_bus: 0
+          pci_dev: 2
+          pci_fn: 0
+
+
+links:
+    - from:
+        instance: arinc_sender_1
+        port: portA
+      to:
+        instance: afdx_filler_1
+        port: portA
+
+    - from:
+        instance: afdx_filler_1
+        port: portB
+      to:
+        instance: afdx_queue_enqueuer_1
+        port: portB
+
+    - from:
+        instance: afdx_queue_enqueuer_1
+        port: portNetA
+      to:
+        instance: virtio_net_dev_1
+        port: portA
+
+    - from:
+        instance: afdx_queue_enqueuer_1
+        port: portNetB
+      to:
+        instance: virtio_net_dev_2
+        port: portA
