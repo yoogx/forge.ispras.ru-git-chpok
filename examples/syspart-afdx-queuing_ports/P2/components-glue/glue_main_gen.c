@@ -23,10 +23,10 @@ struct port_ops{
     void *owner;
 };
 
-    #include <ARINC_SENDER_gen.h>
-        void __ARINC_SENDER_init__(ARINC_SENDER*);
-        void __ARINC_SENDER_activity__(ARINC_SENDER*);
-        ARINC_SENDER arinc_sender_1 = {
+    #include <ARINC_PORT_READER_gen.h>
+        void __ARINC_PORT_READER_init__(ARINC_PORT_READER*);
+        void __ARINC_PORT_READER_activity__(ARINC_PORT_READER*);
+        ARINC_PORT_READER arinc_port_reader_1 = {
             .state = {
                 .port_direction = DESTINATION,
                 .q_port_max_nb_messages = 10,
@@ -93,7 +93,7 @@ struct port_ops{
 
 void __components_init__()
 {
-            __ARINC_SENDER_init__(&arinc_sender_1);
+            __ARINC_PORT_READER_init__(&arinc_port_reader_1);
 
             __AFDX_FILLER_init__(&afdx_filler_1);
 
@@ -104,8 +104,8 @@ void __components_init__()
             __VIRTIO_NET_DEV_init__(&virtio_net_dev_2);
 
 
-        arinc_sender_1.out.portA.ops = &afdx_filler_1.in.portA.ops;
-        arinc_sender_1.out.portA.owner = &afdx_filler_1;
+        arinc_port_reader_1.out.portA.ops = &afdx_filler_1.in.portA.ops;
+        arinc_port_reader_1.out.portA.owner = &afdx_filler_1;
         afdx_filler_1.out.portB.ops = &afdx_queue_enqueuer_1.in.portB.ops;
         afdx_filler_1.out.portB.owner = &afdx_queue_enqueuer_1;
         afdx_queue_enqueuer_1.out.portNetA.ops = &virtio_net_dev_1.in.portA.ops;
@@ -118,7 +118,7 @@ void __components_init__()
 void __components_activity__()
 {
     while (1) {
-                __ARINC_SENDER_activity__(&arinc_sender_1);
+                __ARINC_PORT_READER_activity__(&arinc_port_reader_1);
                 __AFDX_FILLER_activity__(&afdx_filler_1);
                 __AFDX_QUEUE_ENQUEUER_activity__(&afdx_queue_enqueuer_1);
                 __VIRTIO_NET_DEV_activity__(&virtio_net_dev_1);

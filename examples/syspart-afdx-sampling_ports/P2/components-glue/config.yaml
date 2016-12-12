@@ -1,7 +1,7 @@
 # SAMPLING PORT
 components:
-    - name: arinc_sender_1
-      type: ARINC_SENDER
+    - name: arinc_port_reader_1
+      type: ARINC_PORT_READER
       state:
           port_name: '"UOUT"'
           port_direction: DESTINATION
@@ -45,7 +45,7 @@ components:
 
 links:
     - from:
-        instance: arinc_sender_1
+        instance: arinc_port_reader_1
         port: portA
       to:
         instance: afdx_filler_1

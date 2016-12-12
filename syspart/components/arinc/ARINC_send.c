@@ -20,12 +20,12 @@
 
 #include <mem.h>
 
-#include "ARINC_SENDER_gen.h"
-#define C_NAME "ARINC_SENDER: "
+#include "ARINC_PORT_READER_gen.h"
+#define C_NAME "ARINC_PORT_READER: "
 
 #define SECOND 1000000000LL
 
-static int receive_msg_queuing(ARINC_SENDER *self)
+static int receive_msg_queuing(ARINC_PORT_READER *self)
 {
     sys_port_data_t *dst_place = self->state.port_buffer;
 
@@ -46,7 +46,7 @@ static int receive_msg_queuing(ARINC_SENDER *self)
     return 0;
 }
 
-static int receive_msg_samping(ARINC_SENDER *self)
+static int receive_msg_samping(ARINC_PORT_READER *self)
 {
     RETURN_CODE_TYPE ret;
     VALIDITY_TYPE   validity;
@@ -74,7 +74,7 @@ static int receive_msg_samping(ARINC_SENDER *self)
     return 0;
 }
 
-void arinc_sender_activity(ARINC_SENDER *self)
+void arinc_port_reader_activity(ARINC_PORT_READER *self)
 {
     int receive_error;
     if (self->state.is_queuing_port)
@@ -88,7 +88,7 @@ void arinc_sender_activity(ARINC_SENDER *self)
         return;
 
     sys_port_data_t *dst_place = self->state.port_buffer;
-    ret_t res = ARINC_SENDER_call_portA_send(self,
+    ret_t res = ARINC_PORT_READER_call_portA_send(self,
             dst_place->data + self->state.prepend_overhead,
             dst_place->message_size,
             self->state.prepend_overhead,
@@ -99,10 +99,10 @@ void arinc_sender_activity(ARINC_SENDER *self)
     if (res != EOK)
         printf(C_NAME"Error in send_udp\n");
 
-    ARINC_SENDER_call_portA_flush(self);
+    ARINC_PORT_READER_call_portA_flush(self);
 }
 
-void arinc_sender_init(ARINC_SENDER *self)
+void arinc_port_reader_init(ARINC_PORT_READER *self)
 {
     RETURN_CODE_TYPE ret;
     if (self->state.is_queuing_port) {
