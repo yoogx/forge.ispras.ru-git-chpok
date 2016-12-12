@@ -4,8 +4,8 @@ components:
       state:
           port_name: '"UOUT"'
           port_direction: DESTINATION
-          back_overhead: 42 #14+20+8
-          front_overhead: 1
+          prepend_overhead: 42 #14+20+8
+          append_overhead: 1
           port_max_message_size: 64
           is_queuing_port: 1
           q_port_max_nb_messages: 10          
