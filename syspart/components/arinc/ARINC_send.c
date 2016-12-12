@@ -27,14 +27,13 @@
 
 static int receive_msg_queuing(ARINC_SENDER *self)
 {
-    //~ sys_port_data_t *dst_place = self->state.port_buffer;
-    sys_port_data_t *dst_place = self->state.port_buffer2;
+    sys_port_data_t *dst_place = self->state.port_buffer;
 
     RETURN_CODE_TYPE ret;
     RECEIVE_QUEUING_MESSAGE(
             self->state.port_id,
             0,
-            (MESSAGE_ADDR_TYPE ) (dst_place->data + self->state.back_overhead),
+            (MESSAGE_ADDR_TYPE ) (dst_place->data + self->state.prepend_overhead),
             &dst_place->message_size,
             &ret
             );
@@ -51,8 +50,8 @@ static int receive_msg_samping(ARINC_SENDER *self)
 {
     RETURN_CODE_TYPE ret;
     VALIDITY_TYPE   validity;
-    //~ sys_port_data_t *dst_place = self->state.port_buffer;
-    sys_port_data_t *dst_place = self->state.port_buffer2;
+
+    sys_port_data_t *dst_place = self->state.port_buffer;
 
     //~ printf("SYS_CHECK: %d\n", SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(self->state.port_id));
     if (SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(self->state.port_id))
@@ -60,12 +59,12 @@ static int receive_msg_samping(ARINC_SENDER *self)
 
     READ_SAMPLING_MESSAGE(
             self->state.port_id,
-            (MESSAGE_ADDR_TYPE ) (dst_place->data + self->state.back_overhead),
+            (MESSAGE_ADDR_TYPE ) (dst_place->data + self->state.prepend_overhead),
             &dst_place->message_size,
             &validity,
             &ret
             );
-    printf("ARINC Receiver recceived message\n");
+
     if (ret != NO_ERROR) {
         if (ret != NO_ACTION)
             printf(C_NAME"%s port error: %u\n", self->state.port_name, ret);
@@ -88,15 +87,13 @@ void arinc_sender_activity(ARINC_SENDER *self)
     if (receive_error != 0)
         return;
 
-    //~ sys_port_data_t *dst_place = self->state.port_buffer;
-    sys_port_data_t *dst_place = self->state.port_buffer2;
+    sys_port_data_t *dst_place = self->state.port_buffer;
     ret_t res = ARINC_SENDER_call_portA_send(self,
-            dst_place->data + self->state.back_overhead,
+            dst_place->data + self->state.prepend_overhead,
             dst_place->message_size,
-            self->state.back_overhead,
-            self->state.front_overhead
+            self->state.prepend_overhead,
+            self->state.append_overhead
             );
-    //~ printf("send data_size: %u\n", dst_place->message_size);
 
 
     if (res != EOK)
@@ -134,15 +131,11 @@ void arinc_sender_init(ARINC_SENDER *self)
 
     printf(C_NAME"successfuly create %s port\n", self->state.port_name);
 
+
     self->state.port_buffer = smalloc(
             sizeof(*self->state.port_buffer) +
-            self->state.back_overhead +
-            self->state.port_max_message_size);
-
-    self->state.port_buffer2 = smalloc(
-            sizeof(*self->state.port_buffer2) +
-            self->state.back_overhead +
+            self->state.prepend_overhead +
             self->state.port_max_message_size +
-            self->state.front_overhead);
-    //self->state.port_buffer2_msgsize;
+            self->state.append_overhead);
+    //self->state.port_buffer_msgsize;
 }

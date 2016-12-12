@@ -29,12 +29,12 @@
   state_struct:
         BAG: pok_time_t
         buffer: afdx_buffer *
-        head: uint8_t
-        tail: uint8_t
-        count: uint8_t
-        empty: pok_bool_t
-        back_overhead: unsigned
-        front_overhead: unsigned
+        head: size_t
+        tail: size_t
+        count: size_t
+        prepend_overhead: unsigned
+        append_overhead: unsigned
+        packet_count: size_t
         last_time: SYSTEM_TIME_TYPE
 #temporary solution until we can generate a periodic process components
 

@@ -32,8 +32,8 @@ struct port_ops{
                 .q_port_max_nb_messages = 0,
                 .port_max_message_size = 64,
                 .port_name = "UOUT",
-                .back_overhead = 42,
-                .front_overhead = 1,
+                .prepend_overhead = 42,
+                .append_overhead = 1,
                 .is_queuing_port = 0,
             },
 
@@ -60,6 +60,7 @@ struct port_ops{
         void __AFDX_QUEUE_ENQUEUER_activity__(AFDX_QUEUE_ENQUEUER*);
         AFDX_QUEUE_ENQUEUER afdx_queue_enqueuer_1 = {
             .state = {
+                .packet_count = 10,
                 .BAG = SECOND,
             },
 

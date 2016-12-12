@@ -55,9 +55,6 @@
 #define MAC_INTERFACE_ID_B  0x2    // (010 b) for the network B
 #define MAC_INTERFACE_ID_2  0
 
-// information for queue
-#define PACKET_COUNT    10
-
 void fill_afdx_interface_id (frame_data_t *p, int net_card)
 {
     if (net_card == 0)
@@ -77,11 +74,10 @@ void afdx_queue_init(AFDX_QUEUE_ENQUEUER *self)
      * head, tail, the number of elements
      * and empty srate
      */
-    self->state.buffer = smalloc(PACKET_COUNT * sizeof(afdx_buffer));
+    self->state.buffer = smalloc(self->state.packet_count * sizeof(afdx_buffer));
     self->state.head = 0;
     self->state.tail = 0;
     self->state.count = 0;
-    self->state.empty = TRUE;
 
     // only for TEST!
     GET_TIME(&system_time, &ret);
@@ -99,11 +95,10 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
     // only for TEST!
     GET_TIME(&system_time, &return_code);
 
-    if ((system_time - self->state.last_time) <=  self->state.BAG)
-        return;
-    else
+
+    if (system_time <= (self->state.last_time + self->state.BAG))
     {
-        self->state.last_time = system_time;
+        self->state.last_time += self->state.BAG;
 
         /* 
          * Take information from queue:
@@ -112,7 +107,7 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
          * 3. Increase the head by 1
          * 4. decreace count by 1
          */
-        if (self->state.empty == FALSE)
+        if (self->state.count > 0)
         {
             memcpy(afdx_frame, &(self->state.buffer[self->state.head].data), self->state.buffer[self->state.head].size);
             printf("QUEUE activity get message: %s\n", afdx_frame->afdx_payload);
@@ -127,8 +122,8 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
                 AFDX_QUEUE_ENQUEUER_call_portNetA_send(self,
                         data_buffer,
                         self->state.buffer[self->state.head].size,
-                        self->state.back_overhead,
-                        self->state.front_overhead
+                        self->state.prepend_overhead,
+                        self->state.append_overhead
                         );
 
                 AFDX_QUEUE_ENQUEUER_call_portNetA_flush(self);
@@ -142,8 +137,8 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
                 AFDX_QUEUE_ENQUEUER_call_portNetB_send(self,
                         data_buffer,
                         self->state.buffer[self->state.head].size,
-                        self->state.back_overhead,
-                        self->state.front_overhead
+                        self->state.prepend_overhead,
+                        self->state.append_overhead
                         );
 
                 AFDX_QUEUE_ENQUEUER_call_portNetB_flush(self);
@@ -153,15 +148,12 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
              * Chenge QUEUE state
              */
             self->state.head++;
-            if (self->state.head == PACKET_COUNT)
+            if (self->state.head == self->state.packet_count)
                 self->state.head = 0;
 
             self->state.count--;
-            if (self->state.count == 0)
-                self->state.empty = TRUE;
-            return;
+
         }
-        return;
     }
 }
 
@@ -175,24 +167,24 @@ ret_t afdx_enqueuer_implementation(
         size_t frontstep
         )
 {
-    RETURN_CODE_TYPE ret;
 
-    self->state.back_overhead = max_backstep;
-    self->state.front_overhead = frontstep;
+// safe in buffer
+    self->state.prepend_overhead = max_backstep;
+    self->state.append_overhead = frontstep;
 
     memcpy(&(self->state.buffer[self->state.tail].data), afdx_frame, frame_size);
     self->state.buffer[self->state.tail].size = frame_size;
     self->state.tail++;
     self->state.count++;
-    self->state.empty = FALSE;
 
-    if ((self->state.tail == PACKET_COUNT) && (self->state.count < PACKET_COUNT)) {
+    if ((self->state.tail == self->state.packet_count) && (self->state.count < self->state.packet_count)) {
         self->state.tail = 0;
     }
-    if (self->state.count >= PACKET_COUNT) {
+    if (self->state.count >= self->state.packet_count) {
         printf("ERROR QUEUE if FULL \n");
         printf("Partition P2 will be stopped\n");
         //kill partition
+        RETURN_CODE_TYPE ret;
         SET_PARTITION_MODE(IDLE, &ret);
         return -1;
     }

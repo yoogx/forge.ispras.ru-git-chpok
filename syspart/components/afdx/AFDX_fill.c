@@ -158,10 +158,10 @@ uint16_t ip_hdr_checksum_2(const struct ip_header *ip_hdr)
  * and increases frame_size by 1
  */
 
-void add_seq_numb(void * buf, size_t * f_size, uint8_t * s_number)
+void add_seq_numb(uint8_t * buf, size_t * f_size, uint8_t * s_number)
 {
-    memcpy((buf + (*f_size)), s_number, sizeof(uint8_t));
-    *f_size = *f_size + (uint16_t)(sizeof(uint8_t));
+    memcpy((buf + (*f_size)), s_number, 1);
+    *f_size = *f_size + (uint16_t)(1);
 }
 
 /*
@@ -247,7 +247,7 @@ uint16_t fill_afdx_frame(AFDX_FILLER_state *state,
 
 void afdx_filler_init(AFDX_FILLER *self)
 {
-    self->state.sn = 0;
+    self->state.sn = 240;
 }
 
 ret_t afdx_filler_send(
@@ -272,9 +272,7 @@ ret_t afdx_filler_send(
     add_seq_numb(afdx_frame, &payload_size, &self->state.sn);
     frontstep -= 1;
 
-    self->state.sn++;
-    if (self->state.sn == 0)
-        self->state.sn = 1;
+    self->state.sn = (self->state.sn % 255) + 1;
 
     return AFDX_FILLER_call_portB_afdx_add_to_queue(self,
             (char *) afdx_frame,
