@@ -158,10 +158,9 @@ uint16_t ip_hdr_checksum_2(const struct ip_header *ip_hdr)
  * and increases frame_size by 1
  */
 
-void fill_seq_numb(uint8_t * buf, size_t * f_size, uint8_t * s_number)
+void fill_seq_numb(uint8_t * buf, size_t f_size, uint8_t * s_number)
 {
-    memcpy((buf + (*f_size)), s_number, 1);
-    *f_size = *f_size + (uint16_t)(1);
+    memcpy((buf + f_size), s_number, 1);
 }
 
 /*
@@ -268,7 +267,10 @@ ret_t afdx_filler_send(
     if (append_overhead < 1)
         return EINVAL;
 
-    fill_seq_numb(afdx_frame, &payload_size, &self->state.sn);
+    if (payload_size < MIN_AFDX_PAYLOAD_SIZE)
+        fill_seq_numb((uint8_t *)afdx_frame, (MIN_AFDX_PAYLOAD_SIZE + HEADER_LENGTH), &self->state.sn);
+    else
+        fill_seq_numb((uint8_t *)afdx_frame, (payload_size + HEADER_LENGTH), &self->state.sn);
 
     self->state.sn = (self->state.sn % 255) + 1;
 
