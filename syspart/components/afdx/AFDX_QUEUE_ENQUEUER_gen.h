@@ -24,7 +24,7 @@
     #include "afdx.h"
     #include <arinc653/time.h>
 
-    #include <interfaces/afdx_queue_enqueuer_gen.h>
+    #include <interfaces/preallocated_sender_gen.h>
 
     #include <interfaces/preallocated_sender_gen.h>
     #include <interfaces/preallocated_sender_gen.h>
@@ -45,7 +45,7 @@ typedef struct {
     AFDX_QUEUE_ENQUEUER_state state;
     struct {
             struct {
-                afdx_queue_enqueuer ops;
+                preallocated_sender ops;
             } portB;
     } in;
     struct {
@@ -63,6 +63,7 @@ typedef struct {
 
 
       ret_t afdx_enqueuer_implementation(AFDX_QUEUE_ENQUEUER *, char *, size_t, size_t, size_t);
+      ret_t afdx_enqueuer_flush(AFDX_QUEUE_ENQUEUER *);
 
       ret_t AFDX_QUEUE_ENQUEUER_call_portNetA_send(AFDX_QUEUE_ENQUEUER *, char *, size_t, size_t, size_t);
       ret_t AFDX_QUEUE_ENQUEUER_call_portNetA_flush(AFDX_QUEUE_ENQUEUER *);

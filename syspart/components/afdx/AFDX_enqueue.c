@@ -191,3 +191,8 @@ ret_t afdx_enqueuer_implementation(
 
     return 0;
 }
+
+ret_t afdx_enqueuer_flush(AFDX_QUEUE_ENQUEUER *self)
+{
+    return EOK;
+}

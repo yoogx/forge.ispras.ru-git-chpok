@@ -275,19 +275,35 @@ ret_t afdx_filler_send(
     self->state.sn = (self->state.sn % 255) + 1;
 
     if (payload_size < MIN_AFDX_PAYLOAD_SIZE)
-        return AFDX_FILLER_call_portB_afdx_add_to_queue(self,
-                (char *) afdx_frame,
-                (HEADER_LENGTH + MIN_AFDX_PAYLOAD_SIZE + 1),
-                (prepend_overhead - HEADER_LENGTH),
-                (append_overhead - 1)
-                );
-    else
-        return AFDX_FILLER_call_portB_afdx_add_to_queue(self,
-                (char *) afdx_frame,
-                (HEADER_LENGTH + payload_size + 1),
-                (prepend_overhead - HEADER_LENGTH),
-                (append_overhead - 1)
-                );
+    {
+        ret_t res = AFDX_FILLER_call_portB_send(self,
+                        (char *) afdx_frame,
+                        (HEADER_LENGTH + MIN_AFDX_PAYLOAD_SIZE + 1),
+                        (prepend_overhead - HEADER_LENGTH),
+                        (append_overhead - 1)
+                        );
+        if (res != EOK)
+        printf(C_NAME"Error in send\n");
+
+        AFDX_FILLER_call_portB_flush(self);
+
+        return EOK;
+    }
+    else {
+    ret_t res = AFDX_FILLER_call_portB_send(self,
+                    (char *) afdx_frame,
+                    (HEADER_LENGTH + payload_size + 1),
+                    (prepend_overhead - HEADER_LENGTH),
+                    (append_overhead - 1)
+                    );
+
+    if (res != EOK)
+        printf(C_NAME"Error in send\n");
+
+    AFDX_FILLER_call_portB_flush(self);
+
+    return EOK;
+    }
 }
 
 ret_t afdx_filler_flush(AFDX_FILLER *self) {

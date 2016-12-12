@@ -25,7 +25,7 @@
 
     #include <interfaces/preallocated_sender_gen.h>
 
-    #include <interfaces/afdx_queue_enqueuer_gen.h>
+    #include <interfaces/preallocated_sender_gen.h>
 
 typedef struct AFDX_FILLER_state {
     uint16_t vl_id;
@@ -47,7 +47,7 @@ typedef struct {
     } in;
     struct {
             struct {
-                afdx_queue_enqueuer *ops;
+                preallocated_sender *ops;
                 self_t *owner;
             } portB;
     } out;
@@ -58,7 +58,8 @@ typedef struct {
       ret_t afdx_filler_send(AFDX_FILLER *, char *, size_t, size_t, size_t);
       ret_t afdx_filler_flush(AFDX_FILLER *);
 
-      ret_t AFDX_FILLER_call_portB_afdx_add_to_queue(AFDX_FILLER *, char *, size_t, size_t, size_t);
+      ret_t AFDX_FILLER_call_portB_send(AFDX_FILLER *, char *, size_t, size_t, size_t);
+      ret_t AFDX_FILLER_call_portB_flush(AFDX_FILLER *);
 
 
 

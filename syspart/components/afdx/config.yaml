@@ -22,7 +22,7 @@
 
   out_ports:
        - name: portB
-         type: afdx_queue_enqueuer
+         type: preallocated_sender
 
 - name: AFDX_QUEUE_ENQUEUER
   additional_h_files: ['"afdx.h"', <arinc653/time.h>]
@@ -43,9 +43,10 @@
 
   in_ports:
       - name: portB
-        type: afdx_queue_enqueuer
+        type: preallocated_sender
         implementation:
-            afdx_add_to_queue: afdx_enqueuer_implementation
+            send: afdx_enqueuer_implementation
+            flush: afdx_enqueuer_flush
 
   out_ports:
       - name: portNetA

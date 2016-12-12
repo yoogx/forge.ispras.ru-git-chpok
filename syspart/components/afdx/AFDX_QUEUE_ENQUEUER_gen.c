@@ -28,6 +28,11 @@
         return afdx_enqueuer_implementation((AFDX_QUEUE_ENQUEUER*) arg0, arg1, arg2, arg3, arg4);
     }
 
+    static ret_t __wrapper_afdx_enqueuer_flush(self_t *arg0)
+    {
+        return afdx_enqueuer_flush((AFDX_QUEUE_ENQUEUER*) arg0);
+    }
+
 
 
       ret_t AFDX_QUEUE_ENQUEUER_call_portNetA_send(AFDX_QUEUE_ENQUEUER *self, char * arg1, size_t arg2, size_t arg3, size_t arg4)
@@ -66,7 +71,8 @@
 
 void __AFDX_QUEUE_ENQUEUER_init__(AFDX_QUEUE_ENQUEUER *self)
 {
-            self->in.portB.ops.afdx_add_to_queue = __wrapper_afdx_enqueuer_implementation;
+            self->in.portB.ops.send = __wrapper_afdx_enqueuer_implementation;
+            self->in.portB.ops.flush = __wrapper_afdx_enqueuer_flush;
 
         afdx_queue_init(self);
 }
