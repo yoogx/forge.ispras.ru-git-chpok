@@ -32,7 +32,7 @@ struct port_ops{
                 .q_port_max_nb_messages = 10,
                 .port_max_message_size = 64,
                 .port_name = "UOUT",
-                .overhead = 42,
+                .prepend_overhead = 42,
                 .is_queuing_port = 1,
             },
 
