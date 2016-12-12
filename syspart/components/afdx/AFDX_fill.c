@@ -64,7 +64,7 @@
 #define IP_H_LENGTH         (IHL * 4) + UDP_H_LENGTH
 #define FCS_LENGTH          4
 
-#define MIN_PAYLOAD_SIZE    17
+#define MIN_AFDX_PAYLOAD_SIZE    17
 
 /* basic functions for filling the package */
 
@@ -158,7 +158,7 @@ uint16_t ip_hdr_checksum_2(const struct ip_header *ip_hdr)
  * and increases frame_size by 1
  */
 
-void add_seq_numb(uint8_t * buf, size_t * f_size, uint8_t * s_number)
+void fill_seq_numb(uint8_t * buf, size_t * f_size, uint8_t * s_number)
 {
     memcpy((buf + (*f_size)), s_number, 1);
     *f_size = *f_size + (uint16_t)(1);
@@ -226,9 +226,9 @@ uint16_t fill_afdx_frame(AFDX_FILLER_state *state,
 
     // add pad if it's necessary
     uint8_t pad_size = 0;
-    if (payload_size < MIN_PAYLOAD_SIZE)
+    if (payload_size < MIN_AFDX_PAYLOAD_SIZE)
     {
-        pad_size = MIN_PAYLOAD_SIZE - payload_size;
+        pad_size = MIN_AFDX_PAYLOAD_SIZE - payload_size;
         memset((p->afdx_payload + payload_size), 0, pad_size);
     }
 
@@ -247,39 +247,45 @@ uint16_t fill_afdx_frame(AFDX_FILLER_state *state,
 
 void afdx_filler_init(AFDX_FILLER *self)
 {
-    self->state.sn = 240;
+    self->state.sn = 0;
 }
 
 ret_t afdx_filler_send(
         AFDX_FILLER *self,
         char *payload,
         size_t payload_size,
-        size_t max_backstep,
-        size_t frontstep
+        size_t prepend_overhead,
+        size_t append_overhead
         )
 {
-  	if (max_backstep < HEADER_LENGTH)
+  	if (prepend_overhead < HEADER_LENGTH)
         return EINVAL;
 
     frame_data_t *afdx_frame = (frame_data_t *)(payload - HEADER_LENGTH);
 
-    payload_size = fill_afdx_frame(&self->state, afdx_frame, payload, payload_size);
-    max_backstep -= HEADER_LENGTH;
+    fill_afdx_frame(&self->state, afdx_frame, payload, payload_size);
 
-    if (frontstep < 1)
+    if (append_overhead < 1)
         return EINVAL;
 
-    add_seq_numb(afdx_frame, &payload_size, &self->state.sn);
-    frontstep -= 1;
+    fill_seq_numb(afdx_frame, &payload_size, &self->state.sn);
 
     self->state.sn = (self->state.sn % 255) + 1;
 
-    return AFDX_FILLER_call_portB_afdx_add_to_queue(self,
-            (char *) afdx_frame,
-            payload_size,
-            max_backstep,
-            frontstep
-            );
+    if (payload_size < MIN_AFDX_PAYLOAD_SIZE)
+        return AFDX_FILLER_call_portB_afdx_add_to_queue(self,
+                (char *) afdx_frame,
+                (HEADER_LENGTH + MIN_AFDX_PAYLOAD_SIZE + 1),
+                (prepend_overhead - HEADER_LENGTH),
+                (append_overhead - 1)
+                );
+    else
+        return AFDX_FILLER_call_portB_afdx_add_to_queue(self,
+                (char *) afdx_frame,
+                (HEADER_LENGTH + payload_size + 1),
+                (prepend_overhead - HEADER_LENGTH),
+                (append_overhead - 1)
+                );
 }
 
 ret_t afdx_filler_flush(AFDX_FILLER *self) {
