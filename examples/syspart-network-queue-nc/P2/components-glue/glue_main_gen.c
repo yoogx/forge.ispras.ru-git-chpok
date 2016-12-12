@@ -23,10 +23,10 @@ struct port_ops{
     void *owner;
 };
 
-    #include <ARINC_SENDER_gen.h>
-        void __ARINC_SENDER_init__(ARINC_SENDER*);
-        void __ARINC_SENDER_activity__(ARINC_SENDER*);
-        ARINC_SENDER arinc_sender_1 = {
+    #include <ARINC_PORT_READER_gen.h>
+        void __ARINC_PORT_READER_init__(ARINC_PORT_READER*);
+        void __ARINC_PORT_READER_activity__(ARINC_PORT_READER*);
+        ARINC_PORT_READER arinc_port_reader_1 = {
             .state = {
                 .port_direction = DESTINATION,
                 .q_port_max_nb_messages = 10,
@@ -162,10 +162,10 @@ struct port_ops{
             }
         };
 
-    #include <ARINC_RECEIVER_gen.h>
-        void __ARINC_RECEIVER_init__(ARINC_RECEIVER*);
-        void __ARINC_RECEIVER_activity__(ARINC_RECEIVER*);
-        ARINC_RECEIVER arinc_receiver_1 = {
+    #include <ARINC_PORT_WRITER_gen.h>
+        void __ARINC_PORT_WRITER_init__(ARINC_PORT_WRITER*);
+        void __ARINC_PORT_WRITER_activity__(ARINC_PORT_WRITER*);
+        ARINC_PORT_WRITER arinc_port_writer_1 = {
             .state = {
                 .port_direction = SOURCE,
                 .is_queuing_port = 1,
@@ -176,10 +176,10 @@ struct port_ops{
 
         };
 
-    #include <ARINC_RECEIVER_gen.h>
-        void __ARINC_RECEIVER_init__(ARINC_RECEIVER*);
-        void __ARINC_RECEIVER_activity__(ARINC_RECEIVER*);
-        ARINC_RECEIVER arinc_receiver_2 = {
+    #include <ARINC_PORT_WRITER_gen.h>
+        void __ARINC_PORT_WRITER_init__(ARINC_PORT_WRITER*);
+        void __ARINC_PORT_WRITER_activity__(ARINC_PORT_WRITER*);
+        ARINC_PORT_WRITER arinc_port_writer_2 = {
             .state = {
                 .port_name = "__test__",
             },
@@ -190,7 +190,7 @@ struct port_ops{
 
 void __components_init__()
 {
-            __ARINC_SENDER_init__(&arinc_sender_1);
+            __ARINC_PORT_READER_init__(&arinc_port_reader_1);
 
             __UDP_IP_SENDER_init__(&udp_ip_sender_1);
 
@@ -214,13 +214,13 @@ void __components_init__()
 
             __ROUTER_init__(&router);
 
-            __ARINC_RECEIVER_init__(&arinc_receiver_1);
+            __ARINC_PORT_WRITER_init__(&arinc_port_writer_1);
 
-            __ARINC_RECEIVER_init__(&arinc_receiver_2);
+            __ARINC_PORT_WRITER_init__(&arinc_port_writer_2);
 
 
-        arinc_sender_1.out.portA.ops = &udp_ip_sender_1.in.portA.ops;
-        arinc_sender_1.out.portA.owner = &udp_ip_sender_1;
+        arinc_port_reader_1.out.portA.ops = &udp_ip_sender_1.in.portA.ops;
+        arinc_port_reader_1.out.portA.owner = &udp_ip_sender_1;
         udp_ip_sender_1.out.portB.ops = &mac_sender_1.in.portA.ops;
         udp_ip_sender_1.out.portB.owner = &mac_sender_1;
         mac_sender_1.out.portB.ops = &virtio_net_dev_1.in.portA.ops;
@@ -245,17 +245,17 @@ void __components_init__()
         arp_answerer_2.out.portB.owner = &mac_sender_2;
         mac_receiver_2.out.port_UDP.ops = &udp_receiver.in.portA.ops;
         mac_receiver_2.out.port_UDP.owner = &udp_receiver;
-        router.out.portArray[0].ops = &arinc_receiver_1.in.portA.ops;
-        router.out.portArray[0].owner = &arinc_receiver_1;
-        router.out.portArray[1].ops = &arinc_receiver_2.in.portA.ops;
-        router.out.portArray[1].owner = &arinc_receiver_2;
+        router.out.portArray[0].ops = &arinc_port_writer_1.in.portA.ops;
+        router.out.portArray[0].owner = &arinc_port_writer_1;
+        router.out.portArray[1].ops = &arinc_port_writer_2.in.portA.ops;
+        router.out.portArray[1].owner = &arinc_port_writer_2;
 
 }
 
 void __components_activity__()
 {
     while (1) {
-                __ARINC_SENDER_activity__(&arinc_sender_1);
+                __ARINC_PORT_READER_activity__(&arinc_port_reader_1);
                 __UDP_IP_SENDER_activity__(&udp_ip_sender_1);
                 __MAC_SENDER_activity__(&mac_sender_1);
                 __VIRTIO_NET_DEV_activity__(&virtio_net_dev_1);
@@ -267,8 +267,8 @@ void __components_activity__()
                 __MAC_RECEIVER_activity__(&mac_receiver_2);
                 __UDP_RECEIVER_activity__(&udp_receiver);
                 __ROUTER_activity__(&router);
-                __ARINC_RECEIVER_activity__(&arinc_receiver_1);
-                __ARINC_RECEIVER_activity__(&arinc_receiver_2);
+                __ARINC_PORT_WRITER_activity__(&arinc_port_writer_1);
+                __ARINC_PORT_WRITER_activity__(&arinc_port_writer_2);
     }
 
 }

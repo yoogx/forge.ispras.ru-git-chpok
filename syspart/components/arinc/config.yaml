@@ -21,7 +21,7 @@
         type: preallocated_sender
 
 
-- name: ARINC_RECEIVER
+- name: ARINC_PORT_WRITER
   additional_h_files: ['<arinc653/queueing.h>', '<arinc653/sampling.h>', '<port_info.h>']
   state_struct:
       port_name: NAME_TYPE
@@ -32,7 +32,7 @@
       #not inited
       port_id: APEX_INTEGER
 
-  init_func: arinc_receiver_init
+  init_func: arinc_port_writer_init
 
   in_ports:
       - name: portA

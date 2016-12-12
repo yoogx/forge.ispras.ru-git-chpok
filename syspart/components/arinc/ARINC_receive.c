@@ -19,11 +19,11 @@
 
 #include <port_info.h>
 
-#include "ARINC_RECEIVER_gen.h"
+#include "ARINC_PORT_WRITER_gen.h"
 
-#define C_NAME "ARINC_RECEIVER: "
+#define C_NAME "ARINC_PORT_WRITER: "
 
-static ret_t send_msg_to_user_partition_queuing(ARINC_RECEIVER *self, const char *payload, size_t length)
+static ret_t send_msg_to_user_partition_queuing(ARINC_PORT_WRITER *self, const char *payload, size_t length)
 {
     RETURN_CODE_TYPE ret;
 
@@ -46,7 +46,7 @@ static ret_t send_msg_to_user_partition_queuing(ARINC_RECEIVER *self, const char
     return EOK;
 }
 
-static ret_t send_msg_to_user_partition_sampling(ARINC_RECEIVER *self, const char *payload, size_t length)
+static ret_t send_msg_to_user_partition_sampling(ARINC_PORT_WRITER *self, const char *payload, size_t length)
 {
     RETURN_CODE_TYPE ret;
 
@@ -64,7 +64,7 @@ static ret_t send_msg_to_user_partition_sampling(ARINC_RECEIVER *self, const cha
 
 }
 
-void arinc_receiver_init(ARINC_RECEIVER *self)
+void arinc_port_writer_init(ARINC_PORT_WRITER *self)
 {
     RETURN_CODE_TYPE ret;
     if (self->state.is_queuing_port) {
@@ -87,7 +87,7 @@ void arinc_receiver_init(ARINC_RECEIVER *self)
     }
 }
 
-ret_t arinc_receive_message(ARINC_RECEIVER *self, const char *payload, size_t payload_size)
+ret_t arinc_receive_message(ARINC_PORT_WRITER *self, const char *payload, size_t payload_size)
 {
     //printf(C_NAME"%s got message\n", self->state.tmp_name);
     if (self->state.is_queuing_port)

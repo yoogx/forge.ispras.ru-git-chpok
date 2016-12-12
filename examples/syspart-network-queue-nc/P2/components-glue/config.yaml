@@ -76,8 +76,8 @@ components:
           map_ip_port_to_idx: '{{IP_ADDR(192, 168, 56, 101), 10001},{IP_ADDR(192, 168, 56, 102), 10005}}'
           map_ip_port_to_idx_len: 2
 
-    - name: arinc_receiver_1
-      type: ARINC_RECEIVER
+    - name: arinc_port_writer_1
+      type: ARINC_PORT_WRITER
       state:
           port_name: '"UIN"'
           port_direction: SOURCE
@@ -85,8 +85,8 @@ components:
           is_queuing_port: 1
           q_port_max_nb_messages: 10
 
-    - name: arinc_receiver_2
-      type: ARINC_RECEIVER
+    - name: arinc_port_writer_2
+      type: ARINC_PORT_WRITER
       state:
           port_name: '"__test__"'
 
@@ -190,7 +190,7 @@ links:
         port: portArray
         array_index: 0
       to:
-        instance: arinc_receiver_1
+        instance: arinc_port_writer_1
         port: portA
 
     - from:
@@ -198,5 +198,5 @@ links:
         port: portArray
         array_index: 1
       to:
-        instance: arinc_receiver_2
+        instance: arinc_port_writer_2
         port: portA
