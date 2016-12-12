@@ -27,7 +27,7 @@ module or debug it.
 # Expects 'JETOS_HOME' os environment variable to point to the parent dir.
 # (so the script itself is located at '$JETOS_HOME/misc/SConscript').
 #
-# Expects 'bsp' parameter of the scons call or `POK_BSP` os environment
+# Expects 'bsp' parameter of the scons call or `JETOS_BSP` os environment
 # variable to contain BSP for build against.
 #
 # Creates environment 'env' and fills global arch-independent parameters
@@ -118,7 +118,7 @@ if ARGUMENTS.get('bsp'):
 	env['BSP'] = env['bsp']
 else:
 	try:
-		env['BSP'] = os.environ['POK_BSP']
+		env['BSP'] = os.environ['JETOS_BSP']
 	except:
 		env['BSP'] = env['bsp']
 
