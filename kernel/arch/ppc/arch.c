@@ -30,6 +30,8 @@
 #include <core/uaccess.h>
 #include "timer.h"
 
+void tlb_measure();
+
 /**
  * Function that initializes architecture concerns.
  *
@@ -44,6 +46,8 @@ void pok_arch_init (void)
   pok_arch_space_init();
 
   ja_time_init();
+
+  tlb_measure();
 }
 
 void ja_preempt_disable(void)
