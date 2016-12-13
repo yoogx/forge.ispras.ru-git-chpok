@@ -124,7 +124,7 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
     // only for TEST!
     GET_TIME(&system_time, &return_code);
 
-    if (system_time <= (self->state.last_time + self->state.BAG))
+    if (system_time < (self->state.last_time + self->state.BAG))
     {
         self->state.last_time += self->state.BAG;
 
