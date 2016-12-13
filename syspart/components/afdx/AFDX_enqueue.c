@@ -122,8 +122,8 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
                 AFDX_QUEUE_ENQUEUER_call_portNetA_send(self,
                         data_buffer,
                         self->state.buffer[self->state.head].size,
-                        self->state.prepend_overhead,
-                        self->state.append_overhead
+                        self->state.buffer[self->state.head].prepend_overhead,
+                        self->state.buffer[self->state.head].append_overhead
                         );
 
                 AFDX_QUEUE_ENQUEUER_call_portNetA_flush(self);
@@ -137,8 +137,8 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
                 AFDX_QUEUE_ENQUEUER_call_portNetB_send(self,
                         data_buffer,
                         self->state.buffer[self->state.head].size,
-                        self->state.prepend_overhead,
-                        self->state.append_overhead
+                        self->state.buffer[self->state.head].prepend_overhead,
+                        self->state.buffer[self->state.head].append_overhead
                         );
 
                 AFDX_QUEUE_ENQUEUER_call_portNetB_flush(self);
@@ -162,25 +162,26 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
 ret_t afdx_enqueuer_implementation(
         AFDX_QUEUE_ENQUEUER *self,
         char * afdx_frame,
-        size_t frame_size,
-        size_t max_backstep,
-        size_t frontstep
+        const size_t frame_size,
+        const size_t prepend_overhead,
+        const size_t append_overhead
         )
 {
 
-// safe in buffer
-    self->state.prepend_overhead = max_backstep;
-    self->state.append_overhead = frontstep;
-
     memcpy(&(self->state.buffer[self->state.tail].data), afdx_frame, frame_size);
     self->state.buffer[self->state.tail].size = frame_size;
+    self->state.buffer[self->state.tail].prepend_overhead = prepend_overhead;
+    self->state.buffer[self->state.tail].append_overhead = append_overhead;
+
     self->state.tail++;
     self->state.count++;
 
     if ((self->state.tail == self->state.packet_count) && (self->state.count < self->state.packet_count)) {
         self->state.tail = 0;
     }
-    if (self->state.count >= self->state.packet_count) {
+    if ( ((self->state.tail == self->state.packet_count) && (self->state.count >= self->state.packet_count)) ||
+         ((self->state.tail == self->state.head)  && (self->state.count >= self->state.packet_count)) )  {
+
         printf("ERROR QUEUE if FULL \n");
         printf("Partition P2 will be stopped\n");
         //kill partition

@@ -252,9 +252,9 @@ void afdx_filler_init(AFDX_FILLER *self)
 ret_t afdx_filler_send(
         AFDX_FILLER *self,
         char *payload,
-        size_t payload_size,
-        size_t prepend_overhead,
-        size_t append_overhead
+        const size_t payload_size,
+        const size_t prepend_overhead,
+        const size_t append_overhead
         )
 {
   	if (prepend_overhead < HEADER_LENGTH)
@@ -282,8 +282,9 @@ ret_t afdx_filler_send(
                         (prepend_overhead - HEADER_LENGTH),
                         (append_overhead - 1)
                         );
+
         if (res != EOK)
-        printf(C_NAME"Error in send\n");
+            printf(C_NAME"Error in send\n");
 
         AFDX_FILLER_call_portB_flush(self);
 

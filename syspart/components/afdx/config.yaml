@@ -29,7 +29,9 @@
   state_struct:
         BAG: pok_time_t
         buffer: afdx_buffer *
+        # the index in the queue for information that should be read
         head: size_t
+        # the index in the queue where you want to record information
         tail: size_t
         count: size_t
         prepend_overhead: unsigned
