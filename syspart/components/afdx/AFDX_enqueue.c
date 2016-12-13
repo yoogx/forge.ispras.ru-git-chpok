@@ -63,6 +63,37 @@ void fill_afdx_interface_id (frame_data_t *p, int net_card)
     p->mac_header.mac_src_addr.interface_id = (MAC_INTERFACE_ID_B << 5 | MAC_INTERFACE_ID_2);
 }
 
+/*
+ * Take packet and write information of interface_id and send to the cards
+ */
+void send_packet(AFDX_QUEUE_ENQUEUER *self, frame_data_t *afdx_frame, int net_card)
+{
+    if (net_card == NETWORK_CARD_A)
+    {
+        fill_afdx_interface_id(afdx_frame, NETWORK_CARD_A);
+
+        AFDX_QUEUE_ENQUEUER_call_portNetA_send(self,
+                self->state.buffer[self->state.head].data,
+                self->state.buffer[self->state.head].size,
+                self->state.buffer[self->state.head].prepend_overhead,
+                self->state.buffer[self->state.head].append_overhead
+                );
+
+        AFDX_QUEUE_ENQUEUER_call_portNetA_flush(self);
+
+    } else {
+        fill_afdx_interface_id(afdx_frame, NETWORK_CARD_B);
+
+        AFDX_QUEUE_ENQUEUER_call_portNetB_send(self,
+                self->state.buffer[self->state.head].data,
+                self->state.buffer[self->state.head].size,
+                self->state.buffer[self->state.head].prepend_overhead,
+                self->state.buffer[self->state.head].append_overhead
+                );
+
+        AFDX_QUEUE_ENQUEUER_call_portNetB_flush(self);
+    }
+}
 
 void afdx_queue_init(AFDX_QUEUE_ENQUEUER *self)
 {
@@ -89,12 +120,9 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
 {
     SYSTEM_TIME_TYPE system_time;
     RETURN_CODE_TYPE return_code;
-    char    data_buffer[MAX_AFDX_FRAME_SIZE];
-    frame_data_t    *afdx_frame = (frame_data_t *) data_buffer;
 
     // only for TEST!
     GET_TIME(&system_time, &return_code);
-
 
     if (system_time <= (self->state.last_time + self->state.BAG))
     {
@@ -102,46 +130,26 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
 
         /* 
          * Take information from queue:
-         * 1. copy from buffer[head].data size from buffer[head].size
+         * 1. fill_afdx_interface_id
          * 2. send packet
          * 3. Increase the head by 1
          * 4. decreace count by 1
          */
         if (self->state.count > 0)
         {
-            memcpy(afdx_frame, &(self->state.buffer[self->state.head].data), self->state.buffer[self->state.head].size);
+            frame_data_t    *afdx_frame = (frame_data_t *) self->state.buffer[self->state.head].data;
             printf("QUEUE activity get message: %s\n", afdx_frame->afdx_payload);
-            /*
-             * Take packet and write information of interface_id and send to the cards
-             */
+
              //send to 1 card
             {
                 printf("Sending to the card A \n");
-                fill_afdx_interface_id(afdx_frame, NETWORK_CARD_A);
-
-                AFDX_QUEUE_ENQUEUER_call_portNetA_send(self,
-                        data_buffer,
-                        self->state.buffer[self->state.head].size,
-                        self->state.buffer[self->state.head].prepend_overhead,
-                        self->state.buffer[self->state.head].append_overhead
-                        );
-
-                AFDX_QUEUE_ENQUEUER_call_portNetA_flush(self);
+                send_packet(self, afdx_frame, NETWORK_CARD_A);
             }
 
             //send to 2 card
             {
                 printf("Sending to the card B\n");
-                fill_afdx_interface_id(afdx_frame, NETWORK_CARD_B);
-
-                AFDX_QUEUE_ENQUEUER_call_portNetB_send(self,
-                        data_buffer,
-                        self->state.buffer[self->state.head].size,
-                        self->state.buffer[self->state.head].prepend_overhead,
-                        self->state.buffer[self->state.head].append_overhead
-                        );
-
-                AFDX_QUEUE_ENQUEUER_call_portNetB_flush(self);
+                send_packet(self, afdx_frame, NETWORK_CARD_B);
             }
             
             /*
