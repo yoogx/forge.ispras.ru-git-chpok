@@ -24,6 +24,7 @@
 #define C_NAME "ARINC_PORT_READER: "
 
 #define SECOND 1000000000LL
+#define INFINITE_TIME_OUT 0
 
 static int receive_msg_queuing(ARINC_PORT_READER *self)
 {
@@ -32,7 +33,7 @@ static int receive_msg_queuing(ARINC_PORT_READER *self)
     RETURN_CODE_TYPE ret;
     RECEIVE_QUEUING_MESSAGE(
             self->state.port_id,
-            0,
+            INFINITE_TIME_OUT,
             (MESSAGE_ADDR_TYPE ) (dst_place->data + self->state.prepend_overhead),
             &dst_place->message_size,
             &ret
