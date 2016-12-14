@@ -18,12 +18,16 @@
 
 #include "msr.h"
 
-#define SAVE_FP(num) stfd %f##num,(8*num)(%r3)
-#define LOAD_FP(num) lfd %f##num,(8*num)(%r3)
+#define SAVE_FP(num) sdc1 $f##num,(8*num)($a0)
+#define LOAD_FP(num) ldc1 $f##num,(8*num)($a0)
 
 .macro ENABLE_FP
     /* Enable floating point bit in msr. Note: uses %r4. */
-    nop
+    mfc0    $k0, CP0_STATUS
+    li      $k1, CP0_STATUS_CU1
+    or      $k0, $k0, $k1
+    MTC0($k0, CP0_STATUS)
+    
 .endm
 
 .macro DISABLE_FP
@@ -34,7 +38,11 @@
      *
      * NOTE: uses %r4.
      */
-    nop
+    mfc0    $k0, CP0_STATUS
+    li      $k1, CP0_STATUS_CU1
+    or      $k0, $k0, $k1
+    xor     $k0, $k0, $k1
+    MTC0($k0, CP0_STATUS)
 .endm
 
 
@@ -48,37 +56,85 @@ zero_fp:
 ja_fp_init:
     ENABLE_FP
     
+    # clear all registers    
+    mtc1  $zero, $f0
+    mtc1  $zero, $f2
+    mtc1  $zero, $f4
+    mtc1  $zero, $f6
+    mtc1  $zero, $f8
+    mtc1  $zero, $f10
+    mtc1  $zero, $f12
+    mtc1  $zero, $f14
+    mtc1  $zero, $f16
+    mtc1  $zero, $f18
+    mtc1  $zero, $f20
+    mtc1  $zero, $f22
+    mtc1  $zero, $f24
+    mtc1  $zero, $f26
+    mtc1  $zero, $f28
+    mtc1  $zero, $f30
 
     DISABLE_FP
 
-    eret
+    JUMP_TO_REG($ra)
 
     .size ja_fp_init, . - ja_fp_init
 
     .globl ja_fp_save
 ja_fp_save:
-    /* r3 - pointer to 'struct jet_fp_store'. */
+    /* $a0 - pointer to 'struct jet_fp_store'. */
 
     ENABLE_FP
     
+
+    SAVE_FP(0)
+    SAVE_FP(2)
+    SAVE_FP(4)
+    SAVE_FP(6)
+    SAVE_FP(8)
+    SAVE_FP(10)
+    SAVE_FP(12)
+    SAVE_FP(14)
+    SAVE_FP(16)
+    SAVE_FP(18)
+    SAVE_FP(20)
+    SAVE_FP(22)
+    SAVE_FP(24)
+    SAVE_FP(26)
+    SAVE_FP(28)
+    SAVE_FP(30)
             
     DISABLE_FP
         
-    eret
+    JUMP_TO_REG($ra)
 
     .size ja_fp_save, . - ja_fp_save
 
     .globl ja_fp_restore
 ja_fp_restore:
-    /* r3 - pointer to 'struct jet_fp_store'. */
+    /* $a0 - pointer to 'struct jet_fp_store'. */
 
     ENABLE_FP
     
-    
-    //TODO: Restore FPSCR
+    LOAD_FP(0)
+    LOAD_FP(2)
+    LOAD_FP(4)
+    LOAD_FP(6)
+    LOAD_FP(8)
+    LOAD_FP(10)
+    LOAD_FP(12)
+    LOAD_FP(14)
+    LOAD_FP(16)
+    LOAD_FP(18)
+    LOAD_FP(20)
+    LOAD_FP(22)
+    LOAD_FP(24)
+    LOAD_FP(26)
+    LOAD_FP(28)
+    LOAD_FP(30)
         
     DISABLE_FP
         
-    eret
+    JUMP_TO_REG($ra)
 
     .size ja_fp_restore, . - ja_fp_restore
