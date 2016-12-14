@@ -26,7 +26,7 @@
  * 
  * This address is the same for user and kernel.
  */
-#define POK_PARTITION_MEMORY_BASE 0x80000000ULL
+#define POK_PARTITION_MEMORY_BASE 0x60000000ULL
 /*
  * Size of memory in the single chunk.
  * 
