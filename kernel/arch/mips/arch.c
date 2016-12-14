@@ -28,6 +28,7 @@
 #include <asp/bsp_common.h>
 #include <core/uaccess.h>
 #include "timer.h"
+#include "mmu.h"
 
 /**
  * Function that initializes architecture concerns.
@@ -38,32 +39,28 @@ void pok_arch_init (void)
 {
 //~ /*MSR_IP |*/   mtsr(CP0_STATUS_XX);
 
-  asm volatile("MFHC1 $a1, $1");
+  ja_bsp_init();
 
   pok_arch_space_init();
 
-  ja_bsp_init();
-
   ja_time_init();
+
 }
 
 void ja_preempt_disable(void)
 {
-
-  asm(".word 0x41606000");
-  //~ asm("di");
+    INT_DISABLE
 
 }
 
 void ja_preempt_enable(void)
 {
-  asm(".word 0x41606020");
-  //~ asm("ei");
+    INT_ENABLE
 }
 
 pok_bool_t ja_preempt_enabled(void)
 {
-  return 0;//(mfcr(CP0_STATUS) & CP0_STATUS_IE);
+  return (mfsr() & CP0_STATUS_IE);
 }
 
 void ja_inf_loop(void)

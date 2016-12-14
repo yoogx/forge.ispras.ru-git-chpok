@@ -116,12 +116,13 @@ ja_context_jump:
 ja_context_restart:
         /* $4: stack, $5: entry */
         /* Calculate in $6 relative stack offset for stwux: */
-        add   $6, $4, $sp
+      
+        subu   $6, $4, $sp
         addi  $6, $6, -SIZEOF_jet_stack_frame_null
         li    $7, 0 /* 0 should be stored into first back chain*/
         /* stwux $7, $sp, $6 */
-        add   $sp, $sp, $6
         sw    $7, ($sp)
+        addu  $sp, $sp, $6
         /*mtlr  $5*/
         move  $ra, $5
         /* Nullify other registers (2-6, 8-28, 30). */

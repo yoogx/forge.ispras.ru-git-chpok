@@ -84,6 +84,17 @@
                                              : "r" ((unsigned long)(v))  \
                                              : "memory")
 
+#define dmtc0(rn, addrhi, addrlo)  asm volatile(".set mips64;"                     \
+                                             "dsll  %0, %0, 32;"            \
+                                             "dsll  %1, %1, 32;"            \
+                                             "dsrl  %1, %1, 32;"            \
+                                             "daddu %0, %1, %0;"            \
+                                             "dmtc0 %0, " __stringify(rn)";"         \
+                                             " nop; nop; nop; .set mips32":          \
+                                             : "r" ((uint32_t)(addrhi)), "r" ((uint32_t)(addrlo))\
+                                             : "memory")
+
+
 #define mfc1(rn)       ({unsigned long rval; \
                                 asm volatile("mfc1 %0, " __stringify(rn) \
                                                                     : "=r" (rval)); rval;})
@@ -95,6 +106,25 @@
 
 #define mfsr()         mfc0(CP0_STATUS)
 #define mtsr(v)        mtc0(CP0_STATUS, v)
+
+
+
+
+//~ #define INT_ENABLE     asm("ei");
+//~ #define INT_DISABLE    asm("di");
+
+#define INT_ENABLE     mtsr(mfsr() | CP0_STATUS_IE);
+#define INT_DISABLE    mtsr(mfsr() & (~CP0_STATUS_IE));
+
+#define TLBR()          asm volatile("tlbr; nop; nop");
+ 
+
+#define TLBP()          asm volatile("tlbp; nop; nop");
+
+#define TLBWI()         asm volatile("tlbwi; nop; nop");
+
+#define TLBWR()         asm volatile("tlbwr; nop; nop");
+
 
 #endif // __ASSEMBLY__
 

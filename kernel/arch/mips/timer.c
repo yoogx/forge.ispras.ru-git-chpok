@@ -30,9 +30,20 @@ static uint64_t time_last;
 /* Decrementer optimal value.  */
 static uint32_t time_inter;
 
+
+static uint32_t something(uint32_t arg1, uint32_t arg2,uint32_t arg3,uint32_t arg4,uint32_t arg5,uint32_t arg6,uint32_t arg7)
+{
+  
+  
+  return (0xb) | arg1 | arg2 | arg3 | arg4 | arg5 | arg6 | arg7 ;
+    
+};
+
 static uint64_t get_timebase(void)
 {
     uint32_t count = mfc0(CP0_COUNT);
+    uint32_t smth = something(0xdeadbeef, 0x11111111, 0x22222222, 0x33333333, 0x44444444, 0x55555555, 0x66666666);
+    printf("%d", smth);
     return count;
 }
 
@@ -45,7 +56,14 @@ static int set_decrementer(void)
   int32_t delta = time_new - time_cur;
 
   time_last = time_new;
+    uint32_t first = mfc0(CP0_COUNT);
+    printf("TIMER: mfc0(CP0_COUNT) = 0x%x\n", first);
 
+    //~ uint32_t second = mfc0(CP0_COUNT);
+    //~ printf("mfc0(CP0_COUNT) = 0x%x\n", second);
+    //~ mtc0(CP0_CAUSE, mfc0(CP0_CAUSE) | CP0_CAUSE_DC);
+    //~ printf("second - first = 0x%x\n", second - first);
+    //~ printf("mfc0(CP0_COMPARE) = 0x%lx\n", mfc0(CP0_COMPARE));
   if (delta < 0)
   {
     // that delta already expired
@@ -53,7 +71,7 @@ static int set_decrementer(void)
   }
   else
   {
-    mtc0(CP0_COMPARE, time_new);
+    //~ mtc0(CP0_COMPARE, time_new);
     return POK_ERRNO_OK;
   }
 }
@@ -65,7 +83,7 @@ void pok_arch_decr_int (void)
 
   // FIXME: MIPS doesn't need to clear this bit
   // clear pending intrerrupt
-  mtc0(CP0_CAUSE, CP0_CAUSE_IP7);
+  mtc0(CP0_CAUSE, 0x0);// mfc0(CP0_CAUSE) & (~CP0_CAUSE_IP7));
 
   do
   {

@@ -41,6 +41,10 @@ uint32_t * expection_handlers[16];
 struct jet_interrupt_context
 {
   struct jet_stack_frame stack_frame;
+  uint32_t offset0;
+  uint32_t offset1;
+  uint32_t offset2;
+  uint32_t offset3;
   
   uint32_t r0;
   uint32_t r1;

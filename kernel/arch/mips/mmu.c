@@ -20,133 +20,10 @@
 
 #include <assert.h>
 
-/*
- *  Quotes from the manual:
- *
- *      64-entry, fully-associative unified (for instruction and data accesses) L2 TLB array (TLB1)
- *      supports the 11 VSP page sizes shown in Section 6.2.3, “Variable-Sized Pages.”
- *
- * TODO: document parameters
- */
-void pok_mips_tlb_write(
-        uint32_t virtual, 
-        uint64_t physical, 
-        unsigned pgsize_enum, 
-        unsigned permissions,
-        unsigned wimge,
-        unsigned pid,
-        pok_bool_t  valid
-        )
-{
-    /*
-     * TLB can be written by first writing the necessary information into EntryLo1, EntryLo2, EntryHi and
-     * PageMask using mtc0 and then executing the tlbwr instruction.
-     */
-    
-    mtc0(CP0_PAGEMASK, pgsize_enum);
-    
-    if (pid == 0) //any pid 
-    {
-        mtc0(CP0_ENTRYLO0, EntryLo0_G(0));
-        mtc0(CP0_ENTRYLO1, EntryLo1_G(0));
-    }else{
-        mtc0(CP0_ENTRYLO0, EntryLo0_G(1));
-        mtc0(CP0_ENTRYLO1, EntryLo1_G(1));
-    }        
-    
-    mtc0(CP0_ENTRYHI,  EntryHi_ASID(pid));
-    mtc0(CP0_ENTRYHI,  EntryHi_VPN2(virtual));
-    mtc0(CP0_ENTRYLO0, EntryLo0_PFN(physical));
-    mtc0(CP0_ENTRYLO0, EntryLo0_D(permissions) | EntryLo0_V(permissions));
-    mtc0(CP0_ENTRYLO1, EntryLo1_PFN(physical));
-    mtc0(CP0_ENTRYLO1, EntryLo1_D(permissions) | EntryLo1_V(permissions));
-    
-    //~ int test = 0;
-    //~ asm volatile("synci 0(%0)":: "r" (test));
-    asm volatile("tlbwr":::"memory");
-    //~ asm volatile("synci 0(%0)":: "r" (test));
+int     current_tlb_index = -1;
 
 
-//~ 
-    //~ uint32_t mas0, mas1, mas2, mas3, mas7;
-//~ 
-    //~ assert(tlbsel <= 1) ;
-//~ 
-    //~ mas0 = MAS0_TLBSEL(tlbsel) | MAS0_ESEL(entry);
-    //~ mas1 = ((valid != 0)? MAS1_VALID : 0) | MAS1_TID(pid) | MAS1_TSIZE(pgsize_enum);
-    //~ mas2 = (virtual & MAS2_EPN) | wimge;
-    //~ mas3 = (physical & MAS3_RPN) | permissions; 
-    //~ mas7 = physical >> 32;
-
-    //~ mtspr(SPRN_MAS0, mas0); 
-    //~ mtspr(SPRN_MAS1, mas1); 
-    //~ mtspr(SPRN_MAS2, mas2);
-    //~ mtspr(SPRN_MAS3, mas3);
-    //~ mtspr(SPRN_MAS7, mas7);
-    //~ int test = 0;
-    //~ asm volatile("synci 0(%0)":: "r" (test));
-    //~ asm volatile("synci; tlbwr; synci":::"memory");
-}
-
-
-/*
-unsigned pok_mips_get_tlb_nentry(unsigned tlbsel) {
-    static unsigned regid[] =  { SPRN_TLB0CFG,
-        SPRN_TLB1CFG, 
-        SPRN_TLB2CFG, 
-        SPRN_TLB3CFG 
-    };
-
-    assert(tlbsel < 5);
-    unsigned sprn = regid[tlbsel];
-    return mfspr(sprn) & TLBnCFG_N_ENTRY_MASK;
-}
-*/
-
-void pok_mips_tlb_read_entry(
-        unsigned *valid, 
-        unsigned *tsize, 
-        uint32_t *epn,
-        uint64_t *rpn)
-{
-    //~ uint32_t entrylo1, entrylo0, entryhi, pagesize;
-
-    //~ assert(tlbsel <= 1) ;
-    //~ entrylo1 = mfc0(CP0_ENTRYLO0);
-    //~ entrylo1 = mfc0(CP0_ENTRYLO1);
-    //~ entryhi  = mfc0(CP0_ENTRYHI);
-    //~ pagesize = mfc0(CP0_PAGEMASK);
-    
-
-    //~ mas0 = MAS0_TLBSEL(tlbsel) | MAS0_ESEL(entry);
-
-    //~ mtspr(SPRN_MAS0, mas0);
-    //~ asm volatile("tlbre;isync");
-    //~ mas1 = mfspr(SPRN_MAS1);
-
-    //~ *valid = (mas1 & MAS1_VALID);
-    //~ *tsize = (mas1 >> 7) & 0x1f;
-    //~ *epn = mfspr(SPRN_MAS2) & MAS2_EPN;
-    //~ *rpn = mfspr(SPRN_MAS3) & MAS3_RPN;
-    //~ *rpn |= ((uint64_t)mfspr(SPRN_MAS7)) << 32;
-}
-
-
- /*
-  * PAGE_SHIFT determines the page size
-  */
- #define PAGE_MASK(page_shift)       (~((1 << page_shift) - 1))
-
-
-#define PM_4K           0x000 << 13
-#define PM_16K          0x003 << 13
-#define PM_64K          0x00f << 13
-#define PM_256K         0x03f << 13
-#define PM_1M           0x0ff << 13
-#define PM_4M           0x3ff << 13
-#define PM_16M          0xfff << 13
-
-static inline const char *msk2str(uint32_t mask)
+const char *msk2str(uint32_t mask)
 {
         switch (mask) {
         case PM_4K:     return "4kb";
@@ -173,6 +50,89 @@ static int msk2offset(uint32_t mask)
         }
         return 12;
 }
+
+
+
+/*
+ *  Quotes from the manual:
+ *
+ *      64-entry, fully-associative unified (for instruction and data accesses) L2 TLB array (TLB1)
+ *      supports the 11 VSP page sizes shown in Section 6.2.3, “Variable-Sized Pages.”
+ *
+ * TODO: document parameters
+ */
+
+void pok_mips_tlb_write(
+        uint64_t virtual, 
+        uint32_t physical, 
+        unsigned pgsize_enum, 
+        unsigned permissions,
+        unsigned wimge,
+        unsigned pid,
+        pok_bool_t  valid
+        )
+{
+    /*
+     * TLB can be written by first writing the necessary information into EntryLo1, EntryLo2, EntryHi and
+     * PageMask using mtc0 and then executing the tlbwr instruction.
+     */
+    jet_mips_tlb_get_inc_index;
+    assert(jet_mips_tlb_get_index < MIPS_MAX_TLB_SIZE);
+    mtc0(CP0_INDEX, jet_mips_tlb_get_index);
+    mtc0(CP0_PAGEMASK, PageSize_Mask(pgsize_enum));
+    uint32_t entrylo0, entrylo1;
+    entrylo0 = EntryLo0_PFN(physical) | EntryLo0_D(permissions) | EntryLo0_V(permissions);
+    entrylo1 = EntryLo1_PFN(physical) | EntryLo1_D(permissions) | EntryLo1_V(permissions);
+    
+    
+    /*Registers EntryLo0 and EntryLo1 used only 30 bit, so we can use mtc0*/
+    if (pid == 0) //any pid 
+    {
+        mtc0(CP0_ENTRYLO0, EntryLo0_G(1) | entrylo0);
+        mtc0(CP0_ENTRYLO1, EntryLo1_G(1) | entrylo1);
+    }else{
+        mtc0(CP0_ENTRYLO0, EntryLo0_G(0) | entrylo0);
+        mtc0(CP0_ENTRYLO1, EntryLo1_G(0) | entrylo1);
+    }        
+    dmtc0(CP0_ENTRYHI, EntryHi_R(permissions) | EntryHi_VPN2_hi(virtual), EntryHi_ASID(pid) | EntryHi_VPN2_lo(virtual));
+    asm volatile("tlbwi":::"memory");
+    asm volatile("sync");
+
+}
+
+
+
+void pok_mips_tlb_read_entry(
+        int index,
+        unsigned *valid, 
+        unsigned *tsize, 
+        uint32_t *epn,
+        uint64_t *rpn)
+{
+    uint32_t entrylo1, entrylo0, entryhi, pagemask;
+
+    
+
+    mtc0(CP0_INDEX, index);
+
+    asm volatile("tlbr;sync");
+
+    entrylo0 = mfc0(CP0_ENTRYLO0);
+    entrylo1 = mfc0(CP0_ENTRYLO1);
+    entryhi  = mfc0(CP0_ENTRYHI);
+    pagemask = mfc0(CP0_PAGEMASK);
+
+
+    *valid = (entrylo1 & EntryLo_V) & (entrylo0 & EntryLo_V);
+    *tsize = pagemask;
+    *epn = entryhi & EntryHi_VPN2_clear_bit;
+/*  Read only 1 entrylo, because they are the same.*/
+    *rpn = (entrylo0 << 6) & PAGE_MASK(msk2offset(pagemask));
+}
+
+
+
+
 
 
 

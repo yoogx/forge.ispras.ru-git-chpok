@@ -37,16 +37,23 @@ void pok_int_critical_input(struct jet_interrupt_context* ea) {
     pok_fatal("Critical input interrupt"); 
 }
 
+void pok_int_ri(struct jet_interrupt_context* ea) {
+    (void) ea;
+    pok_fatal("Unrealized instruction"); 
+}
+
 void pok_int_machine_check(struct jet_interrupt_context* ea) {
     (void) ea;
     pok_fatal("Machine check interrupt"); 
 }
 
 void pok_int_data_storage(struct jet_interrupt_context *vctx, uintptr_t dear, unsigned long esr) {
+    printf("TLB error\n");
     pok_arch_handle_page_fault(vctx, dear, esr, PF_DATA_STORAGE);
 }
 
 void pok_int_inst_storage(struct jet_interrupt_context* vctx, uintptr_t dear, unsigned long esr) {
+    printf("TLB error\n");
     pok_arch_handle_page_fault(vctx, dear, esr, PF_INST_STORAGE);
 }
 
@@ -162,8 +169,55 @@ void pok_int_fp_unavail(struct jet_interrupt_context* ea) {
     pok_fatal("FP unavailable interrupt");
 }
 
+void pok_int_none(struct jet_interrupt_context* ea) {
+    (void) ea;
+    printf("DEBUG: EPC   = 0x%x\n", ea->EPC);
+    printf("DEBUG: Cause = 0x%x\n", ea->CAUSE);
+    pok_fatal("Noknown interrupt :(");
+}
+
+void pok_int_overflow(struct jet_interrupt_context* ea) {
+    (void) ea;
+    printf("DEBUG: EPC   = 0x%x\n", ea->EPC);
+    printf("DEBUG: Cause = 0x%x\n", ea->CAUSE);
+    while (1 == 1){
+    }
+    pok_fatal("OVF Arithmetic overflow");
+}
+
+void pok_int_addrl(struct jet_interrupt_context* ea) {
+    (void) ea;
+    printf("DEBUG: EPC   = 0x%x\n", ea->EPC);
+    printf("DEBUG: Cause = 0x%x\n", ea->CAUSE);
+    pok_fatal("ADDRL Load from an illegal address");
+}
+
+void pok_int_addrs(struct jet_interrupt_context* ea) {
+    (void) ea;
+    printf("DEBUG: EPC   = 0x%x\n", ea->EPC);
+    printf("DEBUG: Cause = 0x%x\n", ea->CAUSE);
+    pok_fatal("ADDRS Store to an illegal address");
+}
+
+void pok_int_ibus(struct jet_interrupt_context* ea) {
+    (void) ea;
+    printf("DEBUG: EPC   = 0x%x\n", ea->EPC);
+    printf("DEBUG: Cause = 0x%x\n", ea->CAUSE);
+    pok_fatal("IBUS Bus error on instruction fetch");
+}
+
+void pok_int_dbus(struct jet_interrupt_context* ea) {
+    (void) ea;
+    printf("DEBUG: EPC   = 0x%x\n", ea->EPC);
+    printf("DEBUG: Cause = 0x%x\n", ea->CAUSE);
+    pok_fatal("DBUS Bus error on data reference");
+}
+
 unsigned long pok_int_system_call(struct jet_interrupt_context* ea,
     unsigned long arg1, unsigned long arg2, unsigned long arg3, unsigned long arg4, unsigned long arg5, unsigned long arg6) {
+    printf("DEBUG: SYCALL!\n");
+    printf("DEBUG: EPC   = 0x%x\n", ea->EPC);
+    printf("DEBUG: Cause = 0x%x\n", ea->CAUSE);
     (void) ea;
     return pok_arch_sc_int(arg1, arg2, arg3, arg4, arg5, arg6);
 }
@@ -184,34 +238,18 @@ void pok_int_watchdog(struct jet_interrupt_context* ea) {
 }
 
 void pok_int_data_tlb_miss(struct jet_interrupt_context* vctx, uintptr_t dear, unsigned long esr) {
+    printf("TLB error\n");
     pok_arch_handle_page_fault(vctx, dear, esr, PF_DATA_TLB_MISS);
 }
 
 void pok_int_inst_tlb_miss(struct jet_interrupt_context* vctx, uintptr_t dear, unsigned long esr) {
+    printf("TLB error\n");
     pok_arch_handle_page_fault(vctx, dear, esr, PF_INST_TLB_MISS);
 }
 
 void pok_int_debug(struct jet_interrupt_context* ea) {
-//#ifdef DEBUG_GDB
-//    printf("    DEBUG EVENT!\n");
-//    printf("DBSR = %lx\n", mfspr(SPRN_DBSR));
-//    printf("ea = 0x%lx\n", (uint32_t) ea);
-//    int DBCR0 = mfspr(SPRN_DBCR0);
-//    printf("DBCR0 = 0x%x\n", DBCR0);
-//    printf("DAC1 = %lx\n", mfspr(SPRN_DAC1));
-//    printf("DAC2 = %lx\n", mfspr(SPRN_DAC2));
-//    printf("EPC = 0x%lx\n", ea->EPC);
-//    printf("STATUS = 0x%lx\n", ea->STATUS);
-//    printf("Reason: Watchpoint\n");   
-//#endif
-//    handle_exception(1, ea); 
-//#ifdef DEBUG_GDB
-//    printf("instr = 0x%lx\n", *(uint32_t *)ea->EPC);
-//    DBCR0 = mfspr(SPRN_DBCR0);
-//    printf("DBCR0 = 0x%x\n", DBCR0);
-//    asm volatile("dcbst 0, %0; sync; icbi 0,%0; sync; synci" : : "r" ((char *) ea->srr0));
-//    printf("Exit from debug event\n");    
-//    //~ k = 1;
-//    //~ pok_fatal("Debug interrupt");
-//#endif
+    printf("DEBUG: EPC    = 0x%x\n", ea->EPC);
+    printf("DEBUG: Cause  = 0x%x\n", ea->CAUSE);
+    printf("DEBUG: Status = 0x%x\n", ea->STATUS);
+    pok_fatal("BKPT break instruction executed");
 }

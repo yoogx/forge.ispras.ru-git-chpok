@@ -41,23 +41,34 @@ static inline int pok_arch_mmu_shift_by_size(unsigned size)
 }
 #endif
 
+extern int current_tlb_index;
 
-#define EntryHi_VPN2(x)         (x << 13)           /*Биты VA 39..13 виртуального адреса (номер виртуальной страницы / 2).*/
-#define EntryHi_ASID(x)         (x << 0)            /*Идентификатор виртуального адресного пространства*/
-#define EntryHi_R(x)            ((x >> 4) << 29)    /*Сегмент виртуальной памяти, соответствующий   VA (63..62 битам).
+
+#define MIPS_MAX_TLB_SIZE   64
+
+/*TLB pages in system*/
+#define jet_mips_tlb_get_index      current_tlb_index  
+#define jet_mips_tlb_get_inc_index  current_tlb_index++;
+
+
+#define EntryHi_VPN2_clear_bit  ~((1 << 13) - 1)
+#define EntryHi_VPN2_lo(x)      (x & EntryHi_VPN2_clear_bit)           /*Биты VA 31..13 виртуального адреса (номер виртуальной страницы / 2).*/
+#define EntryHi_VPN2_hi(x)      (x & 0xFF)                             /*Биты VA 39..32 виртуального адреса (номер виртуальной страницы / 2).*/
+#define EntryHi_ASID(x)         (x << 0)           /*Идентификатор виртуального адресного пространства*/
+#define EntryHi_R(x)            ((x >> 4) << 30)   /*Сегмент виртуальной памяти, соответствующий   VA (63..62 битам).
                                                               Код            Значение
                                                               00              XUSEG. Пользовательский сегмент
                                                               01              XSSEG. Сегмент супервизора.
                                                               10              Зарезервировано.
                                                               11              XKSEG. Сегмент ядра.*/
-#define EntryLo0_PFN(x)         (x >> 12) << 6            /*Номер страницы. Соответствует битам [35..12] физического адреса*/
+#define EntryLo0_PFN(x)         ((x >> 12) << 6)    /*Номер страницы. Соответствует битам [35..12] физического адреса*/
 #define EntryLo0_C(x)           (x << 3)            /*Код политики кэширования*/
 #define EntryLo0_D(x)           (x & 0x4)           /*Бит, показывающий, что страница доступна для записи.*/
 #define EntryLo0_V(x)           (x & 0x2)           /*Бит, показывающий, что содержимое TLB доступно для чтения.*/
 #define EntryLo0_G(x)           (x << 0)            /*Бит, показывающий, что поле ASID при обращении в данную страницу не проверяется.
                                                        При записи в TLB, логическое «И» G битов из регистров EntryLo0 и EntryLo1 становится G битом
                                                        в записываемой строке TLB.*/
-#define EntryLo1_PFN(x)         (x << 6)            /*Номер страницы. Соответствует битам [35..12] физического адреса*/
+#define EntryLo1_PFN(x)         ((x >> 12) << 6)            /*Номер страницы. Соответствует битам [35..12] физического адреса*/
 #define EntryLo1_C(x)           (x << 3)            /*Код политики кэширования*/
 #define EntryLo1_D(x)           (x & 0x4)           /*Бит, показывающий, что страница доступна для записи.*/
 #define EntryLo1_V(x)           (x & 0x2)           /*Бит, показывающий, что содержимое TLB доступно для чтения.*/
@@ -65,75 +76,19 @@ static inline int pok_arch_mmu_shift_by_size(unsigned size)
                                                        При записи в TLB, логическое «И» G битов из регистров EntryLo0 и EntryLo1 становится G битом
                                                        в записываемой строке TLB.*/
 
-#define PageSize_Mask_SHIFT        7
+#define PageSize_Mask_SHIFT        13
 #define PageSize_Mask(x)           ((x) << PageSize_Mask_SHIFT)
 
-#define EntryHi_USEG           0x0
-#define EntryHi_SSEG           0x1
-#define EntryHi_KSEG           0x3
+#define EntryHi_R_shift(x)     (x << 4)
 
-#define EntryLo_R              0x2                 /*Защита чтения*/
-#define EntryLo_W              0x4                 /*Защита записи*/
+#define EntryHi_USEG           EntryHi_R_shift(0x0)
+#define EntryHi_SSEG           EntryHi_R_shift(0x1)
+#define EntryHi_KSEG           EntryHi_R_shift(0x3)
 
-
-
-
+#define EntryLo_V              0x2                 /*Защита чтения. 1 - разрешено, 0 - запрещено*/
+#define EntryLo_D              0x4                 /*Защита записи. 1 - разрешено, 0 - запрещено*/
 
 
-#define TLBnCFG_N_ENTRY_MASK    0x00000fff
-
-#define MAS0_TLBSEL_MASK        0x30000000
-#define MAS0_TLBSEL_SHIFT       28
-#define MAS0_TLBSEL(x)          (((x) << MAS0_TLBSEL_SHIFT) & MAS0_TLBSEL_MASK)
-#define MAS0_GET_TLBSEL(mas0)   (((mas0) & MAS0_TLBSEL_MASK) >> \
-                                MAS0_TLBSEL_SHIFT)
-#define MAS0_ESEL_MASK          0x0FFF0000
-#define MAS0_ESEL_SHIFT         16
-#define MAS0_ESEL(x)            (((x) << MAS0_ESEL_SHIFT) & MAS0_ESEL_MASK)
-#define MAS0_NV(x)              ((x) & 0x00000FFF)
-#define MAS0_HES                0x00004000
-#define MAS0_WQ_ALLWAYS         0x00000000
-#define MAS0_WQ_COND            0x00001000
-#define MAS0_WQ_CLR_RSRV        0x00002000
-
-#define MAS1_VALID              0x80000000
-#define MAS1_IPROT              0x40000000
-#define MAS1_TID(x)             (((x) << 16) & 0x3FFF0000)
-#define MAS1_IND                0x00002000
-#define MAS1_TS                 0x00001000
-#define MAS1_TSIZE_MASK         0x00000f80
-#define MAS1_TSIZE_SHIFT        7
-#define MAS1_TSIZE(x)           (((x) << MAS1_TSIZE_SHIFT) & MAS1_TSIZE_MASK)
-#define MAS1_GET_TSIZE(mas1)    (((mas1) & MAS1_TSIZE_MASK) >> MAS1_TSIZE_SHIFT)
-
-#define MAS2_EPN                (~0xFFFUL)
-#define MAS2_X0                 0x00000040
-#define MAS2_X1                 0x00000020
-#define MAS2_W                  0x00000010
-#define MAS2_I                  0x00000008
-#define MAS2_M                  0x00000004
-#define MAS2_G                  0x00000002
-#define MAS2_E                  0x00000001
-#define MAS2_WIMGE_MASK         0x0000001f
-#define MAS2_EPN_MASK(size)             (~0 << (size + 10))
-#define MAS2_VAL(addr, size, flags)     ((addr) & MAS2_EPN_MASK(size) | (flags))
-
-#define MAS3_RPN                0xFFFFF000
-#define MAS3_U0                 0x00000200
-#define MAS3_U1                 0x00000100
-#define MAS3_U2                 0x00000080
-#define MAS3_U3                 0x00000040
-#define MAS3_UX                 0x00000020
-#define MAS3_SX                 0x00000010
-#define MAS3_UW                 0x00000008
-#define MAS3_SW                 0x00000004
-#define MAS3_UR                 0x00000002
-#define MAS3_SR                 0x00000001
-#define MAS3_BAP_MASK           0x0000003f
-#define MAS3_SPSIZE             0x0000003e
-#define MAS3_SPSIZE_SHIFT       1
-
-#define MAS7_RPN                0xFFFFFFFF
 /**
  * Write address mapping into the specified TLB entry.
  *
@@ -145,8 +100,8 @@ static inline int pok_arch_mmu_shift_by_size(unsigned size)
  * @ requires tlbsel < 2;
  */
 void pok_mips_tlb_write(
-        uint32_t virtual, 
-        uint64_t physical, 
+        uint64_t virtual, 
+        uint32_t physical, 
         unsigned pgsize_enum, 
         unsigned permissions,
         unsigned wimge,
@@ -165,13 +120,14 @@ void pok_mips_tlb_write(
  * @ requires tlbsel < 2;
  */
 void pok_mips_tlb_read_entry(
+        int index,
         unsigned *valid, 
         unsigned *tsize, 
         uint32_t *epn,
         uint64_t *rpn);
 
 void dump_tlb(int first, int last);
-
+const char *msk2str(uint32_t mask);
 
 /*
  * @ requires tlbsel < 5;
@@ -180,8 +136,21 @@ void dump_tlb(int first, int last);
 //        unsigned tlbsel;
 //    );
 
-#define pok_mips_tlb_get_nentry(tlbsel) 0
-//FIXIT
-    //~ (mfspr((SPRN_TLB ## tlbsel ## CFG)) & TLBnCFG_N_ENTRY_MASK)
+
+
+ /*
+  * PAGE_SHIFT determines the page size
+  */
+#define PAGE_MASK(page_shift)       (~((1 << page_shift) - 1))
+
+
+#define PM_4K           0x000 << 13
+#define PM_16K          0x003 << 13
+#define PM_64K          0x00f << 13
+#define PM_256K         0x03f << 13
+#define PM_1M           0x0ff << 13
+#define PM_4M           0x3ff << 13
+#define PM_16M          0xfff << 13
+
 
 #endif

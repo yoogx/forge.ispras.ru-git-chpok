@@ -36,11 +36,23 @@
         .section ".start", "ax"
 
 base = .
-        
-reserved_0000:
+mips_tlb_exeption_asm:
+        mfc0    $k0, CP0_CAUSE
+        andi    $k0, 0x7f
+        li      $k1, 0x8
+        beq     $k1, $k0, mips_first_exeption_handler_asm  /*TLBL*/
+        li      $k1, 0xc  
+        beq     $k1, $k0, mips_first_exeption_handler_asm  /*TLBS*/
+reserved_0000:        
         /* fails */
 1:      JUMP_TO_ADDR(1b) 
 
+    . = base + 0x180
+        la  $k0, mips_first_exeption_handler_asm
+        jr  $k0
+        
+        
+    . = base + 0x10000
         save1: .word  0
         save2: .word  0
 
@@ -54,12 +66,12 @@ ja_user_space_jump:
          * a3 - user stack
          */
         // Prepare kernel stack for return
-         add    $8, $a0, $sp
+         subu   $8, $a0, $sp
          addi   $8, $8, -FRAME_SIZE
          li     $9, 0
         //equivalent stwux $9, $sp, $8 in powerpc 
-         add    $sp, $sp, $8
          sw     $9, ($sp)
+         addu   $sp, $sp, $8
          MTC0($sp, CP0_DESAVE)
         // Prepare user stack, STATUS and EPC for eret
          addi   $sp, $a3, -16
@@ -248,10 +260,9 @@ ja_user_space_jump:
                  lw     $9,  OFFSETOF_jet_interrupt_context_r9($sp)    
                  lw     $7,  OFFSETOF_jet_interrupt_context_r7($sp)   
                  lw     $6,  OFFSETOF_jet_interrupt_context_r6($sp)   
-                 lw     $5,  OFFSETOF_jet_interrupt_context_r5($sp)   
-                 lw     $4,  OFFSETOF_jet_interrupt_context_r4($sp)   
                  lw     $3,  OFFSETOF_jet_interrupt_context_r3($sp)   
                  lw     $2,  OFFSETOF_jet_interrupt_context_r2($sp)   
+                 lw     $a0, OFFSETOF_jet_interrupt_context_r29($sp)
                  .set    pop                                      
 .endm
 
@@ -363,10 +374,16 @@ ja_user_space_jump:
         /* Store cr before updating stack pointer! It can be overwritting by highlevel interrupt... but to the same value(see above). */
     //rerwite       sw $a0, OFFSETOF_jet_interrupt_context_cr($r4)
     //rerwite       move $a0, $sp
-        move    $sp, $a1 /* Back chain is already set to 0. */
+        //move    $sp, $a1 /* Back chain is already set to 0. */
         /* Mark kernel stack as ready for highlevel interrupts. */
-        li      $a1, 1
-        MTC0($a1, CP0_DESAVE)
+   
+   
+    ///WHY WE NEED THIS?!!?
+    
+        //li      $a1, 1
+        //move      $a1, $a1
+        //MTC0($a1, CP0_DESAVE)
+        MTC0($sp, CP0_DESAVE)
 2:      SAVE_REGS_COMMON
 .endm
 
@@ -374,11 +391,11 @@ ja_user_space_jump:
         .globl pok_arch_rfi
 pok_arch_rfi:
         /* a1 <-> sprg2, a0 <-> sprg3 */
+
         lw      $a1,OFFSETOF_jet_interrupt_context_r5($sp)
         sw      $a1, (save1)
         lw      $a0,OFFSETOF_jet_interrupt_context_r4($sp)
         sw      $a0, (save2)
-
 
 
 
@@ -399,12 +416,25 @@ pok_arch_rfi:
 
 
         EXCEPTION_EPILOGUE_COMMON
-
-        lw      $a0, (save2)
+       
+       
         lw      $a1, (save1)
-        
+        lw      $a0, (save2)
+       
+       
+        /* Clear ERL and EXL bits*/
+        mfc0    $k0, CP0_STATUS
+        ori     $k0, $k0, 0x6
+        xori    $k0, $k0, 0x6
+        mtc0    $k0, CP0_STATUS 
 
-        b       1b
+
+        mfc0    $k0, CP0_CAUSE
+        andi    $k0, 0x7f
+        li      $k1, 0x20
+        beq     $k1, $k0, 2f  /*Syscall*/
+        li      $k1, 0x24  
+        beq     $k1, $k0, 2f  /*Break*/
     
 /*
  * the return sequence from the exception handler for the case of an
@@ -412,15 +442,16 @@ pok_arch_rfi:
  */
 1:      mfc0    $k0, CP0_EPC                  /* get EPC in $k0 */
         ERET_AND_NOP                          /* return from exception */
-        JUMP_TO_REG($k0)                      /* replace PC with the return address */
+        JUMP_TO_REG($k0)                      /* replace PC with the return address, doesnt need it, because eret replace PC too*/
 /*
  * the return sequence from the exception handler for the case of a
  * trap (including a syscall).
  */
 2:      mfc0    $k0, CP0_EPC                  /* get EPC in $k0 */
         addiu   $k0, 4                        /* make sure it points to next instruction */
+        mtc0    $k0, CP0_EPC
         ERET_AND_NOP                          /* return from exception */
-        JUMP_TO_REG($k0)                      /* replace PC with the return address */
+        JUMP_TO_REG($k0)                      /* replace PC with the return address, doesnt need it, because eret replace PC too */
 
 /* Exception prologue for non-critical interrupts. */
 .macro EXCEPTION_PROLOGUE
@@ -462,7 +493,15 @@ pok_arch_rfdi_for_debug:
         lw      $a1, (save1)
         lw      $a0, (save2)
 
-        mfc0   $k0, CP0_DEPC
+        /* Clear ERL and EXL bits*/
+        mfc0    $k0, CP0_STATUS
+        ori     $k0, $k0, 0x6
+        xori    $k0, $k0, 0x6
+        mtc0    $k0, CP0_STATUS 
+
+        mfc0    $k0, CP0_DEPC                 /* get DEPC in $k0 */
+        addiu   $k0, 4                        /* make sure it points to next instruction */
+        mtc0    $k0, CP0_DEPC
         DERET_AND_NOP
         JUMP_TO_REG($k0)        
 
@@ -484,7 +523,7 @@ pok_arch_rfdi_for_debug:
         sw      $a1, OFFSETOF_jet_interrupt_context_r5($sp)
 .endm
 
-        . = base + 0x400
+        . = base + 0x10400
         .global pok_trap_addr
 pok_trap_addr:
         .global pok_trap
@@ -498,47 +537,29 @@ pok_trap:
 failed: b failed
 
 
-        . = base + 0x450
+        . = base + 0x10450
         .globl _pok_reset
 system_reset_0100:
 _pok_reset:
-
         /* Setup stack */
-
-        
-        mfc0    $k0, CP0_CAUSE
-        li      $k1, CP0_CAUSE_IV
-        or      $k0, $k0, $k1
-        xor     $k0, $k0, $k1
-        MTC0($k0, CP0_CAUSE)
-        mfc0    $k0, CP0_STATUS
-        li      $k1, CP0_STATUS_ALL_INT_ON
-        or      $k0, $k0, $k1
-        or      $k0, $k0, CP0_STATUS_ERL
-        xor     $k0, $k0, CP0_STATUS_ERL
-        or      $k0, $k0, CP0_STATUS_EXL
-        xor     $k0, $k0, CP0_STATUS_EXL
-        mfc0    $k1, CP0_DEBUG
-        MTC0($k0, CP0_STATUS) 
-        
-        
-        //la      $sp, _pok_reset
-        //sw      $sp, 0x1FF70000
-        //sw      $sp, 0x1FF70000
-        //sw      $sp, 0x1FF70000
-        //sw      $sp, 0x1FF70000
-        //sw      $sp, 0x1FF70000
-        //sw      $sp, 0x1FF70000
-        //sw      $sp, 0x1FF70000
-        //sw      $sp, 0x1FF70000
-        ei
-        JUMP_AND_LINK(pok_arch_init)
+        la      $sp, pok_stack_end
 
         /* Mark kernel stack as ready for interrupts. */
         li      $a1, 1
         MTC0($a1, CP0_DESAVE)
 
+        /* Switch on CP1 and CP0*/
+        mfc0    $k0, CP0_STATUS
+        li      $k1, CP0_STATUS_CU1
+        or      $k0, $k0, $k1
+        li      $k1, CP0_STATUS_CU0
+        or      $k0, $k0, $k1
+        li      $k1, CP0_STATUS_BEV
+        or      $k0, $k0, $k1
+        xor     $k0, $k0, $k1
+        MTC0($k0, CP0_STATUS)
 
+            
         JUMP_AND_LINK(pok_setup_interrupts)
 
         /* TODO: copy .sdata, clear .bss */
@@ -644,16 +665,23 @@ label##_asm:
         EXCEPTION_PROLOGUE
         move    $a0, $sp
         /* load system call arguments back from the interrupt frame */
-
-        lw      $a0,OFFSETOF_jet_interrupt_context_r4($sp)
-        lw      $a1,OFFSETOF_jet_interrupt_context_r5($sp)                   //У нас только 4 аргумента передаваемые функции в регистрах лежат
-        lw      $a2,OFFSETOF_jet_interrupt_context_r6($sp)
-        lw      $a3,OFFSETOF_jet_interrupt_context_r7($sp)
-      //rewrite lw      $r8,OFFSETOF_jet_interrupt_context_r7($sp)
-      //rewrite lw      $r9,OFFSETOF_jet_interrupt_context_r8($sp)
-
+        subu    $sp, 24
+        lw      $a1,OFFSETOF_jet_interrupt_context_r3($sp)          
+        lw      $a2,OFFSETOF_jet_interrupt_context_r4($sp)                   
+        lw      $a3,OFFSETOF_jet_interrupt_context_r5($sp)
+        /*send 5-7 arg to syscall*/
+        lw      $k0,OFFSETOF_jet_interrupt_context_r29($sp)
+        lw      $k1, 16($k0)
+        sw      $k0, 16($sp)
+        lw      $k1, 20($k0)
+        sw      $k0, 20($sp)
+        lw      $k1, 24($k0)
+        sw      $k0, 24($sp)
+        
         JUMP_AND_LINK(pok_int_system_call) 
-        sw      $a0,OFFSETOF_jet_interrupt_context_r4($sp)
+        
+        addi    $sp, 24
+        sw      $v0,OFFSETOF_jet_interrupt_context_r2($sp)
 
         JUMP_TO_ADDR(pok_arch_rfi)
 
@@ -674,8 +702,12 @@ label##_asm:
     START_EXCEPTION(pok_int_watchdog)
         EXCEPTION_PROLOGUE
         move    $a0, $sp
+        
+    START_EXCEPTION(pok_int_ri)
+        EXCEPTION_PROLOGUE
+        move    $a0, $sp
 
-        JUMP_AND_LINK(pok_int_watchdog)
+        JUMP_AND_LINK(pok_int_ri)
         JUMP_TO_ADDR(pok_arch_rfi)
 
     START_EXCEPTION(pok_int_data_tlb_miss)
@@ -697,16 +729,55 @@ label##_asm:
         JUMP_TO_ADDR(pok_arch_rfi)
         
     START_EXCEPTION(pok_int_debug)
-        EXCEPTION_PROLOGUE_DEBUG
+        //EXCEPTION_PROLOGUE_DEBUG
+        EXCEPTION_PROLOGUE
+        move    $a0, $sp
 
         JUMP_AND_LINK(pok_int_debug)
-        JUMP_TO_ADDR(pok_arch_rfdi_for_debug)
+        //JUMP_TO_ADDR(pok_arch_rfdi_for_debug)
+        JUMP_TO_ADDR(pok_arch_rfi)
  
     START_EXCEPTION(pok_int_none)
         EXCEPTION_PROLOGUE
+        move    $a0, $sp
 
-        JUMP_AND_LINK(pok_int_debug)
-        JUMP_TO_ADDR(pok_arch_rfdi_for_debug)
+        JUMP_AND_LINK(pok_int_none)
+        JUMP_TO_ADDR(pok_arch_rfi)
+
+    START_EXCEPTION(pok_int_overflow)
+        EXCEPTION_PROLOGUE
+        move    $a0, $sp
+
+        JUMP_AND_LINK(pok_int_overflow)
+        JUMP_TO_ADDR(pok_arch_rfi)
+
+    START_EXCEPTION(pok_int_addrl)
+        EXCEPTION_PROLOGUE
+        move    $a0, $sp
+
+        JUMP_AND_LINK(pok_int_addrl)
+        JUMP_TO_ADDR(pok_arch_rfi)
+
+    START_EXCEPTION(pok_int_addrs)
+        EXCEPTION_PROLOGUE
+        move    $a0, $sp
+
+        JUMP_AND_LINK(pok_int_addrs)
+        JUMP_TO_ADDR(pok_arch_rfi)
+
+    START_EXCEPTION(pok_int_ibus)
+        EXCEPTION_PROLOGUE
+        move    $a0, $sp
+
+        JUMP_AND_LINK(pok_int_ibus)
+        JUMP_TO_ADDR(pok_arch_rfi)
+
+    START_EXCEPTION(pok_int_dbus)
+        EXCEPTION_PROLOGUE
+        move    $a0, $sp
+
+        JUMP_AND_LINK(pok_int_dbus)
+        JUMP_TO_ADDR(pok_arch_rfi)
 
 
 /*
@@ -715,7 +786,7 @@ label##_asm:
 
 #define  SET_INT(vector_number, vector_label)                       \
                 la      $k0, vector_label##_asm;                    \
-                sw      $k0, vector_number + expection_handlers ;   \
+                sw      $k0, vector_number*4 + expection_handlers ;   \
                 sync
 
 
@@ -735,53 +806,42 @@ pok_setup_interrupts:
         mfc0    $k0, CP0_STATUS
         li      $k1, CP0_STATUS_ALL_INT_ON
         or      $k0, $k0, $k1
+        li      $k1, CP0_STATUS_IE
+        or      $k0, $k0, $k1
+        xor     $k0, $k0, $k1
+
+        //~ori     $k0, $k0, CP0_STATUS_ERL
+        //~xori     $k0, $k0, CP0_STATUS_ERL
         MTC0($k0, CP0_STATUS) 
         //~li    $k0, mips_first_exeption_handler_asm
         //~MTC0_sel1($k0, CP0_EBASE)
         
 
-/* 
- * pok_int_critical_input)
- * pok_int_machine_check) 
- * pok_int_data_storage)  
- * pok_int_inst_storage)  
- * pok_int_ext_interrupt) 
- * pok_int_alignment)     
- * pok_int_program)       
- * pok_int_fp_unavail)    
- * pok_int_system_call)   
- * pok_int_decrementer)   
- * pok_int_interval_timer)
- * pok_int_watchdog)      
- * pok_int_data_tlb_miss) 
- * pok_int_inst_tlb_miss) 
- * pok_int_debug)         
- * pok_int_debug)         
- * pok_int_debug)      
- */
-
         SET_INT(0,  pok_int_decrementer)   /*Прерывание                    INT Interrupt               */
         SET_INT(1,  pok_int_none)          /*Запись в защищенную страницу                              */
-        SET_INT(2,  pok_int_inst_tlb_miss) /*Исключение в TLB (при чтении данных                       */
                                            /*                            или при выборке инструкции)   */
+        SET_INT(2,  pok_int_inst_tlb_miss) /*Исключение в TLB (при чтении данных                       */
         SET_INT(3,  pok_int_data_tlb_miss) /*Исключение в TLB (при записи данных)                      */
-        SET_INT(4,  pok_int_none)          /*Неправильный адрес при чтении  ADDRL Load from an illegal address   */
-        SET_INT(5,  pok_int_none)          /*Неправильный адрес при записи  ADDRS Store to an illegal address    */
-        SET_INT(6,  pok_int_none)          /*Ошибка шины при выборе команды IBUS Bus error on instruction fetch  */
-        SET_INT(7,  pok_int_none)          /*Ошибка шины при чтении данных  DBUS Bus error on data reference     */
+        SET_INT(4,  pok_int_addrl)          /*Неправильный адрес при чтении  ADDRL Load from an illegal address   */
+        SET_INT(5,  pok_int_addrs)          /*Неправильный адрес при записи  ADDRS Store to an illegal address    */
+        SET_INT(6,  pok_int_ibus)          /*Ошибка шины при выборе команды IBUS Bus error on instruction fetch  */
+        SET_INT(7,  pok_int_dbus)          /*Ошибка шины при чтении данных  DBUS Bus error on data reference     */
         SET_INT(8,  pok_int_system_call)   /*Команда SYSCALL                SYSCALL syscall instruction executed */
         SET_INT(9,  pok_int_debug)         /*Команда BREAK                  BKPT break instruction executed      */
-        SET_INT(10, pok_int_none)         /*Нереализованная команда        RI Reserved instruction              */
+        SET_INT(10, pok_int_ri)           /*Нереализованная команда        RI Reserved instruction              */
         SET_INT(11, pok_int_none)         /*Недоступный сопроцессор                                   */
-        SET_INT(12, pok_int_none)         /*Целочисленное переполнение     OVF Arithmetic overflow    */
+        SET_INT(12, pok_int_overflow)         /*Целочисленное переполнение     OVF Arithmetic overflow    */
         SET_INT(13, pok_int_debug)        /*Команды TRAP                                              */
         SET_INT(14, pok_int_fp_unavail) /*????*/  /*Исключение от блока вещественной арифметики       */
         SET_INT(15, pok_int_none)         /*Исключение при доступе в накристальную память             */    
 
 
-
+        
         JUMP_TO_REG($ra)
 
+        
+        la  $k0, mips_first_exeption_handler_asm
+        jr  $k0
 /*This exeption handler is equal for each interrupt*/
 mips_first_exeption_handler_asm:
         .set  push
@@ -792,6 +852,23 @@ mips_first_exeption_handler_asm:
     	JUMP_TO_REG($k0)                           /* Call asm code for this exeption. */
         .set  pop
 
+        .globl dmfc0_asm
+
+
+dmfc0_asm:
+        .set mips64
+        move    $k0, $zero
+        li      $k0, 0x70000180
+        mtc0    $k0, CP0_ENTRYHI
+        dmfc0   $k0, CP0_ENTRYHI
+        nop
+        nop
+        li      $k0, 0xa0000000
+        addu    $ra, $k0, $ra
+        JUMP_TO_REG($ra)
+        .set mips32
+
+
         .section ".bss", "aw"
         .align 4 # 4 words = 16 bytes
 pok_stack:
@@ -801,3 +878,5 @@ pok_stack_end:
 
 pok_save_area:
         .space 4 * 8
+
+
