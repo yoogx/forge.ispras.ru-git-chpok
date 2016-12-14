@@ -32,6 +32,7 @@ import json
 import functools
 import collections
 import ipaddr
+import math
 
 
 class PartitionLayout():
@@ -54,6 +55,9 @@ class TimeSlot():
         pass
 
     def __init__(self, duration):
+        if duration < (10 ** 6):
+            raise ValueError("Minimum value for Slot duration is 1000000 (1ms).")
+
         self.duration = duration
 
     def validate(self):
@@ -222,15 +226,15 @@ class Space:
     Definition of single memory space.
 
     - size - allocated RAM size in bytes (code + static storage)
-
-    Everything except 'size' should be automatically calculated by arch.
+    - part - partition, which should fit into given space.
 
     TODO: This should be make arch-dependent somehow.
     TODO: Config files uses 'size' as contained stack.
            Arch code allocates stack from other memory.
     """
-    def __init__(self, size):
+    def __init__(self, size, part):
         self.size = size
+        self.part = part
 
 # ARINC partition.
 #
@@ -244,6 +248,11 @@ class Partition:
         "name",
 
         "is_system",
+
+        # Requested size of the heap.
+        #
+        # Note: ARINC requirements for buffers and co. shouldn't be counted here.
+        "heap",
 
         "num_threads", # number of user threads, _not_ counting init thread and error handler
         "ports_queueing", # list of queuing ports
@@ -261,6 +270,8 @@ class Partition:
 
         "ports_queueing_system", # list of queuing ports with non-empty protocol set
         "ports_sampling_system", # list of sampling ports with non-empty protocol set
+
+        "part_index" # index of the partition in the array. Filled automatically. part_index+1 is used as PID
     ]
 
     def __init__(self, arch, part_id, name):
@@ -276,6 +287,8 @@ class Partition:
         # 'duration' is sum of all timeslots, denoted for partition.
         self.period = None
         self.duration = None
+
+        self.heap = 0
 
         self.num_threads = 0
 
@@ -298,6 +311,8 @@ class Partition:
         # Internal
         self.part_index = None # Not set yet
         self.port_names_map = dict() # Map `port_name` => `port`
+
+        self.memory_blocks_map = dict() # Map 'mem_block_name' => 'user_access'
 
         self.total_time = 0 # Incremented every time timeslot is added.
         # When timeslot with periodic processing start is added, this is set to True.
@@ -328,6 +343,10 @@ class Partition:
         if port.protocol is not None:
             self.ports_sampling_system.append(port)
 
+    def add_mem_block(self, name, user_access):
+        if user_access is None:
+            user_access = "READ_ONLY"
+        self.memory_blocks_map[name] = user_access
 
     def get_all_sampling_ports(self):
         return ports_sampling
@@ -391,6 +410,12 @@ class Partition:
             + self.num_arinc653_semaphores * self.get_semaphore_size()
             + self.num_arinc653_events * self.get_event_size()
         )
+
+    def get_heap_size(self):
+        heap_size = self.get_intra_size()
+        if self.heap > 0:
+            heap_size += self.heap + 16 # alignment. TODO: this should be arch-specific.
+        return heap_size
 
 def _get_port_direction(port):
     direction = port.direction.lower()
@@ -456,6 +481,9 @@ class SamplingPort(Port):
 
     def __init__(self, name, direction, max_message_size, refresh):
         Port.__init__(self, name, direction, max_message_size)
+        if refresh < (10 ** 6):
+                raise ValueError("Minimum value for refresh is 1000000 (1ms).")
+
         self.refresh = refresh
 
     def validate(self):
@@ -614,6 +642,51 @@ class NetworkConfiguration:
     #def mac_to_string(self):
     #    return "{%s}" % ", ".join(hex(i) for i in self.mac)
 
+
+def size_to_str(num):
+    for unit in ['','K','M','G']:
+        if abs(num) < 1024:
+            return "%d%s" % (num, unit)
+        num /= 1024
+    raise RuntimeError("wrong size of memory block")
+
+class Memory_block:
+    __slots__ = [
+        "name",
+        "size",
+        "str_size",
+        "virt_addr",
+        "phys_addr",
+        "cache_policy",
+        "system_access"
+    ]
+
+    def __init__(self, name, size, conf):
+        self.name = name
+        self.actual_size = size
+        aligned_size = max(4**math.ceil(math.log(size, 4)), 0x1000)
+        self.str_size = size_to_str(aligned_size)
+
+        self.virt_addr = 0
+        self.phys_addr = 0
+
+        self.cache_policy = "DEFAULT"
+        self.access = dict()
+        for part in conf.partitions:
+            if name in part.memory_blocks_map:
+                self.access[part.part_index + 1] = part.memory_blocks_map[name]
+        self.tlb_entries_count = len(self.access)
+
+    def __repr__(self):
+        return self.name + ": " + hex(self.virt_addr) + " -> " + hex(self.phys_addr) + " [" +\
+                hex(self.actual_size) + " = " + self.str_size + "], " + str(self.cache_policy) + ", " +\
+                str(self.access)
+
+    def set_kernel_access(self, kaccess):
+        if kaccess != 'NONE':
+            self.access[0] = kaccess
+
+
 class Configuration:
     system_states_all = system_states
     error_ids_all = error_ids
@@ -624,6 +697,7 @@ class Configuration:
         "channels_queueing", # queueing port channels (connections)
         "channels_sampling", # sampling port channels (connections)
         "network", # NetworkConfiguration object (or None)
+        "memory_blocks"
 
         "spaces", # Array of 'Space' objects.
 
@@ -644,6 +718,8 @@ class Configuration:
         self.channels_queueing = []
         self.channels_sampling = []
         self.network = None
+        self.memory_blocks = []
+        self.memory_blocks_tlb_entries_count = 0
 
         self.spaces = []
 
@@ -655,6 +731,8 @@ class Configuration:
         self.partition_names_map = dict()
         self.partition_ids_map = dict()
         self.next_partition_id = 0
+
+        self.memory_blocks_names = set()
 
         self.next_channel_id_sampling = 0
         self.next_channel_id_queueing = 0
@@ -682,7 +760,7 @@ class Configuration:
         if part_id is not None:
             self.partition_ids_map[part_id] = part
 
-        self.spaces.append(Space(part_size))
+        self.spaces.append(Space(part_size, part))
 
         return part
 
@@ -750,6 +828,18 @@ class Configuration:
 
         self.slots.append(slot)
         self.major_frame += slot.duration
+
+    def add_memory_block(self, name, size):
+        if name in self.memory_blocks_names:
+            raise RuntimeError("Adding already existed memory block '%s'" % name)
+
+        mblock = Memory_block(name, size, self)
+
+        self.memory_blocks.append(mblock)
+        self.memory_blocks_names.add(name)
+        self.memory_blocks_tlb_entries_count += mblock.tlb_entries_count
+
+        return mblock
 
     def get_all_ports(self):
         return sum((part.get_all_ports() for part in self.partitions), [])

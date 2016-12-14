@@ -643,6 +643,8 @@ label##_asm:
     START_EXCEPTION(pok_int_alignment)
         EXCEPTION_PROLOGUE
         move    $a0, $sp
+        mfc0    $a1, CP0_BadVAddr
+        mfc0    $a2, CP0_CAUSE
 
         JUMP_AND_LINK(pok_int_alignment)
         JUMP_TO_ADDR(pok_arch_rfi)

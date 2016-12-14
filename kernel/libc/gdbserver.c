@@ -1143,12 +1143,12 @@ void remove_watchpoint(uintptr_t addr, int length, const struct gdb_thread* t, i
 }
 
 void add_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t){
+    uint8_t old_space_id = pok_space_get_current();
 
     uintptr_t gdb_addr = gdb_thread_write_addr(t, addr, length);
 
     if(!gdb_addr) goto err;
 
-    uint8_t old_space_id = pok_space_get_current();
     uint8_t space_id = gdb_thread_get_space(t);
     pok_space_switch(space_id);
 
@@ -1182,11 +1182,11 @@ err:
 }
 
 void remove_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t){
+    int old_pid = pok_space_get_current();
     uintptr_t gdb_addr = gdb_thread_write_addr(t, addr, length);
     if(!gdb_addr) goto err;
 
     int i = 0;
-    int old_pid = pok_space_get_current();
     int new_pid = gdb_thread_get_space(t);
 #ifdef DEBUG_GDB
     printf("New_pid = %d\n",new_pid);

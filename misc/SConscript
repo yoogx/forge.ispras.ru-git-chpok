@@ -160,7 +160,7 @@ cflags_arch_dict = {
     'ppc':    ' -mregnames',
     # TODO: Add infrastructure to enable/disable compile time parameters
     # Quick and dirty hack: currently GDB suport is broken on x86 -- disable it
-    'x86':    ' -DPOK_DISABLE_GDB',
+    'x86':    '',
     'mips':   ''
 }
 env.Append(CFLAGS = cflags_arch_dict[env['ARCH']])

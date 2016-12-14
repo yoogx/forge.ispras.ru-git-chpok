@@ -226,4 +226,31 @@ void dump_tlb(int first, int last)
 }
 
 
+void pok_mips_tlb_print() {
+    unsigned limit = jet_mips_tlb_get_index;
+    printf("DEBUG:   TLB pages = %d\n", limit + 1);
+    printf("DEBUG:   -----------------\r\n");
+    for (unsigned i = 0; i <= limit; i++) {
+        unsigned valid;
+        unsigned tsize;
+        uint32_t epn;
+        uint64_t rpn;
+        pok_mips_tlb_read_entry(
+                i,
+                &valid,
+                &tsize,
+                &epn,
+                &rpn);
+        if (valid) {
+            printf("DEBUG:   Index = %d\n", i);
+            printf("DEBUG:   Valid\r\n");
+            printf("DEBUG:   Effective: %p\r\n", (void*)epn);
+            // FIXME This is wrong. We print only 32 bits out of 36
+            printf("DEBUG:   Physical:  %p\r\n",
+                    (void*)(unsigned)rpn);
+            printf("DEBUG:   Size:      %s\r\n", msk2str(tsize));
+            printf("DEBUG:   -----------------\r\n");
+        }
+    }
+}
 

@@ -1,7 +1,7 @@
 <Partition>
     <Definition Name="P2" System="true"/>
-    <!-- Amount of ram allocated (code + stack + static variables) -->
-    <Memory Bytes="2M" />
+    <!-- Amount of ram allocated (code + stack + static variables) + heap -->
+    <Memory Bytes="1M" Heap="1M"/>
 
     <!-- Number of threads that can be created in this partition.
          Note that this number doesn't include main and error handler threads,
@@ -42,8 +42,14 @@
         <Error Code="POK_ERROR_KIND_NUMERIC_ERROR" Level="PROCESS" ErrorCode="NUMERIC_ERROR" Action="COLD_START" />
         <Error Code="POK_ERROR_KIND_ILLEGAL_REQUEST" Level="PROCESS" ErrorCode="ILLEGAL_REQUEST" Action="COLD_START" />
         <Error Code="POK_ERROR_KIND_STACK_OVERFLOW" Level="PROCESS" ErrorCode="STACK_OVERFLOW" Action="COLD_START" />
-        <Error Code="POK_ERROR_KIND_MEMORY_VIOLATION" Level="PROCESS" ErrorCode="MEMORY_VIOLATION" Action="COLD_START" />
+        <!-- <Error Code="POK_ERROR_KIND_MEMORY_VIOLATION" Level="PROCESS" ErrorCode="MEMORY_VIOLATION" Action="COLD_START" />
+             -->
         <Error Code="POK_ERROR_KIND_HARDWARE_FAULT" Level="PROCESS" ErrorCode="HARDWARE_FAULT" Action="COLD_START" />
         <Error Code="POK_ERROR_KIND_POWER_FAIL" Level="PROCESS" ErrorCode="POWER_FAIL" Action="COLD_START" />
     </HM_Table>
+
+    <Memory_Blocks>
+        <Memory_Block NameRef="PCI_IO" UserAccess="READ_WRITE"/>
+    </Memory_Blocks>
+
 </Partition>

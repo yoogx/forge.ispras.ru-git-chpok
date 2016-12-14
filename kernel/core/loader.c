@@ -40,6 +40,8 @@
 
 #include <core/space.h>
 
+#include <core/loader.h>
+
 extern size_t pok_elf_sizes[];
 extern char __archive2_begin;
 
@@ -50,7 +52,6 @@ extern char __archive2_begin;
  */
 void jet_loader_elf_load   (uint8_t elf_id,
                                  jet_space_id space_id,
-                                 size_t heap_size,
                                  void (** entry)(void))
 {
     size_t elf_offset, elf_size;
@@ -74,7 +75,6 @@ void jet_loader_elf_load   (uint8_t elf_id,
 
     const char* elf_start = &__archive2_begin + elf_offset;
 
-
     Elf32_Ehdr*  elf_header;
     Elf32_Phdr*  elf_phdr;
 
@@ -93,8 +93,45 @@ void jet_loader_elf_load   (uint8_t elf_id,
 
     elf_phdr = (Elf32_Phdr*)(elf_start + elf_header->e_phoff);
 
-    // First user space address after the elf.
+    // First cycle: determine the last virtual address in the elf
     char* elf_end_user = space_layout.user_addr;
+
+    for (int i = 0; i < elf_header->e_phnum; ++i)
+    {
+        char* user_dest = (char *)elf_phdr[i].p_vaddr;
+        size_t filesz = elf_phdr[i].p_filesz;
+        size_t memsz = elf_phdr[i].p_memsz;
+
+        if(filesz > memsz)
+        {
+           printf("Partition's ELF has section with 'filesz=%zd' which is more than 'memsz=%zd'.\n",
+               filesz, memsz);
+           pok_raise_error(POK_ERROR_ID_PARTLOAD_ERROR, FALSE, NULL);
+        }
+
+
+        if(user_dest < space_layout.user_addr)
+        {
+           printf("Partition's ELF maps to virtual address %p, but space starts with %p.\n",
+               user_dest, space_layout.user_addr);
+           pok_raise_error(POK_ERROR_ID_PARTLOAD_ERROR, FALSE, NULL);
+        }
+
+          // Where given section ends(in user space).
+        char* elf_section_end_user = user_dest + memsz;
+
+        if(elf_end_user < elf_section_end_user) {
+           elf_end_user = elf_section_end_user;
+        }
+    }
+
+    if(elf_end_user > space_layout.user_addr + space_layout.size)
+    {
+       printf("ERROR: Elf maps up to virtual address %p, which is above section's start by 0x%zx. But size of the section is only 0x%zx.\n",
+         elf_end_user, elf_end_user - space_layout.user_addr, space_layout.size);
+       printf("HINT: Probably, you need to configure more space for the partition.\n");
+       pok_raise_error(POK_ERROR_ID_PARTLOAD_ERROR, FALSE, NULL);
+    }
 
     for (int i = 0; i < elf_header->e_phnum; ++i)
     {
@@ -110,35 +147,6 @@ void jet_loader_elf_load   (uint8_t elf_id,
 
         memcpy (kernel_dest, elf_phdr[i].p_offset + elf_start, filesz);
         memset (kernel_dest + filesz, 0, memsz - filesz);
-
-        // Where given section ends(in user space).
-        char* elf_section_end_user = user_dest + memsz;
-
-        if(elf_end_user < elf_section_end_user) {
-           elf_end_user = elf_section_end_user;
-        }
-    }
-
-    struct jet_kernel_shared_data* __kuser kshd = ja_space_shared_data(space_id);
-
-    if(heap_size > 0) {
-       // Allocate heap after the elf.
-       char* heap_start = (char*)ALIGN_VAL((unsigned long)elf_end_user,
-         ja_user_space_maximum_alignment);
-       char* heap_end = heap_start + heap_size;
-       if(heap_end > (space_layout.user_addr + space_layout.size))
-       {
-           printf("Insufficient space for partition's heap.");
-           pok_raise_error(POK_ERROR_ID_CONFIG_ERROR, FALSE, NULL);
-       }
-
-       kshd->heap_start = heap_start;
-       kshd->heap_end = heap_end;
-   }
-   else {
-      // No heap requested.
-      kshd->heap_start = NULL;
-      kshd->heap_end = NULL;
    }
 }
 

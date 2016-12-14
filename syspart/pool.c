@@ -14,6 +14,7 @@
  */
 
 #include <mem.h>
+#include <smalloc.h>
 #include <pool.h>
 
 

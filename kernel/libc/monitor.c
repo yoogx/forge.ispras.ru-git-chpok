@@ -438,6 +438,8 @@ static const struct pok_partition_operations monitor_operations =
 void pok_monitor_thread_init()
 {
 #ifdef POK_NEEDS_MONITOR
+    pok_partition_init(&partition_monitor);
+
     partition_monitor.part_sched_ops = &partition_sched_ops_kernel;
     partition_monitor.part_ops = &monitor_operations;
     partition_monitor.initial_sp = pok_stack_alloc(4096);

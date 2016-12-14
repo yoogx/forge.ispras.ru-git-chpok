@@ -28,9 +28,5 @@ static inline void* pok_phys_to_virt(uintptr_t phys) {
    return (void *) pok_syscall1(POK_SYSCALL_MEM_PHYS_TO_VIRT, phys);
 }
 
-/* simple(stupid) malloc */
-void *smalloc (size_t sz);
-
-void *smalloc_aligned(size_t mem_size, size_t alignment);
 #endif
 

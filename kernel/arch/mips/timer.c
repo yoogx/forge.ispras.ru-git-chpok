@@ -20,9 +20,13 @@
 #include <core/debug.h>
 #include "reg.h"
 #include "msr.h"
-
 #include "timer.h"
 #include <cons.h>
+#include <asp/entries.h>
+
+/* First value of decrementer.  */
+static uint64_t time_first;
+
 
 /* Last time when decr was set.  */
 static uint64_t time_last;
@@ -30,20 +34,17 @@ static uint64_t time_last;
 /* Decrementer optimal value.  */
 static uint32_t time_inter;
 
+/*
+ * Hardcoded calendar time at the beginning of the OS loading.
+ * 
+ * Could be obtained on https://www.timeanddate.com/.
+ */
+static time_t base_calendar_time = 1480330081; // On 28.11.2016
 
-static uint32_t something(uint32_t arg1, uint32_t arg2,uint32_t arg3,uint32_t arg4,uint32_t arg5,uint32_t arg6,uint32_t arg7)
-{
-  
-  
-  return (0xb) | arg1 | arg2 | arg3 | arg4 | arg5 | arg6 | arg7 ;
-    
-};
 
 static uint64_t get_timebase(void)
 {
     uint32_t count = mfc0(CP0_COUNT);
-    uint32_t smth = something(0xdeadbeef, 0x11111111, 0x22222222, 0x33333333, 0x44444444, 0x55555555, 0x66666666);
-    printf("%d", smth);
     return count;
 }
 
@@ -83,24 +84,33 @@ void pok_arch_decr_int (void)
 
   // FIXME: MIPS doesn't need to clear this bit
   // clear pending intrerrupt
-  mtc0(CP0_CAUSE, 0x0);// mfc0(CP0_CAUSE) & (~CP0_CAUSE_IP7));
+  mtc0(CP0_CAUSE, mfc0(CP0_CAUSE) & (~CP0_CAUSE_IP7));
 
   do
   {
     err = set_decrementer();
-    pok_tick_counter += 1;
   } while (err != POK_ERRNO_OK);
 
 
-  pok_sched_on_time_changed ();
+  jet_on_tick();
 }
 
 void ja_time_init (void)
 {
   time_inter = pok_bsp.timebase_freq / POK_TIMER_FREQUENCY;
   printf("Timer interval: %u\n", time_inter);
-  time_last = get_timebase ();
+  time_first = time_last = get_timebase ();
   set_decrementer();
   
   mtsr((mfsr() | CP0_STATUS_IM7)); // enable decrementer
+}
+
+pok_time_t ja_system_time(void)
+{
+  return ((get_timebase() - time_first) / time_inter) * 1000000;
+}
+
+time_t ja_calendar_time(void)
+{
+  return base_calendar_time + (time_t)(ja_system_time() / 1000000000);
 }

@@ -63,10 +63,18 @@ pok_channel_queuing_t pok_channels_queuing[{{ conf.channels_queueing | length }}
     {%for channel_queueing in conf.channels_queueing%}
     {
         .max_message_size = {{channel_queueing.max_message_size}},
-        .max_nb_message_send = {{channel_queueing.max_nb_message_send}},
-        .max_nb_message_receive = {{channel_queueing.max_nb_message_receive}},
-        .receiver = {{connection_partition(channel_queueing.dst)}},
-        .sender = {{connection_partition(channel_queueing.src)}},
+
+        .recv = {
+            .max_nb_message = {{channel_queueing.max_nb_message_receive}},
+            .part = {{connection_partition(channel_queueing.dst)}},
+        },
+        .send = {
+            .max_nb_message = {{channel_queueing.max_nb_message_send}},
+            .part = {{connection_partition(channel_queueing.src)}},
+        },
+
+        // Currently hardcoded.
+        .overflow_strategy = JET_CHANNEL_QUEUING_SENDER_BLOCK,
     },
     {%endfor%}
 };
@@ -158,6 +166,9 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
         .base_part = {
             .name = "{{part.name}}",
 
+            // Allocate 1 event slot per queuing port plus 2 slots for timer.
+            .partition_event_max = {{part.ports_queueing | length}} + 2,
+
             .period = {%if part.period is not none%}{{part.period}}{%else%}{{conf.major_frame}}{%endif%},
             .duration = {%if part.duration is not none%}{{part.duration}}{%else%}{{part.total_time}}{%endif%},
             .partition_id = {{part.part_id}},
@@ -168,12 +179,12 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
             .multi_partition_hm_table = &pok_hm_multi_partition_table_default,
         },
 
-        .nthreads = {{part.num_threads}} + 1 /*main thread*/ + 1 /* error thread */,
+        .nthreads = {{part.get_needed_threads()}},
         .threads = partition_threads_{{loop.index0}},
 
         .main_user_stack_size = 8192, {# TODO: This should be set in config somehow. #}
 
-        .heap_size = {{part.get_intra_size()}},
+        .heap_size = {{part.get_heap_size()}},
 
         .ports_queuing = partition_ports_queuing_{{loop.index0}},
         .nports_queuing = {{part.ports_queueing | length}},
@@ -198,6 +209,8 @@ pok_partition_t partition_monitor =
 {
     .name = "Monitor",
 
+    .partition_event_max = 0,
+
     .period = {{conf.major_frame}}, {#TODO: Where it is stored in conf?#}
 
     .space_id = 0,
@@ -211,6 +224,8 @@ pok_partition_t partition_monitor =
 pok_partition_t partition_gdb =
 {
     .name = "GDB",
+
+    .partition_event_max = 0,
 
     .period = {{conf.major_frame}}, {#TODO: Where it is stored in conf?#}
 
@@ -254,5 +269,25 @@ const uint8_t pok_module_sched_n = {{conf.slots | length}};
 
 const pok_time_t pok_config_scheduling_major_frame = {{conf.major_frame}};
 
-/************************ Setup address spaces ************************/
+/************************ Memory blocks ************************/
+#include <core/memblocks_config.h>
+struct memory_block jet_memory_blocks[] = {
+    {%for mblock in conf.memory_blocks%}
+    {
+        .name = "{{mblock.name}}",
+        .virt_addr = 0x{{'%x'%mblock.virt_addr}},
+        .size = {{mblock.actual_size}},
+        .pid_to_rights = {
+            {%for pid, access_right in mblock.access.iteritems() %}
+                [{{pid}}] = MB_CONFIG_{{access_right}},
+            {%endfor%}
+        }
+    },
+
+    {%endfor%}
+
+};
+
+size_t jet_memory_blocks_n = {{ conf.memory_blocks | length }};
+
 {% include 'arch/' + conf.arch + '/deployment_kernel' %}

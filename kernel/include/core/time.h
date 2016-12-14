@@ -23,39 +23,22 @@
 #include <errno.h>
 #include <common.h>
 
+#include <uapi/time.h>
+#include <asp/time.h>
+
 /**
  * The rate of the clock in POK
  */
 #define POK_TIMER_FREQUENCY 1000
 
-extern uint64_t pok_tick_counter;
+/* Return current system time, in nanoseconds. */
+#define jet_system_time() ja_system_time()
 
-#define CLOCK_HANDLER \
-    do { pok_tick_counter += 1; pok_sched_on_time_changed(); } \
-    while (0)
+/* Return calendar time, in seconds since Epoch. */
+#define jet_calendar_time() ja_calendar_time()
 
-#define POK_GETTICK() pok_tick_counter
+pok_ret_t pok_clock_gettime (clockid_t clk_id, pok_time_t* __user val);
 
-typedef int clockid_t;
-
-# define CLOCK_REALTIME 0
-
-typedef long int time_t;
-
-struct timespec
-{
-    time_t tv_sec;              /* Seconds.  */
-    long int tv_nsec;           /* Nanoseconds.  */
-};
-
-typedef enum
-{
-   __POK_CLOCK_REALTIME = 0 
-} pok_clockid_t;
-
-void        pok_time_init (void);
-pok_ret_t   pok_clock_gettime (pok_clockid_t clk_id, struct timespec *tp);
-uint64_t    pok_gettick (void);
-pok_ret_t   pok_gettick_by_pointer (pok_time_t* __user clk_val);
+pok_ret_t jet_time(time_t* __user val);
 
 #endif  /* __POK_TIME_H__ */

@@ -15,7 +15,7 @@
 
 #include "virtio_virtqueue.h"
 
-#include <mem.h>
+#include <smalloc.h>
 #include <string.h>
 
 void* virtio_virtqueue_setup(struct virtio_virtqueue *vq, uint16_t size, size_t alignment)

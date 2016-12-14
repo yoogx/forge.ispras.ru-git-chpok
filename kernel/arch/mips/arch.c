@@ -71,12 +71,13 @@ void ja_inf_loop(void)
    }
 }
 
+#include <arch/linux_io.h>
 #define DCFG_RSTCR 0xb0
 #define RSTCR_RESET_REQ 0x2
 void ja_cpu_reset(void)
 {
     uintptr_t addr = pok_bsp.ccsrbar_base + pok_bsp.dcfg_offset + DCFG_RSTCR;
-    * (uint32_t *) addr = RSTCR_RESET_REQ;
+    out_be32((void*)addr, RSTCR_RESET_REQ);
 }
 
 pok_ret_t pok_bsp_get_info(void * __user addr) {

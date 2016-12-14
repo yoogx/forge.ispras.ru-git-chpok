@@ -59,8 +59,16 @@ struct jet_kernel_shared_data* __kuser ja_space_shared_data(jet_space_id space_i
     return (struct jet_kernel_shared_data* __kuser)POK_PARTITION_MEMORY_BASE;
 }
 
-size_t ja_user_space_maximum_alignment = 16;
-
+static const size_t ja_user_space_maximum_alignment = 16;
+56	
+57	
+void __user* ja_space_get_heap(jet_space_id space_id)
+58	
+{
+struct ja_ppc_space* space = &ja_spaces[space_id - 1];
+return POK_PARTITION_MEMORY_BASE + (char __user*)
+ALIGN_VAL((unsigned long)space->size_normal, ja_user_space_maximum_alignment);
+}
 void ja_space_switch (jet_space_id space_id)
 {
     //~ INT_ENABLE
@@ -156,33 +164,6 @@ static inline const char* pok_mips_tlb_size(unsigned size)
 
 extern void dmfc0_asm(void);
 
-static void pok_mips_tlb_print() {
-    unsigned limit = jet_mips_tlb_get_index;
-    printf("DEBUG:   TLB pages = %d\n", limit + 1);
-    printf("DEBUG:   -----------------\r\n");
-    for (unsigned i = 0; i <= limit; i++) {
-        unsigned valid;
-        unsigned tsize;
-        uint32_t epn;
-        uint64_t rpn;
-        pok_mips_tlb_read_entry(
-                i,
-                &valid,
-                &tsize,
-                &epn,
-                &rpn);
-        if (valid) {
-            printf("DEBUG:   Index = %d\n", i);
-            printf("DEBUG:   Valid\r\n");
-            printf("DEBUG:   Effective: %p\r\n", (void*)epn);
-            // FIXME This is wrong. We print only 32 bits out of 36
-            printf("DEBUG:   Physical:  %p\r\n",
-                    (void*)(unsigned)rpn);
-            printf("DEBUG:   Size:      %s\r\n", msk2str(tsize));
-            printf("DEBUG:   -----------------\r\n");
-        }
-    }
-}
 
 void pok_arch_space_init (void)
 {
@@ -252,8 +233,14 @@ void pok_arch_space_init (void)
 
     for(int i = 0; i < ja_spaces_n; i++)
     {
+        struct ja_ppc_space* space = &ja_spaces[i];
+        space->size_total = space->size_normal;
+        if(space->size_heap > 0) {
+            space->size_total = ALIGN_VAL((unsigned long)space->size_total, ja_user_space_maximum_alignment)
+                + space->size_heap;
+        }
         // This should be checked when generate deployment.c too.
-        assert(ja_spaces[i].size_normal < POK_PARTITION_MEMORY_SIZE);
+        assert(space->size_total < POK_PARTITION_MEMORY_SIZE);
     }
     /*Clear reset bit*/
     mtsr(mfsr() & (~CP0_STATUS_ERL));

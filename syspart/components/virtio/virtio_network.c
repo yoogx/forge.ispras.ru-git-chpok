@@ -19,6 +19,7 @@
 #include <ioports.h>
 
 #include <mem.h>
+#include <smalloc.h>
 
 #include "virtio_config.h"
 #include "virtio_ids.h"
@@ -30,64 +31,52 @@
 
 #include "VIRTIO_NET_DEV_gen.h"
 
+#include <arinc653/process.h>
 
 #define VIRTIO_PCI_VENDORID 0x1AF4
 
 #define VIRTIO_NETWORK_RX_VIRTQUEUE 0
 #define VIRTIO_NETWORK_TX_VIRTQUEUE 1
 
-// FIXME
-#define DRV_NAME "virtio-net"
-#define DEV_NAME_PREFIX DRV_NAME
-#define DEV_NAME_LEN 20
-
-#define PRINTF(fmt, ...) printf("virtio_network: " fmt, ##__VA_ARGS__)
-
-
-struct virtio_network_device *tmp_vdevice[2];
+#define PRINTF(fmt, ...) printf("VIRTIO_NET_DEV: " fmt, ##__VA_ARGS__)
 
 static void reclaim_send_buffers(struct virtio_network_device *info);
-/*
- * When we're in interrupt context (e.g. system call or timer),
- * preemption is already disabled, and we certainly don't want to
- * enable it there.
- *
- * On the other hand, in the network thread context, preemption is
- * enabled, and we need some critical sections, you know.
- */
-static void maybe_lock_preemption(pok_bool_t *saved)
+
+static void lock_preemption(pok_bool_t *saved)
 {
-    return;
-    /*
-    *saved = pok_arch_preempt_enabled();
-    if (*saved) {
-        pok_arch_preempt_disable();
-    }
-    */
+    LOCK_LEVEL_TYPE LOCK_LEVEL;
+    RETURN_CODE_TYPE ret_code;
+    LOCK_PREEMPTION(&LOCK_LEVEL, &ret_code);
+    if (ret_code != NO_ERROR)
+        PRINTF("error in LOCK_PREEMPTION %d\n", ret_code);
 }
 
 
-static void maybe_unlock_preemption(const pok_bool_t *saved)
+static void unlock_preemption(const pok_bool_t *saved)
 {
-    return;
-    /*
-    if (*saved) {
-        pok_arch_preempt_enable();
-    }
-    */
+    LOCK_LEVEL_TYPE LOCK_LEVEL;
+    RETURN_CODE_TYPE ret_code;
+    UNLOCK_PREEMPTION(&LOCK_LEVEL, &ret_code);
+    if (ret_code != NO_ERROR)
+        PRINTF("error in UNLOCK_PREEMPTION %d\n", ret_code);
+
 }
 
-static void setup_virtqueue(
+static pok_bool_t setup_virtqueue(
         struct virtio_network_device *dev, 
         int16_t index, 
         struct virtio_virtqueue *vq)
 {
     // queue selector
-    outw(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_SEL, index);
+    outw(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_QUEUE_SEL, index);
 
     // get queue size
 
-    uint16_t queue_size = inw(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_NUM);
+    uint16_t queue_size = inw(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_QUEUE_NUM);
+    if (queue_size < 1) {
+        PRINTF("wrong queue size\n");
+        return FALSE;
+    }
 
     // allocate memory and fill in vq fields
     void *mem = virtio_virtqueue_setup(vq, queue_size, VIRTIO_PCI_VRING_ALIGN);
@@ -97,17 +86,18 @@ static void setup_virtqueue(
 
     if (phys_addr == 0) {
         printf("%s: kernel says that virtual address is wrong\n", __func__);
-        return;
+        return FALSE;
     }
 
-    outl(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_PFN, phys_addr / VIRTIO_PCI_VRING_ALIGN);
+    outl(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_QUEUE_PFN, phys_addr / VIRTIO_PCI_VRING_ALIGN);
+    return TRUE;
 
 }
 
-static void set_status_bit(s_pci_device *pcidev, uint8_t bit)
+static void set_status_bit(s_pci_dev *pcidev, uint8_t bit)
 {
-    bit |= inb(pcidev->bar[0] + VIRTIO_PCI_STATUS);
-    outb(pcidev->bar[0] + VIRTIO_PCI_STATUS, bit);
+    bit |= inb(pcidev->resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_STATUS);
+    outb(pcidev->resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_STATUS, bit);
 }
 
 static void read_mac_address(struct virtio_network_device *dev)
@@ -116,7 +106,7 @@ static void read_mac_address(struct virtio_network_device *dev)
 
     int i;
     for (i = 0; i < ETH_ALEN; i++) {
-        mac[i] = inb(dev->pci_device.bar[0] + VIRTIO_PCI_CONFIG_OFF(FALSE) + i);
+        mac[i] = inb(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_CONFIG_OFF(FALSE) + i);
     }
 }
 
@@ -156,7 +146,7 @@ static void use_receive_buffer(struct virtio_network_device *dev, struct receive
 // must be called after one or more receive buffers has been added to rx avail. ring
 static void notify_receive_buffers(struct virtio_network_device *dev)
 {
-    outw(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_NOTIFY, (uint16_t) VIRTIO_NETWORK_RX_VIRTQUEUE);
+    outw(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_QUEUE_NOTIFY, (uint16_t) VIRTIO_NETWORK_RX_VIRTQUEUE);
 }
 
 static void setup_receive_buffers(struct virtio_network_device *dev)
@@ -174,6 +164,9 @@ ret_t send_frame(VIRTIO_NET_DEV * self,
         size_t size,
         size_t max_back_step)
 {
+    if (!self->state.info.inited)
+        return EINVAL; //FIXME
+
     if (max_back_step != 0)
         return EINVAL;
 
@@ -237,7 +230,7 @@ static void reclaim_send_buffers(struct virtio_network_device *info)
     // in single critical section without worrying too much
     
     pok_bool_t saved_preemption;
-    maybe_lock_preemption(&saved_preemption);
+    lock_preemption(&saved_preemption);
     while (vq->last_seen_used != vq->vring.used->idx) {
         uint16_t index = vq->last_seen_used & (vq->vring.num-1);
         struct vring_used_elem *e = &vq->vring.used->ring[index];
@@ -260,7 +253,7 @@ static void reclaim_send_buffers(struct virtio_network_device *info)
         vq->last_seen_used++;
     }
     
-    maybe_unlock_preemption(&saved_preemption);
+    unlock_preemption(&saved_preemption);
 }
 
 static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
@@ -269,7 +262,7 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
     struct virtio_virtqueue *vq = &dev->rx_vq;
 
     pok_bool_t saved_preemption;
-    maybe_lock_preemption(&saved_preemption);
+    lock_preemption(&saved_preemption);
 
     uint16_t old_last_seen_used = vq->last_seen_used;
 
@@ -281,6 +274,7 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
         struct receive_buffer *buf = pok_phys_to_virt(desc->addr);
         if (buf == 0) {
             printf("%s: kernel says that physical address is wrong\n", __func__);
+            unlock_preemption(&saved_preemption);
             return;
         }
 
@@ -291,7 +285,7 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
         vq->num_free++;
         desc->next = vq->free_index;
         vq->free_index = e->id;
-        
+
         vq->last_seen_used++;
 
         // reclaim buffer
@@ -299,8 +293,8 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
         use_receive_buffer(dev, buf);
 
         // preemption point
-        maybe_unlock_preemption(&saved_preemption);
-        maybe_lock_preemption(&saved_preemption);
+        unlock_preemption(&saved_preemption);
+        lock_preemption(&saved_preemption);
     }
 
     if (old_last_seen_used != vq->last_seen_used) {
@@ -308,15 +302,18 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
         // used to avail ring
         notify_receive_buffers(dev);
     }
-        
-    maybe_unlock_preemption(&saved_preemption);
+
+    unlock_preemption(&saved_preemption);
 }
 
 ret_t flush_send(VIRTIO_NET_DEV *self)
 {
+    if (!self->state.info.inited)
+        return EINVAL; //FIXME
+
     struct virtio_network_device *dev = &self->state.info;
 
-    outw(dev->pci_device.bar[0] + VIRTIO_PCI_QUEUE_NOTIFY, (uint16_t) VIRTIO_NETWORK_TX_VIRTQUEUE);
+    outw(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_QUEUE_NOTIFY, (uint16_t) VIRTIO_NETWORK_TX_VIRTQUEUE);
     return EOK;
 }
 
@@ -325,15 +322,20 @@ ret_t flush_send(VIRTIO_NET_DEV *self)
  * PCI part
  */
 
-static pok_bool_t probe_device(struct pci_device *pci_dev)
+static pok_bool_t init_device(VIRTIO_NET_DEV_state *state)
 {
-    static int dev_count = 0;
-    struct virtio_network_device *dev = tmp_vdevice[dev_count];
-    dev_count ++;
+    struct virtio_network_device *dev = &state->info;
 
-    dev->pci_device = *pci_dev;
-    //TODO change to ioaddr everywhere
-    dev->pci_device.bar[0] &= ~0xFU;
+    pci_get_dev_by_bdf(state->pci_bus,
+            state->pci_dev,
+            state->pci_fn,
+            &dev->pci_device);
+    if (dev->pci_device.vendor_id == 0xFFFF) {
+        PRINTF("have not found virtio device\n");
+        return FALSE;
+    }
+
+    dev->pci_device.resources[PCI_RESOURCE_BAR0].addr &= ~0xFU;
 
     //subsystem = pci_read_reg(dev, PCI_REG_SUBSYSTEM) >> 16;
     //if (subsystem != VIRTIO_ID_NET)
@@ -341,7 +343,7 @@ static pok_bool_t probe_device(struct pci_device *pci_dev)
 
 
     // 1. Reset the device
-    outb(dev->pci_device.bar[0] + VIRTIO_PCI_STATUS, 0x0);
+    outb(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_STATUS, 0x0);
 
     // 2. ACK status bit
     set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_ACKNOWLEDGE);
@@ -350,8 +352,9 @@ static pok_bool_t probe_device(struct pci_device *pci_dev)
     set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_DRIVER);
 
     // 4. Device-specific setup
-    setup_virtqueue(dev, VIRTIO_NETWORK_RX_VIRTQUEUE, &dev->rx_vq);
-    setup_virtqueue(dev, VIRTIO_NETWORK_TX_VIRTQUEUE, &dev->tx_vq);
+    if (!setup_virtqueue(dev, VIRTIO_NETWORK_RX_VIRTQUEUE, &dev->rx_vq)
+        || !setup_virtqueue(dev, VIRTIO_NETWORK_TX_VIRTQUEUE, &dev->tx_vq))
+        return FALSE;
 
     setup_receive_buffers(dev);
 
@@ -359,7 +362,7 @@ static pok_bool_t probe_device(struct pci_device *pci_dev)
 
     // 5. Device feature bits
 
-    uint32_t features = inl(dev->pci_device.bar[0] + VIRTIO_PCI_HOST_FEATURES);
+    uint32_t features = inl(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_HOST_FEATURES);
     uint32_t recognized_features = 0;
 
     if (features & (1 << VIRTIO_NET_F_MAC)) {
@@ -371,7 +374,7 @@ static pok_bool_t probe_device(struct pci_device *pci_dev)
         return FALSE;
     }
 
-    outl(dev->pci_device.bar[0] + VIRTIO_PCI_GUEST_FEATURES, recognized_features);
+    outl(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_GUEST_FEATURES, recognized_features);
 
     // 6. DRIVER_OK status bit
     set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_DRIVER_OK);
@@ -379,20 +382,8 @@ static pok_bool_t probe_device(struct pci_device *pci_dev)
     // 7. send buffers allocation
     dev->send_buffers = smalloc(sizeof(*dev->send_buffers) * dev->tx_vq.vring.num);
 
-    dev->inited = 1;
     return TRUE;
 }
-
-const struct pci_device_id virtio_pci_devid_tbl[] = {
-    { VIRTIO_PCI_VENDORID, PCI_ANY_ID},
-};
-
-struct pci_driver virtio_pci_driver = {
-    .name     = DRV_NAME,
-    .probe    = probe_device,
-    .id_table = virtio_pci_devid_tbl
-};
-
 
 void virtio_receive_activity(VIRTIO_NET_DEV *self)
 {
@@ -405,11 +396,6 @@ void virtio_receive_activity(VIRTIO_NET_DEV *self)
  */
 void virtio_init(VIRTIO_NET_DEV *self)
 {
-    tmp_vdevice[self->state.dev_index] = &self->state.info;
-    int static t = 0;
-    if (t == 0) {
-        printf("register pci_driver\n");
-        t++;
-        register_pci_driver(&virtio_pci_driver);
-    }
+    if (init_device(&self->state))
+        self->state.info.inited = 1;
 }

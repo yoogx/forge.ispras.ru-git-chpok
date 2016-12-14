@@ -44,7 +44,10 @@
     xor     $k0, $k0, $k1
     MTC0($k0, CP0_STATUS)
 .endm
-
+ 
+ 
+    .rodata
+    .align 4 # 4 words = 16 bytes
 
 zero_fp:
     .quad 0

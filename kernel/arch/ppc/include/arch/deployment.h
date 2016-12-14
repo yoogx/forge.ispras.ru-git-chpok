@@ -42,13 +42,14 @@ struct ja_ppc_space
 {
     /* Physical address of memory chunk. */
     uintptr_t   phys_base;
-    /* 
-     * Size of the memory for normal use. 
-     * Everything above is used for stack.
-     */
+    /* Size of the memory for code and static data. */
     size_t      size_normal;
-    
-    uint32_t    ustack_state; // State of the user stack allocator.
+    /* Size of the memory for heap */
+    size_t      size_heap;
+    /* Total size of memory block */
+    size_t      size_total;
+    /* State of the user stack allocator. */
+    uint32_t    ustack_state;
 };
 
 /*
@@ -58,5 +59,22 @@ struct ja_ppc_space
  */
 extern struct ja_ppc_space ja_spaces[];
 extern int ja_spaces_n;
+
+
+/*
+ * TLB for memory maping
+ */
+
+struct tlb_entry {
+    uint32_t virt_addr;
+    uint64_t phys_addr;
+    unsigned size;
+    unsigned permissions;
+    unsigned cache_policy;
+    unsigned pid;
+};
+
+extern struct tlb_entry jet_tlb_entries[];
+extern size_t jet_tlb_entries_n;
 
 #endif /* __JET_PPC_DEPLOYMENT_H__ */

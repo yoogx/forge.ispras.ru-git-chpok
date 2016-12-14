@@ -46,9 +46,6 @@ extern int current_tlb_index;
 
 #define MIPS_MAX_TLB_SIZE   64
 
-/*TLB pages in system*/
-#define jet_mips_tlb_get_index      current_tlb_index  
-#define jet_mips_tlb_get_inc_index  current_tlb_index++;
 
 
 #define EntryHi_VPN2_clear_bit  ~((1 << 13) - 1)
@@ -143,6 +140,10 @@ const char *msk2str(uint32_t mask);
   */
 #define PAGE_MASK(page_shift)       (~((1 << page_shift) - 1))
 
+/*TLB pages in system*/
+#define jet_mips_tlb_get_index      current_tlb_index  
+#define jet_mips_tlb_get_inc_index  current_tlb_index++;
+
 
 #define PM_4K           0x000 << 13
 #define PM_16K          0x003 << 13
@@ -151,6 +152,8 @@ const char *msk2str(uint32_t mask);
 #define PM_1M           0x0ff << 13
 #define PM_4M           0x3ff << 13
 #define PM_16M          0xfff << 13
+
+void pok_ppc_tlb_print();
 
 
 #endif

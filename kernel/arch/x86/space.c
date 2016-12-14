@@ -51,7 +51,15 @@ struct jet_kernel_shared_data* __kuser ja_space_shared_data(jet_space_id space_i
     return (struct jet_kernel_shared_data* __kuser)space->phys_base;
 }
 
-size_t ja_user_space_maximum_alignment = 16;
+static const size_t ja_user_space_maximum_alignment = 16;
+
+void __user* ja_space_get_heap(jet_space_id space_id)
+{
+   struct ja_x86_space* space = &ja_spaces[space_id - 1];
+
+   return (void __user*)(space->heap_end - space->size_heap);
+}
+
 
 jet_space_id current_space_id = 0;
 
@@ -122,14 +130,26 @@ void ja_space_init(void)
     for(int i = 0; i < ja_spaces_n; i++)
     {
         struct ja_x86_space* space = &ja_spaces[i];
+
         /* 
          * Code and data segments should be aligned on 4k;
-         * stack should be aligned on 16; (why?)
-         * total size should be aligned on 4k;
          */
+        size_t size_total = space->size_normal;
 
-        size_t size_total_min = ALIGN_VAL(space->size_normal, 16) + space->size_stack;
-        space->size_total = ALIGN_VAL(size_total_min, 0x1000);
+        if(space->size_heap > 0)
+        {
+            /* Heap should be aligned on 16; (why?) */
+            size_total = ALIGN_VAL(size_total, 16) + space->size_heap;
+        }
+
+        // Store intermediate result.
+        space->heap_end =  size_total;
+
+        /* Stack should be aligned on 16; (why?) */
+        size_total = ALIGN_VAL(size_total, 16) + space->size_stack;
+
+        /* Such a way, next space will have alignment suitable for code and data. */
+        space->size_total = ALIGN_VAL(size_total, 0x1000);
 
         if(space->phys_base == 0)
         {
@@ -193,7 +213,7 @@ jet_space_id ja_space_get_current (void)
     return current_space_id;
 }
 
-// TODO: Storage for floating point registers and operations with it.
+// TODO: Storage for floating point registers and operations with them.
 struct jet_fp_store
 {
   int todo;
@@ -207,7 +227,7 @@ struct jet_fp_store
 struct jet_fp_store* ja_alloc_fp_store(void)
 {
     struct jet_fp_store* res = ja_mem_alloc_aligned(sizeof(*res), 4);
-    
+
     return res;
 }
 
