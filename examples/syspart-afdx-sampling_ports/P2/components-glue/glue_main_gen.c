@@ -60,8 +60,8 @@ struct port_ops{
         void __AFDX_QUEUE_ENQUEUER_activity__(AFDX_QUEUE_ENQUEUER*);
         AFDX_QUEUE_ENQUEUER afdx_queue_enqueuer_1 = {
             .state = {
-                .packet_count = 10,
                 .BAG = SECOND,
+                .max_queue_size = 10,
             },
 
         };

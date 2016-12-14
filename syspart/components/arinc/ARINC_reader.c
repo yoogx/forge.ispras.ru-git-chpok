@@ -24,18 +24,19 @@
 #define C_NAME "ARINC_PORT_READER: "
 
 #define SECOND 1000000000LL
-#define INFINITE_TIME_OUT 0
+#define NO_WAIT_TIME 0
+
+#define SAMPLING_REFRESH_PERIOD SECOND
+
 
 static int receive_msg_queuing(ARINC_PORT_READER *self)
 {
-    sys_port_data_t *dst_place = self->state.port_buffer;
-
     RETURN_CODE_TYPE ret;
     RECEIVE_QUEUING_MESSAGE(
             self->state.port_id,
-            INFINITE_TIME_OUT,
-            (MESSAGE_ADDR_TYPE ) (dst_place->data + self->state.prepend_overhead),
-            &dst_place->message_size,
+            NO_WAIT_TIME,
+            (MESSAGE_ADDR_TYPE ) (self->state.port_buffer + self->state.prepend_overhead),
+            &self->state.message_size,
             &ret
             );
 
@@ -52,16 +53,14 @@ static int receive_msg_samping(ARINC_PORT_READER *self)
     RETURN_CODE_TYPE ret;
     VALIDITY_TYPE   validity;
 
-    sys_port_data_t *dst_place = self->state.port_buffer;
-
     //~ printf("SYS_CHECK: %d\n", SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(self->state.port_id));
     if (SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(self->state.port_id))
         return -1;
 
     READ_SAMPLING_MESSAGE(
             self->state.port_id,
-            (MESSAGE_ADDR_TYPE ) (dst_place->data + self->state.prepend_overhead),
-            &dst_place->message_size,
+            (MESSAGE_ADDR_TYPE ) (self->state.port_buffer + self->state.prepend_overhead),
+            &self->state.message_size,
             &validity,
             &ret
             );
@@ -79,23 +78,19 @@ void arinc_port_reader_activity(ARINC_PORT_READER *self)
 {
     int receive_error;
     if (self->state.is_queuing_port)
-    {
         receive_error = receive_msg_queuing(self);
-    }
     else
         receive_error = receive_msg_samping(self);
 
     if (receive_error != 0)
         return;
 
-    sys_port_data_t *dst_place = self->state.port_buffer;
     ret_t res = ARINC_PORT_READER_call_portA_send(self,
-            dst_place->data + self->state.prepend_overhead,
-            dst_place->message_size,
+            self->state.port_buffer + self->state.prepend_overhead,
+            self->state.message_size,
             self->state.prepend_overhead,
             self->state.append_overhead
             );
-
 
     if (res != EOK)
         printf(C_NAME"Error in send_udp\n");
@@ -120,7 +115,7 @@ void arinc_port_reader_init(ARINC_PORT_READER *self)
                 self->state.port_name,
                 self->state.port_max_message_size,
                 self->state.port_direction,
-                SECOND, //in future should be any positive number
+                SAMPLING_REFRESH_PERIOD, //in future should be any positive number
                 &self->state.port_id,
                 &ret);
     }
@@ -132,11 +127,8 @@ void arinc_port_reader_init(ARINC_PORT_READER *self)
 
     printf(C_NAME"successfuly create %s port\n", self->state.port_name);
 
-
     self->state.port_buffer = smalloc(
-            sizeof(*self->state.port_buffer) +
             self->state.prepend_overhead +
             self->state.port_max_message_size +
             self->state.append_overhead);
-    //self->state.port_buffer_msgsize;
 }

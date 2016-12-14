@@ -61,6 +61,7 @@ struct port_ops{
         AFDX_QUEUE_ENQUEUER afdx_queue_enqueuer_1 = {
             .state = {
                 .BAG = SECOND,
+                .max_queue_size = 10,
             },
 
         };

@@ -160,14 +160,14 @@ static void setup_receive_buffers(struct virtio_network_device *dev)
 
 ret_t send_frame(VIRTIO_NET_DEV * self,
         char *buffer,
-        size_t size,
-        size_t max_back_step,
-        size_t frontstep)
+        const size_t size,
+        const size_t prepend_max_size,
+        const size_t append_max_size)
 {
     if (!self->state.info.inited)
         return EINVAL; //FIXME
 
-    if (max_back_step != 0)
+    if (prepend_max_size != 0)
         return EINVAL;
 
     static struct virtio_net_hdr net_hdr;
@@ -182,7 +182,7 @@ ret_t send_frame(VIRTIO_NET_DEV * self,
     struct virtio_virtqueue *vq = &dev->tx_vq;
     if (vq->num_free < 1) {
         PRINTF("no free TX descriptors\n");
-        return FALSE;
+        return EINVAL;
     }
 
     memset(&net_hdr, 0, sizeof(net_hdr));
@@ -203,7 +203,7 @@ ret_t send_frame(VIRTIO_NET_DEV * self,
     desc->addr = pok_virt_to_phys(dev->send_buffers[head].data);
     if (desc->addr == 0) {
         printf("%s: kernel says that virtual address is wrong\n", __func__);
-        return FALSE;
+        return EINVAL;
     }
     desc->len = size;
     desc->flags = VRING_DESC_F_NEXT;
@@ -218,7 +218,7 @@ ret_t send_frame(VIRTIO_NET_DEV * self,
 
     vq->vring.avail->idx++;
 
-    return TRUE;
+    return EOK;
 }
 
 static void reclaim_send_buffers(struct virtio_network_device *info)

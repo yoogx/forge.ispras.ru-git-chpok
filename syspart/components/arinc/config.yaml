@@ -3,15 +3,17 @@
   state_struct:
       port_name: NAME_TYPE
       port_direction: PORT_DIRECTION_TYPE
-      prepend_overhead: unsigned
-      append_overhead: unsigned
+      prepend_overhead: size_t
+      append_overhead: size_t
       port_max_message_size: MESSAGE_SIZE_TYPE
       is_queuing_port: int
       q_port_max_nb_messages: MESSAGE_RANGE_TYPE
 
       #not inited
       port_id: APEX_INTEGER
-      port_buffer: sys_port_data_t *
+      #port_buffer: sys_port_data_t *
+      port_buffer: char *
+      message_size: MESSAGE_SIZE_TYPE
 
   init_func: arinc_port_reader_init
   activity: arinc_port_reader_activity

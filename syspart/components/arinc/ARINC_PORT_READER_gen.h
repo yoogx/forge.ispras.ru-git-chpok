@@ -31,11 +31,12 @@
 typedef struct ARINC_PORT_READER_state {
     PORT_DIRECTION_TYPE port_direction;
     MESSAGE_RANGE_TYPE q_port_max_nb_messages;
-    sys_port_data_t * port_buffer;
+    char * port_buffer;
+    MESSAGE_SIZE_TYPE message_size;
     MESSAGE_SIZE_TYPE port_max_message_size;
     NAME_TYPE port_name;
-    unsigned prepend_overhead;
-    unsigned append_overhead;
+    size_t prepend_overhead;
+    size_t append_overhead;
     int is_queuing_port;
     APEX_INTEGER port_id;
 }ARINC_PORT_READER_state;

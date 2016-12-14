@@ -25,6 +25,7 @@ components:
       type: AFDX_QUEUE_ENQUEUER
       state:
           BAG: SECOND
+          max_queue_size: 10
 
     - name: virtio_net_dev_1
       type: VIRTIO_NET_DEV
