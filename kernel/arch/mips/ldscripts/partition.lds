@@ -8,9 +8,9 @@ OUTPUT_ARCH(mips)
 ENTRY(__pok_partition_start)
 SECTIONS
 {
-	kshd = 0x80000000; /* This should coincide with ja_space_shared_data() in the kernel. */
+	kshd = 0x70000000; /* This should coincide with ja_space_shared_data() in the kernel. */
 
-  . = 0x80001000;
+  . = 0x60001000;
 
 	__partition_begin = . ;
         .text           :

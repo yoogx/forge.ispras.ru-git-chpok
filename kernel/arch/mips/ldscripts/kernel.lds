@@ -5,7 +5,7 @@ ENTRY(_pok_reset)
 SECTIONS
 {
   /* Read-only sections, merged into text segment: */
-  . = 0x10000;
+  . = 0x80000000;
 
   .text           :
   {

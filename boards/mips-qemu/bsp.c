@@ -25,8 +25,8 @@
 pok_bsp_t pok_bsp = {
 
     .ccsrbar_size = 0x1000000ULL, //?
-    .ccsrbar_base = 0x01FF00000ULL,
-    .ccsrbar_base_phys = 0x01FF00000ULL,
+    .ccsrbar_base = 0x09FF00000ULL,
+    .ccsrbar_base_phys = 0x09FF00000ULL,
     .dcfg_offset = 0xE0000ULL, //?
     .serial0_regs_offset = 0x70000ULL,
     .serial1_regs_offset = 0x70008ULL,
@@ -45,6 +45,6 @@ void ja_bsp_init (void)
    jet_console_init_all ();
 
    //devtree_dummy_dump();
-   if ((uintptr_t) _end > 0x4000000ULL)
+   if ((uintptr_t) _end > 0x84000000ULL)
        pok_fatal("Kernel size is more than 64 megabytes");
 }
