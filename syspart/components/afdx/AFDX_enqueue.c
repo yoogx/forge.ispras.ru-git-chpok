@@ -57,10 +57,10 @@
 
 void fill_afdx_interface_id (frame_data_t *p, int net_card)
 {
-    if (net_card == 0)
-    p->mac_header.mac_src_addr.interface_id = (MAC_INTERFACE_ID_A << 5 | MAC_INTERFACE_ID_2);
+    if (net_card == NETWORK_CARD_A)
+        p->mac_header.mac_src_addr.interface_id = (MAC_INTERFACE_ID_A << 5 | MAC_INTERFACE_ID_2);
     else
-    p->mac_header.mac_src_addr.interface_id = (MAC_INTERFACE_ID_B << 5 | MAC_INTERFACE_ID_2);
+        p->mac_header.mac_src_addr.interface_id = (MAC_INTERFACE_ID_B << 5 | MAC_INTERFACE_ID_2);
 }
 
 /*
@@ -68,30 +68,38 @@ void fill_afdx_interface_id (frame_data_t *p, int net_card)
  */
 void send_packet(AFDX_QUEUE_ENQUEUER *self, frame_data_t *afdx_frame, int net_card)
 {
-    if (net_card == NETWORK_CARD_A)
-    {
-        fill_afdx_interface_id(afdx_frame, NETWORK_CARD_A);
+    fill_afdx_interface_id(afdx_frame, net_card);
 
-        AFDX_QUEUE_ENQUEUER_call_portNetA_send(self,
-                self->state.buffer[self->state.head].data,
-                self->state.buffer[self->state.head].size,
-                self->state.buffer[self->state.head].prepend_overhead,
-                self->state.buffer[self->state.head].append_overhead
-                );
+    if (net_card == NETWORK_CARD_A) {
+        ret_t res = AFDX_QUEUE_ENQUEUER_call_portNetA_send(self,
+                        self->state.buffer[self->state.head].data,
+                        self->state.buffer[self->state.head].size,
+                        self->state.buffer[self->state.head].prepend_overhead,
+                        self->state.buffer[self->state.head].append_overhead
+                        );
+        if (res != EOK)
+            printf(C_NAME"Error in send to card A\n");
 
-        AFDX_QUEUE_ENQUEUER_call_portNetA_flush(self);
+        res = AFDX_QUEUE_ENQUEUER_call_portNetA_flush(self);
+
+        if (res != EOK)
+            printf(C_NAME"Error in flush to card A\n");
 
     } else {
-        fill_afdx_interface_id(afdx_frame, NETWORK_CARD_B);
 
-        AFDX_QUEUE_ENQUEUER_call_portNetB_send(self,
-                self->state.buffer[self->state.head].data,
-                self->state.buffer[self->state.head].size,
-                self->state.buffer[self->state.head].prepend_overhead,
-                self->state.buffer[self->state.head].append_overhead
-                );
+        ret_t res = AFDX_QUEUE_ENQUEUER_call_portNetB_send(self,
+                        self->state.buffer[self->state.head].data,
+                        self->state.buffer[self->state.head].size,
+                        self->state.buffer[self->state.head].prepend_overhead,
+                        self->state.buffer[self->state.head].append_overhead
+                        );
+        if (res != EOK)
+            printf(C_NAME"Error in send to card B\n");
 
-        AFDX_QUEUE_ENQUEUER_call_portNetB_flush(self);
+        res = AFDX_QUEUE_ENQUEUER_call_portNetB_flush(self);
+
+        if (res != EOK)
+            printf(C_NAME"Error in flush to card B\n");
     }
 }
 
@@ -105,14 +113,18 @@ void afdx_queue_init(AFDX_QUEUE_ENQUEUER *self)
      * head, tail, the number of elements
      * and empty srate
      */
-    self->state.buffer = smalloc(self->state.packet_count * sizeof(afdx_buffer));
+    self->state.buffer = smalloc(self->state.max_queue_size * sizeof(afdx_buffer));
     self->state.head = 0;
     self->state.tail = 0;
-    self->state.count = 0;
+    self->state.cur_queue_size = 0;
 
     // only for TEST!
     GET_TIME(&system_time, &ret);
-    self->state.last_time = system_time;
+
+    if (ret != NO_ERROR)
+        printf(C_NAME"Error in GET_TIME\n");
+
+    self->state.min_next_time = system_time;
 }
 
 
@@ -124,44 +136,41 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
     // only for TEST!
     GET_TIME(&system_time, &return_code);
 
-    if (system_time < (self->state.last_time + self->state.BAG))
-    {
-        self->state.last_time += self->state.BAG;
+    if (return_code != NO_ERROR)
+        printf(C_NAME"Error in GET_TIME\n");
 
-        /* 
-         * Take information from queue:
-         * 1. fill_afdx_interface_id
-         * 2. send packet
-         * 3. Increase the head by 1
-         * 4. decreace count by 1
-         */
-        if (self->state.count > 0)
+    if ((system_time > self->state.min_next_time) && (self->state.cur_queue_size > 0)) {
+
+        frame_data_t    *afdx_frame = (frame_data_t *) self->state.buffer[self->state.head].data;
+        printf("QUEUE activity get message: %s\n", afdx_frame->afdx_payload);
+
+         //send to 1 card
         {
-            frame_data_t    *afdx_frame = (frame_data_t *) self->state.buffer[self->state.head].data;
-            printf("QUEUE activity get message: %s\n", afdx_frame->afdx_payload);
-
-             //send to 1 card
-            {
-                printf("Sending to the card A \n");
-                send_packet(self, afdx_frame, NETWORK_CARD_A);
-            }
-
-            //send to 2 card
-            {
-                printf("Sending to the card B\n");
-                send_packet(self, afdx_frame, NETWORK_CARD_B);
-            }
-            
-            /*
-             * Chenge QUEUE state
-             */
-            self->state.head++;
-            if (self->state.head == self->state.packet_count)
-                self->state.head = 0;
-
-            self->state.count--;
-
+            printf("Sending to the card A \n");
+            send_packet(self, afdx_frame, NETWORK_CARD_A);
         }
+
+        //send to 2 card
+        {
+            printf("Sending to the card B\n");
+            send_packet(self, afdx_frame, NETWORK_CARD_B);
+        }
+
+        GET_TIME(&self->state.min_next_time, &return_code);
+
+        if (return_code != NO_ERROR)
+            printf(C_NAME"Error in GET_TIME\n");
+
+        self->state.min_next_time += self->state.BAG;
+        /*
+         * Change QUEUE state
+         */
+        self->state.head++;
+        if (self->state.head == self->state.max_queue_size)
+            self->state.head = 0;
+
+        self->state.cur_queue_size--;
+
     }
 }
 
@@ -171,24 +180,11 @@ ret_t afdx_enqueuer_implementation(
         AFDX_QUEUE_ENQUEUER *self,
         char * afdx_frame,
         const size_t frame_size,
-        const size_t prepend_overhead,
-        const size_t append_overhead
+        const size_t prepend_max_size,
+        const size_t append_max_size
         )
 {
-
-    memcpy(&(self->state.buffer[self->state.tail].data), afdx_frame, frame_size);
-    self->state.buffer[self->state.tail].size = frame_size;
-    self->state.buffer[self->state.tail].prepend_overhead = prepend_overhead;
-    self->state.buffer[self->state.tail].append_overhead = append_overhead;
-
-    self->state.tail++;
-    self->state.count++;
-
-    if ((self->state.tail == self->state.packet_count) && (self->state.count < self->state.packet_count)) {
-        self->state.tail = 0;
-    }
-    if ( ((self->state.tail == self->state.packet_count) && (self->state.count >= self->state.packet_count)) ||
-         ((self->state.tail == self->state.head)  && (self->state.count >= self->state.packet_count)) )  {
+    if (self->state.cur_queue_size >= self->state.max_queue_size) {
 
         printf("ERROR QUEUE if FULL \n");
         printf("Partition P2 will be stopped\n");
@@ -198,7 +194,19 @@ ret_t afdx_enqueuer_implementation(
         return -1;
     }
 
-    return 0;
+    memcpy(&(self->state.buffer[self->state.tail].data), afdx_frame, frame_size);
+    self->state.buffer[self->state.tail].size = frame_size;
+    self->state.buffer[self->state.tail].prepend_overhead = prepend_max_size;
+    self->state.buffer[self->state.tail].append_overhead = append_max_size;
+
+    self->state.tail++;
+    self->state.cur_queue_size++;
+
+    if (self->state.tail == self->state.max_queue_size) {
+        self->state.tail = 0;
+    }
+
+    return EOK;
 }
 
 ret_t afdx_enqueuer_flush(AFDX_QUEUE_ENQUEUER *self)

@@ -27,17 +27,17 @@
 - name: AFDX_QUEUE_ENQUEUER
   additional_h_files: ['"afdx.h"', <arinc653/time.h>]
   state_struct:
-        BAG: pok_time_t
+        BAG: SYSTEM_TIME_TYPE
         buffer: afdx_buffer *
         # the index in the queue for information that should be read
         head: size_t
         # the index in the queue where you want to record information
         tail: size_t
-        count: size_t
-        prepend_overhead: unsigned
-        append_overhead: unsigned
-        packet_count: size_t
-        last_time: SYSTEM_TIME_TYPE
+        cur_queue_size: size_t
+        prepend_overhead: size_t
+        append_overhead: size_t
+        max_queue_size: size_t
+        min_next_time: SYSTEM_TIME_TYPE
 #temporary solution until we can generate a periodic process components
 
   init_func: afdx_queue_init

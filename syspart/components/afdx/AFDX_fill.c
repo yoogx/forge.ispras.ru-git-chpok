@@ -36,6 +36,8 @@
 
 #define C_NAME "AFDX_FILLER: "
 
+#define MAX(A, B) (((A) > (B)) ? (A) : (B))
+
 #define MAC_CONST_DST       0x3000000
 #define MAC_CONST_SRC_1     0x2
 #define MAC_CONST_SRC_2     0
@@ -63,6 +65,7 @@
 #define UDP_H_LENGTH        8
 #define IP_H_LENGTH         (IHL * 4) + UDP_H_LENGTH
 #define FCS_LENGTH          4
+#define SUFFIX_LENGTH       1
 
 #define MIN_AFDX_PAYLOAD_SIZE    17
 
@@ -154,16 +157,6 @@ uint16_t ip_hdr_checksum_2(const struct ip_header *ip_hdr)
 }
 
 /*
- * This function adds SN at the end of Payload
- * and increases frame_size by 1
- */
-
-void fill_seq_numb(uint8_t * buf, size_t f_size, uint8_t * s_number)
-{
-    memcpy((buf + f_size), s_number, 1);
-}
-
-/*
  * This function fill the afdx frame without information of interface id.
  * The information of interface id will fill another function, which will send
  * packets to the network cards
@@ -171,7 +164,8 @@ void fill_seq_numb(uint8_t * buf, size_t f_size, uint8_t * s_number)
 uint16_t fill_afdx_frame(AFDX_FILLER_state *state,
                          frame_data_t *p,
                          char afdx_payload[],
-                         uint16_t payload_size
+                         uint16_t payload_size,
+                         uint8_t seq_num
                          )
 {
 //MAC
@@ -202,15 +196,13 @@ uint16_t fill_afdx_frame(AFDX_FILLER_state *state,
     //
     p->ip_header.u_src_addr.ip_src_addr.partition_id = (IP_PARTITION_ID_1 << 3 | state->src_partition_id);
     //dst !
-    if (state->type_of_packet == UNICAST_PACKET)
-    {
+    if (state->type_of_packet == UNICAST_PACKET) {
         p->ip_header.u_dst_addr.ip_unicast_dst_addr.ip_const_src = IP_CONST_SRC;
         p->ip_header.u_dst_addr.ip_unicast_dst_addr.network_id = (IP_NETWORK_ID << 4 | DOMAIN_ID);
         p->ip_header.u_dst_addr.ip_unicast_dst_addr.equipment_id = (SIDE_ID << 5 | LOCATION_ID);
         //
         p->ip_header.u_dst_addr.ip_unicast_dst_addr.partition_id = (IP_PARTITION_ID_1 << 3 | state->dst_partition_id);
-    }else
-    {
+    }else {
         p->ip_header.u_dst_addr.ip_multicast_dst_addr.ip_const_dst = hton16(IP_CONST_DST);
         p->ip_header.u_dst_addr.ip_multicast_dst_addr.vl_id =  hton16(state->vl_id);
     }
@@ -223,12 +215,15 @@ uint16_t fill_afdx_frame(AFDX_FILLER_state *state,
 //PAYLOAD
     memcpy(p->afdx_payload, afdx_payload, payload_size);
 
-    // add pad if it's necessary
+    // add pad if it's necessary and SN after that
     uint8_t pad_size = 0;
-    if (payload_size < MIN_AFDX_PAYLOAD_SIZE)
-    {
+    if (payload_size < MIN_AFDX_PAYLOAD_SIZE) {
         pad_size = MIN_AFDX_PAYLOAD_SIZE - payload_size;
         memset((p->afdx_payload + payload_size), 0, pad_size);
+
+        p->afdx_payload[MIN_AFDX_PAYLOAD_SIZE] = seq_num;
+    } else {
+        p->afdx_payload[payload_size] = seq_num;
     }
 
 //UDP Checksum
@@ -236,11 +231,10 @@ uint16_t fill_afdx_frame(AFDX_FILLER_state *state,
                                                     hton16(payload_size + UDP_H_LENGTH),
                                                     (p->ip_header.u_src_addr.ip_general_src_addr),
                                                     (p->ip_header.u_dst_addr.ip_general_dst_addr));
-    //scp ifg?
     if (pad_size == 0)
-        return (payload_size + HEADER_LENGTH);
+        return (payload_size + HEADER_LENGTH + SUFFIX_LENGTH);
     else
-        return (payload_size + pad_size + HEADER_LENGTH);
+        return (HEADER_LENGTH + payload_size + pad_size + SUFFIX_LENGTH);
 
 }
 
@@ -253,60 +247,35 @@ ret_t afdx_filler_send(
         AFDX_FILLER *self,
         char *payload,
         const size_t payload_size,
-        const size_t prepend_overhead,
-        const size_t append_overhead
+        const size_t prepend_max_size,
+        const size_t append_max_size
         )
 {
-  	if (prepend_overhead < HEADER_LENGTH)
+    if (prepend_max_size < HEADER_LENGTH)
+        return EINVAL;
+
+    if (append_max_size < 1)
         return EINVAL;
 
     frame_data_t *afdx_frame = (frame_data_t *)(payload - HEADER_LENGTH);
 
-    fill_afdx_frame(&self->state, afdx_frame, payload, payload_size);
-
-    if (append_overhead < 1)
-        return EINVAL;
-
-    if (payload_size < MIN_AFDX_PAYLOAD_SIZE)
-        fill_seq_numb((uint8_t *)afdx_frame, (MIN_AFDX_PAYLOAD_SIZE + HEADER_LENGTH), &self->state.sn);
-    else
-        fill_seq_numb((uint8_t *)afdx_frame, (payload_size + HEADER_LENGTH), &self->state.sn);
-
+    fill_afdx_frame(&self->state, afdx_frame, payload, payload_size, self->state.sn);
     self->state.sn = (self->state.sn % 255) + 1;
 
-    if (payload_size < MIN_AFDX_PAYLOAD_SIZE)
-    {
-        ret_t res = AFDX_FILLER_call_portB_send(self,
-                        (char *) afdx_frame,
-                        (HEADER_LENGTH + MIN_AFDX_PAYLOAD_SIZE + 1),
-                        (prepend_overhead - HEADER_LENGTH),
-                        (append_overhead - 1)
-                        );
-
-        if (res != EOK)
-            printf(C_NAME"Error in send\n");
-
-        AFDX_FILLER_call_portB_flush(self);
-
-        return EOK;
-    }
-    else {
     ret_t res = AFDX_FILLER_call_portB_send(self,
                     (char *) afdx_frame,
-                    (HEADER_LENGTH + payload_size + 1),
-                    (prepend_overhead - HEADER_LENGTH),
-                    (append_overhead - 1)
+                    HEADER_LENGTH + SUFFIX_LENGTH + MAX(payload_size, MIN_AFDX_PAYLOAD_SIZE),
+                    prepend_max_size - HEADER_LENGTH,
+                    append_max_size - SUFFIX_LENGTH
                     );
 
     if (res != EOK)
         printf(C_NAME"Error in send\n");
 
-    AFDX_FILLER_call_portB_flush(self);
-
-    return EOK;
-    }
+    return res;
 }
 
 ret_t afdx_filler_flush(AFDX_FILLER *self) {
-    return EOK;
+
+    return AFDX_FILLER_call_portB_flush(self);
 }
