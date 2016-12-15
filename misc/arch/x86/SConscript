@@ -18,15 +18,14 @@
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 """
-Environment definitions for e500_highmem board based on PowerPC.
+Environment definitions for x86 architecture.
 """
 
 Import('env')
 
-env['ARCH'] = 'ppc'
+env['PREFIX'] = 'i386-elf-'
 
-SConscript(env['JETOS_HOME'] + '/misc/arch/ppc/SConscript', exports = 'env')
+env['QEMU'] = 'qemu-system-i386'
 
-env.Append(CFLAGS = ' -mcpu=e500mc')
-
-env.Append(QEMU_FLAGS = ' -M ppce500 -cpu e500mc')
+env['LDSCRIPT_KERNEL'] = env['JETOS_HOME'] + '/boards/' + env['BSP'] + '/ldscripts/kernel.lds'
+env['LDSCRIPT_PARTITION'] = env['JETOS_HOME'] + '/boards/' + env['BSP'] + '/ldscripts/partition.lds'

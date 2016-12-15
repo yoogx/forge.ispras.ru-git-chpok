@@ -18,7 +18,7 @@
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 """
-Environment definitions for e500_highmem board based on PowerPC.
+Environment definitions for p3041 board based on PowerPC.
 """
 
 Import('env')
