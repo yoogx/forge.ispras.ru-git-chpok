@@ -48,8 +48,8 @@ if kernel_env.get('jdeveloper'):
     import template_generation
     AddMethod(kernel_env, template_generation.BuildSyscallDefinition)
 
-    source_dir = kernel_env['JETOS_HOME'] + 'kernel/include/uapi/'
-    target_dir = kernel_env['JETOS_HOME'] + 'kernel/include/uapi/'
+    source_dir = kernel_env['JETOS_HOME'] + '/kernel/include/uapi/'
+    target_dir = kernel_env['JETOS_HOME'] + '/kernel/include/uapi/'
 
     (uapi_headers, uapi_headers_syscall) = SConscript(source_dir + 'SConscript')
 

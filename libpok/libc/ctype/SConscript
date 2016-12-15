@@ -27,10 +27,10 @@ sources = [
     'ctype_internal.c',
 ]
 
-target_dir = libpok_env['JETOS_HOME'] + 'libpok/libc/ctype'
+target_dir = libpok_env['JETOS_HOME'] + '/libpok/libc/ctype'
 
 for lname in locales:
-    sources.append(target_dir + '/ctype_tables_' + lname + '.c')
+    sources.append('ctype_tables_' + lname + '.c')
 
 class TestClass:
     def __init__(self, name):
@@ -152,7 +152,7 @@ if libpok_env.get('jdeveloper'):
     import template_generation
     AddMethod(libpok_env, template_generation.TemplateRender)
 
-    source_dir = libpok_env['JETOS_HOME'] + 'libpok/libc/ctype'
+    source_dir = libpok_env['JETOS_HOME'] + '/libpok/libc/ctype'
 
     # <source-dir> and <target-dir> are the same.
     #

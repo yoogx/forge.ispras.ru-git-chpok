@@ -24,40 +24,50 @@ Build single partition according to definition script.
 # This script may be called either from SConscript, when it builds single
 # partition, or from SConscript_module for every partition.
 #
-# The script Import()s variable 'part_env' contained clone of the main
-# environment and prepare it for build user-space components. When script
-# is called as a part of the module's building process, environment
-# variable part_env['PARTITION_INDEX'] contains index of the partition
-# (counted from 0), otherwise this variable is not set.
+# The script Import()s variable 'part_env' prepared to build user-space
+# components.
 #
-# After that, it Import()s variable 'partition_def' and execute script,
-# pointed by it. That script setups 'part_env' variables,
-# whichs determine partition components and configuration:
+# When script is called as a part of the module's building process,
+# environment variable part_env['PARTITION_INDEX'] contains index of
+# the partition (counted from 0), otherwise this variable is not set.
 #
-# - 'BUILD_DIR' - where partition's elf should be built.
+# Also, imported invironment should contain following variables:
+#
+# - 'PARTITION_SOURCE_DIR' - where partition's sources are resided.
 # (Absolute path).
 #
-# - 'CLEAN_DIRS' - which directories should be clean on `scons -c local`.
-# (Absolute path or list of absolute paths; by default equal to BUILD_DIR).
+# - 'PARTITION_BUILD_DIR' - where partition's elf should be built.
+# (Absolute path).
 #
+# - 'PARTITION_CLEAN_DIRS' - which directories should be clean on `scons -c local`.
+# (Absolute path or list of absolute paths; by default equal to PARTITION_BUILD_DIR).
 #
-# - 'XML' - xml or other file(s), from which configuration of partition
+# After that, it executes SConscript located under 'PARTITION_SOURCE_DIR'.
+# This script is called with variant dir equal to 'PARTITION_BUILD_DIR'.
+#
+# Then, if 'PARTITION_POST_PROCESS' variable is set, it is interpreted
+# as a function accepting 'part_env' parameter, and is executed.
+#
+# After that, following variables, described partition's components and
+# configuraton, are expected to be set:
+#
+# - 'PARTITION_XML' - xml or other file(s), from which configuration of partition
 # may be extracted.
-# (Single absolute path or list of absolute paths).
+# (Single element or list of element; element could be absolute path, relative (against source dir) or object of type 'File').
 #
-# - 'PARSE_CONFIGURATION' - parser of files listed in 'XML', which should
+# - 'PARTITION_PARSE_CONFIGURATION' - parser of files listed in 'XML', which should
 # return object of type 'chpok_configuration.Partition'.
 # (Function with signature '(sources, part_env)').
 #
 # - 'PARTITION_SOURCES' - list of files, from which partition should be
 # built. Any file may be source file, contained the code, or object one,
-# obtained with part_env.StaticObject().
-# (List of absolute paths).
+# obtained e.g. with part_env.StaticLibrary().
+# (Single element or list of element; element could be absolute path, relative (against build dir) or object of type 'File').
 #
-# - 'SYSTEM_PARTITION' - if set to true-evaluated value, the partition is
+# - 'PARTITION_IS_SYSTEM' - if set to true-evaluated value, the partition is
 # linked with system partition library.
 #
-# Script pointed by 'partition_def' may check variable
+# Executed SConscript may check variable
 # part_env['PARTITION_INDEX'] for differentiate modes (single partition
 # or the whole module) and for extract partition's index in the second case.
 #
@@ -71,23 +81,35 @@ import chpok_configuration
 import template_generation
 
 Import('part_env')
-Import('partition_def')
 
-SConscript(partition_def, exports = 'part_env')
+part_build_dir = part_env['PARTITION_BUILD_DIR']
 
-part_build_dir = part_env['BUILD_DIR']
+part_env.SConscript(dirs = part_env['PARTITION_SOURCE_DIR'],
+	exports = 'part_env',
+	variant_dir = part_build_dir,
+	duplicate = 0)
 
-if not os.path.exists(part_build_dir):
-    os.makedirs(part_build_dir)
+partition_post_process = part_env.get('PARTITION_POST_PROCESS', None)
+if partition_post_process is not None:
+	partition_post_process(part_env)
+
+part_env['PARTITION_SOURCES'] = part_env.toAbsPathList(
+	part_env['PARTITION_SOURCES'],
+	part_build_dir
+)
+part_env['PARTITION_XML'] = part_env.toAbsPathList(
+	part_env['PARTITION_XML'],
+	part_env['PARTITION_SOURCE_DIR']
+)
 
 AddMethod(part_env, template_generation.TemplateRender)
 
 def get_pok_partition_definitions(source, part_env):
-    return dict(part = part_env['PARSE_CONFIGURATION'](source, part_env))
+    return dict(part = part_env['PARTITION_PARSE_CONFIGURATION'](source, part_env))
 
 deployment_target = part_env.TemplateRender(
     target = os.path.join(part_build_dir, "deployment.c"),
-    source = part_env['XML'],
+    source = part_env['PARTITION_XML'],
     create_definitions_func = get_pok_partition_definitions,
     template_main = "deployment_user",
     template_dir = part_env['JETOS_HOME'] + "/misc/templates"
@@ -100,7 +122,7 @@ ldscript_partition = part_env['LDSCRIPT_PARTITION']
 part_elf_env['LINKFLAGS'] = ' -T ' + ldscript_partition
 
 syspart_target = []
-if part_env.get('SYSTEM_PARTITION', default = False):
+if part_env.get('PARTITION_IS_SYSTEM', default = False):
 	syspart_target.append(part_env['SYSPART_TARGET'])
 
 part_elf = part_elf_env.Program(target = part_build_dir+'/part.elf',
@@ -113,10 +135,10 @@ part_elf = part_elf_env.Program(target = part_build_dir+'/part.elf',
 part_elf_env.Depends(part_elf, ldscript_partition)
 
 
-part_clean_dirs = part_env.get('CLEAN_DIRS', part_build_dir)
+part_clean_dirs = part_env.get('PARTITION_CLEAN_DIRS', part_build_dir)
 if type(part_clean_dirs) is not list:
 	part_clean_dirs = [part_clean_dirs]
-	part_env['CLEAN_DIRS'] = part_clean_dirs
+	part_env['PARTITION_CLEAN_DIRS'] = part_clean_dirs
 
 if 'part_index' in part_env:
 	# If build as a part of the module, SConscript_module cares about

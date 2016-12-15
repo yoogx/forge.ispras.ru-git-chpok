@@ -33,11 +33,11 @@ import os
 
 Import('part_env')
 
-P2_env = part_env.Clone()
-P2_env.Append(CFLAGS = ' -O3')
+#P2_env = part_env.Clone()
+part_env.Append(CFLAGS = ' -O3')
 
 for comp in COMPONENTS_LIST:
-    P2_env.Append(CPPPATH = os.path.join(P2_env['JETOS_HOME'], COMPONENTS_DIR, comp))
+    part_env.Append(CPPPATH = os.path.join(part_env['JETOS_HOME'], COMPONENTS_DIR, comp))
 
 
 from collections import defaultdict
@@ -95,7 +95,7 @@ if part_env.get('cdeveloper'):
 
 objs = []
 sources = Glob('*.c')
-for src in sources:
-    objs += P2_env.StaticObject(part_env['BUILD_DIR'] + '/' + str(src)[:-2], src)
+#for src in sources:
+#    objs += P2_env.StaticObject(src)
 
-Return('objs')
+Return('sources')

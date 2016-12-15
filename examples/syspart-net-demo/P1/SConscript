@@ -19,5 +19,5 @@
 
 Import('part_env')
 
-part_env['src_dirs'] = ['src']
-part_env['XML'] = 'config.xml'
+part_env['PARTITION_SOURCES'] = ['src/main.c']
+part_env['PARTITION_XML'] = 'config.xml'

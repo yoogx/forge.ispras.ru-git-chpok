@@ -25,35 +25,69 @@ scripts.
 # This script is called from SConscript, when it builds whole module.
 #
 # The script Import()s variable 'env' contained main environment.
-# After that, it Import()s variable 'module_def' and execute script,
-# pointed by it. That script setups 'env' variables,
-# which determines module's components and configuration:
 #
-# - 'BUILD_DIR' - where module's elf should be built.
+# Also, imported invironment should contain following variables:
+#
+# - 'MODULE_BUILD_DIR' - where module's elf ('pok.elf') should be built.
 # (Absolute path).
 #
-# - 'CLEAN_DIRS' - which directories should be clean on `scons -c local`.
-# (Absolute path or list of absolute paths; by default equal to BUILD_DIR).
+# - 'MODULE_SOURCE_DIR' - where module sources are located.
+# (Absolute path).
 #
-# - 'XML' - xml or other file(s), from which configuration of module
+# After that, it executes SConscript located under 'MODULE_SOURCE_DIR'.
+# This script is called with variant dir equal to 'MODULE_BUILD_DIR'.
+#
+# Then, if variable 'MODULE_POST_PROCESS' is set, it is interpreted as
+# a function which accepts 'env' argument, and executed.
+#
+# After that, following variables, described module's components and
+# configuraton, are expected to be set:
+#
+# - 'MODULE_CLEAN_DIRS' - which directories should be clean on `scons -c local`.
+# (Absolute path or list of absolute paths; by default equal to MODULE_BUILD_DIR).
+#
+# - 'MODULE_XML' - xml or other file(s), from which configuration of module
 # may be extracted.
-# Note: per-partition 'XML' shouldn't be listed there.
-# (Single absolute path or list of absolute paths).
+# Note: per-partition 'XML' needn't be listed there.
+# (Single element or list of element; element could be absolute path, relative (against source dir) or object of type 'File').
 #
-# - 'PARSE_CONFIGURATION' - parser of files listed in 'XML', which should
+# - 'MODULE_PARSE_CONFIGURATION' - parser of files listed in 'XML', which should
 # return object of type 'chpok_configuration.Configuration'.
 # (Function with signature '(sources, env)').
 #
-# - 'PARTITION_DEFS' - list of script files, each of them describes its
-# own partition.
-# (List of absolute paths).
+# - 'PARTITIONS_NUMBER' - number of partitions in the module.
 #
-# After module's definition script returns, iterates variable
-# 'partition_def' over partition definition scripts listed in
-# env['PARTITION_DEFS']. On each iteration calls script SConscript_partition
-# with variable 'part_env', cloned from 'env' and with additional variable
-# part_env['PARTITION_INDEX'] set to the index of iteration (counted from 0),
-# and with variable 'partition_def'.
+# - 'PARTITION_FILL' - function which will be called for every partition
+# environment before call script 'SConscript_partition' for it.
+# Index of the partition is passed to that function as the second argument.
+# (That is, signature of the function is '(part_env, part_index)').
+#
+# Executed SConscript may modify/use scons environment variables:
+#
+# - CFLAGS, CPPPATH and other variables common for "C" compilation.
+#   Note, that adjusting of LINKFLAGS is not supported.
+#
+# - QEMU_FLAGS - flags for qemu for run generated module.
+#
+# Also, executed SConscript may use methods:
+#
+# - env.PartitionEnvironment() - create fresh environment, used for
+# compile things for partition(user space). E.g., on may use .Object()
+# method of that environment and later add its result to
+# part_env['PARTITION_SOURCES'] in 'partition_def' scripts (see below).
+#
+# - env.KernelEnvironment() - create fresh environment, used for
+# compile things for kernel. (Note, that these things cannot be compiled
+# into the module).
+#
+#
+# After that, for every partition (of total 'PARTITION_NUMBER'):
+# 1) environment for it is created,
+# 2) 'PARTITION_FILL' method is called
+# 3) Script 'SConscript_partition' is executed (that is, method 
+#    PARTITION_FILL' should set variables required for that script).
+#
+# After that, target for module's creation are generated.
 #
 # Return target which builds module's elf.
 
@@ -64,45 +98,63 @@ import chpok_configuration
 import template_generation
 
 Import('env')
-Import('module_def')
 
-SConscript(module_def, exports = 'env')
+module_build_dir = env['MODULE_BUILD_DIR']
 
-module_build_dir = env['BUILD_DIR']
+env.SConscript(dirs = env['MODULE_SOURCE_DIR'],
+	exports = 'env',
+	variant_dir = module_build_dir,
+	duplicate = 0)
 
-if not os.path.exists(module_build_dir):
-    os.makedirs(module_build_dir)
+module_post_process = env.get('MODULE_POST_PROCESS', None)
+if module_post_process is not None:
+	module_post_process(env)
+
+env['BSP_TARGET'] = SConscript(env['JETOS_HOME'] + '/boards/SConscript',
+	exports = 'env',
+	variant_dir = env['JETOS_HOME'] + '/build/'+env['BSP']+'/boards',
+	duplicate = 0
+)
+env['KERNEL_CORE_TARGET'] = SConscript(env['JETOS_HOME'] + '/kernel/SConscript',
+	exports = 'env',
+	variant_dir = env['JETOS_HOME'] + '/build/'+env['BSP']+'/kernel',
+	duplicate = 0
+)
 
 partition_build_dirs = []
 partition_clean_dirs = []
 partition_xmls = []
 partition_elfs = []
 
-for part_index, partition_def in enumerate(env['PARTITION_DEFS']):
+for part_index in range(env['PARTITIONS_NUMBER']):
 	part_env = env.PartitionEnvironment()
 	part_env.Append(part_index = part_index)
-	part_elf = SConscript('SConscript_partition', exports = ['part_env', 'partition_def'])
+	env['PARTITION_FILL'](part_env, part_index)
+
+	part_elf = SConscript('SConscript_partition', exports = 'part_env')
 	partition_elfs.append(part_elf)
-	partition_build_dirs.append(part_env['BUILD_DIR'])
-	partition_clean_dirs.extend(part_env['CLEAN_DIRS'])
-	partition_xmls.append(part_env['XML'])
+	partition_build_dirs.append(part_env['PARTITION_BUILD_DIR'])
+	partition_clean_dirs.extend(part_env['PARTITION_CLEAN_DIRS'])
+	partition_xmls.append(part_env['PARTITION_XML'])
 
 AddMethod(env, template_generation.TemplateRender)
 
 def get_pok_definitions(source, env):
-    return dict(conf = env['PARSE_CONFIGURATION'](source, env))
+    return dict(conf = env['MODULE_PARSE_CONFIGURATION'](source, env))
 
 
 def get_pok_gdb_definitions(source, env):
-    defs = dict(conf = env['PARSE_CONFIGURATION'](source, env),
+    defs = dict(conf = env['MODULE_PARSE_CONFIGURATION'](source, env),
 		partition_build_dirs = partition_build_dirs)
 
     return defs
 
+module_xml = env.toAbsPathList(env['MODULE_XML'], env['MODULE_SOURCE_DIR'])
+
 # Generate "deployment.c" for kernel
 deployment_kernel = env.TemplateRender(
     target = os.path.join(module_build_dir, "deployment.c"),
-    source = [env['XML']] + partition_xmls,
+    source = module_xml + partition_xmls,
     create_definitions_func = get_pok_definitions,
     template_main = "deployment_kernel",
     template_dir = env['JETOS_HOME'] + "/misc/templates",
@@ -113,7 +165,7 @@ deployment_kernel = env.TemplateRender(
 # Generate file with commands for GDB for possible debugging
 gdb_commands = env.TemplateRender(
     target = module_build_dir + "/GDB_commands",
-    source = [env['XML']] + partition_xmls,
+    source = module_xml + partition_xmls,
     create_definitions_func = get_pok_gdb_definitions,
     template_main = "GDB_commands",
     template_dir = env['JETOS_HOME'] + "/misc/templates",
@@ -208,10 +260,10 @@ command_debug_gdb = env.Command('debug_gdb', gdb_commands, env['GDB']+' '+pok_ta
                                                                             -ex "target extended-remote 127.0.0.1:8000"')
 env.Alias('debug-gdb', 'debug_gdb')
 
-module_clean_dirs = env.get('CLEAN_DIRS', module_build_dir)
+module_clean_dirs = env.get('MODULE_CLEAN_DIRS', module_build_dir)
 if type(module_clean_dirs) is not list:
 	module_clean_dirs = [module_clean_dirs]
-	part_env['CLEAN_DIRS'] = module_clean_dirs
+	env['MODULE_CLEAN_DIRS'] = module_clean_dirs
 
 
 clean_directories = module_clean_dirs + partition_clean_dirs

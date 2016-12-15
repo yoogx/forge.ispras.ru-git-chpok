@@ -96,6 +96,6 @@ if part_env.get('cdeveloper'):
 objs = []
 sources = Glob('*.c')
 for src in sources:
-    objs += P2_env.StaticObject(part_env['BUILD_DIR'] + "/" + str(src)[:-2], src)
+    objs += P2_env.StaticObject(src)
 
 Return('objs')
