@@ -23,8 +23,6 @@
 * Created by ....
 */
 
-
-
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
@@ -156,16 +154,16 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
             send_packet(self, afdx_frame, NETWORK_CARD_B);
         }
 
-        GET_TIME(&self->state.min_next_time, &return_code);
+        GET_TIME(&system_time, &return_code);
 
         if (return_code != NO_ERROR)
             printf(C_NAME"Error in GET_TIME\n");
 
-        self->state.min_next_time += self->state.BAG;
-        /*
-         * Change QUEUE state
-         */
+        self->state.min_next_time = system_time + self->state.BAG;
+
+        // Change QUEUE state
         self->state.head++;
+
         if (self->state.head == self->state.max_queue_size)
             self->state.head = 0;
 
@@ -173,8 +171,6 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
 
     }
 }
-
-
 
 ret_t afdx_enqueuer_implementation(
         AFDX_QUEUE_ENQUEUER *self,

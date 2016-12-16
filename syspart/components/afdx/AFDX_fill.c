@@ -78,10 +78,9 @@
 */
 void set_mac_addr_const_part(uint8_t x[3])
 {
-
-        x[0] = MAC_CONST_SRC_1;
-        x[1] = MAC_CONST_SRC_2;
-        x[2] = MAC_CONST_SRC_3;
+    x[0] = MAC_CONST_SRC_1;
+    x[1] = MAC_CONST_SRC_2;
+    x[2] = MAC_CONST_SRC_3;
 }
 
 /* Calculate the UDP checksum (calculated with the whole packet).
@@ -105,8 +104,7 @@ uint16_t udp_checksum(void *buff, uint16_t len, uint32_t src_addr, uint32_t dest
     // Calculate the sum
     sum = 0;
     //~ while (length > 1)
-    for (sum = 0; length > 1; length -= 2)
-    {
+    for (sum = 0; length > 1; length -= 2) {
         sum += *(buf++);
     }
 
@@ -202,7 +200,7 @@ uint16_t fill_afdx_frame(AFDX_FILLER_state *state,
         p->ip_header.u_dst_addr.ip_unicast_dst_addr.equipment_id = (SIDE_ID << 5 | LOCATION_ID);
         //
         p->ip_header.u_dst_addr.ip_unicast_dst_addr.partition_id = (IP_PARTITION_ID_1 << 3 | state->dst_partition_id);
-    }else {
+    } else {
         p->ip_header.u_dst_addr.ip_multicast_dst_addr.ip_const_dst = hton16(IP_CONST_DST);
         p->ip_header.u_dst_addr.ip_multicast_dst_addr.vl_id =  hton16(state->vl_id);
     }
