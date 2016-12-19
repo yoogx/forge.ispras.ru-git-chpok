@@ -27,7 +27,6 @@
 #include <dependencies.h>
 
 #include <core/debug.h>
-#include <core/instrumentation.h>
 #include <core/error.h>
 
 #include <assert.h>

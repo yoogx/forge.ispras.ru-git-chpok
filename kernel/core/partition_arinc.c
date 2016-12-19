@@ -511,9 +511,5 @@ void pok_partition_arinc_init_all(void)
 	for(int i = 0; i < pok_partitions_arinc_n; i++)
 	{
 		pok_partition_arinc_init(&pok_partitions_arinc[i]);
-
-#ifdef POK_NEEDS_INSTRUMENTATION
-		pok_instrumentation_partition_archi (i);
-#endif
 	}
 }
