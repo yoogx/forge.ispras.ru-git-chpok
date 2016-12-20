@@ -37,14 +37,12 @@
  */
 void pok_arch_init (void)
 {
-//~ /*MSR_IP |*/   mtsr(CP0_STATUS_XX);
 
   ja_bsp_init();
 
   pok_arch_space_init();
 
   ja_time_init();
-
 }
 
 void ja_preempt_disable(void)
@@ -55,7 +53,8 @@ void ja_preempt_disable(void)
 
 void ja_preempt_enable(void)
 {
-    INT_ENABLE
+    mtsr(mfsr() | CP0_STATUS_IE);
+    mtsr(mfsr() & (~CP0_STATUS_EXL));
 }
 
 pok_bool_t ja_preempt_enabled(void)
@@ -71,13 +70,13 @@ void ja_inf_loop(void)
    }
 }
 
-#include <arch/linux_io.h>
+
 #define DCFG_RSTCR 0xb0
 #define RSTCR_RESET_REQ 0x2
 void ja_cpu_reset(void)
 {
     uintptr_t addr = pok_bsp.ccsrbar_base + pok_bsp.dcfg_offset + DCFG_RSTCR;
-    out_be32((void*)addr, RSTCR_RESET_REQ);
+    *(uint32_t *) addr = RSTCR_RESET_REQ;
 }
 
 pok_ret_t pok_bsp_get_info(void * __user addr) {

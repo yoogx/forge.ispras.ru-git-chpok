@@ -31,6 +31,7 @@
 /* Restore context from current stack. */
 CONTEXT_RESTORE:
         .set    noat 
+        //lw     $ra, OFFSETOF_jet_context_ra($sp)
         lw     $30, OFFSETOF_jet_context_r30($sp)
         lw     $28, OFFSETOF_jet_context_r28($sp)
         lw     $27, OFFSETOF_jet_context_r27($sp)
@@ -67,9 +68,10 @@ CONTEXT_RESTORE:
 ja_context_switch:
         /* $4: *old_sp, $5: new_sp */
         /* Form stack frame */
-        sw     $sp, -FRAME_SIZE($sp)
+        addi   $sp, $sp, -FRAME_SIZE
+        sw     $sp, ($sp)
         /*mflr   $1*/
-        sw     $ra,FRAME_SIZE + OFFSETOF_jet_stack_frame_ra($sp)
+        sw     $ra, FRAME_SIZE + OFFSETOF_jet_stack_frame_ra($sp)
         /* Save registers.  */
         mfc1   $1,  CP1_FCCR
         sw     $1,  OFFSETOF_jet_context_FCCR($sp)
@@ -99,6 +101,7 @@ ja_context_switch:
         sw     $27, OFFSETOF_jet_context_r27($sp)
         sw     $28, OFFSETOF_jet_context_r28($sp)
         sw     $30, OFFSETOF_jet_context_r30($sp)
+        //sw     $ra, OFFSETOF_jet_context_ra($sp)
         /* Switch stacks. */
         sw     $sp, 0($4)
         move   $sp, $5

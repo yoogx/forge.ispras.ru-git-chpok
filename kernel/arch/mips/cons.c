@@ -52,7 +52,7 @@ static int ns16550_readb(int offset, int flag)
 
 static void write_serial(char a, int flag)
 {
-   while (ns16550_readb(NS16550_REG_LSR, flag) != UART_LSR_THR)
+   while ((ns16550_readb(NS16550_REG_LSR, flag) & UART_LSR_THR) != UART_LSR_THR)
      ;
 
    ns16550_writeb(NS16550_REG_THR, a, flag);

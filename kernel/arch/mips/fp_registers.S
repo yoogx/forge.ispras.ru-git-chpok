@@ -35,8 +35,6 @@
      * Disable floating point bit in msr.
      * 
      * NOTE: Assume fp being enabled previously.
-     *
-     * NOTE: uses %r4.
      */
     mfc0    $k0, CP0_STATUS
     li      $k1, CP0_STATUS_CU1
@@ -46,7 +44,7 @@
 .endm
  
  
-    .rodata
+    //.rodata
     .align 4 # 4 words = 16 bytes
 
 zero_fp:

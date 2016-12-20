@@ -25,36 +25,47 @@
 #include "asm_offsets_stack_frame.h"
 
 /*
-    SPRG (software use special-purpose register) designations:
 
-    SPRG0  - 
     DESAVE - kernel stack pointer
-    SPRG2  - scratch register
-    SPRG3  - scratch register
+    save1  - scratch register
+    save2  - scratch register
+    save3  - save   $k0
+    save4  - save   $k1
 */
         
         .section ".start", "ax"
 
 base = .
 mips_tlb_exeption_asm:
+        .set push
+        addi    $sp, -4
+        sw      $k0, ($sp)
+        la      $k0, save4
+        sw      $k1, ($k0)
+        la      $k1, save3
+        lw      $k0, ($sp)
+        sw      $k0, ($k1)
+        addi    $sp, 4
         mfc0    $k0, CP0_CAUSE
         andi    $k0, 0x7f
         li      $k1, 0x8
-        beq     $k1, $k0, mips_first_exeption_handler_asm  /*TLBL*/
+        JUMP_IF_EQUAL($k1, $k0, mips_second_exeption_handler_asm)  /*TLBL*/
         li      $k1, 0xc  
-        beq     $k1, $k0, mips_first_exeption_handler_asm  /*TLBS*/
+        JUMP_IF_EQUAL($k1, $k0, mips_second_exeption_handler_asm)  /*TLBS*/
+        .set pop
 reserved_0000:        
         /* fails */
 1:      JUMP_TO_ADDR(1b) 
 
     . = base + 0x180
-        la  $k0, mips_first_exeption_handler_asm
-        jr  $k0
+        JUMP_TO_ADDR(mips_first_exeption_handler_asm)
         
         
     . = base + 0x10000
         save1: .word  0
         save2: .word  0
+        save3: .word  0
+        save4: .word  0
 
 #define FRAME_SIZE SIZEOF_jet_interrupt_context
 
@@ -67,7 +78,8 @@ ja_user_space_jump:
          */
         // Prepare kernel stack for return
          subu   $8, $a0, $sp
-         addi   $8, $8, -FRAME_SIZE
+         li     $k0, FRAME_SIZE
+         subu   $8, $8, $k0
          li     $9, 0
         //equivalent stwux $9, $sp, $8 in powerpc 
          sw     $9, ($sp)
@@ -75,11 +87,12 @@ ja_user_space_jump:
          MTC0($sp, CP0_DESAVE)
         // Prepare user stack, STATUS and EPC for eret
          addi   $sp, $a3, -16
-         MTC0($a2, $14)        
-        /*Do CP0_STATUS_SETTINGS = CP0_STATUS_CU1 | CP0_STATUS_FR | CP0_STATUS_IE*/
-         li     $10, CP0_STATUS_SETTINGS                              
-
+         MTC0($a2, CP0_EPC)        
+        /*Do CP0_STATUS_SETTINGS = CP0_STATUS_CU1 | CP0_STATUS_FR | CP0_STATUS_ALL_INT_ON 
+                                    | CP0_STATUS_USER | CP0_STATUS_CU0 | CP0_STATUS_CU1 | CP0_STATUS_EXL*/
+        li     $10, CP0_STATUS_SETTINGS                              
         MTC0($10, CP0_STATUS)
+        mfc0    $10, CP0_ENTRYHI
 
         // Nullify other registers (0, 2-28, 30-31)
         move    $0,  $zero
@@ -113,9 +126,7 @@ ja_user_space_jump:
         move    $30, $zero
         move    $31, $zero
 
-        mfc0    $k0, CP0_EPC
         ERET_AND_NOP
-        JUMP_TO_REG($k0)
 
 /*
  * Store registers to interrupt frame.
@@ -175,9 +186,8 @@ ja_user_space_jump:
 
 .macro SAVE_SOME                                                  
                  .set    push                                     
-                 .set    noat                                     
-                 move   $k0, $sp                                   
-                 sw     $k0, OFFSETOF_jet_interrupt_context_r29($sp)   
+                 .set    noat                                                                        
+                 sw     $a0, OFFSETOF_jet_interrupt_context_r29($sp)   
                  sw     $3,  OFFSETOF_jet_interrupt_context_r3($sp)    
                  /*                                               
                   * We must  save $0, because                     
@@ -323,13 +333,12 @@ ja_user_space_jump:
         RESTORE_REGS_COMMON
         /* Determine whether we return to user space. */
         lw      $a1, OFFSETOF_jet_interrupt_context_STATUS($sp)
-        andi    $a1, $a1, CP0_STATUS_USER
-        bgez    $a1, 1f
+        andi    $a1, $a1, 0x18
+        li      $k0, CP0_STATUS_USER
+        JUMP_IF_NOT_EQUAL($a1, $k0, 1f)
         /* Return to user - need to set DESAVE. */
-    //rerwite    lw $a1, OFFSETOF_jet_interrupt_context_cr($sp) Restore everything else from interrupt frame.
-    //rerwite    mtcr $a1 //Don't need it in MIPS
         MTC0($sp, CP0_DESAVE)
-        b       2f
+        JUMP_TO_ADDR(2f)
 1:
         /* Return to kernel. */
  //rerwite       lw $a1, OFFSETOF_jet_interrupt_context_cr($sp) Restore everything else from interrupt frame.
@@ -348,54 +357,58 @@ ja_user_space_jump:
  *     sp points to interrupt frame, where a0, a1, STATUS and EPC should be stored.
  */
 .macro EXCEPTION_PROLOGUE_COMMON
-   //rerwite     mfcr    $a0
-        /* Enable floating point bit in status */
+        /* Enable floating point bit in CP0 Status */
         mfc0    $k0, CP0_STATUS
         li      $k1, CP0_STATUS_CU1
         or      $k0, $k0, $k1
         MTC0($k0, CP0_STATUS)
         /* Check whether kernel stack is usable. */
         mfc0    $a1, CP0_DESAVE
-        andi    $a1, $a1, 1 /* Valid stack is always 16-byte aligned. */
-        bgez    $a1, 1f
+        li      $k0, 1 /* Valid stack is always 16-byte aligned. */
+        
+        JUMP_IF_NOT_EQUAL($a1, $k0, 1f)
         /* Come from kernel and kernel stack is ready */
         /*This is stwu ppc realization on MIPS*/
-        sw      $sp, -FRAME_SIZE-JET_STACK_RED_ZONE($sp)
+//rewrite: change int
         addi    $sp, $sp, -FRAME_SIZE-JET_STACK_RED_ZONE 
-      //rerwite  sw      $a0, OFFSETOF_jet_interrupt_context_cr($sp)
+        sw      $sp, ($sp)
         /* Store ra to previous backchain. */
         move    $a0, $ra
         sw      $a0, FRAME_SIZE + JET_STACK_RED_ZONE + OFFSETOF_jet_stack_frame_ra($sp)
         addi    $a0, $sp, FRAME_SIZE + JET_STACK_RED_ZONE
-        b       2f
+        JUMP_TO_ADDR(2f)
 1:      /* Come from user or interrupted handler hasn't adjust stack yet. */
         mfc0    $a1, CP0_DESAVE
-     //rerwite   mtcr $a0 /* Restore cr, so possible highlevel interrupt will see the same as we.*/
-        /* Store cr before updating stack pointer! It can be overwritting by highlevel interrupt... but to the same value(see above). */
-    //rerwite       sw $a0, OFFSETOF_jet_interrupt_context_cr($r4)
-    //rerwite       move $a0, $sp
-        //move    $sp, $a1 /* Back chain is already set to 0. */
         /* Mark kernel stack as ready for highlevel interrupts. */
    
-   
-    ///WHY WE NEED THIS?!!?
-    
-        //li      $a1, 1
-        //move      $a1, $a1
-        //MTC0($a1, CP0_DESAVE)
-        MTC0($sp, CP0_DESAVE)
+        move $a0, $sp
+        move $sp, $a1 /* Back chain is already set to 0. */  
+        nop
+        nop
+        nop
+        nop
+        li        $a1, 1
+        MTC0($a1, CP0_DESAVE)
 2:      SAVE_REGS_COMMON
 .endm
 
 /* Return from non-critical interrupt. */
         .globl pok_arch_rfi
 pok_arch_rfi:
-        /* a1 <-> sprg2, a0 <-> sprg3 */
-
+        /* a1 <-> save1, a0 <-> save2 */
+        lw      $k1, OFFSETOF_jet_interrupt_context_r27($sp)
+        la      $k0, save4
+        sw      $k1, ($k0)
+        lw      $k0, OFFSETOF_jet_interrupt_context_r26($sp)
+        la      $k1, save3
+        sw      $k0, ($k1)
+        
         lw      $a1,OFFSETOF_jet_interrupt_context_r5($sp)
-        sw      $a1, (save1)
+        la      $k0, save1
+        sw      $a1, ($k0)
         lw      $a0,OFFSETOF_jet_interrupt_context_r4($sp)
-        sw      $a0, (save2)
+        la      $k0, save2
+        sw      $a0, ($k0)
 
 
 
@@ -410,7 +423,8 @@ pok_arch_rfi:
         MTC0($a1, CP0_STATUS)
         lw     $a0, OFFSETOF_jet_interrupt_context_EPC($sp)
         MTC0($a0, CP0_EPC)
-        
+        lw      $a1, OFFSETOF_jet_interrupt_context_CAUSE($sp)
+        MTC0($a1, CP0_CAUSE)        
 
 
 
@@ -418,46 +432,59 @@ pok_arch_rfi:
         EXCEPTION_EPILOGUE_COMMON
        
        
-        lw      $a1, (save1)
-        lw      $a0, (save2)
+        la      $k0, save1
+        lw      $a1, ($k0)
+        la      $k0, save2
+        lw      $a0, ($k0)
        
        
-        /* Clear ERL and EXL bits*/
+        ///* Clear ERL and EXL bits and enable interrupts*/
         mfc0    $k0, CP0_STATUS
-        ori     $k0, $k0, 0x6
-        xori    $k0, $k0, 0x6
-        mtc0    $k0, CP0_STATUS 
+        //ori     $k0, $k0, 0x6
+        //xori    $k0, $k0, 0x6
+        ori     $k0, CP0_STATUS_IE
+        MTC0($k0, CP0_STATUS)
 
 
         mfc0    $k0, CP0_CAUSE
         andi    $k0, 0x7f
         li      $k1, 0x20
-        beq     $k1, $k0, 2f  /*Syscall*/
+        JUMP_IF_EQUAL($k1, $k0, 2f)  /*Syscall*/
+        nop
+        nop
         li      $k1, 0x24  
-        beq     $k1, $k0, 2f  /*Break*/
-    
+        JUMP_IF_EQUAL($k1, $k0, 2f)  /*Break*/
+        nop
+        nop
 /*
  * the return sequence from the exception handler for the case of an
  * external exception (interrupt)
  */
-1:      mfc0    $k0, CP0_EPC                  /* get EPC in $k0 */
+1:
+        la      $k1, save3
+        lw      $k0, ($k1)
+        lw      $k1, 4($k1)
         ERET_AND_NOP                          /* return from exception */
-        JUMP_TO_REG($k0)                      /* replace PC with the return address, doesnt need it, because eret replace PC too*/
 /*
  * the return sequence from the exception handler for the case of a
  * trap (including a syscall).
  */
 2:      mfc0    $k0, CP0_EPC                  /* get EPC in $k0 */
         addiu   $k0, 4                        /* make sure it points to next instruction */
-        mtc0    $k0, CP0_EPC
+        MTC0($k0, CP0_EPC)
+        la      $k1, save3
+        lw      $k0, ($k1)
+        lw      $k1, 4($k1)
         ERET_AND_NOP                          /* return from exception */
-        JUMP_TO_REG($k0)                      /* replace PC with the return address, doesnt need it, because eret replace PC too */
 
 /* Exception prologue for non-critical interrupts. */
 .macro EXCEPTION_PROLOGUE
-        /* a0 <-> save2, a1 <-> save1*/
-        sw      $a0, (save2)
-        sw      $a1, (save1)
+        /* a0 <-> save2, a1 <-> save1, k0 <-> save3, k1 <-> save4*/
+        la      $k0, save2
+        sw      $a0, ($k0)
+        la      $k0, save1
+        sw      $a1, ($k0)
+        
         EXCEPTION_PROLOGUE_COMMON
 
         /* EPC<-EPC, STATUS<-STATUS. */
@@ -465,10 +492,26 @@ pok_arch_rfi:
         sw      $a0, OFFSETOF_jet_interrupt_context_EPC($sp)
         mfc0    $a1, CP0_STATUS
         sw      $a1, OFFSETOF_jet_interrupt_context_STATUS($sp)
+        
+        /* Switch on Kernel mode*/
+        mfc0    $a1, CP0_STATUS
+        ori     $a1, CP0_STATUS_USER
+        xori    $a1, CP0_STATUS_USER
+        MTC0($a1, CP0_STATUS)
+        
 
-        lw      $a1, (save1)
+
+        la      $k0, save4
+        lw      $k1, ($k0)
+        sw      $k1, OFFSETOF_jet_interrupt_context_r27($sp)
+        la      $k1, save3
+        lw      $k0, ($k1)
+        sw      $k0, OFFSETOF_jet_interrupt_context_r26($sp)
+        la      $k0, save1
+        lw      $a1, ($k0)
         sw      $a1, OFFSETOF_jet_interrupt_context_r5($sp)
-        lw      $a0, (save2)
+        la      $k0, save2
+        lw      $a0, ($k0)
         sw      $a0, OFFSETOF_jet_interrupt_context_r4($sp)
 .endm
         
@@ -476,39 +519,57 @@ pok_arch_rfi:
 /* Return from debug interrupt. */
         .globl pok_arch_rfdi_for_debug
 pok_arch_rfdi_for_debug:
-        /* $a1 <-> sprg2, $a0 <-> sprg3. TODO: other temporary locations should be used. */
+        /* $a1 <-> save1, $a0 <-> save2. TODO: other temporary locations should be used. */
+        lw      $k1, OFFSETOF_jet_interrupt_context_r27($sp)
+        la      $k0, save4
+        sw      $k1, ($k0)
+        lw      $k0, OFFSETOF_jet_interrupt_context_r26($sp)
+        la      $k1, save3
+        sw      $k0, ($k1)
         lw      $a1, OFFSETOF_jet_interrupt_context_r5($sp)
-        sw      $a1, (save1)
+        la      $k0, save1
+        sw      $a1, ($k0)
         lw      $a0, OFFSETOF_jet_interrupt_context_r4($sp)
-        sw      $a0, (save2)
+        la      $k0, save2
+        sw      $a0, ($k0)
 
         /* EPC->DEPC, CAUSE->DEBUG. */
         lw      $a1, OFFSETOF_jet_interrupt_context_CAUSE($sp)
         MTC0($a1, CP0_DEBUG)
         lw      $a0, OFFSETOF_jet_interrupt_context_EPC($sp)
         MTC0($a0, CP0_DEPC)
+        lw     $a1, OFFSETOF_jet_interrupt_context_STATUS($sp)
+        MTC0($a1, CP0_STATUS)
 
         EXCEPTION_EPILOGUE_COMMON
 
-        lw      $a1, (save1)
-        lw      $a0, (save2)
+        la      $k0, save1
+        lw      $a1, ($k0)
+        la      $k0, save2
+        lw      $a0, ($k0)
 
-        /* Clear ERL and EXL bits*/
-        mfc0    $k0, CP0_STATUS
-        ori     $k0, $k0, 0x6
-        xori    $k0, $k0, 0x6
-        mtc0    $k0, CP0_STATUS 
+
+        ///* Clear ERL and EXL bits and enable interrupts*/
+        //mfc0    $k0, CP0_STATUS
+        //ori     $k0, $k0, 0x6
+        //xori    $k0, $k0, 0x6
+        //ori     $k0, CP0_STATUS_IE
+        //MTC0($k0, CP0_STATUS)
 
         mfc0    $k0, CP0_DEPC                 /* get DEPC in $k0 */
         addiu   $k0, 4                        /* make sure it points to next instruction */
-        mtc0    $k0, CP0_DEPC
-        DERET_AND_NOP
-        JUMP_TO_REG($k0)        
+        MTC0($k0, CP0_DEPC)
+        la      $k1, save3
+        lw      $k0, ($k1)
+        lw      $k1, 4($k1)
+        DERET_AND_NOP     
 
 .macro EXCEPTION_PROLOGUE_DEBUG
-        /* a0 <-> sprg3, a1 <-> sprg2. TODO: use different temporaries. */
-        sw      $a0, (save2)
-        sw      $a1, (save1)
+        /* a0 <-> save2, a1 <-> save1, k0 <-> save3, k1 <-> save4. TODO: use different temporaries. */
+        la      $k0, save2
+        sw      $a0, ($k0)
+        la      $k0, save1
+        sw      $a1, ($k0)
         EXCEPTION_PROLOGUE_COMMON
 
         /* EPC<-DEPC, CAUSE<-DEBUG. */
@@ -517,13 +578,28 @@ pok_arch_rfdi_for_debug:
         mfc0    $a1, CP0_DEBUG
         sw      $a1, OFFSETOF_jet_interrupt_context_CAUSE($sp)
 
-        lw      $a0, (save2)
+        /* Switch on Kernel mode*/
+        mfc0    $a1, CP0_STATUS
+        ori     $a1, CP0_STATUS_USER
+        xori    $a1, CP0_STATUS_USER
+        MTC0($a1, CP0_STATUS)
+
+        la      $k0, save4
+        lw      $k1, ($k0)
+        sw      $k1, OFFSETOF_jet_interrupt_context_r27($sp)
+        la      $k1, save3
+        lw      $k0, ($k1)
+        sw      $k0, OFFSETOF_jet_interrupt_context_r26($sp)
+
+        la      $k0, save2
+        lw      $a0, ($k0)
         sw      $a0, OFFSETOF_jet_interrupt_context_r4($sp)
-        lw      $a1, (save1)
+        la      $k0, save1
+        lw      $a1, ($k0)
         sw      $a1, OFFSETOF_jet_interrupt_context_r5($sp)
 .endm
 
-        . = base + 0x10400
+        . = base + 0x10500
         .global pok_trap_addr
 pok_trap_addr:
         .global pok_trap
@@ -537,7 +613,7 @@ pok_trap:
 failed: b failed
 
 
-        . = base + 0x10450
+        . = base + 0x10550
         .globl _pok_reset
 system_reset_0100:
 _pok_reset:
@@ -667,23 +743,23 @@ label##_asm:
         EXCEPTION_PROLOGUE
         move    $a0, $sp
         /* load system call arguments back from the interrupt frame */
-        subu    $sp, 24
-        lw      $a1,OFFSETOF_jet_interrupt_context_r3($sp)          
-        lw      $a2,OFFSETOF_jet_interrupt_context_r4($sp)                   
-        lw      $a3,OFFSETOF_jet_interrupt_context_r5($sp)
+        lw      $a1,OFFSETOF_jet_interrupt_context_r4($sp)          
+        lw      $a2,OFFSETOF_jet_interrupt_context_r5($sp)                   
+        lw      $a3,OFFSETOF_jet_interrupt_context_r6($sp)
         /*send 5-7 arg to syscall*/
-        lw      $k0,OFFSETOF_jet_interrupt_context_r29($sp)
-        lw      $k1, 16($k0)
-        sw      $k0, 16($sp)
+        lw      $k1, OFFSETOF_jet_interrupt_context_r7($sp)
+        lw      $k0, OFFSETOF_jet_interrupt_context_r29($sp)
+        subu    $sp, 24        
+        sw      $k1, 16($sp)        /*Adding saved $a3 in stack*/
+        lw      $k1, 16($k0)        
+        sw      $k1, 20($sp)        
         lw      $k1, 20($k0)
-        sw      $k0, 20($sp)
-        lw      $k1, 24($k0)
-        sw      $k0, 24($sp)
+        sw      $k1, 24($sp)
         
         JUMP_AND_LINK(pok_int_system_call) 
         
         addi    $sp, 24
-        sw      $v0,OFFSETOF_jet_interrupt_context_r2($sp)
+        sw      $v0, OFFSETOF_jet_interrupt_context_r2($sp)
 
         JUMP_TO_ADDR(pok_arch_rfi)
 
@@ -846,27 +922,34 @@ pok_setup_interrupts:
         jr  $k0
 /*This exeption handler is equal for each interrupt*/
 mips_first_exeption_handler_asm:
-        .set  push
+        addi    $sp, -4
+        sw      $k0, ($sp)
+        la      $k0, save4
+        sw      $k1, ($k0)
+        la      $k1, save3
+        lw      $k0, ($sp)
+        sw      $k0, ($k1)
+        addi    $sp, 4
+mips_second_exeption_handler_asm:
+        /*disable interrupts*/
+        mfc0    $k0, CP0_STATUS
+        ori     $k0, CP0_STATUS_IE
+        xori    $k0, CP0_STATUS_IE
+        MTC0($k0, CP0_STATUS)
         mfc0    $k1, CP0_CAUSE
         andi    $k1, $k1, 0x7c   	                   /* read exception number */
     	lw      $k0, expection_handlers($k1)         /* exception number is an offset in array */
         
     	JUMP_TO_REG($k0)                           /* Call asm code for this exeption. */
-        .set  pop
 
         .globl dmfc0_asm
 
 
 dmfc0_asm:
         .set mips64
-        move    $k0, $zero
-        li      $k0, 0x70000180
-        mtc0    $k0, CP0_ENTRYHI
-        dmfc0   $k0, CP0_ENTRYHI
-        nop
-        nop
-        li      $k0, 0xa0000000
-        addu    $ra, $k0, $ra
+        li  $k0, 0xdead0001
+        li  $k1, 0xdead0002
+        syscall
         JUMP_TO_REG($ra)
         .set mips32
 
