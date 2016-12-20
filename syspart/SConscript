@@ -17,11 +17,9 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-Import('env')
+Import('syspart_env')
 
-syspart_env = env.PartitionEnvironment()
-
-syspart_env['CPPPATH'].append([env['JETOS_HOME']+'/syspart/include'])
+syspart_env['CPPPATH'].append([syspart_env['JETOS_HOME']+'/syspart/include'])
 
 Export('syspart_env')
 

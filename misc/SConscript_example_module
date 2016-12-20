@@ -148,24 +148,8 @@ def partition_fill(part_env, part_index):
 	part_env['PARTITION_BUILD_DIR'] = os.path.join(part_example_dir, 'build', part_env['BSP'])
 	part_env['PARTITION_CLEAN_DIRS'] = os.path.join(part_example_dir, 'build')
 	part_env['PARTITION_SOURCES'] = []
-	part_env['src_script_dirs'] = []
-	part_env['src_dirs'] = []
 
 env['PARTITION_FILL'] = partition_fill
-
-def partition_post_process(part_env):
-	part_env['PARTITION_XML'] = part_env.toAbsPath(part_env['PARTITION_XML'],
-		part_env['PARTITION_SOURCE_DIR'])
-
-	root = etree.parse(part_env['PARTITION_XML'])
-	definition_attrib = root.find("Definition").attrib
-	part_is_system = ("System" in definition_attrib) and (arinc653_xml_conf.parse_bool(definition_attrib["System"]))
-
-	if part_is_system:
-		part_env.Append(CPPPATH = part_env['JETOS_HOME']+'/syspart/include')
-		part_env['PARTITION_IS_SYSTEM'] = True
-
-env['PARTITION_POST_PROCESS'] = partition_post_process
 
 mode = 'module'
 env.SConscript('SConscript', exports = ['env', 'mode'])

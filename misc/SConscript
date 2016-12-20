@@ -71,13 +71,20 @@ module or debug it.
 # will restore the first value.
 # (String/path, optional).
 #
+# - 'BOARD_IS_EMULATED' - whether given board can be emulated using qemu.
+# For emulated board scons targets for running module are automatically
+# generated.
+# (Boolean, optional)
+#
 # - 'QEMU' - qemu executable for run.
+# Used only for emulated boards (see description for BOARD_IS_EMULATED above).
 # If variable has been when current script is called (see above), it
 # will restore the first value.
-# (String/path, required).
+# (String/path, required if BOARD_IS_EMULATED is true).
 #
 # - 'QEMU_FLAGS' - flags for run qemu.
-# (Space-separated string, required).
+# Used only for emulated boards (see description for BOARD_IS_EMULATED above).
+# (Space-separated string, required if BOARD_IS_EMULATED is true).
 #
 # - 'CFLAGS' - may append additional flags for compile "C" sources.
 #
@@ -139,7 +146,7 @@ SConsignFile(None)
 env['PRINT_CMD_LINE_FUNC'] = print_cmd_line
 # Linker flags for '.lo' objects, but not for '.elf'
 env['LINKFLAGS'] = '-r'
-env['QEMU_FLAGS'] = ' -serial stdio'
+env.Append(QEMU_FLAGS = ' -serial stdio')
 # 16 MBytes
 env['MAX_PART_SIZE'] = 16 * 2**20
 
@@ -261,21 +268,40 @@ def toAbsPathList(env, paths, base_dir):
 
 env.AddMethod(toAbsPathList)
 
-Import('mode')
+class SharedTargets:
+	"""
+	Dictionary object which remains the same after cloning and importing
+	environment. That is, modification of that object in one cloned environment
+	is visible in another cloned environment.
+	"""
+	def __init__(self):
+		self.names = dict()
 
-# Libpok is needed for any partition.
-env['LIBPOK_TARGET'] = SConscript(env['JETOS_HOME'] + '/libpok/SConscript',
-	exports = 'env',
-	variant_dir = env['JETOS_HOME'] + '/build/'+env['BSP']+'/libpok',
-	duplicate = 0
-)
-# Syspart may be needed for some partition.
-# If it is not, the target just isn't built.
-env['SYSPART_TARGET'] = SConscript(env['JETOS_HOME'] + '/syspart/SConscript',
-	exports = 'env',
-	variant_dir = env['JETOS_HOME'] + '/build/'+env['BSP']+'/syspart',
-	duplicate = 0
-)
+env['SHARED_TARGETS'] = SharedTargets()
+
+def getSharedTarget(env, name, compute_val):
+	"""
+	Return object from shared area of environment.
+	If object doesn't exist yet, compute it.
+
+	Such a way, the object will be computed only once.
+
+	Usually, object is a SCons *target* (that is, list of 'Node' objects).
+	"""
+	val = env['SHARED_TARGETS'].names.get(name, None)
+	if val is None:
+		val = compute_val()
+		env['SHARED_TARGETS'].names[name] = val
+	return val
+
+env.AddMethod(getSharedTarget)
+
+if env.get('jdeveloper'):
+    # Fake command for suppress "Nothing to be done" for alias target.
+    env.Command('regenerate-command', [], "")
+    env.Alias('regenerate', 'regenerate-command')
+
+Import('mode')
 
 if mode == 'module':
     mod_elf = SConscript('SConscript_module', exports = 'env')
@@ -290,16 +316,3 @@ else:
     print "Error: Invalid value for 'mode' parameter for the main SConscript: " + str(mode)
     print "Should be 'module' or 'partition'."
     raise RuntimeError("Invalid 'mode' parameter")
-
-if env.get('jdeveloper'):
-    # Fake command for suppress "Nothing to be done" for alias target.
-    env.Command('regenerate-command', [], "")
-    env.Alias('regenerate', 'regenerate-command')
-
-
-clean_directories = [env['JETOS_HOME'] + '/build']
-
-env.RemoveDirectories('clean_os_cmd', clean_directories)
-env.Alias('distclean', 'clean_os_cmd')
-env.Clean('#/all', clean_directories)
-# EOF

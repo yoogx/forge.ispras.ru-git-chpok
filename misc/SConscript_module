@@ -72,7 +72,7 @@ scripts.
 # Also, executed SConscript may use methods:
 #
 # - env.PartitionEnvironment() - create fresh environment, used for
-# compile things for partition(user space). E.g., on may use .Object()
+# compile things for partition(user space). E.g., one may use .Object()
 # method of that environment and later add its result to
 # part_env['PARTITION_SOURCES'] in 'partition_def' scripts (see below).
 #
@@ -101,25 +101,30 @@ Import('env')
 
 module_build_dir = env['MODULE_BUILD_DIR']
 
+# Build kernel into given variant_dir.
+#
+# If variant_dir is not given or None, use 'kernel/' subdirectory
+# in the module's build dir.
+def BuildKernel(env, variant_dir = None):
+    if variant_dir is None:
+        variant_dir = module_build_dir+'/kernel'
+    kernel_env = env.KernelEnvironment()
+    return SConscript(env['JETOS_HOME'] + '/kernel/SConscript',
+        exports = 'kernel_env',
+        variant_dir = variant_dir,
+        duplicate = 0
+    )
+
+env.AddMethod(BuildKernel)
+
 env.SConscript(dirs = env['MODULE_SOURCE_DIR'],
-	exports = 'env',
-	variant_dir = module_build_dir,
-	duplicate = 0)
+    exports = 'env',
+    variant_dir = module_build_dir,
+    duplicate = 0)
 
 module_post_process = env.get('MODULE_POST_PROCESS', None)
 if module_post_process is not None:
-	module_post_process(env)
-
-env['BSP_TARGET'] = SConscript(env['JETOS_HOME'] + '/boards/SConscript',
-	exports = 'env',
-	variant_dir = env['JETOS_HOME'] + '/build/'+env['BSP']+'/boards',
-	duplicate = 0
-)
-env['KERNEL_CORE_TARGET'] = SConscript(env['JETOS_HOME'] + '/kernel/SConscript',
-	exports = 'env',
-	variant_dir = env['JETOS_HOME'] + '/build/'+env['BSP']+'/kernel',
-	duplicate = 0
-)
+    module_post_process(env)
 
 partition_build_dirs = []
 partition_clean_dirs = []
@@ -127,25 +132,27 @@ partition_xmls = []
 partition_elfs = []
 
 for part_index in range(env['PARTITIONS_NUMBER']):
-	part_env = env.PartitionEnvironment()
-	part_env.Append(part_index = part_index)
-	env['PARTITION_FILL'](part_env, part_index)
+    part_env = env.PartitionEnvironment()
+    part_env.Append(part_index = part_index)
+    env['PARTITION_FILL'](part_env, part_index)
 
-	part_elf = SConscript('SConscript_partition', exports = 'part_env')
-	partition_elfs.append(part_elf)
-	partition_build_dirs.append(part_env['PARTITION_BUILD_DIR'])
-	partition_clean_dirs.extend(part_env['PARTITION_CLEAN_DIRS'])
-	partition_xmls.append(part_env['PARTITION_XML'])
+    part_elf = SConscript('SConscript_partition', exports = 'part_env')
+    partition_elfs.append(part_elf)
+    partition_build_dirs.append(part_env['PARTITION_BUILD_DIR'])
+    partition_clean_dirs.extend(part_env['PARTITION_CLEAN_DIRS'])
+    partition_xmls.append(part_env['PARTITION_XML'])
 
 AddMethod(env, template_generation.TemplateRender)
 
 def get_pok_definitions(source, env):
-    return dict(conf = env['MODULE_PARSE_CONFIGURATION'](source, env))
+    conf = env['MODULE_PARSE_CONFIGURATION'](source, env)
+    conf.validate()
+    return dict(conf = conf)
 
 
 def get_pok_gdb_definitions(source, env):
     defs = dict(conf = env['MODULE_PARSE_CONFIGURATION'](source, env),
-		partition_build_dirs = partition_build_dirs)
+        partition_build_dirs = partition_build_dirs)
 
     return defs
 
@@ -174,11 +181,15 @@ gdb_commands = env.TemplateRender(
 
 gdb_commands_file = gdb_commands[0].abspath
 
+kernel_target = env.get('KERNEL_TARGET', None)
+# By default, build kernel locally to the example
+if kernel_target is None:
+    kernel_target = env.BuildKernel()
+
 pok_env = env.KernelEnvironment()
 
-kernel_lo = pok_env.Program(target = module_build_dir+'/kernel.lo', source = [
-	env['KERNEL_CORE_TARGET'],
-	env['BSP_TARGET']] + deployment_kernel)
+kernel_lo = pok_env.Program(target = module_build_dir+'/kernel.lo',
+    source = kernel_target + deployment_kernel)
 
 # there should (perhaps) also be padding to get aligned file size
 def merge_partitions(target, source, env):
@@ -227,43 +238,80 @@ pok_elf_env['LINKFLAGS'] = ' -T ' + ldscript_kernel
 
 
 pok_target = pok_elf_env.Program(target = module_build_dir+'/pok.elf',
-	source = compile_sizes + kernel_lo + [pok_env['LIBGCC']])
+    source = compile_sizes + kernel_lo + [pok_env['LIBGCC']])
 pok_env.Depends(pok_target, [ldscript_kernel])
 
 pok_target_file = pok_target[0].abspath
 
+# Make string suitable for use in identifier
+def str_to_id(s):
+    return s.replace('-', '_')
+
+def unsupported_run_command(target, source, env):
+    target_path = target[0].abspath
+    cmd_begin_index = target_path.rfind('/') + 1
+    cmd_end_index = -4 # Cut '_cmd' suffix
+    command = target_path[cmd_begin_index:cmd_end_index]
+    bsp_id = str_to_id(env['BSP'])
+    command_id = str_to_id(command)
+    print "ERROR: Command '" + command + "' is unsupported for board " + env['BSP'] + "."
+    print "HINT: You may assign script for this command using 'JETOS_" + command_id + "_" + bsp_id + "' environment variable."
+    return 1
+
+
+def define_run_command(command, qemu_action, depends = []):
+    bsp_id = str_to_id(env['BSP'])
+    command_id = str_to_id(command)
+    script = os.environ.get('JETOS_' + command_id + "_" + bsp_id, "")
+    if script != "":
+        action = script + " " + pok_target_file
+    elif env.get('BOARD_IS_EMULATED', False):
+        action = qemu_action
+    else:
+        action = unsupported_run_command
+
+    env.Command(command + '_cmd', depends, action)
+    env.Alias(command, command + '_cmd')
+
 env.Append(QEMU_FLAGS = ' -kernel '+pok_target_file)
 
-#env.Append(QEMU_FLAGS = ' -display none')
-env.Command('run_cmd', [], env['QEMU']+env['QEMU_FLAGS'])
-env.Alias('run', 'run_cmd')
+define_run_command('run',
+    '$QEMU $QEMU_FLAGS'
+)
 
-env.Command('run_tap_cmd', [], env['QEMU'] + env['QEMU_FLAGS'] + ' -net nic,model=virtio -net tap,ifname=tap0,script=no,downscript=no')
-env.Alias('run-tap', 'run_tap_cmd')
+define_run_command('run-tap',
+    '$QEMU $QEMU_FLAGS  -net nic,model=virtio -net tap,ifname=tap0,script=no,downscript=no'
+)
 
-env.Command('run_tap2_cmd', [], env['QEMU'] + env['QEMU_FLAGS'] + ' -net nic,model=virtio,vlan=0 -net nic,model=virtio,vlan=1 -net tap,ifname=tap0,script=no,downscript=no,vlan=0 -net tap,ifname=tap1,script=no,downscript=no,vlan=1')
-env.Alias('run-tap2', 'run_tap2_cmd')
+define_run_command('run-tap2',
+    '$QEMU $QEMU_FLAGS -net nic,model=virtio,vlan=0 -net nic,model=virtio,vlan=1 -net tap,ifname=tap0,script=no,downscript=no,vlan=0 -net tap,ifname=tap1,script=no,downscript=no,vlan=1'
+)
 
-env.Command('run_tap_cmd_ne2k', [], env['QEMU'] + env['QEMU_FLAGS'] + ' -net nic,model=ne2k_pci,vlan=0 -net nic,model=ne2k_pci,vlan=1 -net tap,ifname=tap0,script=no,downscript=no,vlan=0, -net tap,ifname=tap1,script=no,downscript=no,vlan=1')
-env.Alias('run-tap-ne2k', 'run_tap_cmd_ne2k')
+define_run_command('run-tap-ne2k',
+    '$QEMU $QEMU_FLAGS -net nic,model=ne2k_pci,vlan=0 -net nic,model=ne2k_pci,vlan=1 -net tap,ifname=tap0,script=no,downscript=no,vlan=0, -net tap,ifname=tap1,script=no,downscript=no,vlan=1'
+)
 
-env.Command('run_with_2_ports', [], env['QEMU']+env['QEMU_FLAGS']+' -serial tcp::8000,server')
-env.Alias('run-gdb', 'run_with_2_ports')
+define_run_command('run-gdb',
+    '$QEMU $QEMU_FLAGS -serial tcp::8000,server'
+)
 
-env.Command('run_debug_cmd', [], env['QEMU']+env['QEMU_FLAGS']+' -S -s')
-env.Alias('rundbg', 'run_debug_cmd')
+define_run_command('rundbg',
+    '$QEMU $QEMU_FLAGS -S -s'
+)
 
-env.Command('debug_cmd', [], env['GDB']+' '+pok_target_file+' -ex "target remote :1234"')
-env.Alias('debug', 'debug_cmd')
+define_run_command('debug',
+    '$GDB '+pok_target_file+' -ex "target remote :1234"'
+)
 
-command_debug_gdb = env.Command('debug_gdb', gdb_commands, env['GDB']+' '+pok_target_file+' -ex "source '+gdb_commands_file+'" \
-                                                                            -ex "target extended-remote 127.0.0.1:8000"')
-env.Alias('debug-gdb', 'debug_gdb')
+define_run_command('debug-gdb',
+    '$GDB '+pok_target_file+' -ex "source '+gdb_commands_file+'" -ex "target extended-remote 127.0.0.1:8000"',
+    depends = gdb_commands
+)
 
 module_clean_dirs = env.get('MODULE_CLEAN_DIRS', module_build_dir)
 if type(module_clean_dirs) is not list:
-	module_clean_dirs = [module_clean_dirs]
-	env['MODULE_CLEAN_DIRS'] = module_clean_dirs
+    module_clean_dirs = [module_clean_dirs]
+    env['MODULE_CLEAN_DIRS'] = module_clean_dirs
 
 
 clean_directories = module_clean_dirs + partition_clean_dirs

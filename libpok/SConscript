@@ -17,9 +17,7 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-Import('env')
-
-libpok_env = env.PartitionEnvironment()
+Import('libpok_env')
 
 Export('libpok_env')
 

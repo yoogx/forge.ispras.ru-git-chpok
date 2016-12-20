@@ -18,6 +18,7 @@
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 Import('part_env')
+part_env.SystemPartition()
 
 part_env['PARTITION_SOURCES'] = [Glob('src/*.c')]
 part_env['PARTITION_XML'] = 'config.xml'

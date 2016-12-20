@@ -17,15 +17,7 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-Import('env')
-
-kernel_env = env.Clone()
-kernel_env.Append(CFLAGS = ' -Werror')
-
-if 'CFLAGS_KERNEL' in kernel_env:
-    kernel_env.Append(CFLAGS = ' ' + kernel_env['CFLAGS_KERNEL'])
-
-kernel_env['CPPPATH'] = kernel_env['KERNEL_CPPPATH']
+Import('kernel_env')
 
 if kernel_env.get('jdeveloper'):
     # Set base dir for reference in generated files
@@ -36,8 +28,12 @@ Export('kernel_env')
 core = SConscript('core/SConscript')
 libc = SConscript('libc/SConscript')
 arch = SConscript('arch/SConscript')
+bsp_target = SConscript(kernel_env['JETOS_HOME'] + '/boards/SConscript',
+	variant_dir = 'boards',
+	duplicate = 0
+)
 
-kernel_objects=[core, libc, arch]
+kernel_objects=[core, libc, arch, bsp_target]
 
 kernel_core_target = kernel_env.Program(target = 'core.lo', source = kernel_objects)
 

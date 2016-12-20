@@ -26,3 +26,5 @@ Import('env')
 env['ARCH'] = 'x86'
 
 SConscript(env['JETOS_HOME'] + '/misc/arch/x86/SConscript', exports = 'env')
+
+env['BOARD_IS_EMULATED'] = True

@@ -57,7 +57,8 @@ Common sconscript which may be used for build example partition.
 #
 #  'CFLAGS', 'ASFLAGS' - these flags would affect on compilation of every
 #
-
+# part_env.SystemPartition() call is required for system partition.
+# (This function isn't called automatically according to .xml file.)
 
 import os
 from lxml import etree
@@ -119,19 +120,6 @@ env['PARTITION_SOURCE_DIR'] = part_example_dir
 env['PARTITION_BUILD_DIR'] = os.path.join(part_example_dir, 'build', env['BSP'])
 env['PARTITION_CLEAN_DIRS'] = os.path.join(part_example_dir, 'build')
 env['PARTITION_SOURCES'] = []
-
-def partition_post_process(part_env):
-	part_env['PARTITION_XML'] = part_env.toAbsPath(part_env['PARTITION_XML'],
-		part_env['PARTITION_SOURCE_DIR'])
-	root = etree.parse(part_env['PARTITION_XML'])
-	definition_attrib = root.find("Definition").attrib
-	part_is_system = ("System" in definition_attrib) and (arinc653_xml_conf.parse_bool(definition_attrib["System"]))
-
-	if part_is_system:
-		part_env.Append(CPPPATH = part_env['JETOS_HOME']+'/syspart/include')
-		part_env['PARTITION_IS_SYSTEM'] = True
-
-env['PARTITION_POST_PROCESS'] = partition_post_process
 
 mode = 'partition'
 part_env = SConscript('SConscript', exports = ['mode', 'env'])

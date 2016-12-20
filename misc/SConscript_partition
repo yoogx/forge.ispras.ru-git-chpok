@@ -64,8 +64,9 @@ Build single partition according to definition script.
 # obtained e.g. with part_env.StaticLibrary().
 # (Single element or list of element; element could be absolute path, relative (against build dir) or object of type 'File').
 #
-# - 'PARTITION_IS_SYSTEM' - if set to true-evaluated value, the partition is
-# linked with system partition library.
+#
+# If partition is a system one, you need to mark it with
+# part_env.SystemPartition() call.
 #
 # Executed SConscript may check variable
 # part_env['PARTITION_INDEX'] for differentiate modes (single partition
@@ -84,10 +85,50 @@ Import('part_env')
 
 part_build_dir = part_env['PARTITION_BUILD_DIR']
 
+# Build libjet into given variant_dir.
+#
+# If variant_dir is not given or None, use 'libjet/' subdirectory
+# in the partition's build dir.
+def BuildLibJet(part_env, variant_dir = None):
+	if variant_dir is None:
+		variant_dir = part_build_dir + '/libjet'
+	libpok_env = part_env.Clone()
+	return SConscript(part_env['JETOS_HOME'] + '/libpok/SConscript',
+		exports = 'libpok_env',
+		variant_dir = variant_dir,
+		duplicate = 0
+	)
+
+part_env.AddMethod(BuildLibJet)
+
+# Build common part of system partition into given variant_dir.
+#
+# If variant_dir is not given or None, use 'syspart/' subdirectory
+# in the partition's build dir.
+def BuildSyspart(part_env, variant_dir = None):
+	syspart_env = part_env.Clone()
+	if variant_dir is None:
+		variant_dir = part_build_dir + '/syspart'
+	return SConscript(part_env['JETOS_HOME'] + '/syspart/SConscript',
+		exports = 'syspart_env',
+		variant_dir = variant_dir,
+		duplicate = 0
+	)
+
+part_env.AddMethod(BuildSyspart)
+
+def SystemPartition(part_env):
+	part_env.Append(CPPPATH = part_env['JETOS_HOME']+'/syspart/include')
+	part_env['PARTITION_IS_SYSTEM'] = True
+
+part_env.AddMethod(SystemPartition)
+
+# Execute script with partition definitions
 part_env.SConscript(dirs = part_env['PARTITION_SOURCE_DIR'],
 	exports = 'part_env',
 	variant_dir = part_build_dir,
 	duplicate = 0)
+
 
 partition_post_process = part_env.get('PARTITION_POST_PROCESS', None)
 if partition_post_process is not None:
@@ -101,6 +142,12 @@ part_env['PARTITION_XML'] = part_env.toAbsPathList(
 	part_env['PARTITION_XML'],
 	part_env['PARTITION_SOURCE_DIR']
 )
+
+libjet_target = part_env.get('LIBJET_TARGET', None)
+
+# By default, build libjet library locally to the partition.
+if libjet_target is None:
+	libjet_target = part_env.BuildLibJet()
 
 AddMethod(part_env, template_generation.TemplateRender)
 
@@ -121,15 +168,20 @@ ldscript_partition = part_env['LDSCRIPT_PARTITION']
 # Rewrite LINKFLAGS, as we build '.elf'.
 part_elf_env['LINKFLAGS'] = ' -T ' + ldscript_partition
 
-syspart_target = []
+
 if part_env.get('PARTITION_IS_SYSTEM', default = False):
-	syspart_target.append(part_env['SYSPART_TARGET'])
+	syspart_target = part_env.get('SYSPART_TARGET', None)
+	# By default, build syspart locally to the partition.
+	if syspart_target is None:
+		syspart_target = part_env.BuildSyspart()
+else:
+	syspart_target = []
 
 part_elf = part_elf_env.Program(target = part_build_dir+'/part.elf',
 	source = deployment_target
-		+ syspart_target
 		+ part_env['PARTITION_SOURCES']
-		+ part_env['LIBPOK_TARGET']
+		+ syspart_target
+		+ libjet_target
 		+ [part_env['LIBGCC']])
 
 part_elf_env.Depends(part_elf, ldscript_partition)
