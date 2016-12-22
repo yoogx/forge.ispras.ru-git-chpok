@@ -213,21 +213,25 @@ def create_sizes_c(target, source, env):
 
 merge_target = pok_env.Command(target = module_build_dir+'/partitions.bin',
     source = partition_elfs,
-    action = merge_partitions)
+    action = Action(merge_partitions, '$MERGE_PARTITIONS_COMSTR'))
 pok_env.Depends(merge_target, partition_elfs)
 
 merge_file = merge_target[0].abspath
 
 sizes_c_target = pok_env.Command(target = module_build_dir+'/sizes.c',
     source = partition_elfs,
-    action = create_sizes_c)
+    action = Action(create_sizes_c, '$SIZES_C_GEN_COMSTR'))
 pok_env.Depends(sizes_c_target, partition_elfs)
 
 compile_sizes = pok_env.Command(target = module_build_dir+'/sizes.o',
     source = sizes_c_target,
-    action = [
+    action = Action([
         pok_env['CC']+' -c -o $TARGET '+pok_env['CFLAGS']+' $SOURCE',
-        pok_env['OBJCOPY']+' --add-section .archive2='+merge_file+' $TARGET'])
+        pok_env['OBJCOPY']+' --add-section .archive2='+merge_file+' $TARGET'
+    ],
+    "$SIZES_O_CREATE_COMSTR"
+    ))
+
 pok_env.Depends(compile_sizes, merge_target)
 
 pok_elf_env = pok_env.Clone()
