@@ -25,6 +25,7 @@ import subprocess
 import shutil
 
 import jinja2
+from SCons.Action import Action
 
 # Helper: prints error message with appropriate prefix.
 def print_error(message):
@@ -242,9 +243,9 @@ def TemplateRender(env, target, source, create_definitions_func,
     if len(target) != len(template_main):
         raise RuntimeError("'target' and 'template_main' lists have different lengths.")
 
-    t = env.Command(target,
-                source,
-                template_render_action,
+    t = env.Command(target=target,
+                source=source,
+                action=Action(template_render_action, '$JINJACOMSTR'),
                 TEMPLATE_DIR = template_dir,
                 TEMPLATE_MAIN = template_main,
                 TEMPLATE_CREATE_DEFINITIONS_FUNC = create_definitions_func,

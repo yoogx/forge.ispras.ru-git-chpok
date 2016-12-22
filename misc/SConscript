@@ -109,25 +109,6 @@ import os
 
 Import('env')
 
-def print_cmd_line(s, target, src, env):
-    # s is the original command line, target and src are lists of target
-    # and source nodes respectively, and env is the environment.
-    global log_file_opened
-    if not log_file_opened and str(target[0]) != 'run':
-        open(env['LAUNCHDIR']+'/scons_build.log', 'w')
-        log_file_opened = True
-
-    if str(target[0]) != 'run':
-        with open(env['LAUNCHDIR']+'/scons_build.log', 'a') as log:
-                log.write("%s\n"%s)
-
-    # For now len is always 1
-    if len(target) == 1:
-        x = str(target[0])
-        sys.stdout.write("%s ...\n" % os.path.relpath(x, start=env['JETOS_HOME']))
-    else:
-        sys.stdout.write("Making %s...\n" %(' and '.join([str(x) for x in target])))
-
 jetos_home = Dir('..').abspath # Do not require os environment variable JETOS_HOME
 
 env['JETOS_HOME'] = jetos_home
@@ -142,8 +123,20 @@ SConsignFile(None)
 # Cache built files
 #CacheDir(env['JETOS_HOME']+'/cache')
 
+if ARGUMENTS.get('VERBOSE') != "1":
+    env['CCCOMSTR'] = "CC $TARGET",
+    env['LINKCOMSTR'] = "LD $TARGET"
+    env['ARCOMSTR'] = "AR $TARGET"
+    env['ASCOMSTR'] = "AS $TARGET"
+    env['ASPPCOMSTR'] = "AS $TARGET"
+    env['RANLIBCOMSTR'] = "RANLIB $TARGET"
+    env['SIZES_C_GEN_COMSTR'] = "GENERATE $TARGET"
+    env['SIZES_O_CREATE_COMSTR'] = "CREATE $TARGET"
+    env['JINJACOMSTR'] = "JINJA generate $TARGET"
+    env['MERGE_PARTITIONS_COMSTR'] = "MERGE PARTITIONS $TARGET"
+
+
 # Flags common for all architectures
-env['PRINT_CMD_LINE_FUNC'] = print_cmd_line
 # Linker flags for '.lo' objects, but not for '.elf'
 env['LINKFLAGS'] = '-r'
 env.Append(QEMU_FLAGS = ' -serial stdio')
