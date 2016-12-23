@@ -13,6 +13,8 @@ jet_start:
         // Setup the stack.
         mov sp, #0x8000
 
+//TODO check if we really need to clear bss section
+/*
         // Clear out bss.
         ldr r4, =__bss_start
         ldr r9, =__bss_end
@@ -30,9 +32,14 @@ jet_start:
 2:
         cmp r4, r9
         blo 1b
+*/
 
-        // Call kernel_main
+        // Call arch_init
         ldr r3, =kernel_main
+        blx r3
+
+        // Call jet_boot. Should not return
+        ldr r3, =jet_boot
         blx r3
 
         // halt
