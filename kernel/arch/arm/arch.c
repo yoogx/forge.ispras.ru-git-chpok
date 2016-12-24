@@ -18,23 +18,23 @@
 
 void ja_preempt_disable (void)
 {
-    assert(0);
+    //assert(0);
 }
 
 void ja_preempt_enable (void)
 {
-    assert(0);
+    //assert(0);
 }
 
 pok_bool_t ja_preempt_enabled(void)
 {
-    assert(0);
+    //assert(0);
     return 0;
 }
 
 void ja_inf_loop(void)
 {
-    assert(0);
+    while (1);
 }
 
 void ja_cpu_reset(void)
