@@ -17,8 +17,18 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+"""
+Environment definitions for e500v2 board based on PowerPC.
+"""
+
 Import('env')
 
-env['PARTITIONS'] = ['P1']
-env['MODULE_XML'] = 'config.xml'
-env.Append(CFLAGS = ' -msoft-float')
+env['ARCH'] = 'ppc'
+
+SConscript(env['JETOS_HOME'] + '/misc/arch/ppc/SConscript', exports = 'env')
+
+#env.Append(CFLAGS = ' -mcpu=e500mc')
+env.Append(CFLAGS = ' -mcpu=8548 -mspe=yes -mfloat-gprs=double')
+
+env['BOARD_IS_EMULATED'] = True
+env.Append(QEMU_FLAGS = ' -M ppce500')

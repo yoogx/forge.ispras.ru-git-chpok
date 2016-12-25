@@ -56,9 +56,10 @@ ja_fp_init:
     
     lis %r3, zero_fp@ha
     addi %r3, %r3, zero_fp@l
-    
+
+    /*
     lfd %f0, 0(%r3)
-    
+
     # Copy other registers from f0
     fmr %f1, %f0
     fmr %f2, %f0
@@ -91,6 +92,7 @@ ja_fp_init:
     fmr %f29, %f0
     fmr %f30, %f0
     fmr %f31, %f0
+    */
 
     DISABLE_FP
 
@@ -104,6 +106,7 @@ ja_fp_save:
 
     ENABLE_FP
     
+    /*
     SAVE_FP(0)
     SAVE_FP(1)
     SAVE_FP(2)
@@ -139,6 +142,7 @@ ja_fp_save:
     
     //TODO: Store FPSCR
         
+        */
     DISABLE_FP
         
     blr
@@ -151,6 +155,7 @@ ja_fp_restore:
 
     ENABLE_FP
     
+/*
     LOAD_FP(0)
     LOAD_FP(1)
     LOAD_FP(2)
@@ -186,6 +191,7 @@ ja_fp_restore:
     
     //TODO: Restore FPSCR
         
+        */
     DISABLE_FP
         
     blr

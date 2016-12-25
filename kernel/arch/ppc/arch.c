@@ -65,7 +65,7 @@ void ja_inf_loop(void)
 {
    while (1)
    {
-      asm("wait": : :"memory");
+      //asm("wait": : :"memory");
    }
 }
 

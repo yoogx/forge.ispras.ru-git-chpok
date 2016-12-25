@@ -63,7 +63,7 @@ import arinc653_xml_conf
 import chpok_configuration
 
 
-boards = ['e500mc', 'e500_highmem', 'p3041', 'x86-qemu']
+boards = ['e500mc', 'e500v2', 'e500_highmem', 'p3041', 'x86-qemu']
 
 vars = Variables()
 vars.AddVariables(
