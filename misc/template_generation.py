@@ -25,6 +25,7 @@ import subprocess
 import shutil
 
 import jinja2
+from SCons.Action import Action
 
 # Helper: prints error message with appropriate prefix.
 def print_error(message):
@@ -242,9 +243,9 @@ def TemplateRender(env, target, source, create_definitions_func,
     if len(target) != len(template_main):
         raise RuntimeError("'target' and 'template_main' lists have different lengths.")
 
-    t = env.Command(target,
-                source,
-                template_render_action,
+    t = env.Command(target=target,
+                source=source,
+                action=Action(template_render_action, '$JINJACOMSTR'),
                 TEMPLATE_DIR = template_dir,
                 TEMPLATE_MAIN = template_main,
                 TEMPLATE_CREATE_DEFINITIONS_FUNC = create_definitions_func,
@@ -653,7 +654,7 @@ def BuildAsmOffsets(env, target, source, **kargs):
     precompile_env.AppendUnique(CCFLAGS = '-S')
     # Include directory with header defined DEFINE and other macros.
     precompile_env.Append(CPPPATH =
-        os.path.join(precompile_env['POK_PATH'], "misc/asm_offsets")
+        os.path.join(precompile_env['JETOS_HOME'], "misc/asm_offsets")
     )
 
     source_dir = os.path.dirname(source_node.srcnode().abspath)

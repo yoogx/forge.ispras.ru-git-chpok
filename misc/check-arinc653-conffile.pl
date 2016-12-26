@@ -26,7 +26,7 @@ if ($#ARGV != 0)
 }
 
 my $file = shift;
-my $xsdfile = $ENV{'POK_PATH'}."/misc/arinc653-schema.xsd";
+my $xsdfile = $ENV{'JETOS_HOME'}."/misc/arinc653-schema.xsd";
 
 use XML::LibXML;
 

@@ -1,0 +1,168 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+"""
+Common sconscript which may be used for build example module.
+"""
+
+#
+# Accept scons parameter:
+#
+#  bsp - specifies BSP for build.
+#
+#  jdeveloper - enables developer mode.
+#
+#  cdeveloper - enables component developer mode for system partition
+#
+#
+# Environment variables which affects on building:
+#
+#  JETOS_BSP - specified BSP for build (if 'bsp' scons parameter is absent)
+#
+#  PREFIX - prefix for compile tools, replaces architecture-dependent one
+#
+#  GDB - gdb executable, replaces architecture-dependent one
+#
+#  QEMU - qemu executable, replaces architecture-dependent one
+#
+#
+# Assume source directory to be '#' (that is, location of SConstruct
+# from which given script has been called, directly or indirectly).
+#
+# SConscript, located in the source directory, should set following
+# variables for 'Import()'ed environment 'env':
+#
+#  'PARTITIONS' - list of subdirectories with partitions.
+#
+#  'MODULE_XML' - xml-file in a specific format.
+#
+# SConscript also may modify following variables in 'env':
+#
+#  'CFLAGS', 'ASFLAGS' - these flags would affect on compilation of every
+#
+
+import os
+from lxml import etree
+import arinc653_xml_conf
+import chpok_configuration
+
+
+boards = ['e500mc', 'e500_highmem', 'p3041', 'x86-qemu']
+
+vars = Variables()
+vars.AddVariables(
+	EnumVariable('bsp', 'bsp', None, allowed_values = boards),
+	BoolVariable('jdeveloper', 'Enables developer mode', 0),
+	BoolVariable('cdeveloper', 'Enables component developer mode', 0)
+)
+
+env = Environment(variables = vars, ENV = os.environ)
+Help(vars.GenerateHelpText(env))
+
+os_scons_vars_map = {
+	'JETOS_BSP': 'BSP',
+	'PREFIX': 'PREFIX',
+	'GDB': 'GDB',
+	'QEMU': 'QEMU'
+}
+
+for os_var in os_scons_vars_map.keys():
+	val = os.environ.get(os_var, None)
+	if val is not None:
+		env[os_scons_vars_map[os_var]] = val
+
+scons_param_bsp = env.get('bsp', None)
+
+if scons_param_bsp is not None:
+	env['BSP'] = scons_param_bsp
+
+if not 'BSP' in env:
+	print "ERROR: BSP variable is not set."
+	print "HINT: You may set BSP via environment variable JETOS_BSP or via scons parameter 'bsp'."
+	Exit(1)
+
+example_dir = Dir('#').abspath
+
+mode = 'module'
+env['MODULE_SOURCE_DIR'] = example_dir
+env['MODULE_BUILD_DIR'] = os.path.join(example_dir, 'build', env['BSP'])
+env['CLEAN_DIRS'] = os.path.join(example_dir, 'build')
+
+def get_jet_config(source, env):
+    source = source[0]
+
+    root = etree.parse(source.path)
+    root.xinclude()
+
+    parser = arinc653_xml_conf.ArincConfigParser(env['ARCH'])
+    conf = parser.parse(root)
+
+    return conf
+
+env['MODULE_PARSE_CONFIGURATION'] = get_jet_config
+
+def module_post_process(env):
+	env['PARTITIONS_NUMBER'] = len(env['PARTITIONS'])
+	# TODO: This should be performed in the SConscript_module.
+	if not env['MODULE_XML'].startswith('/'):
+		env['MODULE_XML'] = example_dir + '/' + env['MODULE_XML']
+
+env['MODULE_POST_PROCESS'] = module_post_process
+
+
+# environment-related code below relates to partition.
+def get_jet_partition_config(source, env):
+    if type(source) is list:
+        source = source[0]
+
+    root = etree.parse(source.path)
+
+    parser = arinc653_xml_conf.ArincConfigParser(env['ARCH'])
+
+    conf = chpok_configuration.Configuration(env['ARCH'])
+    parser.parse_partition(conf, root)
+
+    return conf.partitions[0]
+
+env['PARTITION_PARSE_CONFIGURATION'] = get_jet_partition_config
+
+def partition_fill(part_env, part_index):
+	part_example_dir = example_dir + '/' + env['PARTITIONS'][part_index]
+	part_env['PARTITION_SOURCE_DIR'] = part_example_dir
+	part_env['PARTITION_BUILD_DIR'] = os.path.join(part_example_dir, 'build', part_env['BSP'])
+	part_env['PARTITION_CLEAN_DIRS'] = os.path.join(part_example_dir, 'build')
+	part_env['PARTITION_SOURCES'] = []
+
+env['PARTITION_FILL'] = partition_fill
+
+mode = 'module'
+env.SConscript('SConscript', exports = ['env', 'mode'])
+
+import SCons.Node.Alias
+if env.GetOption('help'):
+    aliases = SCons.Node.Alias.default_ans.keys()
+    aliases.sort()
+
+    print('---------------')
+    print('Alias list:')
+    for x in aliases:
+        print(x)
+    print('---------------')
+
+Return('env')

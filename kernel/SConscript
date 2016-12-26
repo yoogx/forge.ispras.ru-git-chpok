@@ -17,44 +17,40 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-Import('env')
-
-kernel_env = env.Clone()
-kernel_env.Append(CFLAGS = ' -Werror')
-
-if 'CFLAGS_KERNEL' in kernel_env:
-    kernel_env.Append(CFLAGS = ' ' + kernel_env['CFLAGS_KERNEL'])
-
-kernel_env['CPPPATH'] = kernel_env['KERNEL_CPPPATH']
+Import('kernel_env')
 
 if kernel_env.get('jdeveloper'):
     # Set base dir for reference in generated files
-    kernel_env['SOURCE_BASE_DIR'] = kernel_env['POK_PATH']
+    kernel_env['SOURCE_BASE_DIR'] = kernel_env['JETOS_HOME']
 
 Export('kernel_env')
 
 core = SConscript('core/SConscript')
 libc = SConscript('libc/SConscript')
 arch = SConscript('arch/SConscript')
+bsp_target = SConscript(kernel_env['JETOS_HOME'] + '/boards/SConscript',
+	variant_dir = 'boards',
+	duplicate = 0
+)
 
-kernel_objects=[core, libc, arch]
+kernel_objects=[core, libc, arch, bsp_target]
 
-kernel_env.Program(target = 'core.lo', source = kernel_objects)
+kernel_core_target = kernel_env.Program(target = 'core.lo', source = kernel_objects)
 
 if kernel_env.get('jdeveloper'):
     import sys
     import os
-    sys.path.insert(1, os.path.join(os.environ["POK_PATH"], "misc"))
+    sys.path.insert(1, os.path.join(os.environ["JETOS_HOME"], "misc"))
     import template_generation
     AddMethod(kernel_env, template_generation.BuildSyscallDefinition)
 
-    source_dir = kernel_env['POK_PATH'] + 'kernel/include/uapi/'
-    target_dir = kernel_env['POK_PATH'] + 'kernel/include/uapi/'
+    source_dir = kernel_env['JETOS_HOME'] + '/kernel/include/uapi/'
+    target_dir = kernel_env['JETOS_HOME'] + '/kernel/include/uapi/'
 
     (uapi_headers, uapi_headers_syscall) = SConscript(source_dir + 'SConscript')
 
     kernel_env.Replace(
-        SOURCE_BASE_DIR = kernel_env['POK_PATH'],
+        SOURCE_BASE_DIR = kernel_env['JETOS_HOME'],
         GENERATE_TITLE = template_generation.generate_title_c
     )
 
@@ -67,8 +63,9 @@ if kernel_env.get('jdeveloper'):
             target = target_dir + uapi_header_syscall,
             source = source_dir + uapi_header_syscall + '.in',
             template_main = 'syscall_declarations_kernel',
-            template_dir = kernel_env['POK_PATH'] + '/misc/templates'))
+            template_dir = kernel_env['JETOS_HOME'] + '/misc/templates'))
 
     kernel_env.Depends('regenerate', kernel_syscall_headers)
 
+Return('kernel_core_target')
 # EOF

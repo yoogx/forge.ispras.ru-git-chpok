@@ -31,14 +31,12 @@ CONFIG = "config.yaml"
 import os
 
 Import('part_env')
-Import('part_build_dir')
-
 
 P2_env = part_env.Clone()
 P2_env.Append(CFLAGS = ' -O3')
 
 for comp in COMPONENTS_LIST:
-    P2_env.Append(CPPPATH = os.path.join(P2_env['POK_PATH'], COMPONENTS_DIR, comp))
+    P2_env.Append(CPPPATH = os.path.join(P2_env['JETOS_HOME'], COMPONENTS_DIR, comp))
 
 
 from collections import defaultdict
@@ -71,7 +69,7 @@ def generate_glue():
         source = os.path.join(cwd, CONFIG),
         create_definitions_func = get_glue_definitions,
         template_main = "glue.c",
-        template_dir = os.path.join(part_env['POK_PATH'],"misc/templates"),
+        template_dir = os.path.join(part_env['JETOS_HOME'],"misc/templates"),
         )
     part_env.Depends(t, GLUE_DEFAULT_TARGET)
 
@@ -79,7 +77,7 @@ if part_env.get('cdeveloper'):
     import sys
     import yaml
     import glob
-    sys.path.insert(1, os.path.join(part_env["POK_PATH"], "misc"))
+    sys.path.insert(1, os.path.join(part_env["JETOS_HOME"], "misc"))
     import template_generation
     AddMethod(part_env, template_generation.TemplateRender)
 
@@ -98,6 +96,6 @@ if part_env.get('cdeveloper'):
 objs = []
 sources = Glob('*.c')
 for src in sources:
-    objs += P2_env.StaticObject(part_build_dir + str(src)[:-2], src)
+    objs += P2_env.StaticObject(src)
 
 Return('objs')

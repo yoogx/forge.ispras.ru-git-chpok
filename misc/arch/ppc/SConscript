@@ -1,0 +1,36 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+"""
+Environment definitions for PowerPC architecture.
+"""
+
+Import('env')
+
+env['PREFIX'] = 'powerpc-elf-'
+
+env['QEMU'] = 'qemu-system-ppc'
+
+env.Append(CFLAGS = ' -mregnames')
+env.Append(ASFLAGS = ' -mregnames')
+
+env.Append(CFLAGS_KERNEL = '-msoft-float')
+
+env['LDSCRIPT_KERNEL'] = env['JETOS_HOME'] + '/kernel/arch/ppc/ldscripts/kernel.lds'
+env['LDSCRIPT_PARTITION'] = env['JETOS_HOME'] + '/kernel/arch/ppc/ldscripts/partition.lds'
