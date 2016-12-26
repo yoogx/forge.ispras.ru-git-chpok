@@ -32,6 +32,8 @@
 #define SPRN_IVOR40     0x1b2   /* Interrupt Vector Offset Register 40 */
 #define SPRN_IVOR41     0x1b3   /* Interrupt Vector Offset Register 41 */
 
+#define SPRN_IVOR32     0x210   /* Interrupt Vector Offset Register 32 SPE */
+
 #define SPRN_DSRR0      0x23e   /* Debug Save and Restore Register 0 */
 #define SPRN_DSRR1      0x23f   /* Debug Save and Restore Register 1 */
 

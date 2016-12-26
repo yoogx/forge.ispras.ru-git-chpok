@@ -29,7 +29,8 @@ env['PREFIX'] = 'powerpc-elf-eabispe-'
 SConscript(env['JETOS_HOME'] + '/misc/arch/ppc/SConscript', exports = 'env')
 
 #env.Append(CFLAGS = ' -mcpu=e500mc')
-env.Append(CFLAGS = ' -mcpu=8548 -mspe=yes -mfloat-gprs=double -mno-eabi -msdata=sysv')
+#env.Append(CFLAGS = ' -mcpu=8548 -mspe=yes -mfloat-gprs=double -mno-eabi -msdata=sysv')
+env.Append(CFLAGS = ' -mcpu=8548 -mspe=yes -mfloat-gprs=double -mno-eabi')
 
 env['BOARD_IS_EMULATED'] = True
 env.Append(QEMU_FLAGS = ' -M ppce500 -cpu e500v2')

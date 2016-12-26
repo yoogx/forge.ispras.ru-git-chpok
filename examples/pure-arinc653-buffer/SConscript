@@ -21,4 +21,4 @@ Import('env')
 
 env['PARTITIONS'] = ['P1']
 env['MODULE_XML'] = 'config.xml'
-env.Append(CFLAGS = ' -msoft-float')
+#env.Append(CFLAGS = ' -msoft-float')

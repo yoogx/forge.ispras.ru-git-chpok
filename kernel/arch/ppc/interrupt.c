@@ -82,6 +82,30 @@ void pok_int_alignment(struct jet_interrupt_context* vctx, uintptr_t dear, unsig
     pok_fatal("Alignment interrupt");
 }
 
+void pok_int_spe(struct jet_interrupt_context* vctx)
+{
+    printf("cr   = 0x%lx\n", vctx->cr);
+    printf("r0   = 0x%lx\n", vctx->r0);
+    printf("r1   = 0x%lx\n", vctx->r1);
+    printf("r2   = 0x%lx\n", vctx->r2);
+    printf("r3   = 0x%lx\n", vctx->r3);
+    printf("r4   = 0x%lx\n", vctx->r4);
+    printf("r5   = 0x%lx\n", vctx->r5);
+    printf("r6   = 0x%lx\n", vctx->r6);
+    printf("r7   = 0x%lx\n", vctx->r7);
+    printf("r8   = 0x%lx\n", vctx->r8);
+    printf("r9   = 0x%lx\n", vctx->r9);
+    printf("r10  = 0x%lx\n", vctx->r10);
+    printf("r11  = 0x%lx\n", vctx->r11);
+    printf("r12  = 0x%lx\n", vctx->r12);
+    printf("ctr  = 0x%lx\n", vctx->ctr);
+    printf("xer  = 0x%lx\n", vctx->xer);
+    printf("srr0 = 0x%lx\n", vctx->srr0);
+    printf("srr1 = 0x%lx\n", vctx->srr1);
+    printf("lr   = 0x%lx\n", vctx->lr);
+    pok_fatal("SPE interrupt");
+}
+
 int k=0;
 
 extern void * pok_trap_addr;

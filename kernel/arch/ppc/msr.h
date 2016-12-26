@@ -24,7 +24,8 @@
 #define MSR_TS_S_LG     33              /* Trans Mem state: Suspended */
 #define MSR_TS_LG       33              /* Trans Mem state (2 bits) */
 #define MSR_TM_LG       32              /* Trans Mem Available */
-#define MSR_VEC_LG      25              /* Enable AltiVec */
+//#define MSR_VEC_LG      25              /* Enable AltiVec */
+#define MSR_SPE_LG      25              /* Enable SPE */
 #define MSR_VSX_LG      23              /* Enable VSX */
 #define MSR_POW_LG      18              /* Enable Power Management */
 #define MSR_WE_LG       18              /* Wait State Enable */
@@ -51,7 +52,8 @@
 
 #define __MASK(X)       (1<<(X))
 
-#define MSR_VEC         __MASK(MSR_VEC_LG)      /* Enable AltiVec */
+//#define MSR_VEC         __MASK(MSR_VEC_LG)      /* Enable AltiVec */
+#define MSR_SPE         __MASK(MSR_SPE_LG)      /* Enable SPE */
 #define MSR_VSX         __MASK(MSR_VSX_LG)      /* Enable VSX */
 #define MSR_POW         __MASK(MSR_POW_LG)      /* Enable Power Management */
 #define MSR_WE          __MASK(MSR_WE_LG)       /* Wait State Enable */

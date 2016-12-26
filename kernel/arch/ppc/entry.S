@@ -58,8 +58,9 @@ ja_user_space_jump:
         // Prepare user stack, srr1 and srr0 for rfi
         subi %r1, %r6, 16
         mtsrr0 %r5
-        lis %r9, (MSR_EE | MSR_IP | MSR_PR | MSR_FP)@ha
-        addi %r9, %r9, (MSR_EE | MSR_IP | MSR_PR | MSR_FP)@l
+        lis %r9, (MSR_EE | MSR_IP | MSR_PR | MSR_FP | MSR_SPE )@ha
+        addi %r9, %r9, (MSR_EE | MSR_IP | MSR_PR | MSR_FP | MSR_SPE)@l
+
         mtsrr1 %r9
 
         // Nullify other registers (0, 2-7, 9-31)
@@ -502,6 +503,13 @@ label##_asm:
         bl pok_int_alignment
         b pok_arch_rfi
 
+    START_EXCEPTION(pok_int_spe)
+        EXCEPTION_PROLOGUE
+        mr %r3, %r1
+
+        bl pok_int_spe
+        b pok_arch_rfi
+
     START_EXCEPTION(pok_int_program)
         EXCEPTION_PROLOGUE
         mr %r3, %r1
@@ -601,6 +609,8 @@ pok_setup_interrupts:
         SET_IVOR(13, pok_int_data_tlb_miss)
         SET_IVOR(14, pok_int_inst_tlb_miss)
         SET_IVOR(15, pok_int_debug)
+
+        SET_IVOR(32, pok_int_spe)
 
         blr
 
