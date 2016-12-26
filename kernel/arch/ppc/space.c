@@ -310,17 +310,18 @@ void pok_arch_handle_page_fault(
             faulting_address >= POK_PARTITION_MEMORY_BASE &&
             faulting_address < POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE)
     {
-        jet_space_id space_id = pid;
-        pok_insert_tlb1(
-            POK_PARTITION_MEMORY_BASE,
-            ja_spaces[space_id - 1].phys_base,
-            E500MC_PGSIZE_16M,
-            MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
-            0,
-            pid,
-            FALSE
-        );
-    } else {
+       // printf("------%lld------\n",(long long int)faulting_address);
+        //jet_space_id space_id = pid;
+        //pok_insert_tlb1(
+            //POK_PARTITION_MEMORY_BASE,
+            //ja_spaces[space_id - 1].phys_base,
+            //E500MC_PGSIZE_16M,
+            //MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX,
+            //0,
+            //pid,
+            //FALSE
+        //);
+   // } else {
 #ifdef POK_NEEDS_DEBUG
         if (vctx->srr1 & MSR_PR) {
             printf("USER ");

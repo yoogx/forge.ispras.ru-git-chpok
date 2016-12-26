@@ -1,0 +1,22 @@
+[
+        {   "pid": "1",
+            "flag_continuous": "Yes", 
+            "flag": "RX", 
+            "virtual_addres": "0x30010000", 
+            "size": 245760
+        }, 
+        {
+            "pid": "1",
+            "flag_continuous": "No", 
+            "flag": "RW", 
+            "virtual_addres": "0x20000000", 
+            "size": 2672090
+        }, 
+        {
+            "pid": "1",
+            "flag_continuous": "Yes", 
+            "flag": "RO", 
+            "virtual_addres": "0x10000000", 
+            "size": 178490808
+        }
+    ]

@@ -1,0 +1,22 @@
+{
+    "1": [
+        {
+            "flag_continuous": "No", 
+            "flag": "RX", 
+            "virtual_addres": "0x80010000", 
+            "size": 24576
+        }, 
+        {
+            "flag_continuous": "No", 
+            "flag": "RW", 
+            "virtual_addres": "0xa0000000", 
+            "size": 2672
+        }, 
+        {
+            "flag_continuous": "No", 
+            "flag": "RO", 
+            "virtual_addres": "0x90000000", 
+            "size": 1784
+        }
+    ]
+}

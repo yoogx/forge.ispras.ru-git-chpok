@@ -95,6 +95,7 @@ static void partition_arinc_start(void)
 
 	jet_loader_elf_load(part->base_part.space_id - 1, /* elf_id*/
 		part->base_part.space_id,
+		part->heap_size,
 		&part->main_entry);
 	
 

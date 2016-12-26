@@ -1,0 +1,40 @@
+{
+    "1": [
+        {
+            "virtual_addres": "0x80010000", 
+            "flag": "RX", 
+            "flag_continuous": "No", 
+            "size": 24576
+        }, 
+        {
+            "virtual_addres": "0xa0000000", 
+            "flag": "RW", 
+            "flag_continuous": "No", 
+            "size": 2672
+        }, 
+        {
+            "virtual_addres": "0x90000000", 
+            "flag": "RO", 
+            "flag_continuous": "No", 
+            "size": 1784
+        }, 
+        {
+            "virtual_addres": "0x30010000", 
+            "flag": "RX", 
+            "flag_continuous": "Yes", 
+            "size": 245760
+        }, 
+        {
+            "virtual_addres": "0x20000000", 
+            "flag": "RW", 
+            "flag_continuous": "No", 
+            "size": 2672090
+        }, 
+        {
+            "virtual_addres": "0x10000000", 
+            "flag": "RO", 
+            "flag_continuous": "Yes", 
+            "size": 178490808
+        }
+    ]
+}

@@ -1,0 +1,61 @@
+{
+    "all_TLB_sizes": [
+        "0x1000", 
+        "0x4000", 
+        "0x10000", 
+        "0x40000", 
+        "0x100000", 
+        "0x400000", 
+        "0x1000000", 
+        "0x4000000", 
+        "0x10000000", 
+        "0x40000000", 
+        "0x100000000"
+    ], 
+    "TLBs": {
+        "TLB0": {
+            "TLB_sizes": [
+                "0x1000"
+            ], 
+            "number": 512
+        }, 
+        "TLB1": {
+            "TLB_sizes": [
+                "0x1000", 
+                "0x4000", 
+                "0x10000", 
+                "0x40000", 
+                "0x100000", 
+                "0x400000", 
+                "0x1000000", 
+                "0x4000000", 
+                "0x10000000", 
+                "0x40000000", 
+                "0x100000000"
+            ], 
+            "number": 64
+        }
+    }, 
+    "dict E500MC_PGSIZE": {
+        "0x100000000": "E500MC_PGSIZE_4G", 
+        "0x1000": "E500MC_PGSIZE_4K", 
+        "0x1000000": "E500MC_PGSIZE_16M", 
+        "0x40000": "E500MC_PGSIZE_256K", 
+        "0x4000": "E500MC_PGSIZE_16K", 
+        "0x100000": "E500MC_PGSIZE_1M", 
+        "0x40000000": "E500MC_PGSIZE_1G", 
+        "0x10000000": "E500MC_PGSIZE_256M", 
+        "0x400000": "E500MC_PGSIZE_4M", 
+        "0x10000": "E500MC_PGSIZE_64K", 
+        "0x4000000": "E500MC_PGSIZE_64M"
+    }, 
+    "flags": {
+        "RW": "MAS3_SW|MAS3_SR|MAS3_UW|MAS3_UR", 
+        "RO": "MAS3_SR|MAS3_UR|MAS3_SW", 
+        "RX": "MAS3_SX|MAS3_SR|MAS3_UX|MAS3_UR|MAS3_SW"
+    }, 
+    "def": {
+        "max_memory_TLB_entries": 2147483648, 
+        "START_PHYSICAL_ADDRESS": "0x4000000"
+    }
+}
