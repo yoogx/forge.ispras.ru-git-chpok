@@ -24,9 +24,10 @@ Environment definitions for e500v2 board based on PowerPC.
 Import('env')
 
 env['ARCH'] = 'ppc'
-env['PREFIX'] = 'powerpc-elf-eabispe-'
 
 SConscript(env['JETOS_HOME'] + '/misc/arch/ppc/SConscript', exports = 'env')
+
+env['PREFIX'] = 'powerpc-elf-eabispe-' # This will rewrite PREFIX set by arch
 
 #env.Append(CFLAGS = ' -mcpu=e500mc')
 #env.Append(CFLAGS = ' -mcpu=8548 -mspe=yes -mfloat-gprs=double -mno-eabi -msdata=sysv')

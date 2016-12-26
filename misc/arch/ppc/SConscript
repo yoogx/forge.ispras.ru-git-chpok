@@ -23,8 +23,7 @@ Environment definitions for PowerPC architecture.
 
 Import('env')
 
-if not 'PREFIX' in env:
-	env['PREFIX'] = 'powerpc-elf-'
+env['PREFIX'] = 'powerpc-elf-'
 
 env['QEMU'] = 'qemu-system-ppc'
 
