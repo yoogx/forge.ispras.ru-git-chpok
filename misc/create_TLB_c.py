@@ -71,9 +71,6 @@ def create_TLB(TLB_dict,pid,addr):
         number_TLB_entry{{index}}={{number}};
         """)
 
-    #for TLB in TLB_dict['0']:
-    #    TLB['permissions']='MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX'
-
     with open(os.path.join(addr, "TLB.c"),'w') as f:
         f.write(t.render(
             index='',
