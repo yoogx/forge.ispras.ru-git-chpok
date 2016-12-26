@@ -37,7 +37,6 @@ def create_TLB(TLB_dict,pid,addr):
     #define True   1
     
     struct TLB_entry TLB_entries{{index}}[]={
-    {
     {%for TLB_entry in TLB_d:%}
          {
          .virtual={{ TLB_entry['virtual'] }},
@@ -67,7 +66,7 @@ def create_TLB(TLB_dict,pid,addr):
         f.write(t.render(
             index='',
             TLB_d = TLB_dict['0'],
-            number = len(TLB_dict['0'])+2
+            number = len(TLB_dict['0'])+1
             ))
     
     for TLB in TLB_dict['0']:
@@ -77,7 +76,7 @@ def create_TLB(TLB_dict,pid,addr):
         f.write(t.render(
             index=1,
             TLB_d = TLB_dict['0'],
-            number = len(TLB_dict['0'])+2
+            number = len(TLB_dict['0'])+1
             ))
 
 def main(addr):
