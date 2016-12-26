@@ -220,6 +220,10 @@ void pok_insert_tlb0();
 
 void pok_arch_space_init (void)
 { 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
     // overwrites first TLB1 entry
     // we just need to change access bits for the kernel,
     // so user won't be able to access it
@@ -250,6 +254,17 @@ void pok_arch_space_init (void)
             limit-1,
             TRUE);
             
+<<<<<<< Updated upstream
+=======
+
+    pok_ppc_tlb_print(0);
+    pok_ppc_tlb_print(1);
+//    pok_ppc_tlb_clear_entry(1, 2);
+    for (unsigned i = 1; i < limit-1; i++) {
+        pok_ppc_tlb_clear_entry(1, i);
+    }
+    
+>>>>>>> Stashed changes
     for(int i=0 ; i < number_TLB_entry1 ;i++) {
         pok_insert_tlb1(
             (long long int)TLB_entries1[i].virtual,
