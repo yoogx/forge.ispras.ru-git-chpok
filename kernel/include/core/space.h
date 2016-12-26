@@ -24,5 +24,6 @@
 #define pok_space_get_current() ja_space_get_current()
 
 #define jet_user_space_jump ja_user_space_jump
+static const size_t ja_user_space_maximum_alignment;
 
 #endif /* __JET_ASP_SPACE_H__ */

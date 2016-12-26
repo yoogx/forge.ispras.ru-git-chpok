@@ -38,14 +38,6 @@ def create_TLB(TLB_dict,pid,addr):
     
     struct TLB_entry TLB_entries{{index}}[]={
     {
-         .virtual=0x80000000,
-         .physical=0x4030000,
-         .pgsize_enum=E500MC_PGSIZE_4K ,
-         .permissions=MAS3_SW | MAS3_SR | MAS3_UW | MAS3_UR | MAS3_UX | MAS3_SX | MAS3_UW,
-         .wimge=0,
-         .pid=1,
-         .is_resident= False,
-         },
     {%for TLB_entry in TLB_d:%}
          {
          .virtual={{ TLB_entry['virtual'] }},

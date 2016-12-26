@@ -7,7 +7,7 @@ SECTIONS
 {
 	kshd = 0x80000000; /* This should coincide with ja_space_shared_data() in the kernel. */
 
-  . = 0x80010000;
+  . = 0x80000000;
 
 	__partition_begin = . ;
        

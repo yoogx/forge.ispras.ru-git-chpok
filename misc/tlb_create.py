@@ -22,12 +22,12 @@ import checker
 import create_target
 import divided
 import create_TLB_c
-#import create_partition_ld
+import create_partition_ld
 import json
 import merger
 
 def create(target, source, env):
-    #create_partition_ld.main(env)#do separately
+    create_partition_ld.main(env)#do separately
     create_target.main()#do separately
     divided.main(env['PARTITION_BUILD_DIRS'])
     merger.main()
