@@ -34,8 +34,6 @@
 #include <asp/entries.h>
 #include <libc.h>
 
-#include <core/instrumentation.h>
-
 #ifdef POK_NEEDS_GDB
 #include <gdb.h>
 #endif
@@ -68,19 +66,6 @@ void jet_boot (void)
 #if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_CONSOLE)
   pok_cons_write ("POK kernel initialized\n", 23);
 #endif
-
-#ifdef POK_NEEDS_INSTRUMENTATION
-  uint32_t tmp;
-   printf ("[INSTRUMENTATION][CHEDDAR] <event_table>\n");
-   printf ("[INSTRUMENTATION][CHEDDAR] <processor>\n");
-   printf ("[INSTRUMENTATION][CHEDDAR] <name>pok_kernel</name>\n");
-
-   for (tmp = 0 ; tmp < POK_CONFIG_NB_THREADS ; tmp++)
-   {
-      printf ("[INSTRUMENTATION][CHEDDAR] <task_activation>   0   task %lu</task_activation>\n", tmp);
-   }
-#endif
-
 
 #ifdef POK_NEEDS_PARTITIONS
 #if defined(POK_NEEDS_GDB) && defined(POK_NEEDS_WAIT_FOR_GDB)
