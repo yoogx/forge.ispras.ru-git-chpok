@@ -11,53 +11,60 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
  * See the GNU General Public License version 3 for more details.
- *
- * This file also incorporates work covered by POK License.
- * Copyright (c) 2007-2009 POK team
  */
 
 #include "msr.h"
 
+#ifdef JET_PPC_CONFIG_SPE
+#define SAVE_FP(num)
+#define LOAD_FP(num)
+#else
 #define SAVE_FP(num) stfd %f##num,(8*num)(%r3)
 #define LOAD_FP(num) lfd %f##num,(8*num)(%r3)
+#endif
 
 .macro ENABLE_FP
-    /* Enable floating point bit in msr. Note: uses %r4. */
+    /* Enable floating point bit in msr.
+     *
+     * NOTE: uses %r4.
+     */
     mfmsr %r4
-    ori %r4,%r4,MSR_FP
+    oris %r4,%r4, (MSR_ENABLE_FP)@h
+    ori %r4,%r4, (MSR_ENABLE_FP)@l
     mtmsr %r4
 .endm
 
 .macro DISABLE_FP
-    /* 
+    /*
      * Disable floating point bit in msr.
-     * 
+     *
      * NOTE: Assume fp being enabled previously.
      *
      * NOTE: uses %r4.
      */
     mfmsr %r4
-    subi %r4, %r4, MSR_FP
+    subis %r4, %r4, (MSR_ENABLE_FP)@h
+    subi %r4, %r4, (MSR_ENABLE_FP)@l
     mtmsr %r4
 .endm
-
 
     .rodata
     .align 4 # 4 words = 16 bytes
 zero_fp:
     .quad 0
-    
+
 
     .text
 
     .globl ja_fp_init
 ja_fp_init:
-    ENABLE_FP
-    
-    lis %r3, zero_fp@ha
-    addi %r3, %r3, zero_fp@l
 
-    /*
+    ENABLE_FP
+
+#ifdef JET_PPC_CONFIG_SPE
+
+
+#else
     lfd %f0, 0(%r3)
 
     # Copy other registers from f0
@@ -92,8 +99,7 @@ ja_fp_init:
     fmr %f29, %f0
     fmr %f30, %f0
     fmr %f31, %f0
-    */
-
+#endif
     DISABLE_FP
 
     blr
@@ -105,8 +111,7 @@ ja_fp_save:
     /* r3 - pointer to 'struct jet_fp_store'. */
 
     ENABLE_FP
-    
-    /*
+
     SAVE_FP(0)
     SAVE_FP(1)
     SAVE_FP(2)
@@ -139,12 +144,11 @@ ja_fp_save:
     SAVE_FP(29)
     SAVE_FP(30)
     SAVE_FP(31)
-    
+
     //TODO: Store FPSCR
-        
-        */
+
     DISABLE_FP
-        
+
     blr
 
     .size ja_fp_save, . - ja_fp_save
@@ -154,8 +158,7 @@ ja_fp_restore:
     /* r3 - pointer to 'struct jet_fp_store'. */
 
     ENABLE_FP
-    
-/*
+
     LOAD_FP(0)
     LOAD_FP(1)
     LOAD_FP(2)
@@ -188,12 +191,11 @@ ja_fp_restore:
     LOAD_FP(29)
     LOAD_FP(30)
     LOAD_FP(31)
-    
+
     //TODO: Restore FPSCR
-        
-        */
+
     DISABLE_FP
-        
+
     blr
 
     .size ja_fp_restore, . - ja_fp_restore

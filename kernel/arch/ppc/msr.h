@@ -86,9 +86,14 @@
 #define MSR_TM_TRANSACTIONAL(x) (((x) & MSR_TS_MASK) == MSR_TS_T)
 #define MSR_TM_SUSPENDED(x)     (((x) & MSR_TS_MASK) == MSR_TS_S)
 
+#ifdef JET_PPC_CONFIG_SPE
+#define MSR_ENABLE_FP MSR_SPE
+#else //JET_PPC_CONFIG_SPE
+#define MSR_ENABLE_FP MSR_FP
+#endif
 
 #define MSR_KERNEL (0) // MSR value on kernel boot.
-#define MSR_USER (MSR_EE |  MSR_PR | MSR_FP | MSR_SPE)
+#define MSR_USER (MSR_EE |  MSR_PR | MSR_ENABLE_FP)
 
 #ifndef __ASSEMBLY__ //if this header was not included in asm file
 
