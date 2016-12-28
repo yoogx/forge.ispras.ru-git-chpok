@@ -1,5 +1,19 @@
-#ifndef __POK_PPC_REG_H__
-#define __POK_PPC_REG_H__
+/*
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
+ *
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ * See the GNU General Public License version 3 for more details.
+ */
+#ifndef __JET_PPC_REG_H__
+#define __JET_PPC_REG_H__
 
 #define SPRN_DEC        0x016   /* Decrement Register */
 #define SPRN_TBRL       0x10C   /* Time Base Read Lower Register (user, R/O) */
