@@ -93,6 +93,12 @@
 
 #ifndef __ASSEMBLY__ //if this header was not included in asm file
 
+#define mfmsr() ({unsigned long rval; \
+        asm volatile("mfmsr %0" : "=r" (rval) : \
+                : "memory"); rval;})
+#define mtmsr(v) asm volatile("mtmsr %0" : \
+        : "r" ((unsigned long)(v)) \
+        : "memory")
 #endif // __ASSEMBLY__
 
 #endif

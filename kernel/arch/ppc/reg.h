@@ -72,16 +72,9 @@
 #ifndef __ASSEMBLY__
 
 #ifndef __stringify
-#define __stringify_1(x)        #x
-#define __stringify(x)          __stringify_1(x)
+#define __stringify(x) #x
 #endif
 
-#define mfmsr()         ({unsigned long rval; \
-                                asm volatile("mfmsr %0" : "=r" (rval) : \
-                                                                                    : "memory"); rval;})
-#define mtmsr(v)        asm volatile("mtmsr %0" : \
-                                             : "r" ((unsigned long)(v)) \
-                                             : "memory")
 
 #define mfspr(rn)       ({unsigned long rval; \
                                 asm volatile("mfspr %0," __stringify(rn) \
