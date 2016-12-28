@@ -58,8 +58,8 @@ ja_user_space_jump:
         // Prepare user stack, srr1 and srr0 for rfi
         subi %r1, %r6, 16
         mtsrr0 %r5
-        lis %r9, (MSR_EE | MSR_IP | MSR_PR | MSR_FP | MSR_SPE )@ha
-        addi %r9, %r9, (MSR_EE | MSR_IP | MSR_PR | MSR_FP | MSR_SPE)@l
+        lis %r9, (MSR_USER)@ha
+        addi %r9, %r9, (MSR_USER)@l
 
         mtsrr1 %r9
 
@@ -397,6 +397,11 @@ failed: b failed
         .globl _pok_reset
 system_reset_0100:
 _pok_reset:
+        /* set MSR = MSR_KERNEL */
+        lis %r1, (MSR_KERNEL)@h
+        ori %r1,%r1,(MSR_KERNEL)@l
+        mtmsr %r1
+
         /*write r3(devtree addr) to devtree_address global variable*/
         lis %r1, (devtree_address)@h
         ori %r1,%r1,(devtree_address)@l

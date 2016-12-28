@@ -37,8 +37,6 @@
  */
 void pok_arch_init (void)
 {
-  mtmsr(MSR_IP | MSR_FP);
-
   ja_bsp_init();
 
   pok_arch_space_init();

@@ -52,7 +52,7 @@
 
 #define __MASK(X)       (1<<(X))
 
-//#define MSR_VEC         __MASK(MSR_VEC_LG)      /* Enable AltiVec */
+#define MSR_VEC         __MASK(MSR_VEC_LG)      /* Enable AltiVec */
 #define MSR_SPE         __MASK(MSR_SPE_LG)      /* Enable SPE */
 #define MSR_VSX         __MASK(MSR_VSX_LG)      /* Enable VSX */
 #define MSR_POW         __MASK(MSR_POW_LG)      /* Enable Power Management */
@@ -87,7 +87,12 @@
 #define MSR_TM_TRANSACTIONAL(x) (((x) & MSR_TS_MASK) == MSR_TS_T)
 #define MSR_TM_SUSPENDED(x)     (((x) & MSR_TS_MASK) == MSR_TS_S)
 
-#define MSR_KERNEL (MSR_ME|MSR_RI|MSR_IR|MSR_DR)
-#define MSR_USER (MSR_KERNEL|MSR_PR|MSR_EE)
+
+#define MSR_KERNEL (0) // MSR value on kernel boot.
+#define MSR_USER (MSR_EE |  MSR_PR | MSR_FP | MSR_SPE)
+
+#ifndef __ASSEMBLY__ //if this header was not included in asm file
+
+#endif // __ASSEMBLY__
 
 #endif
