@@ -63,8 +63,49 @@ ja_fp_init:
 
 #ifdef JET_PPC_CONFIG_SPE
 
+    li %r4, 0 //zero low 32bit of r4
+
+    /* 'evmergelo X,A,X' makes X=A|X
+     * i.e. rewrite high 32 bit of X by low 32 bit of A.
+     * So in next instruction we zero high32bit of all GPRs
+     */
+    evmergelo %r0 , %r4, %r0
+    evmergelo %r1 , %r4, %r1
+    evmergelo %r2 , %r4, %r2
+    evmergelo %r3 , %r4, %r3
+    evmergelo %r4 , %r4, %r4
+    evmergelo %r5 , %r4, %r5
+    evmergelo %r6 , %r4, %r6
+    evmergelo %r7 , %r4, %r7
+    evmergelo %r8 , %r4, %r8
+    evmergelo %r9 , %r4, %r9
+    evmergelo %r10, %r4, %r10
+    evmergelo %r11, %r4, %r11
+    evmergelo %r12, %r4, %r12
+    evmergelo %r13, %r4, %r13
+    evmergelo %r14, %r4, %r14
+    evmergelo %r15, %r4, %r15
+    evmergelo %r16, %r4, %r16
+    evmergelo %r17, %r4, %r17
+    evmergelo %r18, %r4, %r18
+    evmergelo %r19, %r4, %r19
+    evmergelo %r20, %r4, %r20
+    evmergelo %r21, %r4, %r21
+    evmergelo %r22, %r4, %r22
+    evmergelo %r23, %r4, %r23
+    evmergelo %r24, %r4, %r24
+    evmergelo %r25, %r4, %r25
+    evmergelo %r26, %r4, %r26
+    evmergelo %r27, %r4, %r27
+    evmergelo %r28, %r4, %r28
+    evmergelo %r29, %r4, %r29
+    evmergelo %r30, %r4, %r30
+    evmergelo %r31, %r4, %r31
 
 #else
+    lis %r3, zero_fp@ha
+    addi %r3, %r3, zero_fp@l
+
     lfd %f0, 0(%r3)
 
     # Copy other registers from f0
