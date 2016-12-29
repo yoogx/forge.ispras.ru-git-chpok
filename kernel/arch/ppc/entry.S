@@ -267,10 +267,6 @@ ja_user_space_jump:
  */
 .macro EXCEPTION_PROLOGUE_COMMON
         mfcr    %r3
-        /* Enable floating point bit in msr */
-        mfmsr %r4
-        ori %r4,%r4,MSR_FP
-        mtmsr %r4
         /* Check whether kernel stack is usable. */
         mfsprg %r4, 1
         andi.   %r4, %r4, 1 /* Valid stack is always 16-byte aligned. */
