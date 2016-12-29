@@ -404,8 +404,8 @@ _pok_reset:
         stw %r3, 0(r1)
 
         /* Setup stack */
-        lis %r1,(pok_stack_end-4)@h
-        ori %r1,%r1,(pok_stack_end-4)@l
+        lis %r1,(jet_entry_stack-4)@h
+        ori %r1,%r1,(jet_entry_stack-4)@l
 
         /* Mark kernel stack as ready for interrupts. */
         li %r4, 1
@@ -617,13 +617,3 @@ pok_setup_interrupts:
 #endif
 
         blr
-
-        .section ".bss", "aw"
-        .align 4 # 4 words = 16 bytes
-pok_stack:
-		.global pok_stack_end
-        .space 8 * 1024
-pok_stack_end:
-
-pok_save_area:
-        .space 4 * 8
