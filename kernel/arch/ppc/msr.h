@@ -1,21 +1,20 @@
 /*
- *                               POK header
- * 
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *                                      Copyright (c) 2007-2009 POK team 
- *
- * Created by julien on Thu Jan 15 23:34:13 2009 
+ * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __POK_PPC_MSR_H__
-#define __POK_PPC_MSR_H__
+#ifndef __JET_PPC_MSR_H__
+#define __JET_PPC_MSR_H__
 
 //#define MSR_SF_LG       63              /* Enable 64 bit mode */
 //#define MSR_ISF_LG      61              /* Interrupt 64b mode valid on 630 */
@@ -25,6 +24,7 @@
 #define MSR_TS_LG       33              /* Trans Mem state (2 bits) */
 #define MSR_TM_LG       32              /* Trans Mem Available */
 #define MSR_VEC_LG      25              /* Enable AltiVec */
+#define MSR_SPE_LG      25              /* Enable SPE */
 #define MSR_VSX_LG      23              /* Enable VSX */
 #define MSR_POW_LG      18              /* Enable Power Management */
 #define MSR_WE_LG       18              /* Wait State Enable */
@@ -52,6 +52,7 @@
 #define __MASK(X)       (1<<(X))
 
 #define MSR_VEC         __MASK(MSR_VEC_LG)      /* Enable AltiVec */
+#define MSR_SPE         __MASK(MSR_SPE_LG)      /* Enable SPE */
 #define MSR_VSX         __MASK(MSR_VSX_LG)      /* Enable VSX */
 #define MSR_POW         __MASK(MSR_POW_LG)      /* Enable Power Management */
 #define MSR_WE          __MASK(MSR_WE_LG)       /* Wait State Enable */
@@ -85,7 +86,23 @@
 #define MSR_TM_TRANSACTIONAL(x) (((x) & MSR_TS_MASK) == MSR_TS_T)
 #define MSR_TM_SUSPENDED(x)     (((x) & MSR_TS_MASK) == MSR_TS_S)
 
-#define MSR_KERNEL (MSR_ME|MSR_RI|MSR_IR|MSR_DR)
-#define MSR_USER (MSR_KERNEL|MSR_PR|MSR_EE)
+#ifdef JET_PPC_CONFIG_SPE
+#define MSR_ENABLE_FP MSR_SPE
+#else //JET_PPC_CONFIG_SPE
+#define MSR_ENABLE_FP MSR_FP
+#endif
+
+#define MSR_KERNEL (0) // MSR value on kernel boot.
+#define MSR_USER (MSR_EE |  MSR_PR | MSR_ENABLE_FP)
+
+#ifndef __ASSEMBLY__ //if this header was not included in asm file
+
+#define mfmsr() ({unsigned long rval; \
+        asm volatile("mfmsr %0" : "=r" (rval) : \
+                : "memory"); rval;})
+#define mtmsr(v) asm volatile("mtmsr %0" : \
+        : "r" ((unsigned long)(v)) \
+        : "memory")
+#endif // __ASSEMBLY__
 
 #endif

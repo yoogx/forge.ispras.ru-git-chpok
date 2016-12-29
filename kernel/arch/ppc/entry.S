@@ -58,8 +58,9 @@ ja_user_space_jump:
         // Prepare user stack, srr1 and srr0 for rfi
         subi %r1, %r6, 16
         mtsrr0 %r5
-        lis %r9, (MSR_EE | MSR_IP | MSR_PR | MSR_FP)@ha
-        addi %r9, %r9, (MSR_EE | MSR_IP | MSR_PR | MSR_FP)@l
+        lis %r9, (MSR_USER)@ha
+        addi %r9, %r9, (MSR_USER)@l
+
         mtsrr1 %r9
 
         // Nullify other registers (0, 2-7, 9-31)
@@ -266,10 +267,6 @@ ja_user_space_jump:
  */
 .macro EXCEPTION_PROLOGUE_COMMON
         mfcr    %r3
-        /* Enable floating point bit in msr */
-        mfmsr %r4
-        ori %r4,%r4,MSR_FP
-        mtmsr %r4
         /* Check whether kernel stack is usable. */
         mfsprg %r4, 1
         andi.   %r4, %r4, 1 /* Valid stack is always 16-byte aligned. */
@@ -396,6 +393,11 @@ failed: b failed
         .globl _pok_reset
 system_reset_0100:
 _pok_reset:
+        /* set MSR = MSR_KERNEL */
+        lis %r1, (MSR_KERNEL)@h
+        ori %r1,%r1,(MSR_KERNEL)@l
+        mtmsr %r1
+
         /*write r3(devtree addr) to devtree_address global variable*/
         lis %r1, (devtree_address)@h
         ori %r1,%r1,(devtree_address)@l
@@ -502,6 +504,13 @@ label##_asm:
         bl pok_int_alignment
         b pok_arch_rfi
 
+    START_EXCEPTION(pok_int_spe)
+        EXCEPTION_PROLOGUE
+        mr %r3, %r1
+
+        bl pok_int_spe
+        b pok_arch_rfi
+
     START_EXCEPTION(pok_int_program)
         EXCEPTION_PROLOGUE
         mr %r3, %r1
@@ -601,6 +610,11 @@ pok_setup_interrupts:
         SET_IVOR(13, pok_int_data_tlb_miss)
         SET_IVOR(14, pok_int_inst_tlb_miss)
         SET_IVOR(15, pok_int_debug)
+
+#ifdef JET_PPC_CONFIG_SPE
+/* ivor 32 setted only for processors supporting SPE */
+        SET_IVOR(32, pok_int_spe)
+#endif
 
         blr
 
