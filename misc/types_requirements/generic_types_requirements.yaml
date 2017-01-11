@@ -17,26 +17,36 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-# List of headers which are used both by kernel and user.
-uapi_headers = [
-    'errno.h',
-    'error_arinc_types.h',
-    'kernel_shared_data.h',
-    'msection.h',
-    'memblock_types.h',
-    'partition_arinc_types.h',
-    'partition_types.h',
-    'port_types.h',
-    'syscall_types.h',
-    'thread_types.h',
-    'time.h',
-    'types.h',
-]
+# Requirements for types, used in configuration process, applicable to
+# possibly any architecture.
 
-# List of headers files, described syscalls, for generate.
-# Filenames do not include `.in` suffix.
-uapi_headers_syscall = [
-    'syscall_map_arinc.h'
-]
+# Note, that keys
+#
+# - max_alignment,
+# - align
+# - size
+#
+# provide *upper* boundaries for corresponded properties.
 
-Return('uapi_headers', 'uapi_headers_syscall')
+max_alignment: 16
+
+types:
+    - name: struct arinc_buffer
+      align: 4
+      size: 150
+      include: <buffer.h>
+
+    - name: struct arinc_blackboard
+      align: 4
+      size: 100
+      include: <blackboard.h>
+
+    - name: struct arinc_semaphore
+      align: 4
+      size: 50
+      include: <semaphore.h>
+
+    - name: struct arinc_event
+      align: 4
+      size: 50
+      include: <event.h>

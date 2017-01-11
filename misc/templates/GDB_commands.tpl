@@ -469,8 +469,8 @@ define target hookpost-extended-remote
     set remotetimeout unlimited
     set schedule-multiple on
     set height 0
-{% for part_build_dir in partition_build_dirs %}
-    add-inferior -copies 1 -exec {{part_build_dir}}/part.elf"
+{% for part in conf.partitions %}
+    add-inferior -copies 1 -exec {{part.part_elf}}"
     inferior {{ loop.index0 + 2 }}
     attach {{ loop.index0 + 2 }}
     

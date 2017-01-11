@@ -200,6 +200,8 @@ if gdb_val is None:
 
 env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
 
+env['TYPES_REQUIREMENTS_YAML'] = jetos_home + '/misc/types_requirements/generic_types_requirements.yaml'
+
 def KernelEnvironment(env):
 	"""
 	Create fresh kernel environment from the main one.

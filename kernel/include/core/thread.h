@@ -336,7 +336,7 @@ typedef struct _pok_thread
      * 
      * Final after thread's initialization.
      */
-    jet_stack_t         initial_sp;
+    uintptr_t         initial_sp;
 
     /*
      * Pointer to area for save floating point registers for given thread.

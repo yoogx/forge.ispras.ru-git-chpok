@@ -51,6 +51,9 @@ Build single partition according to definition script.
 # After that, following variables, described partition's components and
 # configuraton, are expected to be set:
 #
+# - 'PARTITION_NAME' - name of the partition, as in module's configuration.
+#   This field needs to be set only when build the whole module.
+#
 # - 'PARTITION_XML' - xml or other file(s), from which configuration of partition
 # may be extracted.
 # (Single element or list of element; element could be absolute path, relative (against source dir) or object of type 'File').
@@ -80,6 +83,7 @@ from lxml import etree
 import arinc653_xml_conf
 import chpok_configuration
 import template_generation
+import jetos_configuration_internal
 
 Import('part_env')
 
@@ -152,7 +156,11 @@ if libjet_target is None:
 AddMethod(part_env, template_generation.TemplateRender)
 
 def get_pok_partition_definitions(source, part_env):
-    return dict(part = part_env['PARTITION_PARSE_CONFIGURATION'](source, part_env))
+    part = part_env['PARTITION_PARSE_CONFIGURATION'](source, part_env)
+
+    part_internal = jetos_configuration_internal.PartitionInternal.from_normal(part, 0, None)
+
+    return dict(part = part)
 
 deployment_target = part_env.TemplateRender(
     target = os.path.join(part_build_dir, "deployment.c"),

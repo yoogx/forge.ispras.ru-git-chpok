@@ -84,7 +84,7 @@ scripts.
 # After that, for every partition (of total 'PARTITION_NUMBER'):
 # 1) environment for it is created,
 # 2) 'PARTITION_FILL' method is called
-# 3) Script 'SConscript_partition' is executed (that is, method 
+# 3) Script 'SConscript_partition' is executed (that is, method
 #    PARTITION_FILL' should set variables required for that script).
 #
 # After that, target for module's creation are generated.
@@ -96,6 +96,12 @@ import shutil
 
 import chpok_configuration
 import template_generation
+import types_requirements
+import jetos_configuration_internal
+import memory_definition
+
+import yaml
+
 
 Import('env')
 
@@ -130,6 +136,7 @@ partition_build_dirs = []
 partition_clean_dirs = []
 partition_xmls = []
 partition_elfs = []
+partition_elf_map = dict()
 
 for part_index in range(env['PARTITIONS_NUMBER']):
     part_env = env.PartitionEnvironment()
@@ -138,17 +145,12 @@ for part_index in range(env['PARTITIONS_NUMBER']):
 
     part_elf = SConscript('SConscript_partition', exports = 'part_env')
     partition_elfs.append(part_elf)
+    partition_elf_map[part_env['PARTITION_NAME']] = part_elf[0].abspath
     partition_build_dirs.append(part_env['PARTITION_BUILD_DIR'])
     partition_clean_dirs.extend(part_env['PARTITION_CLEAN_DIRS'])
     partition_xmls.append(part_env['PARTITION_XML'])
 
 AddMethod(env, template_generation.TemplateRender)
-
-def get_pok_definitions(source, env):
-    conf = env['MODULE_PARSE_CONFIGURATION'](source, env)
-    conf.validate()
-    return dict(conf = conf)
-
 
 def get_pok_gdb_definitions(source, env):
     defs = dict(conf = env['MODULE_PARSE_CONFIGURATION'](source, env),
@@ -158,22 +160,96 @@ def get_pok_gdb_definitions(source, env):
 
 module_xml = env.toAbsPathList(env['MODULE_XML'], env['MODULE_SOURCE_DIR'])
 
+
+
+def create_conf_total(target, source, env):
+    """
+    Create YAML file with "total" configuration.
+    TODO: More useful name.
+    """
+    conf = env['MODULE_PARSE_CONFIGURATION'](source, env)
+
+    treqs = types_requirements.TypesRequirements()
+    treqs.load_from_yaml(env['TYPES_REQUIREMENTS_YAML'])
+
+    conf_internal = jetos_configuration_internal.ConfigurationInternal.from_normal(conf, treqs, partition_elf_map)
+
+    conf_internal.save_to_file(target[0].abspath)
+
+conf_total = env.Command(
+    target = os.path.join(module_build_dir, "conf_total.yaml"),
+    source = module_xml + partition_xmls,
+    action = create_conf_total
+)
+
+env.Depends(conf_total, env['TYPES_REQUIREMENTS_YAML'])
+
+
+def create_memory_constraints(source, target, env):
+    """
+    From configuration file create memory constraints file
+    """
+    conf = jetos_configuration_internal.ConfigurationInternal.load_from_file(source[0].abspath)
+
+    md = conf.create_memory_constraints()
+
+    md.save_to_file(target[0].abspath)
+
+# Generate 'memory_constrains.yaml' for arch processing.
+memory_constraints = env.Command(
+    target = os.path.join(module_build_dir, "memory_constraints.yaml"),
+    source = conf_total,
+    action = create_memory_constraints)
+
+memory_definitions_file = os.path.join(module_build_dir, "memory_definitions.yaml")
+
+env['ARCH_DEPLOYMENT_KERNEL'] = []
+
+env['ARCH_DEPLOY'](env, memory_definitions_file, memory_constraints)
+
+
+def create_definitions_for_deployment(source, env):
+    """
+    Create dictionary with definitions for deployment.c
+
+    Assume source[0] to be conf_total, source[1] - memory_definitions.
+    """
+    conf = jetos_configuration_internal.ConfigurationInternal.load_from_file(source[0].abspath)
+    md = memory_definition.ModuleMemoryDefinition.load_from_file(source[1].abspath)
+
+    # Need to sort memory blocks by vaddr.
+    for pmd in md.partitions:
+        pmd.memory_blocks.sort(key=lambda x: x.vaddr)
+
+    return {'conf': conf, 'memory_definitions': md}
+
 # Generate "deployment.c" for kernel
 deployment_kernel = env.TemplateRender(
     target = os.path.join(module_build_dir, "deployment.c"),
-    source = module_xml + partition_xmls,
-    create_definitions_func = get_pok_definitions,
+    source = conf_total + [memory_definitions_file],
+    create_definitions_func = create_definitions_for_deployment,
     template_main = "deployment_kernel",
     template_dir = env['JETOS_HOME'] + "/misc/templates",
     GENERATE_TITLE = template_generation.generate_title_c_no_track
     )
 
 
+def create_definitions_for_gdb(source, env):
+    """
+    Create dictionary with definitions for deployment.c
+
+    Assume source[0] to be conf_total.
+    """
+    conf = jetos_configuration_internal.ConfigurationInternal.load_from_file(source[0].abspath)
+
+    return {'conf': conf}
+
+
 # Generate file with commands for GDB for possible debugging
 gdb_commands = env.TemplateRender(
     target = module_build_dir + "/GDB_commands",
-    source = module_xml + partition_xmls,
-    create_definitions_func = get_pok_gdb_definitions,
+    source = conf_total,
+    create_definitions_func = create_definitions_for_gdb,
     template_main = "GDB_commands",
     template_dir = env['JETOS_HOME'] + "/misc/templates",
     GENERATE_TITLE = template_generation.generate_title_python_no_track
@@ -189,7 +265,7 @@ if kernel_target is None:
 pok_env = env.KernelEnvironment()
 
 kernel_lo = pok_env.Program(target = module_build_dir+'/kernel.lo',
-    source = kernel_target + deployment_kernel)
+    source = kernel_target + deployment_kernel + env['ARCH_DEPLOYMENT_KERNEL'])
 
 # there should (perhaps) also be padding to get aligned file size
 def merge_partitions(target, source, env):

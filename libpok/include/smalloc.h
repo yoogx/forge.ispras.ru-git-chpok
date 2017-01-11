@@ -48,8 +48,5 @@ void* scalloc(size_t nmemb, size_t size);
 
 #define libjet_mem_get_alignment libja_mem_get_alignment
 
-// Set by the init, used by the alloc implementation.
-extern char* heap_current;
-
 #endif /* __LIBJET_ALLOC_H__ */
 

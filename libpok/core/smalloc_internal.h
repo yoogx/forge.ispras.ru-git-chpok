@@ -13,11 +13,10 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __LIBJET_KERNEL_SHARED_DATA_H__
-#define __LIBJET_KERNEL_SHARED_DATA_H__
+#ifndef __LIBJET_CORE_SMALLOC_INTERNAL__
+#define __LIBJET_CORE_SMALLOC_INTERNAL__
 
-#include <uapi/kernel_shared_data.h>
+/* Initialize smalloc. */
+void smalloc_init(void);
 
-extern struct jet_kernel_shared_data* kshd;
-
-#endif /* __LIBJET_KERNEL_SHARED_DATA_H__ */
+#endif /* __LIBJET_CORE_SMALLOC_INTERNAL__ */

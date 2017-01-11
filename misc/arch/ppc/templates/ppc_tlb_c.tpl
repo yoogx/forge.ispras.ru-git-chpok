@@ -13,11 +13,20 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __LIBJET_KERNEL_SHARED_DATA_H__
-#define __LIBJET_KERNEL_SHARED_DATA_H__
+#include <arch/deployment.h>
+#include <arch/mmu_ext.h>
 
-#include <uapi/kernel_shared_data.h>
+struct tlb_entry tlb_entries[] = {
+{%for entry in entries%}
+    {
+        .virt_addr = {{entry.vaddr}},
+        .phys_addr = {{entry.paddr}},
+        .size = E500MC_PGSIZE_{{entry.size_enum}},
+        .permissions = {{entry.permissions}},
+        .cache_policy = {{entry.cache_policy}},
+        .pid = {{entry.pid}},
+    },
+{%endfor%}
+};
 
-extern struct jet_kernel_shared_data* kshd;
-
-#endif /* __LIBJET_KERNEL_SHARED_DATA_H__ */
+int tlb_entries_n = {{entries | length}};

@@ -13,11 +13,10 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __LIBJET_KERNEL_SHARED_DATA_H__
-#define __LIBJET_KERNEL_SHARED_DATA_H__
+#ifndef __LIBJET_MEMBLOCKS_H__
+#define __LIBJET_MEMBLOCKS_H__
 
-#include <uapi/kernel_shared_data.h>
+#include <core/syscall.h>
+#include <uapi/memblock_types.h>
 
-extern struct jet_kernel_shared_data* kshd;
-
-#endif /* __LIBJET_KERNEL_SHARED_DATA_H__ */
+#endif /* __LIBJET_MEMBLOCKS_H__ */

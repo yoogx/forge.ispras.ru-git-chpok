@@ -27,6 +27,9 @@ typedef struct {
     uintptr_t addr;
     jet_memory_block_mode_t mode;
     size_t size;
+    // Non-ARINC things
+    pok_bool_t is_contiguous;
+    uint64_t paddr;
 } jet_memory_block_status_t;
 
 
