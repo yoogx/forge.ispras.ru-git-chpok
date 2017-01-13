@@ -158,7 +158,7 @@ AddMethod(part_env, template_generation.TemplateRender)
 def get_pok_partition_definitions(source, part_env):
     part = part_env['PARTITION_PARSE_CONFIGURATION'](source, part_env)
 
-    part_internal = jetos_configuration_internal.PartitionInternal.from_normal(part, 0, None)
+    part_internal = jetos_configuration_internal.PartitionInternal.from_normal(part, 0)
 
     return dict(part = part)
 

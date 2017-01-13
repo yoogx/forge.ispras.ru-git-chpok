@@ -1,0 +1,74 @@
+Scripts for build JetOS against specific board.
+
+
+Each subdirectory corresponds to board with the same name and should
+contain:
+
+1. 'SConscript'.
+
+SCons script file which is called from 'misc/SConscript'.
+This script should import SCons environment 'env' via
+
+   Import('env')
+
+and should fill some environment variables in it:
+
+ - 'ARCH' - target architecture, corresponded to given BSP.
+ (String, required).
+
+ - 'PREFIX' - prefix of toolchain tools used for compile, link, etc.
+ (String, required).
+
+ - 'BOARD_DEPLOY' - function, which is called as
+ 
+    f(env, memory_definitions_file, memory_constraints)
+    
+ where
+ 
+   -- 'memory_definitions_file' - path to the file, where memory
+   definitions (see 'memory_definitions.py') should be stored
+   (via serialization);
+   
+   -- 'memory_costraints' - single-element list contained 'SCons.Node'
+   object referred to the file with memory constraints (see 'memory_definitions.py').
+   
+   The function should define rule which for given *memory constraints*
+   creates *memory definitions*.
+   
+   Note, that *memory constraints* doesn't define memory blocks for
+   partitions' code and data, contained in partitions' elf files.
+   But *memory definitions* should define such blocks.
+   
+   The function may define rule(s) for create board-specific deployment file(s),
+   and append these file(s) to env['BOARD_DEPLOYMENT_SOURCES'], so these
+   files will be compiled into the resulted module object.
+   
+   The function may use environment variables:
+   
+   --- 'MODULE_BUILD_DIR' - where additional files should be created.
+   --- 'PARTITIONS_ELF_MAP' - mapping from partition's name into
+                              partition's elf file.
+
+ - 'GDB' - gdb executable for debug. If absent, PREFIX'ed version is used.
+ (String/path, optional).
+
+ - 'BOARD_IS_EMULATED' - whether given board can be emulated using qemu.
+ For emulated board scons targets for running module are automatically
+ generated.
+ (Boolean, optional)
+
+ - 'QEMU' - qemu executable for run.
+ Used only for emulated boards (see description for BOARD_IS_EMULATED above).
+ (String/path, required if BOARD_IS_EMULATED is true).
+
+ - 'QEMU_FLAGS' - flags for run qemu.
+ Used only for emulated boards (see description for BOARD_IS_EMULATED above).
+ (Space-separated string, required if BOARD_IS_EMULATED is true).
+
+ - 'CFLAGS' - may append additional flags for compile "C" sources.
+
+ - 'CFLAGS_KERNEL' - may append additional flags for compile "C" sources
+ for kernel space.
+
+ - 'AFLAGS' - may append additional flags for compile asm sources.
+ 

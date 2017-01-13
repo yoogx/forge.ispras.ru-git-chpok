@@ -214,14 +214,30 @@ class MemoryBlock:
     __slots__ = [
         "name", # Name of the block. Should be unique in partition.
         "size", # Size of the block. Should be non-negative.
-        "vaddr", # Virtual address of the block, if required.
-        "paddr", # Physical address of the block, if required.
-        "cache_policy", # Enumeration.
-        "is_coherent", # Modificator for some 'cache_policy' values.
-        "is_guarded", # Modificator for some 'cache_policy' values.
-        "is_writable", # Whether memory block can be written by the user.
-        "is_contiguous", # Whether block should be *physically* contiguous.
         "align", # Alignment of the block. 4k by default.
+        # Cache policy for given memory block. One of:
+        #
+        # - OFF
+        # - COPY_BACK
+        # - WRITE_THRU
+        # - OFF+COHERENCY
+        # - COPY_BACK+COHERENCY
+        # - WRITE_THRU+COHERENCY
+        # - OFF+GUARDED
+        # - COPY_BACK+GUARDED
+        # - WRITE_THRU+GUARDED
+        # - OFF+GUARDED+COHERENCY
+        # - COPY_BACK+GUARDED+COHERENCY
+        # - WRITE_THRU+GUARDED+COHERENCY
+        # - IO
+        # - DEFAULT
+        #
+        # By default, it is "DEFAULT"
+        "cache_policy",
+        "access", # Access to the memory block from the partition. String contained of 'R', 'W', 'X'.
+        "is_contiguous", # Whether block should be *physically* contiguous.
+        "vaddr", # Virtual address of the block, if required.
+        "paddr", # Physical address of the block, if required. Implies 'is_contiguous' to be True.
     ]
 
     def __init__(self, name, size):
@@ -255,9 +271,18 @@ class Partition:
 
         "is_system",
 
-        # Size of the memory required for elf.
+        # Memory required for code and data defined in partition's elf.
+        #
+        # Such parameter implies that *whole* elf can be mapped into
+        # *single memory block*, which applies too strong constraint
+        # on elf layout.
+        #
+        # 'BOARD_DEPLOY' script may ignore this parameter and extract
+        # layout information directly from the partition's elf file.
+        #
         # Will be removed in the future.
         "memory_size",
+
         # Requested size of the heap.
         #
         # Note: ARINC requirements for buffers and co. shouldn't be counted here.
@@ -279,8 +304,6 @@ class Partition:
         "blackboard_data_size", # same, for blackboards
 
         "hm_table", # partition hm table
-
-        "part_elf", # Path to partition's elf. Filled automatically by build system.
 
         # Data private for implementation.
         #

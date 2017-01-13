@@ -38,16 +38,29 @@ class MemoryBlockDefinition(SerializableObject):
     copy_slots = [
         "name", # Name of the block. Should be unique in partition.
         "size", # Size of the block. Should be non-negative.
-        "align", # Alignment of the block. 4k by default.
+        "align", # Alignment of the block.
 
         "vaddr", # Virtual address of the block. May be absent in memory constraints.
         "is_contiguous", # Whether block should be *physically* contiguous.
         "paddr", # If block is *physically* contiguous, it is its physical address. May be absent in memory constraints.
-        "cache_policy", # Enumeration.
-        "is_coherent", # Modificator for some 'cache_policy' values.
-        "is_guarded", # Modificator for some 'cache_policy' values.
-        "access", # Access to the memory block. Combination of 'X', 'W', 'R'.
-
+        # Cache policy for given memory block. One of:
+        #
+        # - OFF
+        # - COPY_BACK
+        # - WRITE_THRU
+        # - OFF+COHERENCY
+        # - COPY_BACK+COHERENCY
+        # - WRITE_THRU+COHERENCY
+        # - OFF+GUARDED
+        # - COPY_BACK+GUARDED
+        # - WRITE_THRU+GUARDED
+        # - OFF+GUARDED+COHERENCY
+        # - COPY_BACK+GUARDED+COHERENCY
+        # - WRITE_THRU+GUARDED+COHERENCY
+        # - IO
+        # - DEFAULT
+        "cache_policy",
+        "access", # Access to the memory block from the partition. String contained of 'R', 'W', 'X'.
         "is_shared", # Whether memory block is shared between partitions.
 
         "kaddr", # Kernel address of the block. Do not set in memory constraints
@@ -57,11 +70,8 @@ class MemoryBlockDefinition(SerializableObject):
         "vaddr": None,
         "paddr": None,
         "cache_policy": "DEFAULT",
-        "is_coherent": False,
-        "is_guarded": False,
         "access": "RW",
         "is_contiguous": False,
-        "is_elf": False,
         "is_shared": False,
         "kaddr": None,
     }
@@ -77,9 +87,7 @@ class PartitionMemoryDefinition(SerializableObject):
         'space_id',
         'memory_blocks', # Array of memory blocks.
 
-        'part_elf',
-
-        'elf_size', # Temporary used instead of ELF parsing.
+        'memory_size', # Temporary used instead of ELF parsing.
     ]
 
     def __init__(self, **kargs):

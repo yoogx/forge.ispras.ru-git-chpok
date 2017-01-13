@@ -136,7 +136,7 @@ partition_build_dirs = []
 partition_clean_dirs = []
 partition_xmls = []
 partition_elfs = []
-partition_elf_map = dict()
+partitions_elf_map = dict()
 
 for part_index in range(env['PARTITIONS_NUMBER']):
     part_env = env.PartitionEnvironment()
@@ -145,22 +145,26 @@ for part_index in range(env['PARTITIONS_NUMBER']):
 
     part_elf = SConscript('SConscript_partition', exports = 'part_env')
     partition_elfs.append(part_elf)
-    partition_elf_map[part_env['PARTITION_NAME']] = part_elf[0].abspath
+    partitions_elf_map[part_env['PARTITION_NAME']] = part_elf[0].abspath
     partition_build_dirs.append(part_env['PARTITION_BUILD_DIR'])
     partition_clean_dirs.extend(part_env['PARTITION_CLEAN_DIRS'])
     partition_xmls.append(part_env['PARTITION_XML'])
 
+env['PARTITIONS_ELF_MAP'] = partitions_elf_map
+
 AddMethod(env, template_generation.TemplateRender)
 
 def get_pok_gdb_definitions(source, env):
-    defs = dict(conf = env['MODULE_PARSE_CONFIGURATION'](source, env),
-        partition_build_dirs = partition_build_dirs)
+    conf = env['MODULE_PARSE_CONFIGURATION'](source, env)
+
+    defs = {
+        'conf': conf,
+        'partitions_elf_map': env['PARTITIONS_ELF_MAP']
+    }
 
     return defs
 
 module_xml = env.toAbsPathList(env['MODULE_XML'], env['MODULE_SOURCE_DIR'])
-
-
 
 def create_conf_total(target, source, env):
     """
@@ -172,7 +176,7 @@ def create_conf_total(target, source, env):
     treqs = types_requirements.TypesRequirements()
     treqs.load_from_yaml(env['TYPES_REQUIREMENTS_YAML'])
 
-    conf_internal = jetos_configuration_internal.ConfigurationInternal.from_normal(conf, treqs, partition_elf_map)
+    conf_internal = jetos_configuration_internal.ConfigurationInternal.from_normal(conf, treqs)
 
     conf_internal.save_to_file(target[0].abspath)
 
@@ -201,11 +205,12 @@ memory_constraints = env.Command(
     source = conf_total,
     action = create_memory_constraints)
 
+
 memory_definitions_file = os.path.join(module_build_dir, "memory_definitions.yaml")
 
-env['ARCH_DEPLOYMENT_KERNEL'] = []
+env['BOARD_DEPLOYMENT_SOURCES'] = []
 
-env['ARCH_DEPLOY'](env, memory_definitions_file, memory_constraints)
+env['BOARD_DEPLOY'](env, memory_definitions_file, memory_constraints)
 
 
 def create_definitions_for_deployment(source, env):
@@ -265,7 +270,7 @@ if kernel_target is None:
 pok_env = env.KernelEnvironment()
 
 kernel_lo = pok_env.Program(target = module_build_dir+'/kernel.lo',
-    source = kernel_target + deployment_kernel + env['ARCH_DEPLOYMENT_KERNEL'])
+    source = kernel_target + deployment_kernel + env['BOARD_DEPLOYMENT_SOURCES'])
 
 # there should (perhaps) also be padding to get aligned file size
 def merge_partitions(target, source, env):

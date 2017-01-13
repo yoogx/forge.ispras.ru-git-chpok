@@ -470,7 +470,7 @@ define target hookpost-extended-remote
     set schedule-multiple on
     set height 0
 {% for part in conf.partitions %}
-    add-inferior -copies 1 -exec {{part.part_elf}}"
+    add-inferior -copies 1 -exec {{partitions_elf_map[part.name]}}"
     inferior {{ loop.index0 + 2 }}
     attach {{ loop.index0 + 2 }}
     

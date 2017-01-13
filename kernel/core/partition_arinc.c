@@ -110,7 +110,8 @@ static void partition_arinc_start(void)
 
     assert(mblock_stacks);
 
-    part->stacks_start = mblock_stacks->kaddr;
+    // Note: We store virtual (user) address.
+    part->stacks_start = mblock_stacks->vaddr;
     part->stacks_end = part->stacks_start + mblock_stacks->size;
 
     part->stacks_current = part->stacks_start;

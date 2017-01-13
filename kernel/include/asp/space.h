@@ -23,15 +23,6 @@
 #include <uapi/kernel_shared_data.h>
 
 /* 
- * Arch header should define:
- * 
- * type 'jet_ustack_t' - pointer to allocated user stack.
- *   Value 0 should be assignable and comparable to given type, and
- *   never corresponds to allocated stack.
- */
-#include <arch/space.h>
-
-/* 
  * Identificator for the (memory) space.
  * 
  * Value 0 corresponds to kernel space.

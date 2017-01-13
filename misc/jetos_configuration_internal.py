@@ -52,7 +52,7 @@ class ConfigurationInternal(SerializableObject):
         return deserialize_object_from_text(cls, filename)
 
     @classmethod
-    def from_normal(cls, conf, types_requirements, partition_elf_map):
+    def from_normal(cls, conf, types_requirements):
         """
         Create object of type 'ConfigurationInternal' from 'Configuration' one.
 
@@ -71,7 +71,7 @@ class ConfigurationInternal(SerializableObject):
         )
 
         for index, part in enumerate(conf.partitions):
-            part_internal = PartitionInternal.from_normal(part, index, partition_elf_map[part.name])
+            part_internal = PartitionInternal.from_normal(part, index)
             conf_internal.partitions.append(part_internal)
 
         process_time_slots(conf_internal, conf)
@@ -98,8 +98,7 @@ class ConfigurationInternal(SerializableObject):
                 name = part.name,
                 space_id = part.space_id,
                 memory_blocks = [],
-                part_elf = part.part_elf,
-                elf_size = part.memory_size
+                memory_size = part.memory_size
             )
 
             # Memory block for heap
@@ -269,7 +268,7 @@ class PartitionInternal(SerializableObject):
         'part_id',
         'index',
 
-        'space_id',
+        'space_id', # Always 'index' + 1
 
         'is_system',
 
@@ -277,7 +276,6 @@ class PartitionInternal(SerializableObject):
         'duration',
 
         'memory_size',
-        'memory_align',
 
         'heap_size',
         'heap_align',
@@ -303,18 +301,16 @@ class PartitionInternal(SerializableObject):
         "arinc_heap_align",
 
         'partition_hm_table',
-
-        'part_elf',
     ]
 
     def __init__(self, **kargs):
         copy_constructor(self, kargs)
 
     @classmethod
-    def from_normal(cls, part, index, part_elf):
+    def from_normal(cls, part, index):
         """
         Create internal partition's configuration from normal one.
-        Valid 'index' and 'part_elf' are not required when configure single partition.
+        Valid 'index' is not required when configure single partition.
         """
         partition_hm_table = PartitionHMTableInternal.from_normal(part.hm_table)
 
@@ -331,7 +327,6 @@ class PartitionInternal(SerializableObject):
             duration = None, # Will be set later
 
             memory_size = part.memory_size,
-            memory_align = 4096, # Hardcoded. TODO: Read that from elf.
 
             heap_size = part.heap_size,
             heap_align = 4096, # Hardcoded.
@@ -356,8 +351,6 @@ class PartitionInternal(SerializableObject):
             arinc_heap_align = 1, # Will be counted
 
             partition_hm_table = partition_hm_table,
-
-            part_elf = part_elf
         )
 
         part_private = PartitionPrivate(part_internal)
@@ -536,14 +529,28 @@ class MemoryBlockInternal(SerializableObject):
     copy_slots = [
         "name", # Name of the block. Should be unique in partition.
         "size", # Size of the block. Should be non-negative.
-        "vaddr", # Virtual address of the block, if required.
-        "paddr", # Physical address of the block, if required.
-        "cache_policy", # Enumeration.
-        "is_coherent", # Modificator for some 'cache_policy' values.
-        "is_guarded", # Modificator for some 'cache_policy' values.
-        "is_writable", # Whether memory block can be written by the user.
+        "align", # Alignment of the block.
+        "vaddr", # Virtual address of the block, if required. Otherwise None.
+        "paddr", # Physical address of the block, if required. Otherwise None.
+        # Cache policy for given memory block. One of:
+        #
+        # - OFF
+        # - COPY_BACK
+        # - WRITE_THRU
+        # - OFF+COHERENCY
+        # - COPY_BACK+COHERENCY
+        # - WRITE_THRU+COHERENCY
+        # - OFF+GUARDED
+        # - COPY_BACK+GUARDED
+        # - WRITE_THRU+GUARDED
+        # - OFF+GUARDED+COHERENCY
+        # - COPY_BACK+GUARDED+COHERENCY
+        # - WRITE_THRU+GUARDED+COHERENCY
+        # - IO
+        # - DEFAULT
+        "cache_policy",
+        "access", # Access to the memory block from the partition. String contained of 'R', 'W', 'X'.
         "is_contiguous", # Whether block should be *physically* contiguous.
-        "align", # Alignment of the block. 4k by default.
     ]
 
     def __init__(self, **kargs):
@@ -559,9 +566,8 @@ class TimeSlotInternal(SerializableObject):
          # If slot_type is 'PARTITION', this is index of linked partition.
          # Otherwise None.
         'partition_index',
-         # Have a sence If slot_type is 'PARTITION', this is TRUE if periodic processes
-         # are allowed to start in that slot.
-         # Otherwise None.
+         # TRUE if periodic processes are allowed to start in that slot.
+         # Have a sence If slot_type is 'PARTITION'. Otherwise None.
         'periodic_processing_start'
     ]
 

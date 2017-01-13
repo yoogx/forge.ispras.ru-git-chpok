@@ -54,55 +54,15 @@ module or debug it.
 # Then environment is filled with global, arch-independent parameters.
 #
 # Then env['BSP'] value is used for call bsp-definition script located
-# at boards/<BSP>/SConscript and 'env' is passed to it.
-#
-# This bsp-definition script should/may fill environment variables:
-# 
-# - 'ARCH' - target architecture, corresponded to given BSP.
-# (String, required).
-#
-# - 'PREFIX' - prefix of toolchain tools used for compile, link, etc.
-# If variable has been when current script is called (see above), it
-# will restore the first value.
-# (String, required).
-#
-# - 'GDB' - gdb executable for debug. If absent, PREFIX'ed version is used.
-# If variable has been when current script is called (see above), it
-# will restore the first value.
-# (String/path, optional).
-#
-# - 'BOARD_IS_EMULATED' - whether given board can be emulated using qemu.
-# For emulated board scons targets for running module are automatically
-# generated.
-# (Boolean, optional)
-#
-# - 'QEMU' - qemu executable for run.
-# Used only for emulated boards (see description for BOARD_IS_EMULATED above).
-# If variable has been when current script is called (see above), it
-# will restore the first value.
-# (String/path, required if BOARD_IS_EMULATED is true).
-#
-# - 'QEMU_FLAGS' - flags for run qemu.
-# Used only for emulated boards (see description for BOARD_IS_EMULATED above).
-# (Space-separated string, required if BOARD_IS_EMULATED is true).
-#
-# - 'CFLAGS' - may append additional flags for compile "C" sources.
-#
-# - 'CFLAGS_KERNEL' - may append additional flags for compile "C" sources
-# for kernel space.
-#
-# - 'AFLAGS' - may append additional flags for compile asm sources.
-#
+# at misc/boards/<BSP>/SConscript and 'env' is passed to it.
 #
 # Then 'Import()'s 'mode' variable.
 #
-# If value of 'mode' variable is equal to 'module', 'Import()'s variable
-# 'module_def' and execute script 'SConscript_module', passing this
-# variable to it alongside with the environment ('env').
+# If value of 'mode' variable is equal to 'module', executes script
+# 'SConscript_module' passing environment ('env') to it.
 #
-# If value of 'mode' variable is equal to 'partition', 'Import()'s variable
-# 'partition_def' and execute script 'SConscript_partition' passing this variable
-# to it alongside with the partition's environment ('part_env').
+# If value of 'mode' variable is equal to 'partition', executes script
+# 'SConscript_partition' passing partition's environment ('part_env') to it.
 
 import sys
 import os

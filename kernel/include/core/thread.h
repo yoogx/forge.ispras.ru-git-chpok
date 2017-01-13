@@ -346,15 +346,13 @@ typedef struct _pok_thread
     struct jet_fp_store*    fp_store;
 
     /*
-     * ???
+     * Initial virtual address of user stack.
      *
-     * Apparently, it's initial virtual address of user stack.
-     *
-     * It's supposed to be used when thread is restarted (I think).
+     * It's supposed to be used when thread is restarted.
      * 
      * Final after create_process().
      */
-    jet_ustack_t        init_stack_addr;
+    uintptr_t        init_stack_addr;
 
     /*
      * Size of the user space stack.

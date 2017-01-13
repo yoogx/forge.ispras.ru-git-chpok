@@ -15,17 +15,14 @@
 
 #include <arch/deployment.h>
 
-struct ja_x86_space ja_spaces[{{conf.spaces | length}}] =
+const struct x86_segment ja_segments[{{segments | length}}] =
 {
-{%for space in conf.spaces%}
+{%for segment in segments%}
     {
-        //.phys_base is filled upon initialization
-        .size_normal = {{space.size}},
-        .size_heap = {{space.part.get_heap_size()}},
-        // Currently stack size is hardcoded to 8K.
-        .size_stack = {{space.part.get_needed_threads()}} * 8 * 1024
+        .paddr = {{segment.paddr}},
+        .size = {{segment.size}},
     },
 {%endfor%}
 };
 
-int ja_spaces_n = {{conf.spaces | length}};
+const int ja_segments_n = {{segments | length}};
