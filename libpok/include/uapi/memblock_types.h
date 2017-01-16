@@ -1,4 +1,9 @@
 /*
+ * COPIED! DO NOT MODIFY!
+ *
+ * Instead of modifying this file, modify original one (kernel/include/uapi/memblock_types.h).
+ */
+/*
  * Institute for System Programming of the Russian Academy of Sciences
  * Copyright (C) 2016 ISPRAS
  *
@@ -27,6 +32,9 @@ typedef struct {
     uintptr_t addr;
     jet_memory_block_mode_t mode;
     size_t size;
+    // Non-ARINC things
+    pok_bool_t is_contiguous;
+    uint64_t paddr;
 } jet_memory_block_status_t;
 
 

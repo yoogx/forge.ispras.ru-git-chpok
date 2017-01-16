@@ -13,13 +13,20 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-/* (Memory) space. */
+#include <arch/deployment.h>
+#include <arch/mmu_ext.h>
 
-#ifndef __JET_X86_SPACE_H__
-#define __JET_X86_SPACE_H__
+struct tlb_entry tlb_entries[] = {
+{%for entry in entries%}
+    {
+        .virt_addr = {{entry.vaddr}},
+        .phys_addr = {{entry.paddr}},
+        .size = E500MC_PGSIZE_{{entry.size_enum}},
+        .permissions = {{entry.permissions}},
+        .cache_policy = {{entry.cache_policy}},
+        .pid = {{entry.pid}},
+    },
+{%endfor%}
+};
 
-#include <stdint.h>
-
-typedef uint32_t jet_ustack_t;
-
-#endif /* __JET_X86_SPACE_H__ */
+int tlb_entries_n = {{entries | length}};

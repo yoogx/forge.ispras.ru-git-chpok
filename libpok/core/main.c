@@ -15,19 +15,30 @@
 
 #include <kernel_shared_data.h>
 #include <init_arinc.h>
-#include <smalloc.h>
+#include "smalloc_internal.h"
+#include <memblocks.h>
+#include <stdlib.h>
 
-int main();
+int main(void);
 
-char* heap_current = NULL;
+struct jet_kernel_shared_data* kshd;
 
 int __pok_partition_start (void)
 {
-   // Setup user-only fields of kernel shared data.
-   kshd.main_thread_id = kshd.current_thread_id;
-   kshd.error_thread_id = JET_THREAD_ID_NONE;
+   jet_memory_block_status_t kshd_status;
 
-   heap_current = kshd.heap_start;
+   if(pok_memory_block_get_status(".KSHD", &kshd_status) != POK_ERRNO_OK) {
+       // Without kshd many things are not worked, even printf.
+       abort();
+   }
+
+   kshd = (void*)kshd_status.addr;
+
+   // Setup user-only fields of kernel shared data.
+   kshd->main_thread_id = kshd->current_thread_id;
+   kshd->error_thread_id = JET_THREAD_ID_NONE;
+
+   smalloc_init();
 
    libjet_arinc_init();
 

@@ -23,6 +23,7 @@ uapi_headers = [
     'error_arinc_types.h',
     'kernel_shared_data.h',
     'msection.h',
+    'memblock_types.h',
     'partition_arinc_types.h',
     'partition_types.h',
     'port_types.h',

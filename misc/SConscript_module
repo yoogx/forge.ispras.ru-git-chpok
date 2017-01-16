@@ -84,7 +84,7 @@ scripts.
 # After that, for every partition (of total 'PARTITION_NUMBER'):
 # 1) environment for it is created,
 # 2) 'PARTITION_FILL' method is called
-# 3) Script 'SConscript_partition' is executed (that is, method 
+# 3) Script 'SConscript_partition' is executed (that is, method
 #    PARTITION_FILL' should set variables required for that script).
 #
 # After that, target for module's creation are generated.
@@ -96,6 +96,12 @@ import shutil
 
 import chpok_configuration
 import template_generation
+import types_requirements
+import jetos_configuration_internal
+import memory_definition
+
+import yaml
+
 
 Import('env')
 
@@ -117,6 +123,9 @@ def BuildKernel(env, variant_dir = None):
 
 env.AddMethod(BuildKernel)
 
+# Store value of BOARD_PHYS_SIZE variable before calling module definition script.
+board_phys_size_origin = env['BOARD_PHYS_SIZE']
+
 env.SConscript(dirs = env['MODULE_SOURCE_DIR'],
     exports = 'env',
     variant_dir = module_build_dir,
@@ -130,6 +139,7 @@ partition_build_dirs = []
 partition_clean_dirs = []
 partition_xmls = []
 partition_elfs = []
+partitions_elf_map = dict()
 
 for part_index in range(env['PARTITIONS_NUMBER']):
     part_env = env.PartitionEnvironment()
@@ -138,42 +148,130 @@ for part_index in range(env['PARTITIONS_NUMBER']):
 
     part_elf = SConscript('SConscript_partition', exports = 'part_env')
     partition_elfs.append(part_elf)
+    partitions_elf_map[part_env['PARTITION_NAME']] = part_elf[0].abspath
     partition_build_dirs.append(part_env['PARTITION_BUILD_DIR'])
     partition_clean_dirs.extend(part_env['PARTITION_CLEAN_DIRS'])
     partition_xmls.append(part_env['PARTITION_XML'])
 
+env['PARTITIONS_ELF_MAP'] = partitions_elf_map
+
+# Check if module requests *more physical memory* than board provides.
+#
+# Note: Module is allowed to request *less physical memory* than board
+# provide even in case non-emulated board. In that case
+# BOARD_DEPLOY_FUNCTION should use as much memory as requested by
+# the module.
+board_phys_size_new = env['BOARD_PHYS_SIZE']
+if board_phys_size_new > board_phys_size_origin:
+    # Requesting more physical memory is allowed only for emulated targets.
+    if not env['BOARD_IS_EMULATED']:
+        print "ERROR: Module require physical memory of size %x, but board has only %x." % (board_phys_size_new, board_phys_size_origin)
+        print "HINT: Extending physical memory is allowed only for emulated boards."
+        Exit(1)
+
+if env['BOARD_IS_EMULATED']:
+    # Check that physical memory size has alignment suitable for QEMU
+    if board_phys_size_new % 2**20:
+        print "ERROR: Phisical size of emulated board should be divisible by 1M, but it is %d." % board_phys_size_new
+
 AddMethod(env, template_generation.TemplateRender)
 
-def get_pok_definitions(source, env):
-    conf = env['MODULE_PARSE_CONFIGURATION'](source, env)
-    conf.validate()
-    return dict(conf = conf)
-
-
-def get_pok_gdb_definitions(source, env):
-    defs = dict(conf = env['MODULE_PARSE_CONFIGURATION'](source, env),
-        partition_build_dirs = partition_build_dirs)
-
-    return defs
-
 module_xml = env.toAbsPathList(env['MODULE_XML'], env['MODULE_SOURCE_DIR'])
+
+def create_conf_total(target, source, env):
+    """
+    Create YAML file with "total" configuration.
+    TODO: More useful name.
+    """
+    conf = env['MODULE_PARSE_CONFIGURATION'](source, env)
+
+    treqs = types_requirements.TypesRequirements()
+    treqs.load_from_yaml(env['TYPES_REQUIREMENTS_YAML'])
+
+    conf_internal = jetos_configuration_internal.ConfigurationInternal.from_normal(conf, treqs)
+
+    conf_internal.save_to_file(target[0].abspath)
+
+conf_total = env.Command(
+    target = os.path.join(module_build_dir, "conf_total.yaml"),
+    source = module_xml + partition_xmls,
+    action = Action(create_conf_total, '$CONF_TOTAL_COMSTR')
+)
+
+env.Depends(conf_total, env['TYPES_REQUIREMENTS_YAML'])
+
+
+def create_memory_constraints(source, target, env):
+    """
+    Create memory constraints file from configuration file and
+    BOARD_PHYS_SIZE variable (as string).
+    """
+    conf = jetos_configuration_internal.ConfigurationInternal.load_from_file(source[0].abspath)
+    phys_total = int(source[1].get_contents()) # Extracts value from Node.
+
+    md = conf.create_memory_constraints(phys_total)
+
+    md.save_to_file(target[0].abspath)
+
+# Generate 'memory_constrains.yaml' for arch processing.
+memory_constraints = env.Command(
+    target = os.path.join(module_build_dir, "memory_constraints.yaml"),
+    source = [conf_total,
+        env.Value(str(env['BOARD_PHYS_SIZE'])) # This is Node for value.
+    ],
+    action = Action(create_memory_constraints, '$MEMORY_CONSTRAINTS_COMSTR')
+)
+
+
+memory_definitions_file = os.path.join(module_build_dir, "memory_definitions.yaml")
+
+env['BOARD_DEPLOYMENT_SOURCES'] = []
+
+env['BOARD_DEPLOY'](env, memory_definitions_file, memory_constraints)
+
+
+def create_definitions_for_deployment(source, env):
+    """
+    Create dictionary with definitions for deployment.c
+
+    Assume source[0] to be conf_total, source[1] - memory_definitions.
+    """
+    conf = jetos_configuration_internal.ConfigurationInternal.load_from_file(source[0].abspath)
+    md = memory_definition.ModuleMemoryDefinition.load_from_file(source[1].abspath)
+
+    # Need to sort memory blocks by vaddr.
+    for pmd in md.partitions:
+        pmd.memory_blocks.sort(key=lambda x: x.vaddr)
+
+    return {'conf': conf, 'memory_definitions': md}
 
 # Generate "deployment.c" for kernel
 deployment_kernel = env.TemplateRender(
     target = os.path.join(module_build_dir, "deployment.c"),
-    source = module_xml + partition_xmls,
-    create_definitions_func = get_pok_definitions,
+    source = conf_total + [memory_definitions_file],
+    create_definitions_func = create_definitions_for_deployment,
     template_main = "deployment_kernel",
     template_dir = env['JETOS_HOME'] + "/misc/templates",
     GENERATE_TITLE = template_generation.generate_title_c_no_track
     )
 
 
+def create_definitions_for_gdb(source, env):
+    """
+    Create dictionary with definitions for deployment.c
+
+    Assume source[0] to be conf_total.
+    """
+    conf = jetos_configuration_internal.ConfigurationInternal.load_from_file(source[0].abspath)
+
+    return {'conf': conf}
+
+
 # Generate file with commands for GDB for possible debugging
 gdb_commands = env.TemplateRender(
     target = module_build_dir + "/GDB_commands",
-    source = module_xml + partition_xmls,
-    create_definitions_func = get_pok_gdb_definitions,
+    source = conf_total,
+    create_definitions_func = create_definitions_for_gdb,
     template_main = "GDB_commands",
     template_dir = env['JETOS_HOME'] + "/misc/templates",
     GENERATE_TITLE = template_generation.generate_title_python_no_track
@@ -189,7 +287,7 @@ if kernel_target is None:
 pok_env = env.KernelEnvironment()
 
 kernel_lo = pok_env.Program(target = module_build_dir+'/kernel.lo',
-    source = kernel_target + deployment_kernel)
+    source = kernel_target + deployment_kernel + env['BOARD_DEPLOYMENT_SOURCES'])
 
 # there should (perhaps) also be padding to get aligned file size
 def merge_partitions(target, source, env):
@@ -269,13 +367,16 @@ def define_run_command(command, qemu_action, depends = []):
     script = os.environ.get('JETOS_' + command_id + "_" + bsp_id, "")
     if script != "":
         action = script + " " + pok_target_file
-    elif env.get('BOARD_IS_EMULATED', False):
+    elif env['BOARD_IS_EMULATED']:
         action = qemu_action
     else:
         action = unsupported_run_command
 
     env.Command(command + '_cmd', depends, action)
     env.Alias(command, command + '_cmd')
+
+# Always explicitely set size of memory for QEMU.
+env.Append(QEMU_FLAGS = ' -m %dM' % (env['BOARD_PHYS_SIZE'] / 2**20))
 
 env.Append(QEMU_FLAGS = ' -kernel '+pok_target_file)
 

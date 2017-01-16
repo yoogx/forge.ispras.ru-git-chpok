@@ -73,7 +73,7 @@ void CREATE_BUFFER (
        /*out*/ BUFFER_ID_TYPE           *BUFFER_ID,
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-   if(kshd.partition_mode == POK_PARTITION_MODE_NORMAL) {
+   if(kshd->partition_mode == POK_PARTITION_MODE_NORMAL) {
       // Cannot create buffer in NORMAL mode
       *RETURN_CODE = INVALID_MODE;
       return;
@@ -176,10 +176,10 @@ void SEND_BUFFER (
          // There are waiters on buffer. We have already awoken the first of them.
          pok_thread_id_t t_awoken = buffer->process_queue.first;
 
-         char* dst = kshd.tshd[t_awoken].wq_buffer.dst;
+         char* dst = kshd->tshd[t_awoken].wq_buffer.dst;
 
          memcpy(dst, MESSAGE_ADDR, LENGTH);
-         kshd.tshd[t_awoken].wq_len = LENGTH;
+         kshd->tshd[t_awoken].wq_len = LENGTH;
 
          msection_wq_del(&buffer->process_queue, t_awoken);
       }
@@ -205,10 +205,10 @@ void SEND_BUFFER (
    else {
       // Buffer is full and waiting is *requested* by the caller.
       // (whether waiting is *allowed* will be checked by the kernel.)
-      pok_thread_id_t t = kshd.current_thread_id;
+      pok_thread_id_t t = kshd->current_thread_id;
 
-      kshd.tshd[t].wq_buffer.src = MESSAGE_ADDR;
-      kshd.tshd[t].wq_len = LENGTH;
+      kshd->tshd[t].wq_buffer.src = MESSAGE_ADDR;
+      kshd->tshd[t].wq_len = LENGTH;
 
       arinc_process_queue_add_common(&buffer->process_queue, buffer->discipline);
 
@@ -276,8 +276,8 @@ void RECEIVE_BUFFER (
          MESSAGE_RANGE_TYPE w_index = message_index(buffer, buffer->nb_message);
          char* w_dest = message_at(buffer, w_index);
 
-         const char* w_src = kshd.tshd[t_awoken].wq_buffer.src;
-         MESSAGE_SIZE_TYPE w_len = kshd.tshd[t_awoken].wq_len;
+         const char* w_src = kshd->tshd[t_awoken].wq_buffer.src;
+         MESSAGE_SIZE_TYPE w_len = kshd->tshd[t_awoken].wq_len;
 
          memcpy(w_dest, w_src, w_len);
          buffer->messages_size[w_index] = w_len;
@@ -295,9 +295,9 @@ void RECEIVE_BUFFER (
    else {
       // Buffer is empty and waiting is *requested* by the caller.
       // (whether waiting is *allowed* will be checked by the kernel.)
-      pok_thread_id_t t = kshd.current_thread_id;
+      pok_thread_id_t t = kshd->current_thread_id;
 
-      kshd.tshd[t].wq_buffer.dst = MESSAGE_ADDR;
+      kshd->tshd[t].wq_buffer.dst = MESSAGE_ADDR;
 
       arinc_process_queue_add_common(&buffer->process_queue, buffer->discipline);
 
@@ -305,7 +305,7 @@ void RECEIVE_BUFFER (
       {
       case POK_ERRNO_OK:
          // Message is already copied from the buffer by the notifier.
-         *LENGTH = kshd.tshd[t].wq_len;
+         *LENGTH = kshd->tshd[t].wq_len;
          *RETURN_CODE = NO_ERROR;
          break;
       case POK_ERRNO_MODE: // Waiting is not allowed

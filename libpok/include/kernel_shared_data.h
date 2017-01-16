@@ -18,7 +18,6 @@
 
 #include <uapi/kernel_shared_data.h>
 
-/* This variable is defined by the linker. */
-extern struct jet_kernel_shared_data kshd;
+extern struct jet_kernel_shared_data* kshd;
 
 #endif /* __LIBJET_KERNEL_SHARED_DATA_H__ */

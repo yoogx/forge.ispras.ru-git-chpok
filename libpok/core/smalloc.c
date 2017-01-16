@@ -20,16 +20,38 @@
 #include <stdlib.h>
 #include <utils.h>
 
+#include <types.h>
+
+#include <memblocks.h>
+
+static char* heap_current = NULL;
+static char* heap_end = NULL;
+
+void smalloc_init(void)
+{
+    jet_memory_block_status_t heap_status;
+
+    pok_ret_t ret = pok_memory_block_get_status(".HEAP", &heap_status);
+    if(ret != POK_ERRNO_OK) {
+        printf("ERROR: Memory block for heap is not created.\n");
+        printf("NOTE: Report this error to the developers.\n");
+        abort();
+    }
+
+    heap_current = (char*)heap_status.addr;
+    heap_end = heap_current + heap_status.size;
+}
+
 void* smalloc_aligned(size_t size, size_t alignment)
 {
-    assert_os(kshd.partition_mode != POK_PARTITION_MODE_NORMAL);
+    assert_os(kshd->partition_mode != POK_PARTITION_MODE_NORMAL);
 
     if(size == 0) return NULL;
 
     char* obj_start = ALIGN_PTR(heap_current, alignment);
     char* obj_end = obj_start + size;
 
-    if(obj_end > kshd.heap_end)
+    if(obj_end > heap_end)
     {
         printf("ERROR: Failed to allocate memory from the heap.\n");
         printf("NOTE: Probably, you need to configure more heap for the partition.\n");
@@ -58,7 +80,7 @@ void* scalloc(size_t nmemb, size_t size)
     char* mem_start = ALIGN_PTR(heap_current, alignment);
     char* mem_end = mem_start + stride * (nmemb - 1) + size;
 
-    if(mem_end > kshd.heap_end)
+    if(mem_end > heap_end)
     {
         printf("ERROR: Failed to allocate memory from the heap.\n");
         printf("NOTE: Probably, you need to configure more heap for the partition.\n");

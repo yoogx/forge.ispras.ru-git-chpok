@@ -199,15 +199,13 @@ int info_partition(int argc,char **argv){
     }
     
     pok_partition_arinc_t* part = &pok_partitions_arinc[number];
-    struct jet_space_layout space_layout;
-    ja_space_layout_get(part->base_part.space_id, &space_layout);
     
     printf("\n\n");
     printf("Info about partition #%d\n",number);
     printf("is_paused = %d\n", partition_pause_get(number));
-    printf("base_addr = 0x%lx\n", (unsigned long)space_layout.kernel_addr);
-    printf("base_vaddr = 0x%lx\n", (unsigned long)space_layout.user_addr);
-    printf("size = 0x%zx\n", space_layout.size);
+    //printf("base_addr = 0x%lx\n", (unsigned long)space_layout.kernel_addr);
+    //printf("base_vaddr = 0x%lx\n", (unsigned long)space_layout.user_addr);
+    //printf("size = 0x%zx\n", space_layout.size);
     printf("name = %s\n", part->base_part.name);
     printf("nthreads = %lu\n", part->nthreads);
     printf("period = %lu\n", part->base_part.period);

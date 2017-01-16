@@ -44,18 +44,7 @@ Common sconscript which may be used for build example module.
 #
 # Assume source directory to be '#' (that is, location of SConstruct
 # from which given script has been called, directly or indirectly).
-#
-# SConscript, located in the source directory, should set following
-# variables for 'Import()'ed environment 'env':
-#
-#  'PARTITIONS' - list of subdirectories with partitions.
-#
-#  'MODULE_XML' - xml-file in a specific format.
-#
-# SConscript also may modify following variables in 'env':
-#
-#  'CFLAGS', 'ASFLAGS' - these flags would affect on compilation of every
-#
+# Description of this script see in examples/README.
 
 import os
 from lxml import etree
@@ -110,7 +99,7 @@ def get_jet_config(source, env):
     root = etree.parse(source.path)
     root.xinclude()
 
-    parser = arinc653_xml_conf.ArincConfigParser(env['ARCH'])
+    parser = arinc653_xml_conf.ArincConfigParser()
     conf = parser.parse(root)
 
     return conf
@@ -133,17 +122,18 @@ def get_jet_partition_config(source, env):
 
     root = etree.parse(source.path)
 
-    parser = arinc653_xml_conf.ArincConfigParser(env['ARCH'])
+    parser = arinc653_xml_conf.ArincConfigParser()
 
-    conf = chpok_configuration.Configuration(env['ARCH'])
-    parser.parse_partition(conf, root)
+    part = parser.parse_partition(root)
 
-    return conf.partitions[0]
+    return part
 
 env['PARTITION_PARSE_CONFIGURATION'] = get_jet_partition_config
 
 def partition_fill(part_env, part_index):
-	part_example_dir = example_dir + '/' + env['PARTITIONS'][part_index]
+	part_name = env['PARTITIONS'][part_index]
+	part_env['PARTITION_NAME'] = part_name
+	part_example_dir = example_dir + '/' + part_name
 	part_env['PARTITION_SOURCE_DIR'] = part_example_dir
 	part_env['PARTITION_BUILD_DIR'] = os.path.join(part_example_dir, 'build', part_env['BSP'])
 	part_env['PARTITION_CLEAN_DIRS'] = os.path.join(part_example_dir, 'build')

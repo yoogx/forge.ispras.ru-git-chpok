@@ -29,20 +29,20 @@ void arinc_process_queue_add_common(struct msection_wq* wq,
 {
     if(discipline == PRIORITY)
     {
-        PRIORITY_TYPE priority = kshd.tshd[kshd.current_thread_id].priority;
+        PRIORITY_TYPE priority = kshd->tshd[kshd->current_thread_id].priority;
         
         pok_thread_id_t prev = wq->last;
         
         while(prev != JET_THREAD_ID_NONE)
         {
-            if(kshd.tshd[prev].wq_priority >= priority) break;
+            if(kshd->tshd[prev].wq_priority >= priority) break;
             
-            prev = kshd.tshd[prev].wq_prev;
+            prev = kshd->tshd[prev].wq_prev;
         }
         
         msection_wq_add_after(wq, prev);
         
-        kshd.tshd[kshd.current_thread_id].wq_priority = priority;
+        kshd->tshd[kshd->current_thread_id].wq_priority = priority;
     }
     else
     {

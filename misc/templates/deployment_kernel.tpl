@@ -19,31 +19,31 @@
 #include <core/error_arinc.h>
 #include <core/partition_arinc.h>
 #include <core/partition.h>
+#include <core/memblocks.h>
 
 /*********************** HM module tables *****************************/
 /*
  * HM module selector.
  */
+{% set module_hm_table = conf.module_hm_table %}
 pok_error_level_selector_t pok_hm_module_selector = {
     .levels = {
-{%for error_id in conf.error_ids_all%}
-        {{conf.module_hm_table.level_selector_total(error_id)}}, /* POK_ERROR_ID_{{error_id}} */
+{%for error_id in module_hm_table.error_ids%}
+        {{module_hm_table.level_selector_total(error_id)}}, /* POK_ERROR_ID_{{error_id}} */
 {%endfor%}
     }
 };
 
 /*
  * HM module table.
- * 
- * SHUTDOWN for all errors.
  */
 pok_error_module_action_table_t pok_hm_module_table = {
     .actions = {
-{%for system_state in conf.system_states_all%}
+{%for system_state in module_hm_table.system_states%}
     /* POK_SYSTEM_STATE_{{system_state}} */
     {
-{%for error_id in conf.error_ids_all%}
-        POK_ERROR_MODULE_ACTION_{{conf.module_hm_table.get_action(system_state, error_id)}}, /* POK_ERROR_ID_{{error_id}}*/
+{%for error_id in module_hm_table.error_ids%}
+        POK_ERROR_MODULE_ACTION_{{module_hm_table.recovery_action(system_state, error_id)}}, /* POK_ERROR_ID_{{error_id}}*/
 {%endfor%}
     },
 {%endfor%}
@@ -51,10 +51,10 @@ pok_error_module_action_table_t pok_hm_module_table = {
 };
 
 {%macro connection_partition(connection)%}
-{%if connection.get_kind_constant() == 'Local'%}
-&pok_partitions_arinc[{{connection.port.partition.part_index}}].base_part
-{%-elif connection.get_kind_constant() == 'UDP'%}
-error("UDP connection for the channel doesn't supported yet")
+{%if connection %}
+&pok_partitions_arinc[{{connection.partition_index}}].base_part
+{%-else%}
+NULL
 {%-endif%}
 {%-endmacro%}
 
@@ -93,22 +93,27 @@ pok_channel_sampling_t pok_channels_sampling[{{ conf.channels_sampling | length 
 uint8_t pok_channels_sampling_n = {{ conf.channels_sampling | length }};
 
 {%for part in conf.partitions%}
+
+{%set pmd = memory_definitions.partitions[loop.index0]%}
+
 /****************** Setup partition{{loop.index0}} (auxiliary) **********************/
+{%set partition_hm_table = part.partition_hm_table%}
 // HM partition level selector.
 static const pok_error_level_selector_t partition_hm_selector_{{loop.index0}} = {
     .levels = {
-{%for error_id in conf.error_ids_all %}
-        {{part.hm_table.level_selector_total(error_id)}}, /*POK_ERROR_ID_{{error_id}}*/
+{%for error_id in partition_hm_table.error_ids %}
+        {{partition_hm_table.level_selector_total(error_id)}}, /*POK_ERROR_ID_{{error_id}}*/
 {%endfor%}
     }
 };
 // Mapping of process-level errors information.
 static const pok_thread_error_map_t partition_thread_error_info_{{loop.index0}} = {
     .map = {
-{%for error_id in conf.error_ids_all %}
-{%if error_id in part.hm_table.user_level_codes%}
-{%set error_code, error_description = part.hm_table.user_level_codes[error_id] %}
-        {POK_ERROR_KIND_{{error_code}}, "{{error_description}}"},        /* POK_ERROR_ID_{{error_id}} */
+
+{%for error_id in partition_hm_table.error_ids %}
+{%set action = partition_hm_table.actions['USER'][error_id]%}
+{% if action.error_code %}
+        {POK_ERROR_KIND_{{action.error_code}}, "{{action.error_description}}"},        /* POK_ERROR_ID_{{error_id}} */
 {%else%}
         {POK_ERROR_KIND_INVALID, NULL}, /*POK_ERROR_ID_{{error_id}}*/
 {%endif%}
@@ -116,16 +121,16 @@ static const pok_thread_error_map_t partition_thread_error_info_{{loop.index0}} 
     }
 };
 
-/* 
+/*
  * Pointer to partition HM table.
  */
 static const pok_error_hm_partition_t partition_hm_table_{{loop.index0}} = {
     .actions = {
-{%for s in conf.system_states_all %}
+{%for s in partition_hm_table.system_states %}
     /* POK_SYSTEM_STATE_{{s}} */
     {
-{%for error_id in conf.error_ids_all %}
-        POK_ERROR_ACTION_{{part.hm_table.get_action(s, error_id)}}, /* POK_ERROR_ID_{{error_id}} */
+{%for error_id in partition_hm_table.error_ids %}
+        POK_ERROR_ACTION_{{partition_hm_table.recovery_action(s, error_id, 'IDLE')}}, /* POK_ERROR_ID_{{error_id}} */
 {%endfor%}
     },
 {%endfor%}
@@ -133,15 +138,15 @@ static const pok_error_hm_partition_t partition_hm_table_{{loop.index0}} = {
 };
 
 // Threads array
-static pok_thread_t partition_threads_{{loop.index0}}[{{part.num_threads}} + 1 /*main thread*/ + 1 /* error thread */];
+static pok_thread_t partition_threads_{{loop.index0}}[{{part.num_threads_total}}];
 
 // Queuing ports
 static pok_port_queuing_t partition_ports_queuing_{{loop.index0}}[{{part.ports_queueing | length}}] = {
 {%for port_queueing in part.ports_queueing%}
     {
         .name = "{{port_queueing.name}}",
-        .channel = &pok_channels_queuing[{{port_queueing.channel_id}}],
-        .direction = {%if port_queueing.is_src()%}POK_PORT_DIRECTION_OUT{%else%}POK_PORT_DIRECTION_IN{%endif%},
+        .channel = {%if port_queueing.queueing_channel_index is not none%}&pok_channels_queuing[{{port_queueing.queueing_channel_index}}]{%else%}NULL{%endif%},
+        .direction = {%if port_queueing.direction == 'OUT'%}POK_PORT_DIRECTION_OUT{%else%}POK_PORT_DIRECTION_IN{%endif%},
     },
 {%endfor%}
 };
@@ -151,9 +156,25 @@ static pok_port_sampling_t partition_ports_sampling_{{loop.index0}}[{{part.ports
 {%for port_sampling in part.ports_sampling%}
     {
         .name = "{{port_sampling.name}}",
-        .channel = &pok_channels_sampling[{{port_sampling.channel_id}}],
-        .direction = {%if port_sampling.is_src()%}POK_PORT_DIRECTION_OUT{%else%}POK_PORT_DIRECTION_IN{%endif%},
+        .channel = {%if port_sampling.sampling_channel_index is not none%}&pok_channels_sampling[{{port_sampling.sampling_channel_index}}]{%else%}NULL{%endif%},
+        .direction = {%if port_sampling.direction == 'OUT'%}POK_PORT_DIRECTION_OUT{%else%}POK_PORT_DIRECTION_IN{%endif%},
     },
+{%endfor%}
+};
+
+// Memory blocks
+static const struct memory_block memory_blocks_{{loop.index0}}[{{pmd.memory_blocks | length}}] = {
+{%for mbd in pmd.memory_blocks%}
+	{
+		.name = "{{mbd.name}}",
+		.size = {{mbd.size}},
+		.maccess = 0{%if 'R' in mbd.access%} | MEMORY_BLOCK_ACCESS_READ{%endif%}{%if 'W' in mbd.access%} | MEMORY_BLOCK_ACCESS_WRITE{%endif%}{%if 'X' in mbd.access%} | MEMORY_BLOCK_ACCESS_EXEC{%endif%},
+		.vaddr = {{mbd.vaddr}},
+		.is_contiguous = {%if mbd.is_contiguous%}TRUE{%else%}FALSE{%endif%},
+		.paddr = {%if mbd.is_contiguous%}{{mbd.paddr}}{%else%}0{%endif%},
+		.is_shared = {%if mbd.is_shared%}TRUE{%else%}FALSE{%endif%},
+		.kaddr = {{mbd.kaddr}},
+	},
 {%endfor%}
 };
 
@@ -162,6 +183,7 @@ static pok_port_sampling_t partition_ports_sampling_{{loop.index0}}[{{part.ports
 /*************** Setup partitions array *******************************/
 pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
 {%for part in conf.partitions%}
+{%set pmd = memory_definitions.partitions[loop.index0]%}
     {
         .base_part = {
             .name = "{{part.name}}",
@@ -169,22 +191,27 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
             // Allocate 1 event slot per queuing port plus 2 slots for timer.
             .partition_event_max = {{part.ports_queueing | length}} + 2,
 
-            .period = {%if part.period is not none%}{{part.period}}{%else%}{{conf.major_frame}}{%endif%},
-            .duration = {%if part.duration is not none%}{{part.duration}}{%else%}{{part.total_time}}{%endif%},
+            .period = {{part.period}},
+            .duration = {{part.duration}},
             .partition_id = {{part.part_id}},
 
-            .space_id = {{loop.index}},
+            .space_id = {{part.space_id}},
 
             .multi_partition_hm_selector = &pok_hm_multi_partition_selector_default,
             .multi_partition_hm_table = &pok_hm_multi_partition_table_default,
+
+            .memory_blocks = memory_blocks_{{loop.index0}},
+            .nmemory_blocks = {{pmd.memory_blocks | length}},
         },
 
-        .nthreads = {{part.get_needed_threads()}},
+		.elf_id = {{part.index}},
+
+        .nthreads = {{part.num_threads_total}},
         .threads = partition_threads_{{loop.index0}},
 
         .main_user_stack_size = 8192, {# TODO: This should be set in config somehow. #}
 
-        .heap_size = {{part.get_heap_size()}},
+        .heap_size = {{part.heap_size}},
 
         .ports_queuing = partition_ports_queuing_{{loop.index0}},
         .nports_queuing = {{part.ports_queueing | length}},
@@ -241,18 +268,18 @@ const pok_sched_slot_t pok_module_sched[{{conf.slots | length}}] = {
 {%for slot in conf.slots%}
     {
         .duration = {{slot.duration}},
-        .offset = 0,{#TODO: precalculate somehow#}{{''}}
-    {%if slot.get_kind_constant() == 'POK_SLOT_PARTITION' %}
-        .partition = &pok_partitions_arinc[{{slot.partition.part_index}}].base_part,
+        .offset = {{slot.offset}},
+    {%if slot.slot_type == 'PARTITION' %}
+        .partition = &pok_partitions_arinc[{{slot.partition_index}}].base_part,
         .periodic_processing_start = {%if slot.periodic_processing_start%}TRUE{%else%}FALSE{%endif%},
-    {%elif slot.get_kind_constant() == 'POK_SLOT_MONITOR' %}
+    {%elif slot.slot_type == 'MONITOR' %}
 #ifdef POK_NEEDS_MONITOR
         .partition = &partition_monitor,
 #else /* POK_NEEDS_MONITOR */
         .partition = &partition_idle,
 #endif /* POK_NEEDS_MONITOR */
         .periodic_processing_start = FALSE,
-    {%elif slot.get_kind_constant() == 'POK_SLOT_GDB' %}
+    {%elif slot.slot_type == 'GDB' %}
 #ifdef POK_NEEDS_GDB
         .partition = &partition_gdb,
 #else /* POK_NEEDS_GDB */
@@ -268,26 +295,3 @@ const pok_sched_slot_t pok_module_sched[{{conf.slots | length}}] = {
 const uint8_t pok_module_sched_n = {{conf.slots | length}};
 
 const pok_time_t pok_config_scheduling_major_frame = {{conf.major_frame}};
-
-/************************ Memory blocks ************************/
-#include <core/memblocks_config.h>
-struct memory_block jet_memory_blocks[] = {
-    {%for mblock in conf.memory_blocks%}
-    {
-        .name = "{{mblock.name}}",
-        .virt_addr = 0x{{'%x'%mblock.virt_addr}},
-        .size = {{mblock.actual_size}},
-        .pid_to_rights = {
-            {%for pid, access_right in mblock.access.iteritems() %}
-                [{{pid}}] = MB_CONFIG_{{access_right}},
-            {%endfor%}
-        }
-    },
-
-    {%endfor%}
-
-};
-
-size_t jet_memory_blocks_n = {{ conf.memory_blocks | length }};
-
-{% include 'arch/' + conf.arch + '/deployment_kernel' %}

@@ -13,14 +13,10 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __JET_X86_SPACE_H__
-#define __JET_X86_SPACE_H__
+#ifndef __LIBJET_MEMBLOCKS_H__
+#define __LIBJET_MEMBLOCKS_H__
 
-#include <types.h>
-#include "thread.h"
-#include <arch/deployment.h>
+#include <core/syscall.h>
+#include <uapi/memblock_types.h>
 
-void ja_space_init(void);
-
-#endif /* !__JET_X86_SPACE_H__ */
-
+#endif /* __LIBJET_MEMBLOCKS_H__ */

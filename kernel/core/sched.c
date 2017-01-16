@@ -489,7 +489,7 @@ void pok_partition_return_user(void)
 }
 
 void pok_partition_jump_user(void (* __user entry)(void),
-    jet_ustack_t stack_user,
+    uintptr_t stack_user,
     jet_stack_t stack_kernel)
 {
     pok_partition_t* part = current_partition;

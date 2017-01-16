@@ -21,6 +21,16 @@
 Environment definitions for PowerPC architecture.
 """
 
+from __future__ import division
+
+import os
+import memory_definition
+import template_generation
+import math
+from text_serialization import *
+
+import elf_info
+
 Import('env')
 
 env['PREFIX'] = 'powerpc-elf-'
@@ -34,3 +44,191 @@ env.Append(CFLAGS_KERNEL = '-msoft-float')
 
 env['LDSCRIPT_KERNEL'] = env['JETOS_HOME'] + '/kernel/arch/ppc/ldscripts/kernel.lds'
 env['LDSCRIPT_PARTITION'] = env['JETOS_HOME'] + '/kernel/arch/ppc/ldscripts/partition.lds'
+
+arch_dir = Dir('.').srcnode().abspath
+
+# Below is an implementation of arch deployment functionality.
+def align_val(val, align):
+    return ((val + align - 1) // align) * align
+
+class TLBEntry(SerializableObject):
+    yaml_tag = '!PPCTLBEntry'
+
+    copy_slots = [
+        'vaddr',
+        'paddr',
+        'size_enum',
+        'permissions',
+        'cache_policy',
+        'pid'
+    ]
+
+    # In accordance with E500MC_PGSIZE_* constants
+    # defined in kernel/arch/ppc/include/arch/mmu_ext.h.
+    size_enum_values = ['4K', '16K', '64K', '256K', '1M', '4M', '16M', '64M', '256M', '1G', '4G']
+
+    def __init__(self, **kargs):
+        copy_constructor(self, kargs)
+
+# Simple allocator of TLB entries
+class TLBEntryAllocator:
+    def __init__(self, phys_start, phys_end):
+        self.phys_current = phys_start
+        self.phys_end = phys_end
+
+    def alloc_entry(self, vaddr, size, pid, access):
+        """
+        Allocate TLB entry in the physical memory and return it.
+
+        Return None if failed to allocate entry (reason will be printed).
+        """
+        if size > 2**31:
+            print "Cannot allocate TLB of size greater than 2G."
+            return None
+
+        if size < 4096:
+            size = 4096
+        size_pow_4 = int(math.ceil(math.log((size + 4095 ) // 4096, 4)))
+
+        size_enum = TLBEntry.size_enum_values[size_pow_4]
+
+        size_real = 4096 * 4**size_pow_4
+        align_real = size_real
+
+        if vaddr % align_real:
+            print "TLB entry for size %d requires alignment %d. But virtual address %d isn't aligned so." % (size, align_real, vaddr)
+            return None
+
+        phys_start_entry = align_val(self.phys_current, align_real)
+
+        permissions = 0x5 # RW from the kernel
+
+        if 'R' in access:
+            permissions = permissions | 0x2
+        if 'W' in access:
+            permissions = permissions | 0x8
+        if 'X' in access:
+            permissions = permissions | 0x20
+
+        tlb_entry = TLBEntry(vaddr = vaddr,
+            paddr = phys_start_entry,
+            size_enum = size_enum,
+            permissions = permissions,
+            cache_policy = 0,
+            pid = pid)
+
+        phys_new = phys_start_entry + size_real
+
+        if phys_new > self.phys_end:
+            print "Insufficient physical memory for add TLB entry."
+            return None
+
+        self.phys_current = phys_new
+
+        return tlb_entry
+
+def ppc_deploy_func(env, target, source):
+    mc = memory_definition.ModuleMemoryDefinition.load_from_file(source[0].abspath)
+
+    tlb_entries = []
+    te_allocator = TLBEntryAllocator(
+        phys_start = 64 * 2**20,
+        phys_end = mc.phys_total)
+
+    for pmc in mc.partitions:
+        # Whole partition in the single TLB entry
+
+        # First create memory blocks for elf segments.
+        elf_memory_blocks = [] # This will be appended to pmc.memory_blocks later.
+
+        segments = elf_info.elf_read_segments(env, env['PARTITIONS_ELF_MAP'][pmc.name])
+
+        vaddr_start = 2**31 # Hardcoded in ldscript.
+
+        # Maximum vaddr used in elf (will be computed)
+        vaddr_end = vaddr_start
+
+        for i, segment in enumerate(segments):
+            elf_mbd = memory_definition.MemoryBlockDefinition(
+                name = '.ELF.' + str(i),
+                size = segment.MemSiz,
+                align = segment.Align,
+                vaddr = segment.VirtAddr,
+                access = segment.memory_block_access()
+            )
+
+            elf_mbd.kaddr = elf_mbd.vaddr
+            elf_memory_blocks.append(elf_mbd)
+
+            # Update vaddr_end if needed.
+            segment_end = segment.VirtAddr + segment.MemSiz
+            if segment_end > vaddr_end:
+                vaddr_end = segment_end
+
+        tlb_entry_size = vaddr_end - vaddr_start
+
+        for mbd in pmc.memory_blocks:
+            if mbd.vaddr != None:
+                print "Partition '%s' has memory block '%s' with fixed virtual address. This feature is not supported." % (pmc.name, mbd.name)
+                return 1
+            if mbd.paddr != None:
+                print "Partition '%s' has memory block '%s' with fixed physical address. This feature is not supported." % (pmc.name, mbd.name)
+                return 1
+
+            if mbd.is_shared:
+                print "Memory block '%s' is shared. This feature is not supported.." % (pmc.name, mbd.name)
+                return 1
+
+            if mbd.cache_policy != "DEFAULT":
+                print "Memory block '%s' has non-default cache policy '%s'. This feature is not supported." % (pmc.name, mbd.name, mbd.cache_policy)
+                return 1
+
+            if mbd.align > 2 ** 31:
+                print "Memory block '%s' has too high alignment: %x." % (mbd.name, mbd.align)
+                return 1
+
+            tlb_entry_size = align_val(tlb_entry_size, mbd.align)
+
+            mbd.vaddr = vaddr_start + tlb_entry_size
+            mbd.kaddr = mbd.vaddr
+
+            tlb_entry_size += mbd.size
+
+        pmc.memory_blocks.extend(elf_memory_blocks)
+
+        te = te_allocator.alloc_entry(vaddr_start, tlb_entry_size, pmc.space_id, "RWX")
+
+        if te is None:
+            return 1
+
+        tlb_entries.append(te)
+
+    mc.save_to_file(target[0].abspath)
+
+    serialize_as_text(tlb_entries, target[1].abspath, 'entries')
+
+def ppc_create_definitions_for_deployment(source, env):
+    entries = deserialize_from_text(source[0].abspath, 'entries')
+
+    return {'entries': entries}
+
+def ppc_deploy(env, memory_definitions_file, memory_constraints):
+
+    arch_deployment_kernel_yaml = os.path.join(env['MODULE_BUILD_DIR'], "ppc_tlb.yaml")
+
+    env.Command(target = [memory_definitions_file, arch_deployment_kernel_yaml],
+        source = memory_constraints + env['PARTITIONS_ELF_MAP'].values(),
+        action = Action(ppc_deploy_func, '$ARCH_DEPLOY_FUNC_COMSTR')
+    )
+
+    env.AddMethod(template_generation.TemplateRender)
+
+    env['BOARD_DEPLOYMENT_SOURCES'] += env.TemplateRender(
+        target = os.path.join(env['MODULE_BUILD_DIR'], "ppc_tlb.c"),
+        source = arch_deployment_kernel_yaml,
+        create_definitions_func = ppc_create_definitions_for_deployment,
+        template_main = "ppc_tlb_c",
+        template_dir = arch_dir + "/templates"
+    )
+
+env['BOARD_DEPLOY'] = ppc_deploy

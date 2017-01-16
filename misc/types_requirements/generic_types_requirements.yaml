@@ -17,19 +17,36 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-"""
-Environment definitions for e500_highmem board based on PowerPC.
-"""
+# Requirements for types, used in configuration process, applicable to
+# possibly any architecture.
 
-Import('env')
+# Note, that keys
+#
+# - max_alignment,
+# - align
+# - size
+#
+# provide *upper* boundaries for corresponded properties.
 
-env['ARCH'] = 'ppc'
+max_alignment: 16
 
-SConscript(env['JETOS_HOME'] + '/misc/arch/ppc/SConscript', exports = 'env')
+types:
+    - name: struct arinc_buffer
+      align: 8
+      size: 150
+      include: <buffer.h>
 
-env.Append(CFLAGS = ' -mcpu=e500mc')
+    - name: struct arinc_blackboard
+      align: 8
+      size: 100
+      include: <blackboard.h>
 
-env['BOARD_PHYS_SIZE'] = 2**28 # 256M
+    - name: struct arinc_semaphore
+      align: 8
+      size: 50
+      include: <semaphore.h>
 
-env['BOARD_IS_EMULATED'] = True
-env.Append(QEMU_FLAGS = ' -M ppce500 -cpu e500mc')
+    - name: struct arinc_event
+      align: 8
+      size: 50
+      include: <event.h>

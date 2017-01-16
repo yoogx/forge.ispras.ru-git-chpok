@@ -216,7 +216,7 @@ pok_time_t get_next_periodic_processing_start(void);
  * all pending callbacks for partition are triggered.
  */
 void pok_partition_jump_user(void (* __user entry)(void),
-    jet_ustack_t stack_user,
+    uintptr_t stack_user,
     jet_stack_t stack_kernel);
 
 /*
