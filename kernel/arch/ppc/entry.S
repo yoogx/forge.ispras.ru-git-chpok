@@ -611,7 +611,7 @@ pok_setup_interrupts:
         SET_IVOR(14, pok_int_inst_tlb_miss)
         SET_IVOR(15, pok_int_debug)
 
-#ifdef JET_PPC_CONFIG_SPE
+#ifdef JET_PPC_CONFIG_SPE_64
 /* ivor 32 setted only for processors supporting SPE */
         SET_IVOR(32, pok_int_spe)
 #endif

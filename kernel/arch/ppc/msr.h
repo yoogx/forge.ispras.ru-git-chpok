@@ -86,9 +86,9 @@
 #define MSR_TM_TRANSACTIONAL(x) (((x) & MSR_TS_MASK) == MSR_TS_T)
 #define MSR_TM_SUSPENDED(x)     (((x) & MSR_TS_MASK) == MSR_TS_S)
 
-#ifdef JET_PPC_CONFIG_SPE
+#ifdef JET_PPC_CONFIG_SPE_64
 #define MSR_ENABLE_FP MSR_SPE
-#else //JET_PPC_CONFIG_SPE
+#else //JET_PPC_CONFIG_SPE_64
 #define MSR_ENABLE_FP MSR_FP
 #endif
 

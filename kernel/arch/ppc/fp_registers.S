@@ -16,7 +16,7 @@
 #include "msr.h"
 #include "asm_offsets_fp_store.h"
 
-#ifdef JET_PPC_CONFIG_SPE
+#ifdef JET_PPC_CONFIG_SPE_64
 /* We save and load only high 32bit of GPRs.
    Low part of some GPRs are are already saved, low part of
    others will be saved, and here we should not worry about it */
@@ -78,7 +78,7 @@ ja_fp_init:
 
     ENABLE_FP
 
-#ifdef JET_PPC_CONFIG_SPE
+#ifdef JET_PPC_CONFIG_SPE_64
     /* load zero to high 32bit of r0 */
     li %r4, 0x0 //zero low 32bit of r4
     evmergelo %r0, %r4, %r0 //zero high 32bit of r0
