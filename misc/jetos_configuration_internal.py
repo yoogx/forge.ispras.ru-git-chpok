@@ -37,7 +37,6 @@ class ConfigurationInternal(SerializableObject):
         'channels_sampling',
         'channels_queueing',
         'major_frame',
-        'phys_total'
     ]
 
     def __init__(self, **kargs):
@@ -67,7 +66,6 @@ class ConfigurationInternal(SerializableObject):
             channels_sampling = [],
             channels_queueing = [],
             major_frame = 0,
-            phys_total = 2**32, # TODO: Make it configurable
         )
 
         for index, part in enumerate(conf.partitions):
@@ -84,13 +82,13 @@ class ConfigurationInternal(SerializableObject):
 
         return conf_internal
 
-    def create_memory_constraints(self):
+    def create_memory_constraints(self, phys_total):
         """
         Create object ModuleMemoryDefinition as memory constraints.
         """
         md = memory_definition.ModuleMemoryDefinition(
             partitions = [],
-            phys_total = self.phys_total
+            phys_total = phys_total
         )
 
         for part in self.partitions:

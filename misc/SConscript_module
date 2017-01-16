@@ -123,6 +123,9 @@ def BuildKernel(env, variant_dir = None):
 
 env.AddMethod(BuildKernel)
 
+# Store value of BOARD_PHYS_SIZE variable before calling module definition script.
+board_phys_size_origin = env['BOARD_PHYS_SIZE']
+
 env.SConscript(dirs = env['MODULE_SOURCE_DIR'],
     exports = 'env',
     variant_dir = module_build_dir,
@@ -152,17 +155,26 @@ for part_index in range(env['PARTITIONS_NUMBER']):
 
 env['PARTITIONS_ELF_MAP'] = partitions_elf_map
 
+# Check if module requests *more physical memory* than board provides.
+#
+# Note: Module is allowed to request *less physical memory* than board
+# provide even in case non-emulated board. In that case
+# BOARD_DEPLOY_FUNCTION should use as much memory as requested by
+# the module.
+board_phys_size_new = env['BOARD_PHYS_SIZE']
+if board_phys_size_new > board_phys_size_origin:
+    # Requesting more physical memory is allowed only for emulated targets.
+    if not env['BOARD_IS_EMULATED']:
+        print "ERROR: Module require physical memory of size %x, but board has only %x." % (board_phys_size_new, board_phys_size_origin)
+        print "HINT: Extending physical memory is allowed only for emulated boards."
+        Exit(1)
+
+if env['BOARD_IS_EMULATED']:
+    # Check that physical memory size has alignment suitable for QEMU
+    if board_phys_size_new % 2**20:
+        print "ERROR: Phisical size of emulated board should be divisible by 1M, but it is %d." % board_phys_size_new
+
 AddMethod(env, template_generation.TemplateRender)
-
-def get_pok_gdb_definitions(source, env):
-    conf = env['MODULE_PARSE_CONFIGURATION'](source, env)
-
-    defs = {
-        'conf': conf,
-        'partitions_elf_map': env['PARTITIONS_ELF_MAP']
-    }
-
-    return defs
 
 module_xml = env.toAbsPathList(env['MODULE_XML'], env['MODULE_SOURCE_DIR'])
 
@@ -191,18 +203,22 @@ env.Depends(conf_total, env['TYPES_REQUIREMENTS_YAML'])
 
 def create_memory_constraints(source, target, env):
     """
-    From configuration file create memory constraints file
+    Create memory constraints file from configuration file and
+    BOARD_PHYS_SIZE variable (as string).
     """
     conf = jetos_configuration_internal.ConfigurationInternal.load_from_file(source[0].abspath)
+    phys_total = int(source[1].get_contents()) # Extracts value from Node.
 
-    md = conf.create_memory_constraints()
+    md = conf.create_memory_constraints(phys_total)
 
     md.save_to_file(target[0].abspath)
 
 # Generate 'memory_constrains.yaml' for arch processing.
 memory_constraints = env.Command(
     target = os.path.join(module_build_dir, "memory_constraints.yaml"),
-    source = conf_total,
+    source = [conf_total,
+        env.Value(str(env['BOARD_PHYS_SIZE'])) # This is Node for value.
+    ],
     action = create_memory_constraints)
 
 
@@ -346,13 +362,16 @@ def define_run_command(command, qemu_action, depends = []):
     script = os.environ.get('JETOS_' + command_id + "_" + bsp_id, "")
     if script != "":
         action = script + " " + pok_target_file
-    elif env.get('BOARD_IS_EMULATED', False):
+    elif env['BOARD_IS_EMULATED']:
         action = qemu_action
     else:
         action = unsupported_run_command
 
     env.Command(command + '_cmd', depends, action)
     env.Alias(command, command + '_cmd')
+
+# Always explicitely set size of memory for QEMU.
+env.Append(QEMU_FLAGS = ' -m %dM' % (env['BOARD_PHYS_SIZE'] / 2**20))
 
 env.Append(QEMU_FLAGS = ' -kernel '+pok_target_file)
 

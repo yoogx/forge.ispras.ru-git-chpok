@@ -32,21 +32,21 @@ max_alignment: 16
 
 types:
     - name: struct arinc_buffer
-      align: 4
+      align: 8
       size: 150
       include: <buffer.h>
 
     - name: struct arinc_blackboard
-      align: 4
+      align: 8
       size: 100
       include: <blackboard.h>
 
     - name: struct arinc_semaphore
-      align: 4
+      align: 8
       size: 50
       include: <semaphore.h>
 
     - name: struct arinc_event
-      align: 4
+      align: 8
       size: 50
       include: <event.h>

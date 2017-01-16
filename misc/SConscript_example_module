@@ -44,18 +44,7 @@ Common sconscript which may be used for build example module.
 #
 # Assume source directory to be '#' (that is, location of SConstruct
 # from which given script has been called, directly or indirectly).
-#
-# SConscript, located in the source directory, should set following
-# variables for 'Import()'ed environment 'env':
-#
-#  'PARTITIONS' - list of subdirectories with partitions.
-#
-#  'MODULE_XML' - xml-file in a specific format.
-#
-# SConscript also may modify following variables in 'env':
-#
-#  'CFLAGS', 'ASFLAGS' - these flags would affect on compilation of every
-#
+# Description of this script see in examples/README.
 
 import os
 from lxml import etree

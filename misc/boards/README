@@ -20,37 +20,58 @@ and should fill some environment variables in it:
  (String, required).
 
  - 'BOARD_DEPLOY' - function, which is called as
- 
+
     f(env, memory_definitions_file, memory_constraints)
-    
+
  where
- 
+
    -- 'memory_definitions_file' - path to the file, where memory
    definitions (see 'memory_definitions.py') should be stored
    (via serialization);
-   
+
    -- 'memory_costraints' - single-element list contained 'SCons.Node'
    object referred to the file with memory constraints (see 'memory_definitions.py').
-   
+
    The function should define rule which for given *memory constraints*
    creates *memory definitions*.
-   
+
    Note, that *memory constraints* doesn't define memory blocks for
    partitions' code and data, contained in partitions' elf files.
    But *memory definitions* should define such blocks.
-   
+
    The function may define rule(s) for create board-specific deployment file(s),
    and append these file(s) to env['BOARD_DEPLOYMENT_SOURCES'], so these
    files will be compiled into the resulted module object.
-   
+
    The function may use environment variables:
-   
+
    --- 'MODULE_BUILD_DIR' - where additional files should be created.
    --- 'PARTITIONS_ELF_MAP' - mapping from partition's name into
                               partition's elf file.
 
+   There are two identical sources of physical memory limit, requested by the module:
+   --- one defined in memory constraints (for use in rules),
+   --- one defined in 'BOARD_PHYS_SIZE' environment variable
+           (for use by the function itself).
+   In case of non-emulated targets this limit is garanteed to be
+   less-or-equal than board memory size.
+   In case of emulated target module's limit of physical memory may be
+   more than its initial value, but the function may return error if that
+   cannot be emulated.
+   In any case, this limit should be enforced in deployment.
+
  - 'GDB' - gdb executable for debug. If absent, PREFIX'ed version is used.
  (String/path, optional).
+
+ - 'BOARD_PHYS_SIZE' - size of physical memory on the board.
+   This size is used in memory constraints generated for the module.
+
+   For Qemu-boards (see BOARD_IS_EMULATED below) this size is used when
+   run module under Qemu.
+
+   This size may be changed by module definition script(see description
+   of 'BOARD_DEPLOY' function above).
+ (Integer, required for non-Qemu boards).
 
  - 'BOARD_IS_EMULATED' - whether given board can be emulated using qemu.
  For emulated board scons targets for running module are automatically
@@ -71,4 +92,3 @@ and should fill some environment variables in it:
  for kernel space.
 
  - 'AFLAGS' - may append additional flags for compile asm sources.
- 

@@ -14,12 +14,33 @@
  */
 
 #include "arinc_alloc.h"
-#if defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD)
-
 #include <arinc_config.h>
 #include <utils.h>
+#include <memblocks.h>
 
-size_t arinc_intra_heap_size_current = 0;
+#include <stdio.h> /* for printf() */
+#include <stdlib.h> /* for abort() */
+
+
+static char* heap_ptr;
+static char* heap_ptr_end;
+
+void arinc_allocator_init(void)
+{
+    jet_memory_block_status_t arinc_heap_status;
+
+    pok_ret_t ret = pok_memory_block_get_status(".ARINC_HEAP",
+        &arinc_heap_status);
+
+    if(ret != POK_ERRNO_OK) {
+        printf("ERROR: Memory block for ARINC heap is not created.\n");
+        printf("NOTE: Report this error to the developers.\n");
+        abort();
+    }
+
+    heap_ptr = (char*)arinc_heap_status.addr;
+    heap_ptr_end = heap_ptr + arinc_heap_status.size;
+}
 
 /* 
  * Allocate memory of given size.
@@ -29,27 +50,22 @@ size_t arinc_intra_heap_size_current = 0;
  */
 void* arinc_alloc(size_t size, size_t alignment)
 {
-    size_t size_start = ALIGN(arinc_intra_heap_size_current, alignment);
-    size_t size_end = size_start + size;
+    char* ptr_start = ALIGN_PTR(heap_ptr, alignment);
+    char* ptr_end = ptr_start + size;
 
-    if(size_end > arinc_config_messages_memory_size) return NULL;
+    if(ptr_end > heap_ptr_end) return NULL;
 
-    arinc_intra_heap_size_current = size_end;
+    heap_ptr = ptr_end;
 
-    return arinc_intra_heap + size_start;
+    return ptr_start;
 }
-
-/*
- * State of the arinc allocator.
- */
-typedef size_t arinc_allocator_state;
 
 /*
  * Return current state of the allocator.
  */
 arinc_allocator_state arinc_allocator_get_state(void)
 {
-    return arinc_intra_heap_size_current;
+    return heap_ptr;
 }
 
 /*
@@ -58,7 +74,5 @@ arinc_allocator_state arinc_allocator_get_state(void)
  */
 void arinc_allocator_reset_state(arinc_allocator_state state)
 {
-    arinc_intra_heap_size_current = state;
+    heap_ptr = state;
 }
-
-#endif /* defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD) */

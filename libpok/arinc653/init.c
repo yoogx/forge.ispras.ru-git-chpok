@@ -18,7 +18,6 @@
 #include <arinc_config.h>
 
 #include <asp/alloc.h>
-#include <memblocks.h>
 
 #include "buffer.h"
 #include "blackboard.h"
@@ -27,7 +26,6 @@
 
 #include <stdio.h> /* for printf() */
 #include <stdlib.h> /* for abort() */
-#include <utils.h> /* ALIGN_PTR */
 
 #ifdef POK_NEEDS_ARINC653_BUFFER
 struct arinc_buffer* arinc_buffers;
@@ -51,103 +49,46 @@ char* arinc_intra_heap = NULL;
 #endif /* defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD) */
 
 /*
- * ARINC heap.
+ * Allocate array for ARINC needs on initialization stage.
  *
- * It is used for allocate things at initialization.
+ * On error print appropriate message and abort().
  */
-struct arinc_heap
-{
-    char* ptr;
-    size_t size;
-};
 
-/* Advance heap usage by given size. */
-static void aheap_advance(struct arinc_heap* aheap, size_t size)
+static void* arinc_alloc_array(size_t n_elems, size_t elem_size, size_t alignment)
 {
-    if(aheap->size < size)
+    if (n_elems == 0) return NULL;
+
+    void* res = arinc_alloc(n_elems * elem_size, alignment);
+
+    if(res == NULL)
     {
         printf("ERROR: Insufficient memory for ARINC needs.\n");
         printf("NOTE: Report this error to the developers.\n");
         abort();
     }
 
-    aheap->ptr += size;
-    aheap->size -= size;
-}
-
-/* Align pointer of the heap. */
-static void aheap_align(struct arinc_heap* aheap, size_t alignment)
-{
-    char* ptr_new = ALIGN_PTR(aheap->ptr, alignment);
-
-    aheap_advance(aheap, ptr_new - aheap->ptr);
-}
-
-
-/*
- * Allocate array for ARINC needs.
- *
- * Update heap usage accordingly.
- */
-static void* aheap_alloc_array(struct arinc_heap* aheap, size_t n_elems, size_t elem_size)
-{
-    if(n_elems == 0) return NULL; // Note: This is not an error indicator
-
-    aheap_align(aheap, libja_mem_get_alignment(elem_size));
-
-    void* res = aheap->ptr;
-
-    aheap_advance(aheap, n_elems * elem_size);
-
     return res;
 }
 
-
+#define ARINC_ALLOC_ARRAY(n_elems, type) (type*)arinc_alloc_array(n_elems, sizeof(type), __alignof__(type))
 
 void libjet_arinc_init(void)
 {
-    jet_memory_block_status_t arinc_heap_status;
-
-    pok_ret_t ret = pok_memory_block_get_status(".ARINC_HEAP",
-        &arinc_heap_status);
-
-    if(ret != POK_ERRNO_OK) {
-        printf("ERROR: Memory block for ARINC heap is not created.\n");
-        printf("NOTE: Report this error to the developers.\n");
-        abort();
-    }
-
-    struct arinc_heap aheap = {
-        .ptr = (char*)arinc_heap_status.addr,
-        .size = arinc_heap_status.size,
-    };
+    arinc_allocator_init();
 
 #ifdef POK_NEEDS_ARINC653_BUFFER
-    arinc_buffers = aheap_alloc_array(&aheap,
-        arinc_config_nbuffers, sizeof(*arinc_buffers));
+    arinc_buffers = ARINC_ALLOC_ARRAY(arinc_config_nbuffers, struct arinc_buffer);
 #endif /* POK_NEEDS_ARINC653_BUFFER */
 
 #ifdef POK_NEEDS_ARINC653_BLACKBOARD
-    arinc_blackboards = aheap_alloc_array(&aheap,
-        arinc_config_nblackboards, sizeof(*arinc_blackboards));
+    arinc_blackboards = ARINC_ALLOC_ARRAY(arinc_config_nblackboards, struct arinc_blackboard);
 #endif /* POK_NEEDS_ARINC653_BLACKBOARD */
 
 #ifdef POK_NEEDS_ARINC653_SEMAPHORE
-    arinc_semaphores = aheap_alloc_array(&aheap,
-        arinc_config_nsemaphores, sizeof(*arinc_semaphores));
+    arinc_semaphores = ARINC_ALLOC_ARRAY(arinc_config_nsemaphores, struct arinc_semaphore);
 #endif /* POK_NEEDS_ARINC653_SEMAPHORE */
 
 #ifdef POK_NEEDS_ARINC653_EVENT
-    arinc_events = aheap_alloc_array(&aheap,
-        arinc_config_nevents, sizeof(*arinc_events));
+    arinc_events = ARINC_ALLOC_ARRAY(arinc_config_nevents, struct arinc_event);
 #endif /* POK_NEEDS_ARINC653_EVENT */
-
-
-#if defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD)
-    aheap_align(&aheap, libja_mem_get_alignment(sizeof(size_t)));
-
-    arinc_intra_heap = aheap.ptr;
-
-    aheap_advance(&aheap, arinc_config_messages_memory_size);
-#endif /* defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD) */
 }
