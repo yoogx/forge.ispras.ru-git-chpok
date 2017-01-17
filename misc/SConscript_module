@@ -264,7 +264,7 @@ def create_definitions_for_gdb(source, env):
     """
     conf = jetos_configuration_internal.ConfigurationInternal.load_from_file(source[0].abspath)
 
-    return {'conf': conf}
+    return {'conf': conf, 'partitions_elf_map': partitions_elf_map}
 
 
 # Generate file with commands for GDB for possible debugging

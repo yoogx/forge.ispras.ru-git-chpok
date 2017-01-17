@@ -35,13 +35,13 @@ import math
 class TimeSlot():
     __metaclass__ = abc.ABCMeta
     __slots__ = [
-		"duration",
+        "duration",
 
         # Data private for implementation.
         #
         # During filling the object, you may use this field as you want.
-		"private_data"
-	]
+        "private_data"
+    ]
 
     @abc.abstractmethod
     def get_kind_constant(self):
@@ -109,102 +109,127 @@ class TimeSlotGDB(TimeSlot):
         return "POK_SLOT_GDB"
 
 
-# Possible system states(ordered, without prefix)
-system_states = [
-    'INIT_PARTOS',
-    'INIT_PARTUSER',
-    'INTERRUPT_HANDLER',
-    'OS_MOD',
-    'OS_PART',
-    'ERROR_HANDLER',
-    'USER'
-]
+class HMAction:
+    """
+    Generic action in Health Monitor tables.
 
-# Possible error identificators(ordered, without prefix)
-error_ids = [
-    'MODPOSTPROCEVENT_ELIST',
-    'ILLEGAL_REQUEST',
-    'APPLICATION_ERROR',
-    'PARTLOAD_ERROR',
-    'NUMERIC_ERROR',
-    'MEMORY_VIOLATION',
-    'DEADLINE_MISSED',
-    'HARDWARE_FAULT',
-    'POWER_FAIL',
-    'STACK_OVERFLOW',
-    'PROCINIT_ERROR',
-    'NOMEMORY_PROCDATA',
-    'ASSERT',
-    'CONFIG_ERROR',
-    'CHECK_POOL',
-    'UNHANDLED_INT'
-]
+    Subclasses should define 'possible_level' and 'possible_recovery_action'
+    lists with possible values for corresponded fields.
+    """
+    __slots__ = [
+        'level', # On which level error should be proceed.
+        'recovery_action' # Recovery action as a string.
+    ]
+
+    def __init__(self, level, recovery_action):
+        if level not in self.__class__.possible_level:
+            raise RuntimeError("Level value '%s' is not suitable for HMAction object of type '%s'" % (level, str(self.__class__)))
+        if recovery_action not in self.__class__.possible_recovery_action:
+            raise RuntimeError("Recovery action value '%s' is not suitable for HMAction object of type '%s'" % (recovery_action, str(self.__class__)))
+
+        self.level = level
+        self.recovery_action = recovery_action
 
 class HMTable:
-    def __init__(self):
-        # Error level selector.
-        #
-        # Maps (system state) on map (error id) => {0, 1}
-        # Absence of corresponded mapping defaults to 0.
-        self.level_selector = {}
-
-        # Actions for errors.
-        #
-        # Maps (system state) on map (error id) => action
-        #
-        # Absence of corresponded mapping defaults to subclass-specific value.
-        self.actions = {}
-
-    # Compute aggregate for level selector for specific error id.
-    def level_selector_total(self, error_id):
-        res = 0
-        for shift, s in enumerate(system_states):
-            if not s in self.level_selector:
-                continue
-            selector_per_state = self.level_selector[s]
-            if not error_id in selector_per_state:
-                continue
-
-            res += selector_per_state[error_id] << shift
-
-        return res
-
-    # Return action for given system state and error id.
-    # If mapping is absent, return given 'default_action'.
-    def get_action_generic(self, system_state, error_id, default_action):
-        if not system_state in self.actions:
-            return default_action
-
-        actions_per_state = self.actions[system_state]
-        if not error_id in actions_per_state:
-            return default_action
-
-        return actions_per_state[error_id]
-
-class ModuleHMTable(HMTable):
-    def __init__(self):
-        HMTable.__init__(self)
-    def get_action(self, system_state, error_id):
-        return self.get_action_generic(system_state, error_id, 'SHUTDOWN')
-
-class PartitionHMTable(HMTable):
-    # List of system states corresponded to partition
-    partition_system_states = [
+    """
+    Generic Health Monitor table.
+    """
+    # Possible system states(ordered, without prefix)
+    system_states = [
+        'INIT_PARTOS',
+        'INIT_PARTUSER',
+        'INTERRUPT_HANDLER',
+        'OS_MOD',
         'OS_PART',
         'ERROR_HANDLER',
         'USER'
     ]
 
-    def __init__(self):
-        HMTable.__init__(self)
+    # Possible error identificators(ordered, without prefix)
+    error_ids = [
+        'MODPOSTPROCEVENT_ELIST',
+        'ILLEGAL_REQUEST',
+        'APPLICATION_ERROR',
+        'PARTLOAD_ERROR',
+        'NUMERIC_ERROR',
+        'MEMORY_VIOLATION',
+        'DEADLINE_MISSED',
+        'HARDWARE_FAULT',
+        'POWER_FAIL',
+        'STACK_OVERFLOW',
+        'PROCINIT_ERROR',
+        'NOMEMORY_PROCDATA',
+        'ASSERT',
+        'CONFIG_ERROR',
+        'CHECK_POOL',
+        'UNHANDLED_INT'
+    ]
 
-        # Map error id -> (error code (without prefix), description)
-        # for state 'USER'. Absence of corresponded mapping means that
-        # given error id is never passed to error handler.
-        self.user_level_codes = {}
+
+    __slots__ = [
+        'actions', # Mapping from (system_state) * (error_id) to HMAction object.
+        'default_action' # Action object for use if concrete mapping is absent.
+    ]
+
+    def __init__(self):
+        self.actions = {}
+        # Do not define default_action.
 
     def get_action(self, system_state, error_id):
-        return self.get_action_generic(system_state, error_id, 'IDLE')
+        actions_per_state = self.actions.get(system_state, {})
+        # Reference self.default_action only when action is REALLY absent.
+        action = actions_per_state.get(error_id, None)
+        if action is None:
+            action = self.default_action
+
+        return action
+
+
+class ModuleHMAction(HMAction):
+    """
+    Module Health Monitor action.
+    """
+    possible_level = ['MODULE', 'PARTITION']
+    possible_recovery_action = ['IGNORE', 'SHUTDOWN', 'RESET']
+
+class ModuleHMTable(HMTable):
+    """
+    Module Health Monitor Table.
+    """
+    pass
+
+
+class PartitionHMAction(HMAction):
+    """
+    Partition Health Monitor action.
+
+    Additional slots are for PROCESS-level errors in 'USER' state.
+    """
+    possible_level = ['PARTITION', 'PROCESS']
+    possible_recovery_action = ['IGNORE', 'IDLE', 'COLD_START', 'WARM_START']
+
+    __slots__ = [
+        'error_code',
+        'description'
+    ]
+
+    def __init__(self, level, recovery_action, error_code = None, description = None):
+        HMAction.__init__(self, level, recovery_action)
+        if error_code is not None:
+            self.error_code = error_code
+            self.description = description
+
+class PartitionHMTable(HMTable):
+    """
+    Partition Health Monitor table.
+    """
+    # List of system states corresponded to partition.
+    # Mapping exists only for those states.
+    partition_system_states = [
+        'OS_PART',
+        'ERROR_HANDLER',
+        'USER'
+    ]
 
 # Memory block, belonging to partition's address space.
 # Actually, this is a **requirement** to a memory block, not a
@@ -485,9 +510,6 @@ class LocalConnection(Connection):
 
 
 class Configuration:
-    system_states_all = system_states
-    error_ids_all = error_ids
-
     __slots__ = [
         "module_hm_table", # Health Monitor Table assosiated with the module
         "partitions", # List of partitions

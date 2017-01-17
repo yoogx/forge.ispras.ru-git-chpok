@@ -217,14 +217,15 @@ class HMTableInternal(SerializableObject):
 
         return res
 
-    def recovery_action(self, system_state, error_id, default_action = None):
-        if system_state not in self.actions:
-            return default_action
-
-        return self.actions[system_state][error_id].recovery_action
-
 class ModuleHMActionInternal(HMActionInternal):
     yaml_tag = '!IModuleHMAction'
+
+    @classmethod
+    def from_normal(cls, module_action):
+        return cls(
+            level = module_action.level,
+            recovery_action = module_action.recovery_action
+        )
 
 
 class ModuleHMTableInternal(HMTableInternal):
@@ -235,22 +236,19 @@ class ModuleHMTableInternal(HMTableInternal):
     @classmethod
     def from_normal(cls, module_hm_table):
 
-        actions = {}
+        actions_internal = {}
 
         for state in cls.system_states:
-            error_ids_levels = module_hm_table.level_selector.get(state, {})
             error_ids_map = {}
-            for error_id in HMTableInternal.error_ids:
-                level_val = error_ids_levels.get(error_id, 0)
-                level = ModuleHMTableInternal.levels[level_val]
-                error_ids_map[error_id] = ModuleHMActionInternal (
-                    level = level,
-                    recovery_action = module_hm_table.get_action(state, error_id)
-                )
-            actions[state] = error_ids_map
+            for error_id in cls.error_ids:
+                action = module_hm_table.get_action(state, error_id)
+
+                error_ids_map[error_id] = ModuleHMActionInternal.from_normal(action)
+
+            actions_internal[state] = error_ids_map
 
         module_hm_table_internal = ModuleHMTableInternal(
-            actions = actions
+            actions = actions_internal
         )
 
         return module_hm_table_internal
@@ -466,6 +464,15 @@ class PartitionHMActionInternal(HMActionInternal):
             self.error_code = error_code # Error code, only for errors in 'USER' state.
             self.description = description # Description of the error, only for errors in 'USER' state.
 
+    @classmethod
+    def from_normal(cls, action):
+        return cls(
+            level = action.level,
+            recovery_action = action.recovery_action,
+            error_code = getattr(action, 'error_code', None),
+            description = getattr(action, 'description', None),
+        )
+
 
 class PartitionHMTableInternal(HMTableInternal):
     yaml_tag = '!IPartitionHMTable'
@@ -481,41 +488,18 @@ class PartitionHMTableInternal(HMTableInternal):
 
     @classmethod
     def from_normal(cls, partition_hm_table):
-        actions = {}
+        actions_internal = {}
 
         for state in cls.partition_system_states:
-            error_ids_levels = partition_hm_table.level_selector.get(state, {})
             error_ids_map = {}
-
-            if state == 'USER':
-                user_level_codes = partition_hm_table.user_level_codes
-            else:
-                user_level_codes = {}
-
             for error_id in HMTableInternal.error_ids:
-                level_val = error_ids_levels.get(error_id, 0)
-                level = PartitionHMTableInternal.levels[level_val]
+                action = partition_hm_table.get_action(state, error_id)
+                error_ids_map[error_id] = PartitionHMActionInternal.from_normal(action)
 
-                user_code = user_level_codes.get(error_id, None)
-                if user_code is not None:
-                    error_code = user_code[0]
-                    description = user_code[1]
-                else:
-                    error_code = None
-                    description = None
-
-                error_ids_map[error_id] = PartitionHMActionInternal (
-                    level = level,
-                    recovery_action = partition_hm_table.get_action(state, error_id),
-                    error_code = error_code,
-                    description = description
-                )
-
-
-            actions[state] = error_ids_map
+            actions_internal[state] = error_ids_map
 
         partition_hm_table_internal = PartitionHMTableInternal(
-            actions = actions
+            actions = actions_internal
         )
 
         return partition_hm_table_internal

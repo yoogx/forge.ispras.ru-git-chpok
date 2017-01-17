@@ -43,7 +43,7 @@ pok_error_module_action_table_t pok_hm_module_table = {
     /* POK_SYSTEM_STATE_{{system_state}} */
     {
 {%for error_id in module_hm_table.error_ids%}
-        POK_ERROR_MODULE_ACTION_{{module_hm_table.recovery_action(system_state, error_id)}}, /* POK_ERROR_ID_{{error_id}}*/
+        POK_ERROR_MODULE_ACTION_{{module_hm_table.actions[system_state][error_id].recovery_action}}, /* POK_ERROR_ID_{{error_id}}*/
 {%endfor%}
     },
 {%endfor%}
@@ -129,9 +129,15 @@ static const pok_error_hm_partition_t partition_hm_table_{{loop.index0}} = {
 {%for s in partition_hm_table.system_states %}
     /* POK_SYSTEM_STATE_{{s}} */
     {
+{%if partition_hm_table.partition_system_states.count(s) == 1%}
 {%for error_id in partition_hm_table.error_ids %}
-        POK_ERROR_ACTION_{{partition_hm_table.recovery_action(s, error_id, 'IDLE')}}, /* POK_ERROR_ID_{{error_id}} */
+        POK_ERROR_ACTION_{{partition_hm_table.actions[s][error_id].recovery_action}}, /* POK_ERROR_ID_{{error_id}} */
 {%endfor%}
+{%else%}
+{%for error_id in partition_hm_table.error_ids %}
+        POK_ERROR_ACTION_IDLE, /* POK_ERROR_ID_{{error_id}} */
+{%endfor%}
+{%endif%}
     },
 {%endfor%}
     }

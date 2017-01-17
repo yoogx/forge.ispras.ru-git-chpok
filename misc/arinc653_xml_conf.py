@@ -101,11 +101,13 @@ class ArincConfigParser:
         #    for mem_block_root in mem_blocks.findall("Memory_Block"):
         #        self.parse_memory_block(conf, mem_block_root)
 
-        # Use some default value for module HM table.
-        module_error_level_selector_per_state = {error_id: 1 for error_id in conf.error_ids_all }
-        for s in ['ERROR_HANDLER', 'USER']:
-            conf.module_hm_table.level_selector[s] = module_error_level_selector_per_state
+        conf.module_hm_table.default_action = chpok_configuration.ModuleHMAction("MODULE", "SHUTDOWN")
+        # Use some default action for module HM table for partition-level errors.
+        action_partition = chpok_configuration.ModuleHMAction("PARTITION", "SHUTDOWN")
 
+        module_hm_actions_per_state = {error_id: action_partition for error_id in chpok_configuration.HMTable.error_ids }
+        for s in ['ERROR_HANDLER', 'USER']:
+            conf.module_hm_table.actions[s] = module_hm_actions_per_state
 
         return conf
 
@@ -271,22 +273,23 @@ class ArincConfigParser:
         print("found memblock", mblock)
 
     def parse_hm(self, table, root):
+        table.default_action = chpok_configuration.PartitionHMAction("PARTITION", "IDLE")
+
         if root is None:
             return
 
-        table.level_selector['USER'] = {}
         table.actions['USER'] = {}
 
         for x in root.findall("Error"):
             # Assume "ErrorCode" to be error id
             error_id = x.attrib["ErrorCode"]
 
-            if x.attrib["Level"] == 'PROCESS':
-                table.level_selector['USER'][error_id] = 1
-
-            table.actions['USER'][error_id] = x.attrib['Action']
+            level = x.attrib["Level"]
+            recovery_action = x.attrib['Action']
 
             error_code = x.attrib["Code"].replace('POK_ERROR_KIND_', '')
-            error_description = self.error_description_table[error_code]
+            description = self.error_description_table[error_code]
 
-            table.user_level_codes[error_id] = (error_code, error_description)
+            action = chpok_configuration.PartitionHMAction(level, recovery_action, error_code, description)
+
+            table.actions['USER'][error_id] = action
