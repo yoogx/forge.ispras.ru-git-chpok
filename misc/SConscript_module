@@ -266,7 +266,10 @@ def create_definitions_for_gdb(source, env):
     """
     conf = jetos_configuration_internal.ConfigurationInternal.load_from_file(source[0].abspath)
 
-    return {'conf': conf, 'partitions_elf_map': partitions_elf_map}
+    return {'conf': conf,
+    'partitions_elf_map': partitions_elf_map,
+    'pok_target_file': pok_target_file
+    }
 
 
 gdb_commands_file = os.path.join(module_build_dir, "GDB_commands")
