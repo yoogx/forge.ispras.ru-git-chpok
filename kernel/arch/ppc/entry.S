@@ -16,6 +16,7 @@
  * Copyright (c) 2007-2009 POK team
  */
 
+#include "cpu.h"
 #include "msr.h"
 #include "reg.h"
 
