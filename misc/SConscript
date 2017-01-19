@@ -97,6 +97,7 @@ if ARGUMENTS.get('VERBOSE') != "1":
     env['CONF_TOTAL_COMSTR'] = "generate total configuration $TARGET"
     env['MEMORY_CONSTRAINTS_COMSTR'] = "create memory constraints $TARGET"
     env['ARCH_DEPLOY_FUNC_COMSTR'] = "Arch creates memory mapping: $TARGETS"
+    env['GDB_COMMANDS_COMSTR'] = "Generate GDB_commands file $TARGET"
 
 
 # Flags common for all architectures
