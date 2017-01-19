@@ -15,6 +15,7 @@
 
 #include "msr.h"
 #include "asm_offsets_fp_store.h"
+#include "cpu.h"
 
 #ifdef JET_PPC_CONFIG_SPE_64
 /* We save and load only high 32bit of GPRs.
