@@ -2,8 +2,8 @@ ENTRY(jet_start)
 
 SECTIONS
 {
-    . = 0x8000;
-/* . = 0x10000000; for i.mx6*/
+    /*. = 0x8000; */
+    . = 0x10000000;
     __text_start = .;
     .text :
     {
