@@ -22,6 +22,8 @@ Build module according to module definition script and partition definition
 scripts.
 """
 
+#TODO `ARGUMENTS.get('debug')` change to Variable 'debug'. So debug will be in help
+
 # This script is called from SConscript, when it builds whole module.
 #
 # The script Import()s variable 'env' contained main environment.
@@ -361,20 +363,37 @@ def create_definitions_for_gdb(source, env):
     """
     conf = jetos_configuration_internal.ConfigurationInternal.load_from_file(source[0].abspath)
 
-    return {'conf': conf, 'partitions_elf_map': partitions_elf_map}
+    return {'conf': conf,
+        'partitions_elf_map': partitions_elf_map,
+        'pok_target_file': pok_target_file
+    }
 
 
-# Generate file with commands for GDB for possible debugging
-gdb_commands = env.TemplateRender(
-    target = module_build_dir + "/GDB_commands",
-    source = conf_total,
-    create_definitions_func = create_definitions_for_gdb,
-    template_main = "GDB_commands",
-    template_dir = env['JETOS_HOME'] + "/misc/templates",
-    GENERATE_TITLE = template_generation.generate_title_python_no_track
-    )
+gdb_commands_file = os.path.join(module_build_dir, "GDB_commands")
 
-gdb_commands_file = gdb_commands[0].abspath
+def gdb_commands_action(target, source, env):
+    with open(target[0].abspath, 'w') as f:
+        f.write('source ' + source[0].path)
+
+
+if ARGUMENTS.get('debug'):
+
+    if ARGUMENTS.get('debug') not in ['jetos', 'qemu']:
+        print("wrong debug value:", ARGUMENTS.get('debug'))
+        Exit(1)
+
+    # Generate file with commands for GDB for possible debugging
+    gdb_commands_spec = env.TemplateRender(
+        target = module_build_dir + "/GDB_commands_" + ARGUMENTS.get('debug'),
+        source = conf_total,
+        create_definitions_func = create_definitions_for_gdb,
+        template_main = "GDB_commands_" + ARGUMENTS.get('debug'),
+        template_dir = env['JETOS_HOME'] + "/misc/templates",
+        GENERATE_TITLE = template_generation.generate_title_python_no_track
+        )
+    gdb_commands = env.Command(gdb_commands_file, gdb_commands_spec, Action(gdb_commands_action, '$GDB_COMMANDS_COMSTR'))
+
+
 
 kernel_target = env.get('KERNEL_TARGET', None)
 # By default, build kernel locally to the example
@@ -459,6 +478,13 @@ def unsupported_run_command(target, source, env):
 
 
 def define_run_command(command, qemu_action, depends = []):
+    if ARGUMENTS.get('debug'):
+        depends.append(gdb_commands)
+        if ARGUMENTS.get('debug') == 'jetos':
+            qemu_action += ' -serial tcp::8000,server'
+        elif ARGUMENTS.get('debug') == 'qemu':
+            qemu_action += ' -S -s'
+
     bsp_id = str_to_id(env['BSP'])
     command_id = str_to_id(command)
     script = os.environ.get('JETOS_' + command_id + "_" + bsp_id, "")
@@ -493,22 +519,22 @@ define_run_command('run-tap-ne2k',
     '$QEMU $QEMU_FLAGS -net nic,model=ne2k_pci,vlan=0 -net nic,model=ne2k_pci,vlan=1 -net tap,ifname=tap0,script=no,downscript=no,vlan=0, -net tap,ifname=tap1,script=no,downscript=no,vlan=1'
 )
 
-define_run_command('run-gdb',
-    '$QEMU $QEMU_FLAGS -serial tcp::8000,server'
-)
 
-define_run_command('rundbg',
-    '$QEMU $QEMU_FLAGS -S -s'
-)
+def check_gdb_commands_file_exists(target, source, env):
+    """
+    check if gdb_commands file exists. If not then prints message to help find out the problem.
 
-define_run_command('debug',
-    '$GDB '+pok_target_file+' -ex "target remote :1234"'
-)
+    TODO: Message probably will be unnecessary when 'debug' argument will became Variable
+    """
+    if not os.path.exists(gdb_commands_file):
+        print("gdb commands file not found. Call scons debug=<'qemu' or 'jetos'> first")
+        return 1
 
-define_run_command('debug-gdb',
-    '$GDB '+pok_target_file+' -ex "source '+gdb_commands_file+'" -ex "target extended-remote 127.0.0.1:8000"',
-    depends = gdb_commands
-)
+env.Command('gdb_cmd', [], action=[
+    check_gdb_commands_file_exists,
+    '$GDB '+pok_target_file+' -ex "source ' + gdb_commands_file + '"',
+    ])
+env.Alias('gdb', 'gdb_cmd')
 
 module_clean_dirs = env.get('MODULE_CLEAN_DIRS', module_build_dir)
 if type(module_clean_dirs) is not list:

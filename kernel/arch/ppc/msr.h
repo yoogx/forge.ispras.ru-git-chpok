@@ -16,6 +16,8 @@
 #ifndef __JET_PPC_MSR_H__
 #define __JET_PPC_MSR_H__
 
+#include "cpu.h"
+
 //#define MSR_SF_LG       63              /* Enable 64 bit mode */
 //#define MSR_ISF_LG      61              /* Interrupt 64b mode valid on 630 */
 //#define MSR_HV_LG       60              /* Hypervisor state */
