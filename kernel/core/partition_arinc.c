@@ -91,22 +91,29 @@ static void partition_arinc_start(void)
         part->mode = POK_PARTITION_MODE_INIT_COLD;
     }
 
-    // Load partition from ELF.
-    jet_loader_elf_load(part->base_part.space_id - 1, /* elf_id*/
-        &part->base_part,
-        &part->main_entry);
+    // Initialize memory blocks. ELF is loaded as a part of this process.
+    for( int i = 0; i < part->memory_block_init_entries_n; i++)
+    {
+        const struct jet_partition_memory_block_init_entry* part_init_entry =
+            &part->memory_block_init_entries[i];
+        jet_memory_block_init(part_init_entry->init_type,
+            part,
+            part_init_entry->mblocks,
+            part_init_entry->source_id
+        );
+    }
 
     // Setup kernel shared data
-    const struct memory_block* mblock_kshd = jet_partition_find_memory_block(
-        &part->base_part, ".KSHD");
+    const struct memory_block* mblock_kshd = jet_partition_arinc_find_memory_block(
+        part, ".KSHD");
 
     assert(mblock_kshd);
 
     part->kshd = (void* __kuser)mblock_kshd->kaddr;
 
     /* Setup memory for stacks. */
-    const struct memory_block* mblock_stacks = jet_partition_find_memory_block(
-        &part->base_part, ".STACKS");
+    const struct memory_block* mblock_stacks = jet_partition_arinc_find_memory_block(
+        part, ".STACKS");
 
     assert(mblock_stacks);
 
@@ -295,6 +302,20 @@ static struct jet_interrupt_context* pok_sched_arinc_get_thread_registers(pok_pa
         return NULL;
     }
 }
+
+static void* __kuser pok_sched_arinc_uaddr_to_gdb(
+    struct _pok_partition* part, const void* __user addr, size_t size)
+{
+    pok_partition_arinc_t* part_arinc = container_of(part, typeof(*part_arinc), base_part);
+
+    const struct memory_block* mblock = jet_partition_arinc_get_memory_block_for_addr(
+        part_arinc, addr, size);
+
+    if(mblock) return jet_memory_block_get_kaddr(mblock, addr);
+
+    return NULL;
+}
+
 #endif /* POK_NEEDS_GDB */
 
 static const struct pok_partition_sched_operations arinc_sched_ops = {
@@ -305,6 +326,7 @@ static const struct pok_partition_sched_operations arinc_sched_ops = {
     .get_thread_at_index = &pok_sched_arinc_get_thread_at_index,
     .get_thread_info = &pok_sched_arinc_get_thread_info,
     .get_thread_registers = &pok_sched_arinc_get_thread_registers,
+    .uaddr_to_gdb = &pok_sched_arinc_uaddr_to_gdb,
 #endif /* POK_NEEDS_GDB */
 };
 
@@ -520,4 +542,44 @@ void pok_partition_arinc_init_all(void)
     for(int i = 0; i < pok_partitions_arinc_n; i++) {
         pok_partition_arinc_init(&pok_partitions_arinc[i]);
     }
+}
+
+const struct memory_block* jet_partition_arinc_find_memory_block(
+    pok_partition_arinc_t* part, const char* name)
+{
+    for(int i = 0; i < part->nmemory_blocks; i++)
+    {
+        const struct memory_block* mblock = &part->memory_blocks[i];
+
+        if(strcmp(mblock->name, name) == 0) return mblock;
+    }
+
+    return NULL;
+}
+
+const struct memory_block* jet_partition_arinc_get_memory_block_for_addr(
+    pok_partition_arinc_t* part,
+    const void* __user addr,
+    size_t size)
+{
+    uintptr_t vaddr = (uintptr_t)addr;
+
+    for(int i = 0; i < part->nmemory_blocks; i++)
+    {
+        const struct jet_partition_arinc_mb_addr_entry* mb_addr_entry = &part->mb_addr_table[i];
+
+        if(mb_addr_entry->vaddr > vaddr) break;
+        if(mb_addr_entry->vaddr + mb_addr_entry->size > vaddr) {
+            // Maximum size available to the end of the block.
+            uint64_t rest_size = mb_addr_entry->vaddr + mb_addr_entry->size - vaddr;
+
+            // Check that end of range is not after the end of the block.
+            if(size > rest_size) return NULL;
+
+            return mb_addr_entry->mblock;
+        }
+
+    }
+
+    return NULL;
 }

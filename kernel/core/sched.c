@@ -34,6 +34,8 @@
 #include <cswitch.h>
 #include <core/space.h>
 
+#include <core/memblocks.h>
+
 static pok_time_t first_frame_starts; // Time when first major frame is started.
 
 static pok_time_t            pok_sched_next_deadline;
@@ -224,6 +226,8 @@ void pok_sched_restart (void)
 #ifdef POK_NEEDS_MONITOR
     idle_sp = jet_context_init(idle_stack, &idle_function);
 #endif /*POK_NEEDS_MONITOR */
+
+    jet_module_memory_blocks_init();
 
     for_each_partition(&pok_partition_reset);
 

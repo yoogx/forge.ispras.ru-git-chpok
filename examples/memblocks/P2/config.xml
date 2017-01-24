@@ -46,7 +46,7 @@
     </HM_Table>
 
     <Memory_Blocks>
-        <Memory_Block NameRef="shared_mb0" UserAccess="READ_ONLY"/>
+        <Memory_Block Name="shared_mb0" Size="0x10000" Access="R" InitSource="ZERO" InitStage="MODULE"/>
     </Memory_Blocks>
 
 </Partition>

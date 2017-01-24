@@ -38,7 +38,7 @@ def parse_bytes(s):
         multiplier = 2 ** 20
         s = s[:-1]
 
-    return int(s) * multiplier
+    return int(s, 0) * multiplier
 
 def parse_time(s):
     # note: CHPOK uses ms internally
@@ -96,11 +96,6 @@ class ArincConfigParser:
         if connection_table is not None:
             self.parse_channels(conf, connection_table)
 
-        #mem_blocks = root.find("Memory_Blocks")
-        #if mem_blocks is not None:
-        #    for mem_block_root in mem_blocks.findall("Memory_Block"):
-        #        self.parse_memory_block(conf, mem_block_root)
-
         conf.module_hm_table.default_action = chpok_configuration.ModuleHMAction("MODULE", "SHUTDOWN")
         # Use some default action for module HM table for partition-level errors.
         action_partition = chpok_configuration.ModuleHMAction("PARTITION", "SHUTDOWN")
@@ -108,6 +103,8 @@ class ArincConfigParser:
         module_hm_actions_per_state = {error_id: action_partition for error_id in chpok_configuration.HMTable.error_ids }
         for s in ['ERROR_HANDLER', 'USER']:
             conf.module_hm_table.actions[s] = module_hm_actions_per_state
+
+        self.parse_shared_memory_blocks(conf, root.find("Shared_Memory_Blocks"))
 
         return conf
 
@@ -151,6 +148,8 @@ class ArincConfigParser:
 
         # Map name=>port.
         part_private['ports_by_name'] = dict()
+        # Map name=>memory_block.
+        part_private['mb_by_name'] = dict()
         part.private_data = part_private
 
         self.parse_ports(part, part_root.find("ARINC653_Ports"))
@@ -240,37 +239,88 @@ class ArincConfigParser:
         else:
             raise RuntimeError("unknown connection tag name %r" % connection_root.tag)
 
-    def parse_partition_memory_blocks(self, part, memory_blocks):
-        if memory_blocks is None:
+    def parse_partition_memory_blocks(self, part, memory_blocks_xml):
+        if memory_blocks_xml is None:
             return
-        for mem_block in memory_blocks.findall("Memory_Block"):
-            self.parse_partition_memory_block(part, mem_block)
+        for memory_block_xml in memory_blocks_xml.findall("Memory_Block"):
+            memory_block = self.parse_memory_block(memory_block_xml)
+            part.memory_blocks.append(memory_block)
+            part.private_data['mb_by_name'][memory_block.name] = memory_block
 
-    def parse_partition_memory_block(self, part, mroot):
-        name = mroot.attrib["NameRef"]
-        if "UserAccess" in mroot.attrib:
-            user_access = mroot.attrib["UserAccess"]
-        else:
-            user_access = None
-        part.add_mem_block(name, user_access)
-
-
-    def parse_memory_block(self, conf, mroot):
+    def parse_memory_block(self, mroot):
         name = mroot.attrib["Name"]
-        size = int(mroot.attrib["Size"], 0)
+        size = parse_bytes(mroot.attrib["Size"])
 
-        mblock = conf.add_memory_block(name, size)
+        mblock = chpok_configuration.MemoryBlock(name, size)
 
-        mblock.virt_addr = int(mroot.attrib["VirtualAddress"], 0)
-        mblock.phys_addr = int(mroot.attrib["PhysicalAddress"], 0)
+        mblock.access = mroot.attrib.get("Access", "RW")
 
-        if "CachePolicy" in mroot.attrib:
-            mblock.cache_policy = mroot.attrib["CachePolicy"]
+        vaddr = mroot.attrib.get("VirtualAddress", None)
+        if vaddr is not None:
+            mblock.vaddr = int(vaddr, 0)
 
-        if "KernelAccess" in mroot.attrib:
-            mblock.set_kernel_access(mroot.attrib["KernelAccess"])
+        is_contiguous = mroot.attrib.get("Contiguous", None)
+        if is_contiguous is not None:
+            mblock.is_contiguous = parse_bool(is_contiguous)
 
-        print("found memblock", mblock)
+        paddr = mroot.attrib.get("PhysicalAddress", None)
+        if paddr is not None:
+            mblock.paddr = int(paddr, 0)
+            # Enforce block to be contiguous
+            mblock.is_contiguous = True
+
+        cache_policy = mroot.attrib.get("CachePolicy", None)
+        if cache_policy is not None:
+            mblock.cache_policy = cache_policy
+
+        init_source = mroot.attrib.get("InitSource", None)
+        init_stage = mroot.attrib.get("InitStage", None)
+
+        if init_source is not None:
+            if not init_source in mblock.init_source_values:
+                print "ERROR: Memory block '%s' has incorrect attribute 'InitSource': '%s'." % (name, init_source)
+                print "HINT: Possible values are: " + ", ".join(mblock.init_source_values) + "."
+                raise RuntimeError("Incorrect memory block definition.")
+
+            mblock.init_source = init_source
+
+            if init_stage is None:
+                print "Memory block '%s' has attribute 'InitSource' without 'InitStage' one." % (name)
+                raise RuntimeError("Incorrect memory block definition.")
+
+            if not init_stage in mblock.init_stage_values:
+                print "ERROR: Memory block '%s' has incorrect attribute 'InitStage': '%s'" % (name, init_stage)
+                print "HINT: Possible values are: " + ", ".join(mblock.init_stage_values) + "."
+                raise RuntimeError("Incorrect memory block definition.")
+
+            mblock.init_stage = init_stage
+        else:
+            if init_stage is not None:
+                print "Memory block '%s' has attribute 'InitStage' without 'InitSource' one." % (name)
+                raise RuntimeError("Incorrect memory block definition.")
+
+        # TODO: Parse other attributes.
+
+        return mblock
+
+    def parse_shared_memory_blocks(self, conf, sroot):
+        if sroot is None:
+            return
+
+        for share_entry in sroot.findall('Shared_Memory_Blocks_Entry'):
+            mb_sharing = chpok_configuration.MemoryBlockSharing()
+            for mb_ref_xml in share_entry.findall('Memory_Block_Ref'):
+                mb_sharing.mb_refs.append(self.parse_memory_block_ref(conf, mb_ref_xml))
+
+            conf.memory_block_sharings.append(mb_sharing)
+
+    def parse_memory_block_ref(self, conf, ref_entry):
+        part_name = ref_entry.attrib["PartitionNameRef"]
+        part = conf.private_data['partitions_by_name'][part_name]
+        mb_name = ref_entry.attrib["NameRef"]
+        memory_block = part.private_data['mb_by_name'][mb_name]
+
+        return chpok_configuration.MemoryBlockRef(part, memory_block)
 
     def parse_hm(self, table, root):
         table.default_action = chpok_configuration.PartitionHMAction("PARTITION", "IDLE")

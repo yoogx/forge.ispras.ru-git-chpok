@@ -17,16 +17,33 @@
 #define __POK_PARTITION_ARINC_H__
 
 #include <core/partition.h>
+#include <core/memblocks.h>
 #include <core/error_arinc.h>
 #include <core/port.h>
 
 #include <uapi/partition_arinc_types.h>
 
-/*!
- * \struct pok_partition_t
- * \brief This structure contains all needed information for partition management
+/* One entry for initialize memory block(s) at PARTITION or PARTITION:COLD stage. */
+struct jet_partition_memory_block_init_entry
+{
+    enum jet_memory_block_init_type init_type;
+    uint16_t source_id;
+    const struct memory_block* const* mblocks;
+};
+
+
+/* Entry for search memory block by address.*/
+struct jet_partition_arinc_mb_addr_entry
+{
+    uintptr_t vaddr;
+    size_t size;
+    const struct memory_block* mblock;
+};
+
+/*
+ * ARINC partition.
  */
-typedef struct _pok_patition_arinc
+typedef struct _pok_partition_arinc
 {
     pok_partition_t        base_part;
 
@@ -43,6 +60,31 @@ typedef struct _pok_patition_arinc
     uint8_t                 elf_id;
 
     pok_time_t             activation; // Not used now
+
+    /*
+     * Array of memory blocks for given partition.
+     * 
+     * Set in deployment.c.
+     */
+    const struct memory_block* memory_blocks;
+    int nmemory_blocks;
+
+    /*
+     * Array of memory block entries for search by address.
+     * 
+     * Ordered by addresses (ascending).
+     * 
+     * Set in deployment.c.
+     */
+    const struct jet_partition_arinc_mb_addr_entry* mb_addr_table;
+
+    /* Array of entries for initialize memory blocks at 'PARTITION' stage. Set in deployment.c.*/
+    const struct jet_partition_memory_block_init_entry* memory_block_init_entries;
+    int memory_block_init_entries_n;
+
+    /* Array of entries for initialize memory blocks at 'PARTITION:COLD' stage. Set in deployment.c.*/
+    const struct jet_partition_memory_block_init_entry* memory_block_init_entries_cold;
+    int memory_block_init_entries_cold_n;
 
     /*
      * Number of (allocated) threads inside the partition.
@@ -216,6 +258,24 @@ void pok_partition_arinc_init_all(void);
 
 /** Initialize arinc partition. */
 void pok_partition_arinc_init(pok_partition_arinc_t* part);
+
+/*
+ * Find memory block by name.
+ *
+ * Return NULL if not found.
+ */
+const struct memory_block* jet_partition_arinc_find_memory_block(
+    pok_partition_arinc_t* part, const char* name);
+
+
+/*
+ * Find memory block for given virtual(user) address range.
+ *
+ * Return NULL if none block contains the range.
+ */
+const struct memory_block* jet_partition_arinc_get_memory_block_for_addr(
+    pok_partition_arinc_t* part, const void* __user addr, size_t size);
+
 
 /**
  * Reset current arinc partition.

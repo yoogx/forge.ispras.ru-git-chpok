@@ -209,7 +209,7 @@ def create_memory_constraints(source, target, env):
     conf = jetos_configuration_internal.ConfigurationInternal.load_from_file(source[0].abspath)
     phys_total = int(source[1].get_contents()) # Extracts value from Node.
 
-    md = conf.create_memory_constraints(phys_total)
+    md = conf.create_memory_constraints(env, phys_total)
 
     md.save_to_file(target[0].abspath)
 
@@ -230,6 +230,28 @@ env['BOARD_DEPLOYMENT_SOURCES'] = []
 env['BOARD_DEPLOY'](env, memory_definitions_file, memory_constraints)
 
 
+class MemoryBlockInitEntry:
+    """
+    General initialization entry for memory blocks.
+    """
+    __slots__ = [
+        'init_type', # Type of the initialization, 'ZERO' or 'ELF'.
+        'source_id', # Identificator of the source for given initialization type.
+        'part_index', # Index of the partition to which memory blocks belong to.
+        'memory_blocks', # Non-empty list of memory blocks from the same partition.
+    ]
+    def __init__(self, init_type, source_id, part_index, memory_blocks):
+        self.init_type = init_type
+        self.source_id = source_id
+        self.part_index = part_index
+
+        if self.init_type == "ELF":
+            # For 'ELF' initialization memory blocks should be ordered by vaddr.
+            self.memory_blocks = sorted(memory_blocks)
+        else:
+            # For other initializations order of memory blocks is not required.
+            self.memory_blocks = memory_blocks
+
 def create_definitions_for_deployment(source, env):
     """
     Create dictionary with definitions for deployment.c
@@ -239,9 +261,84 @@ def create_definitions_for_deployment(source, env):
     conf = jetos_configuration_internal.ConfigurationInternal.load_from_file(source[0].abspath)
     md = memory_definition.ModuleMemoryDefinition.load_from_file(source[1].abspath)
 
-    # Need to sort memory blocks by vaddr.
-    for pmd in md.partitions:
-        pmd.memory_blocks.sort(key=lambda x: x.vaddr)
+    # Process memory blocks
+    md.memory_block_init_entries = [] # List of MemoryBlockInitEntry
+
+    # First, check shared blocks.
+    for memory_block_sharing in md.memory_block_sharings:
+        # Only 'MODULE' initialization stage is allowed for shared blocks.
+        # All blocks within share should have same initialization politic.
+
+        # First memory block in a sharing list. Note: We know that sharing is not empty.
+        first_mb_ref = memory_block_sharing.mb_refs[0]
+        first_mb = md.partitions[first_mb_ref.part_index].memory_blocks[first_mb_ref.mb_index]
+
+        # Source for initialization at 'MODULE' stage. Should be common for all blocks in sharing.
+        module_init_source = first_mb.init_source
+
+        for memory_block_ref in memory_block_sharing.mb_refs:
+            part = md.partitions[memory_block_ref.part_index]
+            memory_block =  part.memory_blocks[memory_block_ref.mb_index]
+
+            if memory_block.init_source != module_init_source:
+                raise RuntimeError("Memory blocks in sharing use different initialization sources.")
+
+            if module_init_source is not None:
+                if memory_block.init_stage != 'MODULE':
+                    raise RuntimeError("Only 'MODULE' initialization stage is allowed for shared memory blocks.")
+                # Clear initialization of the memory block: We will process it for the whole share.
+                memory_block.init_stage = None
+                memory_block.init_source = None
+        if module_init_source is None:
+            continue
+
+        # Process initialization of the share.
+        if module_init_source != "ZERO":
+            raise RuntimeError("Only 'ZERO' initialization is allowed at 'MODULE' stage.")
+
+
+        # Initialize via the first memory block in the share.
+        mb_init_entry = MemoryBlockInitEntry(
+            init_type = module_init_source,
+            source_id = 0,
+            part_index = first_mb_ref.part_index,
+            memory_blocks = [first_mb]
+        )
+        md.memory_block_init_entries.append(mb_init_entry)
+
+    for part, pmd in zip(conf.partitions, md.partitions):
+        # Create initialization records
+        pmd.memory_block_init_entries = {'PARTITION': [], 'PARTITION:COLD': []} # Lists of MemoryBlockInitEntry
+
+        elf_blocks = {'MODULE': [], 'PARTITION': [], 'PARTITION:COLD': []}
+        zero_blocks = {'MODULE': [], 'PARTITION': [], 'PARTITION:COLD': []}
+
+        for mbd in pmd.memory_blocks:
+            if mbd.init_source is None:
+                continue
+            elif mbd.init_source == "ELF":
+                elf_blocks[mbd.init_stage].append(mbd)
+            elif mbd.init_source == "ZERO":
+                zero_blocks[mbd.init_stage].append(mbd)
+
+        for stage_id in ['PARTITION', 'PARTITION:COLD']:
+            if len(elf_blocks[stage_id]) > 0:
+                pmd.memory_block_init_entries[stage_id].append(
+                    MemoryBlockInitEntry('ELF', 0, part.index, elf_blocks[stage_id])
+                )
+            if len(zero_blocks[stage_id]) > 0:
+                pmd.memory_block_init_entries[stage_id].append(
+                    MemoryBlockInitEntry('ZERO', 0, part.index, zero_blocks[stage_id])
+                )
+
+        if len(elf_blocks['MODULE']) > 0:
+            md.memory_block_init_entries.append(
+                MemoryBlockInitEntryModule('ELF', 0, part.index, elf_blocks['MODULE'])
+            )
+        if len(zero_blocks['MODULE']) > 0:
+            md.memory_block_init_entries.append(
+                MemoryBlockInitEntryModule('ZERO', 0, part_index, zero_blocks['MODULE'])
+            )
 
     return {'conf': conf, 'memory_definitions': md}
 

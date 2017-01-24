@@ -100,6 +100,15 @@ struct pok_partition_sched_operations
      * TODO: naming is bad.
      */
     struct jet_interrupt_context* (*get_thread_registers)(struct _pok_partition* part, int index, void* private);
+
+    /*
+     * Resolve user address for gdb access.
+     *
+     * Return NULL if given range is not accessible for gdb.
+     *
+     * If partition doesn't work with user space, never called.
+     */
+    void* __kuser (*uaddr_to_gdb)(struct _pok_partition* part, const void* __user addr, size_t size);
 #endif /* POK_NEEDS_GDB */
 };
 
@@ -257,14 +266,6 @@ typedef struct _pok_partition
     jet_space_id                  space_id;
 
     /*
-     * Array of memory blocks for given partition.
-     *
-     * Ordered by addresses (ascending).
-     */
-    const struct memory_block* memory_blocks;
-    int nmemory_blocks;
-
-    /*
      * Pointer to area for save floating point registers for current
      * (user) thread.
      *
@@ -361,14 +362,6 @@ pok_bool_t pok_partition_get_event(struct jet_partition_event* event);
 void pok_partition_set_timer(pok_partition_t* part,
     pok_time_t timer_new);
 
-
-/*
- * Find memory block by name.
- *
- * Return NULL if not found.
- */
-const struct memory_block* jet_partition_find_memory_block(pok_partition_t* part,
-    const char* name);
 
 /* Initialize partition. */
 void pok_partition_init(pok_partition_t* part);

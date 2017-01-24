@@ -27,8 +27,39 @@
 extern size_t pok_elf_sizes[];
 extern char __archive2_begin;
 
+static const struct memory_block* get_memory_block_for_addr(
+    const struct memory_block* const* mblocks,
+    void* __user addr,
+    size_t size
+    )
+{
+    uintptr_t vaddr = (uintptr_t)addr;
+
+    for(const struct memory_block* const* p_mblock = mblocks;
+        *p_mblock != NULL;
+        p_mblock++)
+    {
+        const struct memory_block* mblock = *p_mblock;
+
+        if(mblock->vaddr > vaddr) break;
+        if(mblock->vaddr + mblock->size > vaddr) {
+            // Maximum size available to the end of the block.
+            uint64_t rest_size = mblock->vaddr + mblock->size - vaddr;
+
+            // Check that end of range is not after the end of the block.
+            if(size > rest_size) return NULL;
+
+            return mblock;
+        }
+
+    }
+
+    return NULL;
+}
+
 void jet_loader_elf_load   (uint8_t elf_id,
-                                 pok_partition_t* part,
+                                 pok_partition_arinc_t* part,
+                                 const struct memory_block* const* mblocks,
                                  void (** entry)(void))
 {
     // Determine offset of required elf in the file.
@@ -64,13 +95,18 @@ void jet_loader_elf_load   (uint8_t elf_id,
         char* __user vstart = (char * __user)elf_phdr[i].p_vaddr;
         size_t memsz = elf_phdr[i].p_memsz;
 
-        char* __kuser kstart = jet_user_to_kernel_fill_local(vstart, memsz);
+        if(memsz == 0) continue; // Skip zero-length segments.
 
-        if(kstart == NULL) {
+        const struct memory_block* mblock = get_memory_block_for_addr(
+            mblocks, vstart, memsz);
+
+        if(mblock == NULL) {
             printf("ELF segment %d of partition '%s' isn't contained in any memory block.\n",
-                i, part->name);
+                i, part->base_part.name);
             pok_raise_error(POK_ERROR_ID_PARTLOAD_ERROR, FALSE, NULL);
         }
+
+        char* __kuser kstart = jet_memory_block_get_kaddr(mblock, vstart);
 
         size_t filesz = elf_phdr[i].p_filesz;
 

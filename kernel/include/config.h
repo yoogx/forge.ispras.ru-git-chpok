@@ -32,7 +32,7 @@
 // One may set option POK_DISABLE_GDB for some arch/board (in CFLAGS in
 // /misc/SConsript), so JET OS will be built on that arch/board without gdb.
 #ifndef POK_DISABLE_GDB
-//#define POK_NEEDS_GDB 1
+#define POK_NEEDS_GDB 1
 #endif
 
 #define POK_NEEDS_PORTS_SAMPLING 1

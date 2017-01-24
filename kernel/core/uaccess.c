@@ -18,70 +18,18 @@
  */
 
 #include <core/uaccess.h>
-#include <core/partition.h>
+#include <core/partition_arinc.h>
 #include <core/memblocks.h>
-
-static const struct memory_block* jet_partition_memory_block_for_addr(
-    pok_partition_t* part,
-    uintptr_t addr)
-{
-    for(int i = 0; i < part->nmemory_blocks; i++)
-    {
-        const struct memory_block* mblock = &part->memory_blocks[i];
-
-        if(mblock->vaddr > addr) break;
-        if(mblock->vaddr + mblock->size > addr)
-            return mblock;
-    }
-
-    return NULL;
-}
-
-/*
- * For given range find virtual block and check that it has required
- * access.
- *
- * If fail, returns NULL.
- */
-static const struct memory_block* find_memory_block_for_range(
-    const void* __user addr,
-    size_t size,
-    int maccess_required)
-{
-    uintptr_t vaddr = (uintptr_t)addr;
-
-    const struct memory_block* mblock = jet_partition_memory_block_for_addr(
-        current_partition, vaddr);
-
-    if(!mblock) return NULL; // No memblock contains addr.
-
-    // Maximum size available to the end of the block.
-    uint64_t rest_size = mblock->vaddr + mblock->size - vaddr;
-
-    // Check that end of range is not after the end of the block.
-    if(size > rest_size) return NULL;
-
-    // Check that block has required access.
-    if(!(mblock->maccess | maccess_required)) return NULL;
-
-    return mblock;
-}
-
-/* Translate user address to kernel address for given memory block. */
-static void* get_kaddr(const struct memory_block* mblock,
-    const void* __user addr)
-{
-    return (void*)((uintptr_t)addr - mblock->vaddr + mblock->kaddr);
-}
 
 void* __kuser jet_user_to_kernel(void* __user addr, size_t size)
 {
-    const struct memory_block* mblock = find_memory_block_for_range(
-        addr, size, MEMORY_BLOCK_ACCESS_WRITE);
+    const struct memory_block* mblock = jet_partition_arinc_get_memory_block_for_addr(
+        current_partition_arinc, addr, size);
 
-    if(!mblock) return NULL;
+    if(mblock && mblock->maccess & MEMORY_BLOCK_ACCESS_WRITE)
+        return jet_memory_block_get_kaddr(mblock, addr);
 
-    return get_kaddr(mblock, addr);
+    return NULL;
 }
 
 /*
@@ -92,12 +40,13 @@ void* __kuser jet_user_to_kernel(void* __user addr, size_t size)
  */
 const void* __kuser jet_user_to_kernel_ro(const void* __user addr, size_t size)
 {
-    const struct memory_block* mblock = find_memory_block_for_range(
-        addr, size, MEMORY_BLOCK_ACCESS_READ);
+    const struct memory_block* mblock = jet_partition_arinc_get_memory_block_for_addr(
+        current_partition_arinc, addr, size);
 
-    if(!mblock) return NULL;
+    if(mblock && mblock->maccess & MEMORY_BLOCK_ACCESS_READ)
+        return jet_memory_block_get_kaddr(mblock, addr);
 
-    return get_kaddr(mblock, addr);
+    return NULL;
 }
 
 /*
@@ -109,36 +58,24 @@ const void* __kuser jet_user_to_kernel_ro(const void* __user addr, size_t size)
  */
 pok_bool_t jet_check_access_exec(void* __user addr)
 {
-    const struct memory_block* mblock = find_memory_block_for_range(
-        addr, 1, MEMORY_BLOCK_ACCESS_EXEC);
+    const struct memory_block* mblock = jet_partition_arinc_get_memory_block_for_addr(
+        current_partition_arinc, addr, 1);
 
-    if(!mblock) return FALSE;
+    if(mblock && mblock->maccess & MEMORY_BLOCK_ACCESS_EXEC)
+        return TRUE;
 
-    return TRUE;
+    return FALSE;
 }
-
-void* __kuser jet_user_to_kernel_fill_local(void* __user addr,
-    size_t size)
-{
-    const struct memory_block* mblock = find_memory_block_for_range(
-        addr, size, 0);
-
-    if(!mblock) return NULL;
-
-    if(mblock->is_shared) return NULL;
-
-    return get_kaddr(mblock, addr);
-}
-
 
 void* kstrncpy(char* dest, const char* __user src, size_t n)
 {
     uintptr_t vaddr = (uintptr_t)src;
 
-    const struct memory_block* mblock = jet_partition_memory_block_for_addr(
-        current_partition, vaddr);
+    // At least one byte should be mapped.
+    const struct memory_block* mblock = jet_partition_arinc_get_memory_block_for_addr(
+        current_partition_arinc, src, 1);
 
-    if(!mblock) return NULL; // No memblock contains addr.
+    if(!mblock) return NULL;
 
     // Check that block is readable
     if(!(mblock->maccess | MEMORY_BLOCK_ACCESS_READ)) return NULL;
@@ -149,7 +86,7 @@ void* kstrncpy(char* dest, const char* __user src, size_t n)
     // Maximum number of bytes to check.
     size_t check_size = rest_size > n ? n : (size_t)rest_size;
 
-    const char* __kuser ksrc = get_kaddr(mblock, src);
+    const char* __kuser ksrc = jet_memory_block_get_kaddr(mblock, src);
 
     int i;
     for(i = 0; i < check_size; i++)
@@ -168,7 +105,7 @@ void* kstrncpy(char* dest, const char* __user src, size_t n)
 #ifdef POK_NEEDS_GDB
 
 /* Same function for jet_addr_to_gdb() and jet_addr_to_gdb_ro(). */
-static void* addr_to_gdb_common(const void* __user addr, size_t size,
+static void* __kuser addr_to_gdb_common(const void* __user addr, size_t size,
     pok_partition_t* part)
 {
     /*
@@ -182,24 +119,12 @@ static void* addr_to_gdb_common(const void* __user addr, size_t size,
     // Kernel-only partitions cannot access user space.
     if(part->space_id == 0) return NULL;
 
-    uintptr_t vaddr = (uintptr_t)addr;
+    void* __kuser kaddr = part->part_sched_ops->uaddr_to_gdb(part, addr, size);
 
-    const struct memory_block* mblock = jet_partition_memory_block_for_addr(
-        part, vaddr);
-
-    if(!mblock) return NULL; // No memblock contains addr.
-
-    // Maximum size available to the end of the block.
-    uint64_t rest_size = mblock->vaddr + mblock->size - vaddr;
-
-    // Check that end of range is not after the end of the block.
-    if(size > rest_size) return NULL;
-
-    // Check that block is accessible
-    if(!mblock->maccess) return NULL;
-
-    return get_kaddr(mblock, addr);
+    return kaddr;
 }
+
+
 
 void* __kuser jet_addr_to_gdb(void* __user addr, size_t size,
     pok_partition_t* part)

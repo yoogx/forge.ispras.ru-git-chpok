@@ -26,7 +26,6 @@ import os
 import memory_definition
 import template_generation
 from text_serialization import *
-import elf_info
 
 Import('env')
 
@@ -66,9 +65,7 @@ class SegmentX86Allocator:
 
         Return None if failed to allocate segment (reason will be printed).
         """
-
-        #if size >= 2**20:
-            # Such sizes are encoded using 4K granularity, so need to align size.
+        # Always align size on 4K.
         size = align_val(size, 4096)
 
         # Always align physical address of the segment on 4K.
@@ -89,7 +86,7 @@ class SegmentX86Allocator:
 
         return segment
 
-def x86_deploy_func(env, target, source):
+def x86_deploy_func_unsafe(env, target, source):
     mc = memory_definition.ModuleMemoryDefinition.load_from_file(source[0].abspath)
 
     x86_segments = []
@@ -97,77 +94,95 @@ def x86_deploy_func(env, target, source):
         phys_start = 64 * 2**20,
         phys_end = mc.phys_total)
 
+    if len(mc.memory_block_sharings) != 0:
+        print "ERROR: Memory block sharing is not supported on x86."
+        raise RuntimeError("Memory block sharing is not supported")
+
     for pmc in mc.partitions:
-        # Whole partition as single segment. We have no other choice.
-
-        # First create memory blocks for elf segments.
-        elf_memory_blocks = [] # This will be appended to pmc.memory_blocks later.
-
-        segments = elf_info.elf_read_segments(env, env['PARTITIONS_ELF_MAP'][pmc.name])
-
-        # Maximum vaddr used in elf (will be computed)
-        vaddr_end = 0
-
-        for i, segment in enumerate(segments):
-            elf_mbd = memory_definition.MemoryBlockDefinition(
-                name = '.ELF.' + str(i),
-                size = segment.MemSiz,
-                align = segment.Align,
-                vaddr = segment.VirtAddr,
-                access = segment.memory_block_access()
-            )
-
-            elf_memory_blocks.append(elf_mbd)
-
-            # Update vaddr_end if needed.
-            segment_end = segment.VirtAddr + segment.MemSiz
-            if segment_end > vaddr_end:
-                vaddr_end = segment_end
-
-        x86_segment_size = vaddr_end
+        # Organize memory blocks into 3 groups:
+        #
+        # 0. size is 0.
+        # 1. vaddr is fixed
+        # 2. vaddr is not fixed
+        mb_zero = []
+        mb_vfixed = []
+        mb_float = []
 
         for mbd in pmc.memory_blocks:
-            if mbd.vaddr != None:
-                print "Partition '%s' has memory block '%s' with fixed virtual address. This feature is not supported." % (pmc.name, mbd.name)
-                return 1
-            if mbd.paddr != None:
+            if mbd.paddr is not None:
                 print "Partition '%s' has memory block '%s' with fixed physical address. This feature is not supported." % (pmc.name, mbd.name)
-                return 1
-
-            if mbd.is_shared:
-                print "Memory block '%s' is shared. This feature is not supported.." % (pmc.name, mbd.name)
-                return 1
+                raise RuntimeError("Unsupported memory block definition")
 
             if mbd.cache_policy != "DEFAULT":
                 print "Memory block '%s' has non-default cache policy '%s'. This feature is not supported." % (pmc.name, mbd.name, mbd.cache_policy)
-                return 1
+                raise RuntimeError("Unsupported memory block definition")
 
             if mbd.align > 2 ** 31:
                 print "Memory block '%s' has too high alignment: %x." % (mbd.name, mbd.align)
-                return 1
+                raise RuntimeError("Incorrect memory block definition")
 
-            x86_segment_size = align_val(x86_segment_size, mbd.align)
+            if mbd.size == 0:
+                mb_zero.append(mbd)
+            elif mbd.vaddr is not None:
+                mb_vfixed.append(mbd)
+            else:
+                mb_float.append(mbd)
 
-            mbd.vaddr = x86_segment_size
+        # For zero-sized memory blocks (group 0) assign 0 to every address.
+        for mbd in mb_zero:
+            if mbd.vaddr is None:
+                mbd.vaddr = 0
 
-            x86_segment_size += mbd.size
+            mbd.kaddr = 0
 
-        pmc.memory_blocks.extend(elf_memory_blocks)
+            if mbd.is_contiguous and mbd.paddr is None:
+                mbd.paddr = 0
 
-        x86_segment = x86_segment_allocator.alloc_segment(x86_segment_size)
+        # Whole partition as a single segment. We have no other choice.
+        vaddr_start = 0
 
-        if x86_segment is None:
-            return 1
+        if len(mb_vfixed) == 0:
+            print "ERROR: There is no memory blocks with fixed virtual address. Where ELF should be loaded?"
+            raise RuntimeError("Incorrect setup for memory blocks with virtual address fixed")
+
+
+        # First setup memory blocks with fixed vaddr (group 1).
+        mb_vfixed.sort(key = lambda mb: mb.vaddr)
+        mb_vfixed_last = mb_vfixed[-1]
+
+        vaddr_end = mb_vfixed_last.vaddr + mb_vfixed_last.size
+
+        # Then setup memory blocks with non-fixed vaddr
+        for mbd in mb_float:
+            mb_vaddr_start = align_val(vaddr_end, mbd.align)
+
+            mbd.vaddr = mb_vaddr_start
+
+            vaddr_end = mb_vaddr_start + mbd.size
+
+        # Create segment
+        x86_segment = x86_segment_allocator.alloc_segment(vaddr_end - vaddr_start)
+
+        # And setup kaddr and paddr for all memory blocks in partition (group 1 and group 2).
+        for mbd in mb_vfixed + mb_float:
+            mbd.kaddr = x86_segment.paddr + mbd.vaddr
+            if mbd.is_contiguous:
+                mbd.paddr = x86_segment.paddr + mbd.vaddr
 
         x86_segments.append(x86_segment)
-
-        # Setup kaddr for all memory blocks, including ELF ones.
-        for mbd in pmc.memory_blocks:
-            mbd.kaddr = mbd.vaddr + x86_segment.paddr
 
     mc.save_to_file(target[0].abspath)
 
     serialize_as_text(x86_segments, target[1].abspath, 'segments')
+
+def x86_deploy_func(env, target, source):
+    # Just calls x86_deploy_func_unsafe and catch exceptions
+    try:
+        x86_deploy_func_unsafe(env, target, source)
+    except RuntimeError as e:
+        print "Error occured while deploy memory blocks: %s." % e.message
+        return 1
+
 
 def x86_create_definitions_for_deployment(source, env):
     segments = deserialize_from_text(source[0].abspath, 'segments')

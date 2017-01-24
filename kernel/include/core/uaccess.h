@@ -58,17 +58,6 @@ pok_bool_t jet_check_access_exec(void* __user addr);
 #define jet_user_to_kernel_typed_ro(addr) jet_user_to_kernel_ro(addr, sizeof(*addr))
 
 
-/*
- * Return kernel address which can be used in the kernel for 
- * r/w from/to current partition during *fill stage*, that is when
- * access to partition's local memory is granted.
- * 
- * If given area cannot be accessed by the user space, returns NULL.
- * Also, NULL is return if it is memory corresponded to shared block.
- */
-void* __kuser jet_user_to_kernel_fill_local(void* __user addr,
-    size_t size);
-
 /* 
  * Copy NULL-terminated string from user space to the kernel.
  * 

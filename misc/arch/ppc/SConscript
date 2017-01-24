@@ -27,9 +27,8 @@ import os
 import memory_definition
 import template_generation
 import math
+from board_deploy_simple import *
 from text_serialization import *
-
-import elf_info
 
 Import('env')
 
@@ -70,21 +69,63 @@ class TLBEntry(SerializableObject):
     def __init__(self, **kargs):
         copy_constructor(self, kargs)
 
-# Simple allocator of TLB entries
-class TLBEntryAllocator:
-    def __init__(self, phys_start, phys_end):
-        self.phys_current = phys_start
-        self.phys_end = phys_end
-
-    def alloc_entry(self, vaddr, size, pid, access):
+    @classmethod
+    def permissions_from_access(cls, access):
         """
-        Allocate TLB entry in the physical memory and return it.
+        For given 'access' string return permissions for TLB entry.
+        """
+        permissions = 0x5 # RW from the kernel
 
-        Return None if failed to allocate entry (reason will be printed).
+        if 'R' in access:
+            permissions = permissions | 0x2
+        if 'W' in access:
+            permissions = permissions | 0x8
+        if 'X' in access:
+            permissions = permissions | 0x20
+
+        return permissions
+
+    @classmethod
+    def cache_policy_val(cls, cache_policy):
+        """
+        For cache_policy string return its integer representation.
+        """
+        # Currently only default cache policy is supported.
+        assert cache_policy == "DEFAULT"
+        return 0
+
+
+class PhysMemoryBlockPPC(PhysMemoryBlock):
+    __slots__ = [
+        'size_enum'
+    ]
+
+    def __init__(self, paddr, size, align, size_enum):
+        PhysMemoryBlock.__init__(self, paddr, size, align)
+        self.size_enum = size_enum
+
+    def createTLBEntry(self, vaddr, access, cache_policy, space_id):
+        return TLBEntry(vaddr = vaddr,
+            paddr = self.paddr,
+            size_enum = self.size_enum,
+            permissions = TLBEntry.permissions_from_access(access),
+            cache_policy = TLBEntry.cache_policy_val(cache_policy),
+            pid = space_id
+        )
+
+
+class PhysMemoryTypePPC(PhysMemoryType):
+    def isCacheSupported(self, cache_policy):
+        # Currently only DEFAULT cache policy is supported.
+        return cache_policy == "DEFAULT"
+
+    def allocPhysBlock(self, paddr, size):
+        """
+        Allocate physical memory block.
         """
         if size > 2**31:
-            print "Cannot allocate TLB of size greater than 2G."
-            return None
+            # print "Cannot allocate TLB of size greater than 2G."
+            return
 
         if size < 4096:
             size = 4096
@@ -95,117 +136,47 @@ class TLBEntryAllocator:
         size_real = 4096 * 4**size_pow_4
         align_real = size_real
 
-        if vaddr % align_real:
-            print "TLB entry for size %d requires alignment %d. But virtual address %d isn't aligned so." % (size, align_real, vaddr)
-            return None
+        paddr_real = align_val(paddr, align_real)
 
-        phys_start_entry = align_val(self.phys_current, align_real)
+        return PhysMemoryBlockPPC(
+            paddr = paddr_real,
+            size = size_real,
+            align = align_real,
+            size_enum = size_enum
+        )
 
-        permissions = 0x5 # RW from the kernel
-
-        if 'R' in access:
-            permissions = permissions | 0x2
-        if 'W' in access:
-            permissions = permissions | 0x8
-        if 'X' in access:
-            permissions = permissions | 0x20
-
-        tlb_entry = TLBEntry(vaddr = vaddr,
-            paddr = phys_start_entry,
-            size_enum = size_enum,
-            permissions = permissions,
-            cache_policy = 0,
-            pid = pid)
-
-        phys_new = phys_start_entry + size_real
-
-        if phys_new > self.phys_end:
-            print "Insufficient physical memory for add TLB entry."
-            return None
-
-        self.phys_current = phys_new
-
-        return tlb_entry
-
-def ppc_deploy_func(env, target, source):
+def ppc_deploy_func_unsafe(env, target, source):
     mc = memory_definition.ModuleMemoryDefinition.load_from_file(source[0].abspath)
 
+    memory_type = PhysMemoryTypePPC()
+    phys_segment = PhysSegment(
+        paddr_start = 64 * 2**20,
+        paddr_end = mc.phys_total,
+        memory_type = memory_type,
+    )
+
+    partitionsTLB = allocateMemoryBlocksSimple(mc,
+        phys_segments = [phys_segment],
+        memory_type_default = memory_type,
+        vaddr_start_all = 2**31, # Hardcoded in ldscript.
+    )
+
+    # All TLB entries in the single array
     tlb_entries = []
-    te_allocator = TLBEntryAllocator(
-        phys_start = 64 * 2**20,
-        phys_end = mc.phys_total)
-
-    for pmc in mc.partitions:
-        # Whole partition in the single TLB entry
-
-        # First create memory blocks for elf segments.
-        elf_memory_blocks = [] # This will be appended to pmc.memory_blocks later.
-
-        segments = elf_info.elf_read_segments(env, env['PARTITIONS_ELF_MAP'][pmc.name])
-
-        vaddr_start = 2**31 # Hardcoded in ldscript.
-
-        # Maximum vaddr used in elf (will be computed)
-        vaddr_end = vaddr_start
-
-        for i, segment in enumerate(segments):
-            elf_mbd = memory_definition.MemoryBlockDefinition(
-                name = '.ELF.' + str(i),
-                size = segment.MemSiz,
-                align = segment.Align,
-                vaddr = segment.VirtAddr,
-                access = segment.memory_block_access()
-            )
-
-            elf_mbd.kaddr = elf_mbd.vaddr
-            elf_memory_blocks.append(elf_mbd)
-
-            # Update vaddr_end if needed.
-            segment_end = segment.VirtAddr + segment.MemSiz
-            if segment_end > vaddr_end:
-                vaddr_end = segment_end
-
-        tlb_entry_size = vaddr_end - vaddr_start
-
-        for mbd in pmc.memory_blocks:
-            if mbd.vaddr != None:
-                print "Partition '%s' has memory block '%s' with fixed virtual address. This feature is not supported." % (pmc.name, mbd.name)
-                return 1
-            if mbd.paddr != None:
-                print "Partition '%s' has memory block '%s' with fixed physical address. This feature is not supported." % (pmc.name, mbd.name)
-                return 1
-
-            if mbd.is_shared:
-                print "Memory block '%s' is shared. This feature is not supported.." % (pmc.name, mbd.name)
-                return 1
-
-            if mbd.cache_policy != "DEFAULT":
-                print "Memory block '%s' has non-default cache policy '%s'. This feature is not supported." % (pmc.name, mbd.name, mbd.cache_policy)
-                return 1
-
-            if mbd.align > 2 ** 31:
-                print "Memory block '%s' has too high alignment: %x." % (mbd.name, mbd.align)
-                return 1
-
-            tlb_entry_size = align_val(tlb_entry_size, mbd.align)
-
-            mbd.vaddr = vaddr_start + tlb_entry_size
-            mbd.kaddr = mbd.vaddr
-
-            tlb_entry_size += mbd.size
-
-        pmc.memory_blocks.extend(elf_memory_blocks)
-
-        te = te_allocator.alloc_entry(vaddr_start, tlb_entry_size, pmc.space_id, "RWX")
-
-        if te is None:
-            return 1
-
-        tlb_entries.append(te)
+    for partitionTLB in partitionsTLB:
+        tlb_entries.extend(partitionTLB.entries)
 
     mc.save_to_file(target[0].abspath)
 
     serialize_as_text(tlb_entries, target[1].abspath, 'entries')
+
+def ppc_deploy_func(env, target, source):
+    # Just calls ppc_deploy_func_unsafe and catch exceptions
+    try:
+        ppc_deploy_func_unsafe(env, target, source)
+    except RuntimeError as e:
+        print "Error occured while deploy memory blocks: %s." % e.message
+        return 1
 
 def ppc_create_definitions_for_deployment(source, env):
     entries = deserialize_from_text(source[0].abspath, 'entries')
@@ -217,7 +188,7 @@ def ppc_deploy(env, memory_definitions_file, memory_constraints):
     arch_deployment_kernel_yaml = os.path.join(env['MODULE_BUILD_DIR'], "ppc_tlb.yaml")
 
     env.Command(target = [memory_definitions_file, arch_deployment_kernel_yaml],
-        source = memory_constraints + env['PARTITIONS_ELF_MAP'].values(),
+        source = memory_constraints,
         action = Action(ppc_deploy_func, '$ARCH_DEPLOY_FUNC_COMSTR')
     )
 

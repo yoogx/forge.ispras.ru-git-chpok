@@ -263,7 +263,38 @@ class MemoryBlock:
         "is_contiguous", # Whether block should be *physically* contiguous.
         "vaddr", # Virtual address of the block, if required.
         "paddr", # Physical address of the block, if required. Implies 'is_contiguous' to be True.
+
+        # Source, from which memory block should be initialized.
+        # Possible values see in 'init_source_values' list below.
+        #
+        # If memory block doesn't required initialization, leave this as None.
+        "init_source",
+
+        # Stage, when memory block should be initialized:
+        # Possible values see in 'init_stage_values' list below.
+        #
+        # If 'init_source' is None this should be None too.
+        "init_stage",
+
+        # Data private for implementation.
+        #
+        # During filling the object, you may use this field as you want.
+        "private_data"
     ]
+
+    # Possible values for memory block's 'init_source' attribute.
+    init_source_values = [
+        'ZERO', #fill with zeroes.
+        # (Value 'ELF' is internal for implementation).
+    ]
+
+    # Possible values for memory block's 'init_stage' attribute.
+    init_stage_values = [
+        'MODULE', # Every time when module is started or restarted
+        'PARTITION', # Every time partition is started (either in COLD_START or in WARM_START mode).
+        'PARTITION:COLD', # Every time when partition is started in COLD_START mode.
+    ]
+
 
     def __init__(self, name, size):
         self.name = name
@@ -282,6 +313,9 @@ class MemoryBlock:
         self.is_contiguous = False # By default, physical contiguous not required.
 
         self.align = 0x1000 # By default, alignment 4K.
+
+        self.init_source = None
+        self.init_stage = None
 
 
 # ARINC partition.
@@ -330,6 +364,8 @@ class Partition:
 
         "hm_table", # partition hm table
 
+        "memory_blocks", # List of memory blocks
+
         # Data private for implementation.
         #
         # During filling the object, you may use this field as you want.
@@ -370,7 +406,7 @@ class Partition:
         self.ports_queueing = []
         self.ports_sampling = []
 
-        self.memory_blocks = [] # List of (user-defined) memory blocks.
+        self.memory_blocks = []
 
 
 def _get_port_direction(port):
@@ -509,6 +545,31 @@ class LocalConnection(Connection):
         return "Local"
 
 
+class MemoryBlockRef:
+    """
+    Reference to the memory block from sharing.
+    """
+    __slots__ = [
+        'partition', # Partition to which memory block belongs to.
+        'memory_block', # Memory block itself
+    ]
+
+    def __init__(self, partition, memory_block):
+        self.partition = partition
+        self.memory_block = memory_block
+
+
+class MemoryBlockSharing:
+    """
+    Memory blocks which should be mapped into the same physical memory.
+    """
+    __slots__ = [
+        'mb_refs' # List of MemoryBlockRef objects.
+    ]
+
+    def __init__(self):
+        self.mb_refs = []
+
 class Configuration:
     __slots__ = [
         "module_hm_table", # Health Monitor Table assosiated with the module
@@ -523,6 +584,8 @@ class Configuration:
         "test_support_print_when_all_threads_stopped",
 
         "major_frame", # May be set manually for self-check
+
+        "memory_block_sharings", # List of MemoryBlockSharing objects.
 
         # Data private for implementation.
         #
@@ -540,5 +603,7 @@ class Configuration:
         self.test_support_print_when_all_threads_stopped = False
 
         self.major_frame = None # Not set yet.
+
+        self.memory_block_sharings = []
 
         self.private_data = None

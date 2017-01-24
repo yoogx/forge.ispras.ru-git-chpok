@@ -61,9 +61,28 @@ class MemoryBlockDefinition(SerializableObject):
         # - DEFAULT
         "cache_policy",
         "access", # Access to the memory block from the partition. String contained of 'R', 'W', 'X'.
-        "is_shared", # Whether memory block is shared between partitions.
+
+        # Source, from which memory block should be initialized.
+        # Supported values:
+        #
+        # - "ZERO" - fill with zeroes.
+        # - "ELF" - fill from the ELF file, which partition is compiled to.
+        #
+        # If memory block doesn't required initialization, leave this as None.
+        "init_source",
+
+        # Stage, when memory block should be initialized:
+        #
+        # - MODULE - Every time when module is started or restarted
+        # - PARTITION - Every time partition is started (either in COLD_START or in WARM_START mode).
+        # - PARTITION:COLD - Every time when partition is started in COLD_START mode.
+        #
+        # If 'init_source' is None this should be None too.
+        "init_stage",
 
         "kaddr", # Kernel address of the block. Do not set in memory constraints
+
+        "index", # Index of the memory block in the list. May be set upon part.add_memory_block() call.
     ]
 
     default_slots = {
@@ -72,12 +91,25 @@ class MemoryBlockDefinition(SerializableObject):
         "cache_policy": "DEFAULT",
         "access": "RW",
         "is_contiguous": False,
-        "is_shared": False,
+        "init_source": None,
+        "init_stage": None,
         "kaddr": None,
+        "index": None,
     }
 
     def __init__(self, **kargs):
         copy_constructor_with_default(self, kargs)
+
+    @classmethod
+    def from_config(cls, memory_block):
+        param_dict = {}
+        for slot in cls.copy_slots:
+            if slot == "kaddr":
+                value = None
+            else:
+                value = getattr(memory_block, slot)
+            param_dict[slot] = value
+        return cls(**param_dict)
 
 class PartitionMemoryDefinition(SerializableObject):
     yaml_tag = '!PartitionMemoryDef'
@@ -93,12 +125,50 @@ class PartitionMemoryDefinition(SerializableObject):
     def __init__(self, **kargs):
         copy_constructor(self, kargs)
 
+    def add_memory_block(self, memory_block):
+        memory_block.index = len(self.memory_blocks)
+
+        self.memory_blocks.append(memory_block)
+
+
+class MemoryBlockSharingDefinition(SerializableObject):
+    """
+    Sharing physical space by one or more memory blocks.
+    """
+    yaml_tag = '!MemoryBlockSharingDef'
+
+    copy_slots = [
+        'mb_refs', # List of 'MemoryBlockRefInternal' objects
+    ]
+
+    def __init__(self, **kargs):
+        copy_constructor(self, kargs)
+
+
+class MemoryBlockRefDefinition(SerializableObject):
+    """
+    Reference to memory block from outsize of any partition.
+    """
+    yaml_tag = '!MemoryBlockRefDef'
+
+    copy_slots = [
+        'part_name',
+        'part_index',
+        'mb_name',
+        'mb_index',
+    ]
+
+    def __init__(self, **kargs):
+        copy_constructor(self, kargs)
+
 
 class ModuleMemoryDefinition(SerializableObject):
     yaml_tag = '!ModuleMemoryDef'
 
     copy_slots = [
         'partitions', # Array of partitions
+
+        'memory_block_sharings', # Array of MemoryBlockSharingDefinition objects
 
         'phys_total', # Total physical memory available.
     ]

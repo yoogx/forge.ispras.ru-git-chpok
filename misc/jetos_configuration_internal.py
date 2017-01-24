@@ -27,6 +27,8 @@ import memory_definition
 
 from text_serialization import *
 
+import elf_info
+
 class ConfigurationInternal(SerializableObject):
     yaml_tag = '!IConfiguration'
 
@@ -37,6 +39,7 @@ class ConfigurationInternal(SerializableObject):
         'channels_sampling',
         'channels_queueing',
         'major_frame',
+        'memory_block_sharings', # List of 'MemoryBlockSharingInternal' objects.
     ]
 
     def __init__(self, **kargs):
@@ -56,7 +59,6 @@ class ConfigurationInternal(SerializableObject):
         Create object of type 'ConfigurationInternal' from 'Configuration' one.
 
         'types_requirements' - object of type TypesRequirements.
-        'partition_elf_map' - dictionary which maps partition name to partition elf.
         """
 
         conf_internal = ConfigurationInternal(
@@ -66,6 +68,7 @@ class ConfigurationInternal(SerializableObject):
             channels_sampling = [],
             channels_queueing = [],
             major_frame = 0,
+            memory_block_sharings = [],
         )
 
         for index, part in enumerate(conf.partitions):
@@ -77,27 +80,65 @@ class ConfigurationInternal(SerializableObject):
         for channel in conf.channels:
             process_channel(conf_internal, channel)
 
+        for memory_block_sharing in conf.memory_block_sharings:
+            mb_refs_internal = []
+
+            for mb_ref in memory_block_sharing.mb_refs:
+                part_internal = mb_ref.partition.private_data.part_internal
+                memory_block_internal = mb_ref.memory_block.private_data
+
+                mb_ref_internal = MemoryBlockRefInternal(
+                    part_index = part_internal.index,
+                    part_name = part_internal.name,
+                    mb_index = memory_block_internal.index,
+                    mb_name = memory_block_internal.name
+                )
+
+                mb_refs_internal.append(mb_ref_internal)
+
+            memory_block_sharing_internal = MemoryBlockSharingInternal(
+                mb_refs = mb_refs_internal)
+
+            conf_internal.memory_block_sharings.append(memory_block_sharing_internal)
+
         for part in conf.partitions:
             compute_arinc_requirements(part, types_requirements)
 
         return conf_internal
 
-    def create_memory_constraints(self, phys_total):
+    def create_memory_constraints(self, env, phys_total):
         """
         Create object ModuleMemoryDefinition as memory constraints.
         """
         md = memory_definition.ModuleMemoryDefinition(
             partitions = [],
-            phys_total = phys_total
+            memory_block_sharings = [],
+            phys_total = phys_total,
         )
 
         for part in self.partitions:
             pmd = memory_definition.PartitionMemoryDefinition(
                 name = part.name,
                 space_id = part.space_id,
-                memory_blocks = [],
+                memory_blocks = [memory_definition.MemoryBlockDefinition.from_config(m) for m in part.memory_blocks],
                 memory_size = part.memory_size
             )
+
+            # Memory blocks for ELF
+            segments = elf_info.elf_read_segments(env, env['PARTITIONS_ELF_MAP'][pmd.name])
+
+            for i, segment in enumerate(segments):
+                elf_mbd = memory_definition.MemoryBlockDefinition(
+                    name = '.ELF.' + str(i),
+                    size = segment.MemSiz,
+                    align = segment.Align,
+                    vaddr = segment.VirtAddr,
+                    access = segment.memory_block_access(),
+                    init_source = "ELF",
+                    init_stage = "PARTITION"
+                )
+
+                pmd.add_memory_block(elf_mbd)
 
             # Memory block for heap
             heap_mbd = memory_definition.MemoryBlockDefinition(
@@ -106,7 +147,7 @@ class ConfigurationInternal(SerializableObject):
                 align = part.heap_align
             )
 
-            pmd.memory_blocks.append(heap_mbd)
+            pmd.add_memory_block(heap_mbd)
 
             # Memory block for ARINC heap
             arinc_heap_mbd = memory_definition.MemoryBlockDefinition(
@@ -115,7 +156,7 @@ class ConfigurationInternal(SerializableObject):
                 align = part.arinc_heap_align
             )
 
-            pmd.memory_blocks.append(arinc_heap_mbd)
+            pmd.add_memory_block(arinc_heap_mbd)
 
             # Kernel SHared Data
             kshd_mbd = memory_definition.MemoryBlockDefinition(
@@ -124,7 +165,7 @@ class ConfigurationInternal(SerializableObject):
                 align = 4096
             )
 
-            pmd.memory_blocks.append(kshd_mbd)
+            pmd.add_memory_block(kshd_mbd)
 
             # Memory block for stacks
             stacks_mbd = memory_definition.MemoryBlockDefinition(
@@ -133,13 +174,57 @@ class ConfigurationInternal(SerializableObject):
                 align = 4096 # Hardcoded. TODO: Should it be arch-depended?
             )
 
-            pmd.memory_blocks.append(stacks_mbd)
-
-            # TODO: Fill user-defined memory blocks
+            pmd.add_memory_block(stacks_mbd)
 
             md.partitions.append(pmd)
 
+        for memory_block_sharing in self.memory_block_sharings:
+            mb_refs_def = []
+            for mb_ref in memory_block_sharing.mb_refs:
+                mbrd = memory_definition.MemoryBlockRefDefinition(
+                    part_name = mb_ref.part_name,
+                    part_index = mb_ref.part_index,
+                    mb_name = mb_ref.mb_name,
+                    mb_index = mb_ref.mb_index,
+                )
+                mb_refs_def.append(mbrd)
+
+            mbsd = memory_definition.MemoryBlockSharingDefinition(mb_refs = mb_refs_def)
+
+            md.memory_block_sharings.append(mbsd)
+
         return md
+
+
+class MemoryBlockSharingInternal(SerializableObject):
+    """
+    Sharing physical space by one or more memory blocks.
+    """
+    yaml_tag = '!IMemoryBlockSharing'
+
+    copy_slots = [
+        'mb_refs', # List of 'MemoryBlockRefInternal' objects
+    ]
+
+    def __init__(self, **kargs):
+        copy_constructor(self, kargs)
+
+
+class MemoryBlockRefInternal(SerializableObject):
+    """
+    Reference to memory block from outsize of any partition.
+    """
+    yaml_tag = '!IMemoryBlockRef'
+
+    copy_slots = [
+        'part_name',
+        'part_index',
+        'mb_name',
+        'mb_index',
+    ]
+
+    def __init__(self, **kargs):
+        copy_constructor(self, kargs)
 
 
 class HMActionInternal(SerializableObject):
@@ -297,6 +382,8 @@ class PartitionInternal(SerializableObject):
         "arinc_heap_align",
 
         'partition_hm_table',
+
+        'memory_blocks',
     ]
 
     def __init__(self, **kargs):
@@ -347,6 +434,8 @@ class PartitionInternal(SerializableObject):
             arinc_heap_align = 1, # Will be counted
 
             partition_hm_table = partition_hm_table,
+
+            memory_blocks = [],
         )
 
         part_private = PartitionPrivate(part_internal)
@@ -393,6 +482,14 @@ class PartitionInternal(SerializableObject):
             port_queueing.private_data = port_internal
 
             part_internal.ports_queueing.append(port_internal)
+
+
+        for i, memory_block in enumerate(part.memory_blocks):
+            memory_block_internal = MemoryBlockInternal.from_normal(memory_block, i)
+
+            memory_block.private_data = memory_block_internal
+
+            part_internal.memory_blocks.append(memory_block_internal)
 
         return part_internal
 
@@ -533,10 +630,46 @@ class MemoryBlockInternal(SerializableObject):
         "cache_policy",
         "access", # Access to the memory block from the partition. String contained of 'R', 'W', 'X'.
         "is_contiguous", # Whether block should be *physically* contiguous.
+
+        # Source, from which memory block should be initialized.
+        # Supported values:
+        #
+        # - "ZERO" - fill with zeroes.
+        # - "ELF" - fill from the ELF file, which partition is compiled to.
+        #
+        # If memory block doesn't required initialization, leave this as None.
+        "init_source",
+
+        # Stage, when memory block should be initialized:
+        #
+        # - MODULE - Every time when module is started or restarted
+        # - PARTITION - Every time partition is started (either in COLD_START or in WARM_START mode).
+        # - PARTITION:COLD - Every time when partition is started in COLD_START mode.
+        #
+        # If 'init_source' is None this should be None too.
+        "init_stage",
+
+        "index", # Index of the memory block in the list.
     ]
 
     def __init__(self, **kargs):
         copy_constructor(self, kargs)
+
+    @classmethod
+    def from_normal(cls, memory_block, index):
+        return cls(
+            name = memory_block.name,
+            size = memory_block.size,
+            align = memory_block.align,
+            vaddr = memory_block.vaddr,
+            paddr = memory_block.paddr,
+            cache_policy = memory_block.cache_policy,
+            access = memory_block.access,
+            is_contiguous = memory_block.is_contiguous,
+            init_source = memory_block.init_source,
+            init_stage = memory_block.init_stage,
+            index = index
+        )
 
 class TimeSlotInternal(SerializableObject):
     yaml_tag = '!ITimeSlot'

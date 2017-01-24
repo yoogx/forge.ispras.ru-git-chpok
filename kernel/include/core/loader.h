@@ -19,7 +19,7 @@
 #define __JET_LOADER_H__
 
 #include <types.h>
-#include <core/partition.h>
+#include <core/partition_arinc.h>
 
 /**
  * Load elf for given partition.
@@ -27,7 +27,8 @@
  * Entry point is returned via 'entry' parameter.
  */
 void jet_loader_elf_load   (uint8_t elf_id,
-                                 pok_partition_t* part,
+                                 pok_partition_arinc_t* part,
+                                 const struct memory_block* const* mblocks,
                                  void (** entry)(void));
 #endif /* __JET_LOADER_H__ */
 
