@@ -318,7 +318,7 @@ def allocateMemoryBlocksSimple(memory_constraints, phys_segments,
         for mbd in mb_pfixed:
             pb = pb_allocator.allocPhysBlockFixed(mbd.paddr, mbd.size, {mbd.cache_policy})
 
-            vb = vb_allocator.allocVirtBlock(pbm, mbd.align)
+            vb = vb_allocator.allocVirtBlock(pb, mbd.align)
             vb.setup_memblock(mbd)
 
             te = pb.createTLBEntry(vb.vaddr, mbd.access, mbd.cache_policy, pmc.space_id)
@@ -544,17 +544,17 @@ class _PhysBlockAllocator:
             print "ERROR: Cannot create memory block [0x%x; 0x%x) which *intercepts* range [0x%x; 0x%x]."
             raise RuntimeError("Physically-fixed memory blocks cannot be created in addresses suitable for allocate non-fixed blocks.")
 
-        if memory_type_default is None:
+        if self.memory_type_default is None:
             print "ERROR: Memory blocks with fixed addresses are not supported for given board."
             raise RuntimeError("Physically-fixed memory blocks are not supported")
             
         # Allocate block using default memory type
         for cache_policy in cache_policies:
-            if not memory_type_default.isCacheSupported(cache_policy):
+            if not self.memory_type_default.isCacheSupported(cache_policy):
                 print "ERROR: Cache policy '%s' is not supported for memory blocks with fixed physical addresss."
                 raise RuntimeError("Cannot create memory block at fixed physical address")
 
-        pb = memory_type_default.allocPhysBlock(paddr, size)
+        pb = self.memory_type_default.allocPhysBlock(paddr, size)
         if pb is None:
             print "ERROR: Cannot create memory block with physical address 0x%x." % paddr
             raise RuntimeError("Cannot create memory block at fixed physical address")
@@ -567,3 +567,4 @@ class _PhysBlockAllocator:
             print "ERROR: Cannot create memory block with physical address 0x%x *exactly* of requested size 0x%x." % (paddr, size)
             raise RuntimeError("Cannot create memory block at fixed physical address")
 
+        return pb

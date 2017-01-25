@@ -35,14 +35,14 @@
              Error code - corresponding ARINC-653 error code (to be passed to error handler)
              Action - what action to take if it's not handled by the handler (it doesn't exist or level is PARTITION)
         -->
-        <Error Code="POK_ERROR_KIND_DEADLINE_MISSED" Level="PROCESS" ErrorCode="DEADLINE_MISSED" Action="COLD_START" />
-        <Error Code="POK_ERROR_KIND_APPLICATION_ERROR" Level="PROCESS" ErrorCode="APPLICATION_ERROR" Action="COLD_START" />
-        <Error Code="POK_ERROR_KIND_NUMERIC_ERROR" Level="PROCESS" ErrorCode="NUMERIC_ERROR" Action="COLD_START" />
-        <Error Code="POK_ERROR_KIND_ILLEGAL_REQUEST" Level="PROCESS" ErrorCode="ILLEGAL_REQUEST" Action="COLD_START" />
-        <Error Code="POK_ERROR_KIND_STACK_OVERFLOW" Level="PROCESS" ErrorCode="STACK_OVERFLOW" Action="COLD_START" />
-        <Error Code="POK_ERROR_KIND_MEMORY_VIOLATION" Level="PROCESS" ErrorCode="MEMORY_VIOLATION" Action="COLD_START" />
-        <Error Code="POK_ERROR_KIND_HARDWARE_FAULT" Level="PROCESS" ErrorCode="HARDWARE_FAULT" Action="COLD_START" />
-        <Error Code="POK_ERROR_KIND_POWER_FAIL" Level="PROCESS" ErrorCode="POWER_FAIL" Action="COLD_START" />
+        <Error Code="POK_ERROR_KIND_DEADLINE_MISSED" Level="PROCESS" ErrorCode="DEADLINE_MISSED" Action="IDLE" />
+        <Error Code="POK_ERROR_KIND_APPLICATION_ERROR" Level="PROCESS" ErrorCode="APPLICATION_ERROR" Action="IDLE" />
+        <Error Code="POK_ERROR_KIND_NUMERIC_ERROR" Level="PROCESS" ErrorCode="NUMERIC_ERROR" Action="IDLE" />
+        <Error Code="POK_ERROR_KIND_ILLEGAL_REQUEST" Level="PROCESS" ErrorCode="ILLEGAL_REQUEST" Action="IDLE" />
+        <Error Code="POK_ERROR_KIND_STACK_OVERFLOW" Level="PROCESS" ErrorCode="STACK_OVERFLOW" Action="IDLE" />
+        <Error Code="POK_ERROR_KIND_MEMORY_VIOLATION" Level="PROCESS" ErrorCode="MEMORY_VIOLATION" Action="IDLE" />
+        <Error Code="POK_ERROR_KIND_HARDWARE_FAULT" Level="PROCESS" ErrorCode="HARDWARE_FAULT" Action="IDLE" />
+        <Error Code="POK_ERROR_KIND_POWER_FAIL" Level="PROCESS" ErrorCode="POWER_FAIL" Action="IDLE" />
     </HM_Table>
 
     <Memory_Blocks>

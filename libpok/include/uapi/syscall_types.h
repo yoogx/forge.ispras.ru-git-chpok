@@ -85,7 +85,7 @@ typedef enum
      POK_SYSCALL_ERROR_IS_HANDLER                    = 305,
 #endif
 
-     POK_SYSCALL_ERROR_RAISE_OS_ERROR       = 310,
+     POK_SYSCALL_ERROR_RAISE_OS_ERROR                = 310,
 
 #ifdef POK_NEEDS_PARTITIONS
      POK_SYSCALL_PARTITION_SET_MODE                  = 404,
@@ -100,11 +100,7 @@ typedef enum
 #ifdef POK_NEEDS_PCI
      POK_SYSCALL_PCI_REGISTER                        = 601,
 #endif
-     POK_SYSCALL_MEM_VIRT_TO_PHYS                    = 701,
-     POK_SYSCALL_MEM_PHYS_TO_VIRT                    = 702,
-     POK_SYSCALL_GET_BSP_INFO                        = 703,
-
-     POK_SYSCALL_MEMORY_BLOCK_GET_STATUS             = 704,
+     POK_SYSCALL_MEMORY_BLOCK_GET_STATUS             = 701,
 } pok_syscall_id_t;
 
 #endif /* __LIBJET_SYSCALL_TYPES_H__ */
