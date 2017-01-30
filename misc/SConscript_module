@@ -224,6 +224,7 @@ memory_constraints = env.Command(
     action = Action(create_memory_constraints, '$MEMORY_CONSTRAINTS_COMSTR')
 )
 
+env.Depends(memory_constraints, partition_elfs)
 
 memory_definitions_file = os.path.join(module_build_dir, "memory_definitions.yaml")
 
