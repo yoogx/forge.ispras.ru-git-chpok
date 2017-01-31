@@ -40,8 +40,6 @@ struct pci_bridge {
     uint32_t iorange;
 } bridge;
 
-uint32_t ccsrbar_base;
-
 struct legacy_io {
     uint32_t virt_addr;
     uint64_t phys_addr; //system physical addr
@@ -356,34 +354,21 @@ uintptr_t pci_convert_legacy_port(struct pci_dev *dev, uint16_t port)
 #endif
 }
 
-#define PEX1_PEXOTAR0  0xc00
-#define PEX1_PEXOTEAR0 0xc04
-#define PEX1_PEXOWAR0  0xc10
+#ifdef __PPC__
 
-#define PEX1_PEXOTAR1  0xc20
-#define PEX1_PEXOTEAR1 0xc24
-#define PEX1_PEXOWBAR1 0xc28
-#define PEX1_PEXOWAR1  0xc30
-
-#define PEX_SHIFT      0x20
-
-#define PEX1_PEXOTAR2  0xc40
-#define PEX1_PEXOWBAR2 0xc48
-#define PEX1_PEXOWAR2  0xc50
-
-#define PEX1_PEXITAR3  0xd80
-#define PEX1_PEXIWBAR3 0xd8c
+#define PEX_ATMU_SHIFT 0xC00
 
 #define WAR_EN         0x80000000
 #define WAR_RTT_IO     0x00080000
 #define WAR_RTT_MEM    0x00040000
 #define WAR_WTT_IO     0x00008000
 #define WAR_WTT_MEM    0x00004000
-#define WAR_OWS_8K     0xC
+#define WAR_OWS_8K     0xc
+#define WAR_OWS_16K    0xf
 #define WAR_OWS_256M   0x1b
+#define WAR_OWS_512M   0x1c
 #define WAR_OWS_4G     0x1f
 
-#ifdef __PPC__
 //TODO move to fsl_pci.h
 /* PCI/PCI Express outbound window reg */
 struct pci_outbound_window_regs {
@@ -424,48 +409,22 @@ struct pci_atmu_windows {
 
 void pci_ATMU_windows_clear()
 {
-    struct pci_atmu_windows *atmu = (struct pci_atmu_windows *)(bridge.cfg_addr + PEX1_PEXOTAR0);
-//FIXME
-    struct pci_atmu_windows *atmu2 = (struct pci_atmu_windows *)(ccsrbar_base + 0x201000 + PEX1_PEXOTAR0);
+    struct pci_atmu_windows *atmu = (struct pci_atmu_windows *)(bridge.cfg_addr + PEX_ATMU_SHIFT);
 
     for(int i = 1; i < 5; i++) {
         out_be32(&atmu->pow[i].powar, 0);
-        out_be32(&atmu2->pow[i].powar, 0);
     }
     for(int i = 1; i < 4; i++) {
         out_be32(&atmu->piw[i].piwar, 0);
-        out_be32(&atmu2->piw[i].piwar, 0);
     }
 }
 
 void pci_ATMU_windows_list()
 {
 #ifdef PCI_DEBUG
-    struct pci_atmu_windows *atmu = (struct pci_atmu_windows *)(bridge.cfg_addr + PEX1_PEXOTAR0);
+    struct pci_atmu_windows *atmu = (struct pci_atmu_windows *)(bridge.cfg_addr + PEX_ATMU_SHIFT);
 
     printf("ATMU:\n");
-    printf("   outbound windows:\n");
-    for (int i = 0; i < 5; i++) {
-        printf("\t window %d   %lx -> %lx:%lx [%lx]\n", i,
-                atmu->pow[i].powbar,
-                atmu->pow[i].potear, atmu->pow[i].potar,
-                atmu->pow[i].powar);
-    }
-    printf("   MSI window\n");
-    printf("\t window %lx -> %lx:%lx [%lx]\n",
-            atmu->pmit.pitar,
-            atmu->pmit.piwbar, atmu->pmit.piwbear,
-            atmu->pmit.piwar);
-    printf("   inbound windows:\n");
-    for (int i = 0; i < 4; i++) {
-        printf("\t window %d   %lx -> %lx:%lx [%lx]\n", i,
-                atmu->piw[i].pitar,
-                atmu->piw[i].piwbar, atmu->piw[i].piwbear,
-                atmu->piw[i].piwar);
-    }
-
-    atmu = (struct pci_atmu_windows *)(ccsrbar_base + 0x201000 + PEX1_PEXOTAR0);
-    printf("ATMU2:\n");
     printf("   outbound windows:\n");
     for (int i = 0; i < 5; i++) {
         printf("\t window %d   %lx -> %lx:%lx [%lx]\n", i,
@@ -495,91 +454,46 @@ struct LAW_regs {
     uint32_t pad;
 };
 
-void LAW_list()
-{
-#ifdef PCI_DEBUG
-    //FIXME
-    struct LAW_regs *law = (struct LAW_regs *)(ccsrbar_base + 0xC00);
-
-    //law[6].barl = 0x40000000;
-    asm("isync");
-    printf("LAW (local access windows):\n");
-
-    for (int i = 0; i < 32; i++) {
-        printf("\t law %d  %lx:%lx [%lx]\n", i,
-                law[i].barh,
-                law[i].barl,
-                law[i].ar);
-    }
-
-#endif
-}
-
 #endif
 
 void pci_init()
 {
 #ifdef __PPC__
-    /*
-    pok_bsp_t pok_bsp;
-    pok_bsp_get_info(&pok_bsp);
-    bridge = pok_bsp.pci_bridge;
-    ccsrbar_base = (uint32_t) pok_bsp.ccsrbar_base;
-    */
-/*
-    bridge.cfg_addr = 0xe0008000;
-    bridge.cfg_data = 0xe0008004;
-    ccsrbar_base    = 0xe0000000;
-*/
+    jet_memory_block_status_t pci_controller_mb, pci_io_mb;
 
-
-    jet_memory_block_status_t pci_mb_status;
-
-    if(pok_memory_block_get_status("PCI_Express_1", &pci_mb_status) != POK_ERRNO_OK) {
+    if(pok_memory_block_get_status("PCI_Express_1", &pci_controller_mb) != POK_ERRNO_OK) {
         abort();
     }
-    printf(">>%x \n", pci_mb_status.addr);
 
-    bridge.cfg_addr = pci_mb_status.addr;
-    bridge.cfg_data = pci_mb_status.addr + 4;
-    ccsrbar_base    = 0xe0000000;
-
-    /*
-//p3041
-    bridge.cfg_addr = 0xfe200000,
-    bridge.cfg_data = 0xfe200004,
-    ccsrbar_base    = 0xfe000000;
-    */
-
-
-    //TODO add pci_bridge too?
-    //static uint32_t bar0_addr = 0x1001;
-    //const uint32_t BAR0_SIZE = 0x100;
+    bridge.cfg_addr = pci_controller_mb.addr;
+    bridge.cfg_data = pci_controller_mb.addr + 4;
 
     printf("bridge cfg_addr: %p cfg_data: %p\n",
             (void *)bridge.cfg_addr, (void *)bridge.cfg_data);
 
-    //TODO use PCI_IO memory block
-    legacy_io.virt_addr = 0xe1000000;
-    legacy_io.phys_addr = 0xe1000000;
-    //legacy_io.phys_addr = 0;
+    if(pok_memory_block_get_status("PCI_IO", &pci_io_mb) != POK_ERRNO_OK) {
+        abort();
+    }
 
-    struct pci_atmu_windows *atmu = (struct pci_atmu_windows *)(bridge.cfg_addr + PEX1_PEXOTAR0);
-    pci_ATMU_windows_list();
+    legacy_io.virt_addr = pci_io_mb.addr;
+    legacy_io.phys_addr = pci_io_mb.paddr;
 
-    atmu->pow[1].powbar = legacy_io.phys_addr>>12;
-    atmu->pow[1].potar = 0;
+    struct pci_atmu_windows *atmu = (struct pci_atmu_windows *)(bridge.cfg_addr + PEX_ATMU_SHIFT);
+    //pci_ATMU_windows_list();
+
+    atmu->pow[1].powbar = 0x80000000 >> 12;
+    atmu->pow[1].potar =  0x80000000 >> 12;
     atmu->pow[1].potear = 0;
-    atmu->pow[1].powar = WAR_EN|WAR_RTT_IO|WAR_WTT_IO|WAR_OWS_8K;
+    atmu->pow[1].powar = WAR_EN|WAR_RTT_MEM|WAR_WTT_MEM|WAR_OWS_512M;
 
-    atmu->pow[2].powbar = 0x80000000 >> 12;
-    atmu->pow[2].potar =  0x80000000 >> 12;
+    atmu->pow[2].powbar = legacy_io.phys_addr>>12;
+    atmu->pow[2].potar = 0;
     atmu->pow[2].potear = 0;
-    atmu->pow[2].powar = WAR_EN|WAR_RTT_IO|WAR_WTT_IO|WAR_OWS_256M;
+    atmu->pow[2].powar = WAR_EN|WAR_RTT_IO|WAR_WTT_IO|WAR_OWS_16K;
+
 
     pci_ATMU_windows_list();
 
-    LAW_list();
 #endif
 
     //printf("PCI enumeration:\n");
