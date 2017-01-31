@@ -87,7 +87,7 @@ if part_env.get('cdeveloper'):
             GENERATE_TITLE = template_generation.generate_title_c
             )
 
-    GLUE_DEFAULT_TARGET = part_env.Command( "generate_glue_files", [], '')
+    GLUE_DEFAULT_TARGET = part_env.Command( "#/generate_glue_files", [], '')
     Default(GLUE_DEFAULT_TARGET)
 
     generate_glue()
