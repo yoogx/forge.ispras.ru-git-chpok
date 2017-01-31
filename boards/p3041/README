@@ -11,21 +11,40 @@ LAW (local access windows):
          law[9 ] BAR=0:f8010000  ARn=8010000f (size=0x8000,     PCI Express 2)
          law[31] BAR=0:0         ARn=8100001d (size=0x20000000, Memory controller)
 
+
+Simple example of code to print LAW
+struct LAW_regs {
+    uint32_t barh;
+    uint32_t barl;
+    uint32_t ar;
+    uint32_t pad;
+};
+void LAW_list()
+{
+    struct LAW_regs *law = (struct LAW_regs *)(ccsrbar_vaddr + 0xC00);
+    for (int i = 0; i < 32; i++) {
+        printf("\t law %d  %lx:%lx [ar = %lx]\n", i,
+                law[i].barh,
+                law[i].barl,
+                law[i].ar);
+    }
+}
+
+
 PCI ATMU:
    outbound windows:
-         window 0   0 -> 0:0 [80044023]
-         window 1   e1000 -> 0:0 [8008800c]
-         window 2   80000 -> 0:80000 [8008801b]
-         window 3   0 -> 0:0 [0]
-         window 4   0 -> 0:0 [44023]
+         window 0   0 -> 0:0 [80044023] (size 0x100000)
+         window 1   80000 -> 0:80000 [8004401c] (0x20000000)
+         window 2   f8000 -> 0:0 [8008800f] (size 0x10000)
+         window 3   0 -> 0:0 [0] // disabled
+         window 4   0 -> 0:0 [44023] // disabled
    MSI window
-         window fe000 -> 0:0 [e44017]
+         window fe000 -> 0:0 [e44017]  // disabled
    inbound windows:
-         window 0   0 -> 0:0 [20f44023]
-         window 1   0 -> 0:0 [20f44023]
-         window 2   0 -> 0:0 [a0f5501d]
-         window 3   fe000 -> 0:0 [80e44017]
-
+         window 0   0 -> 0:0 [20f44023] // disabled
+         window 1   0 -> 0:0 [20f44023]  // disabled
+         window 2   0 -> 0:0 [a0f5501d]  //(prefetchable, size 0x40000000)
+         window 3   fe000 -> 0:0 [80e44017] //(size 0x1000000)
 PCI ATMU2:
    outbound windows:
          window 0   0 -> 0:0 [80044023]
