@@ -473,7 +473,7 @@ void pci_init()
     atmu->pow[1].potear = 0;
     atmu->pow[1].powar = WAR_EN|WAR_RTT_MEM|WAR_WTT_MEM|WAR_OWS_512M;
 
-    atmu->pow[2].powbar = pci_controller.legacy_io_vaddr>>12;
+    atmu->pow[2].powbar = pci_controller.legacy_io_paddr>>12;
     atmu->pow[2].potar = 0;
     atmu->pow[2].potear = 0;
     atmu->pow[2].powar = WAR_EN|WAR_RTT_IO|WAR_WTT_IO|WAR_OWS_16K;
@@ -520,8 +520,11 @@ void pci_init()
 
             if (dev_config->resources[i].type == PCI_RESOURCE_TYPE_BAR_MEM)
                 command |= PCI_COMMAND_MEMORY;
-            else if (dev_config->resources[i].type == PCI_RESOURCE_TYPE_BAR_IO)
+            else if (dev_config->resources[i].type == PCI_RESOURCE_TYPE_BAR_IO) {
                 command |= PCI_COMMAND_IO;
+                if (!dev_config->resources[i].addr)
+                    dev_config->resources[i].addr = pci_controller.legacy_io_vaddr + dev_config->resources[i].pci_addr;
+            }
         }
 
         if (dev_config->resources[PCI_RESOURCE_ROM].pci_addr != 0) {
