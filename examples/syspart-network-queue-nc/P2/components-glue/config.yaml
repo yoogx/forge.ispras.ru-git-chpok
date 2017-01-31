@@ -27,7 +27,7 @@ components:
       type: VIRTIO_NET_DEV
       state:
           pci_bus: 0
-          pci_dev: 2
+          pci_dev: 1
           pci_fn: 0
 
     - name: arp_answerer_1
