@@ -43,6 +43,7 @@ struct pci_controller {
     uint64_t legacy_io_paddr;
 } pci_controller;
 
+#endif
 
 #ifdef PCI_DEBUG
 static char *get_pci_class_name(int classcode) {
@@ -54,8 +55,6 @@ static char *get_pci_class_name(int classcode) {
     }
     return "Unknown";
 }
-#endif
-
 #endif
 
 int pci_read_config_byte(struct pci_dev *dev, int where, uint8_t *val)
@@ -523,7 +522,11 @@ void pci_init()
             else if (dev_config->resources[i].type == PCI_RESOURCE_TYPE_BAR_IO) {
                 command |= PCI_COMMAND_IO;
                 if (!dev_config->resources[i].addr)
+#ifdef __PPC__
                     dev_config->resources[i].addr = pci_controller.legacy_io_vaddr + dev_config->resources[i].pci_addr;
+#else
+                    dev_config->resources[i].addr = dev_config->resources[i].pci_addr;
+#endif
             }
         }
 
