@@ -21,15 +21,25 @@
 #include <ioports.h>
 #include <stdio.h>
 
-#include <bsp.h>
 #include "pci_internal.h"
+
+#include <memblocks.h>
+#include <stdlib.h>
 
 #include <string.h>
 
 #define OK 0
 
+#define PCI_DEBUG
+
 #ifdef __PPC__
-struct pci_bridge bridge;
+
+struct pci_bridge {
+    uint32_t cfg_addr;
+    uint32_t cfg_data;
+    uint32_t iorange;
+} bridge;
+
 uint32_t ccsrbar_base;
 
 struct legacy_io {
@@ -453,6 +463,28 @@ void pci_ATMU_windows_list()
                 atmu->piw[i].piwbar, atmu->piw[i].piwbear,
                 atmu->piw[i].piwar);
     }
+
+    atmu = (struct pci_atmu_windows *)(ccsrbar_base + 0x201000 + PEX1_PEXOTAR0);
+    printf("ATMU2:\n");
+    printf("   outbound windows:\n");
+    for (int i = 0; i < 5; i++) {
+        printf("\t window %d   %lx -> %lx:%lx [%lx]\n", i,
+                atmu->pow[i].powbar,
+                atmu->pow[i].potear, atmu->pow[i].potar,
+                atmu->pow[i].powar);
+    }
+    printf("   MSI window\n");
+    printf("\t window %lx -> %lx:%lx [%lx]\n",
+            atmu->pmit.pitar,
+            atmu->pmit.piwbar, atmu->pmit.piwbear,
+            atmu->pmit.piwar);
+    printf("   inbound windows:\n");
+    for (int i = 0; i < 4; i++) {
+        printf("\t window %d   %lx -> %lx:%lx [%lx]\n", i,
+                atmu->piw[i].pitar,
+                atmu->piw[i].piwbar, atmu->piw[i].piwbear,
+                atmu->piw[i].piwar);
+    }
 #endif
 }
 
@@ -488,10 +520,37 @@ void LAW_list()
 void pci_init()
 {
 #ifdef __PPC__
+    /*
     pok_bsp_t pok_bsp;
     pok_bsp_get_info(&pok_bsp);
     bridge = pok_bsp.pci_bridge;
     ccsrbar_base = (uint32_t) pok_bsp.ccsrbar_base;
+    */
+/*
+    bridge.cfg_addr = 0xe0008000;
+    bridge.cfg_data = 0xe0008004;
+    ccsrbar_base    = 0xe0000000;
+*/
+
+
+    jet_memory_block_status_t pci_mb_status;
+
+    if(pok_memory_block_get_status("PCI_Express_1", &pci_mb_status) != POK_ERRNO_OK) {
+        abort();
+    }
+    printf(">>%x \n", pci_mb_status.addr);
+
+    bridge.cfg_addr = pci_mb_status.addr;
+    bridge.cfg_data = pci_mb_status.addr + 4;
+    ccsrbar_base    = 0xe0000000;
+
+    /*
+//p3041
+    bridge.cfg_addr = 0xfe200000,
+    bridge.cfg_data = 0xfe200004,
+    ccsrbar_base    = 0xfe000000;
+    */
+
 
     //TODO add pci_bridge too?
     //static uint32_t bar0_addr = 0x1001;
@@ -500,11 +559,13 @@ void pci_init()
     printf("bridge cfg_addr: %p cfg_data: %p\n",
             (void *)bridge.cfg_addr, (void *)bridge.cfg_data);
 
+    //TODO use PCI_IO memory block
     legacy_io.virt_addr = 0xe1000000;
     legacy_io.phys_addr = 0xe1000000;
     //legacy_io.phys_addr = 0;
 
     struct pci_atmu_windows *atmu = (struct pci_atmu_windows *)(bridge.cfg_addr + PEX1_PEXOTAR0);
+    pci_ATMU_windows_list();
 
     atmu->pow[1].powbar = legacy_io.phys_addr>>12;
     atmu->pow[1].potar = 0;
