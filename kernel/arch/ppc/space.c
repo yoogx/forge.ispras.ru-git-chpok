@@ -233,10 +233,6 @@ void pok_arch_space_init (void)
     }
 }
 
-//TODO get this values from devtree!
-#define MPC8544_PCI_IO_SIZE      0x10000ULL
-#define MPC8544_PCI_IO           0xE1000000ULL
-
 void pok_arch_handle_page_fault(
         struct jet_interrupt_context *vctx,
         uintptr_t faulting_address,
