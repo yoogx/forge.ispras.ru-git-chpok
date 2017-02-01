@@ -370,7 +370,7 @@ uintptr_t pci_convert_legacy_port(struct pci_dev *dev, uint16_t port)
 struct pci_outbound_window_regs {
     uint32_t potar;  /* 0x.0 - Outbound translation address register */
     uint32_t potear; /* 0x.4 - Outbound translation extended address register */
-    uint32_t powbar; /* 0x.8 - Outbound window base address register */
+    uint32_t powbar; /* 0x.8 - Outbound window base address register */ //Not used to window 0
     uint8_t  pad1[4];
     uint32_t powar;  /* 0x.10 - Outbound window attributes register */
     uint8_t  pad2[12];
@@ -421,24 +421,30 @@ void pci_ATMU_windows_list()
     struct pci_atmu_windows *atmu = (struct pci_atmu_windows *)(pci_controller.cfg_addr + PEX_ATMU_SHIFT);
 
     printf("ATMU:\n");
-    printf("   outbound windows:\n");
+    printf("   outbound windows (From CPU address space to PCI address space):\n");
     for (int i = 0; i < 5; i++) {
-        printf("\t window %d   %lx -> %lx:%lx [%lx]\n", i,
-                atmu->pow[i].powbar,
-                atmu->pow[i].potear, atmu->pow[i].potar,
-                atmu->pow[i].powar);
+        if (atmu->pow[i].powar & WAR_EN) { //window enabled
+            printf("\t window %d   %llx -> %llx, AR = %lx\n", i,
+                    ((uint64_t) atmu->pow[i].powbar)<<12,
+                    (((uint64_t) atmu->pow[i].potear)<<44) + (((uint64_t) atmu->pow[i].potar)<<12),
+                    atmu->pow[i].powar);
+        }
     }
-    printf("   MSI window\n");
-    printf("\t window %lx -> %lx:%lx [%lx]\n",
-            atmu->pmit.pitar,
-            atmu->pmit.piwbar, atmu->pmit.piwbear,
-            atmu->pmit.piwar);
-    printf("   inbound windows:\n");
+    if (atmu->pmit.piwar & WAR_EN) { //window enabled
+        printf("   MSI window\n");
+        printf("\t window %lx -> %lx:%lx [%lx]\n",
+                atmu->pmit.pitar,
+                atmu->pmit.piwbar, atmu->pmit.piwbear,
+                atmu->pmit.piwar);
+    }
+    printf("   inbound windows (From PCI address space to CPU address space):\n");
     for (int i = 0; i < 4; i++) {
-        printf("\t window %d   %lx -> %lx:%lx [%lx]\n", i,
-                atmu->piw[i].pitar,
-                atmu->piw[i].piwbar, atmu->piw[i].piwbear,
-                atmu->piw[i].piwar);
+        if (atmu->piw[i].piwar & WAR_EN) { //window enabled
+            printf("\t window %d   %llx -> %llx, AR = %lx\n", i,
+                    (((uint64_t) atmu->piw[i].piwbear)<<44) + (((uint64_t) atmu->piw[i].piwbar)<<12),
+                    ((uint64_t) atmu->piw[i].pitar)<<12,
+                    atmu->piw[i].piwar);
+        }
     }
 #endif
 }
