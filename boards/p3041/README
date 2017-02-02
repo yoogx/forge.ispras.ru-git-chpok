@@ -34,8 +34,8 @@ void LAW_list()
 PCI ATMU:
    outbound windows:
          window 0   0 -> 0:0 [80044023] (size 0x100000)
-         window 1   80000 -> 0:80000 [8004401c] (0x20000000)
-         window 2   f8000 -> 0:0 [8008800f] (size 0x10000)
+         window 1   80000 -> 0:80000 [8004401c] (size 0x20000000, MEM)
+         window 2   f8000 -> 0:0 [8008800f] (size 0x10000, IO)
          window 3   0 -> 0:0 [0] // disabled
          window 4   0 -> 0:0 [44023] // disabled
    MSI window
@@ -45,6 +45,7 @@ PCI ATMU:
          window 1   0 -> 0:0 [20f44023]  // disabled
          window 2   0 -> 0:0 [a0f5501d]  //(prefetchable, size 0x40000000)
          window 3   fe000 -> 0:0 [80e44017] //(size 0x1000000)
+
 PCI ATMU2:
    outbound windows:
          window 0   0 -> 0:0 [80044023]
