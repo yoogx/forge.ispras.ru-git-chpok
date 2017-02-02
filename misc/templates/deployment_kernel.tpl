@@ -175,11 +175,12 @@ static const struct memory_block memory_blocks_{{loop.index0}}[{{pmd.memory_bloc
         .name = "{{mbd.name}}",
         .size = {{mbd.size}},
         .maccess = 0{%if 'R' in mbd.access%} | MEMORY_BLOCK_ACCESS_READ{%endif%}{%if 'W' in mbd.access%} | MEMORY_BLOCK_ACCESS_WRITE{%endif%}{%if 'X' in mbd.access%} | MEMORY_BLOCK_ACCESS_EXEC{%endif%},
-        .vaddr = {{mbd.vaddr}},
+        .vaddr = {{"0x%x"| format(mbd.vaddr)}},
+        .align = {{mbd.align}},
         .is_contiguous = {%if mbd.is_contiguous%}TRUE{%else%}FALSE{%endif%},
-        .paddr = {%if mbd.is_contiguous%}{{mbd.paddr}}{%else%}0{%endif%},
+        .paddr = {%if mbd.is_contiguous%}{{"0x%x"|format(mbd.paddr)}}{%else%}0{%endif%},
         .is_shared = {%if mbd.is_shared%}TRUE{%else%}FALSE{%endif%},
-        .kaddr = {{mbd.kaddr}},
+        .kaddr = {{"0x%x"|format(mbd.kaddr)}},
     },
 {%endfor%}
 };
@@ -188,7 +189,7 @@ static const struct memory_block memory_blocks_{{loop.index0}}[{{pmd.memory_bloc
 static const struct jet_partition_arinc_mb_addr_entry mb_addr_table_{{loop.index0}} [{{pmd.memory_blocks | length}}] = {
 {%for mbd in pmd.memory_blocks | sort(attribute = 'vaddr')%}
     {
-        .vaddr = {{mbd.vaddr}},
+        .vaddr = {{"0x%x"|format(mbd.vaddr)}},
         .size = {{mbd.size}},
         .mblock = &memory_blocks_{{part.index}}[{{mbd.index}}],
     },

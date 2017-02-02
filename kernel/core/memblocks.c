@@ -57,6 +57,7 @@ pok_ret_t pok_memory_block_get_status(
 
     status_kernel->addr = mblock->vaddr;
     status_kernel->size = mblock->size;
+    status_kernel->align = mblock->align;
 
     if(mblock->is_contiguous) {
         status_kernel->is_contiguous = TRUE;

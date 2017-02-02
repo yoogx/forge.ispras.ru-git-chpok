@@ -41,9 +41,16 @@ struct memory_block
     uintptr_t vaddr;
 
     /*
+     * Alignment of the virtual block (virtual).
+     */
+    size_t align;
+
+    /*
      * Whether memory block is physically contiguous.
      *
      * Set only when it is requested by configuration.
+     * 
+     * If block is physically contiguous,
      */
     pok_bool_t is_contiguous;
 

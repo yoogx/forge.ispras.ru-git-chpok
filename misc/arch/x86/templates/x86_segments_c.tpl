@@ -19,7 +19,7 @@ const struct x86_segment ja_segments[{{segments | length}}] =
 {
 {%for segment in segments%}
     {
-        .paddr = {{segment.paddr}},
+        .paddr = {{"0x%x"|format(segment.paddr)}},
         .size = {{segment.size}},
     },
 {%endfor%}
