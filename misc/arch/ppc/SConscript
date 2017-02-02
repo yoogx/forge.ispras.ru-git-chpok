@@ -74,14 +74,14 @@ class TLBEntry(SerializableObject):
         """
         For given 'access' string return permissions for TLB entry.
         """
-        permissions = 0x5 # RW from the kernel
+        permissions = "MAS3_SR | MAS3_SW" # RW from the kernel
 
         if 'R' in access:
-            permissions = permissions | 0x2
+            permissions += " | MAS3_UR"
         if 'W' in access:
-            permissions = permissions | 0x8
+            permissions += " | MAS3_UW"
         if 'X' in access:
-            permissions = permissions | 0x20
+            permissions += " | MAS3_UX"
 
         return permissions
 

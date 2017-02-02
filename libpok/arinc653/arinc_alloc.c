@@ -17,13 +17,13 @@
 #include <arinc_config.h>
 #include <utils.h>
 #include <memblocks.h>
+#include <smalloc.h>
 
 #include <stdio.h> /* for printf() */
 #include <stdlib.h> /* for abort() */
 
 
-static char* heap_ptr;
-static char* heap_ptr_end;
+static struct jet_sallocator arinc_allocator;
 
 void arinc_allocator_init(void)
 {
@@ -38,8 +38,7 @@ void arinc_allocator_init(void)
         abort();
     }
 
-    heap_ptr = (char*)arinc_heap_status.addr;
-    heap_ptr_end = heap_ptr + arinc_heap_status.size;
+    jet_sallocator_init_from_memblock(&arinc_allocator, &arinc_heap_status);
 }
 
 /* 
@@ -50,14 +49,7 @@ void arinc_allocator_init(void)
  */
 void* arinc_alloc(size_t size, size_t alignment)
 {
-    char* ptr_start = ALIGN_PTR(heap_ptr, alignment);
-    char* ptr_end = ptr_start + size;
-
-    if(ptr_end > heap_ptr_end) return NULL;
-
-    heap_ptr = ptr_end;
-
-    return ptr_start;
+    return jet_sallocator_alloc_aligned(&arinc_allocator, size, alignment);
 }
 
 /*
@@ -65,7 +57,7 @@ void* arinc_alloc(size_t size, size_t alignment)
  */
 arinc_allocator_state arinc_allocator_get_state(void)
 {
-    return heap_ptr;
+    return jet_sallocator_get_state(&arinc_allocator);
 }
 
 /*
@@ -74,5 +66,5 @@ arinc_allocator_state arinc_allocator_get_state(void)
  */
 void arinc_allocator_reset_state(arinc_allocator_state state)
 {
-    heap_ptr = state;
+    jet_sallocator_set_state(&arinc_allocator, state);
 }

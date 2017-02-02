@@ -161,6 +161,7 @@ def allocateMemoryBlocksSimple(memory_constraints, phys_segments,
 
         # Compute all information required for physical memory block creation.
         size = first_mb.size
+        align = first_mb.align
         cache_policies = set()
         paddr = first_mb.paddr
 
@@ -175,6 +176,10 @@ def allocateMemoryBlocksSimple(memory_constraints, phys_segments,
                 print "ERROR: Sharing %d has memory blocks of different sizes." % i
                 raise RuntimeError("Incorrect memory blocks sharing")
 
+            if mb.align != align:
+                print "ERROR: Sharing %d has memory blocks of different alignments." % i
+                raise RuntimeError("Incorrect memory blocks sharing")
+
             cache_policies.add(mb.cache_policy)
 
         if size == 0:
@@ -183,7 +188,7 @@ def allocateMemoryBlocksSimple(memory_constraints, phys_segments,
 
         # Create physical memory block.
         if paddr is None:
-            pb = pb_allocator.allocPhysBlock(size, cache_policies)
+            pb = pb_allocator.allocPhysBlock(size, align, cache_policies)
         else:
             pb = pb_allocator.allocPhysBlockFixed(paddr, size, cache_policies)
 
@@ -269,6 +274,11 @@ def allocateMemoryBlocksSimple(memory_constraints, phys_segments,
             print "ERROR: There is no memory blocks with fixed virtual address. Where ELF should be loaded?"
             raise RuntimeError("Incorrect setup for memory blocks with virtual address fixed")
 
+        align = 1
+        for mbd in mb_vfixed:
+            if mbd.align > align:
+                align = mbd.align
+
         mb_vfixed.sort(key=lambda mb: mb.vaddr)
 
         mb_vfixed_first = mb_vfixed[0]
@@ -289,7 +299,7 @@ def allocateMemoryBlocksSimple(memory_constraints, phys_segments,
                 print "ERROR: Partition '%s' has memory block '%s' with fixed virtual address and cache policy '%s', which differs from other blocks in that group. This feature is not supported." % (pmc.name, mbd.name, mbd.cache_policy)
                 raise RuntimeError("Incorrect setup for memory blocks with virtual address fixed")
 
-        pb = pb_allocator.allocPhysBlock(vaddr_end - vaddr_start, {cache_policy})
+        pb = pb_allocator.allocPhysBlock(vaddr_end - vaddr_start, align, {cache_policy})
 
         if vaddr_start % pb.align:
             print "ERROR: Board start virtual address 0x%x doesn't satisfy alignment 0x%x." (vaddr_start, pb.align)
@@ -306,7 +316,7 @@ def allocateMemoryBlocksSimple(memory_constraints, phys_segments,
 
         # Process group 2.
         for mbd in mb_float:
-            pb = pb_allocator.allocPhysBlock(mbd.size, {mbd.cache_policy})
+            pb = pb_allocator.allocPhysBlock(mbd.size, mbd.align, {mbd.cache_policy})
 
             vb = vb_allocator.allocVirtBlock(pb, mbd.align)
             vb.setup_memblock(mbd)
@@ -395,7 +405,7 @@ class _VirtBlockAllocator:
         """
         if align < pb.align:
             align = pb.align
-        
+
         vaddr_block_start = align_val(self.vaddr_current, align)
 
         self.vaddr_current = vaddr_block_start + pb.size
@@ -435,11 +445,13 @@ class _PhysSegmentBlockAllocator:
         self.memory_type = phys_segment.memory_type
         self.paddr_current = phys_segment.paddr_start
 
-    def allocPhysBlock(self, size):
+    def allocPhysBlock(self, size, align):
         """
         Allocate block in physical memory. Return None if cannot.
+
+        'align' is alignment in *both* physical and virtual memory.
         """
-        phys_memblock = self.memory_type.allocPhysBlock(self.paddr_current, size)
+        phys_memblock = self.memory_type.allocPhysBlock(align_val(self.paddr_current, align), size)
 
         if phys_memblock is None:
             return None
@@ -487,7 +499,7 @@ class _PhysBlockAllocator:
     def isCacheSupported(self, cache_policy):
         """
         Check that at least one physical segment may have memory blocks
-        with given cache policy
+        with given cache policy.
         """
         for segment_allocator in self.segment_allocators:
             if segment_allocator.isCacheSupported(cache_policy):
@@ -495,12 +507,14 @@ class _PhysBlockAllocator:
 
             return False
 
-    def allocPhysBlock(self, size, cache_policies):
+    def allocPhysBlock(self, size, align, cache_policies):
         """
         Allocate physical memory block of given parameters suitable for
         any cache policy in the array.
 
         If block cannot be allocated, exception will be raised.
+
+        'align' is alignment in *both* physical and virtual memory.
         """
         # Whether given combination of cache policies is supported at least by one memory region.
         caches_are_supported = False
@@ -509,7 +523,7 @@ class _PhysBlockAllocator:
                 continue
 
             caches_are_supported = True
-            phys_memblock = segment_allocator.allocPhysBlock(size)
+            phys_memblock = segment_allocator.allocPhysBlock(size, align)
             if not phys_memblock:
                 continue
 
@@ -547,7 +561,7 @@ class _PhysBlockAllocator:
         if self.memory_type_default is None:
             print "ERROR: Memory blocks with fixed addresses are not supported for given board."
             raise RuntimeError("Physically-fixed memory blocks are not supported")
-            
+
         # Allocate block using default memory type
         for cache_policy in cache_policies:
             if not self.memory_type_default.isCacheSupported(cache_policy):

@@ -19,8 +19,8 @@
 struct tlb_entry tlb_entries[] = {
 {%for entry in entries%}
     {
-        .virt_addr = {{entry.vaddr}},
-        .phys_addr = {{entry.paddr}},
+        .virt_addr = {{"0x%x"|format(entry.vaddr)}},
+        .phys_addr = {{"0x%x"|format(entry.paddr)}},
         .size = E500MC_PGSIZE_{{entry.size_enum}},
         .permissions = {{entry.permissions}},
         .cache_policy = {{entry.cache_policy}},
