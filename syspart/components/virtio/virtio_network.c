@@ -146,7 +146,7 @@ static void use_receive_buffer(struct virtio_network_device *dev, struct receive
 // must be called after one or more receive buffers has been added to rx avail. ring
 static void notify_receive_buffers(struct virtio_network_device *dev)
 {
-    outw(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_QUEUE_NOTIFY, (uint16_t) VIRTIO_NETWORK_RX_VIRTQUEUE);
+    outw(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_QUEUE_NOTIFY, VIRTIO_NETWORK_RX_VIRTQUEUE);
 }
 
 static void setup_receive_buffers(struct virtio_network_device *dev)
@@ -313,7 +313,7 @@ ret_t flush_send(VIRTIO_NET_DEV *self)
 
     struct virtio_network_device *dev = &self->state.info;
 
-    outw(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_QUEUE_NOTIFY, (uint16_t) VIRTIO_NETWORK_TX_VIRTQUEUE);
+    outw(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_QUEUE_NOTIFY, VIRTIO_NETWORK_TX_VIRTQUEUE);
     return EOK;
 }
 
