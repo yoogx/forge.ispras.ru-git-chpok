@@ -18,7 +18,6 @@
 #include <pci.h>
 #include <ioports.h>
 
-#include <mem.h>
 #include <smalloc.h>
 
 #include "virtio_config.h"
@@ -32,6 +31,7 @@
 #include "VIRTIO_NET_DEV_gen.h"
 
 #include <arinc653/process.h>
+#include <memblocks.h>
 #include <smalloc.h>
 #include <stdlib.h>
 #include <paddr.h>

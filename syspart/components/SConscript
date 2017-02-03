@@ -22,12 +22,12 @@ import os
 Import('syspart_env')
 
 COMPONENTS_DIRS = [
-        'arinc',
-        'udp_ip',
-        'mac',
-        'virtio',
-        'arp',
-        'ppc_dtsec'
+        'arinc'
+        ,'udp_ip'
+        ,'mac'
+        ,'virtio'
+        ,'arp'
+        #,'ppc_dtsec'
         ]
 COMPONENTS_PATH = os.path.join(syspart_env["JETOS_HOME"], "syspart/components")
 CONFIG = "config.yaml"
