@@ -456,14 +456,14 @@ void pci_init()
 #ifdef __PPC__
     jet_memory_block_status_t pci_controller_mb, pci_io_mb;
 
-    if(pok_memory_block_get_status("PCI_Express_1", &pci_controller_mb) != POK_ERRNO_OK) {
+    if(jet_memory_block_get_status("PCI_Express_1", &pci_controller_mb) != POK_ERRNO_OK) {
         abort();
     }
 
     pci_controller.cfg_addr = pci_controller_mb.addr;
     pci_controller.cfg_data = pci_controller_mb.addr + 4;
 
-    if(pok_memory_block_get_status("PCI_IO", &pci_io_mb) != POK_ERRNO_OK) {
+    if(jet_memory_block_get_status("PCI_IO", &pci_io_mb) != POK_ERRNO_OK) {
         abort();
     }
 

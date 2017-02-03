@@ -29,7 +29,7 @@ void arinc_allocator_init(void)
 {
     jet_memory_block_status_t arinc_heap_status;
 
-    pok_ret_t ret = pok_memory_block_get_status(".ARINC_HEAP",
+    pok_ret_t ret = jet_memory_block_get_status(".ARINC_HEAP",
         &arinc_heap_status);
 
     if(ret != POK_ERRNO_OK) {

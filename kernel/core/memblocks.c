@@ -27,7 +27,7 @@ void* __kuser jet_memory_block_get_kaddr(const struct memory_block* mblock,
     return (void* __kuser)((uintptr_t)addr - mblock->vaddr + mblock->kaddr);
 }
 
-pok_ret_t pok_memory_block_get_status(
+pok_ret_t jet_memory_block_get_status(
     const char* __user name,
     jet_memory_block_status_t* __user status)
 {
