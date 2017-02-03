@@ -170,7 +170,7 @@ static void notify_receive_buffers(struct virtio_network_device *dev)
 static void setup_receive_buffers(struct virtio_network_device *dev)
 {
     int i;
-    for (i = 0; i < RECEIVE_BUFFERS_NUM; i++) {
+    for (i = 0; i < dev->rx_vq.vring.num; i++) {
         // this pushes buffer to avail ring
         use_receive_buffer(dev, &dev->receive_buffers[i]);
     }

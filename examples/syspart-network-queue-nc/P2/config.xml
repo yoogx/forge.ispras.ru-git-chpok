@@ -62,7 +62,7 @@
             -->
         <!-- }}} -->
 
-        <Memory_Block Name="Virtio_Heap" Size="0x1000000" Access="RW" Contiguous="true"/>
+        <Memory_Block Name="Virtio_Heap" Size="0xc3000" Access="RW" Contiguous="true"/>
 
 
     </Memory_Blocks>

@@ -21,10 +21,6 @@
 #include "virtio_pci.h"
 #include <pci.h>
 
-
-#define RECEIVE_BUFFERS_NUM 100
-#define SEND_BUFFERS_NUM 100
-
 #define MAX_PACKET_SIZE 1500
 
 struct receive_buffer {
