@@ -90,15 +90,22 @@ static pok_bool_t setup_virtqueue(
     void *mem = virtio_virtqueue_setup(vq, queue_size, VIRTIO_PCI_VRING_ALIGN);
 
     // give device queue's physical address
-    uintptr_t phys_addr = jet_virt_to_phys(mem);
+    uint64_t phys_addr = jet_virt_to_phys(mem);
 
+    /*
     if (phys_addr == 0) {
-        //FIXME wrong message!!!
-        printf("%s: kernel says that virtual address is wrong\n", __func__);
+        PRINTF("%s: jet_virt_to_phys: virtual address is wrong\n", __func__);
+        return FALSE;
+    }
+    */
+    if (phys_addr > 0xffffffff) { //greater than 4G
+        PRINTF("%s: phys_addrs greater than 4G are not supported\n", __func__);
         return FALSE;
     }
 
-    outl(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_QUEUE_PFN, phys_addr / VIRTIO_PCI_VRING_ALIGN);
+    uint32_t phys_addr_32bit = (uint32_t) phys_addr;
+
+    outl(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_QUEUE_PFN, phys_addr_32bit / VIRTIO_PCI_VRING_ALIGN);
     return TRUE;
 
 }
@@ -136,11 +143,13 @@ static void use_receive_buffer(struct virtio_network_device *dev, struct receive
     desc = &vq->vring.desc[head];
     vq->free_index = desc->next;
 
-    desc->addr = pok_virt_to_phys(buf);
+    desc->addr = jet_virt_to_phys(buf);
+    /*
     if (desc->addr == 0) {
-        printf("%s: kernel says that virtual address is wrong\n", __func__);
+        PRINTF("%s: jet_virt_to_phys: virtual address is wrong\n", __func__);
         return;
     }
+    */
     desc->len = sizeof(*buf);
     desc->flags = VRING_DESC_F_WRITE;
 
@@ -161,7 +170,7 @@ static void notify_receive_buffers(struct virtio_network_device *dev)
 static void setup_receive_buffers(struct virtio_network_device *dev)
 {
     int i;
-    for (i = 0; i < POK_MAX_RECEIVE_BUFFERS_NUM; i++) {
+    for (i = 0; i < RECEIVE_BUFFERS_NUM; i++) {
         // this pushes buffer to avail ring
         use_receive_buffer(dev, &dev->receive_buffers[i]);
     }
@@ -202,7 +211,7 @@ ret_t send_frame(VIRTIO_NET_DEV * self,
     /* Setup first descriptor as virtio_net_hdr */
     desc = &vq->vring.desc[head];
     //TODO This can be optimized by do virt_to_phys once and remembering it's result
-    desc->addr = pok_virt_to_phys(virtio_net_hdr_ptr);
+    desc->addr = jet_virt_to_phys(virtio_net_hdr_ptr);
     desc->len = sizeof(*virtio_net_hdr_ptr);
     desc->flags = VRING_DESC_F_NEXT;
 
@@ -211,10 +220,12 @@ ret_t send_frame(VIRTIO_NET_DEV * self,
 
     desc = &vq->vring.desc[desc->next];
     desc->addr = jet_virt_to_phys(dev->send_buffers[head].data);
+    /*
     if (desc->addr == 0) {
-        printf("%s: kernel says that virtual address is wrong\n", __func__);
+        PRINTF("%s: jet_virt_to_phys kvirtual address is wrong\n", __func__);
         return FALSE;
     }
+    */
     desc->len = size;
     desc->flags = VRING_DESC_F_NEXT;
 
@@ -281,12 +292,15 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
         struct vring_used_elem *e = &vq->vring.used->ring[index];
         struct vring_desc *desc = &vq->vring.desc[e->id];
 
-        struct receive_buffer *buf = pok_phys_to_virt(desc->addr);
+        struct receive_buffer *buf = jet_phys_to_virt(desc->addr);
+        /*
         if (buf == 0) {
-            printf("%s: kernel says that physical address is wrong\n", __func__);
+            //FIXME
+            PRINTF("%s: jet_phys_to_virt physical address is wrong\n", __func__);
             unlock_preemption(&saved_preemption);
             return;
         }
+        */
 
         VIRTIO_NET_DEV_call_portB_handle(self, (const char *)&buf->packet, e->len - sizeof(struct virtio_net_hdr));
 
@@ -389,9 +403,18 @@ static pok_bool_t init_device(VIRTIO_NET_DEV_state *state)
     // 6. DRIVER_OK status bit
     set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_DRIVER_OK);
 
-    // 7. send buffers allocation
-    //dev->send_buffers = smalloc(sizeof(*dev->send_buffers) * dev->tx_vq.vring.num);
-    dev->send_buffers = jet_sallocator_alloc_array(&virtio_allocator, sizeof(*dev->send_buffers), dev->tx_vq.vring.num);
+    // 7. buffers allocation
+    dev->send_buffers = jet_sallocator_alloc_array(&virtio_allocator,
+            sizeof(*dev->send_buffers),
+            dev->tx_vq.vring.num);
+    if (dev->send_buffers == NULL) {
+        PRINTF("heap alloc return zero (not enough memory)\n");
+        return FALSE;
+    }
+
+    dev->receive_buffers = jet_sallocator_alloc_array(&virtio_allocator,
+            sizeof(*dev->receive_buffers),
+            dev->rx_vq.vring.num);
     if (dev->send_buffers == NULL) {
         PRINTF("heap alloc return zero (not enough memory)\n");
         return FALSE;
