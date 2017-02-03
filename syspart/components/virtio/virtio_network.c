@@ -32,6 +32,9 @@
 #include "VIRTIO_NET_DEV_gen.h"
 
 #include <arinc653/process.h>
+#include <smalloc.h>
+#include <stdlib.h>
+#include <paddr.h>
 
 #define VIRTIO_PCI_VENDORID 0x1AF4
 
@@ -39,6 +42,11 @@
 #define VIRTIO_NETWORK_TX_VIRTQUEUE 1
 
 #define PRINTF(fmt, ...) printf("VIRTIO_NET_DEV: " fmt, ##__VA_ARGS__)
+
+
+struct jet_sallocator virtio_allocator; //All instancess share this
+jet_memory_block_status_t virtio_heap_mb;
+struct virtio_net_hdr *virtio_net_hdr_ptr; //contains zerros
 
 static void reclaim_send_buffers(struct virtio_network_device *info);
 
@@ -82,9 +90,10 @@ static pok_bool_t setup_virtqueue(
     void *mem = virtio_virtqueue_setup(vq, queue_size, VIRTIO_PCI_VRING_ALIGN);
 
     // give device queue's physical address
-    uintptr_t phys_addr = pok_virt_to_phys(mem);
+    uintptr_t phys_addr = jet_virt_to_phys(mem);
 
     if (phys_addr == 0) {
+        //FIXME wrong message!!!
         printf("%s: kernel says that virtual address is wrong\n", __func__);
         return FALSE;
     }
@@ -152,7 +161,7 @@ static void notify_receive_buffers(struct virtio_network_device *dev)
 static void setup_receive_buffers(struct virtio_network_device *dev)
 {
     int i;
-    for (i = 0; i < POK_MAX_RECEIVE_BUFFERS; i++) {
+    for (i = 0; i < POK_MAX_RECEIVE_BUFFERS_NUM; i++) {
         // this pushes buffer to avail ring
         use_receive_buffer(dev, &dev->receive_buffers[i]);
     }
@@ -170,7 +179,6 @@ ret_t send_frame(VIRTIO_NET_DEV * self,
     if (max_back_step != 0)
         return EINVAL;
 
-    static struct virtio_net_hdr net_hdr;
     struct vring_desc *desc;
 
     struct virtio_network_device *dev = &self->state.info;
@@ -185,22 +193,24 @@ ret_t send_frame(VIRTIO_NET_DEV * self,
         return FALSE;
     }
 
-    memset(&net_hdr, 0, sizeof(net_hdr));
+    //Just in case zero virtio_net_hdr fields
+    memset(virtio_net_hdr_ptr, 0, sizeof(*virtio_net_hdr_ptr));
 
-    vq->num_free -= 2; //we use 2 desc. One for virtio specific hdr, the other one for message
+    vq->num_free -= 2; //we use 2 desc. One for virtio_net_hdr, the other one for the message
 
     uint16_t head = vq->free_index;
     /* Setup first descriptor as virtio_net_hdr */
     desc = &vq->vring.desc[head];
-    desc->addr = pok_virt_to_phys(&net_hdr);
-    desc->len = sizeof(net_hdr);
+    //TODO This can be optimized by do virt_to_phys once and remembering it's result
+    desc->addr = pok_virt_to_phys(virtio_net_hdr_ptr);
+    desc->len = sizeof(*virtio_net_hdr_ptr);
     desc->flags = VRING_DESC_F_NEXT;
 
 
     memcpy(dev->send_buffers[head].data, buffer, size);
 
     desc = &vq->vring.desc[desc->next];
-    desc->addr = pok_virt_to_phys(dev->send_buffers[head].data);
+    desc->addr = jet_virt_to_phys(dev->send_buffers[head].data);
     if (desc->addr == 0) {
         printf("%s: kernel says that virtual address is wrong\n", __func__);
         return FALSE;
@@ -380,7 +390,12 @@ static pok_bool_t init_device(VIRTIO_NET_DEV_state *state)
     set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_DRIVER_OK);
 
     // 7. send buffers allocation
-    dev->send_buffers = smalloc(sizeof(*dev->send_buffers) * dev->tx_vq.vring.num);
+    //dev->send_buffers = smalloc(sizeof(*dev->send_buffers) * dev->tx_vq.vring.num);
+    dev->send_buffers = jet_sallocator_alloc_array(&virtio_allocator, sizeof(*dev->send_buffers), dev->tx_vq.vring.num);
+    if (dev->send_buffers == NULL) {
+        PRINTF("heap alloc return zero (not enough memory)\n");
+        return FALSE;
+    }
 
     return TRUE;
 }
@@ -396,6 +411,30 @@ void virtio_receive_activity(VIRTIO_NET_DEV *self)
  */
 void virtio_init(VIRTIO_NET_DEV *self)
 {
+    {
+        //TODO add checking that virtio_allocator doesn't inited before
+        //where is dev->tx_vq.vring.num from???
+
+        pok_ret_t ret = pok_memory_block_get_status("Virtio_Heap", &virtio_heap_mb);
+        if(ret != POK_ERRNO_OK) {
+            PRINTF("ERROR: Memory block for heap is not created.\n");
+            PRINTF("NOTE: Report this error to the developers.\n");
+            abort();
+        }
+
+        jet_sallocator_init_from_memblock(&virtio_allocator, &virtio_heap_mb);
+    }
+
+    {
+        // virtio_net_hdr allocation
+        virtio_net_hdr_ptr = jet_sallocator_alloc(&virtio_allocator, sizeof(*virtio_net_hdr_ptr));
+        if (virtio_net_hdr_ptr == NULL) {
+            PRINTF("heap alloc return zero (not enough memory)\n");
+            return ;
+        }
+    }
+
+
     if (init_device(&self->state))
         self->state.info.inited = 1;
 }
