@@ -90,7 +90,7 @@ static pok_bool_t setup_virtqueue(
     void *mem = virtio_virtqueue_setup(vq, queue_size, VIRTIO_PCI_VRING_ALIGN);
 
     // give device queue's physical address
-    uint64_t phys_addr = jet_virt_to_phys(mem);
+    uint64_t phys_addr = jet_virt_to_phys(&virtio_heap_mb, mem);
 
     /*
     if (phys_addr == 0) {
@@ -143,7 +143,7 @@ static void use_receive_buffer(struct virtio_network_device *dev, struct receive
     desc = &vq->vring.desc[head];
     vq->free_index = desc->next;
 
-    desc->addr = jet_virt_to_phys(buf);
+    desc->addr = jet_virt_to_phys(&virtio_heap_mb, buf);
     /*
     if (desc->addr == 0) {
         PRINTF("%s: jet_virt_to_phys: virtual address is wrong\n", __func__);
@@ -211,7 +211,7 @@ ret_t send_frame(VIRTIO_NET_DEV * self,
     /* Setup first descriptor as virtio_net_hdr */
     desc = &vq->vring.desc[head];
     //TODO This can be optimized by do virt_to_phys once and remembering it's result
-    desc->addr = jet_virt_to_phys(virtio_net_hdr_ptr);
+    desc->addr = jet_virt_to_phys(&virtio_heap_mb, virtio_net_hdr_ptr);
     desc->len = sizeof(*virtio_net_hdr_ptr);
     desc->flags = VRING_DESC_F_NEXT;
 
@@ -219,7 +219,7 @@ ret_t send_frame(VIRTIO_NET_DEV * self,
     memcpy(dev->send_buffers[head].data, buffer, size);
 
     desc = &vq->vring.desc[desc->next];
-    desc->addr = jet_virt_to_phys(dev->send_buffers[head].data);
+    desc->addr = jet_virt_to_phys(&virtio_heap_mb, dev->send_buffers[head].data);
     /*
     if (desc->addr == 0) {
         PRINTF("%s: jet_virt_to_phys kvirtual address is wrong\n", __func__);
@@ -292,10 +292,9 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
         struct vring_used_elem *e = &vq->vring.used->ring[index];
         struct vring_desc *desc = &vq->vring.desc[e->id];
 
-        struct receive_buffer *buf = jet_phys_to_virt(desc->addr);
+        struct receive_buffer *buf = jet_phys_to_virt(&virtio_heap_mb, desc->addr);
         /*
         if (buf == 0) {
-            //FIXME
             PRINTF("%s: jet_phys_to_virt physical address is wrong\n", __func__);
             unlock_preemption(&saved_preemption);
             return;

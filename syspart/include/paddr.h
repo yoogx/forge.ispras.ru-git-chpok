@@ -17,20 +17,38 @@
 #define __POK_SYSPART_PADDR_H__
 #include <assert.h>
 
-static inline uint64_t jet_virt_to_phys(void *virt) {
-    assert((uintptr_t) virt>=0x81000000);
-    assert((uintptr_t) virt<=0x82000000);
-    uint64_t phys = (uintptr_t) virt - 0x80000000 + 0x4000000;
-    printf("%s %p -> 0x%llx\n", __func__, virt, phys);
-    return phys;
+/*
+ * Converts virtiual address in memory block to physical address
+ */
+static inline uint64_t jet_virt_to_phys(jet_memory_block_status_t *mb, void *virt_ptr) {
+    if (mb->paddr == 0) {
+        printf("%s: Memory block paddr == 0. Memory block inn't contiguous?"
+                "Memory block addr = 0x%x\n", __func__, mb->addr);
+        abort();
+    }
+
+    uintptr_t vaddr = (uintptr_t) virt_ptr;
+    assert(vaddr >= mb->addr);
+    assert(vaddr < mb->addr+mb->size);
+
+    return vaddr - mb->addr + mb->paddr;
 }
 
-static inline void* jet_phys_to_virt(uint64_t phys) {
-    assert(phys>=0x5000000);
-    assert(phys<=0x6000000);
-    void *virt = (void *)(phys - 0x4000000 + 0x80000000);
-    printf("%s 0x%llx -> %p\n", __func__, phys, virt);
-    return virt;
+/*
+ * Converts physical address in memory block to virtual address
+ */
+
+static inline void* jet_phys_to_virt(jet_memory_block_status_t *mb, uint64_t phys) {
+    if (mb->paddr == 0) {
+        printf("%s: Memory block paddr == 0. Memory block inn't contiguous?"
+                "Memory block addr = 0x%x\n", __func__, mb->addr);
+        abort();
+    }
+    assert(phys >= mb->paddr);
+    assert(phys < mb->paddr+mb->size);
+    uintptr_t vaddr = (uintptr_t)(phys-mb->paddr) + mb->addr;
+
+    return (void *)vaddr;
 }
 
 #endif
