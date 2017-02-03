@@ -91,8 +91,10 @@ class TLBEntry(SerializableObject):
         For cache_policy string return its integer representation.
         """
         # Currently only default cache policy is supported.
-        assert cache_policy == "DEFAULT"
-        return 0
+        if cache_policy == "DEFAULT":
+            return "0"
+        elif cache_policy == "IO":
+            return "MAS2_W | MAS2_I | MAS2_M | MAS2_G" # WRITE_TROUGH(redundand)+Cache_OFF+GUARDED+COHERENCY
 
 
 class PhysMemoryBlockPPC(PhysMemoryBlock):
@@ -117,7 +119,7 @@ class PhysMemoryBlockPPC(PhysMemoryBlock):
 class PhysMemoryTypePPC(PhysMemoryType):
     def isCacheSupported(self, cache_policy):
         # Currently only DEFAULT cache policy is supported.
-        return cache_policy == "DEFAULT"
+        return cache_policy in ["DEFAULT", "IO"]
 
     def allocPhysBlock(self, paddr, size):
         """
