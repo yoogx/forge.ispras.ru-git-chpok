@@ -22,12 +22,12 @@ import os
 Import('syspart_env')
 
 COMPONENTS_DIRS = [
-        'arinc',
-        'udp_ip',
-        'mac',
-        'virtio',
-        'arp',
-        'ppc_dtsec'
+        'arinc'
+        ,'udp_ip'
+        ,'mac'
+        ,'virtio'
+        ,'arp'
+        #,'ppc_dtsec'
         ]
 COMPONENTS_PATH = os.path.join(syspart_env["JETOS_HOME"], "syspart/components")
 CONFIG = "config.yaml"
@@ -119,13 +119,12 @@ if syspart_env.get('cdeveloper'):
     sys.path.insert(1, os.path.join(comp_env["JETOS_HOME"], "misc"))
     import template_generation
     AddMethod(comp_env, template_generation.TemplateRender)
-    comp_env.Append(
+    comp_env.Replace(
             NO_DEPS = 1,
             SOURCE_BASE_DIR = comp_env['JETOS_HOME'],
             GENERATE_TITLE = template_generation.generate_title_c
             )
-    COMPONENTS_DEFAULT_TARGET = os.path.join(COMPONENTS_PATH, 'generate_components_files')
-    comp_env.Command(COMPONENTS_DEFAULT_TARGET, [], '')
+    COMPONENTS_DEFAULT_TARGET = comp_env.Command( '#/generate_components_files', [], '')
     Default(COMPONENTS_DEFAULT_TARGET)
 
     generate_component_files()

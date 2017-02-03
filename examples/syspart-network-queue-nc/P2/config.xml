@@ -49,7 +49,17 @@
     </HM_Table>
 
     <Memory_Blocks>
+        <!-- Powerpc only -->
         <Memory_Block Name="PCI_IO" Size="0x10000" Access="RW" PhysicalAddress="0xe1000000"/>
+
+        <Memory_Block Name="PCI_Express_1" Size="0x1000" Access="RW" PhysicalAddress="0xfe0008000"/>
+        <!--
+        <Memory_Block Name="PCI_Express_1" Size="0x1000" Access="RW" PhysicalAddress="0xfe200000"/>
+        -->
+
+        <Memory_Block Name="Virtio_Heap" Size="0x1000000" Access="RW" Contiguous="true"/>
+
+
     </Memory_Blocks>
 
 </Partition>

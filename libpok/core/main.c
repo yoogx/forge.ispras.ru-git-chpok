@@ -27,7 +27,7 @@ int __pok_partition_start (void)
 {
    jet_memory_block_status_t kshd_status;
 
-   if(pok_memory_block_get_status(".KSHD", &kshd_status) != POK_ERRNO_OK) {
+   if(jet_memory_block_get_status(".KSHD", &kshd_status) != POK_ERRNO_OK) {
        // Without kshd many things are not worked, even printf.
        abort();
    }

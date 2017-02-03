@@ -25,7 +25,7 @@ void GET_MEMORY_BLOCK_STATUS (
     pok_ret_t core_ret;
     jet_memory_block_status_t mb_status;
 
-    core_ret = pok_memory_block_get_status(MEMORY_BLOCK_NAME,
+    core_ret = jet_memory_block_get_status(MEMORY_BLOCK_NAME,
         &mb_status);
 
     if (core_ret != POK_ERRNO_OK) {

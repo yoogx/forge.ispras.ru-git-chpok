@@ -1,3 +1,66 @@
+LAW (local access windows):
+         law[0 ] BAR=0:eff00000  ARn=81f00013 (size=0x8000,     eLBC)
+         law[1 ] BAR=0:c0000000  ARn=81f0001c (size=0x10000000, eLBC)
+         law[2 ] BAR=0:f4000000  ARn=81800014 (size=0x100000,   buffer manager)
+         law[3 ] BAR=0:f4200000  ARn=83c00014 (size=0x100000,   queue manager)
+         law[4 ] BAR=0:ffef0000  ARn=81f0000f (size=0x8000,     LBC)
+         law[5 ] BAR=0:f0000000  ARn=81d00018 (size=0x1000000,  CSR (debug))
+         law[6 ] BAR=0:80000000  ARn=8000001c (size=0x10000000, PCI Express 1)
+         law[7 ] BAR=0:f8000000  ARn=8000000f (size=0x8000,     PCI Express 1)
+         law[8 ] BAR=0:a0000000  ARn=8010001c (size=0x10000000, PCI Express 2)
+         law[9 ] BAR=0:f8010000  ARn=8010000f (size=0x8000,     PCI Express 2)
+         law[31] BAR=0:0         ARn=8100001d (size=0x20000000, Memory controller)
+
+
+Simple example of code to print LAW
+struct LAW_regs {
+    uint32_t barh;
+    uint32_t barl;
+    uint32_t ar;
+    uint32_t pad;
+};
+void LAW_list()
+{
+    struct LAW_regs *law = (struct LAW_regs *)(ccsrbar_vaddr + 0xC00);
+    for (int i = 0; i < 32; i++) {
+        printf("\t law %d  %lx:%lx [ar = %lx]\n", i,
+                law[i].barh,
+                law[i].barl,
+                law[i].ar);
+    }
+}
+
+
+PCI ATMU:
+   outbound windows:
+         window 0   0 -> 0:0 [80044023] (size 0x100000)
+         window 1   80000 -> 0:80000 [8004401c] (size 0x20000000, MEM)
+         window 2   f8000 -> 0:0 [8008800f] (size 0x10000, IO)
+         window 3   0 -> 0:0 [0] // disabled
+         window 4   0 -> 0:0 [44023] // disabled
+   MSI window
+         window fe000 -> 0:0 [e44017]  // disabled
+   inbound windows:
+         window 0   0 -> 0:0 [20f44023] // disabled
+         window 1   0 -> 0:0 [20f44023]  // disabled
+         window 2   0 -> 0:0 [a0f5501d]  //(prefetchable, size 0x40000000)
+         window 3   fe000 -> 0:0 [80e44017] //(size 0x1000000)
+
+PCI ATMU2:
+   outbound windows:
+         window 0   0 -> 0:0 [80044023]
+         window 1   a0000 -> 0:a0000 [8004401c]
+         window 2   f8010 -> 0:0 [8008800f]
+         window 3   0 -> 0:0 [0]
+         window 4   0 -> 0:0 [44023]
+   MSI window
+         window fe000 -> 0:0 [e44017]
+   inbound windows:
+         window 0   0 -> 0:0 [20f44023]
+         window 1   0 -> 0:0 [20f44023]
+         window 2   0 -> 0:0 [a0f5501d]
+         window 3   fe000 -> 0:0 [80e44017]
+
 
 DCFG registers value
 ====== DCFG ==========

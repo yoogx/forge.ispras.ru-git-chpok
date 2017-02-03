@@ -206,8 +206,7 @@ void pok_arch_space_init (void)
     }
     pok_ppc_tlb_write(1,
             pok_bsp.ccsrbar_base, pok_bsp.ccsrbar_base_phys, E500MC_PGSIZE_16M,
-            //MAS3_SW | MAS3_SR | MAS3_SX,
-            MAS3_SW | MAS3_SR | MAS3_SX | MAS3_UW | MAS3_UR,
+            MAS3_SW | MAS3_SR | MAS3_SX,
             MAS2_W | MAS2_I | MAS2_M | MAS2_G,
             0,
             limit-1,
@@ -232,10 +231,6 @@ void pok_arch_space_init (void)
             );
     }
 }
-
-//TODO get this values from devtree!
-#define MPC8544_PCI_IO_SIZE      0x10000ULL
-#define MPC8544_PCI_IO           0xE1000000ULL
 
 void pok_arch_handle_page_fault(
         struct jet_interrupt_context *vctx,

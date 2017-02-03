@@ -233,6 +233,6 @@ SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_QUEUEING_CLEAR, pok_port_queuing_clear,
 #endif /* POK_NEEDS_PORTS_QUEUEING */
 
 
-SYSCALL_DECLARE(POK_SYSCALL_MEMORY_BLOCK_GET_STATUS, pok_memory_block_get_status,
+SYSCALL_DECLARE(POK_SYSCALL_MEMORY_BLOCK_GET_STATUS, jet_memory_block_get_status,
    const char*, name,
    jet_memory_block_status_t*, status)
