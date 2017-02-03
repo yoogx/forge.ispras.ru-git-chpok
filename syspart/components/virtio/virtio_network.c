@@ -380,8 +380,6 @@ static pok_bool_t init_device(VIRTIO_NET_DEV_state *state)
         || !setup_virtqueue(dev, VIRTIO_NETWORK_TX_VIRTQUEUE, &dev->tx_vq))
         return FALSE;
 
-    setup_receive_buffers(dev);
-
     //pok_bsp_irq_register(virtio_network_device.pci_device.irq_line, virtio_interrupt_handler);
 
     // 5. Device feature bits
@@ -415,10 +413,12 @@ static pok_bool_t init_device(VIRTIO_NET_DEV_state *state)
     dev->receive_buffers = jet_sallocator_alloc_array(&virtio_allocator,
             sizeof(*dev->receive_buffers),
             dev->rx_vq.vring.num);
-    if (dev->send_buffers == NULL) {
+    if (dev->receive_buffers == NULL) {
         PRINTF("heap alloc return zero (not enough memory)\n");
         return FALSE;
     }
+
+    setup_receive_buffers(dev);
 
     return TRUE;
 }
