@@ -1,3 +1,5 @@
+target extended-remote 127.0.0.1:8000
+
 define Push_to_breakpoints_reason
     set breakpoints[Head_of_breakpoints - 1].Reason = $arg0
     end
