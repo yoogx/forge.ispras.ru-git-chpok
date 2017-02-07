@@ -93,7 +93,6 @@ typedef enum
      POK_SYSCALL_PARTITION_INC_LOCK_LEVEL            = 411,
      POK_SYSCALL_PARTITION_DEC_LOCK_LEVEL            = 412,
 #endif
-
      POK_SYSCALL_MEMORY_BLOCK_GET_STATUS             = 701,
 } pok_syscall_id_t;
 

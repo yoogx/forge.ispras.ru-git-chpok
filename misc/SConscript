@@ -134,7 +134,7 @@ for name in preset_var_names:
 if not 'BOARD_IS_EMULATED' in env:
     env['BOARD_IS_EMULATED'] = False
 
-if not 'BOARD_PHYS_SIZE' in env and 'BOARD_IS_EMULATED' in env:
+if not 'BOARD_PHYS_SIZE' in env and env['BOARD_IS_EMULATED']:
     env['BOARD_PHYS_SIZE'] = 2**27 #default value for QEMU
 
 

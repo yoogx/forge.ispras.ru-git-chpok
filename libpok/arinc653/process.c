@@ -178,6 +178,7 @@ void CREATE_PROCESS (
 
     if (core_ret != POK_ERRNO_OK) return;
     
+    kshd->tshd[core_process_id].private_data = NULL;
     *process_id = core_process_id + 1;
 }
 
