@@ -28,14 +28,15 @@ Export('kernel_env')
 core = SConscript('core/SConscript')
 libc = SConscript('libc/SConscript')
 arch = SConscript('arch/SConscript')
-bsp_target = SConscript(kernel_env['JETOS_HOME'] + '/boards/SConscript',
-	variant_dir = 'boards',
-	duplicate = 0
+bsp_objects = SConscript(kernel_env['JETOS_HOME'] + '/boards/SConscript',
+        variant_dir = 'boards',
+        duplicate = 0
 )
 
-kernel_objects=[core, libc, arch, bsp_target]
+kernel_objects=[core, libc, arch, bsp_objects]
 
-kernel_target = kernel_env.Program(target = 'core.lo', source = kernel_objects)
+kernel_target = kernel_env.StaticLibrary(target = 'kernel',
+    source = kernel_objects)
 
 if kernel_env.get('jdeveloper'):
     import sys

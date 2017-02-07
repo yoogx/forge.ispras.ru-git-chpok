@@ -101,8 +101,6 @@ if ARGUMENTS.get('VERBOSE') != "1":
 
 
 # Flags common for all architectures
-# Linker flags for '.lo' objects, but not for '.elf'
-env['LINKFLAGS'] = '-r'
 env.Append(QEMU_FLAGS = ' -serial stdio')
 # 16 MBytes
 env['MAX_PART_SIZE'] = 16 * 2**20
