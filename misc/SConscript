@@ -134,6 +134,10 @@ for name in preset_var_names:
 if not 'BOARD_IS_EMULATED' in env:
     env['BOARD_IS_EMULATED'] = False
 
+if not 'BOARD_PHYS_SIZE' in env and 'BOARD_IS_EMULATED' in env:
+    env['BOARD_PHYS_SIZE'] = 2**27 #default value for QEMU
+
+
 if not 'BOARD_PHYS_SIZE' in env:
     print "ERROR: Board '%s' doesn't set BOARD_PHYS_SIZE variable." % env['BSP']
     print "This is an error of board developers."
