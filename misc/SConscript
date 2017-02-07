@@ -176,6 +176,7 @@ def KernelEnvironment(env):
     """
     kernel_env = env.Clone()
     kernel_env['CPPPATH'] = env['KERNEL_CPPPATH']
+    kernel_env['LINKFLAGS'] = ' -T ' + kernel_env['LDSCRIPT_KERNEL']
     kernel_env.Append(CFLAGS = ' ' + env.get('CFLAGS_KERNEL', default = ''))
     return kernel_env
 
@@ -185,6 +186,7 @@ def PartitionEnvironment(env):
     """
     part_env = env.Clone()
     part_env['CPPPATH'] = env['LIBPOK_CPPPATH']
+    part_env['LINKFLAGS'] = ' -T ' + part_env['LDSCRIPT_PARTITION']
     part_env.Append(CFLAGS = ' -include '+ part_env['JETOS_HOME']+'/libpok/include/config.h')
     return part_env
 

@@ -449,9 +449,6 @@ pok_env.Depends(compile_sizes, merge_target)
 pok_elf_env = pok_env.Clone()
 
 ldscript_kernel = pok_env['LDSCRIPT_KERNEL']
-# Rewrite LINKFLAGS, as we build '.elf'.
-pok_elf_env['LINKFLAGS'] = ' -T ' + ldscript_kernel
-
 
 pok_target = pok_elf_env.Program(target = module_build_dir+'/pok.elf',
     source = compile_sizes + kernel_target + deployment_kernel +

@@ -173,9 +173,6 @@ deployment_target = part_env.TemplateRender(
 part_elf_env = part_env.Clone()
 
 ldscript_partition = part_env['LDSCRIPT_PARTITION']
-# Rewrite LINKFLAGS, as we build '.elf'.
-part_elf_env['LINKFLAGS'] = ' -T ' + ldscript_partition
-
 
 if part_env.get('PARTITION_IS_SYSTEM', default = False):
 	syspart_target = part_env.get('SYSPART_TARGET', None)
