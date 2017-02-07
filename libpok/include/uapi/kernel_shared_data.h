@@ -98,6 +98,14 @@ struct jet_thread_shared_data
      */
     volatile uint8_t wq_priority;
 
+    /* 
+     * Data specific for the thread.
+     * 
+     * Set with jet_set_process_data() call, extracted with jet_get_my_data().
+     * 
+     * Used only by user space.
+     */
+    void* private_data;
 };
 
 /* Thread is killed. When last msection is leaved, jet_sched() should be called. */
