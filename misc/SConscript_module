@@ -403,9 +403,6 @@ if kernel_target is None:
 
 pok_env = env.KernelEnvironment()
 
-kernel_lo = pok_env.Program(target = module_build_dir+'/kernel.lo',
-    source = kernel_target + deployment_kernel + env['BOARD_DEPLOYMENT_SOURCES'])
-
 # there should (perhaps) also be padding to get aligned file size
 def merge_partitions(target, source, env):
     with open(str(target[0]), 'wb') as part:
@@ -457,7 +454,8 @@ pok_elf_env['LINKFLAGS'] = ' -T ' + ldscript_kernel
 
 
 pok_target = pok_elf_env.Program(target = module_build_dir+'/pok.elf',
-    source = compile_sizes + kernel_lo + [pok_env['LIBGCC']])
+    source = compile_sizes + kernel_target + deployment_kernel +
+            env['BOARD_DEPLOYMENT_SOURCES'] + [pok_env['LIBGCC']])
 pok_env.Depends(pok_target, [ldscript_kernel])
 
 pok_target_file = pok_target[0].abspath
