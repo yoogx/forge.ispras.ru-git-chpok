@@ -22,6 +22,8 @@ Build module according to module definition script and partition definition
 scripts.
 """
 
+#TODO `ARGUMENTS.get('debug')` change to Variable 'debug'. So debug will be in help
+
 # This script is called from SConscript, when it builds whole module.
 #
 # The script Import()s variable 'env' contained main environment.
@@ -84,7 +86,7 @@ scripts.
 # After that, for every partition (of total 'PARTITION_NUMBER'):
 # 1) environment for it is created,
 # 2) 'PARTITION_FILL' method is called
-# 3) Script 'SConscript_partition' is executed (that is, method 
+# 3) Script 'SConscript_partition' is executed (that is, method
 #    PARTITION_FILL' should set variables required for that script).
 #
 # After that, target for module's creation are generated.
@@ -96,6 +98,12 @@ import shutil
 
 import chpok_configuration
 import template_generation
+import types_requirements
+import jetos_configuration_internal
+import memory_definition
+
+import yaml
+
 
 Import('env')
 
@@ -117,6 +125,9 @@ def BuildKernel(env, variant_dir = None):
 
 env.AddMethod(BuildKernel)
 
+# Store value of BOARD_PHYS_SIZE variable before calling module definition script.
+board_phys_size_origin = env['BOARD_PHYS_SIZE']
+
 env.SConscript(dirs = env['MODULE_SOURCE_DIR'],
     exports = 'env',
     variant_dir = module_build_dir,
@@ -130,6 +141,7 @@ partition_build_dirs = []
 partition_clean_dirs = []
 partition_xmls = []
 partition_elfs = []
+partitions_elf_map = dict()
 
 for part_index in range(env['PARTITIONS_NUMBER']):
     part_env = env.PartitionEnvironment()
@@ -138,48 +150,251 @@ for part_index in range(env['PARTITIONS_NUMBER']):
 
     part_elf = SConscript('SConscript_partition', exports = 'part_env')
     partition_elfs.append(part_elf)
+    partitions_elf_map[part_env['PARTITION_NAME']] = part_elf[0].abspath
     partition_build_dirs.append(part_env['PARTITION_BUILD_DIR'])
     partition_clean_dirs.extend(part_env['PARTITION_CLEAN_DIRS'])
     partition_xmls.append(part_env['PARTITION_XML'])
 
+env['PARTITIONS_ELF_MAP'] = partitions_elf_map
+
+# Check if module requests *more physical memory* than board provides.
+#
+# Note: Module is allowed to request *less physical memory* than board
+# provide even in case non-emulated board. In that case
+# BOARD_DEPLOY_FUNCTION should use as much memory as requested by
+# the module.
+board_phys_size_new = env['BOARD_PHYS_SIZE']
+if board_phys_size_new > board_phys_size_origin:
+    # Requesting more physical memory is allowed only for emulated targets.
+    if not env['BOARD_IS_EMULATED']:
+        print "ERROR: Module require physical memory of size %x, but board has only %x." % (board_phys_size_new, board_phys_size_origin)
+        print "HINT: Extending physical memory is allowed only for emulated boards."
+        Exit(1)
+
+if env['BOARD_IS_EMULATED']:
+    # Check that physical memory size has alignment suitable for QEMU
+    if board_phys_size_new % 2**20:
+        print "ERROR: Phisical size of emulated board should be divisible by 1M, but it is %d." % board_phys_size_new
+
 AddMethod(env, template_generation.TemplateRender)
 
-def get_pok_definitions(source, env):
-    conf = env['MODULE_PARSE_CONFIGURATION'](source, env)
-    conf.validate()
-    return dict(conf = conf)
-
-
-def get_pok_gdb_definitions(source, env):
-    defs = dict(conf = env['MODULE_PARSE_CONFIGURATION'](source, env),
-        partition_build_dirs = partition_build_dirs)
-
-    return defs
-
 module_xml = env.toAbsPathList(env['MODULE_XML'], env['MODULE_SOURCE_DIR'])
+
+def create_conf_total(target, source, env):
+    """
+    Create YAML file with "total" configuration.
+    TODO: More useful name.
+    """
+    conf = env['MODULE_PARSE_CONFIGURATION'](source, env)
+
+    treqs = types_requirements.TypesRequirements()
+    treqs.load_from_yaml(env['TYPES_REQUIREMENTS_YAML'])
+
+    conf_internal = jetos_configuration_internal.ConfigurationInternal.from_normal(conf, treqs)
+
+    conf_internal.save_to_file(target[0].abspath)
+
+conf_total = env.Command(
+    target = os.path.join(module_build_dir, "conf_total.yaml"),
+    source = module_xml + partition_xmls,
+    action = Action(create_conf_total, '$CONF_TOTAL_COMSTR')
+)
+
+env.Depends(conf_total, env['TYPES_REQUIREMENTS_YAML'])
+
+
+def create_memory_constraints(source, target, env):
+    """
+    Create memory constraints file from configuration file and
+    BOARD_PHYS_SIZE variable (as string).
+    """
+    conf = jetos_configuration_internal.ConfigurationInternal.load_from_file(source[0].abspath)
+    phys_total = int(source[1].get_contents()) # Extracts value from Node.
+
+    md = conf.create_memory_constraints(env, phys_total)
+
+    md.save_to_file(target[0].abspath)
+
+# Generate 'memory_constrains.yaml' for arch processing.
+memory_constraints = env.Command(
+    target = os.path.join(module_build_dir, "memory_constraints.yaml"),
+    source = [conf_total,
+        env.Value(str(env['BOARD_PHYS_SIZE'])) # This is Node for value.
+    ],
+    action = Action(create_memory_constraints, '$MEMORY_CONSTRAINTS_COMSTR')
+)
+
+env.Depends(memory_constraints, partition_elfs)
+
+memory_definitions_file = os.path.join(module_build_dir, "memory_definitions.yaml")
+
+env['BOARD_DEPLOYMENT_SOURCES'] = []
+
+env['BOARD_DEPLOY'](env, memory_definitions_file, memory_constraints)
+
+
+class MemoryBlockInitEntry:
+    """
+    General initialization entry for memory blocks.
+    """
+    __slots__ = [
+        'init_type', # Type of the initialization, 'ZERO' or 'ELF'.
+        'source_id', # Identificator of the source for given initialization type.
+        'part_index', # Index of the partition to which memory blocks belong to.
+        'memory_blocks', # Non-empty list of memory blocks from the same partition.
+    ]
+    def __init__(self, init_type, source_id, part_index, memory_blocks):
+        self.init_type = init_type
+        self.source_id = source_id
+        self.part_index = part_index
+
+        if self.init_type == "ELF":
+            # For 'ELF' initialization memory blocks should be ordered by vaddr.
+            self.memory_blocks = sorted(memory_blocks)
+        else:
+            # For other initializations order of memory blocks is not required.
+            self.memory_blocks = memory_blocks
+
+def create_definitions_for_deployment(source, env):
+    """
+    Create dictionary with definitions for deployment.c
+
+    Assume source[0] to be conf_total, source[1] - memory_definitions.
+    """
+    conf = jetos_configuration_internal.ConfigurationInternal.load_from_file(source[0].abspath)
+    md = memory_definition.ModuleMemoryDefinition.load_from_file(source[1].abspath)
+
+    # Process memory blocks
+    md.memory_block_init_entries = [] # List of MemoryBlockInitEntry
+
+    # First, check shared blocks.
+    for memory_block_sharing in md.memory_block_sharings:
+        # Only 'MODULE' initialization stage is allowed for shared blocks.
+        # All blocks within share should have same initialization politic.
+
+        # First memory block in a sharing list. Note: We know that sharing is not empty.
+        first_mb_ref = memory_block_sharing.mb_refs[0]
+        first_mb = md.partitions[first_mb_ref.part_index].memory_blocks[first_mb_ref.mb_index]
+
+        # Source for initialization at 'MODULE' stage. Should be common for all blocks in sharing.
+        module_init_source = first_mb.init_source
+
+        for memory_block_ref in memory_block_sharing.mb_refs:
+            part = md.partitions[memory_block_ref.part_index]
+            memory_block =  part.memory_blocks[memory_block_ref.mb_index]
+
+            if memory_block.init_source != module_init_source:
+                raise RuntimeError("Memory blocks in sharing use different initialization sources.")
+
+            if module_init_source is not None:
+                if memory_block.init_stage != 'MODULE':
+                    raise RuntimeError("Only 'MODULE' initialization stage is allowed for shared memory blocks.")
+                # Clear initialization of the memory block: We will process it for the whole share.
+                memory_block.init_stage = None
+                memory_block.init_source = None
+        if module_init_source is None:
+            continue
+
+        # Process initialization of the share.
+        if module_init_source != "ZERO":
+            raise RuntimeError("Only 'ZERO' initialization is allowed at 'MODULE' stage.")
+
+
+        # Initialize via the first memory block in the share.
+        mb_init_entry = MemoryBlockInitEntry(
+            init_type = module_init_source,
+            source_id = 0,
+            part_index = first_mb_ref.part_index,
+            memory_blocks = [first_mb]
+        )
+        md.memory_block_init_entries.append(mb_init_entry)
+
+    for part, pmd in zip(conf.partitions, md.partitions):
+        # Create initialization records
+        pmd.memory_block_init_entries = {'PARTITION': [], 'PARTITION:COLD': []} # Lists of MemoryBlockInitEntry
+
+        elf_blocks = {'MODULE': [], 'PARTITION': [], 'PARTITION:COLD': []}
+        zero_blocks = {'MODULE': [], 'PARTITION': [], 'PARTITION:COLD': []}
+
+        for mbd in pmd.memory_blocks:
+            if mbd.init_source is None:
+                continue
+            elif mbd.init_source == "ELF":
+                elf_blocks[mbd.init_stage].append(mbd)
+            elif mbd.init_source == "ZERO":
+                zero_blocks[mbd.init_stage].append(mbd)
+
+        for stage_id in ['PARTITION', 'PARTITION:COLD']:
+            if len(elf_blocks[stage_id]) > 0:
+                pmd.memory_block_init_entries[stage_id].append(
+                    MemoryBlockInitEntry('ELF', 0, part.index, elf_blocks[stage_id])
+                )
+            if len(zero_blocks[stage_id]) > 0:
+                pmd.memory_block_init_entries[stage_id].append(
+                    MemoryBlockInitEntry('ZERO', 0, part.index, zero_blocks[stage_id])
+                )
+
+        if len(elf_blocks['MODULE']) > 0:
+            md.memory_block_init_entries.append(
+                MemoryBlockInitEntryModule('ELF', 0, part.index, elf_blocks['MODULE'])
+            )
+        if len(zero_blocks['MODULE']) > 0:
+            md.memory_block_init_entries.append(
+                MemoryBlockInitEntryModule('ZERO', 0, part_index, zero_blocks['MODULE'])
+            )
+
+    return {'conf': conf, 'memory_definitions': md}
 
 # Generate "deployment.c" for kernel
 deployment_kernel = env.TemplateRender(
     target = os.path.join(module_build_dir, "deployment.c"),
-    source = module_xml + partition_xmls,
-    create_definitions_func = get_pok_definitions,
+    source = conf_total + [memory_definitions_file],
+    create_definitions_func = create_definitions_for_deployment,
     template_main = "deployment_kernel",
     template_dir = env['JETOS_HOME'] + "/misc/templates",
     GENERATE_TITLE = template_generation.generate_title_c_no_track
     )
 
 
-# Generate file with commands for GDB for possible debugging
-gdb_commands = env.TemplateRender(
-    target = module_build_dir + "/GDB_commands",
-    source = module_xml + partition_xmls,
-    create_definitions_func = get_pok_gdb_definitions,
-    template_main = "GDB_commands",
-    template_dir = env['JETOS_HOME'] + "/misc/templates",
-    GENERATE_TITLE = template_generation.generate_title_python_no_track
-    )
+def create_definitions_for_gdb(source, env):
+    """
+    Create dictionary with definitions for deployment.c
 
-gdb_commands_file = gdb_commands[0].abspath
+    Assume source[0] to be conf_total.
+    """
+    conf = jetos_configuration_internal.ConfigurationInternal.load_from_file(source[0].abspath)
+
+    return {'conf': conf,
+        'partitions_elf_map': partitions_elf_map,
+        'pok_target_file': pok_target_file
+    }
+
+
+gdb_commands_file = os.path.join(module_build_dir, "GDB_commands")
+
+def gdb_commands_action(target, source, env):
+    with open(target[0].abspath, 'w') as f:
+        f.write('source ' + source[0].path)
+
+
+if ARGUMENTS.get('debug'):
+
+    if ARGUMENTS.get('debug') not in ['jetos', 'qemu']:
+        print("wrong debug value:", ARGUMENTS.get('debug'))
+        Exit(1)
+
+    # Generate file with commands for GDB for possible debugging
+    gdb_commands_spec = env.TemplateRender(
+        target = module_build_dir + "/GDB_commands_" + ARGUMENTS.get('debug'),
+        source = conf_total,
+        create_definitions_func = create_definitions_for_gdb,
+        template_main = "GDB_commands_" + ARGUMENTS.get('debug'),
+        template_dir = env['JETOS_HOME'] + "/misc/templates",
+        GENERATE_TITLE = template_generation.generate_title_python_no_track
+        )
+    gdb_commands = env.Command(gdb_commands_file, gdb_commands_spec, Action(gdb_commands_action, '$GDB_COMMANDS_COMSTR'))
+
+
 
 kernel_target = env.get('KERNEL_TARGET', None)
 # By default, build kernel locally to the example
@@ -189,7 +404,7 @@ if kernel_target is None:
 pok_env = env.KernelEnvironment()
 
 kernel_lo = pok_env.Program(target = module_build_dir+'/kernel.lo',
-    source = kernel_target + deployment_kernel)
+    source = kernel_target + deployment_kernel + env['BOARD_DEPLOYMENT_SOURCES'])
 
 # there should (perhaps) also be padding to get aligned file size
 def merge_partitions(target, source, env):
@@ -264,18 +479,28 @@ def unsupported_run_command(target, source, env):
 
 
 def define_run_command(command, qemu_action, depends = []):
+    if ARGUMENTS.get('debug'):
+        depends.append(gdb_commands)
+        if ARGUMENTS.get('debug') == 'jetos':
+            qemu_action += ' -serial tcp::8000,server'
+        elif ARGUMENTS.get('debug') == 'qemu':
+            qemu_action += ' -S -s'
+
     bsp_id = str_to_id(env['BSP'])
     command_id = str_to_id(command)
     script = os.environ.get('JETOS_' + command_id + "_" + bsp_id, "")
     if script != "":
         action = script + " " + pok_target_file
-    elif env.get('BOARD_IS_EMULATED', False):
+    elif env['BOARD_IS_EMULATED']:
         action = qemu_action
     else:
         action = unsupported_run_command
 
     env.Command(command + '_cmd', depends, action)
     env.Alias(command, command + '_cmd')
+
+# Always explicitely set size of memory for QEMU.
+env.Append(QEMU_FLAGS = ' -m %dM' % (env['BOARD_PHYS_SIZE'] / 2**20))
 
 env.Append(QEMU_FLAGS = ' -kernel '+pok_target_file)
 
@@ -295,22 +520,22 @@ define_run_command('run-tap-ne2k',
     '$QEMU $QEMU_FLAGS -net nic,model=ne2k_pci,vlan=0 -net nic,model=ne2k_pci,vlan=1 -net tap,ifname=tap0,script=no,downscript=no,vlan=0, -net tap,ifname=tap1,script=no,downscript=no,vlan=1'
 )
 
-define_run_command('run-gdb',
-    '$QEMU $QEMU_FLAGS -serial tcp::8000,server'
-)
 
-define_run_command('rundbg',
-    '$QEMU $QEMU_FLAGS -S -s'
-)
+def check_gdb_commands_file_exists(target, source, env):
+    """
+    check if gdb_commands file exists. If not then prints message to help find out the problem.
 
-define_run_command('debug',
-    '$GDB '+pok_target_file+' -ex "target remote :1234"'
-)
+    TODO: Message probably will be unnecessary when 'debug' argument will became Variable
+    """
+    if not os.path.exists(gdb_commands_file):
+        print("gdb commands file not found. Call scons debug=<'qemu' or 'jetos'> first")
+        return 1
 
-define_run_command('debug-gdb',
-    '$GDB '+pok_target_file+' -ex "source '+gdb_commands_file+'" -ex "target extended-remote 127.0.0.1:8000"',
-    depends = gdb_commands
-)
+env.Command('gdb_cmd', [], action=[
+    check_gdb_commands_file_exists,
+    '$GDB '+pok_target_file+' -ex "source ' + gdb_commands_file + '"',
+    ])
+env.Alias('gdb', 'gdb_cmd')
 
 module_clean_dirs = env.get('MODULE_CLEAN_DIRS', module_build_dir)
 if type(module_clean_dirs) is not list:

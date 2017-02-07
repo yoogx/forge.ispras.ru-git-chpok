@@ -58,6 +58,13 @@ SECTIONS
     . = ALIGN(4);
     __data_end = .;
   }
+  .eh_frame :
+  {
+  .eh_frame_start = .;
+  *(.eh_frame*)
+  . = ALIGN (4);
+  .eh_frame_end = .;
+  }
   .sbss :
   {
     __sbss_start = .;
@@ -74,13 +81,6 @@ SECTIONS
     . = ALIGN(4);
     __sbss2_end = .;
   }
-  .eh_frame :
-  {
-  .eh_frame_start = .;
-  *(.eh_frame*)
-  . = ALIGN (4);
-  .eh_frame_end = .;
-  }
   .bss  :
   {
    __bss_start = .;
@@ -92,7 +92,8 @@ SECTIONS
 
    /* Allocate the main stack area.  Make sure it starts 16bytes aligned
       to accommodate any possible program expectation.  */
-   _stack = ALIGN(16) + 0x1000;
-   _end = _stack;
+   . = ALIGN(16) + 0x1000;
+   jet_entry_stack = .;
+   _end = .;
   }
 }

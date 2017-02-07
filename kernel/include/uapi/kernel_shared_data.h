@@ -147,24 +147,6 @@ struct jet_kernel_shared_data
      */
     pok_thread_id_t max_n_threads;
 
-    /* 
-     * Start of the heap.
-     * 
-     * Set by the kernel in elf loader.
-     * 
-     * Read by the user for his allocator.
-     */
-    char* heap_start;
-
-    /* 
-     * End of the heap.
-     * 
-     * Set by the kernel according to configuration.
-     * 
-     * Read by the user for his allocator.
-     */
-    char* heap_end;
-
     /* Open-bounds array of thread shared data. */
     struct jet_thread_shared_data tshd[];
 };

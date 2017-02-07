@@ -35,30 +35,19 @@
 
 #define KERNEL_STACK_SIZE 8192
 
-void ja_space_layout_get(jet_space_id space_id,
-    struct jet_space_layout* space_layout)
+size_t ja_ustack_get_alignment(void)
 {
-    assert(space_id != 0 && space_id <= ja_spaces_n);
-
-    space_layout->kernel_addr = (char*)ja_spaces[space_id - 1].phys_base;
-    space_layout->user_addr = (char* __user)POK_PARTITION_MEMORY_BASE;
-    space_layout->size = ja_spaces[space_id - 1].size_normal;
+    return 16;
 }
 
-struct jet_kernel_shared_data* __kuser ja_space_shared_data(jet_space_id space_id)
-{
-    struct ja_x86_space* space = &ja_spaces[space_id - 1];
-    return (struct jet_kernel_shared_data* __kuser)space->phys_base;
-}
+/*
+ * All segments has RWX access. So kernel may write to them at any time.
+ */
+void ja_uspace_grant_access(void) {}
+void ja_uspace_revoke_access(void) {}
 
-static const size_t ja_user_space_maximum_alignment = 16;
-
-void __user* ja_space_get_heap(jet_space_id space_id)
-{
-   struct ja_x86_space* space = &ja_spaces[space_id - 1];
-
-   return (void __user*)(space->heap_end - space->size_heap);
-}
+void ja_uspace_grant_access_local(jet_space_id space_id) {(void)space_id;}
+void ja_uspace_revoke_access_local(jet_space_id space_id) {(void)space_id;}
 
 
 jet_space_id current_space_id = 0;
@@ -67,7 +56,7 @@ void ja_user_space_jump(
     jet_stack_t stack_kernel,
     jet_space_id space_id,
     void (__user * entry_user)(void),
-    jet_ustack_t stack_user)
+    uintptr_t stack_user)
 {
     /*
      * Reuse layout of interrupt_frame structure, allocated on stack,
@@ -81,7 +70,7 @@ void ja_user_space_jump(
    uint32_t          data_sel;
    uint32_t          sp;
 
-   assert(space_id <= ja_spaces_n); //TODO: fix comparision
+   assert(space_id <= ja_segments_n); //TODO: fix comparision
 
    code_sel = GDT_BUILD_SELECTOR (GDT_PARTITION_CODE_SEGMENT (space_id), 0, 3);
    data_sel = GDT_BUILD_SELECTOR (GDT_PARTITION_DATA_SEGMENT (space_id), 0, 3);
@@ -126,74 +115,13 @@ static void ja_space_create (jet_space_id space_id,
 
 void ja_space_init(void)
 {
-    uintptr_t phys_start = POK_PARTITION_MEMORY_PHYS_START;
-    for(int i = 0; i < ja_spaces_n; i++)
+    for(int i = 0; i < ja_segments_n; i++)
     {
-        struct ja_x86_space* space = &ja_spaces[i];
+        const struct x86_segment* segment = &ja_segments[i];
 
-        /* 
-         * Code and data segments should be aligned on 4k;
-         */
-        size_t size_total = space->size_normal;
-
-        if(space->size_heap > 0)
-        {
-            /* Heap should be aligned on 16; (why?) */
-            size_total = ALIGN_VAL(size_total, 16) + space->size_heap;
-        }
-
-        // Store intermediate result.
-        space->heap_end =  size_total;
-
-        /* Stack should be aligned on 16; (why?) */
-        size_total = ALIGN_VAL(size_total, 16) + space->size_stack;
-
-        /* Such a way, next space will have alignment suitable for code and data. */
-        space->size_total = ALIGN_VAL(size_total, 0x1000);
-
-        if(space->phys_base == 0)
-        {
-            space->phys_base = ALIGN_VAL(phys_start, 0x1000);
-            phys_start = space->phys_base + space->size_total;
-        }
-        else
-        {
-            assert(space->phys_base >= POK_PARTITION_MEMORY_PHYS_START);
-            assert((space->phys_base & 0xfff) == 0);
-            uintptr_t phys_base_end = space->phys_base + space->size_total;
-            if(phys_start < phys_base_end)
-                phys_start = phys_base_end;
-        }
-        ja_space_create(i + 1, (uintptr_t)space->phys_base, space->size_total);
+        ja_space_create(i + 1, (uintptr_t)segment->paddr, segment->size);
     }
 }
-
-void ja_ustack_init (jet_space_id space_id)
-{
-    assert(space_id != 0);
-
-    struct ja_x86_space* space = &ja_spaces[space_id - 1];
-
-    space->size_stack_used = 0;
-}
-
-jet_ustack_t ja_ustack_alloc (jet_space_id space_id, size_t stack_size)
-{
-    assert(space_id != 0);
-
-    struct ja_x86_space* space = &ja_spaces[space_id - 1];
-
-    size_t size_stack_new = space->size_stack_used + ALIGN_VAL(stack_size, 16);
-
-    if(size_stack_new > space->size_stack) return 0;
-
-    jet_ustack_t result = POK_PARTITION_MEMORY_BASE + space->size_total - space->size_stack_used;
-
-    space->size_stack_used = size_stack_new;
-
-    return result;
-}
-
 void ja_space_switch (jet_space_id space_id)
 {
     if(current_space_id != 0) {
@@ -249,35 +177,4 @@ void ja_fp_restore(struct jet_fp_store* fp_store)
 void ja_fp_init(void)
 {
     // TODO
-}
-
-
-uintptr_t pok_virt_to_phys(uintptr_t virt)
-{
-    struct ja_x86_space* space = &ja_spaces[ja_space_get_current() - 1];
-
-    if((virt < POK_PARTITION_MEMORY_BASE)
-        || (virt > POK_PARTITION_MEMORY_BASE + space->size_total))
-    {
-        // Fatal error despite it is called from user space!!
-        printf("pok_virt_to_phys: wrong virtual address %p\n", (void*)virt);
-        pok_fatal("wrong pointer in pok_virt_to_phys\n");
-    }
-
-    return virt - POK_PARTITION_MEMORY_BASE + space->phys_base;
-}
-
-uintptr_t pok_phys_to_virt(uintptr_t phys)
-{
-    struct ja_x86_space* space = &ja_spaces[ja_space_get_current() - 1];
-
-    if((phys < space->phys_base)
-        || (phys >= space->phys_base + space->size_total))
-    {
-        // Fatal error despite it is called from user space!!
-        printf("pok_phys_to_virt: wrong physical address %p\n", (void*)phys);
-        pok_fatal("wrong pointer in pok_phys_to_virt\n");
-    }
-
-    return phys - space->phys_base + POK_PARTITION_MEMORY_BASE;
 }

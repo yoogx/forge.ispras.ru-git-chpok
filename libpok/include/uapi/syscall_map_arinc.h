@@ -452,7 +452,7 @@ static inline pok_ret_t pok_port_queuing_clear(pok_port_id_t id)
 #endif /* POK_NEEDS_PORTS_QUEUEING */
 
 
-static inline pok_ret_t pok_memory_block_get_status(const char* name,
+static inline pok_ret_t jet_memory_block_get_status(const char* name,
     jet_memory_block_status_t* status)
 {
     return pok_syscall2(POK_SYSCALL_MEMORY_BLOCK_GET_STATUS,

@@ -37,8 +37,6 @@
  */
 void pok_arch_init (void)
 {
-  mtmsr(MSR_IP | MSR_FP);
-
   ja_bsp_init();
 
   pok_arch_space_init();
@@ -65,7 +63,7 @@ void ja_inf_loop(void)
 {
    while (1)
    {
-      asm("wait": : :"memory");
+      //asm("wait": : :"memory");
    }
 }
 

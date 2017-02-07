@@ -13,19 +13,9 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <arch/deployment.h>
+#ifndef __JET_E500_HIGHMEM_CPU_CONFIG_H__
+#define __JET_E500_HIGHMEM_CPU_CONFIG_H__
 
-struct ja_x86_space ja_spaces[{{conf.spaces | length}}] =
-{
-{%for space in conf.spaces%}
-    {
-        //.phys_base is filled upon initialization
-        .size_normal = {{space.size}},
-        .size_heap = {{space.part.get_heap_size()}},
-        // Currently stack size is hardcoded to 8K.
-        .size_stack = {{space.part.get_needed_threads()}} * 8 * 1024
-    },
-{%endfor%}
-};
+#define JET_PPC_CONFIG_E500MC
 
-int ja_spaces_n = {{conf.spaces | length}};
+#endif /*__JET_E500_HIGHMEM_CPU_CONFIG_H__*/

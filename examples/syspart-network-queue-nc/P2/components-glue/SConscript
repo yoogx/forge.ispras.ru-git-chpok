@@ -81,14 +81,13 @@ if part_env.get('cdeveloper'):
     import template_generation
     AddMethod(part_env, template_generation.TemplateRender)
 
-    part_env.Append(
+    part_env.Replace(
             NO_DEPS = 1,
-            SOURCE_BASE_DIR = part_env['SCONSTRUCT_DIR'],
+            SOURCE_BASE_DIR = part_env['JETOS_HOME'],
             GENERATE_TITLE = template_generation.generate_title_c
             )
 
-    GLUE_DEFAULT_TARGET = "generate_glue_files"
-    part_env.Command(GLUE_DEFAULT_TARGET, [], '')
+    GLUE_DEFAULT_TARGET = part_env.Command( "#/generate_glue_files", [], '')
     Default(GLUE_DEFAULT_TARGET)
 
     generate_glue()

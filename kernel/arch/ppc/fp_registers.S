@@ -11,86 +11,125 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
  * See the GNU General Public License version 3 for more details.
- *
- * This file also incorporates work covered by POK License.
- * Copyright (c) 2007-2009 POK team
  */
 
 #include "msr.h"
+#include "asm_offsets_fp_store.h"
+#include "cpu.h"
 
-#define SAVE_FP(num) stfd %f##num,(8*num)(%r3)
-#define LOAD_FP(num) lfd %f##num,(8*num)(%r3)
+#ifdef JET_PPC_CONFIG_SPE_64
+/* We save and load only high 32bit of GPRs.
+   Low part of some GPRs are are already saved, low part of
+   others will be saved, and here we should not worry about it */
+#define SAVE_FP(num) evstwwe %r##num,(OFFSETOF_jet_fp_store_fp_regs + 4*num)(%r3)
+#define LOAD_FP(num) lwz %r4, (OFFSETOF_jet_fp_store_fp_regs + 4*num)(%r3); evmergelo %r##num, %r4, %r##num
+
+ /* save/load SPEFSCR */
+#define SAVE_FPSCR mfspefscr %r4; stw %r4,OFFSETOF_jet_fp_store_fp_fpscr(%r3)
+#define LOAD_FPSCR lwz %r4, OFFSETOF_jet_fp_store_fp_fpscr(%r3); mtspefscr %r4;
+
+/* copy rewrite high 32bit of r_num by highpart of r0 (which is zero) */
+#define COPY_VAL_FROM_FP0_TO(num) evmergehilo %r##num , %r0, %r##num
+
+#else
+
+#define COPY_VAL_FROM_FP0_TO(num) fmr %f##num, %f0
+#define SAVE_FP(num) stfd %f##num,(OFFSETOF_jet_fp_store_fp_regs + 8*num)(%r3)
+#define LOAD_FP(num) lfd %f##num,(OFFSETOF_jet_fp_store_fp_regs + 8*num)(%r3)
+
+#define SAVE_FPSCR mffs %f0; stfd %f0, OFFSETOF_jet_fp_store_fp_fpscr(%r3)
+#define LOAD_FPSCR lfd %f0, OFFSETOF_jet_fp_store_fp_fpscr(%r3); mtfsf 0xff, %f0
+#endif
 
 .macro ENABLE_FP
-    /* Enable floating point bit in msr. Note: uses %r4. */
+    /* Enable floating point bit in msr.
+     *
+     * NOTE: uses %r4.
+     */
     mfmsr %r4
-    ori %r4,%r4,MSR_FP
+    oris %r4,%r4, (MSR_ENABLE_FP)@h
+    ori %r4,%r4, (MSR_ENABLE_FP)@l
     mtmsr %r4
 .endm
 
 .macro DISABLE_FP
-    /* 
+    /*
      * Disable floating point bit in msr.
-     * 
+     *
      * NOTE: Assume fp being enabled previously.
      *
      * NOTE: uses %r4.
      */
     mfmsr %r4
-    subi %r4, %r4, MSR_FP
+    subis %r4, %r4, (MSR_ENABLE_FP)@h
+    subi %r4, %r4, (MSR_ENABLE_FP)@l
     mtmsr %r4
 .endm
-
 
     .rodata
     .align 4 # 4 words = 16 bytes
 zero_fp:
     .quad 0
-    
+
 
     .text
 
     .globl ja_fp_init
 ja_fp_init:
+
     ENABLE_FP
-    
+
+#ifdef JET_PPC_CONFIG_SPE_64
+    /* load zero to high 32bit of r0 */
+    li %r4, 0x0 //zero low 32bit of r4
+    evmergelo %r0, %r4, %r0 //zero high 32bit of r0
+
+    /* zero SPEFSCR */
+    mtspefscr %r4
+#else
+    /* load zero to %f0 */
     lis %r3, zero_fp@ha
     addi %r3, %r3, zero_fp@l
-    
     lfd %f0, 0(%r3)
-    
-    # Copy other registers from f0
-    fmr %f1, %f0
-    fmr %f2, %f0
-    fmr %f3, %f0
-    fmr %f4, %f0
-    fmr %f5, %f0
-    fmr %f6, %f0
-    fmr %f7, %f0
-    fmr %f8, %f0
-    fmr %f9, %f0
-    fmr %f10, %f0
-    fmr %f11, %f0
-    fmr %f12, %f0
-    fmr %f13, %f0
-    fmr %f14, %f0
-    fmr %f15, %f0
-    fmr %f16, %f0
-    fmr %f17, %f0
-    fmr %f18, %f0
-    fmr %f19, %f0
-    fmr %f20, %f0
-    fmr %f21, %f0
-    fmr %f22, %f0
-    fmr %f23, %f0
-    fmr %f24, %f0
-    fmr %f25, %f0
-    fmr %f26, %f0
-    fmr %f27, %f0
-    fmr %f28, %f0
-    fmr %f29, %f0
-    fmr %f30, %f0
-    fmr %f31, %f0
+
+    /* zero FPSCR */
+    lfd %f0, 0(%r3)
+    mtfsf 0xff, %f0
+#endif
+
+    /* copy val from FP0 (r0 if SPE and f0 if not) to others */
+    COPY_VAL_FROM_FP0_TO(1)
+    COPY_VAL_FROM_FP0_TO(2)
+    COPY_VAL_FROM_FP0_TO(3)
+    COPY_VAL_FROM_FP0_TO(4)
+    COPY_VAL_FROM_FP0_TO(5)
+    COPY_VAL_FROM_FP0_TO(6)
+    COPY_VAL_FROM_FP0_TO(7)
+    COPY_VAL_FROM_FP0_TO(8)
+    COPY_VAL_FROM_FP0_TO(9)
+    COPY_VAL_FROM_FP0_TO(10)
+    COPY_VAL_FROM_FP0_TO(11)
+    COPY_VAL_FROM_FP0_TO(12)
+    COPY_VAL_FROM_FP0_TO(13)
+    COPY_VAL_FROM_FP0_TO(14)
+    COPY_VAL_FROM_FP0_TO(15)
+    COPY_VAL_FROM_FP0_TO(16)
+    COPY_VAL_FROM_FP0_TO(17)
+    COPY_VAL_FROM_FP0_TO(18)
+    COPY_VAL_FROM_FP0_TO(19)
+    COPY_VAL_FROM_FP0_TO(20)
+    COPY_VAL_FROM_FP0_TO(21)
+    COPY_VAL_FROM_FP0_TO(22)
+    COPY_VAL_FROM_FP0_TO(23)
+    COPY_VAL_FROM_FP0_TO(24)
+    COPY_VAL_FROM_FP0_TO(25)
+    COPY_VAL_FROM_FP0_TO(26)
+    COPY_VAL_FROM_FP0_TO(27)
+    COPY_VAL_FROM_FP0_TO(28)
+    COPY_VAL_FROM_FP0_TO(29)
+    COPY_VAL_FROM_FP0_TO(30)
+    COPY_VAL_FROM_FP0_TO(31)
+
 
     DISABLE_FP
 
@@ -103,7 +142,7 @@ ja_fp_save:
     /* r3 - pointer to 'struct jet_fp_store'. */
 
     ENABLE_FP
-    
+
     SAVE_FP(0)
     SAVE_FP(1)
     SAVE_FP(2)
@@ -136,11 +175,14 @@ ja_fp_save:
     SAVE_FP(29)
     SAVE_FP(30)
     SAVE_FP(31)
-    
-    //TODO: Store FPSCR
-        
+
+    /* save floating point status and control (FPSCR if SPE, SPEFSCR if not) register
+     * NOTE: save_fpscr usese FP0, so we must save fp0 before
+     */
+    SAVE_FPSCR
+
     DISABLE_FP
-        
+
     blr
 
     .size ja_fp_save, . - ja_fp_save
@@ -150,7 +192,12 @@ ja_fp_restore:
     /* r3 - pointer to 'struct jet_fp_store'. */
 
     ENABLE_FP
-    
+
+    /* Load floating point status and control (FPSCR if SPE, SPEFSCR if not) register.
+     * We must load FPSCR before FP0 because loading FPSCR uses FP0
+     */
+    LOAD_FPSCR
+
     LOAD_FP(0)
     LOAD_FP(1)
     LOAD_FP(2)
@@ -183,11 +230,10 @@ ja_fp_restore:
     LOAD_FP(29)
     LOAD_FP(30)
     LOAD_FP(31)
-    
-    //TODO: Restore FPSCR
-        
+
+
     DISABLE_FP
-        
+
     blr
 
     .size ja_fp_restore, . - ja_fp_restore

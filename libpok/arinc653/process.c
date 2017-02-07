@@ -78,19 +78,19 @@ void GET_PROCESS_ID(
 void GET_MY_ID (PROCESS_ID_TYPE   *process_id,
 		RETURN_CODE_TYPE  *return_code )
 {
-    if(kshd.partition_mode != POK_PARTITION_MODE_NORMAL)
+    if(kshd->partition_mode != POK_PARTITION_MODE_NORMAL)
     {
         // Main thread has no id.
         *return_code = INVALID_MODE;
     }
-    else if(kshd.current_thread_id == kshd.error_thread_id)
+    else if(kshd->current_thread_id == kshd->error_thread_id)
     {
         // Error thread has no id.
         *return_code = INVALID_MODE;
     }
     else
     {
-        *process_id = kshd.current_thread_id + 1;
+        *process_id = kshd->current_thread_id + 1;
         *return_code = NO_ERROR;
     }
 }

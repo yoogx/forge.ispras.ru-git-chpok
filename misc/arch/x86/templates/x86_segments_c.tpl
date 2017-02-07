@@ -13,13 +13,16 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-/* (Memory) space. */
+#include <arch/deployment.h>
 
-#ifndef __JET_X86_SPACE_H__
-#define __JET_X86_SPACE_H__
+const struct x86_segment ja_segments[{{segments | length}}] =
+{
+{%for segment in segments%}
+    {
+        .paddr = {{"0x%x"|format(segment.paddr)}},
+        .size = {{segment.size}},
+    },
+{%endfor%}
+};
 
-#include <stdint.h>
-
-typedef uint32_t jet_ustack_t;
-
-#endif /* __JET_X86_SPACE_H__ */
+const int ja_segments_n = {{segments | length}};

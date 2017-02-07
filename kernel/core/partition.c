@@ -43,6 +43,8 @@ void pok_partition_init(pok_partition_t* part)
    {
       part->partition_events = NULL;
    }
+
+   part->is_local_access_granted = TRUE;
 }
 
 void for_each_partition(void (*f)(pok_partition_t* part))

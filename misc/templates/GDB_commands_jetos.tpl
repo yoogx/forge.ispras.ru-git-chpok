@@ -1,3 +1,5 @@
+target extended-remote 127.0.0.1:8000
+
 define Push_to_breakpoints_reason
     set breakpoints[Head_of_breakpoints - 1].Reason = $arg0
     end
@@ -469,8 +471,8 @@ define target hookpost-extended-remote
     set remotetimeout unlimited
     set schedule-multiple on
     set height 0
-{% for part_build_dir in partition_build_dirs %}
-    add-inferior -copies 1 -exec {{part_build_dir}}/part.elf"
+{% for part in conf.partitions %}
+    add-inferior -copies 1 -exec {{partitions_elf_map[part.name]}}"
     inferior {{ loop.index0 + 2 }}
     attach {{ loop.index0 + 2 }}
     

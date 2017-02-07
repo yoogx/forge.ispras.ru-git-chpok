@@ -1,5 +1,72 @@
-When copy example into your private location (your own package), cleanup
-heading lines of:
+Every example is located in its subdirectory.
+
+               Example content
+
+
+- ./SConstruct: Copied from SConstruct_module
+
+- ./SConscript: Scons script, which defines layout of the module. This
+  script should call at the beginning
+
+    Import('env')
+
+  and may set some variables of the scons environment 'env':
+
+  -- 'PARTITIONS' - list of partitions names.
+  (List of strings, required).
+  -- 'MODULE_XML' - XML file with module's configuration.
+  (Absolute or relative path, required).
+  -- 'CFLAGS', 'ASFLAGS', etc. - Flags which affect on compilation of every component.
+  (String-appended, optional).
+  -- 'BOARD_PHYS_SIZE' - physical memory used for the module.
+  E.g., this may be set for emulated board if default memory is insufficient.
+  Checking for emulated board may be performed via 'BOARD_IS_EMULATED' variable.
+  (Integer, optional).
+
+  This scipt is executed in effect of variantDir set to env['MODULE_BUILD_DIR'],
+  which is '<example-dir>/build/<bsp>'. That is, all relative paths
+  to the output files are counted against this dir.
+
+- <partition-name> directory for every partition name listed in 'PARTITIONS'.
+
+- <partition-name>/SConstruct: Copied from SConsctruct_partition
+
+- <partition-name>/SConscript: Scons script, which defined layout of the
+  partition. This script should call at the beginning
+
+    Import('part_env')
+
+  and may set some variables of the scons environment 'part_env':
+
+  -- 'PARTITION_SOURCES' - list of sources (.c, .o, .lo, etc.) files,
+  from which partition should be built.
+  (List of paths(absolute or relative) or Scons Nodes, required).
+
+  -- 'PARTITION_XML' - XML-file with partition configuration.
+  (Absolute or relative path, required).
+
+  -- 'CFLAGS', 'ASFLAGS' - Flags which affect on compilation of every component for partition.
+  (String-appended, optional).
+
+  If partition is system one, call
+
+      part_env.SystemPartition()
+
+  is required, and it should prepend first usage of system partition features (e.g. headers).
+  Note, this function isn't called automatically according to partition's configuration file.
+
+  This scipt is executed in effect of variantDir set to env['PARTITION_BUILD_DIR'],
+  which is '<partition-example-dir>/build/<bsp>'. That is, all relative paths
+  to the output files are counted against this dir.
+
+
+
+                Copiing example into private location
+
+You may copy directory with example into your private location. E.g.,
+for create your own package based on example.
+
+When copy example, cleanup heading lines of files:
 
     <example>/SConstruct
 
@@ -20,7 +87,7 @@ and
 correspondingly.
 
 
-DEVELOPER:
+                [DEVELOPER] Adding and removing examples
 
 Whenever example is added or removed or partition's list in it is modified,
 update 'examples_dirs' variable in SConstruct accordingly.

@@ -54,55 +54,15 @@ module or debug it.
 # Then environment is filled with global, arch-independent parameters.
 #
 # Then env['BSP'] value is used for call bsp-definition script located
-# at boards/<BSP>/SConscript and 'env' is passed to it.
-#
-# This bsp-definition script should/may fill environment variables:
-# 
-# - 'ARCH' - target architecture, corresponded to given BSP.
-# (String, required).
-#
-# - 'PREFIX' - prefix of toolchain tools used for compile, link, etc.
-# If variable has been when current script is called (see above), it
-# will restore the first value.
-# (String, required).
-#
-# - 'GDB' - gdb executable for debug. If absent, PREFIX'ed version is used.
-# If variable has been when current script is called (see above), it
-# will restore the first value.
-# (String/path, optional).
-#
-# - 'BOARD_IS_EMULATED' - whether given board can be emulated using qemu.
-# For emulated board scons targets for running module are automatically
-# generated.
-# (Boolean, optional)
-#
-# - 'QEMU' - qemu executable for run.
-# Used only for emulated boards (see description for BOARD_IS_EMULATED above).
-# If variable has been when current script is called (see above), it
-# will restore the first value.
-# (String/path, required if BOARD_IS_EMULATED is true).
-#
-# - 'QEMU_FLAGS' - flags for run qemu.
-# Used only for emulated boards (see description for BOARD_IS_EMULATED above).
-# (Space-separated string, required if BOARD_IS_EMULATED is true).
-#
-# - 'CFLAGS' - may append additional flags for compile "C" sources.
-#
-# - 'CFLAGS_KERNEL' - may append additional flags for compile "C" sources
-# for kernel space.
-#
-# - 'AFLAGS' - may append additional flags for compile asm sources.
-#
+# at misc/boards/<BSP>/SConscript and 'env' is passed to it.
 #
 # Then 'Import()'s 'mode' variable.
 #
-# If value of 'mode' variable is equal to 'module', 'Import()'s variable
-# 'module_def' and execute script 'SConscript_module', passing this
-# variable to it alongside with the environment ('env').
+# If value of 'mode' variable is equal to 'module', executes script
+# 'SConscript_module' passing environment ('env') to it.
 #
-# If value of 'mode' variable is equal to 'partition', 'Import()'s variable
-# 'partition_def' and execute script 'SConscript_partition' passing this variable
-# to it alongside with the partition's environment ('part_env').
+# If value of 'mode' variable is equal to 'partition', executes script
+# 'SConscript_partition' passing partition's environment ('part_env') to it.
 
 import sys
 import os
@@ -116,7 +76,7 @@ env['LAUNCHDIR'] = GetLaunchDir()
 
 log_file_opened = False
 
-# This tells scons to store all file signatures 
+# This tells scons to store all file signatures
 # in a separate .sconsign file in each directory
 SConsignFile(None)
 
@@ -134,6 +94,10 @@ if ARGUMENTS.get('VERBOSE') != "1":
     env['SIZES_O_CREATE_COMSTR'] = "CREATE $TARGET"
     env['JINJACOMSTR'] = "JINJA generate $TARGET"
     env['MERGE_PARTITIONS_COMSTR'] = "MERGE PARTITIONS $TARGET"
+    env['CONF_TOTAL_COMSTR'] = "generate total configuration $TARGET"
+    env['MEMORY_CONSTRAINTS_COMSTR'] = "create memory constraints $TARGET"
+    env['ARCH_DEPLOY_FUNC_COMSTR'] = "Arch creates memory mapping: $TARGETS"
+    env['GDB_COMMANDS_COMSTR'] = "Generate GDB_commands file $TARGET"
 
 
 # Flags common for all architectures
@@ -154,17 +118,26 @@ preset_vars = {name: env.get(name, None) for name in preset_var_names}
 # Execute bsp-definition script
 bsp_definition_script = os.path.join(env['JETOS_HOME'], 'misc/boards', env['BSP'], 'SConscript')
 if not os.path.isfile(bsp_definition_script):
-	print "ERROR: There is no bsp-definition script '" + bsp_definition_script + "'"
-	print "HINT: Probably, bsp=" + env['BSP'] + " is not supported yet."
-	Exit(1)
+    print "ERROR: There is no bsp-definition script '" + bsp_definition_script + "'"
+    print "HINT: Probably, bsp=" + env['BSP'] + " is not supported yet."
+    Exit(1)
 
 SConscript(bsp_definition_script, exports = 'env')
 
 # Restore variables which may be redefined by the caller script
 for name in preset_var_names:
-	var = preset_vars[name]
-	if var is not None:
-		env[name] = var
+    var = preset_vars[name]
+    if var is not None:
+        env[name] = var
+
+# Make sure that 'BOARD_IS_EMULATED' variable is defined
+if not 'BOARD_IS_EMULATED' in env:
+    env['BOARD_IS_EMULATED'] = False
+
+if not 'BOARD_PHYS_SIZE' in env:
+    print "ERROR: Board '%s' doesn't set BOARD_PHYS_SIZE variable." % env['BSP']
+    print "This is an error of board developers."
+    Exit(1)
 
 env['KERNEL_CPPPATH'] = [
     env['JETOS_HOME']+'/kernel/include',
@@ -193,38 +166,40 @@ if gdb_val is None:
 
 env['LIBGCC'] = os.popen(env['CC']+' -print-libgcc-file-name').read().replace('\n', '')
 
+env['TYPES_REQUIREMENTS_YAML'] = jetos_home + '/misc/types_requirements/generic_types_requirements.yaml'
+
 def KernelEnvironment(env):
-	"""
-	Create fresh kernel environment from the main one.
-	"""
-	kernel_env = env.Clone()
-	kernel_env['CPPPATH'] = env['KERNEL_CPPPATH']
-	kernel_env.Append(CFLAGS = ' ' + env.get('CFLAGS_KERNEL', default = ''))
-	return kernel_env
+    """
+    Create fresh kernel environment from the main one.
+    """
+    kernel_env = env.Clone()
+    kernel_env['CPPPATH'] = env['KERNEL_CPPPATH']
+    kernel_env.Append(CFLAGS = ' ' + env.get('CFLAGS_KERNEL', default = ''))
+    return kernel_env
 
 def PartitionEnvironment(env):
-	"""
-	Create fresh partition's environment from the main one.
-	"""
-	part_env = env.Clone()
-	part_env['CPPPATH'] = env['LIBPOK_CPPPATH']
-	part_env.Append(CFLAGS = ' -include '+ part_env['JETOS_HOME']+'/libpok/include/config.h')
-	return part_env
+    """
+    Create fresh partition's environment from the main one.
+    """
+    part_env = env.Clone()
+    part_env['CPPPATH'] = env['LIBPOK_CPPPATH']
+    part_env.Append(CFLAGS = ' -include '+ part_env['JETOS_HOME']+'/libpok/include/config.h')
+    return part_env
 
 env.AddMethod(KernelEnvironment)
 env.AddMethod(PartitionEnvironment)
 
 def RemoveDirectories(env, target, dirs):
-	"""
-	Create target $target which removes given directories, if them exist.
-	"""
-	if type(dirs) is not list:
-		dirs = [dirs]
+    """
+    Create target $target which removes given directories, if them exist.
+    """
+    if type(dirs) is not list:
+        dirs = [dirs]
 
-	# Currently command line for all scons commands is unconditionally replaced
-	# in print_cmd_line().
-	# So do not bother with pretty command line of given command.
-	return env.Command(target, [], Delete(dirs))
+    # Currently command line for all scons commands is unconditionally replaced
+    # in print_cmd_line().
+    # So do not bother with pretty command line of given command.
+    return env.Command(target, [], Delete(dirs))
 
 env.AddMethod(RemoveDirectories)
 
@@ -236,14 +211,14 @@ env.AddMethod(RemoveDirectories)
 #
 # Otherwise, return path prepended with (base_dir + '/').
 def toAbsPath(env, path, base_dir):
-	if not type(path) is str:
-		pass
-	elif path.startswith('/') or path.startswith('#'):
-		pass
-	else:
-		path = base_dir + '/' + path
+    if not type(path) is str:
+        pass
+    elif path.startswith('/') or path.startswith('#'):
+        pass
+    else:
+        path = base_dir + '/' + path
 
-	return path
+    return path
 
 env.AddMethod(toAbsPath)
 
@@ -255,37 +230,37 @@ env.AddMethod(toAbsPath)
 # If 'paths' is actually a single path (not a list), it is treated
 # as a list with a single element. (Returning value is always a list).
 def toAbsPathList(env, paths, base_dir):
-	if type(paths) is not list:
-		paths = [paths]
-	return [env.toAbsPath(path, base_dir) for path in paths]
+    if type(paths) is not list:
+        paths = [paths]
+    return [env.toAbsPath(path, base_dir) for path in paths]
 
 env.AddMethod(toAbsPathList)
 
 class SharedTargets:
-	"""
-	Dictionary object which remains the same after cloning and importing
-	environment. That is, modification of that object in one cloned environment
-	is visible in another cloned environment.
-	"""
-	def __init__(self):
-		self.names = dict()
+    """
+    Dictionary object which remains the same after cloning and importing
+    environment. That is, modification of that object in one cloned environment
+    is visible in another cloned environment.
+    """
+    def __init__(self):
+        self.names = dict()
 
 env['SHARED_TARGETS'] = SharedTargets()
 
 def getSharedTarget(env, name, compute_val):
-	"""
-	Return object from shared area of environment.
-	If object doesn't exist yet, compute it.
+    """
+    Return object from shared area of environment.
+    If object doesn't exist yet, compute it.
 
-	Such a way, the object will be computed only once.
+    Such a way, the object will be computed only once.
 
-	Usually, object is a SCons *target* (that is, list of 'Node' objects).
-	"""
-	val = env['SHARED_TARGETS'].names.get(name, None)
-	if val is None:
-		val = compute_val()
-		env['SHARED_TARGETS'].names[name] = val
-	return val
+    Usually, object is a SCons *target* (that is, list of 'Node' objects).
+    """
+    val = env['SHARED_TARGETS'].names.get(name, None)
+    if val is None:
+        val = compute_val()
+        env['SHARED_TARGETS'].names[name] = val
+    return val
 
 env.AddMethod(getSharedTarget)
 

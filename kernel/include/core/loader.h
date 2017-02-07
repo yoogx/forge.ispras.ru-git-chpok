@@ -19,19 +19,16 @@
 #define __JET_LOADER_H__
 
 #include <types.h>
-#include <errno.h>
-#include <core/space.h>
+#include <core/partition_arinc.h>
 
 /**
- * Load elf into given space.
+ * Load elf for given partition.
  * 
  * Entry point is returned via 'entry' parameter.
- * 
- * If 'heap_size' is not 0, allocates heap of given size and setup heap
- * in kernel_shared_data.
  */
 void jet_loader_elf_load   (uint8_t elf_id,
-                                 jet_space_id space_id,
+                                 pok_partition_arinc_t* part,
+                                 const struct memory_block* const* mblocks,
                                  void (** entry)(void));
 #endif /* __JET_LOADER_H__ */
 

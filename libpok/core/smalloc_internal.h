@@ -13,13 +13,10 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-/* (Memory) space. */
+#ifndef __LIBJET_CORE_SMALLOC_INTERNAL__
+#define __LIBJET_CORE_SMALLOC_INTERNAL__
 
-#ifndef __JET_PPC_SPACE_H__
-#define __JET_PPC_SPACE_H__
+/* Initialize smalloc. */
+void smalloc_init(void);
 
-#include <stdint.h>
-
-typedef uint32_t jet_ustack_t;
-
-#endif /* __JET_PPC_SPACE_H__ */
+#endif /* __LIBJET_CORE_SMALLOC_INTERNAL__ */

@@ -144,14 +144,10 @@ class C99Locale:
         return self.to_table(c, "toupper")
 
 
-if libpok_env.get('jdeveloper'):
-    import sys
-    import os
-    import yaml
-    sys.path.insert(1, os.path.join(os.environ["JETOS_HOME"], "misc"))
-    import template_generation
-    AddMethod(libpok_env, template_generation.TemplateRender)
-
+def generate_ctype_tables():
+    """
+    Generate 'ctype_tables_<locale>.c' and 'ctype_tables_<locale>.h'
+    """
     source_dir = libpok_env['JETOS_HOME'] + '/libpok/libc/ctype'
 
     # <source-dir> and <target-dir> are the same.
@@ -183,6 +179,21 @@ if libpok_env.get('jdeveloper'):
             GENERATE_TITLE = template_generation.generate_title_c))
 
     libpok_env.Depends('regenerate', lfiles)
+
+
+if libpok_env.get('jdeveloper'):
+    import sys
+    import os
+    import yaml
+    sys.path.insert(1, os.path.join(os.environ["JETOS_HOME"], "misc"))
+    import template_generation
+    AddMethod(libpok_env, template_generation.TemplateRender)
+
+    # Generate files 'ctype_tables_*' only once: they are stored into
+    # source dir, which is the same for all partitions.
+    #
+    # Return value is ignored (generated '.c' files are already marked for compilation).
+    libpok_env.getSharedTarget("libjet_uapi_headers", generate_ctype_tables)
 
 # EOF
 

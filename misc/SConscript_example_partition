@@ -44,21 +44,6 @@ Common sconscript which may be used for build example partition.
 #
 # Assume source directory to be '#' (that is, location of SConstruct
 # from which given script has been called, directly or indirectly).
-#
-# SConscript, located in the source directory, should set following
-# variables for 'Import()'ed environment 'part_env':
-#
-#  'PARTITION_SOURCES' - list of sources (.c, .o, .lo, etc.) files,
-#  from which partition should be built.
-#
-#  'PARTITION_XML' - xml-file in a specific format.
-#
-# SConscript also may modify following variables in 'part_env':
-#
-#  'CFLAGS', 'ASFLAGS' - these flags would affect on compilation of every
-#
-# part_env.SystemPartition() call is required for system partition.
-# (This function isn't called automatically according to .xml file.)
 
 import os
 from lxml import etree
@@ -105,12 +90,11 @@ def get_jet_partition_config(source, env):
 
     root = etree.parse(source.path)
 
-    parser = arinc653_xml_conf.ArincConfigParser(env['ARCH'])
+    parser = arinc653_xml_conf.ArincConfigParser()
 
-    conf = chpok_configuration.Configuration(env['ARCH'])
-    parser.parse_partition(conf, root)
+    part = parser.parse_partition(root)
 
-    return conf.partitions[0]
+    return part
 
 env['PARTITION_PARSE_CONFIGURATION'] = get_jet_partition_config
 

@@ -1,5 +1,5 @@
 0. wireshark should be installed in the system
-1. run `./misc/setup-tap_nobr.sh 2` in POK_PATH dir
+1. run `sudo ./misc/setup-tap_nobr.sh 2` in JETOS_HOME
 2. run wireshark on tap0 (or `tshark -i tap0` for command-line interface)
 3. run this example by `scons run-tap`
 4. In wireshark (or tshark) you will see 30 outgoing udp packets
