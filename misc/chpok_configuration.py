@@ -18,44 +18,42 @@
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 """
-This file defines classes and functions that can be used to
-simplify generation of POK kernel configuration.
-
+Defines class 'Configuration' containing configuration of the whole module.
 """
 
 from __future__ import print_function
 
-import sys
-import os
 import abc
-import json
 import functools
 import collections
 import ipaddr
 import math
-
-
-class PartitionLayout():
-    """
-    Contain minimal information, needed for determine layout of the partition.
-    """
-    def __init__(self, name, is_system=False):
-        self.name = name
-        self.is_system = is_system
 
 # Single time slot for execute something.
 #
 # - duration - duration of given slot, in miliseconds.
 class TimeSlot():
     __metaclass__ = abc.ABCMeta
-    __slots__ = ["duration"]
+    __slots__ = [
+        "duration",
+
+        # Data private for implementation.
+        #
+        # During filling the object, you may use this field as you want.
+        "private_data"
+    ]
 
     @abc.abstractmethod
     def get_kind_constant(self):
         pass
 
     def __init__(self, duration):
+        if duration < (10 ** 6):
+            raise ValueError("Minimum value for Slot duration is 1000000 (1ms).")
+
         self.duration = duration
+
+        self.private_data = None
 
     def validate(self):
         if not isinstance(self.duration, int):
@@ -94,16 +92,6 @@ class TimeSlotPartition(TimeSlot):
         if not isinstance(self.periodic_processing_start, bool):
             raise TypeError
 
-# Time slot for network.
-class TimeSlotNetwork(TimeSlot):
-    __slots__ = []
-
-    def __init__(self, duration):
-        TimeSlot.__init__(self, duration)
-
-    def get_kind_constant(self):
-        return "POK_SLOT_NETWORKING"
-
 # Time slot for monitor.
 class TimeSlotMonitor(TimeSlot):
     __slots__ = []
@@ -121,117 +109,214 @@ class TimeSlotGDB(TimeSlot):
         return "POK_SLOT_GDB"
 
 
-# Possible system states(ordered, without prefix)
-system_states = [
-    'INIT_PARTOS',
-    'INIT_PARTUSER',
-    'INTERRUPT_HANDLER',
-    'OS_MOD',
-    'OS_PART',
-    'ERROR_HANDLER',
-    'USER'
-]
+class HMAction:
+    """
+    Generic action in Health Monitor tables.
 
-# Possible error identificators(ordered, without prefix)
-error_ids = [
-    'MODPOSTPROCEVENT_ELIST',
-    'ILLEGAL_REQUEST',
-    'APPLICATION_ERROR',
-    'PARTLOAD_ERROR',
-    'NUMERIC_ERROR',
-    'MEMORY_VIOLATION',
-    'DEADLINE_MISSED',
-    'HARDWARE_FAULT',
-    'POWER_FAIL',
-    'STACK_OVERFLOW',
-    'PROCINIT_ERROR',
-    'NOMEMORY_PROCDATA',
-    'ASSERT',
-    'CONFIG_ERROR',
-    'CHECK_POOL',
-    'UNHANDLED_INT'
-]
+    Subclasses should define 'possible_level' and 'possible_recovery_action'
+    lists with possible values for corresponded fields.
+    """
+    __slots__ = [
+        'level', # On which level error should be proceed.
+        'recovery_action' # Recovery action as a string.
+    ]
+
+    def __init__(self, level, recovery_action):
+        if level not in self.__class__.possible_level:
+            raise RuntimeError("Level value '%s' is not suitable for HMAction object of type '%s'" % (level, str(self.__class__)))
+        if recovery_action not in self.__class__.possible_recovery_action:
+            raise RuntimeError("Recovery action value '%s' is not suitable for HMAction object of type '%s'" % (recovery_action, str(self.__class__)))
+
+        self.level = level
+        self.recovery_action = recovery_action
 
 class HMTable:
+    """
+    Generic Health Monitor table.
+    """
+    # Possible system states(ordered, without prefix)
+    system_states = [
+        'INIT_PARTOS',
+        'INIT_PARTUSER',
+        'INTERRUPT_HANDLER',
+        'OS_MOD',
+        'OS_PART',
+        'ERROR_HANDLER',
+        'USER'
+    ]
+
+    # Possible error identificators(ordered, without prefix)
+    error_ids = [
+        'MODPOSTPROCEVENT_ELIST',
+        'ILLEGAL_REQUEST',
+        'APPLICATION_ERROR',
+        'PARTLOAD_ERROR',
+        'NUMERIC_ERROR',
+        'MEMORY_VIOLATION',
+        'DEADLINE_MISSED',
+        'HARDWARE_FAULT',
+        'POWER_FAIL',
+        'STACK_OVERFLOW',
+        'PROCINIT_ERROR',
+        'NOMEMORY_PROCDATA',
+        'ASSERT',
+        'CONFIG_ERROR',
+        'CHECK_POOL',
+        'UNHANDLED_INT'
+    ]
+
+
+    __slots__ = [
+        'actions', # Mapping from (system_state) * (error_id) to HMAction object.
+        'default_action' # Action object for use if concrete mapping is absent.
+    ]
+
     def __init__(self):
-        # Error level selector.
-        #
-        # Maps (system state) on map (error id) => {0, 1}
-        # Absence of corresponded mapping defaults to 0.
-        self.level_selector = {}
-
-        # Actions for errors.
-        #
-        # Maps (system state) on map (error id) => action
-        #
-        # Absence of corresponded mapping defaults to subclass-specific value.
         self.actions = {}
+        # Do not define default_action.
 
-    # Compute aggregate for level selector for specific error id.
-    def level_selector_total(self, error_id):
-        res = 0
-        for shift, s in enumerate(system_states):
-            if not s in self.level_selector:
-                continue
-            selector_per_state = self.level_selector[s]
-            if not error_id in selector_per_state:
-                continue
+    def get_action(self, system_state, error_id):
+        actions_per_state = self.actions.get(system_state, {})
+        # Reference self.default_action only when action is REALLY absent.
+        action = actions_per_state.get(error_id, None)
+        if action is None:
+            action = self.default_action
 
-            res += selector_per_state[error_id] << shift
+        return action
 
-        return res
 
-    # Return action for given system state and error id.
-    # If mapping is absent, return given 'default_action'.
-    def get_action_generic(self, system_state, error_id, default_action):
-        if not system_state in self.actions:
-            return default_action
-
-        actions_per_state = self.actions[system_state]
-        if not error_id in actions_per_state:
-            return default_action
-
-        return actions_per_state[error_id]
+class ModuleHMAction(HMAction):
+    """
+    Module Health Monitor action.
+    """
+    possible_level = ['MODULE', 'PARTITION']
+    possible_recovery_action = ['IGNORE', 'SHUTDOWN', 'RESET']
 
 class ModuleHMTable(HMTable):
-    def __init__(self):
-        HMTable.__init__(self)
-    def get_action(self, system_state, error_id):
-        return self.get_action_generic(system_state, error_id, 'SHUTDOWN')
+    """
+    Module Health Monitor Table.
+    """
+    pass
+
+
+class PartitionHMAction(HMAction):
+    """
+    Partition Health Monitor action.
+
+    Additional slots are for PROCESS-level errors in 'USER' state.
+    """
+    possible_level = ['PARTITION', 'PROCESS']
+    possible_recovery_action = ['IGNORE', 'IDLE', 'COLD_START', 'WARM_START']
+
+    __slots__ = [
+        'error_code',
+        'description'
+    ]
+
+    def __init__(self, level, recovery_action, error_code = None, description = None):
+        HMAction.__init__(self, level, recovery_action)
+        if error_code is not None:
+            self.error_code = error_code
+            self.description = description
 
 class PartitionHMTable(HMTable):
-    # List of system states corresponded to partition
+    """
+    Partition Health Monitor table.
+    """
+    # List of system states corresponded to partition.
+    # Mapping exists only for those states.
     partition_system_states = [
         'OS_PART',
         'ERROR_HANDLER',
         'USER'
     ]
 
-    def __init__(self):
-        HMTable.__init__(self)
+# Memory block, belonging to partition's address space.
+# Actually, this is a **requirement** to a memory block, not a
+# memory block's full definition.
+class MemoryBlock:
 
-        # Map error id -> (error code (without prefix), description)
-        # for state 'USER'. Absence of corresponded mapping means that
-        # given error id is never passed to error handler.
-        self.user_level_codes = {}
+    __slots__ = [
+        "name", # Name of the block. Should be unique in partition.
+        "size", # Size of the block. Should be non-negative.
+        "align", # Alignment of the block. 4k by default.
+        # Cache policy for given memory block. One of:
+        #
+        # - OFF
+        # - COPY_BACK
+        # - WRITE_THRU
+        # - OFF+COHERENCY
+        # - COPY_BACK+COHERENCY
+        # - WRITE_THRU+COHERENCY
+        # - OFF+GUARDED
+        # - COPY_BACK+GUARDED
+        # - WRITE_THRU+GUARDED
+        # - OFF+GUARDED+COHERENCY
+        # - COPY_BACK+GUARDED+COHERENCY
+        # - WRITE_THRU+GUARDED+COHERENCY
+        # - IO
+        # - DEFAULT
+        #
+        # By default, it is "DEFAULT"
+        "cache_policy",
+        "access", # Access to the memory block from the partition. String contained of 'R', 'W', 'X'.
+        "is_contiguous", # Whether block should be *physically* contiguous.
+        "vaddr", # Virtual address of the block, if required.
+        "paddr", # Physical address of the block, if required. Implies 'is_contiguous' to be True.
 
-    def get_action(self, system_state, error_id):
-        return self.get_action_generic(system_state, error_id, 'IDLE')
+        # Source, from which memory block should be initialized.
+        # Possible values see in 'init_source_values' list below.
+        #
+        # If memory block doesn't required initialization, leave this as None.
+        "init_source",
 
-class Space:
-    """
-    Definition of single memory space.
+        # Stage, when memory block should be initialized:
+        # Possible values see in 'init_stage_values' list below.
+        #
+        # If 'init_source' is None this should be None too.
+        "init_stage",
 
-    - size - allocated RAM size in bytes (code + static storage)
+        # Data private for implementation.
+        #
+        # During filling the object, you may use this field as you want.
+        "private_data"
+    ]
 
-    Everything except 'size' should be automatically calculated by arch.
+    # Possible values for memory block's 'init_source' attribute.
+    init_source_values = [
+        'ZERO', #fill with zeroes.
+        # (Value 'ELF' is internal for implementation).
+    ]
 
-    TODO: This should be make arch-dependent somehow.
-    TODO: Config files uses 'size' as contained stack.
-           Arch code allocates stack from other memory.
-    """
-    def __init__(self, size):
+    # Possible values for memory block's 'init_stage' attribute.
+    init_stage_values = [
+        'MODULE', # Every time when module is started or restarted
+        'PARTITION', # Every time partition is started (either in COLD_START or in WARM_START mode).
+        'PARTITION:COLD', # Every time when partition is started in COLD_START mode.
+    ]
+
+
+    def __init__(self, name, size):
+        self.name = name
         self.size = size
+
+        self.vaddr = None # Non-specified by default
+        self.paddr = None # Non-specified by default
+
+        self.cache_policy = "DEFAULT"
+
+        self.is_coherent = False
+        self.is_guarded = False
+
+        self.is_writable = True # RW by default
+
+        self.is_contiguous = False # By default, physical contiguous not required.
+
+        self.align = 0x1000 # By default, alignment 4K.
+
+        self.init_source = None
+        self.init_stage = None
+
 
 # ARINC partition.
 #
@@ -241,12 +326,31 @@ class Space:
 # - part_index - index of the partition in the array. Filled automatically.
 class Partition:
     __slots__ = [
-        "arch", # Value propagated from 'Configuration' object.
         "name",
 
         "is_system",
 
+        # Memory required for code and data defined in partition's elf.
+        #
+        # Such parameter implies that *whole* elf can be mapped into
+        # *single memory block*, which applies too strong constraint
+        # on elf layout.
+        #
+        # 'BOARD_DEPLOY' script may ignore this parameter and extract
+        # layout information directly from the partition's elf file.
+        #
+        # Will be removed in the future.
+        "memory_size",
+
+        # Requested size of the heap.
+        #
+        # Note: ARINC requirements for buffers and co. shouldn't be counted here.
+        "heap_size",
+
         "num_threads", # number of user threads, _not_ counting init thread and error handler
+
+        'stack_size_all', # Total memory for all stacks
+
         "ports_queueing", # list of queuing ports
         "ports_sampling", # list of sampling ports
 
@@ -260,16 +364,19 @@ class Partition:
 
         "hm_table", # partition hm table
 
-        "ports_queueing_system", # list of queuing ports with non-empty protocol set
-        "ports_sampling_system", # list of sampling ports with non-empty protocol set
+        "memory_blocks", # List of memory blocks
 
-        "part_index" # index of the partition in the array. Filled automatically. part_index+1 is used as PID
+        # Data private for implementation.
+        #
+        # During filling the object, you may use this field as you want.
+        "private_data"
     ]
 
-    def __init__(self, arch, part_id, name):
-        self.arch = arch
+    def __init__(self, part_id, name):
         self.name = name
         self.part_id = part_id
+
+        self.memory_size = 0
 
         # If application needs, it may set 'period' and 'duration' attributes.
         #
@@ -280,7 +387,11 @@ class Partition:
         self.period = None
         self.duration = None
 
+        self.heap_size = 0
+
         self.num_threads = 0
+
+        self.stack_size_all = None # Should be assigned later explicitely.
 
         self.num_arinc653_buffers = 0
         self.num_arinc653_blackboards = 0
@@ -295,111 +406,8 @@ class Partition:
         self.ports_queueing = []
         self.ports_sampling = []
 
-        self.ports_queueing_system = []
-        self.ports_sampling_system = []
+        self.memory_blocks = []
 
-        # Internal
-        self.part_index = None # Not set yet
-        self.port_names_map = dict() # Map `port_name` => `port`
-
-        self.memory_blocks_map = dict() # Map 'mem_block_name' => 'user_access'
-
-        self.total_time = 0 # Incremented every time timeslot is added.
-        # When timeslot with periodic processing start is added, this is set to True.
-        self.has_periodic_processing_start = False
-
-    def set_index(self, part_index):
-        self.part_index = part_index
-
-    def add_port_queueing(self, port):
-        if port.name in self.port_names_map:
-            raise RuntimeError("Port with name %s already exists in partition %s" % (port.name, self.name))
-        self.ports_queueing.append(port)
-        self.port_names_map[port.name] = port
-
-        port.partition = self
-
-        if port.protocol is not None:
-            self.ports_queueing_system.append(port)
-
-    def add_port_sampling(self, port):
-        if port.name in self.port_names_map:
-            raise RuntimeError("Port with name %s already exists in partition %s" % (port.name, self.name))
-        self.ports_sampling.append(port)
-        self.port_names_map[port.name] = port
-
-        port.partition = self
-
-        if port.protocol is not None:
-            self.ports_sampling_system.append(port)
-
-    def add_mem_block(self, name, user_access):
-        if user_access is None:
-            user_access = "READ_ONLY"
-        self.memory_blocks_map[name] = user_access
-
-    def get_all_sampling_ports(self):
-        return ports_sampling
-
-    def get_all_queueing_ports(self):
-        return ports_queueing
-
-    def validate(self):
-        # validation is by no means complete
-        # it's just basic sanity check
-
-        for attr in self.__slots__:
-            if not hasattr(self, attr):
-                raise ValueError("%r is not set for %r" % (attr, self))
-
-        if self.part_index is None:
-            raise ValueError("Index is not set for partition '%s' (Partition is added via conf.add_partition(), isn't it?).")
-
-        for port in self.ports_sampling + self.ports_queueing:
-            port.validate()
-            if port.channel_id is None:
-                # Uncomment if processing of non-binded ports will be implemented
-                # raise RuntimeError("Port '%s' is not connected to any channel" % port.name)
-                port.channel_id = 0
-
-    def get_needed_threads(self):
-        return (
-            1 + # init thread
-            1 + # error handler
-            self.num_threads
-        )
-
-    def get_port_by_name(self, port_name):
-        return self.port_names_map[port_name]
-
-    # Return size of memory, needed by single buffer structure.
-    # TODO: This should be arch-specific somehow.
-    def get_buffer_size(self):
-        return 150
-
-    # Return size of memory, needed by single blackboard structure.
-    # TODO: This should be arch-specific somehow.
-    def get_blackboard_size(self):
-        return 100
-
-    # Return size of memory, needed by single semaphore structure.
-    # TODO: This should be arch-specific somehow.
-    def get_semaphore_size(self):
-        return 50
-
-    # Return size of memory, needed by single event structure.
-    # TODO: This should be arch-specific somehow.
-    def get_event_size(self):
-        return 50
-
-    # Return memory size, needed by intra-partition communication mechanisms.
-    def get_intra_size(self):
-        return ( self.buffer_data_size + self.blackboard_data_size
-            + self.num_arinc653_buffers * self.get_buffer_size()
-            + self.num_arinc653_blackboards * self.get_blackboard_size()
-            + self.num_arinc653_semaphores * self.get_semaphore_size()
-            + self.num_arinc653_events * self.get_event_size()
-        )
 
 def _get_port_direction(port):
     direction = port.direction.lower()
@@ -414,12 +422,14 @@ def _get_port_direction(port):
 class Port:
     __metaclass__ = abc.ABCMeta
     __slots__ = [
-        "partition",
         "name",
         "is_direction_src",
         "max_message_size",
-        "protocol",
-        "channel_id" # id of corresponded channel. Set internally.
+
+        # Data private for implementation.
+        #
+        # During filling the object, you may use this field as you want.
+        "private_data"
     ]
 
     @abc.abstractmethod
@@ -437,22 +447,14 @@ class Port:
             raise ValueError("%r is not valid port direction" % direction)
 
         self.max_message_size = max_message_size
-        self.channel_id = None
-        self.partition = None
+
+        self.private_data = None
 
     def is_src(self):
         return self.is_direction_src;
 
     def is_dst(self):
         return not self.is_direction_src;
-
-    def setChannel(self, channel_id):
-        self.channel_id = channel_id
-
-    def validate(self):
-        for attr in self.__slots__:
-            if not hasattr(self, attr):
-                raise ValueError("%r is not set for %r" % (attr, self))
 
 
 class SamplingPort(Port):
@@ -465,12 +467,10 @@ class SamplingPort(Port):
 
     def __init__(self, name, direction, max_message_size, refresh):
         Port.__init__(self, name, direction, max_message_size)
-        self.refresh = refresh
+        if refresh < (10 ** 6):
+                raise ValueError("Minimum value for refresh is 1000000 (1ms).")
 
-    def validate(self):
-        for attr in self.__slots__:
-            if not hasattr(self, attr):
-                raise ValueError("%r is not set for %r" % (attr, self))
+        self.refresh = refresh
 
 class QueueingPort(Port):
     __slots__ = [
@@ -485,24 +485,24 @@ class QueueingPort(Port):
         self.max_nb_message = max_nb_message
 
 
-    def validate(self):
-        for attr in self.__slots__:
-            if not hasattr(self, attr):
-                raise ValueError("%r is not set for %r" % (attr, self))
-
 # Generic channel connecting two connections.
-#
-# - max_message_size - maximum size of the message passed to the channel.
-
 class Channel:
     __metaclass__ = abc.ABCMeta
-    __slots__ = ["src", "dst"]
+    __slots__ = [
+        # Source and destination sides (of type 'Connection') of the channel
+        "src",
+        "dst",
+        # Data private for implementation.
+        #
+        # During filling the object, you may use this field as you want.
+        "private_data"
+    ]
 
-    def __init__(self, src, dst, max_message_size):
-        self.max_message_size = max_message_size
-
+    def __init__(self, src, dst):
         self.src = src
         self.dst = dst
+
+        self.private_data = None
 
     def validate(self):
         if not isinstance(self.src, Connection):
@@ -516,38 +516,6 @@ class Channel:
         self.src.validate()
         self.dst.validate()
 
-    def get_local_connection(self):
-        if isinstance(self.src, LocalConnection):
-            return self.src
-        if isinstance(self.dst, LocalConnection):
-            return self.dst
-        return None
-
-    @abc.abstractmethod
-    def get_kind_constant(self):
-        pass
-
-    def requires_network(self):
-        return any(isinstance(x, UDPConnection) for x in [self.src, self.dst])
-
-class ChannelQueueing(Channel):
-    def __init__(self, src, dst, max_message_size, max_nb_message_send, max_nb_message_receive):
-        Channel.__init__(self, src, dst, max_message_size)
-
-        self.max_nb_message_send = max_nb_message_send
-        self.max_nb_message_receive = max_nb_message_receive
-
-    def get_kind_constant(self):
-        return "queueing"
-
-
-class ChannelSampling(Channel):
-    def __init__(self, src, dst, max_message_size):
-        Channel.__init__(self, src, dst, max_message_size)
-
-    def get_kind_constant(self):
-        return "sampling"
-
 # One point of the channel
 class Connection():
     __metaclass__ = abc.ABCMeta
@@ -555,317 +523,87 @@ class Connection():
     def get_kind_constant(self):
         pass
 
-    @abc.abstractmethod
-    def validate(self):
-        pass
-
 # Connection to partition's port.
 class LocalConnection(Connection):
-    __slots__ = ["port"]
+    __slots__ = [
+        "partition",
+        "port",
 
-    def __init__(self, port):
+        # Data private for implementation.
+        #
+        # During filling the object, you may use this field as you want.
+        "private_data"
+    ]
+
+    def __init__(self, partition, port):
+        self.partition = partition
         self.port = port
+
+        self.private_data = None
 
     def get_kind_constant(self):
         return "Local"
 
-    def validate(self):
-        if not hasattr(self, "port") or self.port == None:
-            raise ValueError
 
-        if not isinstance(self.port, (QueueingPort, SamplingPort)):
-            raise TypeError
-
-class UDPConnection(Connection):
-    __slots__ = ["host", "port"]
-
-    def get_kind_constant(self):
-        return "UDP"
-
-    def validate(self):
-        if not hasattr(self, "host"):
-            raise AttributeError("host")
-
-        if not isinstance(self.host, ipaddr.IPv4Address):
-            raise TypeError(type(self.host))
-
-        if not hasattr(self, "port"):
-            raise AttributeError("port")
-
-        if not isinstance(self.port, int):
-            raise TypeError(type(self.port))
-
-        if port < 0 or port > 0xFFFF:
-            raise ValueError(self.port)
-
-class NetworkConfiguration:
+class MemoryBlockRef:
+    """
+    Reference to the memory block from sharing.
+    """
     __slots__ = [
-        #"mac", # mac address
-        "ip", # IP used as source
+        'partition', # Partition to which memory block belongs to.
+        'memory_block', # Memory block itself
     ]
 
-    def validate(self):
-        #if not hasattr(self, "mac"):
-        #    raise AttributeError
-        #if self.mac is not None:
-        #    if not isinstance(self.mac, bytes):
-        #        raise TypeError
-        #    if len(self.mac) != 6:
-        #        raise ValueError
-        #    if not (self.mac[0] & 0x2):
-        #        print("Warning! MAC address is not locally administered one", file=sys.stderr)
-
-        if not hasattr(self, "ip"):
-            raise AttributeError
-        if not isinstance(self.ip, ipaddr.IPv4Address):
-            raise TypeError
-
-    #def mac_to_string(self):
-    #    return "{%s}" % ", ".join(hex(i) for i in self.mac)
+    def __init__(self, partition, memory_block):
+        self.partition = partition
+        self.memory_block = memory_block
 
 
-def size_to_str(num):
-    for unit in ['','K','M','G']:
-        if abs(num) < 1024:
-            return "%d%s" % (num, unit)
-        num /= 1024
-    raise RuntimeError("wrong size of memory block")
-
-class Memory_block:
+class MemoryBlockSharing:
+    """
+    Memory blocks which should be mapped into the same physical memory.
+    """
     __slots__ = [
-        "name",
-        "size",
-        "str_size",
-        "virt_addr",
-        "phys_addr",
-        "cache_policy",
-        "system_access"
+        'mb_refs' # List of MemoryBlockRef objects.
     ]
 
-    def __init__(self, name, size, conf):
-        self.name = name
-        self.actual_size = size
-        aligned_size = max(4**math.ceil(math.log(size, 4)), 0x1000)
-        self.str_size = size_to_str(aligned_size)
-
-        self.virt_addr = 0
-        self.phys_addr = 0
-
-        self.cache_policy = "DEFAULT"
-        self.access = dict()
-        for part in conf.partitions:
-            if name in part.memory_blocks_map:
-                self.access[part.part_index + 1] = part.memory_blocks_map[name]
-        self.tlb_entries_count = len(self.access)
-
-    def __repr__(self):
-        return self.name + ": " + hex(self.virt_addr) + " -> " + hex(self.phys_addr) + " [" +\
-                hex(self.actual_size) + " = " + self.str_size + "], " + str(self.cache_policy) + ", " +\
-                str(self.access)
-
-    def set_kernel_access(self, kaccess):
-        if kaccess != 'NONE':
-            self.access[0] = kaccess
-
+    def __init__(self):
+        self.mb_refs = []
 
 class Configuration:
-    system_states_all = system_states
-    error_ids_all = error_ids
-
     __slots__ = [
-        "partitions",
+        "module_hm_table", # Health Monitor Table assosiated with the module
+        "partitions", # List of partitions
         "slots", # time windows
-        "channels_queueing", # queueing port channels (connections)
-        "channels_sampling", # sampling port channels (connections)
-        "network", # NetworkConfiguration object (or None)
-        "memory_blocks"
-
-        "spaces", # Array of 'Space' objects.
+        "channels", # List of channels
 
         # if this is set, POK writes a special string once
         # there are no more schedulable threads
         # it's used by test runner as a sign that POK
         # can be terminated
         "test_support_print_when_all_threads_stopped",
+
+        "major_frame", # May be set manually for self-check
+
+        "memory_block_sharings", # List of MemoryBlockSharing objects.
+
+        # Data private for implementation.
+        #
+        # During filling the object, you may use this field as you want.
+        "private_data"
     ]
 
-    def __init__(self, arch):
-        self.arch = arch
-
+    def __init__(self):
         self.module_hm_table = ModuleHMTable()
 
         self.partitions = []
         self.slots = []
-        self.channels_queueing = []
-        self.channels_sampling = []
-        self.network = None
-        self.memory_blocks = []
-        self.memory_blocks_tlb_entries_count = 0
-
-        self.spaces = []
+        self.channels = []
 
         self.test_support_print_when_all_threads_stopped = False
 
-        self.major_frame = 0
+        self.major_frame = None # Not set yet.
 
-        # For internal usage
-        self.partition_names_map = dict()
-        self.partition_ids_map = dict()
-        self.next_partition_id = 0
+        self.memory_block_sharings = []
 
-        self.memory_blocks_names = set()
-
-        self.next_channel_id_sampling = 0
-        self.next_channel_id_queueing = 0
-
-    def add_partition(self, part_name, part_size, part_id = None):
-        if part_name in self.partition_names_map:
-            raise RuntimeError("Adding already existed partition '%s'" % part_name)
-
-        part_id_real = None
-
-        if part_id is not None:
-            if part_id in self.partition_ids_map:
-                raise RuntimeError("Adding already existed partition (by id) '%s'" % part_id)
-            part_id_real = part_id
-        else:
-            part_id_real = self.next_partition_id
-            self.next_partition_id += 1
-
-        part = Partition(self.arch, part_id_real, part_name)
-        part.set_index(len(self.partitions))
-
-        self.partitions.append(part)
-        self.partition_names_map[part_name] = part
-
-        if part_id is not None:
-            self.partition_ids_map[part_id] = part
-
-        self.spaces.append(Space(part_size))
-
-        return part
-
-    def add_channel(self, src_connection, dst_connection):
-        channel_type = None
-        channel_max_message_size = None
-        max_nb_message_receive = 1 # Only for queueing channel
-        max_nb_message_send = 1 # Only for queueing channel
-
-        for connection in [src_connection, dst_connection]:
-            if connection is not None:
-                if not isinstance(connection, LocalConnection):
-                    raise RuntimeError("Non-local connections are not supported now")
-                if isinstance(connection.port, SamplingPort):
-                    if channel_type is not None:
-                        if channel_type != "sampling":
-                            raise RuntimeError("Channel for ports of different types: %s and %s" %
-                                (src_connection.port.name, dst_connection.port.name))
-                    else:
-                        channel_type = "sampling"
-                    connection.port.setChannel(self.next_channel_id_sampling)
-                else: # Local connection to queueing port
-                    if channel_type is not None:
-                        if channel_type != "queueing":
-                            raise RuntimeError("Channel for ports of different types: %s and %s" %
-                                (src_connection.port.name, dst_connection.port.name))
-                    else:
-                        channel_type = "queueing"
-                    connection.port.setChannel(self.next_channel_id_queueing)
-
-                    if connection == src_connection:
-                        if not connection.port.is_src():
-                            raise RuntimeError("Using dst port '%s' as src connection for the channel" % connection.port.name)
-                        max_nb_message_send = connection.port.max_nb_message
-                    else:
-                        if not connection.port.is_dst():
-                            raise RuntimeError("Using dst port '%s' as src connection for the channel" % connection.port.name)
-                        max_nb_message_receive = connection.port.max_nb_message
-
-                if channel_max_message_size is not None:
-                    if channel_max_message_size > connection.port.max_message_size:
-                        raise RuntimeError("Max message size of dst port '%s' is less than one for src port '%s'" %
-                            (src_connection.port.name, dst_connection.port.name))
-                else:
-                    channel_max_message_size = connection.port.max_message_size
-
-        if channel_type is None:
-            raise RuntimeError("At least one connection for channel should be local")
-
-        if channel_type == 'sampling':
-            channel = ChannelSampling(src_connection, dst_connection, channel_max_message_size)
-            self.channels_sampling.append(channel)
-            self.next_channel_id_sampling += 1
-        else:
-            channel = ChannelQueueing(src_connection, dst_connection, channel_max_message_size,
-                max_nb_message_send, max_nb_message_receive)
-            self.channels_queueing.append(channel)
-            self.next_channel_id_queueing += 1
-
-    def add_time_slot(self, slot):
-        if isinstance(slot, TimeSlotPartition):
-            slot.partition.total_time += slot.duration
-            if slot.periodic_processing_start:
-                slot.partition.has_periodic_processing_start = True
-
-        self.slots.append(slot)
-        self.major_frame += slot.duration
-
-    def add_memory_block(self, name, size):
-        if name in self.memory_blocks_names:
-            raise RuntimeError("Adding already existed memory block '%s'" % name)
-
-        mblock = Memory_block(name, size, self)
-
-        self.memory_blocks.append(mblock)
-        self.memory_blocks_names.add(name)
-        self.memory_blocks_tlb_entries_count += mblock.tlb_entries_count
-
-        return mblock
-
-    def get_all_ports(self):
-        return sum((part.get_all_ports() for part in self.partitions), [])
-
-    def get_all_sampling_ports(self):
-        return sum((part.get_all_sampling_ports() for part in self.partitions), [])
-
-    def get_all_queueing_ports(self):
-        return sum((part.get_all_queueing_ports() for part in self.partitions), [])
-
-    def get_partition_by_name(self, name):
-        return self.partition_names_map[name]
-
-    def get_partition_by_id(self, part_id):
-        return self.partition_ids_map[part_id]
-
-    def get_port_by_partition_and_name(self, partition_name, port_name):
-        return self.get_partition_by_name(partition_name).get_port_by_name(port_name)
-
-    def validate(self):
-        for part in self.partitions:
-            part.validate()
-
-        # network stuff
-        networking_time_slot_exists = any(isinstance(slot, TimeSlotNetwork) for slot in self.slots)
-
-        if self.network:
-            self.network.validate()
-
-            if not networking_time_slot_exists:
-                raise ValueError("Networking is enabled, but no dedicated network processing time slot is present")
-        else:
-            if networking_time_slot_exists:
-                raise ValueError("Networking is disabled, but there's (unnecessary) network processing time slot in the schedule")
-
-            #if any(chan.requires_network() for chan in self.channels):
-            #    raise ValueError("Network channel is present, but networking is not configured")
-
-        # validate schedule
-        if not isinstance(self.slots[0], TimeSlotPartition):
-            raise ValueError("First time slot must be partition slot")
-
-        for partition in self.partitions:
-            if not partition.has_periodic_processing_start:
-                raise ValueError("partitions '%s' don't have periodic processing points set" % partition.name)
-
-    def get_all_channels(self):
-        return self.channels
+        self.private_data = None

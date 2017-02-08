@@ -1,7 +1,7 @@
 /*
  * GENERATED! DO NOT MODIFY!
  *
- * Instead of modifying this file, modify the one it generated from (P2/components-glue/config.yaml).
+ * Instead of modifying this file, modify the one it generated from (examples/syspart-network-queue-nc/P2/components-glue/config.yaml).
  */
 /*
  * Institute for System Programming of the Russian Academy of Sciences
@@ -68,7 +68,7 @@ struct port_ops{
         VIRTIO_NET_DEV virtio_net_dev_1 = {
             .state = {
                 .pci_fn = 0,
-                .pci_dev = 2,
+                .pci_dev = 1,
                 .pci_bus = 0,
             },
 

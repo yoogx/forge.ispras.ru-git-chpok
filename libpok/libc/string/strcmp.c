@@ -1,60 +1,45 @@
 /*
- *                               POK header
- * 
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *                                      Copyright (c) 2007-2009 POK team 
- *
- * Created by julien on Thu Jan 15 23:34:13 2009 
+ * See the GNU General Public License version 3 for more details.
  */
 
-#include <core/dependencies.h>
-#include <libc/string.h>
+#include <string.h>
 
-#ifdef POK_CONFIG_NEEDS_FUNC_STRCMP
-
-__attribute__ ((weak))
 int strcmp(const char *s1, const char *s2)
 {
-  unsigned int i;
-  for (i = 0; ; i++)
-  {
-    if (s1[i] == '\0' && s2[i] == '\0')
-      return 0;
-    if (s1[i] < s2[i])
-      return -1;
-    if (s1[i] > s2[i])
-      return 1;
-  }
+    const unsigned char *str1 = (const unsigned char *)s1;
+    const unsigned char *str2 = (const unsigned char *)s2;
+
+    for(; *str1; ++str1, ++str2)
+    {
+        int d = *str1 - *str2;
+        if(d) return d;
+    }
+
+    return *str1 - *str2;
 }
 
-#endif 
-
-
-#ifdef POK_CONFIG_NEEDS_FUNC_STRNCMP
-
-__attribute__ ((weak))
-int strncmp(const char *s1, const char *s2, size_t size)
+int strncmp(const char *s1, const char *s2, size_t n)
 {
-  unsigned int i;
-  for (i = 0; i < size; i++)
-  {
-    if (s1[i] == '\0' && s2[i] == '\0')
-      return 0;
-    if (s1[i] < s2[i])
-      return -1;
-    if (s1[i] > s2[i])
-      return 1;
-  }
-  return 0;
+    const unsigned char *str1 = (const unsigned char *)s1;
+    const unsigned char *str2 = (const unsigned char *)s2;
+    const unsigned char *str1_end = str1 + n;
+
+    for(; str1 != str1_end && *str1; ++str1, ++str2)
+    {
+        int d = *str1 - *str2;
+        if(d) return d;
+    }
+
+    return (str1 != str1_end) ? (*str1 - *str2) : 0;
 }
-
-#endif
-
-

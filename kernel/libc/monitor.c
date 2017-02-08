@@ -199,15 +199,13 @@ int info_partition(int argc,char **argv){
     }
     
     pok_partition_arinc_t* part = &pok_partitions_arinc[number];
-    struct jet_space_layout space_layout;
-    ja_space_layout_get(part->base_part.space_id, &space_layout);
     
     printf("\n\n");
     printf("Info about partition #%d\n",number);
     printf("is_paused = %d\n", partition_pause_get(number));
-    printf("base_addr = 0x%lx\n", (unsigned long)space_layout.kernel_addr);
-    printf("base_vaddr = 0x%lx\n", (unsigned long)space_layout.user_addr);
-    printf("size = 0x%zx\n", space_layout.size);
+    //printf("base_addr = 0x%lx\n", (unsigned long)space_layout.kernel_addr);
+    //printf("base_vaddr = 0x%lx\n", (unsigned long)space_layout.user_addr);
+    //printf("size = 0x%zx\n", space_layout.size);
     printf("name = %s\n", part->base_part.name);
     printf("nthreads = %lu\n", part->nthreads);
     printf("period = %lu\n", part->base_part.period);
@@ -437,6 +435,8 @@ static const struct pok_partition_operations monitor_operations =
 void pok_monitor_thread_init()
 {
 #ifdef POK_NEEDS_MONITOR
+    pok_partition_init(&partition_monitor);
+
     partition_monitor.part_sched_ops = &partition_sched_ops_kernel;
     partition_monitor.part_ops = &monitor_operations;
     partition_monitor.initial_sp = pok_stack_alloc(4096);

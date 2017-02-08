@@ -15,14 +15,21 @@
 
 #include "virtio_virtqueue.h"
 
-#include <mem.h>
+#include <smalloc.h>
 #include <string.h>
+#include <stdio.h>
+
+extern struct jet_sallocator virtio_allocator; //All instancess share this
 
 void* virtio_virtqueue_setup(struct virtio_virtqueue *vq, uint16_t size, size_t alignment)
 {
     size_t mem_size = vring_size(size, alignment);
 
-    void *mem = smalloc_aligned(mem_size, alignment);
+    void *mem = jet_sallocator_alloc_aligned(&virtio_allocator, mem_size, alignment);
+    if (mem == NULL) {
+        printf("Virtio: heap alloc return zero (not enough memory)\n");
+        return NULL;
+    }
     memset(mem, 0, mem_size);
 
     vring_init(&vq->vring, size, mem, alignment);

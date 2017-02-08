@@ -31,7 +31,7 @@ exception_sources = [os.path.join(source_dir, filename) for filename in exceptio
 
 if arch_env.get('jdeveloper'):
     import sys
-    sys.path.insert(1, os.path.join(os.environ["POK_PATH"], "misc"))
+    sys.path.insert(1, os.path.join(os.environ["JETOS_HOME"], "misc"))
     import template_generation
     AddMethod(arch_env, template_generation.TemplateRender)
     

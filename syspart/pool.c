@@ -13,9 +13,12 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <mem.h>
+#include <smalloc.h>
 #include <pool.h>
 
+
+//TODO use align function from libjet instead
+#define ALIGN_UP(addr,size) (((addr)+((size)-1))&(~((size)-1)))
 
 static struct pool_elem *get_pool_elem(struct pool *pool, int idx)
 {

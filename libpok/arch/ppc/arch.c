@@ -16,7 +16,7 @@
 
 
 #include <arch.h>
-#include <alloc.h>
+#include <asp/alloc.h>
 
 void pok_arch_idle (void)
 {
@@ -24,6 +24,11 @@ void pok_arch_idle (void)
    {
    }
 }
+
+void __init (void)
+{
+}
+
 
 size_t libja_mem_get_alignment(size_t obj_size)
 {

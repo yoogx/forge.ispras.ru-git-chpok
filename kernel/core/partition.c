@@ -15,6 +15,7 @@
 
 #include <config.h>
 #include <core/partition_arinc.h>
+#include <alloc.h>
 
 #ifdef POK_NEEDS_MONITOR
 extern pok_partition_t partition_monitor;
@@ -24,6 +25,27 @@ extern pok_partition_t partition_monitor;
 extern pok_partition_t partition_gdb;
 #endif /* POK_NEEDS_GDB */
 
+void pok_partition_init(pok_partition_t* part)
+{
+   if(part->partition_event_max != 0)
+   {
+      /*
+       * DEV: Allocate one element more than required.
+       * 
+       * This simplifies implementation of ring buffer, when
+       * extracting messages may be concurrent with adding them.
+       */ 
+      part->partition_events = ja_mem_alloc_aligned(
+         sizeof(*part->partition_events) * (part->partition_event_max + 1),
+         __alignof__(*part->partition_events));
+   }
+   else
+   {
+      part->partition_events = NULL;
+   }
+
+   part->is_local_access_granted = TRUE;
+}
 
 void for_each_partition(void (*f)(pok_partition_t* part))
 {
@@ -41,6 +63,78 @@ void for_each_partition(void (*f)(pok_partition_t* part))
       f(&pok_partitions_arinc[i].base_part);
    }
 }
+
+/* 
+ * Add event to partition's queue and notify it if needed.
+ * 
+ * Should be called with global preemption disabled.
+ */
+void pok_partition_add_event(pok_partition_t* part,
+    enum jet_partition_event_type event_type,
+    uint16_t handler_id)
+{
+   // Whether it is needed to set is_event flag for partition.
+   pok_bool_t set_event =
+      (part->partition_event_end == part->partition_event_begin);
+   /* 
+    * TODO: This is a result of configuration error, when partition
+    * doesn't expect events at all.
+    */
+   assert(part->partition_event_max != 0);
+
+   struct jet_partition_event* partition_event = part->partition_events
+      + part->partition_event_end;
+
+   partition_event->handler_id = handler_id;
+   partition_event->event_type = event_type;
+
+   part->partition_event_end++;
+   if(part->partition_event_end > part->partition_event_max)
+      part->partition_event_end = 0;
+
+   /*
+    * TODO: This is a result of configuration error, when partition
+    * doesn't expect so much events pending.
+    */
+   assert(part->partition_event_end != part->partition_event_begin);
+
+   if(set_event) {
+      part->is_event = TRUE;
+   }
+}
+
+
+/* 
+ * Consume event from current partition's queue.
+ * 
+ * Return TRUE on success, FALSE if the queue is empty.
+ * 
+ * Should be called with local preemption disabled.
+ */
+pok_bool_t pok_partition_get_event(struct jet_partition_event* event)
+{
+   pok_partition_t* part = current_partition;
+
+   uint16_t partition_event_begin = part->partition_event_begin;
+   uint16_t partition_event_end = ACCESS_ONCE(part->partition_event_end);
+
+   if(partition_event_end == partition_event_begin) return FALSE;
+
+   *event = ACCESS_ONCE(part->partition_events[partition_event_begin]);
+
+   ACCESS_ONCE(part->partition_event_begin) =
+      (partition_event_begin == part->partition_event_max) ?
+         0: partition_event_begin + 1;
+
+   return TRUE;
+}
+
+void pok_partition_set_timer(pok_partition_t* part,
+    pok_time_t timer_new)
+{
+     part->timer = timer_new;
+}
+
 
 static void kernel_thread_on_event(void)
 {

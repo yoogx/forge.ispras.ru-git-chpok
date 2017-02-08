@@ -98,6 +98,14 @@ struct jet_thread_shared_data
      */
     volatile uint8_t wq_priority;
 
+    /* 
+     * Data specific for the thread.
+     * 
+     * Set with jet_set_process_data() call, extracted with jet_get_my_data().
+     * 
+     * Used only by user space.
+     */
+    void* private_data;
 };
 
 /* Thread is killed. When last msection is leaved, jet_sched() should be called. */
@@ -151,24 +159,6 @@ struct jet_kernel_shared_data
      * TODO: Does partition really need that info?
      */
     pok_thread_id_t max_n_threads;
-
-    /* 
-     * Start of the heap.
-     * 
-     * Set by the kernel in elf loader.
-     * 
-     * Read by the user for his allocator.
-     */
-    char* heap_start;
-
-    /* 
-     * End of the heap.
-     * 
-     * Set by the kernel according to configuration.
-     * 
-     * Read by the user for his allocator.
-     */
-    char* heap_end;
 
     /* Open-bounds array of thread shared data. */
     struct jet_thread_shared_data tshd[];

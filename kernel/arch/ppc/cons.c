@@ -24,7 +24,7 @@
 #include <asp/cons.h>
 #include "bsp/bsp.h"
 
-#if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
+#if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG)
 
 #define NS16550_REG_THR 0
 #define NS16550_REG_LSR 5

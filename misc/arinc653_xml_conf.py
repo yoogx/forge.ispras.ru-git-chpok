@@ -38,7 +38,7 @@ def parse_bytes(s):
         multiplier = 2 ** 20
         s = s[:-1]
 
-    return int(s) * multiplier
+    return int(s, 0) * multiplier
 
 def parse_time(s):
     # note: CHPOK uses ms internally
@@ -47,16 +47,14 @@ def parse_time(s):
         ns = int(s[:-2])
         # see the end of the function
     elif s.endswith("ms"):
-        return int(s[:-2])
+        ns = int(s[:-2]) * (10 ** 6)
     elif s.endswith("s"):
-        return int(s[:-1]) * (10 ** 3)
+        ns = int(s[:-1]) * (10 ** 9)
     else:
         # assume nanoseconds
         ns = int(s)
 
-    if ns < (10 ** 6):
-            raise ValueError("specified time less than 1ms (which won't work due to 1ms timer precision)")
-    return ns // (10 ** 6)
+    return ns
 
 class ArincConfigParser:
     # Static map: error code (without prefix) -> error description
@@ -72,37 +70,25 @@ class ArincConfigParser:
         'PARTITION_CONFIGURATION': 'Config Error',
     }
 
-    def __init__(self, arch):
-        self.arch = arch
-
-    def parse_layout(self, root):
-        """
-        Minimal parsing for extract layout of the module.
-
-        Return list of 'part_layout' objects.
-        """
-        partitions_layout = []
-
-        for part_root in root.find("Partitions").findall("Partition"):
-            part_name = part_root.find("Definition").attrib["Name"]
-            part_is_system = False
-            if "System" in part_root.find("Definition").attrib:
-                part_is_system = parse_bool(part_root.find("Definition").attrib["System"])
-
-            part_layout = chpok_configuration.PartitionLayout(part_name, part_is_system)
-            partitions_layout.append(part_layout)
-
-        return partitions_layout
-
     def parse(self, root):
         """
         Returns chpok_configuration.Configuration object.
         """
 
-        conf = chpok_configuration.Configuration(self.arch)
+        conf = chpok_configuration.Configuration()
 
-        for part_root in root.find("Partitions").findall("Partition"):
-            self.parse_partition(conf, part_root)
+        conf_private = dict()
+        # Mapping name => partition.
+        partitions_by_name = dict()
+
+        conf_private['partitions_by_name'] = partitions_by_name
+        conf.private_data = conf_private
+
+        for index, part_root in enumerate(root.find("Partitions").findall("Partition")):
+            part = self.parse_partition(part_root, str(index))
+            part_name = part.name
+            conf.partitions.append(part)
+            partitions_by_name[part_name] = part
 
         self.parse_schedule(conf, root.find("Schedule"))
 
@@ -110,31 +96,34 @@ class ArincConfigParser:
         if connection_table is not None:
             self.parse_channels(conf, connection_table)
 
-        conf.network = self.parse_network(root.find("Network"))
+        conf.module_hm_table.default_action = chpok_configuration.ModuleHMAction("MODULE", "SHUTDOWN")
+        # Use some default action for module HM table for partition-level errors.
+        action_partition = chpok_configuration.ModuleHMAction("PARTITION", "SHUTDOWN")
 
-        mem_blocks = root.find("Memory_Blocks")
-        if mem_blocks is not None:
-            for mem_block_root in mem_blocks.findall("Memory_Block"):
-                self.parse_memory_block(conf, mem_block_root)
-
-        # Use some default value for module HM table.
-        module_error_level_selector_per_state = {error_id: 1 for error_id in conf.error_ids_all }
+        module_hm_actions_per_state = {error_id: action_partition for error_id in chpok_configuration.HMTable.error_ids }
         for s in ['ERROR_HANDLER', 'USER']:
-            conf.module_hm_table.level_selector[s] = module_error_level_selector_per_state
+            conf.module_hm_table.actions[s] = module_hm_actions_per_state
 
-        conf.validate()
+        self.parse_shared_memory_blocks(conf, root.find("Shared_Memory_Blocks"))
 
         return conf
 
-    def parse_partition(self, conf, part_root):
+    def parse_partition(self, part_root, part_id = "0"):
+        """
+        Return chpok_configuration.Partition object
+
+        'part_id' meaningfull only when configure the whole module.
+        """
+
         part_name = part_root.find("Definition").attrib["Name"]
 
-        part_size = parse_bytes(part_root.find("Memory").attrib["Bytes"])
+        part = chpok_configuration.Partition(part_id, part_name)
+
+        part.memory_size = parse_bytes(part_root.find("Memory").attrib["Bytes"])
+        part.heap_size = parse_bytes(part_root.find("Memory").attrib.get('Heap', default='0'))
 
         # FIXME support partition period, which is simply a fixed attribute
         #       with no real meaning (except it can be introspected)
-        part = conf.add_partition(part_name, part_size)
-
         part.is_system = False
         if "System" in part_root.find("Definition").attrib:
             part.is_system = parse_bool(part_root.find("Definition").attrib["System"])
@@ -144,6 +133,9 @@ class ArincConfigParser:
 
         part.num_threads = int(part_root.find("Threads").attrib["Count"])
 
+        # Reserve 8K stack for every thread, including main and error ones
+        part.stack_size_all = (part.num_threads + 2) * 8096
+
         part.num_arinc653_buffers = int(part_root.find("ARINC653_Buffers").attrib["Count"])
         part.num_arinc653_blackboards = int(part_root.find("ARINC653_Blackboards").attrib["Count"])
         part.num_arinc653_events = int(part_root.find("ARINC653_Events").attrib["Count"])
@@ -152,11 +144,21 @@ class ArincConfigParser:
         part.buffer_data_size = parse_bytes(part_root.find("ARINC653_Buffers").attrib["Data_Size"])
         part.blackboard_data_size = parse_bytes(part_root.find("ARINC653_Blackboards").attrib["Data_Size"])
 
+        part_private = dict()
+
+        # Map name=>port.
+        part_private['ports_by_name'] = dict()
+        # Map name=>memory_block.
+        part_private['mb_by_name'] = dict()
+        part.private_data = part_private
+
         self.parse_ports(part, part_root.find("ARINC653_Ports"))
 
         self.parse_hm(part.hm_table, part_root.find("HM_Table"))
 
         self.parse_partition_memory_blocks(part, part_root.find("Memory_Blocks"))
+
+        return part
 
     def parse_schedule(self, conf, slot_root):
         for x in slot_root.findall("Slot"):
@@ -168,7 +170,7 @@ class ArincConfigParser:
             if slot_type == "Spare":
                 slot = chpok_configuration.TimeSlotSpare(slot_duration)
             elif slot_type == "Partition":
-                slot_partition = conf.get_partition_by_name(x.attrib["PartitionNameRef"])
+                slot_partition = conf.private_data['partitions_by_name'][x.attrib["PartitionNameRef"]]
                 slot_periodic_processing_start = parse_bool(x.attrib["PeriodicProcessingStart"])
 
                 slot = chpok_configuration.TimeSlotPartition(slot_duration,
@@ -182,9 +184,12 @@ class ArincConfigParser:
             else:
                 raise ValueError("unknown slot type %r" % slot_type)
 
-            conf.add_time_slot(slot)
+            conf.slots.append(slot)
 
     def parse_ports(self, part, ports_root):
+        part_private = part.private_data
+        ports_by_name = part_private['ports_by_name']
+
         for qp in ports_root.findall("Queueing_Port"):
             port_name = qp.attrib["Name"]
             port_direction = qp.attrib["Direction"]
@@ -194,12 +199,9 @@ class ArincConfigParser:
             port = chpok_configuration.QueueingPort(port_name, port_direction,
                 port_max_message_size, port_max_nb_messages)
 
-            if "Protocol" in qp.attrib:
-                port.protocol = qp.attrib["Protocol"]
-            else:
-                port.protocol = None
+            part.ports_queueing.append(port)
 
-            part.add_port_queueing(port)
+            ports_by_name[port_name] = port
 
         for sp in ports_root.findall("Sampling_Port"):
             port_name = sp.attrib["Name"]
@@ -210,12 +212,9 @@ class ArincConfigParser:
             port = chpok_configuration.SamplingPort(port_name, port_direction,
                 port_max_message_size, port_refresh)
 
-            if "Protocol" in sp.attrib:
-                port.protocol = sp.attrib["Protocol"]
-            else:
-                port.protocol = None
+            part.ports_sampling.append(port)
 
-            part.add_port_sampling(port)
+            ports_by_name[port_name] = port
 
     def parse_channels(self, conf, channels_root):
         for ch in channels_root.findall("Channel"):
@@ -223,91 +222,124 @@ class ArincConfigParser:
             src = self.parse_connection(conf, ch.find("Source")[0])
             dst = self.parse_connection(conf, ch.find("Destination")[0])
 
-            conf.add_channel(src, dst)
+            channel = chpok_configuration.Channel(src, dst)
+
+            conf.channels.append(channel)
 
     def parse_connection(self, conf, connection_root):
         if connection_root.tag == "Standard_Partition":
-            connection_port = conf.get_port_by_partition_and_name(
-                connection_root.attrib["PartitionName"],
-                connection_root.attrib["PortName"])
+            part_name = connection_root.attrib["PartitionName"]
+            part = conf.private_data['partitions_by_name'][part_name]
+            port_name = connection_root.attrib["PortName"]
 
-            return chpok_configuration.LocalConnection(connection_port)
+            port = part.private_data['ports_by_name'][port_name]
 
-        elif connection_root.tag == "UDP":
-            res = chpok_configuration.UDPConnection()
+            return chpok_configuration.LocalConnection(part, port)
 
-            #print('ipaddr: ', root.attrib['IP'])
-            res.host = ipaddr.IPAddress(root.attrib["IP"])
-            res.port = int(root.attrib["Port"])
-
-            return res
         else:
             raise RuntimeError("unknown connection tag name %r" % connection_root.tag)
 
-    def parse_network(self, root):
-        if root is None:
-            return None
-
-        res = chpok_configuration.NetworkConfiguration()
-
-        res.ip = ipaddr.IPAddress(root.attrib["IP"])
-
-        #if "MAC" in root.attrib:
-        #    res.mac = bytes(int(x, 16) for x in root.attrib["MAC"].split(":"))
-        #else:
-        #    res.mac = None
-
-        return res
-
-    def parse_partition_memory_blocks(self, part, memory_blocks):
-        if memory_blocks is None:
+    def parse_partition_memory_blocks(self, part, memory_blocks_xml):
+        if memory_blocks_xml is None:
             return
-        for mem_block in memory_blocks.findall("Memory_Block"):
-            self.parse_partition_memory_block(part, mem_block)
+        for memory_block_xml in memory_blocks_xml.findall("Memory_Block"):
+            memory_block = self.parse_memory_block(memory_block_xml)
+            part.memory_blocks.append(memory_block)
+            part.private_data['mb_by_name'][memory_block.name] = memory_block
 
-    def parse_partition_memory_block(self, part, mroot):
-        name = mroot.attrib["NameRef"]
-        if "UserAccess" in mroot.attrib:
-            user_access = mroot.attrib["UserAccess"]
-        else:
-            user_access = None
-        part.add_mem_block(name, user_access)
-
-
-    def parse_memory_block(self, conf, mroot):
+    def parse_memory_block(self, mroot):
         name = mroot.attrib["Name"]
-        size = int(mroot.attrib["Size"], 0)
+        size = parse_bytes(mroot.attrib["Size"])
 
-        mblock = conf.add_memory_block(name, size)
+        mblock = chpok_configuration.MemoryBlock(name, size)
 
-        mblock.virt_addr = int(mroot.attrib["VirtualAddress"], 0)
-        mblock.phys_addr = int(mroot.attrib["PhysicalAddress"], 0)
+        mblock.access = mroot.attrib.get("Access", "RW")
 
-        if "CachePolicy" in mroot.attrib:
-            mblock.cache_policy = mroot.attrib["CachePolicy"]
+        vaddr = mroot.attrib.get("VirtualAddress", None)
+        if vaddr is not None:
+            mblock.vaddr = int(vaddr, 0)
 
-        if "KernelAccess" in mroot.attrib:
-            mblock.set_kernel_access(mroot.attrib["KernelAccess"])
+        is_contiguous = mroot.attrib.get("Contiguous", None)
+        if is_contiguous is not None:
+            mblock.is_contiguous = parse_bool(is_contiguous)
 
-        print("found memblock", mblock)
+        paddr = mroot.attrib.get("PhysicalAddress", None)
+        if paddr is not None:
+            mblock.paddr = int(paddr, 0)
+            # Enforce block to be contiguous
+            mblock.is_contiguous = True
+
+        cache_policy = mroot.attrib.get("CachePolicy", None)
+        if cache_policy is not None:
+            mblock.cache_policy = cache_policy
+
+        init_source = mroot.attrib.get("InitSource", None)
+        init_stage = mroot.attrib.get("InitStage", None)
+
+        if init_source is not None:
+            if not init_source in mblock.init_source_values:
+                print "ERROR: Memory block '%s' has incorrect attribute 'InitSource': '%s'." % (name, init_source)
+                print "HINT: Possible values are: " + ", ".join(mblock.init_source_values) + "."
+                raise RuntimeError("Incorrect memory block definition.")
+
+            mblock.init_source = init_source
+
+            if init_stage is None:
+                print "Memory block '%s' has attribute 'InitSource' without 'InitStage' one." % (name)
+                raise RuntimeError("Incorrect memory block definition.")
+
+            if not init_stage in mblock.init_stage_values:
+                print "ERROR: Memory block '%s' has incorrect attribute 'InitStage': '%s'" % (name, init_stage)
+                print "HINT: Possible values are: " + ", ".join(mblock.init_stage_values) + "."
+                raise RuntimeError("Incorrect memory block definition.")
+
+            mblock.init_stage = init_stage
+        else:
+            if init_stage is not None:
+                print "Memory block '%s' has attribute 'InitStage' without 'InitSource' one." % (name)
+                raise RuntimeError("Incorrect memory block definition.")
+
+        # TODO: Parse other attributes.
+
+        return mblock
+
+    def parse_shared_memory_blocks(self, conf, sroot):
+        if sroot is None:
+            return
+
+        for share_entry in sroot.findall('Shared_Memory_Blocks_Entry'):
+            mb_sharing = chpok_configuration.MemoryBlockSharing()
+            for mb_ref_xml in share_entry.findall('Memory_Block_Ref'):
+                mb_sharing.mb_refs.append(self.parse_memory_block_ref(conf, mb_ref_xml))
+
+            conf.memory_block_sharings.append(mb_sharing)
+
+    def parse_memory_block_ref(self, conf, ref_entry):
+        part_name = ref_entry.attrib["PartitionNameRef"]
+        part = conf.private_data['partitions_by_name'][part_name]
+        mb_name = ref_entry.attrib["NameRef"]
+        memory_block = part.private_data['mb_by_name'][mb_name]
+
+        return chpok_configuration.MemoryBlockRef(part, memory_block)
 
     def parse_hm(self, table, root):
+        table.default_action = chpok_configuration.PartitionHMAction("PARTITION", "IDLE")
+
         if root is None:
             return
 
-        table.level_selector['USER'] = {}
         table.actions['USER'] = {}
 
         for x in root.findall("Error"):
             # Assume "ErrorCode" to be error id
             error_id = x.attrib["ErrorCode"]
 
-            if x.attrib["Level"] == 'PROCESS':
-                table.level_selector['USER'][error_id] = 1
-
-            table.actions['USER'][error_id] = x.attrib['Action']
+            level = x.attrib["Level"]
+            recovery_action = x.attrib['Action']
 
             error_code = x.attrib["Code"].replace('POK_ERROR_KIND_', '')
-            error_description = self.error_description_table[error_code]
+            description = self.error_description_table[error_code]
 
-            table.user_level_codes[error_id] = (error_code, error_description)
+            action = chpok_configuration.PartitionHMAction(level, recovery_action, error_code, description)
+
+            table.actions['USER'][error_id] = action

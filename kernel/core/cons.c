@@ -15,7 +15,7 @@
 
 #include <config.h>
 
-#if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
+#if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG)
 
 #include <errno.h>
 #include <cons.h>
@@ -124,11 +124,12 @@ size_t jet_console_write_debug(const char* s, size_t length)
 
 pok_ret_t jet_console_write_user(const char* __user s, size_t length)
 {
-   const char* __kuser k_s = jet_user_to_kernel_ro(s, length);
-   if(!k_s) return POK_ERRNO_EFAULT;
+   if(length != 0) {
+      const char* __kuser k_s = jet_user_to_kernel_ro(s, length);
+      if(!k_s) return POK_ERRNO_EFAULT;
 
-   jet_console_write(k_s, length);
-
+      jet_console_write(k_s, length);
+   }
    return POK_ERRNO_OK;
 }
 

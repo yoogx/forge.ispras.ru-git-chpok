@@ -69,10 +69,12 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
 #endif
 
 #if defined POK_NEEDS_GETTICK
-      case POK_SYSCALL_GETTICK:
-         return pok_gettick_by_pointer ((pok_time_t* __user) args->arg1);
+      case POK_SYSCALL_CLOCK_GETTIME:
+         return pok_clock_gettime ((clockid_t)args->arg1, (pok_time_t* __user)args->arg2);
          break;
 #endif
+      case POK_SYSCALL_TIME:
+         return jet_time((time_t*)args->arg1);
 
       SYSCALL_ENTRY(POK_SYSCALL_THREAD_CREATE)
 
@@ -141,48 +143,10 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
    SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_QUEUEING_RECEIVE)
    SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_QUEUEING_ID)
    SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_QUEUEING_STATUS)
+   SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_QUEUEING_CLEAR)
 #endif /* POK_NEEDS_PORTS_QUEUEING */
 
-#ifdef POK_NEEDS_IO
-      case POK_SYSCALL_INB:
-         if ((args->arg1 < pok_partitions[infos->partition].io_min) ||
-             (args->arg1 > pok_partitions[infos->partition].io_max))
-         {
-            return -POK_ERRNO_EPERM;
-         }
-         else
-         {
-            return inb((unsigned short) args->arg1);
-         }
-         break;
-
-      case POK_SYSCALL_OUTB:
-         if ((args->arg1 < pok_partitions[infos->partition].io_min) ||
-             (args->arg1 > pok_partitions[infos->partition].io_max))
-         {
-            return -POK_ERRNO_EPERM;
-         }
-         else
-         {
-            outb((unsigned short) args->arg1, (unsigned char) args->arg2);
-            return POK_ERRNO_OK;
-         }
-       break;
-#endif /* POK_NEEDS_IO */
-
-      //TODO rewrite this! This two syscall needs to return pok_ret_t!
-      case POK_SYSCALL_MEM_VIRT_TO_PHYS:
-         return pok_virt_to_phys(args->arg1);
-         break;
-      case POK_SYSCALL_MEM_PHYS_TO_VIRT:
-         return pok_phys_to_virt(args->arg1);
-         break;
-
-      case POK_SYSCALL_GET_BSP_INFO:
-         return pok_bsp_get_info((void* __user)args->arg1);
-         break;
-
-      SYSCALL_ENTRY(POK_SYSCALL_MEMORY_BLOCK_GET_STATUS)
+   SYSCALL_ENTRY(POK_SYSCALL_MEMORY_BLOCK_GET_STATUS)
 
       default:
        /*

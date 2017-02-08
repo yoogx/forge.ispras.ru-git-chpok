@@ -21,50 +21,26 @@
 #ifndef __JET_X86_DEPLOYMENT_H__
 #define __JET_X86_DEPLOYMENT_H__
 
+#include <stdint.h>
+#include <asp/space.h>
+
 /* 
- * Description of one user space.
+ * Description of one segment.
  */
-struct ja_x86_space
+struct x86_segment
 {
-    /*
-     * Physical address of memory chunk.
-     * 
-     * If it is set to 0 in deployment.c, it will be filled upon space initialization.
-     */
-    uintptr_t   phys_base;
-    
-    /* 
-     * Total size for partition's use.
-     * 
-     * Calculated upon space initialization.
-     */
-    size_t size_total;
-    
-    /* 
-     * Size of the memory for normal use.
-     * 
-     * Set in deployment.c.
-     */
-    size_t      size_normal;
-    /*
-     * Size of the memory for stacks, above size_normal.
-     * 
-     * Set in deployment.c.
-     */
-    size_t size_stack;
-    
-    /*
-     * Memory currently used for stacks.
-     */
-    size_t size_stack_used;
+    uintptr_t   paddr; /* Set in deployment.c. */
+    size_t      size; /* Set in deployment.c. */
 };
 
 /*
- * Array of user space descriptions.
- * 
+ * Array of memory segments.
+ *
+ * Segment (i) corresponds to space_id (i+1).
+ *
  * Should be defined in deployment.c.
  */
-extern struct ja_x86_space ja_spaces[];
-extern int ja_spaces_n;
+extern const struct x86_segment ja_segments[];
+extern const int ja_segments_n;
 
 #endif /* __JET_PPC_DEPLOYMENT_H__ */

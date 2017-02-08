@@ -29,7 +29,8 @@
 typedef enum
 {
      POK_SYSCALL_CONSWRITE                           =  10,
-     POK_SYSCALL_GETTICK                             =  20,
+     POK_SYSCALL_CLOCK_GETTIME                       =  20,
+     POK_SYSCALL_TIME                                =  21,
      POK_SYSCALL_INT_NUMBER                          =  42,
      POK_SYSCALL_THREAD_CREATE                       =  50,
      POK_SYSCALL_THREAD_SLEEP_UNTIL                  =  51,
@@ -74,6 +75,7 @@ typedef enum
      POK_SYSCALL_MIDDLEWARE_QUEUEING_RECEIVE         = 112,
      POK_SYSCALL_MIDDLEWARE_QUEUEING_ID              = 113,
      POK_SYSCALL_MIDDLEWARE_QUEUEING_STATUS          = 114,
+     POK_SYSCALL_MIDDLEWARE_QUEUEING_CLEAR           = 115,
 #endif
 
 #ifdef POK_NEEDS_ERROR_HANDLING
@@ -83,7 +85,7 @@ typedef enum
      POK_SYSCALL_ERROR_IS_HANDLER                    = 305,
 #endif
 
-     POK_SYSCALL_ERROR_RAISE_OS_ERROR       = 310,
+     POK_SYSCALL_ERROR_RAISE_OS_ERROR                = 310,
 
 #ifdef POK_NEEDS_PARTITIONS
      POK_SYSCALL_PARTITION_SET_MODE                  = 404,
@@ -91,18 +93,7 @@ typedef enum
      POK_SYSCALL_PARTITION_INC_LOCK_LEVEL            = 411,
      POK_SYSCALL_PARTITION_DEC_LOCK_LEVEL            = 412,
 #endif
-#ifdef POK_NEEDS_IO
-     POK_SYSCALL_INB                                 = 501,
-     POK_SYSCALL_OUTB                                = 502,
-#endif
-#ifdef POK_NEEDS_PCI
-     POK_SYSCALL_PCI_REGISTER                        = 601,
-#endif
-     POK_SYSCALL_MEM_VIRT_TO_PHYS                    = 701,
-     POK_SYSCALL_MEM_PHYS_TO_VIRT                    = 702,
-     POK_SYSCALL_GET_BSP_INFO                        = 703,
-
-     POK_SYSCALL_MEMORY_BLOCK_GET_STATUS             = 704,
+     POK_SYSCALL_MEMORY_BLOCK_GET_STATUS             = 701,
 } pok_syscall_id_t;
 
 #endif /* __LIBJET_SYSCALL_TYPES_H__ */

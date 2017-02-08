@@ -28,16 +28,16 @@ void msection_init(struct msection* section)
 
 void msection_enter(struct msection* section)
 {
-    struct jet_thread_shared_data* tshd_current = kshd.tshd + kshd.current_thread_id;
+    struct jet_thread_shared_data* tshd_current = kshd->tshd + kshd->current_thread_id;
 
     tshd_current->msection_count++;
     tshd_current->msection_entering = section;
 
     if(section->owner == JET_THREAD_ID_NONE)
     {
-        section->owner = kshd.current_thread_id;
+        section->owner = kshd->current_thread_id;
     }
-    else if(section->owner != kshd.current_thread_id)
+    else if(section->owner != kshd->current_thread_id)
     {
         jet_msection_enter_helper(section); //syscall
     }
@@ -47,7 +47,7 @@ void msection_enter(struct msection* section)
 
 void msection_leave(struct msection* section)
 {
-    struct jet_thread_shared_data* tshd_current = kshd.tshd + kshd.current_thread_id;
+    struct jet_thread_shared_data* tshd_current = kshd->tshd + kshd->current_thread_id;
     // TODO: assert(tshd_current->msection_count > 0);
 
     section->owner = JET_THREAD_ID_NONE;
@@ -68,9 +68,7 @@ void msection_leave(struct msection* section)
 
 pok_ret_t msection_wait(struct msection* section, SYSTEM_TIME_TYPE timeout)
 {
-    pok_time_t arinc_timeout = arinc_time_to_ms(timeout);
-
-    return jet_msection_wait(section, &arinc_timeout);
+    return jet_msection_wait(section, &timeout);
 }
 
 pok_ret_t msection_notify(struct msection* section, pok_thread_id_t thread_id)
@@ -81,56 +79,56 @@ pok_ret_t msection_notify(struct msection* section, pok_thread_id_t thread_id)
 void msection_wq_add(struct msection_wq* wq, pok_thread_id_t next)
 {
     pok_thread_id_t *pnext = (next != JET_THREAD_ID_NONE)
-        ? &kshd.tshd[next].wq_prev
+        ? &kshd->tshd[next].wq_prev
         : &wq->last;
 
     pok_thread_id_t prev = *pnext;
 
     pok_thread_id_t* pprev = (prev != JET_THREAD_ID_NONE)
-        ? &kshd.tshd[prev].wq_next
+        ? &kshd->tshd[prev].wq_next
         : &wq->first;
 
-    struct jet_thread_shared_data* tshd_current = &kshd.tshd[kshd.current_thread_id];
+    struct jet_thread_shared_data* tshd_current = &kshd->tshd[kshd->current_thread_id];
 
     tshd_current->wq_next = next;
     tshd_current->wq_prev = prev;
 
-    *pnext = *pprev = kshd.current_thread_id;
+    *pnext = *pprev = kshd->current_thread_id;
 }
 
 void msection_wq_add_after(struct msection_wq* wq, pok_thread_id_t prev)
 {
     pok_thread_id_t* pprev = (prev != JET_THREAD_ID_NONE)
-        ? &kshd.tshd[prev].wq_next
+        ? &kshd->tshd[prev].wq_next
         : &wq->first;
 
     pok_thread_id_t next = *pprev;
 
     pok_thread_id_t *pnext = (next != JET_THREAD_ID_NONE)
-        ? &kshd.tshd[next].wq_prev
+        ? &kshd->tshd[next].wq_prev
         : &wq->last;
 
-    struct jet_thread_shared_data* tshd_current = &kshd.tshd[kshd.current_thread_id];
+    struct jet_thread_shared_data* tshd_current = &kshd->tshd[kshd->current_thread_id];
 
     tshd_current->wq_next = next;
     tshd_current->wq_prev = prev;
 
-    *pnext = *pprev = kshd.current_thread_id;
+    *pnext = *pprev = kshd->current_thread_id;
 }
 
 void msection_wq_del(struct msection_wq* wq, pok_thread_id_t thread)
 {
-    struct jet_thread_shared_data* tshd_t = &kshd.tshd[thread];
+    struct jet_thread_shared_data* tshd_t = &kshd->tshd[thread];
 
     pok_thread_id_t next = tshd_t->wq_next;
     pok_thread_id_t prev = tshd_t->wq_prev;
 
     pok_thread_id_t *pnext = (next != JET_THREAD_ID_NONE)
-        ? &kshd.tshd[next].wq_prev
+        ? &kshd->tshd[next].wq_prev
         : &wq->last;
 
     pok_thread_id_t *pprev = (prev != JET_THREAD_ID_NONE)
-        ? &kshd.tshd[prev].wq_next
+        ? &kshd->tshd[prev].wq_next
         : &wq->first;
 
     *pnext = prev;

@@ -19,7 +19,7 @@
 
 Import('syspart_env')
 
-DRIVERS_LIST = ['ne2000', 'p3041', 'pci', 'qemu_vga', 'radeon']
+DRIVERS_LIST = ['ne2000', 'pci', 'qemu_vga', 'radeon']
 
 res_obj_list = []
 for driver_dir in DRIVERS_LIST:

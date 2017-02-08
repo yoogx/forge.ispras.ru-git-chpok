@@ -18,7 +18,7 @@
 
 #include <port_info.h>
 
-#include <mem.h>
+#include <smalloc.h>
 
 #include "ARINC_PORT_READER_gen.h"
 #define C_NAME "ARINC_PORT_READER: "

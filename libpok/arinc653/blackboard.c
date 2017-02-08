@@ -26,7 +26,7 @@
 #include <kernel_shared_data.h>
 #include <core/assert_os.h>
 
-#include <libc/string.h>
+#include <string.h>
 #include "arinc_alloc.h"
 #include <arinc_config.h>
 #include "arinc_process_queue.h"
@@ -53,7 +53,7 @@ void CREATE_BLACKBOARD (
        /*out*/ BLACKBOARD_ID_TYPE       *BLACKBOARD_ID,
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-   if(kshd.partition_mode == POK_PARTITION_MODE_NORMAL) {
+   if(kshd->partition_mode == POK_PARTITION_MODE_NORMAL) {
       // Cannot create blackboard in NORMAL mode
       *RETURN_CODE = INVALID_MODE;
       return;
@@ -135,9 +135,9 @@ void DISPLAY_BLACKBOARD (
       pok_thread_id_t t = blackboard->process_queue.first;
 
       do {
-         char* w_dest = kshd.tshd[t].wq_buffer.dst;
+         char* w_dest = kshd->tshd[t].wq_buffer.dst;
          memcpy(w_dest, blackboard->message, blackboard->message_size);
-         kshd.tshd[t].wq_len = blackboard->message_size;
+         kshd->tshd[t].wq_len = blackboard->message_size;
 
          msection_wq_del(&blackboard->process_queue, t);
 
@@ -181,9 +181,9 @@ void READ_BLACKBOARD (
    else {
       // Blackboard is empty and waiting is *requested* by the caller.
       // (whether waiting is *allowed* will be checked by the kernel.)
-      pok_thread_id_t t = kshd.current_thread_id;
+      pok_thread_id_t t = kshd->current_thread_id;
 
-      kshd.tshd[t].wq_buffer.dst = MESSAGE_ADDR;
+      kshd->tshd[t].wq_buffer.dst = MESSAGE_ADDR;
 
       /*
        * ARINC explicitely says, that:
@@ -198,7 +198,7 @@ void READ_BLACKBOARD (
       {
       case POK_ERRNO_OK:
          // Message is already copied from the blackboard by the notifier.
-         *LENGTH = kshd.tshd[t].wq_len;
+         *LENGTH = kshd->tshd[t].wq_len;
          *RETURN_CODE = NO_ERROR;
          break;
       case POK_ERRNO_MODE: // Waiting is not allowed

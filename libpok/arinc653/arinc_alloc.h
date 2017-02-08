@@ -16,30 +16,25 @@
 #ifndef __LIBJET_ARINC_ALLOC_H__
 #define __LIBJET_ARINC_ALLOC_H__
 
-/* Allocator of memory for messages and message queues. */
+/* Allocator of memory for ARINC needs. */
 
 #include <config.h>
-
-#if defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD)
-
 #include <types.h>
-#include <alloc.h>
 
-// Heap for ARINC messages and message queues. Used in arinc_init().
-extern char* arinc_intra_heap;
+/* Initializa ARINC allocator. */
+void arinc_allocator_init(void);
 
 /* 
- * Allocate memory of given size.
+ * Allocate memory of given size and alignment.
  * 
- * Memory will have alignment suitable for any object which fits into
- * given size.
+ * Return NULL if insufficient memory.
  */
 void* arinc_alloc(size_t size, size_t alignment);
 
 /*
  * State of the arinc allocator.
  */
-typedef size_t arinc_allocator_state;
+typedef char* arinc_allocator_state;
 
 /*
  * Return current state of the allocator.
@@ -51,7 +46,5 @@ arinc_allocator_state arinc_allocator_get_state(void);
  * State should be previously obtained with arinc_allocator_get_state().
  */
 void arinc_allocator_reset_state(arinc_allocator_state state);
-
-#endif /* defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD) */
 
 #endif /* __LIBJET_ARINC_ALLOC_H__ */

@@ -21,9 +21,6 @@
 #include "virtio_pci.h"
 #include <pci.h>
 
-
-#define POK_MAX_RECEIVE_BUFFERS 100
-
 #define MAX_PACKET_SIZE 1500
 
 struct receive_buffer {
@@ -44,9 +41,9 @@ struct virtio_network_device {
 
     void (*packet_received_callback)(const char *, size_t);
 
-    struct receive_buffer receive_buffers[POK_MAX_RECEIVE_BUFFERS];
+    struct receive_buffer *receive_buffers;
     struct send_buffer *send_buffers;
-    int inited;
+    int inited; //is initialized
 };
 
 #endif

@@ -4,9 +4,7 @@ ENTRY(__pok_partition_start)
 
 SECTIONS
 {
-	kshd = 0x80000000; /* This should coincide with ja_space_shared_data() in the kernel. */
-
-  . = 0x80001000;
+  . = 0x80000000;
 
 	__partition_begin = . ;
        
@@ -25,7 +23,7 @@ SECTIONS
 
         .sdata2 :
         {
-          __sdata2_start = .;
+          __SDATA2_START__ = .;
           PROVIDE (_SDA2_BASE_ = 32768);
           *(.sdata2 .sdata2.* .gnu.linkonce.s2.*)
           . = ALIGN(4);
@@ -37,6 +35,7 @@ SECTIONS
           *(.sbss2 .sbss2.* .gnu.linkonce.sb2.*)
           . = ALIGN(4);
           __sbss2_end = .;
+          __SBSS2_END__ = .;
         }
         .data :
         {
@@ -44,6 +43,7 @@ SECTIONS
           *(.data .data.* .gnu.linkonce.d.*)
           *(.data1)
           PROVIDE (_SDA_BASE_ = 32768);
+          __SDATA_START__ = .;
           *(.sdata .sdata.* .gnu.linkonce.s.*)
           . = ALIGN(4);
           __data_end = .;
@@ -55,6 +55,7 @@ SECTIONS
           *(.sbss .sbss.* .gnu.linkonce.sb.*)
           *(.scommon)
           __sbss_end = .;
+          __SBSS_END__ = .;
         }
         .bss  :
         {
