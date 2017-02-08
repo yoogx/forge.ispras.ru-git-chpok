@@ -36,7 +36,7 @@
 
 #include <net/byteorder.h>
 
-#include <mem.h>
+#include <smalloc.h>
 
 // include generated files
 #include "AFDX_QUEUE_ENQUEUER_gen.h"
