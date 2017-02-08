@@ -56,3 +56,57 @@
 
       - name: portNetB
         type: preallocated_sender
+
+# receive
+- name: AFDX_TIME_ADDER
+  additional_h_files: [<arinc653/time.h>]
+  state_struct:
+        arrival_time: SYSTEM_TIME_TYPE
+
+  init_func: afdx_time_adder_init
+
+  in_ports:
+      - name: portB
+        type: message_handler
+        implementation:
+            handle: time_adder_send
+
+  out_ports:
+      - name: portA
+        type: time_message_handler
+        
+- name: AFDX_ROUTER
+  additional_h_files: ['"router_state_structs.h"']
+  state_struct:
+      map_vl_id_to_idx[10]: struct vl_index
+      map_vl_id_to_idx_len: size_t
+  in_ports:
+      - name: portA
+        type: time_message_handler
+        implementation:
+            handle: afdx_router_receive_packet
+
+  out_ports:
+      - name: portArray
+        type: time_message_handler
+        is_array: true
+
+- name: INTEGRITY_CHECKER
+  additional_h_files: [<types.h>]
+  state_struct:
+      last_in_seq_number: uint8_t
+      first_message_received: pok_bool_t
+      network_card: uint8_t
+
+  init_func: integrity_checker_init
+
+  in_ports:
+      - name: portA
+        type: time_message_handler
+        implementation:
+            handle: integrity_checker_receive_packet
+
+  out_ports:
+      - name: portB
+        type: time_message_handler
+
