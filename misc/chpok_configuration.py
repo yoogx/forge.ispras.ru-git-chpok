@@ -32,6 +32,7 @@ import json
 import functools
 import collections
 import ipaddr
+import math
 
 
 class PartitionLayout():
@@ -54,12 +55,15 @@ class TimeSlot():
         pass
 
     def __init__(self, duration):
+        if duration < (10 ** 6):
+            raise ValueError("Minimum value for Slot duration is 1000000 (1ms).")
+
         self.duration = duration
 
     def validate(self):
         if not isinstance(self.duration, int):
             raise TypeError
-        
+
 class TimeSlotSpare(TimeSlot):
     __slots__ = []
 
@@ -217,6 +221,21 @@ class PartitionHMTable(HMTable):
     def get_action(self, system_state, error_id):
         return self.get_action_generic(system_state, error_id, 'IDLE')
 
+class Space:
+    """
+    Definition of single memory space.
+
+    - size - allocated RAM size in bytes (code + static storage)
+    - part - partition, which should fit into given space.
+
+    TODO: This should be make arch-dependent somehow.
+    TODO: Config files uses 'size' as contained stack.
+           Arch code allocates stack from other memory.
+    """
+    def __init__(self, size, part):
+        self.size = size
+        self.part = part
+
 # ARINC partition.
 #
 # - name - name of the partition
@@ -225,10 +244,16 @@ class PartitionHMTable(HMTable):
 # - part_index - index of the partition in the array. Filled automatically.
 class Partition:
     __slots__ = [
-        "name", 
+        "arch", # Value propagated from 'Configuration' object.
+        "name",
+
         "is_system",
 
-        "size", # allocated RAM size in bytes (code + static storage)
+        # Requested size of the heap.
+        #
+        # Note: ARINC requirements for buffers and co. shouldn't be counted here.
+        "heap",
+
         "num_threads", # number of user threads, _not_ counting init thread and error handler
         "ports_queueing", # list of queuing ports
         "ports_sampling", # list of sampling ports
@@ -245,9 +270,12 @@ class Partition:
 
         "ports_queueing_system", # list of queuing ports with non-empty protocol set
         "ports_sampling_system", # list of sampling ports with non-empty protocol set
+
+        "part_index" # index of the partition in the array. Filled automatically. part_index+1 is used as PID
     ]
 
-    def __init__(self, part_id, name, size):
+    def __init__(self, arch, part_id, name):
+        self.arch = arch
         self.name = name
         self.part_id = part_id
 
@@ -260,7 +288,7 @@ class Partition:
         self.period = None
         self.duration = None
 
-        self.size = size
+        self.heap = 0
 
         self.num_threads = 0
 
@@ -283,6 +311,8 @@ class Partition:
         # Internal
         self.part_index = None # Not set yet
         self.port_names_map = dict() # Map `port_name` => `port`
+
+        self.memory_blocks_map = dict() # Map 'mem_block_name' => 'user_access'
 
         self.total_time = 0 # Incremented every time timeslot is added.
         # When timeslot with periodic processing start is added, this is set to True.
@@ -313,6 +343,10 @@ class Partition:
         if port.protocol is not None:
             self.ports_sampling_system.append(port)
 
+    def add_mem_block(self, name, user_access):
+        if user_access is None:
+            user_access = "READ_ONLY"
+        self.memory_blocks_map[name] = user_access
 
     def get_all_sampling_ports(self):
         return ports_sampling
@@ -347,6 +381,41 @@ class Partition:
 
     def get_port_by_name(self, port_name):
         return self.port_names_map[port_name]
+
+    # Return size of memory, needed by single buffer structure.
+    # TODO: This should be arch-specific somehow.
+    def get_buffer_size(self):
+        return 150
+
+    # Return size of memory, needed by single blackboard structure.
+    # TODO: This should be arch-specific somehow.
+    def get_blackboard_size(self):
+        return 100
+
+    # Return size of memory, needed by single semaphore structure.
+    # TODO: This should be arch-specific somehow.
+    def get_semaphore_size(self):
+        return 50
+
+    # Return size of memory, needed by single event structure.
+    # TODO: This should be arch-specific somehow.
+    def get_event_size(self):
+        return 50
+
+    # Return memory size, needed by intra-partition communication mechanisms.
+    def get_intra_size(self):
+        return ( self.buffer_data_size + self.blackboard_data_size
+            + self.num_arinc653_buffers * self.get_buffer_size()
+            + self.num_arinc653_blackboards * self.get_blackboard_size()
+            + self.num_arinc653_semaphores * self.get_semaphore_size()
+            + self.num_arinc653_events * self.get_event_size()
+        )
+
+    def get_heap_size(self):
+        heap_size = self.get_intra_size()
+        if self.heap > 0:
+            heap_size += self.heap + 16 # alignment. TODO: this should be arch-specific.
+        return heap_size
 
 def _get_port_direction(port):
     direction = port.direction.lower()
@@ -412,6 +481,9 @@ class SamplingPort(Port):
 
     def __init__(self, name, direction, max_message_size, refresh):
         Port.__init__(self, name, direction, max_message_size)
+        if refresh < (10 ** 6):
+                raise ValueError("Minimum value for refresh is 1000000 (1ms).")
+
         self.refresh = refresh
 
     def validate(self):
@@ -561,7 +633,7 @@ class NetworkConfiguration:
         #        raise ValueError
         #    if not (self.mac[0] & 0x2):
         #        print("Warning! MAC address is not locally administered one", file=sys.stderr)
-        
+
         if not hasattr(self, "ip"):
             raise AttributeError
         if not isinstance(self.ip, ipaddr.IPv4Address):
@@ -570,25 +642,75 @@ class NetworkConfiguration:
     #def mac_to_string(self):
     #    return "{%s}" % ", ".join(hex(i) for i in self.mac)
 
+
+def size_to_str(num):
+    for unit in ['','K','M','G']:
+        if abs(num) < 1024:
+            return "%d%s" % (num, unit)
+        num /= 1024
+    raise RuntimeError("wrong size of memory block")
+
+class Memory_block:
+    __slots__ = [
+        "name",
+        "size",
+        "str_size",
+        "virt_addr",
+        "phys_addr",
+        "cache_policy",
+        "system_access"
+    ]
+
+    def __init__(self, name, size, conf):
+        self.name = name
+        self.actual_size = size
+        aligned_size = max(4**math.ceil(math.log(size, 4)), 0x1000)
+        self.str_size = size_to_str(aligned_size)
+
+        self.virt_addr = 0
+        self.phys_addr = 0
+
+        self.cache_policy = "DEFAULT"
+        self.access = dict()
+        for part in conf.partitions:
+            if name in part.memory_blocks_map:
+                self.access[part.part_index + 1] = part.memory_blocks_map[name]
+        self.tlb_entries_count = len(self.access)
+
+    def __repr__(self):
+        return self.name + ": " + hex(self.virt_addr) + " -> " + hex(self.phys_addr) + " [" +\
+                hex(self.actual_size) + " = " + self.str_size + "], " + str(self.cache_policy) + ", " +\
+                str(self.access)
+
+    def set_kernel_access(self, kaccess):
+        if kaccess != 'NONE':
+            self.access[0] = kaccess
+
+
 class Configuration:
     system_states_all = system_states
     error_ids_all = error_ids
 
     __slots__ = [
-        "partitions", 
+        "partitions",
         "slots", # time windows
         "channels_queueing", # queueing port channels (connections)
         "channels_sampling", # sampling port channels (connections)
         "network", # NetworkConfiguration object (or None)
+        "memory_blocks"
 
-        # if this is set, POK writes a special string once 
+        "spaces", # Array of 'Space' objects.
+
+        # if this is set, POK writes a special string once
         # there are no more schedulable threads
         # it's used by test runner as a sign that POK
         # can be terminated
         "test_support_print_when_all_threads_stopped",
     ]
 
-    def __init__(self):
+    def __init__(self, arch):
+        self.arch = arch
+
         self.module_hm_table = ModuleHMTable()
 
         self.partitions = []
@@ -596,6 +718,10 @@ class Configuration:
         self.channels_queueing = []
         self.channels_sampling = []
         self.network = None
+        self.memory_blocks = []
+        self.memory_blocks_tlb_entries_count = 0
+
+        self.spaces = []
 
         self.test_support_print_when_all_threads_stopped = False
 
@@ -605,6 +731,8 @@ class Configuration:
         self.partition_names_map = dict()
         self.partition_ids_map = dict()
         self.next_partition_id = 0
+
+        self.memory_blocks_names = set()
 
         self.next_channel_id_sampling = 0
         self.next_channel_id_queueing = 0
@@ -623,7 +751,7 @@ class Configuration:
             part_id_real = self.next_partition_id
             self.next_partition_id += 1
 
-        part = Partition(part_id_real, part_name, part_size)
+        part = Partition(self.arch, part_id_real, part_name)
         part.set_index(len(self.partitions))
 
         self.partitions.append(part)
@@ -631,6 +759,8 @@ class Configuration:
 
         if part_id is not None:
             self.partition_ids_map[part_id] = part
+
+        self.spaces.append(Space(part_size, part))
 
         return part
 
@@ -645,7 +775,7 @@ class Configuration:
                 if not isinstance(connection, LocalConnection):
                     raise RuntimeError("Non-local connections are not supported now")
                 if isinstance(connection.port, SamplingPort):
-                    if channel_type is not None: 
+                    if channel_type is not None:
                         if channel_type != "sampling":
                             raise RuntimeError("Channel for ports of different types: %s and %s" %
                                 (src_connection.port.name, dst_connection.port.name))
@@ -653,7 +783,7 @@ class Configuration:
                         channel_type = "sampling"
                     connection.port.setChannel(self.next_channel_id_sampling)
                 else: # Local connection to queueing port
-                    if channel_type is not None: 
+                    if channel_type is not None:
                         if channel_type != "queueing":
                             raise RuntimeError("Channel for ports of different types: %s and %s" %
                                 (src_connection.port.name, dst_connection.port.name))
@@ -699,6 +829,18 @@ class Configuration:
         self.slots.append(slot)
         self.major_frame += slot.duration
 
+    def add_memory_block(self, name, size):
+        if name in self.memory_blocks_names:
+            raise RuntimeError("Adding already existed memory block '%s'" % name)
+
+        mblock = Memory_block(name, size, self)
+
+        self.memory_blocks.append(mblock)
+        self.memory_blocks_names.add(name)
+        self.memory_blocks_tlb_entries_count += mblock.tlb_entries_count
+
+        return mblock
+
     def get_all_ports(self):
         return sum((part.get_all_ports() for part in self.partitions), [])
 
@@ -727,8 +869,8 @@ class Configuration:
         if self.network:
             self.network.validate()
 
-            if not networking_time_slot_exists: 
-                raise ValueError("Networking is enabled, but no dedicated network processing time slot is present") 
+            if not networking_time_slot_exists:
+                raise ValueError("Networking is enabled, but no dedicated network processing time slot is present")
         else:
             if networking_time_slot_exists:
                 raise ValueError("Networking is disabled, but there's (unnecessary) network processing time slot in the schedule")

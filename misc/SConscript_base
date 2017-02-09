@@ -35,7 +35,7 @@ def get_pok_definitions(source, env):
     root = etree.parse(source.path)
     root.xinclude()
 
-    parser = arinc653_xml_conf.ArincConfigParser()
+    parser = arinc653_xml_conf.ArincConfigParser(env['ARCH'])
     conf = parser.parse(root)
 
     return dict(conf=conf)
@@ -46,77 +46,66 @@ def get_pok_partition_definitions(source, env):
     root = etree.parse(source.path)
     root.xinclude()
 
-    parser = arinc653_xml_conf.ArincConfigParser()
-    conf = chpok_configuration.Configuration()
+    parser = arinc653_xml_conf.ArincConfigParser(env['ARCH'])
+    conf = chpok_configuration.Configuration(env['ARCH'])
     parser.parse_partition(conf, root)
 
     return dict(part = conf.partitions[0])
 
 def get_pok_gdb_definitions(source, env):
-	defs = get_pok_definitions(source, env)
+    defs = get_pok_definitions(source, env)
 
-	defs['partition_build_dirs'] = env['PARTITION_BUILD_DIRS']
+    defs['partition_build_dirs'] = env['PARTITION_BUILD_DIRS']
 
-	return defs
-
-
-root = etree.parse(os.path.join(env['SCONSTRUCT_DIR'], env['xml']))
-root.xinclude()
-parser = arinc653_xml_conf.ArincConfigParser()
-conf_layout = parser.parse_layout(root)
-
-env['PARTITION_DIRS'] = list(part.name for part in conf_layout)
-env['PARTITION_IS_SYSTEM'] = list(part.is_system for part in conf_layout)
-env['PARTITIONS'] = list(os.path.join(env['SCONSTRUCT_DIR'], part_dir, 'build',
-					env['BSP'], 'part.elf') for part_dir in env['PARTITION_DIRS'])
+    return defs
 
 env['PARTITION_BUILD_DIRS'] = []
-for i in range(len(env['PARTITION_DIRS'])):
-	env['PARTITION_BUILD_DIRS'].append(os.path.join(env['SCONSTRUCT_DIR'], env['PARTITION_DIRS'][i], 'build', env['BSP'], ''))
+for i in range(len(env['PARTITIONS'])):
+    env['PARTITION_BUILD_DIRS'].append(os.path.join(env['SCONSTRUCT_DIR'], env['PARTITIONS'][i], 'build', env['BSP'], ''))
 
-env.Command('clean_cmd', [], Delete(['build/']+[pdir+'/build' for pdir in env['PARTITION_DIRS']]))
+env.Command('clean_cmd', [], Delete(['build/']+[pdir+'/build' for pdir in env['PARTITIONS']]))
 env.Alias('clean', 'clean_cmd')
 
-build_dir = env['BUILD_DIR']
-partition_build_dirs = env['PARTITION_BUILD_DIRS']
+if not os.path.exists(env['BUILD_DIR']):
+    os.makedirs(env['BUILD_DIR'])
+for pdir in env['PARTITION_BUILD_DIRS']:
+    if not os.path.exists(pdir):
+        os.makedirs(pdir)
 
-if not os.path.exists(build_dir):
-	os.makedirs(build_dir)
-for pdir in partition_build_dirs:
-	if not os.path.exists(pdir):
-		os.makedirs(pdir)
+part_elf_list = [os.path.join(p, 'part.elf') for p in env['PARTITION_BUILD_DIRS']]
+part_xml_list = []
 
-env.Append(GENERATE_TITLE = template_generation.generate_title_c_no_track)
+root = etree.parse(env['XML'])
+part_xmls = root.find("Partitions")
+
+for xml in part_xmls.findall(etree.QName(part_xmls[0], 'include')):
+    part_xml_list.append(xml.attrib["href"])
+
+for part in env['PARTITIONS']:
+    SConscript(os.path.join(env['SCONSTRUCT_DIR'], part, 'SConscript'), exports = 'env')
 
 # Generate "deployment.c" for kernel
 env.TemplateRender(
-	target = os.path.join(build_dir, "deployment.c"),
-	source = [os.path.join(env['SCONSTRUCT_DIR'], env['xml'])] +
-		[os.path.join(env['SCONSTRUCT_DIR'], part_dir, env['xml']) for part_dir in partition_build_dirs],
-	create_definitions_func = get_pok_definitions,
-	template_main = "deployment_kernel",
-	template_dir = env['POK_PATH'] + "/misc/templates"
-	)
+    target = os.path.join(env['BUILD_DIR'], "deployment.c"),
+    source = [env['XML']] +
+        [os.path.join(env['SCONSTRUCT_DIR'], part_xml) for part_xml in part_xml_list],
+    create_definitions_func = get_pok_definitions,
+    template_main = "deployment_kernel",
+    template_dir = env['POK_PATH'] + "/misc/templates",
+    GENERATE_TITLE = template_generation.generate_title_c_no_track
+    )
 
-# Generate "deployment.c" for every user partition
-for part_dir in partition_build_dirs:
-	env.TemplateRender(
-		target = os.path.join(part_dir, "deployment.c"),
-		source = os.path.join(env['SCONSTRUCT_DIR'], part_dir, env['xml']),
-		create_definitions_func = get_pok_partition_definitions,
-		template_main = "deployment_user",
-		template_dir = env['POK_PATH'] + "/misc/templates"
-		)
 
 # Generate file with commands for GDB for possible debugging
 env.TemplateRender(
-	target = build_dir + "/GDB_commands",
-	source = [os.path.join(env['SCONSTRUCT_DIR'], env['xml'])] +
-		[os.path.join(env['SCONSTRUCT_DIR'], part_dir, env['xml']) for part_dir in partition_build_dirs],
-	create_definitions_func = get_pok_gdb_definitions,
-	template_main = "GDB_commands",
-	template_dir = env['POK_PATH'] + "/misc/templates"
-	)
+    target = env['BUILD_DIR'] + "/GDB_commands",
+    source = [env['XML']] +
+        [os.path.join(env['SCONSTRUCT_DIR'], part_xml) for part_xml in part_xml_list],
+    create_definitions_func = get_pok_gdb_definitions,
+    template_main = "GDB_commands",
+    template_dir = env['POK_PATH'] + "/misc/templates",
+    GENERATE_TITLE = template_generation.generate_title_python_no_track
+    )
 
 pok_env = env.Clone()
 
@@ -127,58 +116,54 @@ env['POK_PATH']+'/build/'+env['BSP']+'/kernel/core.lo',
 env['POK_PATH']+'/build/'+env['BSP']+'/boards/bsp.lo',
 env['BUILD_DIR']+'deployment.c'])
 
-ldscript = pok_env['POK_PATH']+'/boards/'+pok_env['BSP']+'/ldscripts/kernel.lds'
-pok_env['LINKFLAGS'] = str(' -T '+ldscript+' -Map build/'+pok_env['BSP']+'/pok.elf.map')
-
 # there should (perhaps) also be padding to get aligned file size
 def merge_partitions(target, source, env):
-	with open(str(target[0]), 'wb') as part:
-		for s in source:
-			with open(str(s), 'rb') as orig_part:
-				shutil.copyfileobj(orig_part, part)
+    with open(str(target[0]), 'wb') as part:
+        for s in source:
+            with open(str(s), 'rb') as orig_part:
+                shutil.copyfileobj(orig_part, part)
 
 def create_sizes_c(target, source, env):
-	with open(str(target[0]), 'w') as sizes:
-		sizes.write('#include <types.h>\n')
-		sizes.write('uint32_t pok_elf_sizes[] = {\n')
-		for s in source:
-			part_size = os.path.getsize(str(s))
-			if part_size > pok_env['MAX_PART_SIZE']:
-				raise RuntimeError('Partition size must not exceed %d bytes' % pok_env['MAX_PART_SIZE'])
-			sizes.write(str(part_size))
-			if source.index(s) != len(source) - 1:
-				sizes.write(',\n')
-		sizes.write('\n};\n')
-
-for i in range(len(pok_env['PARTITION_BUILD_DIRS'])):
-    part_dir = os.path.join(pok_env['SCONSTRUCT_DIR'], pok_env['PARTITION_DIRS'][i])
-    part_build_dir = os.path.join(pok_env['SCONSTRUCT_DIR'], pok_env['PARTITION_BUILD_DIRS'][i])
-    part_is_system = pok_env['PARTITION_IS_SYSTEM'][i]
-    if any(f.endswith('.c') for f in os.listdir(part_dir)):
-        SConscript('SConscript_partition', exports = ['part_dir', 'part_build_dir', 'part_is_system'])
+    with open(str(target[0]), 'w') as sizes:
+        sizes.write('#include <types.h>\n')
+        sizes.write('uint32_t pok_elf_sizes[] = {\n')
+        for s in source:
+            part_size = os.path.getsize(str(s))
+            if part_size > pok_env['MAX_PART_SIZE']:
+                raise RuntimeError('Partition size must not exceed %d bytes' % pok_env['MAX_PART_SIZE'])
+            sizes.write(str(part_size))
+            if source.index(s) != len(source) - 1:
+                sizes.write(',\n')
+        sizes.write('\n};\n')
 
 merge_command = pok_env.Command(target = pok_env['BUILD_DIR']+'partitions.bin',
-source = pok_env['PARTITIONS'],
-action = merge_partitions)
-pok_env.Depends(merge_command, pok_env['PARTITIONS'])
+    source = part_elf_list,
+    action = merge_partitions)
+pok_env.Depends(merge_command, part_elf_list)
 
 sizes_c_command = pok_env.Command(target = pok_env['BUILD_DIR']+'sizes.c',
-source = pok_env['PARTITIONS'],
-action = create_sizes_c)
-pok_env.Depends(sizes_c_command, pok_env['PARTITIONS'])
+    source = part_elf_list,
+    action = create_sizes_c)
+pok_env.Depends(sizes_c_command, part_elf_list)
 
 compile_sizes = pok_env.Command(target = pok_env['BUILD_DIR']+'sizes.o',
-source = pok_env['BUILD_DIR']+'sizes.c',
-action = [
-pok_env['CC']+' -c -o '+pok_env['BUILD_DIR']+'sizes.o '+pok_env['CFLAGS']+' -I'+pok_env['POK_PATH']+'/kernel/include '+
-pok_env['BUILD_DIR']+'sizes.c',
-pok_env['OBJCOPY']+' --add-section .archive2='+pok_env['BUILD_DIR']+'partitions.bin '+pok_env['BUILD_DIR']+'sizes.o'])
-pok_env.Depends(compile_sizes, pok_env['PARTITIONS'])
+    source = pok_env['BUILD_DIR']+'sizes.c',
+    action = [
+        pok_env['CC']+' -c -o '+pok_env['BUILD_DIR']+'sizes.o '+pok_env['CFLAGS']+' -I'+pok_env['POK_PATH']+'/kernel/include '+
+        pok_env['BUILD_DIR']+'sizes.c',
+        pok_env['OBJCOPY']+' --add-section .archive2='+pok_env['BUILD_DIR']+'partitions.bin '+pok_env['BUILD_DIR']+'sizes.o'])
+pok_env.Depends(compile_sizes, [part_elf_list, merge_command])
+
+ldscript_kernel = pok_env['LDSCRIPT_KERNEL']
+# Rewrite LINKFLAGS, as we build '.elf'.
+pok_env['LINKFLAGS'] = ' -T ' + ldscript_kernel
+
 
 pok_target = pok_env.Program(target = pok_env['BUILD_DIR']+'pok.elf', source = [
-pok_env['BUILD_DIR']+'sizes.o',
-pok_env['BUILD_DIR']+'kernel.lo',
-pok_env['LIBGCC']])
-pok_env.Depends(pok_target, [compile_sizes, ldscript])
+    pok_env['BUILD_DIR']+'sizes.o',
+    pok_env['BUILD_DIR']+'kernel.lo',
+    pok_env['LIBGCC']])
+pok_env.Depends(pok_target, [compile_sizes, ldscript_kernel])
+Default(pok_target)
 
 # EOF

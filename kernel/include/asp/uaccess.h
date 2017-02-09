@@ -18,35 +18,59 @@
 
 #include <types.h>
 #include <common.h>
+#include <asp/space.h>
 
-#include <arch/uaccess.h>
-
-/* Check that user space can read area specified. */
-pok_bool_t ja_check_access_read(const void* __user addr, size_t size);
-/* Check that user space can write area specified. */
-pok_bool_t ja_check_access_write(void* __user addr, size_t size);
-
-#ifndef JET_ARCH_DECLARE_USER_TO_KERNEL
 /* 
- * Return address which can be directly accessed by the kernel for 
- * r/w from/to user space area.
+ * Return kernel address which can be used in the kernel for
+ * r/w from/to given user space area.
  * 
- * User address should be checked before by 'ja_check_access_write'.
- * 
- * If arch defines macro 'JET_ARCH_DECLARE_USER_TO_KERNEL', it should
- * provide definition with same usage.
+ * If given area cannot be written by the user space, returns NULL.
  */
-void* ja_user_to_kernel(void* __user addr);
+void* __kuser ja_user_to_kernel_space(void* __user addr, size_t size,
+    jet_space_id space_id);
+
 /* 
- * Return address which can be directly accessed by the kernel for 
- * read from user space area.
+ * Return kernel address which can be used in the kernel for
+ * read from given user space area.
  * 
- * User address should be checked before by 'ja_check_access_read'.
- * 
- * If arch defines macro 'JET_ARCH_DECLARE_USER_TO_KERNEL', it should
- * provide definition with same usage.
+ * If given area cannot be read by the user space, returns NULL.
  */
-const void* ja_user_to_kernel_ro(const void* __user addr);
-#endif /* JET_ARCH_DECLARE_USER_TO_KERNEL */
+const void* __kuser ja_user_to_kernel_ro_space(const void* __user addr, size_t size,
+    jet_space_id space_id);
+
+/*
+ * Return true if address *may* contain instruction, which can be
+ * executed by the user in the given space.
+ * 
+ * Used mainly for additional checks.
+ * Kernel doesn't perform r/w to given address.
+ */
+pok_bool_t ja_check_access_exec(void* __user addr, jet_space_id space_id);
+
+#ifdef POK_NEEDS_GDB
+
+/* 
+ * Return address which can be used by GDB for
+ * r/w from/to given kernel or user space area.
+ * 
+ * Access is garanteed only if switched to given space.
+ * 
+ * If given area cannot be written, returns NULL.
+ */
+void* ja_addr_to_gdb(void* addr, size_t size,
+    jet_space_id space_id);
+
+/* 
+ * Return address which can be used by GDB for
+ * read from given kernel or user space area.
+ * 
+ * Access is garanteed only if switched to given space.
+ * 
+ * If given area cannot be read by the user space, returns NULL.
+ */
+const void* ja_addr_to_gdb_ro(const void* addr, size_t size,
+    jet_space_id space_id);
+
+#endif /* POK_NEEDS_GDB */
 
 #endif /* __JET_ASP_UACCESS_H__ */

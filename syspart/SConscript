@@ -28,13 +28,12 @@ syspart_env['CPPPATH'] = env['LIBPOK_CPPPATH'] + [
 Export('syspart_env')
 
 drivers = SConscript('drivers/SConscript')
-net     = SConscript('net/SConscript')
+components = SConscript('components/SConscript')
 
 syspart_program = syspart_env.Program(target = 'syspart.lo', source = [
-    net,
     drivers,
-    'config.c',
-    'mem.c'
+    components,
+    'pool.c'
 ])
 syspart_env.Depends(syspart_program, env['POK_PATH']+'/libpok/')
 

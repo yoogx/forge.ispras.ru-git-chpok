@@ -23,7 +23,7 @@
 #include <config.h>
 
 #include <protocols/caesar.h>
-#include <libc/string.h>
+#include <string.h>
 #include <types.h>
 
 #ifdef POK_NEEDS_PROTOCOLS_CAESAR

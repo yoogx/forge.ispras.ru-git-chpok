@@ -21,7 +21,6 @@
 
 #include <types.h>
 #include <errno.h>
-#include <core/schedvalues.h>
 #include <core/partition.h>
 #include <common.h>
 
@@ -216,9 +215,9 @@ pok_time_t get_next_periodic_processing_start(void);
  * preemption-related things. Because of enabled local preemption
  * all pending callbacks for partition are triggered.
  */
-void pok_partition_jump_user(void* __user entry,
-    void* __user stack_addr,
-    struct dStack* stack_kernel);
+void pok_partition_jump_user(void (* __user entry)(void),
+    jet_ustack_t stack_user,
+    jet_stack_t stack_kernel);
 
 /*
  * Return to the user space.
@@ -231,17 +230,6 @@ void pok_partition_jump_user(void* __user entry,
  * all pending callbacks for partition are triggered.
  */
 void pok_partition_return_user(void);
-
-/*
- * Whether we are in user space.
- * 
- * This variable is set when we jump/return to user space and cleared
- * on return from there.
- * 
- * This variable is checked in interrupts handlers for decide, whether
- * need to store 'global_thread_stack' localy.
- */
-extern volatile pok_bool_t pok_in_user_space;
 
 /** 
  * Restart current partition.

@@ -38,43 +38,116 @@
 #include <core/debug.h>
 #include <elf.h>
 
+#include <core/space.h>
+
+#include <core/loader.h>
+
+extern size_t pok_elf_sizes[];
+extern char __archive2_begin;
+
 /**
  * Load an ELF file.
  *
  *  @param file
  */
-pok_ret_t pok_loader_elf_load   (char* file,
-                                 ptrdiff_t offset,
-                                 uintptr_t* entry)
+void jet_loader_elf_load   (uint8_t elf_id,
+                                 jet_space_id space_id,
+                                 void (** entry)(void))
 {
-   Elf32_Ehdr*  elf_header;
-   Elf32_Phdr*  elf_phdr;
-   unsigned int i;
-   char*        dest;
+    size_t elf_offset, elf_size;
 
-   elf_header = (Elf32_Ehdr*)file;
+    struct jet_space_layout space_layout;
+    ja_space_layout_get(space_id, &space_layout);
 
-   if (elf_header->e_ident[0] != 0x7f ||
-       elf_header->e_ident[1] != 'E' ||
-       elf_header->e_ident[2] != 'L' ||
-       elf_header->e_ident[3] != 'F')
-   {
-      return POK_ERRNO_NOTFOUND;
+    elf_offset = 0;
+    for (uint8_t i = 0; i < elf_id; i++) {
+        elf_offset += pok_elf_sizes[i];
+    }
+
+    elf_size = pok_elf_sizes[elf_id];
+
+    if (elf_size > space_layout.size)
+    {
+         printf("Attempt to load elf %u of size %zx into space of size %zx.\n",
+            elf_id, elf_size, space_layout.size);
+         pok_raise_error(POK_ERROR_ID_CONFIG_ERROR, FALSE, NULL);
+    }
+
+    const char* elf_start = &__archive2_begin + elf_offset;
+
+    Elf32_Ehdr*  elf_header;
+    Elf32_Phdr*  elf_phdr;
+
+    elf_header = (Elf32_Ehdr*)elf_start;
+
+    if (elf_header->e_ident[0] != 0x7f ||
+         elf_header->e_ident[1] != 'E' ||
+         elf_header->e_ident[2] != 'L' ||
+         elf_header->e_ident[3] != 'F')
+    {
+        printf("Partition's ELF has incorrect format");
+        pok_raise_error(POK_ERROR_ID_PARTLOAD_ERROR, FALSE, NULL);
+    }
+
+    *entry = (void (*)(void)) elf_header->e_entry;
+
+    elf_phdr = (Elf32_Phdr*)(elf_start + elf_header->e_phoff);
+
+    // First cycle: determine the last virtual address in the elf
+    char* elf_end_user = space_layout.user_addr;
+
+    for (int i = 0; i < elf_header->e_phnum; ++i)
+    {
+        char* user_dest = (char *)elf_phdr[i].p_vaddr;
+        size_t filesz = elf_phdr[i].p_filesz;
+        size_t memsz = elf_phdr[i].p_memsz;
+
+        if(filesz > memsz)
+        {
+           printf("Partition's ELF has section with 'filesz=%zd' which is more than 'memsz=%zd'.\n",
+               filesz, memsz);
+           pok_raise_error(POK_ERROR_ID_PARTLOAD_ERROR, FALSE, NULL);
+        }
+
+
+        if(user_dest < space_layout.user_addr)
+        {
+           printf("Partition's ELF maps to virtual address %p, but space starts with %p.\n",
+               user_dest, space_layout.user_addr);
+           pok_raise_error(POK_ERROR_ID_PARTLOAD_ERROR, FALSE, NULL);
+        }
+
+          // Where given section ends(in user space).
+        char* elf_section_end_user = user_dest + memsz;
+
+        if(elf_end_user < elf_section_end_user) {
+           elf_end_user = elf_section_end_user;
+        }
+    }
+
+    if(elf_end_user > space_layout.user_addr + space_layout.size)
+    {
+       printf("ERROR: Elf maps up to virtual address %p, which is above section's start by 0x%zx. But size of the section is only 0x%zx.\n",
+         elf_end_user, elf_end_user - space_layout.user_addr, space_layout.size);
+       printf("HINT: Probably, you need to configure more space for the partition.\n");
+       pok_raise_error(POK_ERROR_ID_PARTLOAD_ERROR, FALSE, NULL);
+    }
+
+    for (int i = 0; i < elf_header->e_phnum; ++i)
+    {
+        char* user_dest = (char *)elf_phdr[i].p_vaddr;
+        size_t filesz = elf_phdr[i].p_filesz;
+        size_t memsz = elf_phdr[i].p_memsz;
+
+        assert((user_dest >= space_layout.user_addr)
+               && (user_dest + filesz <= space_layout.user_addr + space_layout.size)
+               && (user_dest + memsz <= space_layout.user_addr + space_layout.size));
+
+        char* kernel_dest = space_layout.kernel_addr + (user_dest - space_layout.user_addr);
+
+        memcpy (kernel_dest, elf_phdr[i].p_offset + elf_start, filesz);
+        memset (kernel_dest + filesz, 0, memsz - filesz);
    }
-
-   *entry = (uintptr_t) elf_header->e_entry;
-
-   elf_phdr = (Elf32_Phdr*)(file + elf_header->e_phoff);
-
-   for (i = 0; i < elf_header->e_phnum; ++i)
-   {
-      dest = (char *)elf_phdr[i].p_vaddr + offset;
-
-      memcpy (dest, elf_phdr[i].p_offset + file, elf_phdr[i].p_filesz);
-      memset (dest + elf_phdr[i].p_filesz, 0, elf_phdr[i].p_memsz - elf_phdr[i].p_filesz);
-   }
-
-   return POK_ERRNO_OK;
 }
 
 #endif /* POK_NEEDS_PARTITIONS */

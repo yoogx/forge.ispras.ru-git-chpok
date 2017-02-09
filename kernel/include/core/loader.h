@@ -15,17 +15,23 @@
  */
 
 
-#ifndef __POK_LOADER_H__
-#define __POK_LOADER_H__
+#ifndef __JET_LOADER_H__
+#define __JET_LOADER_H__
 
 #include <types.h>
 #include <errno.h>
+#include <core/space.h>
 
 /**
- *
+ * Load elf into given space.
+ * 
+ * Entry point is returned via 'entry' parameter.
+ * 
+ * If 'heap_size' is not 0, allocates heap of given size and setup heap
+ * in kernel_shared_data.
  */
-pok_ret_t pok_loader_elf_load   (char* file,
-                                 ptrdiff_t offset,
-                                 uintptr_t* entry);
-#endif /* !__POK_LOADER_H__ */
+void jet_loader_elf_load   (uint8_t elf_id,
+                                 jet_space_id space_id,
+                                 void (** entry)(void));
+#endif /* __JET_LOADER_H__ */
 

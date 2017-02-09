@@ -19,7 +19,6 @@
 #include <core/partition.h>
 #include <core/error_arinc.h>
 #include <core/port.h>
-#include <core/intra_arinc.h>
 
 #include <uapi/partition_arinc_types.h>
 
@@ -37,15 +36,11 @@ typedef struct _pok_patition_arinc
     pok_partition_mode_t   mode;           /**< Current mode of the partition */
 
     /* 
-     * Size of the allocated memory segment.
+     * Index in the elf array where partition's image is contained.
      * 
      * Set in deployment.c.
      */
-    uint32_t               size;           
-    uint32_t               base_addr;    /**< The base address inside the whole memory (where the segment is in the whole memory ?) */
-    uint32_t               base_vaddr;   /**< The virtual address of the partition. The address the threads sees when they are executed */
-    
-    uint32_t               user_stack_state; /* State of the use-space allocation. */
+    uint8_t                 elf_id;
 
     pok_time_t             activation; // Not used now
 
@@ -66,48 +61,32 @@ typedef struct _pok_patition_arinc
 
     pok_thread_t*          thread_current; // Normal thread or special thread. NULL if doing nothing.
 
+    /* 
+     * Thread, selected according to scheduling algorithm.
+     * 
+     * Selected thread may differ from current one, if selected
+     * thread wants to enter into critical section, which already has an owner,
+     * or selected thread kills a thread, which is currently in critical section.
+     */
+    pok_thread_t*          thread_selected;
+
+    /*
+     * When current thread releases given msection, it should be preempted.
+     * 
+     * If thread_selected != thread_current but waiting_section is NULL,
+     * then preemption should be occured when current thread leaves
+     * all sections and terminates.
+     */
+    struct msection*        waiting_section;
+
+    /* Size of the heap to be allocated. Set in the deployment.c */
+    size_t heap_size;
 
     pok_port_queuing_t*    ports_queuing; /* List of queuing ports. Set in deployment.c. */
     size_t                 nports_queuing;
 
     pok_port_sampling_t*   ports_sampling; /* List of sampling ports. Set in deployment.c. */
     size_t                 nports_sampling;
-
-
-   /*
-    * Size of memory pre-allocated for intra-partition communicaton
-    * objects.
-    * 
-    * This memory can be used by buffers and blackboard for allocate
-    * queue of messages.
-    * 
-    * Set in deployment.c
-    */
-   size_t                  intra_memory_size; 
-   
-   // Memory allocated at init for intra-partition communicaton objects.
-   void*                   intra_memory; 
-   
-   /* Size of currently used `intra_memory`. Reseted at partition restart. */
-   size_t                  intra_memory_size_used;
-   
-
-   pok_buffer_t*           buffers; // List of 'slots' for buffers. Set in deployment.c
-   size_t                  nbuffers; // Number of buffers allocated. Set in deployment.c
-   size_t                  nbuffers_used; // Number of buffers which are currently created.
-   
-   pok_blackboard_t*       blackboards; // List of 'slots' for blackboards. Set in deployment.c
-   size_t                  nblackboards; // Number of blackboards allocated. Set in deployment.c
-   size_t                  nblackboards_used; // Number of blackboards which are currently created.
-
-   pok_semaphore_t*        semaphores; // List of 'slots' for semaphores. Set in deployment.c
-   size_t                  nsemaphores; // Number of semaphores allocated. Set in deployment.c
-   size_t                  nsemaphores_used; // Number of semaphores which are currently created.
-
-   pok_event_t*            events; // List of 'slots' for events. Set in deployment.c
-   size_t                  nevents; // Number of events allocated. Set in deployment.c
-   size_t                  nevents_used; // Number of events which are currently created.
-
 
 /* Error and main threads are special in sence that they cannot be reffered by ID.*/
 
@@ -134,6 +113,7 @@ typedef struct _pok_patition_arinc
      */
     const pok_thread_error_map_t* thread_error_info;
 #endif
+    struct jet_kernel_shared_data* kshd;
 
     /* 
      * Pointer to partition HM table.
@@ -153,7 +133,7 @@ typedef struct _pok_patition_arinc
     uint32_t                nthreads_unrecoverable;
 
 
-    uintptr_t               main_entry;
+    void                    (*main_entry)(void);
     uint32_t                main_user_stack_size;
 
 
@@ -168,18 +148,9 @@ typedef struct _pok_patition_arinc
     struct list_head       eligible_threads; 
 
     /**
-     * Queue of threads with deadline events.
-     * 
-     * Corresponded thread's field is .thread_deadline_event.
+     * Queue of all timed events.
      */
-    struct delayed_event_queue queue_deadline;
-    /** 
-     * Queue of delayed events, which should awoke thread
-     * (or make it closer to RUNNING state).
-     * 
-     * Corresponded thread's field is .thread_delayed_event.
-     */
-    struct delayed_event_queue queue_delayed;
+    struct delayed_event_queue partition_delayed_events;
     
     /* 
      * After main partition's thread creates start thread,
@@ -187,7 +158,7 @@ typedef struct _pok_patition_arinc
      * 
      * This is context pointer for switch to it.
      */
-    uint32_t               idle_sp;
+    struct jet_context*               idle_sp;
 } pok_partition_arinc_t;
 
 #define current_partition_arinc container_of(current_partition, pok_partition_arinc_t, base_part)
@@ -266,38 +237,15 @@ pok_ret_t pok_current_partition_inc_lock_level(int32_t *lock_level);
 
 pok_ret_t pok_current_partition_dec_lock_level(int32_t *lock_level);
 
-// utility macro-like functions
 
-
-/**
- * Chech that pointer \a ptr is located in the address space of partition
- * \a pid
+/*
+ * Raise error about inconsistent state of OS.
+ * 
+ * User space may modify part of OS state directly writting some memory
+ * cells. This is faster than syscalls, but may lead to inconsistent state
+ * of OS. When kernel code detects inconsistency, it should call this function.
  */
-
-/* TODO dirty as hell */
-
-#ifdef __i386__
-#define POK_CHECK_PTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= current_partition_arinc->base_addr && \
-                                             ((uintptr_t)(ptr)) <  current_partition_arinc->base_addr + current_partition_arinc->size\
-                                             )
-
-#define POK_CHECK_VPTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= current_partition_arinc->base_vaddr && \
-                                             ((uintptr_t)(ptr)) <  current_partition_arinc->base_vaddr + current_partition_arinc->size\
-                                             )
-#elif defined(__PPC__)
-#define POK_CHECK_PTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= 0x80000000 && \
-                                             ((uintptr_t)(ptr)) <  0x80000000 + 0x1000000ULL\
-                                             )
-
-#define POK_CHECK_VPTR_IN_PARTITION(pid,ptr) (\
-                                             ((uintptr_t)(ptr)) >= 0x80000000 && \
-                                             ((uintptr_t)(ptr)) <  0x80000000 + 0x1000000ULL\
-                                             )
-#else
-#error "POK_CHECK_PTR macros are not implemented for this arch, do it now!"
-#endif
+// TODO: this should raise partition-level error.
+#define assert_os(expr) assert(expr)
 
 #endif /* !__POK_PARTITION_ARINC_H__ */

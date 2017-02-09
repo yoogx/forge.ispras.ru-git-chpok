@@ -13,4 +13,12 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <libc/setjmp.h>
+#ifndef __POK_LIBC_SETJMP_H__
+#define __POK_LIBC_SETJMP_H__
+
+#include <arch/setjmp.h>
+
+int setjmp(jmp_buf env);
+void longjmp(jmp_buf env, int val);
+
+#endif /* __POK_LIBC_SETJMP_H_ */

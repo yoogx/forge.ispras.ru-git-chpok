@@ -33,7 +33,7 @@ typedef struct
     /* 
      * Name of the port.
      * 
-     * Should be set initially.
+     * Set in the deployment.c.
      */
     const char                  *name;
     /*
@@ -44,14 +44,14 @@ typedef struct
     /*
      * Channel to which port is connected.
      * 
-     * Should be set initially.
+     * Set in the deployment.c.
      */
     pok_channel_queuing_t       *channel;
 
     /*
      * Direction (IN or OUT).
      * 
-     * Should be set initially.
+     * Set in the deployment.c.
      */
     pok_port_directions_t       direction;
     
@@ -107,13 +107,19 @@ pok_ret_t pok_port_queuing_id(
     const char* __user name,
     pok_port_id_t* __user id);
 
+pok_ret_t pok_port_queuing_clear(pok_port_id_t id);
+
 /* 
  * Receive message from the port into specified process.
  * 
  * Port should be available for read.
  * 
- * Thread should have address for reading to in its `wait_private` field.
- * After the call, function will set this field to +len.
+ * Before call:
+ * t->wait_buffer.dest - points to the message
+ * 
+ * After call:
+ * t->wait_len - length of stored message
+ * t->wait_result - result of wait (POK_ERRNO_OK or POK_ERRNO_TOOMANY).
  * 
  * Should be called with local preemption disabled.
  */
@@ -124,10 +130,12 @@ void port_queuing_receive(pok_port_queuing_t* port, pok_thread_t* t);
  * 
  * Port should be available for write.
  * 
- * Thread should have message parameters stored  in its `wait_private` field
- * as pok_message_send_t structure.
+ * Before call:
+ * t->wait_buffer.src - points to the message,
+ * t->wait_len - length of the message
  * 
- * After the call, function will set this field to +len.
+ * After call:
+ * t->wait_result - result of wait (POK_ERRNO_OK)
  * 
  * Should be called with local preemption disabled.
  */
@@ -135,7 +143,7 @@ void port_queuing_send(pok_port_queuing_t* port, pok_thread_t* t);
 
 
 /* 
- * Samling port. 
+ * Sampling port.
  * 
  * Contain common parts for "in" and "out" ports +
  * refresh_period for "in" port.

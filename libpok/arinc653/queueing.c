@@ -40,7 +40,6 @@ void CREATE_QUEUING_PORT (
       /*out*/ QUEUING_PORT_ID_TYPE      *QUEUING_PORT_ID,
       /*out*/ RETURN_CODE_TYPE          *RETURN_CODE)
 {
-   strtoupper(QUEUING_PORT_NAME);
    pok_ret_t                        core_ret;
    pok_port_id_t                    core_id;
    pok_queuing_discipline_t         core_discipline;
@@ -104,13 +103,7 @@ void SEND_QUEUING_MESSAGE (
         return;
     }
 
-    pok_time_t delay_ms = arinc_time_to_ms(TIME_OUT);
-    if (delay_ms > INT32_MAX) {
-        *RETURN_CODE = INVALID_PARAM;
-        return;
-    }
-
-    core_ret = pok_port_queuing_send (QUEUING_PORT_ID - 1, MESSAGE_ADDR, LENGTH, &delay_ms);
+    core_ret = pok_port_queuing_send (QUEUING_PORT_ID - 1, MESSAGE_ADDR, LENGTH, &TIME_OUT);
 
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
@@ -137,20 +130,15 @@ void RECEIVE_QUEUING_MESSAGE (
        return;
    }
    
-   pok_time_t delay_ms = arinc_time_to_ms(TIME_OUT);
-   if (delay_ms > INT32_MAX) {
-       *RETURN_CODE = INVALID_PARAM;
-       return;
-   }
-
-   core_ret = pok_port_queuing_receive (QUEUING_PORT_ID - 1, &delay_ms, MESSAGE_ADDR, (pok_port_size_t*)LENGTH);
+   core_ret = pok_port_queuing_receive (QUEUING_PORT_ID - 1, &TIME_OUT, MESSAGE_ADDR, (pok_port_size_t*)LENGTH);
 
    switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
         MAP_ERROR(POK_ERRNO_DIRECTION, INVALID_MODE);
         MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
         MAP_ERROR(POK_ERRNO_EMPTY, NOT_AVAILABLE);
-        MAP_ERROR(POK_ERRNO_TIMEOUT, TIMED_OUT); 
+        MAP_ERROR(POK_ERRNO_TIMEOUT, TIMED_OUT);
+        MAP_ERROR(POK_ERRNO_TOOMANY, INVALID_CONFIG);
         MAP_ERROR_DEFAULT(INVALID_CONFIG);
     }
 }
@@ -160,7 +148,6 @@ void GET_QUEUING_PORT_ID (
       /*out*/ QUEUING_PORT_ID_TYPE      *QUEUING_PORT_ID,
       /*out*/ RETURN_CODE_TYPE          *RETURN_CODE)
 {
-    strtoupper(QUEUING_PORT_NAME);
     pok_ret_t core_ret;
     pok_port_id_t id;
 
@@ -213,10 +200,16 @@ void GET_QUEUING_PORT_STATUS (
 
 void CLEAR_QUEUING_PORT (
       /*in */ QUEUING_PORT_ID_TYPE      QUEUING_PORT_ID,
-      /*out*/ RETURN_CODE_TYPE          *return_code)
+      /*out*/ RETURN_CODE_TYPE          *RETURN_CODE)
 {
-  (void) QUEUING_PORT_ID;
-  *return_code = NOT_AVAILABLE;
+   pok_ret_t core_ret = pok_port_queuing_clear(QUEUING_PORT_ID - 1);
+
+   switch (core_ret) {
+        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+        MAP_ERROR(POK_ERRNO_PORT, INVALID_PARAM);
+        MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
+        MAP_ERROR_DEFAULT(INVALID_CONFIG);
+    }
 }
 
 #endif

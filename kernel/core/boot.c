@@ -23,8 +23,7 @@
 
 #include <config.h>
 
-#include <arch.h>
-#include <bsp_common.h>
+#include <cons.h>
 
 #include <core/time.h>
 #include <core/thread.h>
@@ -32,24 +31,23 @@
 #include <core/partition.h>
 #include <core/partition_arinc.h>
 #include <core/channel.h>
-#include <core/boot.h>
+#include <asp/entries.h>
 #include <libc.h>
 
 #include <core/instrumentation.h>
 
-void pok_boot ()
+#ifdef POK_NEEDS_GDB
+#include <gdb.h>
+#endif
+
+void jet_boot (void)
 {
    kernel_state = POK_SYSTEM_STATE_OS_MOD; // TODO: is this choice for state right?
-   pok_arch_init();
-   pok_bsp_init();
 
 #ifdef POK_NEEDS_NETWORKING
    pok_network_init();
 #endif
 
-#if defined (POK_NEEDS_TIME) || defined (POK_NEEDS_SCHED) || defined (POK_NEEDS_THREADS)
-   pok_time_init();
-#endif
 #ifdef POK_NEEDS_PARTITIONS
    pok_partition_arinc_init_all();
 #endif
@@ -85,14 +83,14 @@ void pok_boot ()
 
 
 #ifdef POK_NEEDS_PARTITIONS
-#ifdef POK_NEEDS_WAIT_FOR_GDB
+#if defined(POK_NEEDS_GDB) && defined(POK_NEEDS_WAIT_FOR_GDB)
   printf("Waiting for GDB connection ...\n");
   printf("\n");
   pok_trap();
 #endif
   pok_sched_start();
 #else
-  pok_arch_preempt_enable();
+  ja_preempt_enable();
 
   /**
    * If we don't use partitioning service, we execute a main

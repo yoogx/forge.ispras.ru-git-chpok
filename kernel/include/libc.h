@@ -36,6 +36,7 @@ char* strncpy(char* dest, const char* src, size_t n);
 
 int   strcmp (const char *s1, const char *s2);
 int   strncmp(const char *s1, const char *s2, size_t size);
+int   strncasecmp(const char *s1, const char *s2, size_t size);
 
 char *strchr(const char *s, int c);
 char *strrchr(const char *s, int c);
@@ -64,6 +65,7 @@ int getchar(void);
 int getchar2(void);
 void monitor();
 
+/*
 struct  regs{
 #ifdef __PPC__
     uint32_t r1;
@@ -130,6 +132,7 @@ struct  regs{
   uint32_t ss;
 #endif  
 };
+*/
 
 struct T_breakpoint{
     /*
@@ -169,7 +172,9 @@ struct T_breakpoint{
 #endif
 };
 
-void handle_exception (int exceptionVector, struct regs * ea);
+struct jet_interrupt_context;
+
+void handle_exception (int exceptionVector, struct jet_interrupt_context* ea);
 
 void pok_monitor_thread(void);
 void pok_monitor_thread_init(void);

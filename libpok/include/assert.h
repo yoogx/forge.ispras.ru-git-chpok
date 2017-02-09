@@ -1,27 +1,32 @@
 /*
- *                               POK header
- * 
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *                                      Copyright (c) 2007-2009 POK team 
- *
- * Created by julien on Thu Jan 29 15:10:33 2009 
+ * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __POK_ASSERT_H__
-#define __POK_ASSERT_H__
+#ifndef __LIBJET_ASSERT_H__
+#define __LIBJET_ASSERT_H__
 
-#include <errno.h>
-#include <libc/stdio.h>
+#include <stdlib.h>
 
-#define ASSERT_RET(ret) if (ret != POK_ERRNO_OK) { printf ("ASSERTION FAILED, ret=%d, file=%s, line=%d\n", ret, __FILE__, __LINE__);}
-#define ASSERT_RET_WITH_EXCEPTION(ret,but) if ((ret != POK_ERRNO_OK)&&(ret != but)) { printf ("ASSERTION FAILED, ret=%d, file=%s, line=%d\n", ret, __FILE__, __LINE__);}
-
+#ifdef NDEBUG
+#define assert(expr) ((void)0)
+#else
+#define assert(expr) do {                                                   \
+    if(!(expr)) {                                                           \
+        printf("Assertion failed: `%s', function %s, file %s, line %d\n",   \
+            #expr, __func__, __FILE__, __LINE__);                           \
+        abort();                                                            \
+    }} while(0)
 #endif
 
+#endif /* __LIBJET_ASSERT_H__ */

@@ -88,7 +88,7 @@ void pok_instrumentation_partition_archi (const uint8_t id)
 void pok_instrumentation_running_task (const uint32_t id)
 {
    printf ("[INSTRUMENTATION][CHEDDAR][EVENTS] <running_task>   ");
-   printf ("%llu", POK_GETTICK() );
+   printf ("%llu", jet_system_time() );
    printf ("  task%lu", id);
    printf ("</running_task>\n");
 }

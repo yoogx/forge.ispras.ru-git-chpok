@@ -21,7 +21,10 @@
 #define ETH_ALEN 6
 #define ETH_DATA_LENGTH 1500
 
-#define ETH_P_IP 0x0800
+enum ethertype {
+    ETH_P_IP = 0x0800,
+    ETH_P_ARP = 0x0806
+};
 
 struct ether_hdr {
     uint8_t dst[ETH_ALEN];

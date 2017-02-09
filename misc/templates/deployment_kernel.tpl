@@ -63,10 +63,18 @@ pok_channel_queuing_t pok_channels_queuing[{{ conf.channels_queueing | length }}
     {%for channel_queueing in conf.channels_queueing%}
     {
         .max_message_size = {{channel_queueing.max_message_size}},
-        .max_nb_message_send = {{channel_queueing.max_nb_message_send}},
-        .max_nb_message_receive = {{channel_queueing.max_nb_message_receive}},
-        .receiver = {{connection_partition(channel_queueing.dst)}},
-        .sender = {{connection_partition(channel_queueing.src)}},
+
+        .recv = {
+            .max_nb_message = {{channel_queueing.max_nb_message_receive}},
+            .part = {{connection_partition(channel_queueing.dst)}},
+        },
+        .send = {
+            .max_nb_message = {{channel_queueing.max_nb_message_send}},
+            .part = {{connection_partition(channel_queueing.src)}},
+        },
+
+        // Currently hardcoded.
+        .overflow_strategy = JET_CHANNEL_QUEUING_SENDER_BLOCK,
     },
     {%endfor%}
 };
@@ -149,17 +157,6 @@ static pok_port_sampling_t partition_ports_sampling_{{loop.index0}}[{{part.ports
 {%endfor%}
 };
 
-// Buffers array
-static pok_buffer_t partition_buffers_{{loop.index0}}[{{part.num_arinc653_buffers}}];
-
-// Blackboards array
-static pok_blackboard_t partition_blackboards_{{loop.index0}}[{{part.num_arinc653_blackboards}}];
-
-// Semaphores array
-static pok_semaphore_t partition_semaphores_{{loop.index0}}[{{part.num_arinc653_semaphores}}];
-
-// Events array
-static pok_event_t partition_events_{{loop.index0}}[{{part.num_arinc653_events}}];
 {%endfor%}{#partitions loop#}
 
 /*************** Setup partitions array *******************************/
@@ -168,22 +165,26 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
     {
         .base_part = {
             .name = "{{part.name}}",
-            
+
+            // Allocate 1 event slot per queuing port plus 2 slots for timer.
+            .partition_event_max = {{part.ports_queueing | length}} + 2,
+
             .period = {%if part.period is not none%}{{part.period}}{%else%}{{conf.major_frame}}{%endif%},
             .duration = {%if part.duration is not none%}{{part.duration}}{%else%}{{part.total_time}}{%endif%},
             .partition_id = {{part.part_id}},
-            
-            .space_id = {{loop.index0}},
-            
+
+            .space_id = {{loop.index}},
+
             .multi_partition_hm_selector = &pok_hm_multi_partition_selector_default,
             .multi_partition_hm_table = &pok_hm_multi_partition_table_default,
         },
-        
-        .size = {{part.size}},
-        .nthreads = {{part.num_threads}} + 1 /*main thread*/ + 1 /* error thread */,
+
+        .nthreads = {{part.get_needed_threads()}},
         .threads = partition_threads_{{loop.index0}},
-        
+
         .main_user_stack_size = 8192, {# TODO: This should be set in config somehow. #}
+
+        .heap_size = {{part.get_heap_size()}},
 
         .ports_queuing = partition_ports_queuing_{{loop.index0}},
         .nports_queuing = {{part.ports_queueing | length}},
@@ -191,23 +192,8 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
         .ports_sampling = partition_ports_sampling_{{loop.index0}},
         .nports_sampling = {{part.ports_sampling | length}}, {#TODO: ports#}
 
-
-        .intra_memory_size = {{part.buffer_data_size}} + {{part.blackboard_data_size}}, // Memory for intra-partition communication
-
-        .buffers = partition_buffers_{{loop.index0}},
-        .nbuffers = {{part.num_arinc653_buffers}},
-
-        .blackboards = partition_blackboards_{{loop.index0}},
-        .nblackboards = {{part.num_arinc653_blackboards}},
-        
-        .semaphores = partition_semaphores_{{loop.index0}},
-        .nsemaphores = {{part.num_arinc653_semaphores}},
-
-        .events = partition_events_{{loop.index0}},
-        .nevents = {{part.num_arinc653_events}},
-
         .partition_hm_selector = &partition_hm_selector_{{loop.index0}},
-    
+
         .thread_error_info = &partition_thread_error_info_{{loop.index0}},
 
         .partition_hm_table = &partition_hm_table_{{loop.index0}},
@@ -222,11 +208,13 @@ const uint8_t pok_partitions_arinc_n = {{conf.partitions | length}};
 pok_partition_t partition_monitor =
 {
     .name = "Monitor",
-    
+
+    .partition_event_max = 0,
+
     .period = {{conf.major_frame}}, {#TODO: Where it is stored in conf?#}
-    
-    .space_id = 0xff,
-    
+
+    .space_id = 0,
+
     .multi_partition_hm_selector = &pok_hm_multi_partition_selector_default,
     .multi_partition_hm_table = &pok_hm_multi_partition_table_default,
 };
@@ -237,9 +225,11 @@ pok_partition_t partition_gdb =
 {
     .name = "GDB",
 
+    .partition_event_max = 0,
+
     .period = {{conf.major_frame}}, {#TODO: Where it is stored in conf?#}
 
-    .space_id = 0xff,
+    .space_id = 0,
 
     .multi_partition_hm_selector = &pok_hm_multi_partition_selector_default,
     .multi_partition_hm_table = &pok_hm_multi_partition_table_default,
@@ -279,5 +269,25 @@ const uint8_t pok_module_sched_n = {{conf.slots | length}};
 
 const pok_time_t pok_config_scheduling_major_frame = {{conf.major_frame}};
 
-/************************ Setup address spaces ************************/
-struct pok_space spaces[{{conf.partitions | length}}]; // As many as partitions
+/************************ Memory blocks ************************/
+#include <core/memblocks_config.h>
+struct memory_block jet_memory_blocks[] = {
+    {%for mblock in conf.memory_blocks%}
+    {
+        .name = "{{mblock.name}}",
+        .virt_addr = 0x{{'%x'%mblock.virt_addr}},
+        .size = {{mblock.actual_size}},
+        .pid_to_rights = {
+            {%for pid, access_right in mblock.access.iteritems() %}
+                [{{pid}}] = MB_CONFIG_{{access_right}},
+            {%endfor%}
+        }
+    },
+
+    {%endfor%}
+
+};
+
+size_t jet_memory_blocks_n = {{ conf.memory_blocks | length }};
+
+{% include 'arch/' + conf.arch + '/deployment_kernel' %}

@@ -24,4 +24,13 @@ EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
            CS, SS, DS, ES, FS, GS
 };
 
+/*
+ * This provides definition of 'struct jet_interrupt_context' for
+ * arch-independent code.
+ * 
+ * TODO: should be removed when no longer needed.
+ */
+#include <../arch/x86/interrupt.h>
+
+
 #endif /* __JET_X86_GDB_H__ */

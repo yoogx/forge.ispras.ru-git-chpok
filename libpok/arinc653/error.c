@@ -23,8 +23,8 @@
 #include <arinc653/error.h>
 #include <core/error.h>
 #include <core/syscall.h>
-#include <libc/string.h>
-#include <libc/stdio.h>
+#include <string.h>
+#include <stdio.h>
 
 #define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
 #define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break

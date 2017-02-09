@@ -1,6 +1,5 @@
 #include <libc.h>
-#include <bsp_common.h>
-
+#include <cons.h>
 
 /*
 *   Function described in cons.c:

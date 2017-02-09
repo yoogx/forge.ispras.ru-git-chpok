@@ -52,14 +52,8 @@ pok_bool_t thread_create(pok_thread_t* t);
  * 
  * Called with local preemption disabled.
  */
-static inline void thread_delay_event(pok_thread_t* t, pok_time_t delay_time,
-	void (*thread_delayed_func)(pok_thread_t* t))
-{
-	t->thread_delayed_func = thread_delayed_func;
-
-	delayed_event_add(&t->thread_delayed_event, delay_time,
-		&current_partition_arinc->queue_delayed);
-}
+void thread_delay_event(pok_thread_t* t, pok_time_t delay_time,
+	void (*thread_delayed_func)(pok_thread_t* t));
 
 
 /*
@@ -67,10 +61,7 @@ static inline void thread_delay_event(pok_thread_t* t, pok_time_t delay_time,
  * 
  * Called with local preemption disabled.
  */
-static inline void thread_delay_event_cancel(pok_thread_t* t)
-{
-	delayed_event_remove(&t->thread_delayed_event);
-}
+void thread_delay_event_cancel(pok_thread_t* t);
 
 /*
  * Set deadline for given thread.
@@ -109,10 +100,13 @@ void thread_wait_timed(pok_thread_t *thread, pok_time_t time);
 static inline void thread_wait_common(pok_thread_t* t, pok_time_t duration)
 {
     assert(duration != 0);
-    if(pok_time_is_infinity(duration))
-	thread_wait(t);
-    else
-        thread_wait_timed(t, POK_GETTICK() + duration);
+
+    if(pok_time_is_infinity(duration)) {
+        thread_wait(t);
+    }
+    else {
+        thread_wait_timed(t, jet_system_time() + duration);
+    }
 }
 
 /*
@@ -145,7 +139,6 @@ void thread_wake_up(pok_thread_t* t);
  */
 void thread_suspend(pok_thread_t* t);
 
-
 /* 
  * Suspend given thread for given period of time.
  * 
@@ -156,14 +149,12 @@ void thread_suspend(pok_thread_t* t);
  */
 void thread_suspend_timed(pok_thread_t* t, pok_time_t time);
 
-
 /* 
  * Resume given thread.
  * 
  * Thread should be suspended.
  */
 void thread_resume(pok_thread_t* t);
-
 
 /*
  * Stop given thread in NORMAL mode.
@@ -178,20 +169,10 @@ void thread_stop(pok_thread_t* t);
  * Whether waiting is allowed in the current context.
  * 
  * Note: Doesn't require disabled local preemption.
+ * 
+ * DEV: Not suitable for check waiting on msection.
  */
-static inline pok_bool_t thread_is_waiting_allowed(void)
-{
-	pok_partition_arinc_t* part = current_partition_arinc;
-	
-	if(part->lock_level // In the INIT_* mode lock level is positive, no need to check it explicitely.
-#ifdef POK_NEEDS_ERROR_HANDLING
-		|| part->thread_error == current_thread /* error thread cannot wait */
-#endif		
-      )
-      return FALSE;
-
-   return TRUE;
-}
+pok_bool_t thread_is_waiting_allowed(void);
 
 /* 
  * Mark given thread as runnable in NORMAL mode.

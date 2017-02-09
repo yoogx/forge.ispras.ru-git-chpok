@@ -14,41 +14,153 @@
  */
 
 #include <asp/uaccess.h>
-#include <core/partition_arinc.h>
-
+#include <assert.h>
+#include "space.h"
 
 // TODO: Revisit (see also pok_space_* code in arch.h)
-pok_bool_t ja_check_access(const void* __user addr, size_t size)
+static pok_bool_t x86_check_access(const void* __user addr, size_t size,
+    jet_space_id space_id)
 {
+    assert(space_id != 0);
+    assert(size != 0);
+
     unsigned long start = (unsigned long)addr;
     unsigned long end = start + size;
-    pok_partition_arinc_t* part = current_partition_arinc;
 
-    // Assume partition area doesn't cross 0.
-    return (start >= part->base_vaddr)
-        && (end >= start) // Check that area doesn't cross 0.
-        && end < (part->base_vaddr + part->size);
+    struct ja_x86_space* space = &ja_spaces[space_id - 1];
+
+    /*
+     * Currently, there are 2 segments accessible to user:
+     * 1. [POK_PARTITION_MEMORY_BASE; POK_PARTITION_MEMORY_BASE + space->heap_end)
+     *    code,data and heap
+     * 2. [POK_PARTITION_MEMORY_BASE + space->size_total - space->size_stack_used; POK_PARTITION_MEMORY_BASE + space->size_total)
+     *    stacks
+     */
+
+    if(end < start) return FALSE; // Segments doesn't cross NULL.
+
+    if(end <= space->heap_end + POK_PARTITION_MEMORY_BASE)
+    {
+        return (start >= POK_PARTITION_MEMORY_BASE);
+    }
+    else if(end <= POK_PARTITION_MEMORY_BASE + space->size_total)
+    {
+        return (start >= POK_PARTITION_MEMORY_BASE + space->size_total - space->size_stack_used);
+    }
+    else
+    {
+        return FALSE;
+    }
 }
 
-pok_bool_t ja_check_access_read(const void* __user addr, size_t size)
+static uint32_t user_space_shift(jet_space_id space_id)
 {
-     return ja_check_access(addr, size);
+    assert(space_id != 0);
+    struct ja_x86_space* space = &ja_spaces[space_id - 1];
+
+    return POK_PARTITION_MEMORY_BASE - space->phys_base;
 }
 
-
-pok_bool_t ja_check_access_write(void* __user addr, size_t size)
+void* __kuser ja_user_to_kernel_space(void* __user addr, size_t size,
+    jet_space_id space_id)
 {
-     return ja_check_access(addr, size);
+    if(x86_check_access(addr, size, space_id))
+       return (void* __kuser)((uint32_t)addr - user_space_shift(space_id));
+    else
+       return NULL;
 }
 
-void* ja_user_to_kernel(void* __user addr)
+const void* __kuser ja_user_to_kernel_ro_space(const void* __user addr,
+    size_t size, jet_space_id space_id)
 {
-    pok_partition_arinc_t* part = current_partition_arinc;
-    return (void*)((unsigned long)addr - part->base_vaddr + part->base_addr);
+    if(x86_check_access(addr, size, space_id))
+       return (const void* __kuser)((uint32_t)addr - user_space_shift(space_id));
+    else
+       return NULL;
 }
 
-const void* ja_user_to_kernel_ro(const void* __user addr)
+pok_bool_t ja_check_access_exec(void* __user addr, jet_space_id space_id)
 {
-    pok_partition_arinc_t* part = current_partition_arinc;
-    return (const void*)((unsigned long)addr - part->base_vaddr + part->base_addr);
+    assert(space_id != 0);
+
+    unsigned long start = (unsigned long)addr;
+
+    struct ja_x86_space* space = &ja_spaces[space_id - 1];
+
+    /*
+     * Only single segment could be executed by user:
+     *   [POK_PARTITION_MEMORY_BASE; POK_PARTITION_MEMORY_BASE + space->size_normal)
+     *    code and data
+     */
+
+    return (start < POK_PARTITION_MEMORY_BASE + space->size_normal)
+        && (start >= POK_PARTITION_MEMORY_BASE);
 }
+
+#ifdef POK_NEEDS_GDB
+
+static pok_bool_t x86_is_kernel_area(const void* addr, size_t size)
+{
+    return ((unsigned long)addr >= 0
+        && ((unsigned long)addr + size) < POK_PARTITION_MEMORY_PHYS_START);
+}
+
+//~ static pok_bool_t x86_check_access_gdb(const void* addr, size_t size,
+    //~ jet_space_id space_id)
+//~ {
+    //~ // All threads have access to kernel part.
+    //~ if((unsigned long)addr >= 0
+        //~ && ((unsigned long)addr + size) < POK_PARTITION_MEMORY_PHYS_START)
+        //~ return TRUE;
+//~ 
+    //~ if(space_id != 0)
+    //~ {
+        //~ // User partitions have access to their user space.
+        //~ return x86_check_access(addr, size, space_id);
+    //~ }
+    //~ else
+    //~ {
+        //~ return FALSE;
+    //~ }
+//~ }
+
+
+void* ja_addr_to_gdb(void* addr, size_t size,
+    jet_space_id space_id)
+{
+    if(x86_is_kernel_area(addr, size))
+    {
+        // All threads have access to kernel part.
+        return addr;
+    }
+    else if(space_id != 0)
+    {
+        // User partitions have access to their user space.
+        return ja_user_to_kernel_space((void* __user)addr, size, space_id);
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
+const void* ja_addr_to_gdb_ro(const void* addr, size_t size,
+    jet_space_id space_id)
+{
+    if(x86_is_kernel_area(addr, size))
+    {
+        // All threads have access to kernel part.
+        return addr;
+    }
+    else if(space_id != 0)
+    {
+        // User partitions have access to their user space.
+        return ja_user_to_kernel_ro_space((const void* __user)addr, size, space_id);
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
+#endif /* POK_NEEDS_GDB */

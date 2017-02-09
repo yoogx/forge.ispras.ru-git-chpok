@@ -1,0 +1,12 @@
+- name: tick_t
+  functions:
+      - name: tick
+        return_type: void
+        args_type: [self_t *]
+
+- name: some_interface_t
+  functions:
+      - name: tick
+        return_type: void
+        args_type: [self_t *]
+

@@ -42,10 +42,11 @@
 #include <arinc653/arincutils.h>
 #include <arinc653/types.h>
 #include <arinc653/process.h>
-#include <libc/string.h>
-
+#include <string.h>
 #include <utils.h>
 #include <core/partition.h>
+
+#include <kernel_shared_data.h>
 
 #define MAP_ERROR(from, to) case (from): *return_code = (to); break
 #define MAP_ERROR_DEFAULT(to) default: *return_code = (to); break
@@ -61,7 +62,6 @@ void GET_PROCESS_ID(
     PROCESS_ID_TYPE   *process_id,
     RETURN_CODE_TYPE  *return_code)
 {
-	strtoupper(process_name);
     pok_thread_id_t id;
     pok_ret_t core_ret;
     
@@ -78,15 +78,20 @@ void GET_PROCESS_ID(
 void GET_MY_ID (PROCESS_ID_TYPE   *process_id,
 		RETURN_CODE_TYPE  *return_code )
 {
-    pok_ret_t core_ret;
-    pok_thread_id_t thread_id;
-
-    core_ret = pok_thread_id(&thread_id);
-    if (core_ret != POK_ERRNO_OK) {
+    if(kshd.partition_mode != POK_PARTITION_MODE_NORMAL)
+    {
+        // Main thread has no id.
         *return_code = INVALID_MODE;
-    } else {
-        *process_id = thread_id + 1;
-	*return_code = NO_ERROR;
+    }
+    else if(kshd.current_thread_id == kshd.error_thread_id)
+    {
+        // Error thread has no id.
+        *return_code = INVALID_MODE;
+    }
+    else
+    {
+        *process_id = kshd.current_thread_id + 1;
+        *return_code = NO_ERROR;
     }
 }
 
@@ -111,7 +116,7 @@ void GET_PROCESS_STATUS (
         return;
     }
 
-    process_status->DEADLINE_TIME = ms_to_arinc_time(status.deadline_time);
+    process_status->DEADLINE_TIME = status.deadline_time;
 #define MAP_STATUS(from, to) case (from): process_status->PROCESS_STATE = (to); break
     switch (status.state) {
         MAP_STATUS(POK_STATE_STOPPED, DORMANT);
@@ -125,10 +130,10 @@ void GET_PROCESS_STATUS (
         (status.attributes.deadline == DEADLINE_SOFT)
             ? SOFT : HARD;
     process_status->CURRENT_PRIORITY = status.current_priority;
-    process_status->ATTRIBUTES.PERIOD = ms_to_arinc_time(status.attributes.period);
-    process_status->ATTRIBUTES.TIME_CAPACITY = ms_to_arinc_time(status.attributes.time_capacity);
+    process_status->ATTRIBUTES.PERIOD = status.attributes.period;
+    process_status->ATTRIBUTES.TIME_CAPACITY = status.attributes.time_capacity;
     process_status->ATTRIBUTES.STACK_SIZE = status.attributes.stack_size;
-    process_status->DEADLINE_TIME = ms_to_arinc_time(status.deadline_time);
+    process_status->DEADLINE_TIME = status.deadline_time;
 }
 
 void CREATE_PROCESS (
@@ -136,7 +141,6 @@ void CREATE_PROCESS (
     PROCESS_ID_TYPE         *process_id,
     RETURN_CODE_TYPE        *return_code)
 {
-    strtoupper(attributes->NAME);
     pok_thread_attr_t core_attr;
     pok_ret_t         core_ret;
     pok_thread_id_t   core_process_id;
@@ -148,7 +152,7 @@ void CREATE_PROCESS (
     }
 
     core_attr.priority        = (uint8_t) attributes->BASE_PRIORITY;
-    core_attr.period          = arinc_time_to_ms(attributes->PERIOD);
+    core_attr.period          = attributes->PERIOD;
     if (attributes->DEADLINE == SOFT) {
         core_attr.deadline = DEADLINE_SOFT;
     } else if (attributes->DEADLINE == HARD) {
@@ -157,12 +161,10 @@ void CREATE_PROCESS (
         *return_code = INVALID_PARAM;
         return;
     }
-    core_attr.time_capacity   = arinc_time_to_ms(attributes->TIME_CAPACITY);
+    core_attr.time_capacity   = attributes->TIME_CAPACITY;
     core_attr.stack_size      = attributes->STACK_SIZE;
-    
     core_ret = pok_thread_create (attributes->NAME, attributes->ENTRY_POINT,
         &core_attr, &core_process_id);
-
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
         MAP_ERROR(POK_ERRNO_EXISTS, NO_ACTION);
@@ -209,8 +211,7 @@ void SUSPEND_SELF (
     SYSTEM_TIME_TYPE time_out,
     RETURN_CODE_TYPE *return_code)
 {
-    pok_time_t ms = arinc_time_to_ms(time_out);
-    pok_ret_t core_ret = pok_thread_suspend(&ms);
+    pok_ret_t core_ret = pok_thread_suspend(&time_out);
 
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
@@ -278,8 +279,7 @@ void DELAYED_START(
 {
     CHECK_PROCESS_ID();
 
-    pok_time_t ms = arinc_time_to_ms(delay_time);
-    pok_ret_t core_ret = pok_thread_delayed_start(process_id - 1, &ms);
+    pok_ret_t core_ret = pok_thread_delayed_start(process_id - 1, &delay_time);
     switch (core_ret) {
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
         MAP_ERROR(POK_ERRNO_UNAVAILABLE, NO_ACTION);

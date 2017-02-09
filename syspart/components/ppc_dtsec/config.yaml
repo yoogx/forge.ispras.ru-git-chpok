@@ -1,0 +1,19 @@
+- name: DTSEC_NET_DEV
+  additional_h_files: ['"dtsec_state.h"']
+  state_struct:
+      dtsec_num: uint8_t
+      dev_state: struct dev_state
+
+  init_func: dtsec_component_init
+  activity:  dtsec_receive_activity
+
+  in_ports:
+      - name: portA
+        type: preallocated_sender
+        implementation:
+            send: dtsec_send_frame
+            flush: dtsec_flush_send
+
+  out_ports:
+      - name: portB
+        type: message_handler

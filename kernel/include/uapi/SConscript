@@ -19,17 +19,16 @@
 
 # List of headers which are used both by kernel and user.
 uapi_headers = [
-    'blackboard_types.h',
-    'buffer_types.h',
     'errno.h',
     'error_arinc_types.h',
-    'event_types.h',
+    'kernel_shared_data.h',
+    'msection.h',
     'partition_arinc_types.h',
     'partition_types.h',
     'port_types.h',
-    'semaphore_types.h',
     'syscall_types.h',
     'thread_types.h',
+    'time.h',
     'types.h',
 ]
 

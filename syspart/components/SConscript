@@ -1,0 +1,140 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+import os
+
+Import('syspart_env')
+
+COMPONENTS_DIRS = [
+        'arinc',
+        'udp_ip',
+        'mac',
+        'virtio',
+        'arp',
+        'ppc_dtsec'
+        ]
+COMPONENTS_PATH = os.path.join(syspart_env["POK_PATH"], "syspart/components")
+CONFIG = "config.yaml"
+INTERFACES_DIR = os.path.join(syspart_env["POK_PATH"], "syspart/include/interfaces/")
+
+
+comp_env = syspart_env.Clone()
+comp_objs = []
+
+cache = {}
+def get_interfaces_config(cwd):
+    """
+    Return dictionary. Keys are interface names. Value are dictionary representing
+    config of interface.
+    """
+    if cwd in cache:
+        return cache[cwd]
+
+    config_list = glob.glob(os.path.join(cwd, '*.yaml'))
+
+    interfaces_dict = {}
+    for config_file in config_list:
+        config = yaml.load(open(config_file))
+        for interface in config:
+            interfaces_dict[interface['name']] = interface
+
+    cache[cwd] = interfaces_dict
+    return interfaces_dict
+
+def dummy_create_func(source, env):
+    return env['jinja_env']
+
+def generate_interfaces():
+    cwd = INTERFACES_DIR
+    config_list = glob.glob(os.path.join(cwd, '*.yaml'))
+
+    for config_file in config_list:
+        path_without_ext = os.path.splitext(config_file)[0]
+        config = yaml.load(open(config_file))
+        for interface in config:
+            jinja_env = {'interface': interface}
+            gen_file = interface['name'] + '_gen.h'
+            t = comp_env.TemplateRender(
+                target = os.path.join(cwd, gen_file),
+                source = os.path.join(cwd, config_file),
+                create_definitions_func = dummy_create_func,
+                template_main = "interfaces.h",
+                template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
+                jinja_env = jinja_env
+                )
+            comp_env.Depends(COMPONENTS_DEFAULT_TARGET, t)
+
+def generate_component_files():
+    for cwd in COMPONENTS_DIRS:
+        cwd_path = os.path.join(COMPONENTS_PATH, cwd)
+        cur_config_file = os.path.join(cwd_path, CONFIG)
+        cur_config = yaml.load(open(cur_config_file))
+        interfaces =  get_interfaces_config(INTERFACES_DIR)
+        for component in cur_config:
+            jinja_env = {
+                    'component': component,
+                    'interfaces':  interfaces
+                    }
+
+            t = comp_env.TemplateRender(
+                    target = os.path.join(cwd_path, component['name'] + "_gen.c"),
+                    source = cur_config_file,
+                    create_definitions_func = dummy_create_func,
+                    template_main = "component.c",
+                    template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
+                    jinja_env = jinja_env
+                    )
+            comp_env.Depends(COMPONENTS_DEFAULT_TARGET, t)
+
+            t = comp_env.TemplateRender(
+                    target = os.path.join(cwd_path, component['name'] + "_gen.h"),
+                    source = cur_config_file,
+                    create_definitions_func = dummy_create_func,
+                    template_main = "component.h",
+                    template_dir = os.path.join(comp_env['POK_PATH'],"misc/templates"),
+                    jinja_env = jinja_env
+                    )
+            comp_env.Depends(COMPONENTS_DEFAULT_TARGET, t)
+
+if syspart_env.get('cdeveloper'):
+    import sys
+    import yaml
+    import glob
+    sys.path.insert(1, os.path.join(comp_env["POK_PATH"], "misc"))
+    import template_generation
+    AddMethod(comp_env, template_generation.TemplateRender)
+    comp_env.Append(
+            NO_DEPS = 1,
+            SOURCE_BASE_DIR = comp_env['POK_PATH'],
+            GENERATE_TITLE = template_generation.generate_title_c
+            )
+    COMPONENTS_DEFAULT_TARGET = os.path.join(COMPONENTS_PATH, 'generate_components_files')
+    comp_env.Command(COMPONENTS_DEFAULT_TARGET, [], '')
+    Default(COMPONENTS_DEFAULT_TARGET)
+
+    generate_component_files()
+    generate_interfaces()
+
+
+
+for comp in COMPONENTS_DIRS:
+    objs = SConscript(os.path.join(comp, 'SConscript'),
+                          exports=['comp_env'])
+    comp_objs.append(objs)
+Return('comp_objs')

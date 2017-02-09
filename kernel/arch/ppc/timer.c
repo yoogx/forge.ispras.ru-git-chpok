@@ -14,19 +14,31 @@
  */
 
 #include <errno.h>
-#include <bsp_common.h>
+#include "bsp/bsp.h"
 #include <core/time.h>
 #include <core/sched.h>
 #include <core/debug.h>
 #include "reg.h"
 #include "timer.h"
 #include <cons.h>
+#include <asp/entries.h>
+
+/* First value of decrementer.  */
+static uint64_t time_first;
+
 
 /* Last time when decr was set.  */
 static uint64_t time_last;
 
 /* Decrementer optimal value.  */
 static uint32_t time_inter;
+
+/*
+ * Hardcoded calendar time at the beginning of the OS loading.
+ * 
+ * Could be obtained on https://www.timeanddate.com/.
+ */
+static time_t base_calendar_time = 1480330081; // On 28.11.2016
 
 static uint64_t get_timebase(void)
 {
@@ -76,21 +88,27 @@ void pok_arch_decr_int (void)
   do
   {
     err = set_decrementer();
-    pok_tick_counter += 1;
   } while (err != POK_ERRNO_OK);
 
-
-  pok_sched_on_time_changed ();
+  jet_on_tick();
 }
 
-pok_ret_t pok_bsp_time_init ()
+void ja_time_init (void)
 {
   time_inter = pok_bsp.timebase_freq / POK_TIMER_FREQUENCY;
   printf("Timer interval: %lu\n", time_inter);
-  time_last = get_timebase ();
+  time_first = time_last = get_timebase ();
   set_decrementer();
 
   mtspr(SPRN_TCR, TCR_DIE); // enable decrementer
+}
 
-  return (POK_ERRNO_OK);
+pok_time_t ja_system_time(void)
+{
+  return ((get_timebase() - time_first) / time_inter) * 1000000;
+}
+
+time_t ja_calendar_time(void)
+{
+  return base_calendar_time + (time_t)(ja_system_time() / 1000000000);
 }
