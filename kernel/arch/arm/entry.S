@@ -3,13 +3,27 @@
 
 
 // Entry point for the kernel.
-// r15 -> should begin execution at 0x8000.
 // r0 -> 0x00000000
-// r1 -> 0x00000C42
-// r2 -> 0x00000100 - start of ATAGS
+// r1 -> machine type
+// r2 -> boot date (ATAGS or dtb)
 // preserve these registers as argument for kernel_main
 .globl jet_start
 jet_start:
+        //print "JetOS"
+        ldr r4, =0x2020040
+        ldr r3, ='J'
+        str r3, [r4]
+        ldr r3, ='e'
+        str r3, [r4]
+        ldr r3, ='t'
+        str r3, [r4]
+        ldr r3, ='O'
+        str r3, [r4]
+        ldr r3, ='S'
+        str r3, [r4]
+        ldr r3, ='\n'
+        str r3, [r4]
+
         // Setup the stack.
         ldr sp, =jet_entry_stack
 

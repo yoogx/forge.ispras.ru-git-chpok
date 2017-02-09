@@ -1,11 +1,19 @@
 ENTRY(jet_start)
 
+
+KERNBASE_PADDR = 0x10000000;
+/* KERNBASE_PADDR = 0x8000; */
+
+KERNBASE_VADDR = KERNBASE_PADDR;
+/*
+KERNBASE_VADDR = 0xc0000000;
+*/
+
 SECTIONS
 {
-    /*. = 0x8000; */
-    . = 0x10000000;
+    . = KERNBASE_VADDR;
     __text_start = .;
-    .text :
+    .text : AT(KERNBASE_PADDR)
     {
         KEEP(*(.text.boot))
         *(.text)
