@@ -28,7 +28,7 @@ jet_start:
         ldr sp, =jet_entry_stack
 
         // Call arch_init
-        ldr r3, =kernel_main
+        ldr r3, =jet_arch_init
         blx r3
 
         // Call jet_boot. Should not return

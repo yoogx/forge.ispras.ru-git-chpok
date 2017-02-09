@@ -14,7 +14,15 @@
  */
 
 #include <asp/arch.h>
+#include <asp/entries.h>
 #include <assert.h>
+
+void jet_arch_init(void)
+{
+    jet_console_init_all ();
+
+    printf("Hello world\n");
+}
 
 void ja_preempt_disable (void)
 {
@@ -40,12 +48,4 @@ void ja_inf_loop(void)
 void ja_cpu_reset(void)
 {
     assert(0);
-}
-
-#include <asp/bsp_common.h>
-
-pok_ret_t pok_bsp_get_info(void * __user addr)
-{
-    assert(0);
-    return POK_ERRNO_OK;
 }
