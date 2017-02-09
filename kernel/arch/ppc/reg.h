@@ -90,11 +90,13 @@
 #endif
 
 
-#define mfspr(rn)       ({unsigned long rval; \
-                                asm volatile("mfspr %0," __stringify(rn) \
-                                                                    : "=r" (rval)); rval;})
+#define mfspr(rn) ({uint32_t rval; \
+        asm volatile("mfspr %0," __stringify(rn) \
+                : "=r" (rval) \
+                :: "memory");\
+        rval;})
 #define mtspr(rn, v)    asm volatile("mtspr " __stringify(rn) ",%0" : \
-                                             : "r" ((unsigned long)(v)) \
+                                             : "r" ((uint32_t)(v)) \
                                              : "memory")
 #endif // __ASSEMBLY__
 
