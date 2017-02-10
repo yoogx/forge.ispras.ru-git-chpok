@@ -19,8 +19,8 @@
 
 Import('kernel_env')
 
-bsp_objects = kernel_env.StaticObject(target = 'bsp',
-        source = Glob(kernel_env['BSP']+'/*.[Sc]'))
+bsp_objects = kernel_env.StaticObject(
+    source = Glob(kernel_env['BSP']+'/*.[Sc]'))
 
 Return('bsp_objects')
 # EOF

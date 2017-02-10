@@ -206,9 +206,9 @@ def x86_deploy(env, memory_definitions_file, memory_constraints):
     env['BOARD_DEPLOYMENT_SOURCES'] += env.TemplateRender(
         target = os.path.join(env['MODULE_BUILD_DIR'], "x86_segments.c"),
         source = arch_deployment_kernel_yaml,
-        create_definitions_func = x86_create_definitions_for_deployment,
-        template_main = "x86_segments_c",
-        template_dir = arch_dir + "/templates"
+        create_context = x86_create_definitions_for_deployment,
+        template_file = arch_dir + "/templates/x86_segments_c.tpl",
+        title = template_generation.generate_title_c
     )
 
 env['BOARD_DEPLOY'] = x86_deploy

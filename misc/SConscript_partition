@@ -165,9 +165,9 @@ def get_pok_partition_definitions(source, part_env):
 deployment_target = part_env.TemplateRender(
     target = os.path.join(part_build_dir, "deployment.c"),
     source = part_env['PARTITION_XML'],
-    create_definitions_func = get_pok_partition_definitions,
-    template_main = "deployment_user",
-    template_dir = part_env['JETOS_HOME'] + "/misc/templates"
+    create_context = get_pok_partition_definitions,
+    template_file = part_env['JETOS_HOME'] + "/misc/templates/deployment_user.tpl",
+    title = template_generation.generate_title_c
     )
 
 part_elf_env = part_env.Clone()

@@ -349,10 +349,9 @@ def create_definitions_for_deployment(source, env):
 deployment_kernel = env.TemplateRender(
     target = os.path.join(module_build_dir, "deployment.c"),
     source = conf_total + [memory_definitions_file],
-    create_definitions_func = create_definitions_for_deployment,
-    template_main = "deployment_kernel",
-    template_dir = env['JETOS_HOME'] + "/misc/templates",
-    GENERATE_TITLE = template_generation.generate_title_c_no_track
+    create_context = create_definitions_for_deployment,
+    template_file = env['JETOS_HOME'] + "/misc/templates/deployment_kernel.tpl",
+    title = template_generation.generate_title_c_no_track
     )
 
 
@@ -387,10 +386,9 @@ if ARGUMENTS.get('debug'):
     gdb_commands_spec = env.TemplateRender(
         target = module_build_dir + "/GDB_commands_" + ARGUMENTS.get('debug'),
         source = conf_total,
-        create_definitions_func = create_definitions_for_gdb,
-        template_main = "GDB_commands_" + ARGUMENTS.get('debug'),
-        template_dir = env['JETOS_HOME'] + "/misc/templates",
-        GENERATE_TITLE = template_generation.generate_title_python_no_track
+        create_context = create_definitions_for_gdb,
+        template_file = env['JETOS_HOME'] + "/misc/templates/GDB_commands_" + ARGUMENTS.get('debug') + '.tpl',
+        title = template_generation.generate_title_python_no_track
         )
     gdb_commands = env.Command(gdb_commands_file, gdb_commands_spec, Action(gdb_commands_action, '$GDB_COMMANDS_COMSTR'))
 
