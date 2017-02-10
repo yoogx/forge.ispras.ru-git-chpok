@@ -30,8 +30,6 @@ void pok_thread_sleep_until_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, con
 void pok_sched_end_period_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_ret_t cmock_to_return);
 #define pok_thread_suspend_ExpectAndReturn(time, cmock_retval) pok_thread_suspend_CMockExpectAndReturn(__LINE__, time, cmock_retval)
 void pok_thread_suspend_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const pok_time_t* time, pok_ret_t cmock_to_return);
-#define pok_sched_get_current_ExpectAndReturn(thread_id, cmock_retval) pok_sched_get_current_CMockExpectAndReturn(__LINE__, thread_id, cmock_retval)
-void pok_sched_get_current_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_thread_id_t* thread_id, pok_ret_t cmock_to_return);
 #define pok_thread_get_status_ExpectAndReturn(thread_id, name, entry, status, cmock_retval) pok_thread_get_status_CMockExpectAndReturn(__LINE__, thread_id, name, entry, status, cmock_retval)
 void pok_thread_get_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_thread_id_t thread_id, char* name, void** entry, pok_thread_status_t* status, pok_ret_t cmock_to_return);
 #define pok_thread_delayed_start_ExpectAndReturn(thread_id, time, cmock_retval) pok_thread_delayed_start_CMockExpectAndReturn(__LINE__, thread_id, time, cmock_retval)
@@ -52,6 +50,18 @@ void pok_thread_stop_target_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok
 void pok_thread_stop_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_ret_t cmock_to_return);
 #define pok_thread_find_ExpectAndReturn(name, id, cmock_retval) pok_thread_find_CMockExpectAndReturn(__LINE__, name, id, cmock_retval)
 void pok_thread_find_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, pok_thread_id_t* id, pok_ret_t cmock_to_return);
+#define jet_resched_ExpectAndReturn(cmock_retval) jet_resched_CMockExpectAndReturn(__LINE__, cmock_retval)
+void jet_resched_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_ret_t cmock_to_return);
+#define jet_msection_enter_helper_ExpectAndReturn(section, cmock_retval) jet_msection_enter_helper_CMockExpectAndReturn(__LINE__, section, cmock_retval)
+void jet_msection_enter_helper_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, struct msection* section, pok_ret_t cmock_to_return);
+#define jet_msection_wait_ExpectAndReturn(section, timeout, cmock_retval) jet_msection_wait_CMockExpectAndReturn(__LINE__, section, timeout, cmock_retval)
+void jet_msection_wait_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, struct msection* section, const pok_time_t* timeout, pok_ret_t cmock_to_return);
+#define jet_msection_notify_ExpectAndReturn(section, thread_id, cmock_retval) jet_msection_notify_CMockExpectAndReturn(__LINE__, section, thread_id, cmock_retval)
+void jet_msection_notify_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, struct msection* section, pok_thread_id_t thread_id, pok_ret_t cmock_to_return);
+#define jet_msection_wq_notify_ExpectAndReturn(section, wq, is_all, cmock_retval) jet_msection_wq_notify_CMockExpectAndReturn(__LINE__, section, wq, is_all, cmock_retval)
+void jet_msection_wq_notify_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, struct msection* section, struct msection_wq* wq, pok_bool_t is_all, pok_ret_t cmock_to_return);
+#define jet_msection_wq_size_ExpectAndReturn(section, wq, size, cmock_retval) jet_msection_wq_size_CMockExpectAndReturn(__LINE__, section, wq, size, cmock_retval)
+void jet_msection_wq_size_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, struct msection* section, struct msection_wq* wq, size_t* size, pok_ret_t cmock_to_return);
 #define pok_partition_set_mode_current_ExpectAndReturn(mode, cmock_retval) pok_partition_set_mode_current_CMockExpectAndReturn(__LINE__, mode, cmock_retval)
 void pok_partition_set_mode_current_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_partition_mode_t mode, pok_ret_t cmock_to_return);
 #define pok_current_partition_get_status_ExpectAndReturn(status, cmock_retval) pok_current_partition_get_status_CMockExpectAndReturn(__LINE__, status, cmock_retval)
@@ -60,56 +70,14 @@ void pok_current_partition_get_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock
 void pok_current_partition_inc_lock_level_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, int32_t* lock_level, pok_ret_t cmock_to_return);
 #define pok_current_partition_dec_lock_level_ExpectAndReturn(lock_level, cmock_retval) pok_current_partition_dec_lock_level_CMockExpectAndReturn(__LINE__, lock_level, cmock_retval)
 void pok_current_partition_dec_lock_level_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, int32_t* lock_level, pok_ret_t cmock_to_return);
-#define pok_buffer_create_ExpectAndReturn(name, max_message_size, max_nb_message, discipline, id, cmock_retval) pok_buffer_create_CMockExpectAndReturn(__LINE__, name, max_message_size, max_nb_message, discipline, id, cmock_retval)
-void pok_buffer_create_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, char* name, pok_message_size_t max_message_size, pok_message_range_t max_nb_message, pok_queuing_discipline_t discipline, pok_buffer_id_t* id, pok_ret_t cmock_to_return);
-#define pok_buffer_send_ExpectAndReturn(id, data, length, timeout, cmock_retval) pok_buffer_send_CMockExpectAndReturn(__LINE__, id, data, length, timeout, cmock_retval)
-void pok_buffer_send_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_buffer_id_t id, const void* data, pok_message_size_t length, const pok_time_t* timeout, pok_ret_t cmock_to_return);
-#define pok_buffer_receive_ExpectAndReturn(id, timeout, data, length, cmock_retval) pok_buffer_receive_CMockExpectAndReturn(__LINE__, id, timeout, data, length, cmock_retval)
-void pok_buffer_receive_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_buffer_id_t id, const pok_time_t* timeout, void* data, pok_message_size_t* length, pok_ret_t cmock_to_return);
-#define pok_buffer_get_id_ExpectAndReturn(name, id, cmock_retval) pok_buffer_get_id_CMockExpectAndReturn(__LINE__, name, id, cmock_retval)
-void pok_buffer_get_id_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, char* name, pok_buffer_id_t* id, pok_ret_t cmock_to_return);
-#define pok_buffer_status_ExpectAndReturn(id, status, cmock_retval) pok_buffer_status_CMockExpectAndReturn(__LINE__, id, status, cmock_retval)
-void pok_buffer_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_buffer_id_t id, pok_buffer_status_t* status, pok_ret_t cmock_to_return);
-#define pok_blackboard_create_ExpectAndReturn(name, max_message_size, id, cmock_retval) pok_blackboard_create_CMockExpectAndReturn(__LINE__, name, max_message_size, id, cmock_retval)
-void pok_blackboard_create_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, pok_message_size_t max_message_size, pok_blackboard_id_t* id, pok_ret_t cmock_to_return);
-#define pok_blackboard_read_ExpectAndReturn(id, timeout, data, len, cmock_retval) pok_blackboard_read_CMockExpectAndReturn(__LINE__, id, timeout, data, len, cmock_retval)
-void pok_blackboard_read_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_blackboard_id_t id, const pok_time_t* timeout, void* data, pok_message_size_t* len, pok_ret_t cmock_to_return);
-#define pok_blackboard_display_ExpectAndReturn(id, message, len, cmock_retval) pok_blackboard_display_CMockExpectAndReturn(__LINE__, id, message, len, cmock_retval)
-void pok_blackboard_display_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_blackboard_id_t id, const void* message, pok_message_size_t len, pok_ret_t cmock_to_return);
-#define pok_blackboard_clear_ExpectAndReturn(id, cmock_retval) pok_blackboard_clear_CMockExpectAndReturn(__LINE__, id, cmock_retval)
-void pok_blackboard_clear_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_blackboard_id_t id, pok_ret_t cmock_to_return);
-#define pok_blackboard_id_ExpectAndReturn(name, id, cmock_retval) pok_blackboard_id_CMockExpectAndReturn(__LINE__, name, id, cmock_retval)
-void pok_blackboard_id_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, pok_blackboard_id_t* id, pok_ret_t cmock_to_return);
-#define pok_blackboard_status_ExpectAndReturn(id, status, cmock_retval) pok_blackboard_status_CMockExpectAndReturn(__LINE__, id, status, cmock_retval)
-void pok_blackboard_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_blackboard_id_t id, pok_blackboard_status_t* status, pok_ret_t cmock_to_return);
-#define pok_semaphore_create_ExpectAndReturn(name, value, max_value, discipline, id, cmock_retval) pok_semaphore_create_CMockExpectAndReturn(__LINE__, name, value, max_value, discipline, id, cmock_retval)
-void pok_semaphore_create_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, pok_sem_value_t value, pok_sem_value_t max_value, pok_queuing_discipline_t discipline, pok_sem_id_t* id, pok_ret_t cmock_to_return);
-#define pok_semaphore_wait_ExpectAndReturn(id, timeout, cmock_retval) pok_semaphore_wait_CMockExpectAndReturn(__LINE__, id, timeout, cmock_retval)
-void pok_semaphore_wait_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_sem_id_t id, const pok_time_t* timeout, pok_ret_t cmock_to_return);
-#define pok_semaphore_signal_ExpectAndReturn(id, cmock_retval) pok_semaphore_signal_CMockExpectAndReturn(__LINE__, id, cmock_retval)
-void pok_semaphore_signal_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_sem_id_t id, pok_ret_t cmock_to_return);
-#define pok_semaphore_id_ExpectAndReturn(name, id, cmock_retval) pok_semaphore_id_CMockExpectAndReturn(__LINE__, name, id, cmock_retval)
-void pok_semaphore_id_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, pok_sem_id_t* id, pok_ret_t cmock_to_return);
-#define pok_semaphore_status_ExpectAndReturn(id, status, cmock_retval) pok_semaphore_status_CMockExpectAndReturn(__LINE__, id, status, cmock_retval)
-void pok_semaphore_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_sem_id_t id, pok_semaphore_status_t* status, pok_ret_t cmock_to_return);
-#define pok_event_create_ExpectAndReturn(name, id, cmock_retval) pok_event_create_CMockExpectAndReturn(__LINE__, name, id, cmock_retval)
-void pok_event_create_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, pok_event_id_t* id, pok_ret_t cmock_to_return);
-#define pok_event_set_ExpectAndReturn(id, cmock_retval) pok_event_set_CMockExpectAndReturn(__LINE__, id, cmock_retval)
-void pok_event_set_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_event_id_t id, pok_ret_t cmock_to_return);
-#define pok_event_reset_ExpectAndReturn(id, cmock_retval) pok_event_reset_CMockExpectAndReturn(__LINE__, id, cmock_retval)
-void pok_event_reset_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_event_id_t id, pok_ret_t cmock_to_return);
-#define pok_event_wait_ExpectAndReturn(id, timeout, cmock_retval) pok_event_wait_CMockExpectAndReturn(__LINE__, id, timeout, cmock_retval)
-void pok_event_wait_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_event_id_t id, const pok_time_t* timeout, pok_ret_t cmock_to_return);
-#define pok_event_id_ExpectAndReturn(name, id, cmock_retval) pok_event_id_CMockExpectAndReturn(__LINE__, name, id, cmock_retval)
-void pok_event_id_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, pok_event_id_t* id, pok_ret_t cmock_to_return);
-#define pok_event_status_ExpectAndReturn(id, status, cmock_retval) pok_event_status_CMockExpectAndReturn(__LINE__, id, status, cmock_retval)
-void pok_event_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_event_id_t id, pok_event_status_t* status, pok_ret_t cmock_to_return);
 #define pok_error_thread_create_ExpectAndReturn(stack_size, entry, cmock_retval) pok_error_thread_create_CMockExpectAndReturn(__LINE__, stack_size, entry, cmock_retval)
 void pok_error_thread_create_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, uint32_t stack_size, void* entry, pok_ret_t cmock_to_return);
 #define pok_error_raise_application_error_ExpectAndReturn(msg, msg_size, cmock_retval) pok_error_raise_application_error_CMockExpectAndReturn(__LINE__, msg, msg_size, cmock_retval)
 void pok_error_raise_application_error_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* msg, size_t msg_size, pok_ret_t cmock_to_return);
 #define pok_error_get_ExpectAndReturn(status, msg, cmock_retval) pok_error_get_CMockExpectAndReturn(__LINE__, status, msg, cmock_retval)
 void pok_error_get_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_error_status_t* status, void* msg, pok_ret_t cmock_to_return);
+#define pok_error_raise_os_error_ExpectAndReturn(msg, msg_size, cmock_retval) pok_error_raise_os_error_CMockExpectAndReturn(__LINE__, msg, msg_size, cmock_retval)
+void pok_error_raise_os_error_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* msg, size_t msg_size, pok_ret_t cmock_to_return);
 #define pok_port_sampling_create_ExpectAndReturn(name, size, direction, refresh, id, cmock_retval) pok_port_sampling_create_CMockExpectAndReturn(__LINE__, name, size, direction, refresh, id, cmock_retval)
 void pok_port_sampling_create_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, pok_port_size_t size, pok_port_direction_t direction, const pok_time_t* refresh, pok_port_id_t* id, pok_ret_t cmock_to_return);
 #define pok_port_sampling_write_ExpectAndReturn(id, data, len, cmock_retval) pok_port_sampling_write_CMockExpectAndReturn(__LINE__, id, data, len, cmock_retval)
@@ -132,5 +100,9 @@ void pok_port_queuing_receive_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, p
 void pok_port_queuing_id_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, pok_port_id_t* id, pok_ret_t cmock_to_return);
 #define pok_port_queuing_status_ExpectAndReturn(id, status, cmock_retval) pok_port_queuing_status_CMockExpectAndReturn(__LINE__, id, status, cmock_retval)
 void pok_port_queuing_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_port_id_t id, pok_port_queuing_status_t* status, pok_ret_t cmock_to_return);
+#define pok_port_queuing_clear_ExpectAndReturn(id, cmock_retval) pok_port_queuing_clear_CMockExpectAndReturn(__LINE__, id, cmock_retval)
+void pok_port_queuing_clear_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_port_id_t id, pok_ret_t cmock_to_return);
+#define pok_memory_block_get_status_ExpectAndReturn(name, status, cmock_retval) pok_memory_block_get_status_CMockExpectAndReturn(__LINE__, name, status, cmock_retval)
+void pok_memory_block_get_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, jet_memory_block_status_t* status, pok_ret_t cmock_to_return);
 
 #endif
