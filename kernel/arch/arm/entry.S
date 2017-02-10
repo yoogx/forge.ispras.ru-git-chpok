@@ -27,6 +27,11 @@ jet_start:
         // Setup the stack.
         ldr sp, =jet_entry_stack
 
+
+        // Set all Domains to Client
+        ldr r1, =0x55555555
+        mcr p15, 0, r1, c3, c0, 0   // Write Domain Access Control Register
+
         // Call arch_init
         ldr r3, =jet_arch_init
         blx r3

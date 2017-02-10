@@ -17,11 +17,16 @@
 #include <asp/entries.h>
 #include <assert.h>
 
+void mmu_enable(void); //FIXME DELETEME
+
 void jet_arch_init(void)
 {
     jet_console_init_all ();
 
     printf("Hello world\n");
+
+    mmu_enable();
+    printf("Hello MMU world\n");
 }
 
 void ja_preempt_disable (void)
