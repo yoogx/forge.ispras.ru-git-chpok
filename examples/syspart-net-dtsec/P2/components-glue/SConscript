@@ -19,11 +19,12 @@
 
 COMPONENTS_DIR = "syspart/components"
 COMPONENTS_LIST = [
-        'arinc',
-        'udp_ip',
-        'mac',
-        'virtio',
-        'arp'
+        'arinc'
+        ,'udp_ip'
+        ,'mac'
+        ,'virtio'
+        ,'arp'
+        ,'ppc_dtsec'
         ]
 
 CONFIG = "config.yaml"

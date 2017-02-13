@@ -27,7 +27,7 @@ COMPONENTS_DIRS = [
         ,'mac'
         ,'virtio'
         ,'arp'
-        #,'ppc_dtsec'
+        ,'ppc_dtsec'
         ]
 COMPONENTS_PATH = os.path.join(syspart_env["JETOS_HOME"], "syspart/components")
 CONFIG = "config.yaml"

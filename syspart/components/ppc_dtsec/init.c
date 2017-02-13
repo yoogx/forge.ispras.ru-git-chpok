@@ -18,7 +18,30 @@
  *
  * SPDX-License-Identifier: GPL-2.0+
  */
+#include <stdint.h>
+#include <stdio.h>
+uintptr_t pok_virt_to_phys(void *virt) {
+    uintptr_t virt_addr = (uintptr_t)virt;
+    uintptr_t phys_addr;
+    if (virt_addr<0x80010000)
+        phys_addr = virt_addr - 0x80000000 + 0x4080000;
+    else if (virt_addr>0x80100000 && virt_addr < 0x80200000)
+        phys_addr = virt_addr - 0x80100000 + 0x4100000;
+    else
+        phys_addr = 0;
+    printf("%s %p -> 0x%x\n", __func__, virt, phys_addr);
+    return phys_addr;
+}
 
+uintptr_t pok_phys_to_virt(uintptr_t phys) {
+    uintptr_t virt;
+    if (phys>0x4080000 && phys<0x40c0000)
+        virt = phys - 0x4080000 + 0x80000000;
+    else
+        virt = 0;
+    printf("%s>>>>>>>. 0x%x -> 0x%x\n", __func__, phys, virt);
+    return virt;
+}
 
 /*
  * This file is based on u-boot driver. In new versions of u-boot they have added support 
@@ -33,10 +56,11 @@
 #include <stdio.h>
 #include <ioports.h>
 #include <string.h>
-//#include <mem.h>
 #include "fm.h"
 #include "dtsec_state.h"
 #include "DTSEC_NET_DEV_gen.h"
+#include <memblocks.h>
+#include <stdlib.h>
 
 #define DRV_NAME "dtsec_drv"
 #define DEV_NAME_DTSEC3 "dtsec3"
@@ -398,16 +422,21 @@ static void init_device(DTSEC_NET_DEV_state *state, struct fm_eth *fm_eth)
 
 void dtsec_init(DTSEC_NET_DEV *self)
 {
+    jet_memory_block_status_t fman_mb;
+
+    if(jet_memory_block_get_status("PPC_FMan", &fman_mb) != POK_ERRNO_OK) {
+        abort();
+    }
     //TODO move constants to .h file
-    dtsec3.rx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC3_RX_PORT*0x1000);
-    dtsec3.tx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC3_TX_PORT*0x1000);
-    dtsec3.reg_addr = (void *)CONFIG_SYS_FM1_DTSEC3_ADDR;
+    dtsec3.rx_port = (void *)(fman_mb.addr + FM_HARDWARE_PORTS + DTSEC3_RX_PORT*0x1000);
+    dtsec3.tx_port = (void *)(fman_mb.addr + FM_HARDWARE_PORTS + DTSEC3_TX_PORT*0x1000);
+    dtsec3.reg_addr = (void *)(fman_mb.addr + 0xe4000);
 
     dtsec4.rx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC4_RX_PORT*0x1000);
     dtsec4.tx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC4_TX_PORT*0x1000);
-    dtsec4.reg_addr = (void *)CONFIG_SYS_FM1_DTSEC4_ADDR;
+    dtsec4.reg_addr = (void *)(fman_mb.addr + 0xe6000);
 
-    fm_init_muram(0, (void *)CONFIG_SYS_FSL_FM1_MURAM_ADDR);
+    fm_init_muram(0, (void *)fman_mb.addr);
     /* XXX HACK. Depend on u-boot! qmi_common and bmi_common are initialized in this memory by u-boot */
     muram.alloc = muram.base + 0x21000;
 

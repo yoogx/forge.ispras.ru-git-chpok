@@ -23,12 +23,16 @@ components:
       state:
           src_mac: '{0x52, 0x54, 0x00, 0x01, 0x02, 0x03}'
 
-    - name: virtio_net_dev_1
-      type: VIRTIO_NET_DEV
+    - name: net_dev_1
+      #type: VIRTIO_NET_DEV
+      #state:
+      #    pci_bus: 0
+      #    pci_dev: 1
+      #    pci_fn: 0
+
+      type: DTSEC_NET_DEV
       state:
-          pci_bus: 0
-          pci_dev: 1
-          pci_fn: 0
+          dtsec_num: 3
 
     - name: arp_answerer_1
       type: ARP_ANSWERER
@@ -41,31 +45,6 @@ components:
       type: MAC_RECEIVER
       state:
           my_mac: '{0x52, 0x54, 0x00, 0x01, 0x02, 0x03}'
-
-    - name: mac_sender_2
-      type: MAC_SENDER
-      state:
-          src_mac: '{0x52, 0x54, 0x01, 0x01, 0x02, 0x03}'
-
-    - name: virtio_net_dev_2
-      type: VIRTIO_NET_DEV
-      state:
-          pci_bus: 0
-          pci_dev: 3
-          pci_fn: 0
-
-    - name: arp_answerer_2
-      type: ARP_ANSWERER
-      state:
-          good_ips: '{IP_ADDR(192, 168, 0, 101),IP_ADDR(192, 168, 0, 102)}'
-          good_ips_len: 2
-          src_mac: '{0x52, 0x54, 0x01, 0x01, 0x02, 0x03}'
-
-    - name: mac_receiver_2
-      type: MAC_RECEIVER
-      state:
-          my_mac: '{0x52, 0x54, 0x01, 0x01, 0x02, 0x03}'
-
 
     - name: udp_receiver
       type: UDP_RECEIVER
@@ -84,12 +63,6 @@ components:
           port_max_message_size: 64
           is_queuing_port: 1
           q_port_max_nb_messages: 10
-
-    - name: arinc_receiver_2
-      type: ARINC_RECEIVER
-      state:
-          port_name: '"__test__"'
-
 
 links:
     - from:
@@ -110,11 +83,11 @@ links:
         instance: mac_sender_1
         port: portB
       to:
-        instance: virtio_net_dev_1
+        instance: net_dev_1
         port: portA
 
     - from:
-        instance: virtio_net_dev_1
+        instance: net_dev_1
         port: portB
       to:
         instance: mac_receiver_1
@@ -148,42 +121,6 @@ links:
         instance: router
         port: portA
 
-    # second virtio card
-    - from:
-        instance: mac_sender_2
-        port: portB
-      to:
-        instance: virtio_net_dev_2
-        port: portA
-
-    - from:
-        instance: virtio_net_dev_2
-        port: portB
-      to:
-        instance: mac_receiver_2
-        port: portA
-
-    - from:
-        instance: mac_receiver_2
-        port: port_ARP
-      to:
-        instance: arp_answerer_2
-        port: portA
-
-    - from:
-        instance: arp_answerer_2
-        port: portB
-      to:
-        instance: mac_sender_2
-        port: portA
-
-    - from:
-        instance: mac_receiver_2
-        port: port_UDP
-      to:
-        instance: udp_receiver
-        port: portA
-
 
     - from:
         instance: router
@@ -191,12 +128,4 @@ links:
         array_index: 0
       to:
         instance: arinc_receiver_1
-        port: portA
-
-    - from:
-        instance: router
-        port: portArray
-        array_index: 1
-      to:
-        instance: arinc_receiver_2
         port: portA
