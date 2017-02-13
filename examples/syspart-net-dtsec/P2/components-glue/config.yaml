@@ -1,0 +1,202 @@
+components:
+    - name: arinc_sender_1
+      type: ARINC_SENDER
+      state:
+          port_name: '"UOUT"'
+          port_direction: DESTINATION
+          overhead: 42 #14+20+8
+          port_max_message_size: 64
+          is_queuing_port: 1
+          q_port_max_nb_messages: 10
+
+    - name: udp_ip_sender_1
+      type: UDP_IP_SENDER
+      state:
+          src_ip: IP_ADDR(192, 168, 56, 101)
+          src_port: 10002
+          dst_ip: IP_ADDR(192, 168, 56, 1)
+          dst_port: 10003
+          dst_mac: '{0x08, 0x00, 0x27, 0x00, 0x88, 0xAD}'
+
+    - name: mac_sender_1
+      type: MAC_SENDER
+      state:
+          src_mac: '{0x52, 0x54, 0x00, 0x01, 0x02, 0x03}'
+
+    - name: virtio_net_dev_1
+      type: VIRTIO_NET_DEV
+      state:
+          pci_bus: 0
+          pci_dev: 1
+          pci_fn: 0
+
+    - name: arp_answerer_1
+      type: ARP_ANSWERER
+      state:
+          good_ips: '{IP_ADDR(192, 168, 56, 101),IP_ADDR(192, 168, 56, 102)}'
+          good_ips_len: 2
+          src_mac: '{0x52, 0x54, 0x00, 0x01, 0x02, 0x03}'
+
+    - name: mac_receiver_1
+      type: MAC_RECEIVER
+      state:
+          my_mac: '{0x52, 0x54, 0x00, 0x01, 0x02, 0x03}'
+
+    - name: mac_sender_2
+      type: MAC_SENDER
+      state:
+          src_mac: '{0x52, 0x54, 0x01, 0x01, 0x02, 0x03}'
+
+    - name: virtio_net_dev_2
+      type: VIRTIO_NET_DEV
+      state:
+          pci_bus: 0
+          pci_dev: 3
+          pci_fn: 0
+
+    - name: arp_answerer_2
+      type: ARP_ANSWERER
+      state:
+          good_ips: '{IP_ADDR(192, 168, 0, 101),IP_ADDR(192, 168, 0, 102)}'
+          good_ips_len: 2
+          src_mac: '{0x52, 0x54, 0x01, 0x01, 0x02, 0x03}'
+
+    - name: mac_receiver_2
+      type: MAC_RECEIVER
+      state:
+          my_mac: '{0x52, 0x54, 0x01, 0x01, 0x02, 0x03}'
+
+
+    - name: udp_receiver
+      type: UDP_RECEIVER
+
+    - name: router
+      type: ROUTER
+      state:
+          map_ip_port_to_idx: '{{IP_ADDR(192, 168, 56, 101), 10001},{IP_ADDR(192, 168, 56, 102), 10005}}'
+          map_ip_port_to_idx_len: 2
+
+    - name: arinc_receiver_1
+      type: ARINC_RECEIVER
+      state:
+          port_name: '"UIN"'
+          port_direction: SOURCE
+          port_max_message_size: 64
+          is_queuing_port: 1
+          q_port_max_nb_messages: 10
+
+    - name: arinc_receiver_2
+      type: ARINC_RECEIVER
+      state:
+          port_name: '"__test__"'
+
+
+links:
+    - from:
+        instance: arinc_sender_1
+        port: portA
+      to:
+        instance: udp_ip_sender_1
+        port: portA
+
+    - from:
+        instance: udp_ip_sender_1
+        port: portB
+      to:
+        instance: mac_sender_1
+        port: portA
+
+    - from:
+        instance: mac_sender_1
+        port: portB
+      to:
+        instance: virtio_net_dev_1
+        port: portA
+
+    - from:
+        instance: virtio_net_dev_1
+        port: portB
+      to:
+        instance: mac_receiver_1
+        port: portA
+
+    - from:
+        instance: mac_receiver_1
+        port: port_ARP
+      to:
+        instance: arp_answerer_1
+        port: portA
+
+    - from:
+        instance: arp_answerer_1
+        port: portB
+      to:
+        instance: mac_sender_1
+        port: portA
+
+    - from:
+        instance: mac_receiver_1
+        port: port_UDP
+      to:
+        instance: udp_receiver
+        port: portA
+
+    - from:
+        instance: udp_receiver
+        port: portB
+      to:
+        instance: router
+        port: portA
+
+    # second virtio card
+    - from:
+        instance: mac_sender_2
+        port: portB
+      to:
+        instance: virtio_net_dev_2
+        port: portA
+
+    - from:
+        instance: virtio_net_dev_2
+        port: portB
+      to:
+        instance: mac_receiver_2
+        port: portA
+
+    - from:
+        instance: mac_receiver_2
+        port: port_ARP
+      to:
+        instance: arp_answerer_2
+        port: portA
+
+    - from:
+        instance: arp_answerer_2
+        port: portB
+      to:
+        instance: mac_sender_2
+        port: portA
+
+    - from:
+        instance: mac_receiver_2
+        port: port_UDP
+      to:
+        instance: udp_receiver
+        port: portA
+
+
+    - from:
+        instance: router
+        port: portArray
+        array_index: 0
+      to:
+        instance: arinc_receiver_1
+        port: portA
+
+    - from:
+        instance: router
+        port: portArray
+        array_index: 1
+      to:
+        instance: arinc_receiver_2
+        port: portA
