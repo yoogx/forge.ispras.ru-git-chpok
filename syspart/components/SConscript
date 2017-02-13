@@ -37,15 +37,11 @@ INTERFACES_DIR = os.path.join(syspart_env["JETOS_HOME"], "syspart/include/interf
 comp_env = syspart_env.Clone()
 comp_objs = []
 
-cache = {}
 def get_interfaces_config(cwd):
     """
     Return dictionary. Keys are interface names. Value are dictionary representing
     config of interface.
     """
-    if cwd in cache:
-        return cache[cwd]
-
     config_list = glob.glob(os.path.join(cwd, '*.yaml'))
 
     interfaces_dict = {}
@@ -54,11 +50,17 @@ def get_interfaces_config(cwd):
         for interface in config:
             interfaces_dict[interface['name']] = interface
 
-    cache[cwd] = interfaces_dict
     return interfaces_dict
 
-def dummy_create_func(source, env):
-    return env['jinja_env']
+class Context_creator:
+    """
+    Context_creator(_context) create a callable object, if you call it, it will
+    return _context
+    """
+    def __init__(self, _dict):
+        self.dict = _dict
+    def __call__(self, source, env):
+        return self.dict
 
 def generate_interfaces():
     cwd = INTERFACES_DIR
@@ -73,19 +75,21 @@ def generate_interfaces():
             t = comp_env.TemplateRender(
                 target = os.path.join(cwd, gen_file),
                 source = os.path.join(cwd, config_file),
-                create_definitions_func = dummy_create_func,
-                template_main = "interfaces.h",
-                template_dir = os.path.join(comp_env['JETOS_HOME'],"misc/templates"),
-                jinja_env = jinja_env
+                create_context = Context_creator(jinja_env),
+                template_file = os.path.join(comp_env['JETOS_HOME'],"misc/templates") + '/interfaces.h.tpl',
+                title = template_generation.generate_title_c
                 )
             comp_env.Depends(COMPONENTS_DEFAULT_TARGET, t)
 
+
 def generate_component_files():
+    interfaces =  get_interfaces_config(INTERFACES_DIR)
+
     for cwd in COMPONENTS_DIRS:
         cwd_path = os.path.join(COMPONENTS_PATH, cwd)
         cur_config_file = os.path.join(cwd_path, CONFIG)
         cur_config = yaml.load(open(cur_config_file))
-        interfaces =  get_interfaces_config(INTERFACES_DIR)
+
         for component in cur_config:
             jinja_env = {
                     'component': component,
@@ -95,20 +99,18 @@ def generate_component_files():
             t = comp_env.TemplateRender(
                     target = os.path.join(cwd_path, component['name'] + "_gen.c"),
                     source = cur_config_file,
-                    create_definitions_func = dummy_create_func,
-                    template_main = "component.c",
-                    template_dir = os.path.join(comp_env['JETOS_HOME'],"misc/templates"),
-                    jinja_env = jinja_env
+                    create_context = Context_creator(jinja_env),
+                    template_file = os.path.join(comp_env['JETOS_HOME'],"misc/templates") + '/component.c.tpl',
+                    title = template_generation.generate_title_c
                     )
             comp_env.Depends(COMPONENTS_DEFAULT_TARGET, t)
 
             t = comp_env.TemplateRender(
                     target = os.path.join(cwd_path, component['name'] + "_gen.h"),
                     source = cur_config_file,
-                    create_definitions_func = dummy_create_func,
-                    template_main = "component.h",
-                    template_dir = os.path.join(comp_env['JETOS_HOME'],"misc/templates"),
-                    jinja_env = jinja_env
+                    create_context = Context_creator(jinja_env),
+                    template_file = os.path.join(comp_env['JETOS_HOME'],"misc/templates") + '/component.h.tpl',
+                    title = template_generation.generate_title_c
                     )
             comp_env.Depends(COMPONENTS_DEFAULT_TARGET, t)
 
@@ -119,11 +121,7 @@ if syspart_env.get('cdeveloper'):
     sys.path.insert(1, os.path.join(comp_env["JETOS_HOME"], "misc"))
     import template_generation
     AddMethod(comp_env, template_generation.TemplateRender)
-    comp_env.Replace(
-            NO_DEPS = 1,
-            SOURCE_BASE_DIR = comp_env['JETOS_HOME'],
-            GENERATE_TITLE = template_generation.generate_title_c
-            )
+
     COMPONENTS_DEFAULT_TARGET = comp_env.Command( '#/generate_components_files', [], '')
     Default(COMPONENTS_DEFAULT_TARGET)
 
