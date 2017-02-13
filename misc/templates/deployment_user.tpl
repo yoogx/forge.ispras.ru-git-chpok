@@ -39,7 +39,3 @@ size_t arinc_config_nevents = {{part.num_arinc653_events}};
 // Memory for messages, used by buffers and blackboards.
 size_t arinc_config_messages_memory_size = {{part.buffer_data_size + part.blackboard_data_size}};
 #endif /* defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD) */
-
-{%if part.is_system%}
-{% include 'deployment_user_system'%}
-{%endif%}
