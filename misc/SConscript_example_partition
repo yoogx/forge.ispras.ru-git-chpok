@@ -84,19 +84,6 @@ if not 'BSP' in env:
 	print "HINT: You may set BSP via environment variable JETOS_BSP or via scons parameter 'bsp'."
 	Exit(1)
 
-def get_jet_partition_config(source, env):
-    if type(source) is list:
-        source = source[0]
-
-    root = etree.parse(source.path)
-
-    parser = arinc653_xml_conf.ArincConfigParser()
-
-    part = parser.parse_partition(root)
-
-    return part
-
-env['PARTITION_PARSE_CONFIGURATION'] = get_jet_partition_config
 
 part_example_dir = Dir('#').abspath
 

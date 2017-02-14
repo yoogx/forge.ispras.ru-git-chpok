@@ -208,6 +208,14 @@ typedef struct _pok_partition_arinc
      * This is context pointer for switch to it.
      */
     struct jet_context*               idle_sp;
+
+    /* For passing to user space via kernel shared data. */
+    size_t arinc_config_nbuffers;
+    size_t arinc_config_nblackboards;
+    size_t arinc_config_nsemaphores;
+    size_t arinc_config_nevents;
+    size_t arinc_config_messages_memory_size;
+
 } pok_partition_arinc_t;
 
 #define current_partition_arinc container_of(current_partition, pok_partition_arinc_t, base_part)
