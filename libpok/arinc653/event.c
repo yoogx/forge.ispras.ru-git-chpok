@@ -28,7 +28,7 @@
 #include <core/assert_os.h>
 
 #include <string.h>
-#include <arinc_config.h>
+#include "arinc_config.h"
 #include "arinc_process_queue.h"
 
 static size_t nevents_used = 0;
