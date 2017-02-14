@@ -17,21 +17,12 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-Import('syspart_env')
+Import('part_env')
+part_env.SystemPartition()
 
-syspart_env['CPPPATH'].append([syspart_env['JETOS_HOME']+'/syspart/include'])
+part_env['PARTITION_SOURCES'] = [Glob('src/*.c')]
+part_env['PARTITION_XML'] = 'config.xml'
 
-Export('syspart_env')
-
-drivers = SConscript('drivers/SConscript')
-components = SConscript('components/SConscript')
-
-syspart_program = syspart_env.StaticLibrary(target = 'syspart', source = [
-    drivers,
-    components,
-    'pool.c'
-])
-
-Return('syspart_program')
-
-# EOF
+part_env['PARTITION_SOURCES'].extend(SConscript(dirs = 'components-glue',
+	exports = 'part_env')
+)

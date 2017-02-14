@@ -17,21 +17,7 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-Import('syspart_env')
+Import('part_env')
 
-syspart_env['CPPPATH'].append([syspart_env['JETOS_HOME']+'/syspart/include'])
-
-Export('syspart_env')
-
-drivers = SConscript('drivers/SConscript')
-components = SConscript('components/SConscript')
-
-syspart_program = syspart_env.StaticLibrary(target = 'syspart', source = [
-    drivers,
-    components,
-    'pool.c'
-])
-
-Return('syspart_program')
-
-# EOF
+part_env['PARTITION_SOURCES'] = ['src/main.c']
+part_env['PARTITION_XML'] = 'config.xml'

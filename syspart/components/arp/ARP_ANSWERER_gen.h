@@ -27,8 +27,8 @@
     #include <interfaces/ethernet_packet_sender_gen.h>
 
 typedef struct ARP_ANSWERER_state {
-    uint8_t src_mac[6];
     uint32_t good_ips_len;
+    uint8_t src_mac[6];
     uint32_t good_ips[10];
 }ARP_ANSWERER_state;
 

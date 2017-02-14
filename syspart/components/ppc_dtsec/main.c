@@ -24,10 +24,10 @@ ret_t dtsec_flush_send(DTSEC_NET_DEV *self)
 
 void dtsec_component_init(DTSEC_NET_DEV *self)
 {
-
+    printf("DTSEC initializing ...\n");
 #ifdef __PPC__
     dtsec_init(self);
-    printf("DTSEC init\n");
+    printf("DTSEC initialized\n");
 #else
     printf("ERROR: DTSEC doesn't support archectures other than PPC\n");
 #endif
