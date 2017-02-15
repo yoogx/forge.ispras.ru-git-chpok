@@ -18,23 +18,6 @@
 
 #include <arch/mmu_ext.h>
 
-#if 0
-static inline int pok_arch_mmu_shift_by_size(unsigned size)
-{
-    switch (size) {
-#define CASE(x) case MIPS_PGSIZE_##x: return MIPS_PGSIZE_##x##_SHFT; 
-        CASE(4K);
-        CASE(16K);
-        CASE(64K);
-        CASE(256K);
-        CASE(1M);
-        CASE(4M);
-        CASE(16M);
-#undef CASE
-    }
-}
-#endif
-
 extern int current_tlb_index;
 
 
@@ -58,16 +41,7 @@ void pok_mips_tlb_write(
         pok_bool_t valid
     );
 
-/**
- * Sets 'V' of the specified TLB entry to false.
- */
-/*
- * @ requires tlbsel < 2;
- */
 
-/*
- * @ requires tlbsel < 2;
- */
 void pok_mips_tlb_read_entry(
         int index,
         unsigned *valid, 
@@ -76,7 +50,6 @@ void pok_mips_tlb_read_entry(
         uint64_t *rpn);
 
 void dump_tlb(int first, int last);
-const char *msk2str(uint32_t mask);
 
 /*
  * @ requires tlbsel < 5;

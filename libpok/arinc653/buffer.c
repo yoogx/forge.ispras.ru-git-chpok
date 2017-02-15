@@ -29,7 +29,7 @@
 
 #include <string.h>
 #include "arinc_alloc.h"
-#include <arinc_config.h>
+#include "arinc_config.h"
 #include "arinc_process_queue.h"
 
 static size_t nbuffers_used = 0;
@@ -136,6 +136,7 @@ void CREATE_BUFFER (
    msection_init(&buffer->section);
    msection_wq_init(&buffer->process_queue);
    buffer->base_offset = 0;
+   buffer->nb_message = 0;
    buffer->discipline = QUEUING_DISCIPLINE;
 
    *BUFFER_ID = nbuffers_used + 1;// Avoid 0 value.

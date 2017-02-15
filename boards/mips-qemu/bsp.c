@@ -45,6 +45,6 @@ void ja_bsp_init (void)
    jet_console_init_all ();
 
    //devtree_dummy_dump();
-   if ((uintptr_t) _end > 0x4000000ULL)
+   if ((uintptr_t) _end > 0x84000000ULL)    //Kernel starts from 0x80000000
        pok_fatal("Kernel size is more than 64 megabytes");
 }

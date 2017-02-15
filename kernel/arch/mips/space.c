@@ -35,8 +35,6 @@
 #include "core/partition.h"
 #include "core/partition_arinc.h"
 #include "core/error.h"
-
-//FIXME
 #include <arch/deployment.h>
 
 
@@ -44,24 +42,6 @@ size_t ja_ustack_get_alignment(void)
 {
     return 16;
 }
-
-
-//~ struct jet_kernel_shared_data* __kuser ja_space_shared_data(jet_space_id space_id)
-//~ {
-    //~ return (struct jet_kernel_shared_data* __kuser)POK_PARTITION_MEMORY_BASE;
-//~ }
-//~ 
-//~ static const size_t ja_user_space_maximum_alignment = 16;
-	//~ 
-	//~ 
-//~ void __user* ja_space_get_heap(jet_space_id space_id)
-//~ {
-    //~ struct ja_mips_space * space = &ja_spaces[space_id - 1];
-//~ 
-    //~ return POK_PARTITION_MEMORY_BASE + (char __user*)
-    //~ ALIGN_VAL((unsigned long)space->size_normal, ja_user_space_maximum_alignment);
-//~ }
-
 
 /*
  * Currently, kernel has rw access to all tlb entries.
@@ -77,10 +57,6 @@ void ja_uspace_revoke_access_local(jet_space_id space_id) {(void)space_id;}
 
 void ja_space_switch (jet_space_id space_id)
 {
-    //~ INT_ENABLE
-    //~ while (1==1){
-    //~ 
-    //~ }
     mtc0(CP0_ENTRYHI, space_id);
 }
 
@@ -106,30 +82,6 @@ static inline const char* pok_mips_tlb_size(unsigned size)
     }
 }
 
-//~ static void pok_mips_tlb_clear(        
-        //~ uint32_t virtual, 
-        //~ uint64_t physical, 
-        //~ unsigned pgsize_enum, 
-        //~ unsigned permissions,
-        //~ unsigned wimge,
-        //~ unsigned pid,
-        //~ pok_bool_t  valid)
-//~ {
-        //~ int tlb_index = jet_mips_tlb_get_index;
-        //~ 
-        //~ for (int i = tlb_index + 1; i < MIPS_MAX_TLB_SIZE; i ++){
-            //~ pok_mips_tlb_write(        
-                //~ virtual, 
-                //~ physical, 
-                //~ pgsize_enum, 
-                //~ permissions,
-                //~ wimge,
-                //~ pid,
-                //~ valid);
-        //~ }
-        //~ jet_mips_tlb_get_index = tlb_index;
-//~ }
-
 
 /*
  *  Quote from the manual:
@@ -140,9 +92,6 @@ static inline const char* pok_mips_tlb_size(unsigned size)
  *      TLB0 entry replacement is also implemented by software. To assist the software with TLB0 replacement,
  *      the core provides a hint that can be used for implementing a round-robin replacement algorithm. <...>
  */
-
-//~ static unsigned next_resident = 0;
-//~ static unsigned next_non_resident = 0;
 
 extern void dmfc0_asm(void);
 
@@ -207,32 +156,3 @@ void pok_arch_handle_page_fault(
 #endif
     pok_raise_error(POK_ERROR_ID_MEMORY_VIOLATION, vctx->STATUS & CP0_STATUS_KSU_1, (void*) faulting_address);
 }
-//~ uintptr_t pok_virt_to_phys(uintptr_t virt)
-//~ {
-    //~ if((virt < POK_PARTITION_MEMORY_BASE)
-        //~ || (virt > POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE))
-    //~ {
-        //~ // Fatal error despite it is called from user space!!
-        //~ printf("pok_virt_to_phys: wrong virtual address %p\n", (void*)virt);
-        //~ pok_fatal("wrong pointer in pok_virt_to_phys\n");
-    //~ }
-//~ 
-    //~ jet_space_id space_id = ja_space_get_current();
-//~ 
-    //~ return virt - POK_PARTITION_MEMORY_BASE + ja_spaces[space_id - 1].phys_base;
-//~ }
-//~ 
-//~ uintptr_t pok_phys_to_virt(uintptr_t phys)
-//~ {
-    //~ jet_space_id space_id = ja_space_get_current();
-//~ 
-    //~ if((phys < ja_spaces[space_id - 1].phys_base)
-        //~ || (phys >= ja_spaces[space_id - 1].phys_base + POK_PARTITION_MEMORY_SIZE))
-    //~ {
-        //~ // Fatal error despite it is called from user space!!
-        //~ printf("pok_phys_to_virt: wrong physical address %p\n", (void*)phys);
-        //~ pok_fatal("wrong pointer in pok_phys_to_virt\n");
-    //~ }
-//~ 
-    //~ return phys - ja_spaces[space_id - 1].phys_base + POK_PARTITION_MEMORY_BASE;
-//~ }

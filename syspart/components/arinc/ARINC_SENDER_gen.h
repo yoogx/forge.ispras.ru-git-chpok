@@ -33,8 +33,8 @@ typedef struct ARINC_SENDER_state {
     MESSAGE_RANGE_TYPE q_port_max_nb_messages;
     sys_port_data_t * port_buffer;
     MESSAGE_SIZE_TYPE port_max_message_size;
-    unsigned overhead;
     NAME_TYPE port_name;
+    unsigned overhead;
     int is_queuing_port;
     APEX_INTEGER port_id;
 }ARINC_SENDER_state;

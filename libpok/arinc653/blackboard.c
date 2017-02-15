@@ -28,7 +28,7 @@
 
 #include <string.h>
 #include "arinc_alloc.h"
-#include <arinc_config.h>
+#include "arinc_config.h"
 #include "arinc_process_queue.h"
 
 static size_t nblackboards_used = 0;

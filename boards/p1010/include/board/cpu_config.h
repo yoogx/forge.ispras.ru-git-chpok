@@ -13,5 +13,9 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-/* Empty */
+#ifndef __JET_P1010_CPU_CONFIG_H__
+#define __JET_P1010_CPU_CONFIG_H__
 
+#define JET_PPC_CONFIG_E500v2
+
+#endif /*__JET_P1010_CPU_CONFIG_H__*/
