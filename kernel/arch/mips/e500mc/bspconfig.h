@@ -1,6 +1,0 @@
-#ifndef BSPCONFIG_H
-#define BSPCONFIG_H
-
-#define CCSRBAR_BASE 0xE0000000ULL
-
-#endif

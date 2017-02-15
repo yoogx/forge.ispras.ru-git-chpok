@@ -87,7 +87,8 @@ SECTIONS
 
    /* Allocate the main stack area.  Make sure it starts 16bytes aligned
       to accommodate any possible program expectation.  */
-   _stack = ALIGN(16) + 0x1000;
-   _end = _stack;
+   . = ALIGN(16) + 0x1000;
+   jet_entry_stack = .;
+   _end = .;
   }
 }

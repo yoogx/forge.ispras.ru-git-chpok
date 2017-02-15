@@ -1,0 +1,52 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+# Requirements for types, used in configuration process, applicable to
+# possibly any architecture.
+
+# Note, that keys
+#
+# - max_alignment,
+# - align
+# - size
+#
+# provide *upper* boundaries for corresponded properties.
+
+max_alignment: 16
+
+types:
+    - name: struct arinc_buffer
+      align: 8
+      size: 150
+      include: <buffer.h>
+
+    - name: struct arinc_blackboard
+      align: 8
+      size: 100
+      include: <blackboard.h>
+
+    - name: struct arinc_semaphore
+      align: 8
+      size: 50
+      include: <semaphore.h>
+
+    - name: struct arinc_event
+      align: 8
+      size: 50
+      include: <event.h>

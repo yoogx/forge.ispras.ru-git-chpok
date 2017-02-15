@@ -36,7 +36,7 @@
         .section ".start", "ax"
 
 base = .
-mips_tlb_exeption_asm:
+        NESTED(mips_tlb_exeption_asm, 0, $sp)
         .set push
         addi    $sp, -4
         sw      $k0, ($sp)
@@ -49,16 +49,17 @@ mips_tlb_exeption_asm:
         mfc0    $k0, CP0_CAUSE
         andi    $k0, 0x7f
         li      $k1, 0x8
-        JUMP_IF_EQUAL($k1, $k0, mips_second_exeption_handler_asm)  /*TLBL*/
+        JUMP_IF_EQUAL($k1, $k0, mips_second_exception_handler_asm)  /*TLBL*/
         li      $k1, 0xc  
-        JUMP_IF_EQUAL($k1, $k0, mips_second_exeption_handler_asm)  /*TLBS*/
+        JUMP_IF_EQUAL($k1, $k0, mips_second_exception_handler_asm)  /*TLBS*/
         .set pop
+        END(mips_tlb_exeption_asm)
 reserved_0000:        
         /* fails */
 1:      JUMP_TO_ADDR(1b) 
 
     . = base + 0x180
-        JUMP_TO_ADDR(mips_first_exeption_handler_asm)
+        JUMP_TO_ADDR(mips_first_exception_handler_asm)
         
         
     . = base + 0x10000
@@ -370,12 +371,12 @@ ja_user_space_jump:
         /* Come from kernel and kernel stack is ready */
         /*This is stwu ppc realization on MIPS*/
 //rewrite: change int
-        addi    $sp, $sp, -FRAME_SIZE-JET_STACK_RED_ZONE 
+        addi    $sp, $sp, -FRAME_SIZE//-JET_STACK_RED_ZONE 
         sw      $sp, ($sp)
         /* Store ra to previous backchain. */
-        move    $a0, $ra
-        sw      $a0, FRAME_SIZE + JET_STACK_RED_ZONE + OFFSETOF_jet_stack_frame_ra($sp)
-        addi    $a0, $sp, FRAME_SIZE + JET_STACK_RED_ZONE
+        //move    $a0, $ra
+        //sw      $a0, FRAME_SIZE + JET_STACK_RED_ZONE + OFFSETOF_jet_stack_frame_ra($sp)
+        addi    $a0, $sp, FRAME_SIZE //+ JET_STACK_RED_ZONE
         JUMP_TO_ADDR(2f)
 1:      /* Come from user or interrupted handler hasn't adjust stack yet. */
         mfc0    $a1, CP0_DESAVE
@@ -671,9 +672,18 @@ _pok_reset:
 
 
 // Useful defines:
-#define START_EXCEPTION(label)                                               \
-        .align 5;                                                            \
-label##_asm:
+//#define START_EXCEPTION(label)                                               \
+//        .align 5;                                                            \
+//label##_asm:
+#define START_EXCEPTION(symbol)                  \
+                .align  5;                              \
+                .type   symbol##_asm, @function;              \
+                .ent    symbol##_asm, 0;                       \
+symbol##_asm:         .frame  $sp, 0, $sp
+
+#define END_EXEPTION(symbol)            \
+                .end    symbol##_asm;       \
+                .size   symbol##_asm, .-symbol##_asm
 
 // Handlers themselves:
 
@@ -683,13 +693,15 @@ label##_asm:
         move    $a0, $sp
         JUMP_AND_LINK(pok_int_critical_input)
         JUMP_TO_ADDR(pok_arch_rfi)
-
+    END_EXEPTION(pok_int_critical_input)
+    
     /* TODO: shouldn't machine check interrupt level should be used there? */
     START_EXCEPTION(pok_int_machine_check)
         EXCEPTION_PROLOGUE
         move    $a0, $sp
         JUMP_AND_LINK(pok_int_machine_check)
         JUMP_TO_ADDR(pok_arch_rfi)
+    END_EXEPTION(pok_int_machine_check)
 
     START_EXCEPTION(pok_int_data_storage)
         EXCEPTION_PROLOGUE
@@ -700,6 +712,7 @@ label##_asm:
 
         JUMP_AND_LINK(pok_int_data_storage)
         JUMP_TO_ADDR(pok_arch_rfi)
+    END_EXEPTION(pok_int_data_storage)
 
     START_EXCEPTION(pok_int_inst_storage)
         EXCEPTION_PROLOGUE
@@ -709,12 +722,14 @@ label##_asm:
 
         JUMP_AND_LINK(pok_int_inst_storage)
         JUMP_TO_ADDR(pok_arch_rfi)
+    END_EXEPTION(pok_int_inst_storage)
 
     START_EXCEPTION(pok_int_ext_interrupt)
         EXCEPTION_PROLOGUE
         move    $a0, $sp
         JUMP_AND_LINK(pok_int_ext_interrupt)
         JUMP_TO_ADDR(pok_arch_rfi)
+    END_EXEPTION(pok_int_ext_interrupt)
 
     START_EXCEPTION(pok_int_alignment)
         EXCEPTION_PROLOGUE
@@ -724,6 +739,7 @@ label##_asm:
 
         JUMP_AND_LINK(pok_int_alignment)
         JUMP_TO_ADDR(pok_arch_rfi)
+    END_EXEPTION(pok_int_alignment)
 
     START_EXCEPTION(pok_int_program)
         EXCEPTION_PROLOGUE
@@ -731,6 +747,7 @@ label##_asm:
 
         JUMP_AND_LINK(pok_int_program)
         JUMP_TO_ADDR(pok_arch_rfi)
+    END_EXEPTION(pok_int_program)
 
     START_EXCEPTION(pok_int_fp_unavail)
         EXCEPTION_PROLOGUE
@@ -738,6 +755,7 @@ label##_asm:
 
         JUMP_AND_LINK(pok_int_fp_unavail)
         JUMP_TO_ADDR(pok_arch_rfi)
+    END_EXEPTION(pok_int_fp_unavail)
 
     START_EXCEPTION(pok_int_system_call)
         EXCEPTION_PROLOGUE
@@ -760,8 +778,10 @@ label##_asm:
         
         addi    $sp, 24
         sw      $v0, OFFSETOF_jet_interrupt_context_r2($sp)
+        sw      $v1, OFFSETOF_jet_interrupt_context_r3($sp)
 
         JUMP_TO_ADDR(pok_arch_rfi)
+    END_EXEPTION(pok_int_system_call)
 
     START_EXCEPTION(pok_int_decrementer)
         EXCEPTION_PROLOGUE
@@ -769,6 +789,7 @@ label##_asm:
 
         JUMP_AND_LINK(pok_int_decrementer) 
         JUMP_TO_ADDR(pok_arch_rfi)
+    END_EXEPTION(pok_int_decrementer)
 
     START_EXCEPTION(pok_int_interval_timer)
         EXCEPTION_PROLOGUE
@@ -776,10 +797,15 @@ label##_asm:
 
         JUMP_AND_LINK(pok_int_interval_timer)
         JUMP_TO_ADDR(pok_arch_rfi)
+    END_EXEPTION(pok_int_interval_timer)
 
     START_EXCEPTION(pok_int_watchdog)
         EXCEPTION_PROLOGUE
         move    $a0, $sp
+        JUMP_AND_LINK(pok_int_watchdog)
+        JUMP_TO_ADDR(pok_arch_rfi)
+        
+    END_EXEPTION(pok_int_watchdog)
         
     START_EXCEPTION(pok_int_ri)
         EXCEPTION_PROLOGUE
@@ -787,6 +813,7 @@ label##_asm:
 
         JUMP_AND_LINK(pok_int_ri)
         JUMP_TO_ADDR(pok_arch_rfi)
+    END_EXEPTION(pok_int_ri)
 
     START_EXCEPTION(pok_int_data_tlb_miss)
         EXCEPTION_PROLOGUE
@@ -796,6 +823,7 @@ label##_asm:
 
         JUMP_AND_LINK(pok_int_data_tlb_miss)
         JUMP_TO_ADDR(pok_arch_rfi)
+    END_EXEPTION(pok_int_data_tlb_miss)
 
     START_EXCEPTION(pok_int_inst_tlb_miss)
         EXCEPTION_PROLOGUE
@@ -805,6 +833,7 @@ label##_asm:
 
         JUMP_AND_LINK(pok_int_inst_tlb_miss)
         JUMP_TO_ADDR(pok_arch_rfi)
+    END_EXEPTION(pok_int_inst_tlb_miss)
         
     START_EXCEPTION(pok_int_debug)
         //EXCEPTION_PROLOGUE_DEBUG
@@ -814,6 +843,7 @@ label##_asm:
         JUMP_AND_LINK(pok_int_debug)
         //JUMP_TO_ADDR(pok_arch_rfdi_for_debug)
         JUMP_TO_ADDR(pok_arch_rfi)
+    END_EXEPTION(pok_int_debug)
  
     START_EXCEPTION(pok_int_none)
         EXCEPTION_PROLOGUE
@@ -821,6 +851,7 @@ label##_asm:
 
         JUMP_AND_LINK(pok_int_none)
         JUMP_TO_ADDR(pok_arch_rfi)
+    END_EXEPTION(pok_int_none)
 
     START_EXCEPTION(pok_int_overflow)
         EXCEPTION_PROLOGUE
@@ -828,6 +859,7 @@ label##_asm:
 
         JUMP_AND_LINK(pok_int_overflow)
         JUMP_TO_ADDR(pok_arch_rfi)
+    END_EXEPTION(pok_int_overflow)
 
     START_EXCEPTION(pok_int_addrl)
         EXCEPTION_PROLOGUE
@@ -835,6 +867,7 @@ label##_asm:
 
         JUMP_AND_LINK(pok_int_addrl)
         JUMP_TO_ADDR(pok_arch_rfi)
+    END_EXEPTION(pok_int_addrl)
 
     START_EXCEPTION(pok_int_addrs)
         EXCEPTION_PROLOGUE
@@ -842,6 +875,7 @@ label##_asm:
 
         JUMP_AND_LINK(pok_int_addrs)
         JUMP_TO_ADDR(pok_arch_rfi)
+    END_EXEPTION(pok_int_addrs)
 
     START_EXCEPTION(pok_int_ibus)
         EXCEPTION_PROLOGUE
@@ -849,6 +883,7 @@ label##_asm:
 
         JUMP_AND_LINK(pok_int_ibus)
         JUMP_TO_ADDR(pok_arch_rfi)
+    END_EXEPTION(pok_int_ibus)
 
     START_EXCEPTION(pok_int_dbus)
         EXCEPTION_PROLOGUE
@@ -856,6 +891,7 @@ label##_asm:
 
         JUMP_AND_LINK(pok_int_dbus)
         JUMP_TO_ADDR(pok_arch_rfi)
+    END_EXEPTION(pok_int_dbus)
 
 
 /*
@@ -891,7 +927,7 @@ pok_setup_interrupts:
         //~ori     $k0, $k0, CP0_STATUS_ERL
         //~xori     $k0, $k0, CP0_STATUS_ERL
         MTC0($k0, CP0_STATUS) 
-        //~li    $k0, mips_first_exeption_handler_asm
+        //~li    $k0, mips_first_exception_handler_asm
         //~MTC0_sel1($k0, CP0_EBASE)
         
 
@@ -917,11 +953,10 @@ pok_setup_interrupts:
         
         JUMP_TO_REG($ra)
 
-        
-        la  $k0, mips_first_exeption_handler_asm
-        jr  $k0
-/*This exeption handler is equal for each interrupt*/
-mips_first_exeption_handler_asm:
+
+/*This exeption handler is equal for each interrupt*/ 
+NESTED(mips_first_exception_handler_asm, 0, $sp)
+    .set  push  
         addi    $sp, -4
         sw      $k0, ($sp)
         la      $k0, save4
@@ -930,7 +965,11 @@ mips_first_exeption_handler_asm:
         lw      $k0, ($sp)
         sw      $k0, ($k1)
         addi    $sp, 4
-mips_second_exeption_handler_asm:
+        JUMP_TO_ADDR(mips_second_exception_handler_asm)  
+    .set  pop 
+END(mips_first_exception_handler_asm)
+
+NESTED(mips_second_exception_handler_asm, 0, $sp)
         /*disable interrupts*/
         mfc0    $k0, CP0_STATUS
         ori     $k0, CP0_STATUS_IE
@@ -941,6 +980,7 @@ mips_second_exeption_handler_asm:
     	lw      $k0, expection_handlers($k1)         /* exception number is an offset in array */
         
     	JUMP_TO_REG($k0)                           /* Call asm code for this exeption. */
+END(mips_second_exception_handler_asm)
 
         .globl dmfc0_asm
 

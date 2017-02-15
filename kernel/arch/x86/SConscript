@@ -28,7 +28,7 @@ arch = arch_env.StaticObject(source = exception_sources + Glob('*.[Sc]'))
 if arch_env.get('jdeveloper'):
     import sys
     import os
-    sys.path.insert(1, os.path.join(os.environ["POK_PATH"], "misc"))
+    sys.path.insert(1, os.path.join(os.environ["JETOS_HOME"], "misc"))
     import template_generation
     AddMethod(arch_env, template_generation.BuildAsmOffsets)
 

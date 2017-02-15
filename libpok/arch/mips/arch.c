@@ -24,6 +24,10 @@ void pok_arch_idle (void)
    }
 }
 
+void __init (void)
+{
+}
+
 size_t libja_mem_get_alignment(size_t obj_size)
 {
    if(obj_size <= 1) {

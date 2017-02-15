@@ -38,13 +38,11 @@
         </Channel>
     </Connection_Table>
 
-    <Memory_Blocks>
-        <Memory_Block
-            Name="shared_mb0"
-            VirtualAddress ="0xed000000"
-            PhysicalAddress="0x600000"
-            Size="0x10000"
-            /> <!-- PhysicalAddress="0xed000000" -->
-    </Memory_Blocks>
+    <Shared_Memory_Blocks>
+        <Shared_Memory_Blocks_Entry>
+            <Memory_Block_Ref NameRef="shared_mb0" PartitionNameRef="P1"/>
+            <Memory_Block_Ref NameRef="shared_mb0" PartitionNameRef="P2"/>
+        </Shared_Memory_Blocks_Entry>
+    </Shared_Memory_Blocks>
 
 </chpok-configuration>

@@ -1,5 +1,19 @@
-#ifndef __POK_PPC_REG_H__
-#define __POK_PPC_REG_H__
+/*
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
+ *
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ * See the GNU General Public License version 3 for more details.
+ */
+#ifndef __JET_PPC_REG_H__
+#define __JET_PPC_REG_H__
 
 #define SPRN_DEC        0x016   /* Decrement Register */
 #define SPRN_TBRL       0x10C   /* Time Base Read Lower Register (user, R/O) */
@@ -31,6 +45,8 @@
 #define SPRN_IVOR39     0x1b1   /* Interrupt Vector Offset Register 39 */
 #define SPRN_IVOR40     0x1b2   /* Interrupt Vector Offset Register 40 */
 #define SPRN_IVOR41     0x1b3   /* Interrupt Vector Offset Register 41 */
+
+#define SPRN_IVOR32     0x210   /* Interrupt Vector Offset Register 32 SPE */
 
 #define SPRN_DSRR0      0x23e   /* Debug Save and Restore Register 0 */
 #define SPRN_DSRR1      0x23f   /* Debug Save and Restore Register 1 */
@@ -70,16 +86,9 @@
 #ifndef __ASSEMBLY__
 
 #ifndef __stringify
-#define __stringify_1(x)        #x
-#define __stringify(x)          __stringify_1(x)
+#define __stringify(x) #x
 #endif
 
-#define mfmsr()         ({unsigned long rval; \
-                                asm volatile("mfmsr %0" : "=r" (rval) : \
-                                                                                    : "memory"); rval;})
-#define mtmsr(v)        asm volatile("mtmsr %0" : \
-                                             : "r" ((unsigned long)(v)) \
-                                             : "memory")
 
 #define mfspr(rn)       ({unsigned long rval; \
                                 asm volatile("mfspr %0," __stringify(rn) \

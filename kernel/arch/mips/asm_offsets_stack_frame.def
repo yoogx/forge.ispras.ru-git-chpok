@@ -16,7 +16,7 @@
 #include "stack_frame.h"
 /* Fields of jet_stack_frame structure. */
 OFFSETOF(jet_stack_frame, back_chain)
-OFFSETOF(jet_stack_frame, lr)
+OFFSETOF(jet_stack_frame, ra)
 
 /* Size of empty stack frame */
 SIZEOF_STRUCT(jet_stack_frame_null)

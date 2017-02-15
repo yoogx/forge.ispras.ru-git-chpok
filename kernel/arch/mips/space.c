@@ -16,14 +16,6 @@
 
 // TODO Fix space.c to compile with 64 bit address
 
-
-
-
-
-
-
-
-
 #include <config.h>
 
 #include <types.h>
@@ -43,32 +35,46 @@
 #include "core/partition.h"
 #include "core/partition_arinc.h"
 #include "core/error.h"
-void ja_space_layout_get(jet_space_id space_id,
-    struct jet_space_layout* space_layout)
-{
-    assert(space_id != 0 && space_id <= ja_spaces_n);
 
-    space_layout->kernel_addr = (char*) POK_PARTITION_MEMORY_BASE;
-    space_layout->user_addr = (char*) POK_PARTITION_MEMORY_BASE;
-    space_layout->size = ja_spaces[space_id - 1].size_normal;
+//FIXME
+#include <arch/deployment.h>
+
+
+size_t ja_ustack_get_alignment(void)
+{
+    return 16;
 }
 
 
-struct jet_kernel_shared_data* __kuser ja_space_shared_data(jet_space_id space_id)
-{
-    return (struct jet_kernel_shared_data* __kuser)POK_PARTITION_MEMORY_BASE;
-}
+//~ struct jet_kernel_shared_data* __kuser ja_space_shared_data(jet_space_id space_id)
+//~ {
+    //~ return (struct jet_kernel_shared_data* __kuser)POK_PARTITION_MEMORY_BASE;
+//~ }
+//~ 
+//~ static const size_t ja_user_space_maximum_alignment = 16;
+	//~ 
+	//~ 
+//~ void __user* ja_space_get_heap(jet_space_id space_id)
+//~ {
+    //~ struct ja_mips_space * space = &ja_spaces[space_id - 1];
+//~ 
+    //~ return POK_PARTITION_MEMORY_BASE + (char __user*)
+    //~ ALIGN_VAL((unsigned long)space->size_normal, ja_user_space_maximum_alignment);
+//~ }
 
-static const size_t ja_user_space_maximum_alignment = 16;
-56	
-57	
-void __user* ja_space_get_heap(jet_space_id space_id)
-58	
-{
-struct ja_ppc_space* space = &ja_spaces[space_id - 1];
-return POK_PARTITION_MEMORY_BASE + (char __user*)
-ALIGN_VAL((unsigned long)space->size_normal, ja_user_space_maximum_alignment);
-}
+
+/*
+ * Currently, kernel has rw access to all tlb entries.
+ * So switching entries is not required.
+ */
+void ja_uspace_grant_access(void) {}
+void ja_uspace_revoke_access(void) {}
+
+void ja_uspace_grant_access_local(jet_space_id space_id) {(void)space_id;}
+void ja_uspace_revoke_access_local(jet_space_id space_id) {(void)space_id;}
+
+
+
 void ja_space_switch (jet_space_id space_id)
 {
     //~ INT_ENABLE
@@ -80,35 +86,9 @@ void ja_space_switch (jet_space_id space_id)
 
 jet_space_id ja_space_get_current (void)
 {
-    return (mfc0(CP0_ENTRYHI) & 0xf);
-}
-
-
-void ja_ustack_init (jet_space_id space_id)
-{
-    assert(space_id != 0);
-
-    ja_spaces[space_id - 1].ustack_state = POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE - 16;
-}
-
-jet_ustack_t ja_ustack_alloc (jet_space_id space_id, size_t stack_size)
-{
-    assert(space_id != 0);
-
-    uint32_t* ustack_state_p = &ja_spaces[space_id - 1].ustack_state;
-
-    size_t size_real = ALIGN_VAL(stack_size, 16);
-
-    // TODO: Check boundaries.
-    jet_ustack_t result = *ustack_state_p;
-
-    *ustack_state_p -= size_real;
-
-    return result;
+    return (jet_space_id)   (mfc0(CP0_ENTRYHI) & 0xf);
 }
     
-
-
 static inline const char* pok_mips_tlb_size(unsigned size)
 {
     switch (size) {
@@ -161,53 +141,14 @@ static inline const char* pok_mips_tlb_size(unsigned size)
  *      the core provides a hint that can be used for implementing a round-robin replacement algorithm. <...>
  */
 
+//~ static unsigned next_resident = 0;
+//~ static unsigned next_non_resident = 0;
 
 extern void dmfc0_asm(void);
-
 
 void pok_arch_space_init (void)
 {
     printf("Hello!\n");
-    pok_mips_tlb_write(
-        0,
-        0,
-        MIPS_PGSIZE_16M,  //TODO make smaller
-        EntryLo_D | EntryLo_V, //TODO Save it from user read/write 
-        0,
-        0, // any pid
-        TRUE
-    );
-    //~ mtsr(mfsr() | CP0_STATUS_UX | CP0_STATUS_KX | CP0_STATUS_SX);
-
-    //~ pok_mips_tlb_write(
-        //~ POK_PARTITION_MEMORY_BASE,
-        //~ ja_spaces[0].phys_base,
-        //~ MIPS_PGSIZE_16M,
-        //~ EntryLo_D | EntryLo_V,
-        //~ 0,
-        //~ 1,
-        //~ FALSE
-    //~ );
-    
-    pok_mips_tlb_write(
-        POK_PARTITION_MEMORY_BASE,
-        ja_spaces[0].phys_base,
-        MIPS_PGSIZE_16M,
-        EntryLo_D | EntryLo_V,
-        0,
-        0,
-        FALSE
-    );
-
-    pok_mips_tlb_write(
-        POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE * 16,
-        ja_spaces[0].phys_base + POK_PARTITION_MEMORY_SIZE * 16,
-        MIPS_PGSIZE_16M,
-        EntryLo_D | EntryLo_V,
-        0,
-        0,
-        FALSE
-    );
     /*
      * Mapping for serial IN/OUT
      */
@@ -224,33 +165,26 @@ void pok_arch_space_init (void)
 
     printf("EBASE = 0x%lx\n", mfc0(CP0_EBASE));
 
-    mtsr(mfsr() & (~CP0_STATUS_ERL));
-    dump_tlb(0, 63);
     printf("Status = 0x%lx\n", mfsr());
     printf("jet_mips_tlb_get_index = %d\n", jet_mips_tlb_get_index);
     pok_mips_tlb_print();
 
 
-    for(int i = 0; i < ja_spaces_n; i++)
+    for(int i = 0; i < tlb_entries_n; i++)
     {
-        struct ja_ppc_space* space = &ja_spaces[i];
-        space->size_total = space->size_normal;
-        if(space->size_heap > 0) {
-            space->size_total = ALIGN_VAL((unsigned long)space->size_total, ja_user_space_maximum_alignment)
-                + space->size_heap;
-        }
-        // This should be checked when generate deployment.c too.
-        assert(space->size_total < POK_PARTITION_MEMORY_SIZE);
+        struct tlb_entry* entry = &tlb_entries[i];
+
+        pok_mips_tlb_write(
+            entry->virt_addr,
+            entry->phys_addr,
+            entry->size,
+            entry->permissions,
+            entry->cache_policy,
+            entry->pid,
+            TRUE
+            );
     }
-    /*Clear reset bit*/
-    mtsr(mfsr() & (~CP0_STATUS_ERL));
-
-    /*Now we use tlb for memory translation*/
 }
-
-//TODO get this values from devtree!
-#define MPC8544_PCI_IO_SIZE      0x10000ULL
-#define MPC8544_PCI_IO           0xE1000000ULL
 
 void pok_arch_handle_page_fault(
         struct jet_interrupt_context *vctx,
@@ -258,97 +192,47 @@ void pok_arch_handle_page_fault(
         uint32_t syndrome,
         pf_type_t type)
 {
-    int tlb_miss = (type == PF_INST_TLB_MISS || type == PF_DATA_TLB_MISS);
-    unsigned pid = mfc0(CP0_ENTRYHI) & 0xf;
-
-    if (tlb_miss && faulting_address >= pok_bsp.ccsrbar_base && faulting_address < pok_bsp.ccsrbar_base + pok_bsp.ccsrbar_size) {
-        pok_mips_tlb_write(
-            pok_bsp.ccsrbar_base,
-            pok_bsp.ccsrbar_base_phys,
-            MIPS_PGSIZE_16M,
-            //MAS3_SW | MAS3_SR,
-            EntryLo_D | EntryLo_V,
-            /*MAS2_W | MAS2_I | MAS2_M | MAS2_G*/0, //TODO fix this
-            0, /* any pid */
-            TRUE
-        );
-    } else if (tlb_miss && faulting_address >= MPC8544_PCI_IO && faulting_address < MPC8544_PCI_IO + MPC8544_PCI_IO_SIZE) {
-        pok_mips_tlb_write(
-            MPC8544_PCI_IO,
-            MPC8544_PCI_IO,
-            MIPS_PGSIZE_64K,
-            //MAS3_SW | MAS3_SR,
-            EntryLo_D | EntryLo_V,
-            /*MAS2_W | MAS2_I | MAS2_M | MAS2_G*/0, //TODO fix this
-            0, /* any pid */
-            TRUE
-        );
-    } else if (
-            tlb_miss &&
-            pid != 0 &&
-            faulting_address >= POK_PARTITION_MEMORY_BASE &&
-            faulting_address < POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE)
-    {
-        jet_space_id space_id = pid;
-
-        pok_mips_tlb_write(
-            POK_PARTITION_MEMORY_BASE,
-            ja_spaces[space_id - 1].phys_base,
-            MIPS_PGSIZE_16M,
-            EntryLo_D | EntryLo_V,
-            0,
-            pid,
-            FALSE
-        );
+#ifdef POK_NEEDS_DEBUG
+    if (vctx->STATUS & CP0_STATUS_KSU_1) {
+        printf("USER ");
     } else {
-        if (vctx->STATUS & CP0_STATUS_KSU_1) {
-            printf("USER ");
-        } else {
-            printf("KERNEL ");
-        }
+        printf("KERNEL ");
+    }
 
-        //~ if (type == PF_DATA_TLB_MISS || type == PF_DATA_STORAGE) {
-            printf("code at %p address tried to access/execute data on %p address\n", (void*)vctx->EPC, (void*)faulting_address);
-        //~ } else {
-            //~ printf("code at %p address tried to execute code at %p address\n", (void *)vctx->r31, (void*)vctx->EPC);
-        //~ }
-#ifdef PARTITION_DEBUG_MODE
-        pok_fatal("page fault");
-#else
-        printf("raising error in pagefault addr %p  syndrome 0x%lx\n", (void*) faulting_address, syndrome);
-        POK_ERROR_CURRENT_THREAD(POK_ERROR_KIND_MEMORY_VIOLATION);
+    //~ if (type == PF_DATA_TLB_MISS || type == PF_DATA_STORAGE) {
+        printf("code at %p address tried to access/execute data on %p address\n", (void*)vctx->EPC, (void*)faulting_address);
+    //~ } else {
+        //~ printf("code at %p address tried to execute code at %p address\n", (void *)vctx->r31, (void*)vctx->EPC);
+    //~ }
 #endif
-        //pok_fatal("bad memory access");
-    }
-    
+    pok_raise_error(POK_ERROR_ID_MEMORY_VIOLATION, vctx->STATUS & CP0_STATUS_KSU_1, (void*) faulting_address);
 }
-
-uintptr_t pok_virt_to_phys(uintptr_t virt)
-{
-    if((virt < POK_PARTITION_MEMORY_BASE)
-        || (virt > POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE))
-    {
-        // Fatal error despite it is called from user space!!
-        printf("pok_virt_to_phys: wrong virtual address %p\n", (void*)virt);
-        pok_fatal("wrong pointer in pok_virt_to_phys\n");
-    }
-
-    jet_space_id space_id = ja_space_get_current();
-
-    return virt - POK_PARTITION_MEMORY_BASE + ja_spaces[space_id - 1].phys_base;
-}
-
-uintptr_t pok_phys_to_virt(uintptr_t phys)
-{
-    jet_space_id space_id = ja_space_get_current();
-
-    if((phys < ja_spaces[space_id - 1].phys_base)
-        || (phys >= ja_spaces[space_id - 1].phys_base + POK_PARTITION_MEMORY_SIZE))
-    {
-        // Fatal error despite it is called from user space!!
-        printf("pok_phys_to_virt: wrong physical address %p\n", (void*)phys);
-        pok_fatal("wrong pointer in pok_phys_to_virt\n");
-    }
-
-    return phys - ja_spaces[space_id - 1].phys_base + POK_PARTITION_MEMORY_BASE;
-}
+//~ uintptr_t pok_virt_to_phys(uintptr_t virt)
+//~ {
+    //~ if((virt < POK_PARTITION_MEMORY_BASE)
+        //~ || (virt > POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE))
+    //~ {
+        //~ // Fatal error despite it is called from user space!!
+        //~ printf("pok_virt_to_phys: wrong virtual address %p\n", (void*)virt);
+        //~ pok_fatal("wrong pointer in pok_virt_to_phys\n");
+    //~ }
+//~ 
+    //~ jet_space_id space_id = ja_space_get_current();
+//~ 
+    //~ return virt - POK_PARTITION_MEMORY_BASE + ja_spaces[space_id - 1].phys_base;
+//~ }
+//~ 
+//~ uintptr_t pok_phys_to_virt(uintptr_t phys)
+//~ {
+    //~ jet_space_id space_id = ja_space_get_current();
+//~ 
+    //~ if((phys < ja_spaces[space_id - 1].phys_base)
+        //~ || (phys >= ja_spaces[space_id - 1].phys_base + POK_PARTITION_MEMORY_SIZE))
+    //~ {
+        //~ // Fatal error despite it is called from user space!!
+        //~ printf("pok_phys_to_virt: wrong physical address %p\n", (void*)phys);
+        //~ pok_fatal("wrong pointer in pok_phys_to_virt\n");
+    //~ }
+//~ 
+    //~ return phys - ja_spaces[space_id - 1].phys_base + POK_PARTITION_MEMORY_BASE;
+//~ }

@@ -17,23 +17,26 @@
 #include <core/sched_arinc.h>
 #include <core/space.h>
 
+#include <common.h>
+
 pok_bool_t thread_create(pok_thread_t* t)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
 
-    t->init_stack_addr = ja_ustack_alloc(
-        part->base_part.space_id,
-        t->user_stack_size);
+    // Allocate stack for thread.
+    t->init_stack_addr = ALIGN_VAL(part->stacks_current + t->user_stack_size,
+        jet_ustack_get_alignment());
 
-    if(t->init_stack_addr == 0) return FALSE;
+    if(t->init_stack_addr > part->stacks_end) return FALSE;
+    part->stacks_current = t->init_stack_addr;
 
     // Initialize thread shared data
     struct jet_thread_shared_data* tshd_t = part->kshd->tshd
-	+ (t - part->threads);
+        + (t - part->threads);
     tshd_t->msection_count = 0;
     tshd_t->msection_entering = NULL;
 
-    /* 
+    /*
      * Do not modify stack here: it will be filled when thread will run.
      */
     t->sp = 0;
@@ -61,9 +64,9 @@ pok_bool_t thread_create(pok_thread_t* t)
     return TRUE;
 }
 
-/* 
+/*
  * Return true if thread is eligible.
- * 
+ *
  * Note: Main thread and error thread are NEVER eligible.
  */
 static pok_bool_t thread_is_eligible(pok_thread_t* t)
@@ -71,11 +74,11 @@ static pok_bool_t thread_is_eligible(pok_thread_t* t)
     return !list_empty(&t->eligible_elem);
 }
 
-/* 
+/*
  * Set thread eligible for running.
- * 
+ *
  * Thread shouldn't be eligible already.
- * 
+ *
  * Should be executed with local preemption disabled.
  */
 static void thread_set_eligible(pok_thread_t* t)
@@ -123,9 +126,9 @@ void thread_yield(pok_thread_t *t)
     }
 }
 
-/* 
+/*
  * Set thread not eligible for running, if it was.
- * 
+ *
  * Should be executed with local preemption disabled.
  */
 static void thread_set_uneligible(pok_thread_t* t)
@@ -143,7 +146,7 @@ static void thread_set_uneligible(pok_thread_t* t)
 }
 
 /* Calls thread_delayed_event for thread with given id.
- * 
+ *
  * Callback for delayed_event_add.
  */
 static void thread_process_delayed_event(uint16_t handler_id)
@@ -165,9 +168,9 @@ void thread_delay_event(pok_thread_t* t, pok_time_t delay_time,
 	&thread_process_delayed_event);
 }
 
-/* 
+/*
  * Emit deadline event for the thread.
- * 
+ *
  * Callback for delayed_event_add.
  */
 static void thread_deadline_occured(uint16_t handler_id)
@@ -251,7 +254,7 @@ pok_bool_t thread_is_waiting_allowed(void)
 
     /*
      * It is prohibited to call waiting function when someone waits us for terminate.
-     * 
+     *
      * Yes, we doesn't trust 'msection_count', which can be set from user space.
      */
     assert_os(thread_current->relations_stop.first_donator == NULL);

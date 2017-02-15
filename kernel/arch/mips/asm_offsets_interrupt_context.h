@@ -23,6 +23,6 @@
 #include "asm_offsets_interrupt_context_gdb_off.h"
 #endif
 
-#define JET_STACK_RED_ZONE 128
+//~ #define JET_STACK_RED_ZONE 228
 
 #endif /* __JET_MIPS_ASM_OFFSETS_CONTEXT_H__ */

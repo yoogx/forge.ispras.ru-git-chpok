@@ -85,7 +85,7 @@
                                                                             происходит исключение, отличное от Reset, Soft Reset, NMI или Cache Error*/
 #define Status_IE_LG        0              /* Разрешение прерываний*/
 
-#define Cause_DC_LG         25             /*Запрещение работы регистра Count. Если при выполнении инструкции WAIT регистр Count остановлен (бит DC = “1”) 
+#define Cause_DC_LG         27             /*Запрещение работы регистра Count. Если при выполнении инструкции WAIT регистр Count остановлен (бит DC = “1”) 
                                                                             прерывание от внутреннего таймера не возникнет, т.к. регистр Count не инкрементируется.*/
 #define Cause_IV_LG         23             /* Показывает, использует ли исключение по прерыванию общий вектор исключений или специальный вектор прерываний*/
 #define Cause_IP7_LG        15             /* Установленный бит показывает, что возникло соответствующие внешнее прерывание.
@@ -175,7 +175,7 @@
 
 #define CP0_STATUS_USER     CP0_STATUS_KSU_1                  /* Режим пользователя*/
 #define CP0_STATUS_KERNEL   0x0                               /* Режим ядра*/
-#define CP0_STATUS_SETTINGS    (CP0_STATUS_CU1|CP0_STATUS_FR|CP0_STATUS_IE)
+#define CP0_STATUS_SETTINGS    (CP0_STATUS_CU1|CP0_STATUS_FR|CP0_STATUS_ALL_INT_ON|CP0_STATUS_USER|CP0_STATUS_CU0|CP0_STATUS_CU1|CP0_STATUS_EXL)
 #define CP0_STATUS_ALL_INT_ON    CP0_STATUS_IM7 | CP0_STATUS_IM6 | CP0_STATUS_IM5 | CP0_STATUS_IM4 | CP0_STATUS_IM3 | CP0_STATUS_IM2 | CP0_STATUS_IM1 | CP0_STATUS_IM7 | CP0_STATUS_IE
 
 
@@ -283,6 +283,17 @@
 #define JUMP_AND_LINK(addr) \
         jal   addr;         \
         nop                 
+
+#define JUMP_IF_EQUAL(arg1, arg2, addr)  \
+        beq  arg1, arg2, addr;           \
+        nop;                             \
+        nop                               
+
+#define JUMP_IF_NOT_EQUAL(arg1, arg2, addr)  \
+        bne  arg1, arg2, addr;           \
+        nop;                             \
+        nop                               
+
         
 #define ERET_AND_NOP      \
         eret;             \
@@ -319,6 +330,31 @@
         nop;                   \
         nop                    
 
+/*
+ * NESTED - declare nested routine entry point
+ */
+#define NESTED(symbol, framesize, rpc)                  \
+                .globl  symbol;                         \
+                .align  2;                              \
+                .type   symbol, @function;              \
+                .ent    symbol, 0;                       \
+symbol:         .frame  $sp, framesize, rpc
+
+/*
+ * END - mark end of function
+ */
+#define END(function)                                   \
+                .end    function;                       \
+                .size   function, .-function
+/*
+ * LEAF - declare leaf routine
+ */
+#define LEAF(symbol)                                    \
+                .globl  symbol;                         \
+                .align  2;                              \
+                .type   symbol, @function;              \
+                .ent    symbol, 0;                      \
+symbol:         .frame  $sp, 0, $ra
 
 
 

@@ -30,7 +30,7 @@
 struct jet_stack_frame
 {
     uint32_t back_chain;
-    uint32_t lr;
+    uint32_t ra;
 };
 
 /* Null frame, usually the first one on the stack. */
@@ -45,7 +45,7 @@ static inline void jet_stack_frame_link(
     struct jet_stack_frame* child_frame,
     void (*entry)(void))
 {
-    parent_frame->lr = (uint32_t) entry;
+    parent_frame->ra = (uint32_t) entry;
     child_frame->back_chain = (uint32_t) parent_frame;
 }
 

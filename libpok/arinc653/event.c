@@ -51,7 +51,7 @@ void CREATE_EVENT (EVENT_NAME_TYPE EVENT_NAME,
                    EVENT_ID_TYPE *EVENT_ID,
                    RETURN_CODE_TYPE *RETURN_CODE)
 {
-   if(kshd.partition_mode == POK_PARTITION_MODE_NORMAL) {
+   if(kshd->partition_mode == POK_PARTITION_MODE_NORMAL) {
       // Cannot create buffer in NORMAL mode
       *RETURN_CODE = INVALID_MODE;
       return;
@@ -159,7 +159,7 @@ void WAIT_EVENT (EVENT_ID_TYPE EVENT_ID,
    else {
       // Event is DOWN and waiting is *requested* by the caller.
       // (whether waiting is *allowed* will be checked by the kernel.)
-      pok_thread_id_t t = kshd.current_thread_id;
+      pok_thread_id_t t = kshd->current_thread_id;
 
       /*
        * ARINC 1-4 explicitely says, that:

@@ -140,7 +140,7 @@ void pok_mips_tlb_read_entry(
 
 void dump_tlb(int first, int last)
 {
-        uint32_t s_entryhi, entryhi, asid;
+        uint32_t s_entryhi, entryhi;//, asid;
         uint32_t entrylo0, entrylo1, pa;
         uint32_t s_index, s_pagemask;
         uint32_t pagemask, c0, c1, i;
@@ -159,7 +159,7 @@ void dump_tlb(int first, int last)
         s_pagemask = mfc0(CP0_PAGEMASK);
         s_entryhi  = mfc0(CP0_ENTRYHI);
         s_index    = mfc0(CP0_INDEX);
-        asid = s_entryhi & asidmask;
+        //~ asid = s_entryhi & asidmask;
 
         for (i = first; i <= last; i++) {
                 mtc0(CP0_INDEX, i);
@@ -183,9 +183,9 @@ void dump_tlb(int first, int last)
                  * leave only a single G bit set after a machine check exception
                  * due to duplicate TLB entry.
                  */
-                if (!((entrylo0 | entrylo1) & CP0_ENTRYLO_G) &&
-                    (entryhi & asidmask) != asid)
-                        continue;
+                //~ if (!((entrylo0 | entrylo1) & CP0_ENTRYLO_G) &&
+                    //~ (entryhi & asidmask) != asid)
+                        //~ continue;
 
                 /*
                  * Only print entries in use

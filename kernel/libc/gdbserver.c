@@ -352,12 +352,21 @@ void gdb_thread_get_current(void)
 }
 
 /*
+ * Return (generic) partition for given thread.
+ */
+static pok_partition_t* gdb_thread_get_partition(const struct gdb_thread* t)
+{
+    return t->part;
+}
+
+/*
  * Return space identificator for given thread.
  */
-static jet_space_id gdb_thread_get_space(const struct gdb_thread* t)
+static uint8_t gdb_thread_get_space(const struct gdb_thread* t)
 {
     return t->part->space_id;
 }
+
 
 /*
  * Return address which can be used by GDB for
@@ -366,18 +375,19 @@ static jet_space_id gdb_thread_get_space(const struct gdb_thread* t)
  * Access is garanteed only if switched to thread's space.
  * 
  * If given area doesn't belong to the given thread or cannot be written, returns NULL.
- *
+ * 
+ * TODO: Access is garanteed only under effect of jet_uspace_grant_access_debug().
  */
 uintptr_t gdb_thread_write_addr(const struct gdb_thread* t, uintptr_t addr,
     size_t size)
 {
-    return (uintptr_t)ja_addr_to_gdb((void*)addr, size, gdb_thread_get_space(t));
+    return (uintptr_t)jet_addr_to_gdb((void*)addr, size, gdb_thread_get_partition(t));
 }
 
 uintptr_t gdb_thread_read_addr(const struct gdb_thread* t, uintptr_t addr,
     size_t size)
 {
-    return (uintptr_t)ja_addr_to_gdb_ro((const void*)addr, size, gdb_thread_get_space(t));
+    return (uintptr_t)jet_addr_to_gdb_ro((const void*)addr, size, gdb_thread_get_partition(t));
 }
 
 /* Print name of the thread using given callback. */

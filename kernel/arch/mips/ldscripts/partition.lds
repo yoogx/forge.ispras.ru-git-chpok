@@ -1,18 +1,13 @@
-/* Script for -z combreloc: combine and sort reloc sections */
-/* Copyright (C) 2014-2015 Free Software Foundation, Inc.
-   Copying and distribution of this script, with or without modification,
-   are permitted in any medium without royalty provided the copyright
-   notice and this notice are preserved.  */
 OUTPUT_FORMAT("elf32-tradbigmips")
 OUTPUT_ARCH(mips)
 ENTRY(__pok_partition_start)
+
 SECTIONS
 {
-	kshd = 0x70000000; /* This should coincide with ja_space_shared_data() in the kernel. */
-
-  . = 0x60001000;
+  . = 0x60000000;
 
 	__partition_begin = . ;
+
         .text           :
         {
            *(.text .text.*)
@@ -28,7 +23,7 @@ SECTIONS
 
         .sdata2 :
         {
-          __sdata2_start = .;
+          __SDATA2_START__ = .;
           PROVIDE (_SDA2_BASE_ = 32768);
           *(.sdata2 .sdata2.* .gnu.linkonce.s2.*)
           . = ALIGN(4);
@@ -40,6 +35,7 @@ SECTIONS
           *(.sbss2 .sbss2.* .gnu.linkonce.sb2.*)
           . = ALIGN(4);
           __sbss2_end = .;
+          __SBSS2_END__ = .;
         }
         .eh_frame_hdr : { *(.eh_frame_hdr) *(.eh_frame_entry .eh_frame_entry.*) }
         .eh_frame       : ONLY_IF_RO { KEEP (*(.eh_frame)) *(.eh_frame.*) }
@@ -50,6 +46,7 @@ SECTIONS
           *(.data .data.* .gnu.linkonce.d.*)
           *(.data1)
           PROVIDE (_SDA_BASE_ = 32768);
+          __SDATA_START__ = .;
           *(.sdata .sdata.* .gnu.linkonce.s.*)
           . = ALIGN(4);
           __data_end = .;
@@ -62,6 +59,7 @@ SECTIONS
           *(.sbss .sbss.* .gnu.linkonce.sb.*)
           *(.scommon)
           __sbss_end = .;
+          __SBSS_END__ = .;
         }
         .bss  :
         {

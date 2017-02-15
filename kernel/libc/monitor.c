@@ -199,8 +199,6 @@ int info_partition(int argc,char **argv){
     }
     
     pok_partition_arinc_t* part = &pok_partitions_arinc[number];
-    struct jet_space_layout space_layout;
-    ja_space_layout_get(part->base_part.space_id, &space_layout);
     
     //~ printf("\n\n");
     //~ printf("Info about partition #%d\n",number);
@@ -217,6 +215,7 @@ int info_partition(int argc,char **argv){
     //~ printf("prev_thread = %u\n", part->lock_level ? (unsigned)(part->thread_locked - part->threads) : (unsigned)-1);
     //~ printf("current_thread = %u\n", (unsigned)(part->thread_current - part->threads));
     //~ printf("thread_main = %u\n", POK_PARTITION_ARINC_MAIN_THREAD_ID);
+
 
 #ifdef POK_NEEDS_IO
     //printf("io_min = %d\n",pok_partitions[number].io_min);        

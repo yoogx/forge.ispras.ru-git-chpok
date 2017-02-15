@@ -55,6 +55,7 @@ void ja_preempt_enable(void)
 {
     mtsr(mfsr() | CP0_STATUS_IE);
     mtsr(mfsr() & (~CP0_STATUS_EXL));
+    mtsr(mfsr() & (~CP0_STATUS_ERL));
 }
 
 pok_bool_t ja_preempt_enabled(void)

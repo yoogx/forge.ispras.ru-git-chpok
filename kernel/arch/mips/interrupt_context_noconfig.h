@@ -40,11 +40,14 @@ uint32_t * expection_handlers[16];
 
 struct jet_interrupt_context
 {
-  struct jet_stack_frame stack_frame;
-  uint32_t offset0;
-  uint32_t offset1;
-  uint32_t offset2;
-  uint32_t offset3;
+  //~ struct jet_stack_frame stack_frame;
+  uint32_t arg0;
+  uint32_t arg1;
+  uint32_t arg2;
+  uint32_t arg3;
+  uint32_t arg4;
+  uint32_t arg5;
+  uint32_t arg6;
   
   uint32_t r0;
   uint32_t r1;
@@ -85,6 +88,10 @@ struct jet_interrupt_context
   uint32_t BadVAddr;
   uint32_t STATUS;
   uint32_t CAUSE;
+  uint32_t a0;
+  uint32_t a1;
+  uint32_t a2;
+  uint32_t a3;
 #ifdef POK_NEEDS_GDB
 #endif /* POK_NEEDS_GDB */
 } __attribute__((aligned(16)));

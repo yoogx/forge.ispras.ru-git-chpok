@@ -30,9 +30,8 @@
 
 /* Restore context from current stack. */
 CONTEXT_RESTORE:
-        .set    noat 
-        //lw     $ra, OFFSETOF_jet_context_ra($sp)
-        lw     $30, OFFSETOF_jet_context_r30($sp)
+        //.set    noat 
+        lw     $ra, OFFSETOF_jet_context_ra($sp)
         lw     $28, OFFSETOF_jet_context_r28($sp)
         lw     $27, OFFSETOF_jet_context_r27($sp)
         lw     $26, OFFSETOF_jet_context_r26($sp)
@@ -54,31 +53,46 @@ CONTEXT_RESTORE:
         lw     $10, OFFSETOF_jet_context_r10($sp)
         lw     $9,  OFFSETOF_jet_context_r9($sp)
         lw     $8,  OFFSETOF_jet_context_r8($sp)
-        lw     $1,  OFFSETOF_jet_context_lo($sp)
-        MTlo($1)
-        lw     $1,  OFFSETOF_jet_context_hi($sp)
-        MThi($1)
-        lw     $1,  OFFSETOF_jet_context_FCCR($sp)
-        MTC1($1,  CP1_FCCR)
-        lw     $sp, OFFSETOF_jet_stack_frame_back_chain($sp)
-        lw     $ra, OFFSETOF_jet_stack_frame_ra($sp)
+        lw     $7,  OFFSETOF_jet_context_r7($sp)
+        lw     $6,  OFFSETOF_jet_context_r6($sp)
+        lw     $3,  OFFSETOF_jet_context_r3($sp)
+        lw     $2,  OFFSETOF_jet_context_r2($sp)
+        lw     $1,  OFFSETOF_jet_context_r1($sp)
+        lw     $30, OFFSETOF_jet_context_lo($sp)
+        MTlo($30)
+        lw     $30, OFFSETOF_jet_context_hi($sp)
+        MThi($30)
+        lw     $30, OFFSETOF_jet_context_FCCR($sp)
+        MTC1($30,  CP1_FCCR)
+        lw     $30, OFFSETOF_jet_context_r30($sp)
+        //lw     $sp, OFFSETOF_jet_stack_frame_back_chain($sp)
+        lw     $sp, OFFSETOF_jet_context_sp($sp)
+        //lw     $ra, OFFSETOF_jet_stack_frame_ra($sp)
         JUMP_TO_REG($ra)
 
         .globl ja_context_switch
-ja_context_switch:
+LEAF(ja_context_switch)
         /* $4: *old_sp, $5: new_sp */
         /* Form stack frame */
         addi   $sp, $sp, -FRAME_SIZE
-        sw     $sp, ($sp)
+        //sw     $sp, ($sp)
         /*mflr   $1*/
-        sw     $ra, FRAME_SIZE + OFFSETOF_jet_stack_frame_ra($sp)
+        //sw     $ra, FRAME_SIZE + OFFSETOF_jet_stack_frame_ra($sp)
         /* Save registers.  */
-        mfc1   $1,  CP1_FCCR
-        sw     $1,  OFFSETOF_jet_context_FCCR($sp)
-        mfhi   $1                               
-        sw     $1,  OFFSETOF_jet_context_hi($sp) 
-        mflo   $1            
-        sw     $1,  OFFSETOF_jet_context_lo($sp)
+        sw     $ra, 4($sp)
+        sw     $sp, 0($sp)
+        sw     $30, OFFSETOF_jet_context_r30($sp)
+        mfc1   $30, CP1_FCCR
+        sw     $30, OFFSETOF_jet_context_FCCR($sp)
+        mfhi   $30                              
+        sw     $30, OFFSETOF_jet_context_hi($sp) 
+        mflo   $30            
+        sw     $30, OFFSETOF_jet_context_lo($sp)
+        sw     $1,  OFFSETOF_jet_context_r1($sp)
+        sw     $2,  OFFSETOF_jet_context_r2($sp)
+        sw     $3,  OFFSETOF_jet_context_r3($sp)
+        sw     $6,  OFFSETOF_jet_context_r6($sp)
+        sw     $7,  OFFSETOF_jet_context_r7($sp)
         sw     $8,  OFFSETOF_jet_context_r8($sp)
         sw     $9,  OFFSETOF_jet_context_r9($sp)
         sw     $10, OFFSETOF_jet_context_r10($sp)
@@ -100,28 +114,32 @@ ja_context_switch:
         sw     $26, OFFSETOF_jet_context_r26($sp)
         sw     $27, OFFSETOF_jet_context_r27($sp)
         sw     $28, OFFSETOF_jet_context_r28($sp)
-        sw     $30, OFFSETOF_jet_context_r30($sp)
-        //sw     $ra, OFFSETOF_jet_context_ra($sp)
+        sw     $ra, OFFSETOF_jet_context_ra($sp)
+        addi   $30, $sp, FRAME_SIZE
+        sw     $30, OFFSETOF_jet_context_sp($sp)
+        lw     $30, OFFSETOF_jet_context_r30($sp)
         /* Switch stacks. */
         sw     $sp, 0($4)
         move   $sp, $5
         JUMP_TO_ADDR(CONTEXT_RESTORE)
-        .size ja_context_switch, . - ja_context_switch
+END(ja_context_switch) 
+//        .size ja_context_switch, . - ja_context_switch
 
         .globl ja_context_jump
-ja_context_jump:
+LEAF(ja_context_jump)
         /* $4: new_sp */
         move  $sp, $4
         JUMP_TO_ADDR(CONTEXT_RESTORE)
-        .size ja_context_jump, . - ja_context_jump
+END(ja_context_jump)
+//        .size ja_context_jump, . - ja_context_jump
 
         .globl ja_context_restart
-ja_context_restart:
+LEAF(ja_context_restart)
         /* $4: stack, $5: entry */
         /* Calculate in $6 relative stack offset for stwux: */
       
         subu   $6, $4, $sp
-        addi  $6, $6, -SIZEOF_jet_stack_frame_null
+        addi  $6, $6, -SIZEOF_jet_context
         li    $7, 0 /* 0 should be stored into first back chain*/
         /* stwux $7, $sp, $6 */
         sw    $7, ($sp)
@@ -159,12 +177,13 @@ ja_context_restart:
         
         
         JUMP_TO_REG($ra)
-        .size ja_context_restart, . - ja_context_restart
-
+        //.size ja_context_restart, . - ja_context_restart
+END(ja_context_restart)
         .globl ja_context_restart_and_save
-ja_context_restart_and_save:
+LEAF(ja_context_restart_and_save)
         /* $4: stack, $5: entry, $6 - address to save resulted context */
-        addi  $7,  $4, SIZEOF_jet_stack_frame_null
+        addi  $7,  $4, SIZEOF_jet_context
         sw    $7,  0($6)
         JUMP_TO_ADDR(ja_context_restart)
-        .size ja_context_restart_and_save, . - ja_context_restart_and_save
+        //.size ja_context_restart_and_save, . - ja_context_restart_and_save
+END(ja_context_restart_and_save)

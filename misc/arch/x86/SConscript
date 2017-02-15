@@ -1,0 +1,214 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+"""
+Environment definitions for x86 architecture.
+"""
+from __future__ import division
+
+import os
+import memory_definition
+import template_generation
+from text_serialization import *
+
+Import('env')
+
+env['PREFIX'] = 'i386-elf-'
+
+env['QEMU'] = 'qemu-system-i386'
+
+env['LDSCRIPT_KERNEL'] = env['JETOS_HOME'] + '/boards/' + env['BSP'] + '/ldscripts/kernel.lds'
+env['LDSCRIPT_PARTITION'] = env['JETOS_HOME'] + '/boards/' + env['BSP'] + '/ldscripts/partition.lds'
+
+arch_dir = Dir('.').srcnode().abspath
+
+# Below is an implementation of arch deployment functionality.
+def align_val(val, align):
+    return ((val + align - 1) // align) * align
+
+class SegmentX86(SerializableObject):
+    yaml_tag = '!SegmentX86'
+
+    copy_slots = [
+        'paddr',
+        'size',
+    ]
+
+    def __init__(self, **kargs):
+        copy_constructor(self, kargs)
+
+# Simple allocator of x86 segments
+class SegmentX86Allocator:
+    def __init__(self, phys_start, phys_end):
+        self.phys_current = phys_start
+        self.phys_end = phys_end
+
+    def alloc_segment(self, size):
+        """
+        Allocate x86 segment in the physical memory and return it.
+
+        Return None if failed to allocate segment (reason will be printed).
+        """
+        # Always align size on 4K.
+        size = align_val(size, 4096)
+
+        # Always align physical address of the segment on 4K.
+        phys_start_segment = align_val(self.phys_current, 4096)
+
+        segment = SegmentX86(
+            paddr = phys_start_segment,
+            size = size,
+        )
+
+        phys_new = phys_start_segment + size
+
+        if phys_new > self.phys_end:
+            print "Insufficient physical memory for add segment."
+            return None
+
+        self.phys_current = phys_new
+
+        return segment
+
+def x86_deploy_func_unsafe(env, target, source):
+    mc = memory_definition.ModuleMemoryDefinition.load_from_file(source[0].abspath)
+
+    x86_segments = []
+    x86_segment_allocator = SegmentX86Allocator(
+        phys_start = 64 * 2**20,
+        phys_end = mc.phys_total)
+
+    if len(mc.memory_block_sharings) != 0:
+        print "ERROR: Memory block sharing is not supported on x86."
+        raise RuntimeError("Memory block sharing is not supported")
+
+    for pmc in mc.partitions:
+        # Organize memory blocks into 3 groups:
+        #
+        # 0. size is 0.
+        # 1. vaddr is fixed
+        # 2. vaddr is not fixed
+        mb_zero = []
+        mb_vfixed = []
+        mb_float = []
+
+        for mbd in pmc.memory_blocks:
+            if mbd.paddr is not None:
+                print "Partition '%s' has memory block '%s' with fixed physical address. This feature is not supported." % (pmc.name, mbd.name)
+                raise RuntimeError("Unsupported memory block definition")
+
+            if mbd.cache_policy != "DEFAULT":
+                print "Memory block '%s' has non-default cache policy '%s'. This feature is not supported." % (pmc.name, mbd.name, mbd.cache_policy)
+                raise RuntimeError("Unsupported memory block definition")
+
+            if mbd.align > 2 ** 31:
+                print "Memory block '%s' has too high alignment: %x." % (mbd.name, mbd.align)
+                raise RuntimeError("Incorrect memory block definition")
+
+            if mbd.size == 0:
+                mb_zero.append(mbd)
+            elif mbd.vaddr is not None:
+                mb_vfixed.append(mbd)
+            else:
+                mb_float.append(mbd)
+
+        # For zero-sized memory blocks (group 0) assign 0 to every address.
+        for mbd in mb_zero:
+            if mbd.vaddr is None:
+                mbd.vaddr = 0
+
+            mbd.kaddr = 0
+
+            if mbd.is_contiguous and mbd.paddr is None:
+                mbd.paddr = 0
+
+        # Whole partition as a single segment. We have no other choice.
+        vaddr_start = 0
+
+        if len(mb_vfixed) == 0:
+            print "ERROR: There is no memory blocks with fixed virtual address. Where ELF should be loaded?"
+            raise RuntimeError("Incorrect setup for memory blocks with virtual address fixed")
+
+
+        # First setup memory blocks with fixed vaddr (group 1).
+        mb_vfixed.sort(key = lambda mb: mb.vaddr)
+        mb_vfixed_last = mb_vfixed[-1]
+
+        vaddr_end = mb_vfixed_last.vaddr + mb_vfixed_last.size
+
+        # Then setup memory blocks with non-fixed vaddr
+        for mbd in mb_float:
+            mb_vaddr_start = align_val(vaddr_end, mbd.align)
+
+            mbd.vaddr = mb_vaddr_start
+
+            vaddr_end = mb_vaddr_start + mbd.size
+
+        # Create segment
+        x86_segment = x86_segment_allocator.alloc_segment(vaddr_end - vaddr_start)
+
+        # And setup kaddr and paddr for all memory blocks in partition (group 1 and group 2).
+        for mbd in mb_vfixed + mb_float:
+            mbd.kaddr = x86_segment.paddr + mbd.vaddr
+            if mbd.is_contiguous:
+                mbd.paddr = x86_segment.paddr + mbd.vaddr
+
+        x86_segments.append(x86_segment)
+
+    mc.save_to_file(target[0].abspath)
+
+    serialize_as_text(x86_segments, target[1].abspath, 'segments')
+
+def x86_deploy_func(env, target, source):
+    # Just calls x86_deploy_func_unsafe and catch exceptions
+    try:
+        x86_deploy_func_unsafe(env, target, source)
+    except RuntimeError as e:
+        print "Error occured while deploy memory blocks: %s." % e.message
+        return 1
+
+
+def x86_create_definitions_for_deployment(source, env):
+    segments = deserialize_from_text(source[0].abspath, 'segments')
+
+    return {'segments': segments}
+
+def x86_deploy(env, memory_definitions_file, memory_constraints):
+
+    arch_deployment_kernel_yaml = os.path.join(env['MODULE_BUILD_DIR'], "x86_segments.yaml")
+
+    env.Command(target = [memory_definitions_file, arch_deployment_kernel_yaml],
+        source = memory_constraints,
+        action = Action(x86_deploy_func, '$ARCH_DEPLOY_FUNC_COMSTR')
+    )
+
+    env.Depends([memory_definitions_file, arch_deployment_kernel_yaml],
+        env['PARTITIONS_ELF_MAP'].values())
+
+    env.AddMethod(template_generation.TemplateRender)
+
+    env['BOARD_DEPLOYMENT_SOURCES'] += env.TemplateRender(
+        target = os.path.join(env['MODULE_BUILD_DIR'], "x86_segments.c"),
+        source = arch_deployment_kernel_yaml,
+        create_definitions_func = x86_create_definitions_for_deployment,
+        template_main = "x86_segments_c",
+        template_dir = arch_dir + "/templates"
+    )
+
+env['BOARD_DEPLOY'] = x86_deploy

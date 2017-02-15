@@ -17,11 +17,10 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-Import('env')
+Import('kernel_env')
 
-bsp_env = env.Clone()
-bsp_env.Append(CPPPATH = bsp_env['KERNEL_CPPPATH'])
+bsp_objects = kernel_env.StaticObject(
+    source = Glob(kernel_env['BSP']+'/*.[Sc]'))
 
-bsp_env.Program(target = 'bsp.lo', source = Glob(bsp_env['BSP']+'/*.[Sc]'))
-
+Return('bsp_objects')
 # EOF

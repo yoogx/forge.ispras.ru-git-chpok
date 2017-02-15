@@ -17,28 +17,4 @@
         <Slot Type="Partition" PartitionNameRef="P2" Duration="15ms" PeriodicProcessingStart="true" />
     </Schedule>
 
-
-    <Memory_Blocks>
-        <Memory_Block
-            Name="PCI_IO"
-            VirtualAddress ="0xe1000000"
-            PhysicalAddress="0xe1000000"
-            Size="0x10000"
-            />
-        <Memory_Block
-            Name="vga1"
-            VirtualAddress ="0x20000000"
-            PhysicalAddress="0x80000000"
-            Size="0x10000000"
-            />
-        <Memory_Block
-            Name="vga2"
-            VirtualAddress ="0x30000000"
-            PhysicalAddress="0x90000000"
-            Size="0x10000000"
-            />
-            <!--
-            CachePolicy="DEFAULT"
-            -->
-    </Memory_Blocks>
 </chpok-configuration>

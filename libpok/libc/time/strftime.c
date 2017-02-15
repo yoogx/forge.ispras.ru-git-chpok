@@ -136,9 +136,7 @@ static int weak_based_week(const struct tm* timeptr)
             if(timeptr->tm_yday < monday_first) return 52;
             week_first = monday_first;
             break;
-        case 4:
-        case 5:
-        case 6:
+        default:
             week_first = monday_first - 7;
     }
     

@@ -23,15 +23,6 @@
 #include <uapi/kernel_shared_data.h>
 
 /* 
- * Arch header should define:
- * 
- * type 'jet_ustack_t' - pointer to allocated user stack.
- *   Value 0 should be assignable and comparable to given type, and
- *   never corresponds to allocated stack.
- */
-#include <arch/space.h>
-
-/* 
  * Identificator for the (memory) space.
  * 
  * Value 0 corresponds to kernel space.
@@ -39,40 +30,52 @@
  */
 typedef uint8_t jet_space_id;
 
-/* Layout of the user space for load partition's code and data. */
-struct jet_space_layout
-{
-    /* 
-     * Currently whole space is treated as single chunk.
-     * 
-     * TODO: There should be division for execute-only, read-only and
-     * other sections. But this requires arch support.
-     */
-    char* kernel_addr;
-    char* user_addr;
-    size_t size;
-};
+/*
+ * Grant or revoke rw access from kernel space to memory for all
+ * user spaces.
+ * 
+ * Initially global access is granted.
+ * 
+ * Implementation may assume that access is always toggled, that is
+ * _grant_ is called only when access is not granted and
+ * _revoke_ is called only when access is granted.
+ * 
+ * Called with global preemption disabled.
+ */
+void ja_uspace_grant_access(void);
+void ja_uspace_revoke_access(void);
 
-/* Fill layout for given user space. */
-void ja_space_layout_get(jet_space_id space_id,
-    struct jet_space_layout* space_layout);
-
-/* Return pointer to the heap for given space. */
-void* ja_space_get_heap(jet_space_id space_id);
-
-/* Return pointer to the kernel shared data for given space. */
-struct jet_kernel_shared_data* __kuser ja_space_shared_data(jet_space_id space_id);
+/* 
+ * Grant or revoke rw access from kernel space to memory local to given
+ * user space.
+ * 
+ * Initially local access is granted for all user spaces.
+ * 
+ * Implementation may assume that access is always toggled, that is
+ * _grant_ is called only when access is not granted and
+ * _revoke_ is called only when access is granted.
+ * 
+ * Called with global(!) preemption disabled.
+ * 
+ * PRE: space_id is not 0.
+ * 
+ * NOTE: Local access isn't affected by global switch; e.g.
+ * ja_uspace_revoke_access() doesn't cancel effect of
+ * ja_uspace_grant_access_local() for particular space.
+ */
+void ja_uspace_grant_access_local(jet_space_id space_id);
+void ja_uspace_revoke_access_local(jet_space_id space_id);
 
 /**
  * Jump to the user space.
  * 
- * Kernel stack passed as 'sp' will be used in interrupts/syscalls.
+ * Kernel stack passed as 'stack_kernel' will be used in interrupts/syscalls.
  */
 void ja_user_space_jump(
     jet_stack_t stack_kernel,
     jet_space_id space_id, /* Actually, unused (should already be set with ja_space_switch). */
     void (__user * entry_user)(void),
-    jet_ustack_t stack_user);
+    uintptr_t stack_user);
 
 /**
  * Switch to given space.
@@ -84,21 +87,8 @@ void   ja_space_switch (jet_space_id new_space_id);
  */
 jet_space_id ja_space_get_current (void);
 
-/* 
- * (Re)initialize user stacks allocator for given space.
- * 
- * 'space_id' shouldn't be 0.
- */
-void ja_ustack_init (jet_space_id space_id);
-
-/**
- * Allocates user stack for given space.
- * 
- * In case of insufficient memory returns 0.
- * 
- * 'space_id' shouldn't be 0.
- */
-jet_ustack_t ja_ustack_alloc (jet_space_id space_id, size_t stack_size);
+/* Return alignment suitable for user space stack. */
+size_t ja_ustack_get_alignment(void);
 
 /*
  * Place for store floating point registers.

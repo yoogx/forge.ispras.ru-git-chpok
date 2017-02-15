@@ -28,7 +28,8 @@ lja_syscall2:
 lja_syscall3:
 lja_syscall4:
 lja_syscall5:
-/*        sc
- *       blr
- */
-        eret
+        syscall
+        jr  $ra
+        nop
+        nop
+        

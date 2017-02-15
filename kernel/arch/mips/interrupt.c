@@ -24,6 +24,7 @@
 #include <core/debug.h>
 #include <libc.h>
 #include "reg.h"
+#include "msr.h"
 
 #include "space.h"
 #include "timer.h"
@@ -39,6 +40,9 @@ void pok_int_critical_input(struct jet_interrupt_context* ea) {
 
 void pok_int_ri(struct jet_interrupt_context* ea) {
     (void) ea;
+    printf("DEBUG: EPC    = 0x%x\n", ea->EPC);
+    printf("DEBUG: Cause  = 0x%x\n", ea->CAUSE);
+    printf("DEBUG: Status = 0x%x\n", ea->STATUS);
     pok_fatal("Unrealized instruction"); 
 }
 
@@ -194,7 +198,7 @@ void pok_int_none(struct jet_interrupt_context* ea) {
     (void) ea;
     printf("DEBUG: EPC   = 0x%x\n", ea->EPC);
     printf("DEBUG: Cause = 0x%x\n", ea->CAUSE);
-    pok_fatal("Noknown interrupt :(");
+    pok_fatal("Unknown interrupt :(");
 }
 
 void pok_int_overflow(struct jet_interrupt_context* ea) {
@@ -236,14 +240,17 @@ void pok_int_dbus(struct jet_interrupt_context* ea) {
 
 unsigned long pok_int_system_call(struct jet_interrupt_context* ea,
     unsigned long arg1, unsigned long arg2, unsigned long arg3, unsigned long arg4, unsigned long arg5, unsigned long arg6) {
-    printf("DEBUG: SYCALL!\n");
-    printf("DEBUG: EPC   = 0x%x\n", ea->EPC);
-    printf("DEBUG: Cause = 0x%x\n", ea->CAUSE);
+    //~ printf("DEBUG: SYCALL %d!\n", (int) arg1);
+    //~ printf("DEBUG: EPC   = 0x%x\n", ea->EPC);
+    //~ printf("DEBUG: Cause = 0x%x\n", ea->CAUSE);
+    //~ printf("DEBUG: RA    = 0x%x\n", ea->r31);
     (void) ea;
     return pok_arch_sc_int(arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
 void pok_int_decrementer(struct jet_interrupt_context* ea) {
+    //~ printf("DECREMENTER: Count = 0x%lx\n", mfc0(CP0_COUNT));
+    //~ printf("DECREMENTER: sizeof = 0x%x\n", sizeof(struct jet_interrupt_context));
     (void) ea;
     pok_arch_decr_int();
 }
@@ -259,11 +266,17 @@ void pok_int_watchdog(struct jet_interrupt_context* ea) {
 }
 
 void pok_int_data_tlb_miss(struct jet_interrupt_context* vctx, uintptr_t dear, unsigned long esr) {
+    printf("DEBUG: EPC    = 0x%x\n", vctx->EPC);
+    printf("DEBUG: Cause  = 0x%x\n", vctx->CAUSE);
+    printf("DEBUG: Status = 0x%x\n", vctx->STATUS);
     printf("TLB error\n");
     pok_arch_handle_page_fault(vctx, dear, esr, PF_DATA_TLB_MISS);
 }
 
 void pok_int_inst_tlb_miss(struct jet_interrupt_context* vctx, uintptr_t dear, unsigned long esr) {
+    printf("DEBUG: EPC    = 0x%x\n", vctx->EPC);
+    printf("DEBUG: Cause  = 0x%x\n", vctx->CAUSE);
+    printf("DEBUG: Status = 0x%x\n", vctx->STATUS);
     printf("TLB error\n");
     pok_arch_handle_page_fault(vctx, dear, esr, PF_INST_TLB_MISS);
 }

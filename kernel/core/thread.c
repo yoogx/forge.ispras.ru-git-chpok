@@ -25,8 +25,6 @@
 #include <core/time.h>
 #include <libc.h>
 
-#include <core/instrumentation.h>
-
 #include "thread_internal.h"
 #include <core/uaccess.h>
 

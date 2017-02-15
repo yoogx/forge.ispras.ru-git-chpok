@@ -24,24 +24,29 @@
 
 struct jet_context* ja_context_init (jet_stack_t sp, void (*entry)(void))
 {
-  uint32_t id = 0; // Was: thread_id
-  struct jet_stack_frame_null* stack_frame_null =
-    (struct jet_stack_frame_null*)(sp - sizeof(*stack_frame_null));
+  //~ uint32_t id = 0; // Was: thread_id
+  //~ struct jet_stack_frame_null* stack_frame_null =
+    //~ (struct jet_stack_frame_null*)(sp - sizeof(*stack_frame_null));
 
   struct jet_context* ctx = (struct jet_context*)
-    (sp - (sizeof(*stack_frame_null) + sizeof(*ctx)));
+    (sp - sizeof(*ctx));
+    //(sp - (sizeof(*stack_frame_null) + sizeof(*ctx)));
 
   // Fill start frame
-  memset(stack_frame_null, 0, sizeof(*stack_frame_null));
+  //~ memset(stack_frame_null, 0, sizeof(*stack_frame_null));
 
   // Fill frame for context switch
   memset (ctx, 0, sizeof (*ctx));
-
-  ctx->r14     = (unsigned long)entry;
-  ctx->r15     = id;
+  ctx->a1      = (uint32_t)entry;
+  ctx->a0      = (uint32_t)sp;
+  ctx->r16     = (unsigned long)entry;
+  //~ ctx->r15     = id;
+  ctx->ra      = (uint32_t)entry;
+  //~ ctx->sp      = (uint32_t)&stack_frame_null->stack_frame;
+  ctx->sp      = (uint32_t)sp;
   // Linkage between frames
-  jet_stack_frame_link(&stack_frame_null->stack_frame,
-    &ctx->stack_frame, entry);
+  //~ jet_stack_frame_link(&stack_frame_null->stack_frame,
+    //~ &ctx->stack_frame, entry);
 
   return ctx;
 }

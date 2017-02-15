@@ -21,6 +21,8 @@
 #ifndef __JET_MIPS_DEPLOYMENT_H__
 #define __JET_MIPS_DEPLOYMENT_H__
 
+#include <stdint.h>
+
 /* 
  * Virtual address where partition's memory starts.
  * 
@@ -38,26 +40,26 @@
 /* 
  * Description of one user space.
  */
-struct ja_mips_space
-{
-    /* Physical address of memory chunk. */
-    uintptr_t   phys_base;
-    /* 
-     * Size of the memory for normal use. 
-     * Everything above is used for stack.
-     */
-    size_t      size_normal;
-    
-    uint32_t    ustack_state; // State of the user stack allocator.
-};
+//~ struct ja_mips_space
+//~ {
+    //~ /* Physical address of memory chunk. */
+    //~ uintptr_t   phys_base;
+    //~ /* 
+     //~ * Size of the memory for normal use. 
+     //~ * Everything above is used for stack.
+     //~ */
+    //~ size_t      size_normal;
+    //~ 
+    //~ uint32_t    ustack_state; // State of the user stack allocator.
+//~ };
 
 /*
  * Array of user space descriptions.
  * 
  * Should be defined in deployment.c.
  */
-extern struct ja_mips_space ja_spaces[];
-extern int ja_spaces_n;
+//~ extern struct ja_mips_space ja_spaces[];
+//~ extern int ja_spaces_n;
 
 /*
  * TLB for memory maping
@@ -72,7 +74,13 @@ struct tlb_entry {
     unsigned pid;
 };
 
-extern struct tlb_entry jet_tlb_entries[];
-extern size_t jet_tlb_entries_n;
+
+/*
+ * Global array TLB entries.
+ *
+ * Should be defined in deployment_arch.c.
+ */
+extern struct tlb_entry tlb_entries[];
+extern int tlb_entries_n;
 
 #endif /* __JET_MIPS_DEPLOYMENT_H__ */
