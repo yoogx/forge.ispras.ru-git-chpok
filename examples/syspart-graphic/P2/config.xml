@@ -48,9 +48,13 @@
     </HM_Table>
 
     <Memory_Blocks>
-        <Memory_Block Name="PCI_IO" Access="RW" Size="0x10000" PhysicalAddress="0xe1000000"/>
-        <Memory_Block Name="vga1" Access="RW" Size="0x10000000" PhysicalAddress="0x80000000"/>
-        <Memory_Block Name="vga2" Access="RW" Size="0x10000000" PhysicalAddress="0x90000000"/>
+{%if arch_name == 'ppc' %}
+        <!-- Powerpc only -->
+        <Memory_Block Name="PCI_IO" Size="0x10000" Access="RW" PhysicalAddress="{{bsp.PCI_IO}}" Contiguous="true" CachePolicy="IO"/>
+        <Memory_Block Name="PCI_Express_1" Size="0x1000" Access="RW" PhysicalAddress="{{bsp.PCI_EXPRESS_CONTROLLER_1}}" Contiguous="true" CachePolicy="IO"/>
+{%endif%}
+        <Memory_Block Name="PCI_DEV_VGA_BAR0" Access="RW" PhysicalAddress="0x80000000" Contiguous="true" CachePolicy="IO" Size="0x1000000"/>
+        <Memory_Block Name="PCI_DEV_VGA_ROM"  Access="RW" PhysicalAddress="0x81000000" Contiguous="true" CachePolicy="IO" Size="0x10000"/>
     </Memory_Blocks>
 
 </Partition>
