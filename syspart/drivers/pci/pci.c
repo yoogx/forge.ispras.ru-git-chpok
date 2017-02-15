@@ -156,7 +156,7 @@ static uintptr_t get_resource_addr_from_config(uint8_t bus, uint8_t dev, uint8_t
     for (int i = 0; i < pci_configs_nb; i++) {
         d = &pci_configs[i];
         if (d->bus == bus && d->dev == dev && d->fn == fn)
-            return d->resources[idx].addr;
+            return d->c_resources[idx].addr;
     }
 
     return 0;
@@ -517,28 +517,28 @@ void pci_init()
 
         int command = 0;
         for (int i = 0; i < PCI_RESOURCE_ROM; i++) {
-            if (dev_config->resources[i].pci_addr == 0)
+            if (dev_config->c_resources[i].pci_addr == 0)
                 continue;
 
             pci_write_config_dword(&pci_dev, PCI_BASE_ADDRESS_0,
-                    dev_config->resources[i].pci_addr);
+                    dev_config->c_resources[i].pci_addr);
 
-            if (dev_config->resources[i].type == PCI_RESOURCE_TYPE_BAR_MEM)
+            if (dev_config->c_resources[i].type == PCI_RESOURCE_TYPE_BAR_MEM)
                 command |= PCI_COMMAND_MEMORY;
-            else if (dev_config->resources[i].type == PCI_RESOURCE_TYPE_BAR_IO) {
+            else if (dev_config->c_resources[i].type == PCI_RESOURCE_TYPE_BAR_IO) {
                 command |= PCI_COMMAND_IO;
-                if (!dev_config->resources[i].addr)
+                if (!dev_config->c_resources[i].addr)
 #ifdef __PPC__
-                    dev_config->resources[i].addr = pci_controller.legacy_io_vaddr + dev_config->resources[i].pci_addr;
+                    dev_config->c_resources[i].addr = pci_controller.legacy_io_vaddr + dev_config->c_resources[i].pci_addr;
 #else
-                    dev_config->resources[i].addr = dev_config->resources[i].pci_addr;
+                    dev_config->c_resources[i].addr = dev_config->c_resources[i].pci_addr;
 #endif
             }
         }
 
-        if (dev_config->resources[PCI_RESOURCE_ROM].pci_addr != 0) {
+        if (dev_config->c_resources[PCI_RESOURCE_ROM].pci_addr != 0) {
             pci_write_config_dword(&pci_dev, PCI_ROM_ADDRESS,
-                    dev_config->resources[PCI_RESOURCE_ROM].pci_addr|PCI_ROM_ADDRESS_ENABLE);
+                    dev_config->c_resources[PCI_RESOURCE_ROM].pci_addr|PCI_ROM_ADDRESS_ENABLE);
             command |= PCI_COMMAND_MEMORY;
         }
 

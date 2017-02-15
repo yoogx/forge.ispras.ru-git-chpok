@@ -28,7 +28,7 @@ struct pci_dev_config
     uint16_t    bus;
     uint16_t    dev;
     uint16_t    fn;
-    struct pci_resource_config resources[PCI_NUM_RESOURCES];
+    struct pci_resource_config c_resources[PCI_NUM_RESOURCES];
 };
 
 extern struct pci_dev_config pci_configs[];
