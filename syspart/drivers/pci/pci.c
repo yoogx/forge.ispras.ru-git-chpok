@@ -156,7 +156,7 @@ static uintptr_t get_resource_addr_from_config(uint8_t bus, uint8_t dev, uint8_t
     for (int i = 0; i < pci_configs_nb; i++) {
         d = &pci_configs[i];
         if (d->bus == bus && d->dev == dev && d->fn == fn)
-            return d->c_resources[idx].addr;
+            return d->c_resources[idx].vaddr;
     }
 
     return 0;
@@ -527,11 +527,11 @@ void pci_init()
                 command |= PCI_COMMAND_MEMORY;
             else if (dev_config->c_resources[i].type == PCI_RESOURCE_TYPE_BAR_IO) {
                 command |= PCI_COMMAND_IO;
-                if (!dev_config->c_resources[i].addr)
+                if (!dev_config->c_resources[i].vaddr)
 #ifdef __PPC__
-                    dev_config->c_resources[i].addr = pci_controller.legacy_io_vaddr + dev_config->c_resources[i].pci_addr;
+                    dev_config->c_resources[i].vaddr = pci_controller.legacy_io_vaddr + dev_config->c_resources[i].pci_addr;
 #else
-                    dev_config->c_resources[i].addr = dev_config->c_resources[i].pci_addr;
+                    dev_config->c_resources[i].vaddr = dev_config->c_resources[i].pci_addr;
 #endif
             }
         }

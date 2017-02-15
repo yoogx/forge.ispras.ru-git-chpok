@@ -18,8 +18,9 @@
 #include <pci.h>
 
 struct pci_resource_config {
-    uintptr_t addr; //virtual addr
+    uintptr_t vaddr; //virtual addr
     uint64_t  pci_addr; //"physical" addr in pci address space
+    char memblock_name[32];
     enum PCI_RESOURCE_TYPE type;
 };
 

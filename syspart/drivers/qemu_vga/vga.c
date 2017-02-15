@@ -43,7 +43,7 @@ void vga_init()
 {
     printf("qemu-vga: initializing\n");
 
-    pci_get_dev_by_bdf(0, 1, 0, &vga_dev);
+    pci_get_dev_by_bdf(0, 5, 0, &vga_dev);
     if (vga_dev.vendor_id == 0xFFFF) {
         printf("qemu-vga: have not found vga device\n");
         return;
