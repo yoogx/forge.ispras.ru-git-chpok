@@ -53,7 +53,7 @@ import chpok_configuration
 from template_generation import TemplateRender
 
 
-boards = ['e500mc', 'e500v2', 'e500_highmem', 'p3041', 'x86-qemu']
+boards = ['e500mc', 'e500v2', 'e500_highmem', 'p3041', 'x86-qemu', 'p1010']
 
 vars = Variables()
 vars.AddVariables(

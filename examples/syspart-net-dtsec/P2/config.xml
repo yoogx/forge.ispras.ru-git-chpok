@@ -60,7 +60,7 @@
             <Memory_Block Name="PCI_Express_1" Size="0x1000" Access="RW" PhysicalAddress="0xfe200000" Contiguous="true" CachePolicy="IO" Comment="p3041"/>
         <!-- }}} -->
 
-        <Memory_Block Name="PPC_dTSEC_heap" Size="0x10000" Access="RW" Contiguous="true" CachePolicy="IO"/>
+        <Memory_Block Name="PPC_dTSEC_Heap" Size="0x10000" Access="RW" Contiguous="true" CachePolicy="IO"/>
         <Memory_Block Name="PPC_FMan" Size="0x100000" Access="RW" PhysicalAddress="0xfe400000" Contiguous="true" CachePolicy="IO"/>
 
 
