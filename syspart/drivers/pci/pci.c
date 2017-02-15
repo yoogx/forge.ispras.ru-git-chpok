@@ -497,18 +497,15 @@ void pci_init()
         struct pci_dev_config *dev_config = &pci_configs[i];
         struct pci_dev pci_dev;
 
-        printf("%02x:%02x:%02x  ",
-                dev_config->bus,
-                dev_config->dev,
-                dev_config->fn);
-
         pci_dev.bus = dev_config->bus;
         pci_dev.dev = dev_config->dev;
-        pci_dev.fn =  dev_config->fn;
+        pci_dev.fn  = dev_config->fn;
 
         {
             uint16_t vendor_id;
             pci_read_config_word(&pci_dev, PCI_VENDOR_ID, &vendor_id);
+
+            printf("%02x:%02x:%02x  ", pci_dev.bus, pci_dev.dev, pci_dev.fn);
 
             if (vendor_id == 0xFFFF) {
                 printf("Not found\n");
