@@ -30,7 +30,7 @@ static inline void* ALIGN_PTR(void* ptr, unsigned long align)
  * 
  * The array should be declared as '<type> arr[<num>];'.
  */
-#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0])
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 // TODO: this should be removed as it transforms possible read-only string.
 void strtoupper(char* s);
