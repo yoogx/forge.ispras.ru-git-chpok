@@ -248,7 +248,7 @@ class ArincConfigParser:
         if memory_blocks_xml is None:
             return
         for memory_block_xml in memory_blocks_xml.findall("Memory_Block"):
-            memory_block = self.parse_memory_block(memory_block_xml)
+            memory_block = cls.parse_memory_block(memory_block_xml)
             part.memory_blocks.append(memory_block)
             part.private_data['mb_by_name'][memory_block.name] = memory_block
 

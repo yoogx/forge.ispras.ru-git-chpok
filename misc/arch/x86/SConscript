@@ -114,7 +114,7 @@ def x86_deploy_func_unsafe(env, target, source):
                 raise RuntimeError("Unsupported memory block definition")
 
             if mbd.cache_policy != "DEFAULT":
-                print "Memory block '%s' has non-default cache policy '%s'. This feature is not supported." % (pmc.name, mbd.name, mbd.cache_policy)
+                print "Partition '%s' has memory block '%s' with non-default cache policy '%s'. This feature is not supported." % (pmc.name, mbd.name, mbd.cache_policy)
                 raise RuntimeError("Unsupported memory block definition")
 
             if mbd.align > 2 ** 31:

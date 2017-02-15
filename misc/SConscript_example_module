@@ -50,6 +50,7 @@ import os
 from lxml import etree
 from arinc653_xml_conf import ArincConfigParser
 import chpok_configuration
+from template_generation import TemplateRender
 
 
 boards = ['e500mc', 'e500v2', 'e500_highmem', 'p3041', 'x86-qemu']
@@ -108,22 +109,35 @@ class ExampleConfigurationAction:
         self.write_configuration = write_configuration
 
     def __call__(self, target, source, env):
-        partitions_xml = env['PARTITIONS_XML']
+        partitions_name = env['PARTITIONS']
         partitions = []
 
-        for part_index, part_xml in enumerate(partitions_xml):
-            part_root = etree.parse(part_xml)
+        for part_index, part_name in enumerate(partitions_name):
+            part_root = etree.parse(os.path.join(env['MODULE_BUILD_DIR'], part_name + '_config.xml'))
             part = ArincConfigParser.parse_partition(part_root, part_index)
             partitions.append(part)
 
         conf_root = etree.parse(source[0].abspath)
         conf = ArincConfigParser.parse(conf_root, partitions)
-
         self.write_configuration(env, conf, target[0].abspath)
 
 
 def example_configuration_func(env, configuration_file, write_configuration):
+    env.AddMethod(TemplateRender)
+
     module_xml = env['MODULE_XML']
+
+    partitions = env['PARTITIONS']
+    partitions_xml = env['PARTITIONS_XML']
+    partitions_xml_processed = []
+    for part_index, part_xml in enumerate(partitions_xml):
+        part_name = partitions[part_index]
+        part_t = env.TemplateRender(target = os.path.join(env['MODULE_BUILD_DIR'], part_name + '_config.xml'),
+            source = [],
+            template_file = part_xml,
+            create_context = lambda source, env: {'bsp': env['BSP_PROPERTIES'], 'bsp_name': env['BSP'], 'arch_name': env['ARCH']})
+        env.Depends(part_t, env['BSP_PROPERTIES_FILE'])
+        partitions_xml_processed += part_t
 
     example_configuration_action = ExampleConfigurationAction(write_configuration)
 
@@ -131,7 +145,7 @@ def example_configuration_func(env, configuration_file, write_configuration):
     source = module_xml,
     action = Action(example_configuration_action))
 
-    env.Depends(t, env['PARTITIONS_XML'])
+    env.Depends(t, partitions_xml_processed)
 
 env['MODULE_CONFIGURATION_FUNC'] = example_configuration_func
 

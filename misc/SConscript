@@ -66,6 +66,7 @@ module or debug it.
 
 import sys
 import os
+from properties_parser import properties_load_from_file
 
 Import('env')
 
@@ -140,6 +141,14 @@ if not 'BOARD_PHYS_SIZE' in env:
     print "ERROR: Board '%s' doesn't set BOARD_PHYS_SIZE variable." % env['BSP']
     print "This is an error of board developers."
     Exit(1)
+
+bsp_properties = dict()
+if 'BSP_PROPERTIES_FILE' in env:
+    properties_load_from_file(bsp_properties, env['BSP_PROPERTIES_FILE'])
+else:
+    print "WARNING: BSP definition script doesn't set BSP_PROPERTIES_FILE. Assume it to be empty."
+    env['BSP_PROPERTIES_FILE'] = None
+env['BSP_PROPERTIES'] = bsp_properties
 
 env['KERNEL_CPPPATH'] = [
     env['JETOS_HOME']+'/kernel/include',
