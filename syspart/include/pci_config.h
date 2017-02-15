@@ -16,11 +16,13 @@
 # define __POK__PCI_CONFIG_H__
 
 #include <pci.h>
+#include <memblocks.h>
 
 struct pci_resource_config {
     uintptr_t vaddr; //virtual addr
     uint64_t  pci_addr; //"physical" addr in pci address space
-    char memblock_name[32];
+    char memblock_name[32]; // memory block name for MEM resources
+
     enum PCI_RESOURCE_TYPE type;
 };
 

@@ -25,8 +25,10 @@
 
 #include <memblocks.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include <string.h>
+
 
 #define OK 0
 
@@ -183,7 +185,7 @@ static void pci_fill_resource(struct pci_dev *dev, enum PCI_RESOURCE_INDEX res_i
 
 
     if (res_idx != PCI_RESOURCE_ROM) {
-        reg = PCI_BASE_ADDRESS_0 + res_idx*4;
+        reg = PCI_BASE_ADDRESS_0 + res_idx*4; //TODO use pci_resource_address
         mask =  0xffffffff;
     } else {
         reg = PCI_ROM_ADDRESS;
@@ -325,7 +327,7 @@ void pci_list()
                 if (res->pci_addr) {
                     printf("0x%llx ", res->pci_addr);
 #ifdef __PPC__
-                    printf("(addr = 0x%x) ", res->addr);
+                    printf("(virt addr = 0x%x) ", res->addr);
 #endif
                 } else {
                     printf("_ ");
@@ -516,33 +518,48 @@ void pci_init()
         }
 
         int command = 0;
-        for (int i = 0; i < PCI_RESOURCE_ROM; i++) {
-            if (dev_config->c_resources[i].pci_addr == 0)
-                continue;
+        for (int i = 0; i < PCI_NUM_RESOURCES; i++) {
+            struct pci_resource_config *res = &dev_config->c_resources[i];
+            if (res->type == PCI_RESOURCE_TYPE_NONE)
+                continue; //skip empty resource
 
-            pci_write_config_dword(&pci_dev, PCI_BASE_ADDRESS_0,
-                    dev_config->c_resources[i].pci_addr);
 
-            if (dev_config->c_resources[i].type == PCI_RESOURCE_TYPE_BAR_MEM)
+            if (res->type == PCI_RESOURCE_TYPE_BAR_MEM || res->type == PCI_RESOURCE_TYPE_ROM) {
+                jet_memory_block_status_t mb;
+                pok_ret_t ret_val = jet_memory_block_get_status(res->memblock_name, &mb);
+                if (ret_val != POK_ERRNO_OK) {
+                    printf("ERROR: Have not found mem block %s\n", res->memblock_name);
+                    abort();
+                }
+
+                res->pci_addr = mb.paddr;
+                printf("%d pci_addr = %llx\n", i, res->pci_addr);
+                if (i == PCI_RESOURCE_ROM)
+                    res->pci_addr |= PCI_ROM_ADDRESS_ENABLE;
+                printf("%d pci_addr = %llx\n", i, res->pci_addr);
+
+                res->vaddr = mb.addr;
+
                 command |= PCI_COMMAND_MEMORY;
-            else if (dev_config->c_resources[i].type == PCI_RESOURCE_TYPE_BAR_IO) {
-                command |= PCI_COMMAND_IO;
-                if (!dev_config->c_resources[i].vaddr)
+
+            } else if (res->type == PCI_RESOURCE_TYPE_BAR_IO) {
+                assert(res->pci_addr != 0); //IO BAR pci_addr should be non zero
 #ifdef __PPC__
-                    dev_config->c_resources[i].vaddr = pci_controller.legacy_io_vaddr + dev_config->c_resources[i].pci_addr;
+                res->vaddr = pci_controller.legacy_io_vaddr + res->pci_addr;
 #else
-                    dev_config->c_resources[i].vaddr = dev_config->c_resources[i].pci_addr;
+                res->vaddr = res->pci_addr;
 #endif
+
+                command |= PCI_COMMAND_IO;
+
             }
+
+            printf("i = %d %x %llx\n", i, pci_resource_address(i), res->pci_addr);
+            pci_write_config_dword(&pci_dev, pci_resource_address(i), res->pci_addr);
         }
 
-        if (dev_config->c_resources[PCI_RESOURCE_ROM].pci_addr != 0) {
-            pci_write_config_dword(&pci_dev, PCI_ROM_ADDRESS,
-                    dev_config->c_resources[PCI_RESOURCE_ROM].pci_addr|PCI_ROM_ADDRESS_ENABLE);
-            command |= PCI_COMMAND_MEMORY;
-        }
-
-        pci_write_config_word(&pci_dev, PCI_COMMAND, command);
+        if (command != 0)
+            pci_write_config_word(&pci_dev, PCI_COMMAND, command);
     }
     printf("PCI init result:\n");
     pci_list();
