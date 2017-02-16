@@ -21,27 +21,6 @@
 Common sconscript which may be used for build example module.
 """
 
-#
-# Accept scons parameter:
-#
-#  bsp - specifies BSP for build.
-#
-#  jdeveloper - enables developer mode.
-#
-#  cdeveloper - enables component developer mode for system partition
-#
-#
-# Environment variables which affects on building:
-#
-#  JETOS_BSP - specified BSP for build (if 'bsp' scons parameter is absent)
-#
-#  PREFIX - prefix for compile tools, replaces architecture-dependent one
-#
-#  GDB - gdb executable, replaces architecture-dependent one
-#
-#  QEMU - qemu executable, replaces architecture-dependent one
-#
-#
 # Assume source directory to be '#' (that is, location of SConstruct
 # from which given script has been called, directly or indirectly).
 # Description of this script see in examples/README.
@@ -53,56 +32,26 @@ import chpok_configuration
 from template_generation import TemplateRender
 
 
-boards = ['e500mc', 'e500v2', 'e500_highmem', 'p3041', 'x86-qemu', 'p1010']
-
-vars = Variables()
-vars.AddVariables(
-    EnumVariable('bsp', 'bsp', None, allowed_values = boards),
-    BoolVariable('jdeveloper', 'Enables developer mode', 0),
-    BoolVariable('cdeveloper', 'Enables component developer mode', 0)
-)
-
-env = Environment(variables = vars, ENV = os.environ)
-Help(vars.GenerateHelpText(env))
-
-os_scons_vars_map = {
-    'JETOS_BSP': 'BSP',
-    'PREFIX': 'PREFIX',
-    'GDB': 'GDB',
-    'QEMU': 'QEMU'
-}
-
-for os_var in os_scons_vars_map.keys():
-    val = os.environ.get(os_var, None)
-    if val is not None:
-        env[os_scons_vars_map[os_var]] = val
-
-scons_param_bsp = env.get('bsp', None)
-
-if scons_param_bsp is not None:
-    env['BSP'] = scons_param_bsp
-
-if not 'BSP' in env:
-    print "ERROR: BSP variable is not set."
-    print "HINT: You may set BSP via environment variable JETOS_BSP or via scons parameter 'bsp'."
-    Exit(1)
-
-example_dir = Dir('#').abspath
-
 mode = 'module'
-env['MODULE_SOURCE_DIR'] = example_dir
-env['MODULE_BUILD_DIR'] = os.path.join(example_dir, 'build', env['BSP'])
-env['CLEAN_DIRS'] = os.path.join(example_dir, 'build')
 
-env['MODULE_ENV'] = env
+def prepare_environment_module(env):
+    example_dir = Dir('#').abspath
 
-env['PARTITIONS_XML'] = []
+    env['MODULE_SOURCE_DIR'] = example_dir
+    env['MODULE_BUILD_DIR'] = os.path.join(example_dir, 'build', env['BSP'])
+    env['CLEAN_DIRS'] = os.path.join(example_dir, 'build')
+
+    env['MODULE_ENV'] = env
+    env['PARTITIONS_XML'] = []
+
+    env['PARTITION_POST_PROCESS'] = example_partition_post_process
+    env['MODULE_CONFIGURATION_FUNC'] = example_configuration_func
+    env['MODULE_POST_PROCESS'] = example_module_post_process
+    env['PARTITION_FILL'] = example_partition_fill
 
 def example_partition_post_process(part_env):
     env = part_env['MODULE_ENV']
     env['PARTITIONS_XML'].append(env.toAbsPath(part_env['PARTITION_XML'], part_env['PARTITION_SOURCE_DIR']))
-
-env['PARTITION_POST_PROCESS'] = example_partition_post_process
 
 class ExampleConfigurationAction:
     def __init__(self, write_configuration):
@@ -147,37 +96,17 @@ def example_configuration_func(env, configuration_file, write_configuration):
 
     env.Depends(t, partitions_xml_processed)
 
-env['MODULE_CONFIGURATION_FUNC'] = example_configuration_func
-
 def example_module_post_process(env):
     env['PARTITIONS_NUMBER'] = len(env['PARTITIONS'])
-    env['MODULE_XML'] = env.toAbsPath(env['MODULE_XML'], example_dir)
-
-env['MODULE_POST_PROCESS'] = example_module_post_process
+    env['MODULE_XML'] = env.toAbsPath(env['MODULE_XML'], env['MODULE_SOURCE_DIR'])
 
 def example_partition_fill(part_env, part_index):
-    part_name = env['PARTITIONS'][part_index]
+    part_name = part_env['PARTITIONS'][part_index]
     part_env['PARTITION_NAME'] = part_name
-    part_example_dir = example_dir + '/' + part_name
+    part_example_dir = part_env['MODULE_SOURCE_DIR'] + '/' + part_name
     part_env['PARTITION_SOURCE_DIR'] = part_example_dir
     part_env['PARTITION_BUILD_DIR'] = os.path.join(part_example_dir, 'build', part_env['BSP'])
     part_env['PARTITION_CLEAN_DIRS'] = os.path.join(part_example_dir, 'build')
     part_env['PARTITION_SOURCES'] = []
 
-env['PARTITION_FILL'] = example_partition_fill
-
-mode = 'module'
-env.SConscript('SConscript', exports = ['env', 'mode'])
-
-import SCons.Node.Alias
-if env.GetOption('help'):
-    aliases = SCons.Node.Alias.default_ans.keys()
-    aliases.sort()
-
-    print('---------------')
-    print('Alias list:')
-    for x in aliases:
-        print(x)
-    print('---------------')
-
-Return('env')
+SConscript('SConscript', exports = ['mode', 'prepare_environment_module'])
