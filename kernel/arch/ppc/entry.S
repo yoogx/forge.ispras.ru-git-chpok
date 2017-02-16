@@ -399,11 +399,6 @@ _pok_reset:
         ori %r1,%r1,(MSR_KERNEL)@l
         mtmsr %r1
 
-        /*write r3(devtree addr) to devtree_address global variable*/
-        lis %r1, (devtree_address)@h
-        ori %r1,%r1,(devtree_address)@l
-        stw %r3, 0(r1)
-
         /* Setup stack */
         lis %r1,(jet_entry_stack-4)@h
         ori %r1,%r1,(jet_entry_stack-4)@l

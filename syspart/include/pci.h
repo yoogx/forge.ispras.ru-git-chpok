@@ -25,6 +25,7 @@
 
 #include <types.h>
 #include <ioports.h>
+#include <assert.h>
 
 /*
  * PCI configuration registers
@@ -108,7 +109,17 @@ enum PCI_RESOURCE_INDEX {
     PCI_RESOURCE_ROM
 };
 
+static inline uint8_t pci_resource_address(enum PCI_RESOURCE_INDEX i)
+{
+    assert(i <= PCI_RESOURCE_ROM);
+    if (i == PCI_RESOURCE_ROM)
+        return PCI_ROM_ADDRESS;
+    else
+        return PCI_BASE_ADDRESS_0 + i*4;
+}
+
 enum PCI_RESOURCE_TYPE {
+  PCI_RESOURCE_TYPE_NONE, //resource wasn't configured
   PCI_RESOURCE_TYPE_BAR_IO,
   PCI_RESOURCE_TYPE_BAR_MEM,
   PCI_RESOURCE_TYPE_ROM
