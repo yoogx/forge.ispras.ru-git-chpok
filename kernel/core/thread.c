@@ -298,11 +298,11 @@ pok_ret_t pok_thread_delayed_start (pok_thread_id_t id,
     if (pok_time_is_infinity(kernel_delay_time))
         return POK_ERRNO_EINVAL;
 
-	pok_preemption_local_disable();
-	ret = thread_delayed_start_internal(thread, kernel_delay_time);
-	pok_preemption_local_enable();
+    pok_preemption_local_disable();
+    ret = thread_delayed_start_internal(thread, kernel_delay_time);
+    pok_preemption_local_enable();
 
-	return ret;
+    return ret;
 }
 
 pok_ret_t pok_thread_start (pok_thread_id_t id)
@@ -341,16 +341,16 @@ pok_ret_t pok_thread_get_status (pok_thread_id_t id,
     *k_entry = t->entry;
 
     k_status->attributes.priority = t->base_priority;
-	k_status->attributes.period = t->period;
-	k_status->attributes.deadline = t->deadline;
-	k_status->attributes.time_capacity = t->time_capacity;
-	k_status->attributes.stack_size = t->user_stack_size;
+    k_status->attributes.period = t->period;
+    k_status->attributes.deadline = t->deadline;
+    k_status->attributes.time_capacity = t->time_capacity;
+    k_status->attributes.stack_size = t->user_stack_size;
 
     pok_preemption_local_disable();
 
-	k_status->current_priority = t->priority;
+    k_status->current_priority = t->priority;
 
-	if(t->state == POK_STATE_RUNNABLE)
+    if(t->state == POK_STATE_RUNNABLE)
     {
         if(t->suspended)
             k_status->state = POK_STATE_WAITING;
@@ -358,18 +358,17 @@ pok_ret_t pok_thread_get_status (pok_thread_id_t id,
             k_status->state = POK_STATE_RUNNING;
         else
             k_status->state = t->state;
-	}
-    else
+    } else
         k_status->state = t->state;
 
-	if(pok_time_is_infinity(t->time_capacity))
-		k_status->deadline_time = POK_TIME_INFINITY;
-	else
-		k_status->deadline_time = t->thread_deadline_event.timepoint;
+    if(pok_time_is_infinity(t->time_capacity))
+        k_status->deadline_time = POK_TIME_INFINITY;
+    else
+        k_status->deadline_time = t->thread_deadline_event.timepoint;
 
-	pok_preemption_local_enable();
+    pok_preemption_local_enable();
 
-	return POK_ERRNO_OK;
+    return POK_ERRNO_OK;
 }
 
 pok_ret_t pok_thread_set_priority(pok_thread_id_t id, uint32_t priority)
