@@ -103,7 +103,7 @@ void pok_int_spe(struct jet_interrupt_context* vctx)
     printf("srr0 = 0x%lx\n", vctx->srr0);
     printf("srr1 = 0x%lx\n", vctx->srr1);
     printf("lr   = 0x%lx\n", vctx->lr);
-    pok_fatal("SPE interrupt");
+    pok_fatal("SPE interrupt\n");
 }
 
 int k=0;
