@@ -23,7 +23,7 @@
 
 #include <fb.h>
 struct pci_dev vga_dev;
-char initialized = 0;
+char vga_initialized = 0;
 
 
 
@@ -72,7 +72,7 @@ void vga_init()
     iowrite8(VGA_PAS, (uint8_t *) pci_convert_legacy_port(&vga_dev, 0x3c0));
 
     vbe_write(VBE_DISPI_INDEX_VIRT_WIDTH, SCREEN_WIDTH);
-    initialized = 1;
+    vga_initialized = 1;
 }
 
 uint32_t rgba_to_argb(uint32_t rgba_color)
@@ -88,7 +88,7 @@ int fb_initialized = 0;
 
 int uwrm_scm_get_direct_fb(struct uwrm_scm_direct_fb * fb)
 {
-    if (fb_initialized)
+    if (fb_initialized || !vga_initialized)
         return UWRM_ERROR;
     fb_initialized = 1;
     fb->hfb = DEFAULT_FB_DESCRIPTOR;
