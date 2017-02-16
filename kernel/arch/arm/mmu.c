@@ -63,6 +63,11 @@ static inline void cp15_set_SCTLR (uint32_t val)
             : "memory");
 }
 
+extern char __vector_table_start[];
+extern char __vector_table_end[];
+
+
+
 void mmu_enable(void)
 {
     l1_table[KERNBASE_VADDR>>20] = (KERNBASE_PADDR&0xfff00000) | L1_SECT_PRIVILEGED_RW |
@@ -70,6 +75,9 @@ void mmu_enable(void)
 
     l1_table[0x2020000>>20] = (0x2020000&0xfff00000) | L1_SECT_PRIVILEGED_RW |
         L1_SECT_MEM_DEVICE | L1_TYPE_SECT;
+
+    l1_table[0] = ((KERNBASE_PADDR + (1<<20))&0xfff00000) | L1_SECT_PRIVILEGED_RW |
+        L1_SECT_MEM_NORMAL_CACHEABLE | L1_TYPE_SECT;
 
     // Write 0 to TTBCR
     asm("mcr p15, 0, %0, c2, c0, 2"
@@ -85,6 +93,13 @@ void mmu_enable(void)
     printf("sctlr val = %lx\n", sctlr);
     cp15_set_SCTLR(sctlr|1);
 
+
+    memcpy(0, __vector_table_start, __vector_table_end - __vector_table_start);
+    printf("copy vector table to %p, from %p, size (0x%x)\n", NULL, __vector_table_start, __vector_table_end - __vector_table_start);
+
+    printf("access to wrong memory\n");
+    int *a = (void *) 0x30000000;
+    *a = 1; // throw 'data abort' exception
 }
 
 /*

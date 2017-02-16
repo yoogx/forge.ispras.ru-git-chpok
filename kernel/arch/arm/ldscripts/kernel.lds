@@ -34,6 +34,15 @@ SECTIONS
     . = ALIGN(4);
     __rodata_end = .;
 
+    __vector_table_start = .;
+    .vector_table :
+    {
+        *(.vector_table)
+    }
+    . = ALIGN(4);
+    __vector_table_end = .;
+
+
     __data_start = .;
     .data :
     {
@@ -48,7 +57,7 @@ SECTIONS
         bss = .;
         *(.bss)
 
-        /* Allocate stack */
+        /* Allocate aligned stack */
         . = ALIGN(16) + 0x1000;
         jet_entry_stack = .;
     }
