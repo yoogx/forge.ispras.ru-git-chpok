@@ -530,10 +530,8 @@ void pci_init()
                 }
 
                 res->pci_addr = mb.paddr;
-                printf("%d pci_addr = %llx\n", i, res->pci_addr);
                 if (i == PCI_RESOURCE_ROM)
                     res->pci_addr |= PCI_ROM_ADDRESS_ENABLE;
-                printf("%d pci_addr = %llx\n", i, res->pci_addr);
 
                 res->vaddr = mb.addr;
 
@@ -551,7 +549,6 @@ void pci_init()
 
             }
 
-            printf("i = %d %x %llx\n", i, pci_resource_address(i), res->pci_addr);
             pci_write_config_dword(&pci_dev, pci_resource_address(i), res->pci_addr);
         }
 
