@@ -367,7 +367,7 @@ void UnityConcludeTest(void)
     Unity.CurrentTestFailed = 0;
     Unity.CurrentTestIgnored = 0;
     UNITY_PRINT_EOL();
-    //~ UNITY_FLUSH_CALL();
+    UNITY_FLUSH_CALL();
 }
 
 /*-----------------------------------------------*/
@@ -1237,7 +1237,7 @@ int UnityEnd(void)
 #endif
     }
     UNITY_PRINT_EOL();
-    //~ UNITY_FLUSH_CALL();
+    UNITY_FLUSH_CALL();
     UNITY_OUTPUT_COMPLETE();
     return (int)(Unity.TestFailures);
 }

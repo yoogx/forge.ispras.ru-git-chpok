@@ -7,17 +7,17 @@
 #ifndef UNITY_INTERNALS_H
 #define UNITY_INTERNALS_H
 
-#ifdef UNITY_INCLUDE_CONFIG_H
+//~ #ifdef UNITY_INCLUDE_CONFIG_H
 #include "unity_config.h"
-#endif
+//~ #endif
 
 #ifndef UNITY_EXCLUDE_SETJMP_H
 #include <setjmp.h>
 #endif
 
-/*#ifndef UNITY_EXCLUDE_MATH_H
+#ifndef UNITY_EXCLUDE_MATH_H
 #include <math.h>
-#endif*/
+#endif
 
 /* Unity Attempts to Auto-Detect Integer Types
  * Attempt 1: UINT_MAX, ULONG_MAX in <limits.h>, or default to 32 bits
@@ -28,9 +28,9 @@
 #include <stdint.h>
 #endif
 
-/*#ifndef UNITY_EXCLUDE_LIMITS_H
+#ifndef UNITY_EXCLUDE_LIMITS_H
 #include <limits.h>
-#endif*/
+#endif
 
 /*-------------------------------------------------------
  * Guess Widths If Not Specified
@@ -243,57 +243,41 @@ typedef UNITY_FLOAT_TYPE UNITY_FLOAT;
 #ifndef UNITY_OUTPUT_CHAR
 /* Default to using putchar, which is defined in stdio.h */
 #include <stdio.h>
-#include <string.h>
-#define UNITY_OUTPUT_MAX_LENGTH 10000
-char outstr[UNITY_OUTPUT_MAX_LENGTH];
-unsigned int pos;
-#define UNITY_OUTPUT_CHAR(a) outstr[pos++] = a
+#define UNITY_OUTPUT_CHAR(a) (void)putchar(a)
+//~ #else
+  //~ /* If defined as something else, make sure we declare it here so it's ready for use */
+  //~ #ifndef UNITY_OMIT_OUTPUT_CHAR_HEADER_DECLARATION
+//~ extern void UNITY_OUTPUT_CHAR(int);
+  //~ #endif
+#endif
+
+#ifndef UNITY_OUTPUT_FLUSH
+/* Default to using fflush, which is defined in stdio.h */
+#include <stdio.h>
+#define UNITY_OUTPUT_FLUSH (void)fflush(stdout)
 #else
   /* If defined as something else, make sure we declare it here so it's ready for use */
-  #ifndef UNITY_OMIT_OUTPUT_CHAR_HEADER_DECLARATION
-extern void UNITY_OUTPUT_CHAR(int);
+  #ifndef UNITY_OMIT_OUTPUT_FLUSH_HEADER_DECLARATION
+extern void UNITY_OUTPUT_FLUSH(void);
   #endif
 #endif
 
-//~ #ifndef UNITY_OUTPUT_FLUSH
-//~ /* Default to using fflush, which is defined in stdio.h */
-//~ #include <stdio.h>
-//~ #define UNITY_OUTPUT_FLUSH (void)fflush(stdout)
-//~ #else
-  //~ /* If defined as something else, make sure we declare it here so it's ready for use */
-  //~ #ifndef UNITY_OMIT_OUTPUT_FLUSH_HEADER_DECLARATION
-//~ extern void UNITY_OUTPUT_FLUSH(void);
-  //~ #endif
-//~ #endif
-
-//~ #ifndef UNITY_OUTPUT_FLUSH
-//~ #define UNITY_FLUSH_CALL()
-//~ #else
-//~ #define UNITY_FLUSH_CALL() UNITY_OUTPUT_FLUSH
-//~ #endif
+#ifndef UNITY_OUTPUT_FLUSH
+#define UNITY_FLUSH_CALL()
+#else
+#define UNITY_FLUSH_CALL() UNITY_OUTPUT_FLUSH()
+#endif
 
 #ifndef UNITY_PRINT_EOL
 #define UNITY_PRINT_EOL()    UNITY_OUTPUT_CHAR('\n')
 #endif
 
 #ifndef UNITY_OUTPUT_START
-#define UNITY_OUTPUT_START()                        \
-    do {                                            \
-        pos = 0;                                    \
-        memset(outstr, 0, UNITY_OUTPUT_MAX_LENGTH); \
-    } while (0)
+#define UNITY_OUTPUT_START()
 #endif
 
 #ifndef UNITY_OUTPUT_COMPLETE
-#include <arinc653/partition.h>
-#define UNITY_OUTPUT_COMPLETE()                                                    \
-    do {                                                                           \
-        PARTITION_STATUS_TYPE status;                                              \
-        RETURN_CODE_TYPE ret;                                                      \
-        GET_PARTITION_STATUS(&status, &ret);                                       \
-        if (ret != NO_ERROR) printf("Failed to get partition id, code %d\n", ret); \
-        else printf("\nPartition %ld:\n%s\n", status.IDENTIFIER, outstr);          \
-    } while (0)
+#define UNITY_OUTPUT_COMPLETE()
 #endif
 
 /*-------------------------------------------------------
