@@ -18,12 +18,15 @@
 #include <assert.h>
 
 void mmu_enable(void); //FIXME DELETEME
+//FIXME
+void timer_init(void);
 
 void jet_arch_init(void)
 {
     jet_console_init_all ();
 
     printf("Hello world\n");
+    timer_init();
 
     mmu_enable();
     printf("Hello MMU world\n");
