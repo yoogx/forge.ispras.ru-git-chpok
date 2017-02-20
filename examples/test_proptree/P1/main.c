@@ -70,21 +70,20 @@ jet_pt_tree_t tree = NULL;
 static void first_process(void)
 {
 	printf("Working process!\n");
-	jet_pt_node_t node = jet_pt_find(tree, jet_pt_root(tree), "/a/b/c2");
+	jet_pt_node_t node = jet_pt_find(tree, JET_PT_ROOT, "/a/b/c2");
 	if (node == JET_PT_INVALID_NODE) {
 		printf("Invalid node!\n");
 		return;
 	}
 	printf("name: %s\n", jet_pt_get_node_name(tree, node)); 
-	/* Пока не реализовано 
 	int value;
-	pok_ret_t ret = jet_pt_get_integer_value(tree, node, &value);
-	if (ret != POK_ERRNO_OK) {
+	int ret = jet_pt_get_int32(tree, node, NULL, &value);
+	if (ret != 0) {
 		printf("Not an integer value\n");
 	} else {
 		printf("Value: %d\n", value);
 	}
-	*/
+	
 	return;
 } 
 

@@ -99,7 +99,7 @@ jet_pt_node_type_t jet_pt_get_node_type(jet_pt_tree_t tree, jet_pt_node_t parent
  * @return строку, хранящуюся в узле.
  * Если целевой узел не существует или его тип не JET_PT_STRING, то возвращается NULL.
  */
-const char* jet_pt_get_string(jet_pt_tree_t tree, jet_pt_node_t parent, const char* path);
+const char* jet_get_string(jet_pt_tree_t tree, jet_pt_node_t parent, const char* path);
 
 /** Извлекает целое знаковое число, хранящееся в узле.
  * Если path != NULL, то узел задается с помощью родительского узла и пути относительно него по правилам,
@@ -117,7 +117,7 @@ const char* jet_pt_get_string(jet_pt_tree_t tree, jet_pt_node_t parent, const ch
  * Если целевой узел не существует или его тип не JET_PT_INTEGER, то возвращается -1.
  * Если значение узла не может быть выражено 32-битным знаковым числом, то возвращается -1.
  */
-int jet_pt_get_int32(jet_pt_tree_t tree, jet_pt_node_t parent, const char* path, int32_t* result);
+int jet_pt_get_int32(jet_pt_tree_t tree, jet_pt_node_t parent, const char* path, int/*32_t*/* result);
 
 /** Извлекает целое знаковое число, хранящееся в узле.
  * Если path != NULL, то узел задается с помощью родительского узла и пути относительно него по правилам,

@@ -256,36 +256,48 @@ pok_ret_t jet_get_string_value(jet_pt_tree_t tree, jet_pt_node_t node,
 	return POK_ERRNO_EINVAL;
 }
 
-/** Возвращает размер строкового значения, хранящегося в узле.
+/** Возвращает строковое значение, хранящееся в узле.
+ * Если path != NULL, то узел задается с помощью родительского узла и пути относительно него по правилам,
+ * данным в описании jet_pt_find().
+ * Если path == NULL, то возвращается информация об узле parent.
  * 
- * @param result указатель на переменную, в которую будет записан размер строкового значения.
- * @pre tree != NULL
- * @pre result != NULL
+ * @param tree Указатель на дерево параметров.
+ * @param parent Идентификатор родительского или целевого узла.
+ * @param path Путь относительно родительского узла или NULL.
  * 
- * @return 
- *   -- POK_ERRNO_OK если узел является корректным и содержит строковое значение,
- *   -- POK_ERRNO_EINVAL, если узел некорректен или не содержит строковое значение 
- *   (например, является промежуточным узлом или листовым узлом с целочисленным или 
- *   вещественным значением).
+ * @return строку, хранящуюся в узле.
+ * Если целевой узел не существует или его тип не JET_PT_STRING, то возвращается NULL.
  */
-pok_ret_t jet_get_string_value_size(jet_pt_tree_t tree, jet_pt_node_t node, 
-	size_t * result) {
-	return POK_ERRNO_EINVAL;
-}
+const char* jet_get_string(jet_pt_tree_t tree, jet_pt_node_t parent, const char* path);
 
-/** Возвращает целое число, хранящееся в узле.
+/** Извлекает целое знаковое число, хранящееся в узле.
+ * Если path != NULL, то узел задается с помощью родительского узла и пути относительно него по правилам,
+ * данным в описании jet_pt_find().
+ * Если path == NULL, то извлекается содержимое узла parent.
  * 
+ * @param tree Указатель на дерево параметров.
+ * @param parent Идентификатор родительского или целевого узла.
+ * @param path Путь относительно родительского узла или NULL.
  * @param result указатель на целочисленную переменную, в которую следует записать результат.
- * @pre tree != NULL
+
  * @pre result != NULL
  * 
- * @return POK_ERRNO_OK если узел является корректным и содержит целочисленное значение,
- *   и POK_ERRNO_EINVAL, если узел некорректен или не содержит целочисленное значение 
- *   (например, является промежуточным узлом или листовым узлом со строковым или 
- *   вещественным значением). 
+ * @return 0 в случае успеха.
+ * Если целевой узел не существует или его тип не JET_PT_INTEGER, то возвращается -1.
+ * Если значение узла не может быть выражено 32-битным знаковым числом, то возвращается -1.
  */
-pok_ret_t jet_get_integer_value(jet_pt_tree_t tree, jet_pt_node_t node, int* result) {
-	return POK_ERRNO_EINVAL;
+int jet_pt_get_int32(jet_pt_tree_t tree, jet_pt_node_t parent, const char* path, int/*32_t*/* result) {
+    assert(tree != NULL);
+	if (parent >= tree->node_count) {
+		return -1;
+	}
+	jet_pt_node_impl* node_impl = jet_pt_get_node(tree, parent);
+        if (((node_impl->value_offset) == JET_PT_INVALID_OFFSET) || (node_impl->type != JET_PT_INTEGER))
+        {
+            return -1;
+        }
+        *result = *(int*)((char*)(tree)+ sizeof(*tree) + 4*sizeof(parent)*tree->node_count + node_impl->value_offset*sizeof(int));
+        return 0;
 }
 
 /** Возвращает вещественное число, хранящееся в узле.
