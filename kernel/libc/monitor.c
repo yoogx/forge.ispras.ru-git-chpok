@@ -423,6 +423,10 @@ void monitor_process_error(pok_system_state_t partition_state,
         uint8_t state_byte_preempt_local,
         void* failed_address)
 {
+    (void) failed_address;
+    (void) partition_state;
+    (void) error_id;
+    (void) state_byte_preempt_local;
     pok_fatal("Error in monitor");
 }
 

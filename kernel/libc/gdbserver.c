@@ -437,6 +437,7 @@ static struct jet_interrupt_context* gdb_thread_get_regs(const struct gdb_thread
  */
 void gdb_thread_get_fp_regs(const struct gdb_thread* t, uint32_t* fp_registers)
 {
+    (void) t;
     memset(fp_registers, 0, NUMREGS_FP * sizeof(unsigned long));
 }
 
@@ -445,6 +446,8 @@ void gdb_thread_get_fp_regs(const struct gdb_thread* t, uint32_t* fp_registers)
  */
 void gdb_thread_set_fp_regs(struct gdb_thread* t, const uint32_t* registers)
 {
+    (void) t;
+    (void) registers;
     //TODO: Currently floating point registers are not stored.
 }
 #endif
@@ -1013,6 +1016,10 @@ void clear_breakpoints(){
 void add_watchpoint(uintptr_t addr, int length, const struct gdb_thread* t, int type)
 {
 #ifdef QEMU
+    (void) addr;
+    (void) length;
+    (void) t;
+    (void) type;
     /*do nothing*/
     strcpy (remcomOutBuffer, "E22");
     return;
@@ -1061,6 +1068,10 @@ out:
 
 void remove_watchpoint(uintptr_t addr, int length, const struct gdb_thread* t, int type){
 #ifdef QEMU
+    (void) addr;
+    (void) length;
+    (void) t;
+    (void) type;
     /*do nothing*/
     strcpy (remcomOutBuffer, "E22");
     return;

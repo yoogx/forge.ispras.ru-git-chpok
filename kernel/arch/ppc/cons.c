@@ -75,6 +75,7 @@ static int read_serial(int flag)
 static size_t iostream_write_common(const char* s, size_t length, int flag)
 {
     // Write only single character
+    (void) length;
     char c = *s;
     if (c != '\n')
 	write_serial(c, flag);
@@ -97,6 +98,7 @@ static size_t iostream_write_debug(const char* s, size_t length)
 
 static size_t iostream_read_common(char* s, size_t length, int flag)
 {
+    (void) length;
     int data = read_serial(flag);
     // Read only single character
     if(data == -1)
