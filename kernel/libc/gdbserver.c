@@ -624,17 +624,6 @@ putpacket (unsigned char *buffer)
 /* Address of a routine to RTE to if we get a memory fault.  */
 static void (*volatile mem_fault_routine) () = NULL;
 
-/*
- *  Indicate to caller of mem2hex or hex2mem
- *  that there has been an error.  
- */
-static volatile int mem_err = 0;
-
-void
-set_mem_err (void)
-{
-    mem_err = 1;
-}
 
 /*
  * These are separate functions so that they are so short and sweet
@@ -666,32 +655,20 @@ asm volatile("dcbst 0, %0; sync; icbi 0,%0; sync; isync" : : "r" (addr));
 /*
  * Convert the memory pointed to by mem into hex, placing result in buf 
  * return a pointer to the last char put in buf (null) 
- * If MAY_FAULT is non-zero, then we should set mem_err in response to
- * a fault; if zero treat a fault like any other fault in the stub.  
  */
 char * 
-mem2hex (mem, buf, count, may_fault)
-     const char *mem;
-     char *buf;
-     int count;
-     int may_fault;
+mem2hex (const char *mem, char *buf, int count)
 {
     int i;
     unsigned char ch;
 
-    if (may_fault)
-        mem_fault_routine = set_mem_err;
     for (i = 0; i < count; i++)
     {
         ch = get_char (mem++);
-        if (may_fault && mem_err)
-            return (buf);
         *buf++ = hexchars[ch >> 4];
         *buf++ = hexchars[ch % 16];
     }
     *buf = 0;
-    if (may_fault)
-        mem_fault_routine = NULL;
     return (buf);
 }
 
@@ -700,27 +677,17 @@ mem2hex (mem, buf, count, may_fault)
  * Return a pointer to the character AFTER the last byte written.
  */
 char *
-hex2mem (buf, mem, count, may_fault)
-     char *buf;
-     char *mem;
-     int count;
-     int may_fault;
+hex2mem (char *buf, char *mem, int count)
 {
     int i;
     unsigned char ch;
 
-    if (may_fault)
-        mem_fault_routine = set_mem_err;
     for (i = 0; i < count; i++)
     {
         ch = hex (*buf++) << 4;
         ch = ch + hex (*buf++);
         set_char (mem++, ch);
-        if (may_fault && mem_err)
-            return (mem);
     }
-    if (may_fault)
-        mem_fault_routine = NULL;
     return (mem);
 }
 
@@ -1153,7 +1120,7 @@ void add_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t){
     breakpoints[Head_of_breakpoints].B_num = last_breakpoint;
     breakpoints[Head_of_breakpoints].Reason = 2;
     breakpoints[Head_of_breakpoints].addr = gdb_addr;
-    if (!mem2hex((char *)gdb_addr, &(breakpoints[Head_of_breakpoints].Instr), length)) goto err;
+    if (!mem2hex((char *)gdb_addr, (char *)&(breakpoints[Head_of_breakpoints].Instr), length)) goto err;
 
     if (!hex2mem(trap, (char *)gdb_addr, length)) goto err;
 
@@ -1303,17 +1270,17 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
 
     *ptr++ = hexchars[ESP]; 
     *ptr++ = ':';
-    ptr = mem2hex((char *)&registers[ESP], ptr, 4, 0);    /* SP */
+    ptr = mem2hex((char *)&registers[ESP], ptr, 4);    /* SP */
     *ptr++ = ';';
 
     *ptr++ = hexchars[EBP]; 
     *ptr++ = ':';
-    ptr = mem2hex((char *)&registers[EBP], ptr, 4, 0);    /* FP */
+    ptr = mem2hex((char *)&registers[EBP], ptr, 4);    /* FP */
     *ptr++ = ';';
 
     *ptr++ = hexchars[PC]; 
     *ptr++ = ':';
-    ptr = mem2hex((char *)&registers[PC], ptr, 4, 0);     /* PC */
+    ptr = mem2hex((char *)&registers[PC], ptr, 4);     /* PC */
     *ptr++ = ';';
     *ptr++ = 't';
     *ptr++ = 'h';
@@ -1594,7 +1561,7 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
             ptr = hex2mem(ptr, (char *)&registers[xer], 4);
 #endif
 #ifdef __i386__
-            hex2mem (ptr, (char *) registers, NUMREGBYTES, 0);
+            hex2mem (ptr, (char *) registers, NUMREGBYTES);
 #endif
             gdb_state_store_registers(&tc);
 
@@ -1883,10 +1850,10 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
                 if (regno_offset >= 0 && regno_offset < NUMREGS * 8) /* 8 - max length of each register*/
                 {
 #ifdef __PPC__
-                    hex2mem (ptr, (char *) &registers[regno_offset >> 3], 4, 0);
+                    hex2mem (ptr, (char *) &registers[regno_offset >> 3], 4);
 #endif
 #ifdef __i386__
-                    hex2mem (ptr, (char *) &registers[regno_offset >> 3], 1, 0);
+                    hex2mem (ptr, (char *) &registers[regno_offset >> 3], 1);
 #endif
                     strcpy (remcomOutBuffer, "OK");
                     break;
@@ -1904,10 +1871,10 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
                 if (regno_offset >= 0 && regno_offset < NUMREGS * 8) /* 8 - max length of each register*/
                 {
 #ifdef __PPC__
-                    mem2hex ((char *) &registers[regno_offset >> 3], remcomOutBuffer, 4, 0);
+                    mem2hex ((char *) &registers[regno_offset >> 3], remcomOutBuffer, 4);
 #endif
 #ifdef __i386__
-                    mem2hex ((char *) &registers[regno_offset >> 3], remcomOutBuffer, 1, 0);
+                    mem2hex ((char *) &registers[regno_offset >> 3], remcomOutBuffer, 1);
 #endif
                     break;
                 }
