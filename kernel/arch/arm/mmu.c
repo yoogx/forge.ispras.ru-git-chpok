@@ -74,7 +74,10 @@ void mmu_enable(void)
         L1_SECT_MEM_NORMAL_CACHEABLE | L1_TYPE_SECT;
 
     l1_table[0x2020000>>20] = (0x2020000&0xfff00000) | L1_SECT_PRIVILEGED_RW |
-        L1_SECT_MEM_DEVICE | L1_TYPE_SECT;
+        L1_SECT_MEM_DEVICE | L1_TYPE_SECT; //UART
+
+    l1_table[0xa00000>>20] = (0xa00000&0xfff00000) | L1_SECT_PRIVILEGED_RW |
+        L1_SECT_MEM_DEVICE | L1_TYPE_SECT; //SCU
 
     l1_table[0] = ((KERNBASE_PADDR + (1<<20))&0xfff00000) | L1_SECT_PRIVILEGED_RW |
         L1_SECT_MEM_NORMAL_CACHEABLE | L1_TYPE_SECT;
@@ -97,9 +100,11 @@ void mmu_enable(void)
     memcpy(0, __vector_table_start, __vector_table_end - __vector_table_start);
     printf("copy vector table to %p, from %p, size (0x%x)\n", NULL, __vector_table_start, __vector_table_end - __vector_table_start);
 
+/*
     printf("access to wrong memory\n");
     int *a = (void *) 0x30000000;
     *a = 1; // throw 'data abort' exception
+    */
 }
 
 /*

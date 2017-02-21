@@ -13,47 +13,28 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <asp/arch.h>
-#include <asp/entries.h>
-#include <assert.h>
+#ifndef __ARM_REGS_H__
+#define __ARM_REGS_H__
 
-void mmu_enable(void); //FIXME DELETEME
-//FIXME
-void timer_init(void);
-
-void jet_arch_init(void)
+static inline uint32_t cpsrget()
 {
-    jet_console_init_all ();
-
-    printf("Hello world\n");
-
-    mmu_enable();
-    printf("Hello MMU world\n");
-    timer_init(); //timer interrupts needs MMU
+    uint32_t r;
+    asm("mrs %0, cpsr" : "=r" (r));
+    return r;
 }
 
-void ja_preempt_disable (void)
+static inline void cpsrset(uint32_t r)
 {
-    //assert(0);
+    asm("msr cpsr, %0" : : "r" (r));
 }
 
-void ja_preempt_enable (void)
+static inline void irq_enable()
 {
-    //assert(0);
+    cpsrset(cpsrget() & ~(1 << 7));
 }
 
-pok_bool_t ja_preempt_enabled(void)
+static inline void irq_disable()
 {
-    //assert(0);
-    return 0;
+    cpsrset(cpsrget() | (1 << 7));
 }
-
-void ja_inf_loop(void)
-{
-    while (1);
-}
-
-void ja_cpu_reset(void)
-{
-    assert(0);
-}
+#endif //__ARM_REGS_H__

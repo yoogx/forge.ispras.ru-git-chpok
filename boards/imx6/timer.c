@@ -62,7 +62,8 @@ static inline void delay(int32_t count)
 
 void timer_init(void)
 {
-    //irq_init();
+    irq_init();
+    printf("%s\n", __func__);
     // reset device
     {
         set_bits(GPT_CR, GPT_CR_SWR);
