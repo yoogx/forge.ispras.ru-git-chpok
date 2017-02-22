@@ -15,8 +15,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_BUFFER
-
 #include "buffer.h"
 
 #include <arinc653/types.h>
@@ -384,5 +382,3 @@ void GET_BUFFER_STATUS (
 
    *RETURN_CODE = NO_ERROR;
 }
-
-#endif

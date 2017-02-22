@@ -34,31 +34,6 @@
 #endif
 
 
-#ifdef POK_NEEDS_ARINC653_BUFFER
-   #ifndef POK_NEEDS_MIDDLEWARE
-   #define POK_NEEDS_MIDDLEWARE 1
-   #endif
-
-   #ifndef POK_NEEDS_BUFFERS
-   #define POK_NEEDS_BUFFERS 1
-   #endif
-
-#endif
-
-#ifdef POK_NEEDS_ARINC653_BLACKBOARD
-   #ifndef POK_NEEDS_MIDDLEWARE
-   #define POK_NEEDS_MIDDLEWARE 1
-   #endif
-
-   #ifndef POK_NEEDS_BLACKBOARDS
-   #define POK_NEEDS_BLACKBOARDS 1
-   #endif
-#endif
-
-#ifdef POK_NEEDS_ARINC653_SEMAPHORE
-   #define POK_NEEDS_SEMAPHORES                 1
-#endif
-
 #ifdef POK_NEEDS_ARINC653_ERROR
    #ifndef POK_NEEDS_ERROR_HANDLING
    #define POK_NEEDS_ERROR_HANDLING 1
@@ -74,25 +49,6 @@
 #ifdef POK_NEEDS_MUTEXES
    #ifndef POK_NEEDS_FUNCTION_TIME_GETTICK
    #define POK_NEEDS_FUNCTION_TIME_GETTICK
-   #endif
-#endif
-
-#ifdef POK_NEEDS_EVENTS
-   #ifndef POK_NEEDS_FUNCTION_TIME_GETTICK
-   #define POK_NEEDS_FUNCTION_TIME_GETTICK
-   #endif
-#endif
-
-
-#ifdef POK_NEEDS_BUFFERS
-   #ifndef POK_NEEDS_FUNCTION_TIME_GETTICK
-   #define POK_NEEDS_FUNCTION_TIME_GETTICK
-   #endif
-#endif
-
-#ifdef POK_NEEDS_BLACKBOARDS
-   #ifndef POK_NEEDS_FUNCTION_TIME_GETTICK
-   #define POK_NEEDS_FUNCTION_TIME_GETTICK 1
    #endif
 #endif
 
@@ -112,19 +68,13 @@
 #define POK_NEEDS_FUNCTION_TIME_GETTICK 1
 #endif
 
-#ifndef POK_NEEDS_SEMAPHORS
-#define POK_NEEDS_SEMAPHORES            1
-#endif
-
 #ifndef POK_NEEDS_THREADS
 #define POK_NEEDS_THREADS               1
 #endif
 
 #define POK_NEEDS_PORTS_QUEUEING        1
 #define POK_NEEDS_PARTITIONS            1
-#define POK_NEEDS_BUFFERS               1
 #define POK_NEEDS_BLACKBOARDS           1
-#define POK_NEEDS_SEMAPHORES            1
 
 /* string.h functions */
 #define POK_CONFIG_NEEDS_FUNC_UDIVDI3        1

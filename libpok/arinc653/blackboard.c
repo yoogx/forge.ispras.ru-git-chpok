@@ -15,8 +15,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_BLACKBOARD
-
 #include "blackboard.h"
 
 #include <arinc653/types.h>
@@ -296,4 +294,3 @@ void GET_BLACKBOARD_STATUS (
 
    *RETURN_CODE = NO_ERROR;
 }
-#endif

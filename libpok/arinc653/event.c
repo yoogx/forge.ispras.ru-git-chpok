@@ -15,8 +15,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_EVENT
-
 #include "event.h"
 
 #include <arinc653/types.h>
@@ -245,5 +243,3 @@ void GET_EVENT_STATUS (EVENT_ID_TYPE EVENT_ID,
 
    *RETURN_CODE = NO_ERROR;
 }
-
-#endif

@@ -20,8 +20,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_SEMAPHORE
-
 #include "semaphore.h"
 
 #include <arinc653/types.h>
@@ -259,5 +257,3 @@ void GET_SEMAPHORE_STATUS (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
 
    *RETURN_CODE = NO_ERROR;
 }
-
-#endif

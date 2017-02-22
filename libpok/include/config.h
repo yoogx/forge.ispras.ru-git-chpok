@@ -37,33 +37,3 @@
 #define POK_NEEDS_ARINC653_TIME 1
 
 #define POK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE 1
-
-#define POK_NEEDS_BUFFERS 1
-#define POK_NEEDS_ARINC653_BUFFER 1
-#define POK_CONFIG_NB_BUFFERS pok_config_nb_buffers
-#define POK_CONFIG_BUFFER_DATA_SIZE pok_config_buffer_data_size
-
-#define POK_NEEDS_BLACKBOARDS 1
-#define POK_NEEDS_ARINC653_BLACKBOARD 1
-#define POK_CONFIG_NB_BLACKBOARDS pok_config_nb_blackboards
-#define POK_CONFIG_BLACKBOARD_DATA_SIZE pok_config_blackboard_data_size
-
-#define POK_NEEDS_SEMAPHORES 1
-#define POK_NEEDS_ARINC653_SEMAPHORE 1
-#define POK_CONFIG_ARINC653_NB_SEMAPHORES pok_config_arinc653_nb_semaphores
-
-#define POK_NEEDS_EVENTS 1
-#define POK_NEEDS_ARINC653_EVENT 1
-#define POK_CONFIG_ARINC653_NB_EVENTS pok_config_arinc653_nb_events
-#define POK_CONFIG_NB_EVENTS pok_config_nb_events
-
-#define POK_CONFIG_NB_THREADS pok_config_nb_threads
-
-extern unsigned pok_config_nb_buffers;
-extern unsigned pok_config_buffer_data_size;
-extern unsigned pok_config_nb_blackboards;
-extern unsigned pok_config_blackboard_data_size;
-extern unsigned pok_config_arinc653_nb_semaphores;
-extern unsigned pok_config_arinc653_nb_events;
-extern unsigned pok_config_nb_events;
-extern unsigned pok_config_nb_threads;
