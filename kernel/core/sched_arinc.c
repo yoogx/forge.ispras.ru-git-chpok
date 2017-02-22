@@ -247,7 +247,6 @@ again:
             new_thread = NULL;
         }
     }
-#ifdef POK_NEEDS_ERROR_HANDLING
     else if(part->thread_error && part->thread_error->state != POK_STATE_STOPPED)
     {
         // Continue error handler
@@ -266,7 +265,6 @@ again:
 
         part->base_part.is_error_handler = TRUE;
     }
-#endif
     else if(part->lock_level)
     {
         new_thread = part->thread_locked;

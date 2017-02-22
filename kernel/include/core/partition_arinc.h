@@ -132,7 +132,6 @@ typedef struct _pok_partition_arinc
 
 /* Error and main threads are special in sence that they cannot be reffered by ID.*/
 
-#ifdef POK_NEEDS_ERROR_HANDLING
     pok_thread_t*          thread_error;     /**< Error thread. One of the @threads. */
     struct list_head       error_list;       /** List of threads in errorneus state. */
 
@@ -154,7 +153,6 @@ typedef struct _pok_partition_arinc
      * Should be set in deployment.c
      */
     const pok_thread_error_map_t* thread_error_info;
-#endif
     struct jet_kernel_shared_data* kshd;
 
     /* Memory for allocate stacks. */

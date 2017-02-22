@@ -146,10 +146,9 @@ static void partition_arinc_start(void)
     part->nthreads_used = 0;
 
     part->thread_current = NULL;
-#ifdef POK_NEEDS_ERROR_HANDLING
+
     part->thread_error = NULL;
     INIT_LIST_HEAD(&part->error_list);
-#endif
 
     pok_thread_t* thread_main = &part->threads[POK_PARTITION_ARINC_MAIN_THREAD_ID];
 

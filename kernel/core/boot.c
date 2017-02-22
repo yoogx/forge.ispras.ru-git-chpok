@@ -42,13 +42,7 @@ void jet_boot (void)
 {
    kernel_state = POK_SYSTEM_STATE_OS_MOD; // TODO: is this choice for state right?
 
-#ifdef POK_NEEDS_NETWORKING
-   pok_network_init();
-#endif
-
-#ifdef POK_NEEDS_PARTITIONS
    pok_partition_arinc_init_all();
-#endif
 #ifdef POK_NEEDS_MONITOR
    pok_monitor_thread_init();
 #endif
@@ -56,32 +50,17 @@ void jet_boot (void)
    pok_gdb_thread_init();
 #endif
 
-#if defined (POK_NEEDS_SCHED) || defined (POK_NEEDS_THREADS)
    pok_sched_init ();
-#endif
-#if defined (POK_NEEDS_PORTS_QUEUEING) || defined (POK_NEEDS_PORTS_SAMPLING)
+
    pok_channels_init_all ();
-#endif
 
-#if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_CONSOLE)
-  pok_cons_write ("POK kernel initialized\n", 23);
-#endif
+   printf("POK kernel initialized\n");
 
-#ifdef POK_NEEDS_PARTITIONS
 #if defined(POK_NEEDS_GDB) && defined(POK_NEEDS_WAIT_FOR_GDB)
   printf("Waiting for GDB connection ...\n");
   printf("\n");
   pok_trap();
 #endif
-  pok_sched_start();
-#else
-  ja_preempt_enable();
 
-  /**
-   * If we don't use partitioning service, we execute a main
-   * function. In that case, POK is acting like an executive,
-   * not a real kernel
-   */
-  main ();
-#endif
+  pok_sched_start();
 }
