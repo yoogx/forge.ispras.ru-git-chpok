@@ -125,12 +125,12 @@ static void partition_arinc_start(void)
 
     jet_uspace_revoke_access_local(&part->base_part);
 
-    for(int i = 0; i < part->nports_queuing; i++)
+    for(unsigned i = 0; i < part->nports_queuing; i++)
     {
         pok_port_queuing_init(&part->ports_queuing[i]);
     }
 
-    for(int i = 0; i < part->nports_sampling; i++)
+    for(unsigned i = 0; i < part->nports_sampling; i++)
     {
         pok_port_sampling_init(&part->ports_sampling[i]);
     }

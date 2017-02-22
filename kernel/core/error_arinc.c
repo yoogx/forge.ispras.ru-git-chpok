@@ -261,9 +261,9 @@ void pok_partition_arinc_process_error(
     uint8_t preempt_local_disabled_old,
     void* failed_address)
 {
-    pok_partition_arinc_t* part = current_partition_arinc;
+    (void) preempt_local_disabled_old; // TODO: Take into account `preempt_local_disabled_old`
 
-    // TODO: Take into account `preempt_local_disabled_old`
+    pok_partition_arinc_t* part = current_partition_arinc;
 
     if(process_error_partition(partition_state, error_id)) return;
 

@@ -729,7 +729,7 @@ out:
 static void assert_thread_id(pok_thread_id_t id)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
-    assert_os((id >= 0) && (id < part->nthreads_used));
+    assert_os(id < part->nthreads_used);
 }
 
 pok_ret_t jet_msection_enter_helper(struct msection* __user section)

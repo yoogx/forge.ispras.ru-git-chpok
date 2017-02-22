@@ -61,6 +61,7 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_SLEEP_UNTIL(const
 pok_ret_t pok_sched_end_period(void);
 static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_PERIOD(const pok_syscall_args_t* args)
 {
+    (void) args;
     return pok_sched_end_period();
 }
 
@@ -121,6 +122,7 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_SUSPEND_TARGET(co
 pok_ret_t pok_thread_yield(void);
 static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_YIELD(const pok_syscall_args_t* args)
 {
+    (void) args;
     return pok_thread_yield();
 }
 
@@ -141,6 +143,7 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_STOP(const pok_sy
 pok_ret_t pok_thread_stop(void);
 static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_STOPSELF(const pok_syscall_args_t* args)
 {
+    (void) args;
     return pok_thread_stop();
 }
 
@@ -157,6 +160,7 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_FIND(const pok_sy
 pok_ret_t jet_resched(void);
 static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_RESCHED(const pok_syscall_args_t* args)
 {
+    (void) args;
     return jet_resched();
 }
 

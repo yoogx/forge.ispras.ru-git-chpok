@@ -224,7 +224,7 @@ typedef struct _pok_thread
      * Is not defined for aperiodic processes,
      * and when process is not yet started (or not in normal mode).
      */
-    uint64_t            next_activation;
+    pok_time_t            next_activation;
 
     /*
      * Process state.

@@ -91,14 +91,14 @@ typedef struct _pok_partition_arinc
      *
      * Set in deployment.c.
      */
-    uint32_t               nthreads;
+    int               nthreads;
     /*
      * Array of (allocated) threads inside the partition.
      *
      * Set in deployment.c. (thread needn't to be initialized there).
      */
     pok_thread_t*          threads;
-    uint32_t               nthreads_used;   /**< Number of threads which are currently in use (created). */
+    int               nthreads_used;   /**< Number of threads which are currently in use (created). */
 
 
     pok_thread_t*          thread_current; // Normal thread or special thread. NULL if doing nothing.

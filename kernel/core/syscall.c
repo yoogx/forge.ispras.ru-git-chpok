@@ -57,8 +57,7 @@ static pok_ret_t unprotected_syscall(
  */
 
 static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       syscall_id,
-                            const pok_syscall_args_t*    args,
-                            const pok_syscall_info_t*    infos)
+                            const pok_syscall_args_t*    args)
 {
    switch (syscall_id)
    {
@@ -163,8 +162,7 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
 }
 
 pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
-                            const pok_syscall_args_t*    args,
-                            const pok_syscall_info_t*    infos)
+                            const pok_syscall_args_t*    args)
 {
     pok_ret_t ret;
 #ifdef POK_NEEDS_GDB
@@ -172,7 +170,7 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
     pok_in_user_space = FALSE;
 #endif
 
-    ret = pok_core_syscall_internal(syscall_id, args, infos);
+    ret = pok_core_syscall_internal(syscall_id, args);
 
 #if POK_NEEDS_GDB
     pok_in_user_space = TRUE;
