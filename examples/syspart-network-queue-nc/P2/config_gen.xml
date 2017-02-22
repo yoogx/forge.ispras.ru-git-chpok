@@ -27,8 +27,8 @@
             <Memory_Block Name="PCI_Express_1" Size="0x1000" Access="RW" PhysicalAddress="{{bsp.PCI_EXPRESS_CONTROLLER_1}}" Contiguous="true" CachePolicy="IO"/>
 {%endif%}
 
-        <Memory_Block Name="virtio_net_dev_1_Heap" Size="0xc3000" Access="RW" Contiguous="true" CachePolicy="IO"/>
-        <Memory_Block Name="virtio_net_dev_2_Heap" Size="0xc3000" Access="RW" Contiguous="true" CachePolicy="IO"/>
+        <Memory_Block Name="virtio_net_dev_1_Heap" Size="0xc3000" Access="RW" Contiguous=="true" CachePolicy="IO"/>
+        <Memory_Block Name="virtio_net_dev_2_Heap" Size="0xc3000" Access="RW" Contiguous=="true" CachePolicy="IO"/>
 
 
     </Memory_Blocks>

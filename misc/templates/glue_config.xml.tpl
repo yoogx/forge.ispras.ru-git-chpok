@@ -28,7 +28,7 @@
  {% for mb in comp.memory_blocks %}
   {% if mb.is_per_instance %}
      {% for instance_name in components_instances[comp.name] %}
-        <Memory_Block Name="{{instance_name}}_{{mb.name}}" Size="{{mb.size}}" Access="RW" Contiguous="{{mb.contiguous}}" CachePolicy="{{mb.cachepolicy}}"/>
+        <Memory_Block Name="{{instance_name}}_{{mb.name}}" Size="{{mb.size}}" Access="RW" {{ 'Contiguous="true"' if mb.contiguous }} CachePolicy="{{mb.cachepolicy}}"/>
      {% endfor %}
   {% else %}
       <Memory_Block Name="{{mb.name}}" Size="{{mb.size}}" Access="RW" Contiguous="{{mb.contiguous}}" CachePolicy="{{mb.cachepolicy}}"/>

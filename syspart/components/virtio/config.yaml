@@ -11,7 +11,7 @@
   memory_blocks:
       - name: Heap
         size: "0xc3000"
-        contiguous: "true"
+        contiguous: true
         cachepolicy: IO
 
         is_per_instance: true
