@@ -21,10 +21,6 @@
 
 #include <config.h>
 
-#include <core/dependencies.h>
-
-#ifdef POK_NEEDS_THREADS
-
 #define POK_THREAD_DEFAULT_PRIORITY 42
 
 #define POK_DEFAULT_STACK_SIZE 2048
@@ -36,5 +32,4 @@
 #define pok_thread_period pok_sched_end_period
 #define pok_thread_status pok_thread_get_status
 
-#endif /* __POK_NEEDS_THREADS */
 #endif /* __POK_THREAD_H__ */

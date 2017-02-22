@@ -16,8 +16,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_PARTITION
-
 #include <arinc653/types.h>
 #include <arinc653/partition.h>
 
@@ -93,5 +91,3 @@ void SET_PARTITION_MODE (OPERATING_MODE_TYPE operating_mode,
       MAP_ERROR_DEFAULT(INVALID_PARAM);
    }
 }
-
-#endif

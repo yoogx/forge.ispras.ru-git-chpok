@@ -18,8 +18,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_SAMPLING
-
 #include <types.h>
 #include <middleware/port.h>
 #include <arinc653/types.h>
@@ -194,5 +192,3 @@ pok_bool_t SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(
 {
     return pok_port_sampling_check(SAMPLING_PORT_ID - 1);
 }
-
-#endif

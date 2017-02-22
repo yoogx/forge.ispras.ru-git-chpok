@@ -16,8 +16,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_PROCESS
-
 #include <arinc653/types.h>
 
 #ifndef APEX_PROCESS
@@ -130,5 +128,4 @@ extern void GET_PROCESS_STATUS (
       /*out*/ PROCESS_STATUS_TYPE *PROCESS_STATUS,
       /*out*/ RETURN_CODE_TYPE    *RETURN_CODE );
 
-#endif
 #endif
