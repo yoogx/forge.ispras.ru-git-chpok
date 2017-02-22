@@ -1,7 +1,3 @@
-<!--
-  GENERATED! DO NOT MODIFY!
-  Instead of modifying this file, modify the one it generated from (examples/syspart-network-queue-nc/P2/components_glue_config.yaml).
--->
 <Partition>
     <Definition Name="P2" System="true"/>
     <!-- Amount of ram allocated (code + stack + static variables) + heap -->
@@ -32,6 +28,11 @@
     </ARINC653_Ports>
 
     <Memory_Blocks>
+{%if arch_name == 'ppc' %}
+        <!-- Powerpc only -->
+            <Memory_Block Name="PCI_IO" Size="0x10000" Access="RW" PhysicalAddress="{{bsp.PCI_IO}}" Contiguous="true" CachePolicy="IO"/>
+            <Memory_Block Name="PCI_Express_1" Size="0x1000" Access="RW" PhysicalAddress="{{bsp.PCI_EXPRESS_CONTROLLER_1}}" Contiguous="true" CachePolicy="IO"/>
+{%endif%}
         <Memory_Block Name="Virtio_Heap" Size="0xc3000" Access="RW" Contiguous="true" CachePolicy="IO"/>
     </Memory_Blocks>
 

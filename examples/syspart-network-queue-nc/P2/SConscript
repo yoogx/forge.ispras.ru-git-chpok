@@ -70,6 +70,16 @@ def get_glue_definitions(source, env):
 
 def generate_glue():
     cwd = part_env.Dir('.').srcnode().abspath
+
+    t = part_env.TemplateRender(
+        target = os.path.join(cwd, "config_gen.xml"),
+        source = os.path.join(cwd, CONFIG),
+        create_context = get_glue_definitions, #TODO
+        template_file = os.path.join(part_env['JETOS_HOME'],"misc/templates") + "/glue-config.xml.tpl",
+        title = template_generation.generate_title_xml
+        )
+    part_env.Depends(GLUE_DEFAULT_TARGET, t)
+
     t = part_env.TemplateRender(
         target = os.path.join(cwd, "glue_main_gen.c"),
         source = os.path.join(cwd, CONFIG),
@@ -78,6 +88,7 @@ def generate_glue():
         title = template_generation.generate_title_c
         )
     part_env.Depends(GLUE_DEFAULT_TARGET, t)
+
 
 if part_env.get('cdeveloper'):
     import sys

@@ -62,6 +62,12 @@ generate_title_c = """/*
  */
 """
 
+generate_title_xml = """<!--
+  GENERATED! DO NOT MODIFY!
+  Instead of modifying this file, modify the one it generated from (%source%).
+-->
+"""
+
 generate_title_c_no_track = '/* GENERATED! DO NOT MODIFY! */\n'
 generate_title_python_no_track = '# GENERATED! DO NOT MODIFY!\n'
 
