@@ -31,6 +31,8 @@
 static int week_number(const struct tm* timeptr,
     int first_week_day)
 {
+    (void) first_week_day; //TODO
+
     /* Day in the year when the first week starts. */
     int week_starts = (timeptr->tm_yday - timeptr->tm_wday + 7) % 7;
     

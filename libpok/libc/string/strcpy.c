@@ -30,7 +30,7 @@ char *strcpy(char * restrict dest, const char * restrict src)
 char *strncpy(char * restrict dest, const char * restrict src, size_t n)
 {
     char* dest_iter = dest;
-    int i = 0;
+    unsigned i = 0;
 
     while(i < n && *src) {
         *dest_iter++ = *src++;

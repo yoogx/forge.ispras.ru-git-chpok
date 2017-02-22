@@ -159,9 +159,9 @@ env.Append(QEMU_FLAGS = ' -serial stdio')
 # 16 MBytes
 env['MAX_PART_SIZE'] = 16 * 2**20
 
-env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -Wuninitialized -ffreestanding -nostdlib -nostdinc -g '
+env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -Wuninitialized -ffreestanding -nostdlib -nostdinc -g -Wextra'
 env['ASFLAGS'] = env['CFLAGS']
-env['CFLAGS_KERNEL'] = ' -Wextra -Werror'
+env['CFLAGS_KERNEL'] = ' -Werror'
 
 # Store variables which may be redefined by the caller script.
 preset_var_names = ['PREFIX', 'GDB', 'QEMU']

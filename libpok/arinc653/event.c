@@ -31,12 +31,23 @@
 #include "arinc_config.h"
 #include "arinc_process_queue.h"
 
-static size_t nevents_used = 0;
+static unsigned nevents_used = 0;
+static inline EVENT_ID_TYPE index_to_id(unsigned index)
+{
+    // Avoid 0 value.
+    return index + 1;
+}
+
+static inline unsigned id_to_index(EVENT_ID_TYPE id)
+{
+    return id - 1;
+}
+
 
 /* Find event by name (in UPPERCASE). Returns NULL if not found. */
 static struct arinc_event* find_event(const char* name)
 {
-   for(int i = 0; i < nevents_used; i++)
+   for (unsigned i = 0; i < nevents_used; i++)
    {
       struct arinc_event* event = &arinc_events[i];
       if(strncasecmp(event->event_name, name, MAX_NAME_LENGTH) == 0)
@@ -76,7 +87,7 @@ void CREATE_EVENT (EVENT_NAME_TYPE EVENT_NAME,
    msection_wq_init(&event->process_queue);
    event->event_state = DOWN;
 
-   *EVENT_ID = nevents_used + 1;// Avoid 0 value.
+   *EVENT_ID = index_to_id(nevents_used);
 
    nevents_used++;
 
@@ -86,13 +97,14 @@ void CREATE_EVENT (EVENT_NAME_TYPE EVENT_NAME,
 void SET_EVENT (EVENT_ID_TYPE EVENT_ID,
                 RETURN_CODE_TYPE *RETURN_CODE)
 {
-   if (EVENT_ID <= 0 || EVENT_ID > nevents_used) {
+    unsigned index = id_to_index(EVENT_ID);
+   if (index >= nevents_used) {
       // Incorrect event identificator.
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
 
-   struct arinc_event* event = &arinc_events[EVENT_ID - 1];
+   struct arinc_event* event = &arinc_events[index];
 
    msection_enter(&event->section);
 
@@ -118,13 +130,14 @@ void SET_EVENT (EVENT_ID_TYPE EVENT_ID,
 void RESET_EVENT (EVENT_ID_TYPE EVENT_ID,
                   RETURN_CODE_TYPE *RETURN_CODE)
 {
-   if (EVENT_ID <= 0 || EVENT_ID > nevents_used) {
+    unsigned index = id_to_index(EVENT_ID);
+   if (index >= nevents_used) {
       // Incorrect event identificator.
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
 
-   struct arinc_event* event = &arinc_events[EVENT_ID - 1];
+   struct arinc_event* event = &arinc_events[index];
 
    msection_enter(&event->section);
    event->event_state = DOWN;
@@ -137,13 +150,14 @@ void WAIT_EVENT (EVENT_ID_TYPE EVENT_ID,
                  SYSTEM_TIME_TYPE TIME_OUT,
                  RETURN_CODE_TYPE *RETURN_CODE)
 {
-   if (EVENT_ID <= 0 || EVENT_ID > nevents_used) {
+    unsigned index = id_to_index(EVENT_ID);
+   if (index >= nevents_used) {
       // Incorrect event identificator.
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
 
-   struct arinc_event* event = &arinc_events[EVENT_ID - 1];
+   struct arinc_event* event = &arinc_events[index];
 
    msection_enter(&event->section);
 
@@ -205,7 +219,7 @@ void GET_EVENT_ID (EVENT_NAME_TYPE EVENT_NAME,
       return;
    }
 
-   *EVENT_ID = (event - arinc_events) + 1;
+   *EVENT_ID = index_to_id(event - arinc_events);
    *RETURN_CODE = NO_ERROR;
 }
 
@@ -213,13 +227,14 @@ void GET_EVENT_STATUS (EVENT_ID_TYPE EVENT_ID,
                        EVENT_STATUS_TYPE *EVENT_STATUS,
                        RETURN_CODE_TYPE *RETURN_CODE)
 {
-   if (EVENT_ID <= 0 || EVENT_ID > nevents_used) {
+    unsigned index = id_to_index(EVENT_ID);
+   if (index >= nevents_used) {
       // Incorrect event identificator.
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
 
-   struct arinc_event* event = &arinc_events[EVENT_ID - 1];
+   struct arinc_event* event = &arinc_events[index];
 
    msection_enter(&event->section);
    EVENT_STATUS->EVENT_STATE = event->event_state;
