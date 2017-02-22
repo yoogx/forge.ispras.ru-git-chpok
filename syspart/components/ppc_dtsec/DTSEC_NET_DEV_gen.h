@@ -33,6 +33,7 @@ typedef struct DTSEC_NET_DEV_state {
 }DTSEC_NET_DEV_state;
 
 typedef struct {
+    char instance_name[16];
     DTSEC_NET_DEV_state state;
     struct {
             struct {

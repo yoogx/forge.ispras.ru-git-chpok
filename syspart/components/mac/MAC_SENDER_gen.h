@@ -31,6 +31,7 @@ typedef struct MAC_SENDER_state {
 }MAC_SENDER_state;
 
 typedef struct {
+    char instance_name[16];
     MAC_SENDER_state state;
     struct {
             struct {

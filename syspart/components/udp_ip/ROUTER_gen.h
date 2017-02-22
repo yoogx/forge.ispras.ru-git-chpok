@@ -34,6 +34,7 @@ typedef struct ROUTER_state {
 }ROUTER_state;
 
 typedef struct {
+    char instance_name[16];
     ROUTER_state state;
     struct {
             struct {

@@ -40,6 +40,7 @@ typedef struct ARINC_SENDER_state {
 }ARINC_SENDER_state;
 
 typedef struct {
+    char instance_name[16];
     ARINC_SENDER_state state;
     struct {
     } in;

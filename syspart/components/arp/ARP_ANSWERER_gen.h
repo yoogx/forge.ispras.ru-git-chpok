@@ -33,6 +33,7 @@ typedef struct ARP_ANSWERER_state {
 }ARP_ANSWERER_state;
 
 typedef struct {
+    char instance_name[16];
     ARP_ANSWERER_state state;
     struct {
             struct {

@@ -37,6 +37,7 @@ typedef struct {{component.name}}_state {
 }{{component.name}}_state;
 
 typedef struct {
+    char instance_name[16];
     {{component.name}}_state state;
     struct {
         {% for p in component.in_ports %}

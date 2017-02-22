@@ -35,6 +35,7 @@ typedef struct VIRTIO_NET_DEV_state {
 }VIRTIO_NET_DEV_state;
 
 typedef struct {
+    char instance_name[16];
     VIRTIO_NET_DEV_state state;
     struct {
             struct {

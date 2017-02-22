@@ -36,6 +36,7 @@ typedef struct UDP_IP_SENDER_state {
 }UDP_IP_SENDER_state;
 
 typedef struct {
+    char instance_name[16];
     UDP_IP_SENDER_state state;
     struct {
             struct {

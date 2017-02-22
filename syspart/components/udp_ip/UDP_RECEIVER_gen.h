@@ -32,6 +32,7 @@ typedef struct UDP_RECEIVER_state {
 }UDP_RECEIVER_state;
 
 typedef struct {
+    char instance_name[16];
     UDP_RECEIVER_state state;
     struct {
             struct {

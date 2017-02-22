@@ -28,6 +28,7 @@ struct port_ops{
          {% endfor %}
         {% endif %}
         {{i.type}} {{i.name}} = {
+            .instance_name = "{{i.name}}",
             {% if i.state %}
             .state = {
               {% for name, val in i.state.iteritems()%}

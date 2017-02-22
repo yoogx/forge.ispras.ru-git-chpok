@@ -32,6 +32,7 @@ typedef struct MAC_RECEIVER_state {
 }MAC_RECEIVER_state;
 
 typedef struct {
+    char instance_name[16];
     MAC_RECEIVER_state state;
     struct {
             struct {

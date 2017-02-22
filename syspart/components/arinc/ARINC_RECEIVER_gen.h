@@ -38,6 +38,7 @@ typedef struct ARINC_RECEIVER_state {
 }ARINC_RECEIVER_state;
 
 typedef struct {
+    char instance_name[16];
     ARINC_RECEIVER_state state;
     struct {
             struct {
