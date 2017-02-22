@@ -9,10 +9,12 @@
       info: struct virtio_network_device
   init_func: virtio_init
   memory_blocks:
-      - name: Virtio_Heap
-        size: 0xc3000
-        contiguous: True
+      - name: Heap
+        size: "0xc3000"
+        contiguous: "true"
         cachepolicy: IO
+
+        is_per_instance: true
 
 
   in_ports:

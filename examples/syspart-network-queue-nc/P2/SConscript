@@ -82,10 +82,13 @@ def grouped_instances(instances):
 
 def gen_context_for_xml(source, env):
     glue_config = yaml.load(open(source[0].abspath))
-    components_configs = [yaml.load(open(s.abspath)) for s in source[1:]]
+
+    components_configs = []
+    for s in source[1:]:
+        components_configs += yaml.load(open(s.abspath))
 
     return {'components': components_configs,
-            'component_instances': grouped_instances(glue_config['instances'])
+            'components_instances': grouped_instances(glue_config['instances'])
             }
 
 def generate_glue():

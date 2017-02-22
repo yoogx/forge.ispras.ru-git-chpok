@@ -434,13 +434,9 @@ void virtio_receive_activity(VIRTIO_NET_DEV *self)
 void virtio_init(VIRTIO_NET_DEV *self)
 {
     {
-        //TODO add checking that virtio_allocator doesn't inited before
-        //where is dev->tx_vq.vring.num from???
-
         pok_ret_t ret = jet_memory_block_get_status("Virtio_Heap", &virtio_heap_mb);
         if(ret != POK_ERRNO_OK) {
             PRINTF("ERROR: Memory block for heap is not created.\n");
-            PRINTF("NOTE: Report this error to the developers.\n");
             abort();
         }
 
