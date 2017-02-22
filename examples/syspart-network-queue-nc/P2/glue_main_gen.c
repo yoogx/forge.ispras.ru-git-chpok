@@ -188,7 +188,7 @@ struct port_ops{
 
 
 
-void __components_init__()
+void glue_main()
 {
             __ARINC_SENDER_init__(&arinc_sender_1);
 
@@ -252,7 +252,7 @@ void __components_init__()
 
 }
 
-void __components_activity__()
+void glue_activity()
 {
     while (1) {
                 __ARINC_SENDER_activity__(&arinc_sender_1);

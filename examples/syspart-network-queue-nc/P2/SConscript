@@ -63,7 +63,7 @@ def get_port_arrays_dict(config):
 
 def get_glue_definitions(source, env):
     config = yaml.load(open(source[0].abspath))
-    return { 'components': config['components'],
+    return { 'instances': config['instances'],
         'links': config['links'],
         'port_array_dict': get_port_arrays_dict(config)
         }
