@@ -156,8 +156,6 @@ if ARGUMENTS.get('VERBOSE') != "1":
 
 # Flags common for all architectures
 env.Append(QEMU_FLAGS = ' -serial stdio')
-# 16 MBytes
-env['MAX_PART_SIZE'] = 16 * 2**20
 
 env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -Wuninitialized -ffreestanding -nostdlib -nostdinc -g -Wextra'
 env['ASFLAGS'] = env['CFLAGS']
