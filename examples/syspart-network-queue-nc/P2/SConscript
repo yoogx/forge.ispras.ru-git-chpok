@@ -21,8 +21,7 @@ Import('part_env')
 part_env.SystemPartition()
 
 part_env['PARTITION_SOURCES'] = [Glob('src/*.c')]
-part_env['PARTITION_XML'] = 'config.xml'
+part_env['PARTITION_XML'] = 'config_gen.xml'
 
-part_env['PARTITION_SOURCES'].extend(SConscript(dirs = 'components-glue',
-	exports = 'part_env')
+part_env['PARTITION_SOURCES'].extend(SConscript(dirs = 'components-glue', exports = 'part_env')
 )
