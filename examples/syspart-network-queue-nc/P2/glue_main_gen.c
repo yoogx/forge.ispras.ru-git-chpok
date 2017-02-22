@@ -1,7 +1,7 @@
 /*
  * GENERATED! DO NOT MODIFY!
  *
- * Instead of modifying this file, modify the one it generated from (examples/syspart-network-queue-nc/P2/components_glue_config.yaml).
+ * Instead of modifying this file, modify the one it generated from (examples/syspart-network-queue-nc/P2/glue_config.yaml).
  */
 /*
  * Institute for System Programming of the Russian Academy of Sciences
