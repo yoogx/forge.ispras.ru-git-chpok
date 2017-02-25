@@ -159,7 +159,7 @@ env.Append(QEMU_FLAGS = ' -serial stdio')
 
 env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -Wuninitialized -ffreestanding -nostdlib -nostdinc -g -Wextra'
 env['ASFLAGS'] = env['CFLAGS']
-env['CFLAGS_KERNEL'] = ' -Werror'
+#env['CFLAGS_KERNEL'] = ' -Werror'
 
 # Store variables which may be redefined by the caller script.
 preset_var_names = ['PREFIX', 'GDB', 'QEMU']
