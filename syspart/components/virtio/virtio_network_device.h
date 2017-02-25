@@ -21,6 +21,9 @@
 #include "virtio_pci.h"
 #include <pci.h>
 
+#include <memblocks.h>
+#include <smalloc.h>
+
 #define MAX_PACKET_SIZE 1500
 
 struct receive_buffer {
@@ -44,6 +47,12 @@ struct virtio_network_device {
     struct receive_buffer *receive_buffers;
     struct send_buffer *send_buffers;
     int inited; //is initialized
+
+    struct jet_sallocator virtio_allocator;
+    jet_memory_block_status_t virtio_heap_mb;
+
+    /* points to phys contiguous memory that contains zeros */
+    struct virtio_net_hdr *nethdr_ptr;
 };
 
 #endif
