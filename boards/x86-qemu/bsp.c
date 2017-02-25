@@ -25,7 +25,6 @@
 
 void ja_bsp_init (void)
 {
-   jet_console_init_all();
    pok_pic_init ();
    pok_x86_qemu_timer_init ();
 }
