@@ -82,10 +82,10 @@ static pok_bool_t setup_virtqueue(
     }
 
     // allocate memory and fill in vq fields
-    void *mem = virtio_virtqueue_setup(&dev->virtio_allocator, vq, queue_size, VIRTIO_PCI_VRING_ALIGN);
+    void *mem = virtio_virtqueue_setup(&dev->allocator, vq, queue_size, VIRTIO_PCI_VRING_ALIGN);
 
     // give device queue's physical address
-    uint64_t phys_addr = jet_virt_to_phys(&dev->virtio_heap_mb, mem);
+    uint64_t phys_addr = jet_virt_to_phys(&dev->heapmb, mem);
 
     /*
     if (phys_addr == 0) {
@@ -138,7 +138,7 @@ static void use_receive_buffer(struct virtio_network_device *dev, struct receive
     desc = &vq->vring.desc[head];
     vq->free_index = desc->next;
 
-    desc->addr = jet_virt_to_phys(&dev->virtio_heap_mb, buf);
+    desc->addr = jet_virt_to_phys(&dev->heapmb, buf);
     /*
     if (desc->addr == 0) {
         PRINTF("%s: jet_virt_to_phys: virtual address is wrong\n", __func__);
@@ -206,7 +206,7 @@ ret_t send_frame(VIRTIO_NET_DEV * self,
     /* Setup first descriptor as virtio_net_hdr */
     desc = &vq->vring.desc[head];
     //TODO This can be optimized by do virt_to_phys once and remembering it's result
-    desc->addr = jet_virt_to_phys(&dev->virtio_heap_mb, dev->nethdr_ptr);
+    desc->addr = jet_virt_to_phys(&dev->heapmb, dev->nethdr_ptr);
     desc->len = sizeof(*dev->nethdr_ptr);
     desc->flags = VRING_DESC_F_NEXT;
 
@@ -214,7 +214,7 @@ ret_t send_frame(VIRTIO_NET_DEV * self,
     memcpy(dev->send_buffers[head].data, buffer, size);
 
     desc = &vq->vring.desc[desc->next];
-    desc->addr = jet_virt_to_phys(&dev->virtio_heap_mb, dev->send_buffers[head].data);
+    desc->addr = jet_virt_to_phys(&dev->heapmb, dev->send_buffers[head].data);
     /*
     if (desc->addr == 0) {
         PRINTF("%s: jet_virt_to_phys kvirtual address is wrong\n", __func__);
@@ -287,7 +287,7 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
         struct vring_used_elem *e = &vq->vring.used->ring[index];
         struct vring_desc *desc = &vq->vring.desc[e->id];
 
-        struct receive_buffer *buf = jet_phys_to_virt(&dev->virtio_heap_mb, desc->addr);
+        struct receive_buffer *buf = jet_phys_to_virt(&dev->heapmb, desc->addr);
         /*
         if (buf == 0) {
             PRINTF("%s: jet_phys_to_virt physical address is wrong\n", __func__);
@@ -396,7 +396,7 @@ static pok_bool_t init_device(VIRTIO_NET_DEV_state *state)
     set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_DRIVER_OK);
 
     // 7. buffers allocation
-    dev->send_buffers = jet_sallocator_alloc_array(&dev->virtio_allocator,
+    dev->send_buffers = jet_sallocator_alloc_array(&dev->allocator,
             sizeof(*dev->send_buffers),
             dev->tx_vq.vring.num);
     if (dev->send_buffers == NULL) {
@@ -404,7 +404,7 @@ static pok_bool_t init_device(VIRTIO_NET_DEV_state *state)
         return FALSE;
     }
 
-    dev->receive_buffers = jet_sallocator_alloc_array(&dev->virtio_allocator,
+    dev->receive_buffers = jet_sallocator_alloc_array(&dev->allocator,
             sizeof(*dev->receive_buffers),
             dev->rx_vq.vring.num);
     if (dev->receive_buffers == NULL) {
@@ -415,7 +415,7 @@ static pok_bool_t init_device(VIRTIO_NET_DEV_state *state)
     setup_receive_buffers(dev);
 
 
-    dev->nethdr_ptr = jet_sallocator_alloc(&dev->virtio_allocator,
+    dev->nethdr_ptr = jet_sallocator_alloc(&dev->allocator,
             sizeof(*dev->nethdr_ptr));
     if (dev->nethdr_ptr  == NULL) {
         PRINTF("heap alloc return zero (not enough memory)\n");
@@ -443,13 +443,13 @@ pok_ret_t instance_memory_block_get_status(VIRTIO_NET_DEV *self, const char *nam
  */
 void virtio_init(VIRTIO_NET_DEV *self)
 {
-    pok_ret_t ret = instance_memory_block_get_status(self, "Heap", &self->state.info.virtio_heap_mb);
+    pok_ret_t ret = instance_memory_block_get_status(self, "Heap", &self->state.info.heapmb);
     if(ret != POK_ERRNO_OK) {
         PRINTF("ERROR: Memory block for heap is not created.\n");
         abort();
     }
 
-    jet_sallocator_init_from_memblock(&self->state.info.virtio_allocator, &self->state.info.virtio_heap_mb);
+    jet_sallocator_init_from_memblock(&self->state.info.allocator, &self->state.info.heapmb);
 
 
     if (init_device(&self->state))

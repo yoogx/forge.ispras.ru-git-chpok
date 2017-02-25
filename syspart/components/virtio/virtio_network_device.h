@@ -48,8 +48,8 @@ struct virtio_network_device {
     struct send_buffer *send_buffers;
     int inited; //is initialized
 
-    struct jet_sallocator virtio_allocator;
-    jet_memory_block_status_t virtio_heap_mb;
+    struct jet_sallocator allocator;
+    jet_memory_block_status_t heapmb;
 
     /* points to phys contiguous memory that contains zeros */
     struct virtio_net_hdr *nethdr_ptr;
