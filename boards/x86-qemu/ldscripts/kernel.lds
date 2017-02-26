@@ -2,13 +2,15 @@ OUTPUT_FORMAT("elf32-i386");
 OUTPUT_ARCH("i386")
 ENTRY(_core_entry)
 
+__KERNBASE = 0xf0000000;
+__SHIFT = 0x100000;
 SECTIONS
 {
-	. = 0x100000;
+	. = __KERNBASE + __SHIFT;
 
 	__pok_begin = . ;
 
-	.text :
+	.text : AT(__SHIFT)
 	{
 		*(.multiboot)
 		*(.text)
