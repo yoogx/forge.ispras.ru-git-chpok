@@ -37,11 +37,17 @@ pok_ret_t pok_gdt_init()
    sysdesc_t sysdesc;
 
    /* Set null descriptor and clear table */
+   /* WHY? isn't global array already clear? */
    memset(pok_gdt, 0, sizeof (gdt_entry_t) * GDT_SIZE);
 
    /* Set kernel descriptors */
    gdt_set_segment(GDT_CORE_CODE_SEGMENT, 0, ~0UL, GDTE_CODE, 0);
    gdt_set_segment(GDT_CORE_DATA_SEGMENT, 0, ~0UL, GDTE_DATA, 0);
+
+
+    /* set partition descriptors. Same as kernel except for DPL */
+   gdt_set_segment(GDT_PARTITION_CODE_SEGMENT(0), 0, ~0UL, GDTE_CODE, 3);
+   gdt_set_segment(GDT_PARTITION_DATA_SEGMENT(0), 0, ~0UL, GDTE_DATA, 3);
 
    /* Load GDT */
    sysdesc.limit = sizeof (pok_gdt);

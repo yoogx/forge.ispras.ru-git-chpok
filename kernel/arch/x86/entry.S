@@ -57,6 +57,7 @@ loop:
 
 .comm   pok_stack, STACK_SIZE #TODO move to ldscript
 
+/* For GDB breakpoints */
 .global pok_trap_addr
 pok_trap_addr:
 .global pok_trap

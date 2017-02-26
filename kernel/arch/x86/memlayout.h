@@ -15,4 +15,9 @@
 
 #define KERNBASE 0xc0000000
 
+/* return phys address for virtual addresses in kernel memory */
+#ifdef __ASSEMBLER__
 #define PHYS_ADDR(x) ((x) - KERNBASE)
+#else
+#define PHYS_ADDR(x) ((uintptr_t)(x) - KERNBASE)
+#endif

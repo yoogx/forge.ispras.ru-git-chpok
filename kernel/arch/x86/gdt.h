@@ -46,8 +46,8 @@ typedef struct
 #define GDT_CORE_DATA_SEGMENT	2
 #define GDT_TSS_SEGMENT		3
 
-#define GDT_PARTITION_CODE_SEGMENT(space_id)	(2 + 2 * space_id)
-#define GDT_PARTITION_DATA_SEGMENT(space_id)	(2 + 2 * space_id + 1)
+#define GDT_PARTITION_CODE_SEGMENT(space_id) 4
+#define GDT_PARTITION_DATA_SEGMENT(space_id) 5
 
 #define GDT_BUILD_SELECTOR(seg, local, rpl)	\
    ((seg << 3) | ((local & 0x1) << 2) | (rpl & 0x3))

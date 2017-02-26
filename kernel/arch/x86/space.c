@@ -32,6 +32,9 @@
 #include <core/sched.h>
 
 #include <asp/alloc.h>
+#include "memlayout.h"
+#include "mmu.h"
+#include "regs.h"
 
 #define KERNEL_STACK_SIZE 8192
 
@@ -102,28 +105,24 @@ void ja_user_space_jump(
        );
 }
 
-static void ja_space_create (jet_space_id space_id,
-                            uintptr_t addr,
-                            size_t size)
-{
-   gdt_set_segment (GDT_PARTITION_CODE_SEGMENT (space_id),
-         addr, size, GDTE_CODE, 3);
+__attribute__((__aligned__(PGSIZE))) uint32_t pgdir[NPDENTRIES] = {
+        // Map VA's [0, 4MB) to PA's [64MB, 64MB+4MB)
+        [0] = (0x4000000) | PAGE_P | PAGE_RW| PAGE_S | PAGE_U,
 
-   gdt_set_segment (GDT_PARTITION_DATA_SEGMENT (space_id),
-         addr, size, GDTE_DATA, 3);
-}
+        // Map VA's [KERNBASE, KERNBASE+8MB) to PA's [0, 8MB)
+        [PDX(KERNBASE)]     = (0)           | PAGE_P | PAGE_RW | PAGE_S,
+        [PDX(KERNBASE) + 1] = (1<<PDXSHIFT) | PAGE_P | PAGE_RW | PAGE_S,
+};
 
 void ja_space_init(void)
 {
-    for(int i = 0; i < ja_segments_n; i++)
-    {
-        const struct x86_segment* segment = &ja_segments[i];
-
-        ja_space_create(i + 1, (uintptr_t)segment->paddr, segment->size);
-    }
+    asm volatile("movl %0,%%cr3" : : "r" (PHYS_ADDR(pgdir)));
+    //TODO do i need asm volatile("invlpg (0)":::"memory");
 }
+
 void ja_space_switch (jet_space_id space_id)
 {
+    /* TODO
     if(current_space_id != 0) {
         gdt_disable (GDT_PARTITION_CODE_SEGMENT(current_space_id));
         gdt_disable (GDT_PARTITION_DATA_SEGMENT(current_space_id));
@@ -132,6 +131,7 @@ void ja_space_switch (jet_space_id space_id)
         gdt_enable (GDT_PARTITION_CODE_SEGMENT(space_id));
         gdt_enable (GDT_PARTITION_DATA_SEGMENT(space_id));
     }
+    */
 
     current_space_id = space_id;
 }
