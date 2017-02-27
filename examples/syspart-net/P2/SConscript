@@ -17,26 +17,33 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-COMPONENTS_DIR = "syspart/components"
-COMPONENTS_LIST = [
-        'arinc'
-        ,'udp_ip'
-        ,'mac'
-        ,'virtio'
-        ,'arp'
-        ,'ppc_dtsec'
-        ]
+Import('part_env')
+part_env.SystemPartition()
 
-CONFIG = "config.yaml"
+part_env['PARTITION_SOURCES'] = [Glob('src/*.c')]
+part_env['PARTITION_XML'] = 'config_gen.xml'
 
 import os
+
+COMPONENTS_DIR = os.path.join(part_env['JETOS_HOME'], "syspart/components")
+COMPONENTS_LIST = [
+        'arinc',
+        'udp_ip',
+        'mac',
+        'virtio',
+        'arp'
+        ]
+
+CONFIG_FILE = "glue_config.yaml"
+
+COMPONENTS_CONFIGS = [os.path.join(COMPONENTS_DIR, comp, "config.yaml") for comp in COMPONENTS_LIST]
 
 Import('part_env')
 
 P2_env = part_env.Clone()
 
 for comp in COMPONENTS_LIST:
-    P2_env.Append(CPPPATH = os.path.join(P2_env['JETOS_HOME'], COMPONENTS_DIR, comp))
+    P2_env.Append(CPPPATH = os.path.join(COMPONENTS_DIR, comp))
 
 
 from collections import defaultdict
@@ -57,21 +64,54 @@ def get_port_arrays_dict(config):
 
 def get_glue_definitions(source, env):
     config = yaml.load(open(source[0].abspath))
-    return { 'components': config['components'],
+    return { 'instances': config['instances'],
         'links': config['links'],
         'port_array_dict': get_port_arrays_dict(config)
         }
 
+def grouped_instances(instances):
+    """
+    instances - is list of instances (from glue config.yaml).
+    Returns dictionary where key is component (instance type) and value is a list of name of
+    its instances
+    """
+    res = defaultdict(list)
+    for instance in instances:
+        res[instance['type']].append(instance['name'])
+    return res
+
+def gen_context_for_xml(source, env):
+    glue_config = yaml.load(open(source[0].abspath))
+
+    components_configs = []
+    for s in source[1:]:
+        components_configs += yaml.load(open(s.abspath))
+
+    return {'components': components_configs,
+            'components_instances': grouped_instances(glue_config['instances'])
+            }
+
 def generate_glue():
     cwd = part_env.Dir('.').srcnode().abspath
+
+    t = part_env.TemplateRender(
+        target = os.path.join(cwd, "config_gen.xml"),
+        source = [os.path.join(cwd, CONFIG_FILE)] + COMPONENTS_CONFIGS,
+        create_context = gen_context_for_xml,
+        template_file = os.path.join(part_env['JETOS_HOME'],"misc/templates") + "/glue_config.xml.tpl",
+        title = template_generation.generate_title_xml
+        )
+    part_env.Depends(GLUE_DEFAULT_TARGET, t)
+
     t = part_env.TemplateRender(
         target = os.path.join(cwd, "glue_main_gen.c"),
-        source = os.path.join(cwd, CONFIG),
+        source = os.path.join(cwd, CONFIG_FILE),
         create_context = get_glue_definitions,
         template_file = os.path.join(part_env['JETOS_HOME'],"misc/templates") + "/glue.c.tpl",
         title = template_generation.generate_title_c
         )
     part_env.Depends(GLUE_DEFAULT_TARGET, t)
+
 
 if part_env.get('cdeveloper'):
     import sys
@@ -91,4 +131,5 @@ sources = Glob('*.c')
 for src in sources:
     objs += P2_env.StaticObject(src)
 
-Return('objs')
+part_env['PARTITION_SOURCES'].extend(objs)
+

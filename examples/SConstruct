@@ -31,8 +31,8 @@ examples_dirs = [
     ('msections-wait-several', 'P1'),
     ('pure-arinc653-buffer', 'P1'),
     ('syspart-graphic', 'P1', 'P2'),
-    ('syspart-net-demo', 'P1', 'P2'),
-    ('syspart-network-queue-nc', 'P1', 'P2'),
+    ('syspart-net', 'P1'),
+    ('syspart-net-dtsec', 'P1'),
 ]
 
 vars = Variables()
