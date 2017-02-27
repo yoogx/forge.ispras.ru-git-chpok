@@ -27,7 +27,7 @@ pok_path = os.environ.get('JETOS_HOME', "")
 
 if pok_path == "":
 	print "ERROR: Environment variable 'JETOS_HOME' is not set."
-	print "HINT:Environment variable 'JETOS_HOME' should point to the JetOS root directory."
+	print "HINT: Environment variable 'JETOS_HOME' should point to the JetOS root directory."
 	Exit(1)
 
-env = SConscript(pok_path+'/misc/SConscript_example_partition')
+SConscript(pok_path+'/misc/SConscript_example_partition')

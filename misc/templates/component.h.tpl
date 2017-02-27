@@ -16,6 +16,7 @@
 #ifndef __{{component.name}}_GEN_H__
 #define __{{component.name}}_GEN_H__
 
+#include <memblocks.h>
 {% for h in component.additional_h_files %}
     #include {{h}}
 {% endfor %}
@@ -37,6 +38,7 @@ typedef struct {{component.name}}_state {
 }{{component.name}}_state;
 
 typedef struct {
+    char instance_name[16];
     {{component.name}}_state state;
     struct {
         {% for p in component.in_ports %}
@@ -84,6 +86,12 @@ typedef struct {
 {% endfor %}
 
 
+{% if has_per_instance_memory_block %}
+ pok_ret_t {{component.name}}_get_memory_block_status(
+         {{component.name}} *self,
+         const char *name,
+         jet_memory_block_status_t *mb_status);
+{% endif %}
 
 {% if component.init_func %}
     void {{component.init_func}}({{component.name}} *);

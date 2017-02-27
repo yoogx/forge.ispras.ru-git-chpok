@@ -1,4 +1,4 @@
-components:
+instances:
     - name: arinc_sender_1
       type: ARINC_SENDER
       state:
@@ -51,7 +51,7 @@ components:
       type: VIRTIO_NET_DEV
       state:
           pci_bus: 0
-          pci_dev: 3
+          pci_dev: 2
           pci_fn: 0
 
     - name: arp_answerer_2

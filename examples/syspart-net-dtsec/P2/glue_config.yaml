@@ -1,4 +1,4 @@
-components:
+instances:
     - name: arinc_sender_1
       type: ARINC_SENDER
       state:

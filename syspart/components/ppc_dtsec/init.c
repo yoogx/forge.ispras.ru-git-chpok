@@ -34,19 +34,13 @@
 #include "fm.h"
 #include "dtsec_state.h"
 #include "DTSEC_NET_DEV_gen.h"
-#include <memblocks.h>
 #include <stdlib.h>
-#include <smalloc.h>
 #include <paddr.h>
 
 #define DRV_NAME "dtsec_drv"
 #define DEV_NAME_DTSEC3 "dtsec3"
 #define DEV_NAME_DTSEC4 "dtsec4"
 
-
-
-struct jet_sallocator allocator;
-jet_memory_block_status_t heap_mb;
 
 struct fm_eth dtsec3;
 struct fm_eth dtsec4;
@@ -119,7 +113,7 @@ int fm_eth_send(DTSEC_NET_DEV *self, void *buf, int len)
     }
     memcpy(self->state.dev_state.send_buffer, buf, len);
 
-    uint64_t phys_addr = jet_virt_to_phys(&heap_mb, self->state.dev_state.send_buffer);
+    uint64_t phys_addr = jet_virt_to_phys(&self->state.dev_state.heap_mb, self->state.dev_state.send_buffer);
     if (phys_addr > 0xffffffff) { //greater than 4G
         printf(DRV_NAME"%s: phys_addrs greater than 4G are not supported\n", __func__);
         return 0;
@@ -172,7 +166,7 @@ int fm_eth_recv(DTSEC_NET_DEV *self)
 
     while (!(status & RxBD_EMPTY)) {
         if (!(status & RxBD_ERROR)) {
-            data = jet_phys_to_virt(&heap_mb, rxbd->buf_ptr_lo);
+            data = jet_phys_to_virt(&self->state.dev_state.heap_mb, rxbd->buf_ptr_lo);
             len = rxbd->len;
             DTSEC_NET_DEV_call_portB_handle(self, data, len);
         } else {
@@ -236,7 +230,7 @@ static int fm_eth_tx_port_parameter_init(struct dev_state *dev_state)
     out_be32(&pram->txqd_ptr, pram_page_offset + 0x40);
 
     /* alloc Tx buffer descriptors */
-    tx_bd_ring_base = jet_sallocator_alloc_array(&allocator,
+    tx_bd_ring_base = jet_sallocator_alloc_array(&dev_state->allocator,
         sizeof(struct fm_port_bd), TX_BD_RING_SIZE);
 
     memset(tx_bd_ring_base, 0, sizeof(struct fm_port_bd)
@@ -258,7 +252,7 @@ static int fm_eth_tx_port_parameter_init(struct dev_state *dev_state)
     /* set the Tx queue decriptor */
     txqd = &pram->txqd;
     out_be16(&txqd->bd_ring_base_hi, 0);
-    uint64_t phys_addr = jet_virt_to_phys(&heap_mb, tx_bd_ring_base);
+    uint64_t phys_addr = jet_virt_to_phys(&dev_state->heap_mb, tx_bd_ring_base);
     if (phys_addr > 0xffffffff) { //greater than 4G
         printf(DRV_NAME"%s: phys_addrs greater than 4G are not supported\n", __func__);
         return 0;
@@ -305,14 +299,14 @@ static int fm_eth_rx_port_parameter_init(struct dev_state *dev_state)
     out_be16(&pram->mrblr, MAX_RXBUF_LOG2);
 
     /* alloc Rx buffer descriptors */
-    rx_bd_ring_base  = jet_sallocator_alloc_array(&allocator,
+    rx_bd_ring_base  = jet_sallocator_alloc_array(&dev_state->allocator,
         sizeof(struct fm_port_bd), RX_BD_RING_SIZE);
 
     memset(rx_bd_ring_base, 0, sizeof(struct fm_port_bd)
             * RX_BD_RING_SIZE);
 
     /* alloc Rx buffer */
-    rx_buf_pool = jet_sallocator_alloc_array(&allocator,
+    rx_buf_pool = jet_sallocator_alloc_array(&dev_state->allocator,
         MAX_RXBUF_LEN, RX_BD_RING_SIZE);
     memset(rx_buf_pool, 0, MAX_RXBUF_LEN * RX_BD_RING_SIZE);
 
@@ -328,7 +322,7 @@ static int fm_eth_rx_port_parameter_init(struct dev_state *dev_state)
         rxbd->len = 0;
         rxbd->buf_ptr_hi = 0;
 
-        uint64_t phys_addr = jet_virt_to_phys(&heap_mb, rx_buf_pool + i * MAX_RXBUF_LEN);
+        uint64_t phys_addr = jet_virt_to_phys(&dev_state->heap_mb, rx_buf_pool + i * MAX_RXBUF_LEN);
         if (phys_addr > 0xffffffff) { //greater than 4G
             printf(DRV_NAME"%s: phys_addrs greater than 4G are not supported\n", __func__);
             return 0;
@@ -342,7 +336,7 @@ static int fm_eth_rx_port_parameter_init(struct dev_state *dev_state)
     rxqd = &pram->rxqd;
     out_be16(&rxqd->gen, 0);
     out_be16(&rxqd->bd_ring_base_hi, 0);
-    uint64_t phys_addr = jet_virt_to_phys(&heap_mb, rx_buf_pool + i * MAX_RXBUF_LEN);
+    uint64_t phys_addr = jet_virt_to_phys(&dev_state->heap_mb, rx_buf_pool + i * MAX_RXBUF_LEN);
     if (phys_addr > 0xffffffff) { //greater than 4G
         printf(DRV_NAME"%s: phys_addrs greater than 4G are not supported\n", __func__);
         return 0;
@@ -427,7 +421,7 @@ static void init_device(DTSEC_NET_DEV_state *state, struct fm_eth *fm_eth)
     fm_eth_tx_port_parameter_init(dev_state);
 
     dev_state->send_buffer_size = MAX_TXBUF_LEN;
-    dev_state->send_buffer = jet_sallocator_alloc(&allocator, dev_state->send_buffer_size);
+    dev_state->send_buffer = jet_sallocator_alloc(&state->dev_state.allocator, dev_state->send_buffer_size);
 
     fm_eth_open(dev_state);
 }
@@ -436,9 +430,11 @@ void dtsec_init(DTSEC_NET_DEV *self)
 {
     jet_memory_block_status_t fman_mb;
 
-    if(jet_memory_block_get_status("PPC_FMan", &fman_mb) != POK_ERRNO_OK) {
+    if (jet_memory_block_get_status("PPC_FMan", &fman_mb) != POK_ERRNO_OK) {
+        printf(DRV_NAME"ERROR: Can't get 'PPC_FMan' memory block\n");
         abort();
     }
+
     dtsec3.rx_port = (void *)(fman_mb.addr + FM_HARDWARE_PORTS + DTSEC3_RX_PORT*0x1000);
     dtsec3.tx_port = (void *)(fman_mb.addr + FM_HARDWARE_PORTS + DTSEC3_TX_PORT*0x1000);
     dtsec3.reg_addr = (void *)(fman_mb.addr + 0xe4000);
@@ -451,16 +447,13 @@ void dtsec_init(DTSEC_NET_DEV *self)
     /* XXX HACK. Depend on u-boot! qmi_common and bmi_common are initialized in this memory by u-boot */
     muram.alloc = muram.base + 0x21000;
 
-    {
-        pok_ret_t ret = jet_memory_block_get_status("PPC_dTSEC_Heap", &heap_mb);
-        if(ret != POK_ERRNO_OK) {
-            printf(DRV_NAME"ERROR: Memory block for heap is not created.\n");
-            printf(DRV_NAME"NOTE: Report this error to the developers.\n");
-            abort();
-        }
 
-        jet_sallocator_init_from_memblock(&allocator, &heap_mb);
+    pok_ret_t ret = DTSEC_NET_DEV_get_memory_block_status(self, "Heap", &self->state.dev_state.heap_mb);
+    if(ret != POK_ERRNO_OK) {
+        printf(DRV_NAME"ERROR: Memory block for heap is not created.\n");
+        abort();
     }
+    jet_sallocator_init_from_memblock(&self->state.dev_state.allocator, &self->state.dev_state.heap_mb);
 
     if (self->state.dtsec_num == 3)
         init_device(&self->state, &dtsec3);
