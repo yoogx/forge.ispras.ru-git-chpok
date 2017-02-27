@@ -31,7 +31,8 @@ COMPONENTS_LIST = [
         'udp_ip',
         'mac',
         'virtio',
-        'arp'
+        'arp',
+        'afdx'
         ]
 
 CONFIG_FILE = "glue_config.yaml"

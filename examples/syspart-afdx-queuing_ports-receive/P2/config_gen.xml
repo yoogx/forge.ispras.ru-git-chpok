@@ -1,6 +1,6 @@
 <!--
   GENERATED! DO NOT MODIFY!
-  Instead of modifying this file, modify the one it generated from (examples/syspart-afdx-queuing_ports/P2/glue_config.yaml).
+  Instead of modifying this file, modify the one it generated from (examples/syspart-afdx-queuing_ports-receive/P2/glue_config.yaml).
 -->
 <Partition>
     <Definition Name="P2" System="true"/>

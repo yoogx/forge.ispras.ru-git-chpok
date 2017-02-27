@@ -1,4 +1,4 @@
-components:
+instances:
 
     - name: virtio_net_dev_1
       type: VIRTIO_NET_DEV

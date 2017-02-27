@@ -32,25 +32,16 @@
                 <Standard_Partition PartitionName="P1" PortName="SP1" />
             </Source>
             <Destination>
-                <Standard_Partition PartitionName="P2" PortName="UOUT" />
+                <Standard_Partition PartitionName="P2" PortName="SUOUT" />
             </Destination>
         </Channel>
         <Channel>
             <Source>
-                <Standard_Partition PartitionName="P2" PortName="UIN" />
+                <Standard_Partition PartitionName="P2" PortName="SUIN" />
             </Source>
             <Destination>
                 <Standard_Partition PartitionName="P1" PortName="SP2" />
             </Destination>
         </Channel>
     </Connection_Table>
-
-    <Memory_Blocks>
-        <Memory_Block
-            Name="PCI_IO"
-            VirtualAddress ="0xe1000000"
-            PhysicalAddress="0xe1000000"
-            Size="0x10000"
-            />
-    </Memory_Blocks>
 </chpok-configuration>

@@ -1,14 +1,15 @@
-components:
+# SAMPLING PORT
+instances:
     - name: arinc_port_reader_1
       type: ARINC_PORT_READER
       state:
-          port_name: '"UOUT"'
+          port_name: '"SUOUT"'
           port_direction: DESTINATION
           prepend_overhead: 42 #14+20+8
           append_overhead: 1
           port_max_message_size: 64
-          is_queuing_port: 1
-          q_port_max_nb_messages: 10          
+          is_queuing_port: 0
+          q_port_max_nb_messages: 0
 
     - name: afdx_filler_1
       type: AFDX_FILLER
@@ -41,9 +42,9 @@ components:
           pci_dev: 2
           pci_fn: 0
 
-    - name: afdx_stop_send_1
-      type: AFDX_STOP
-
+    - name: afdx_time_adder_1
+      type: AFDX_TIME_ADDER
+      
 links:
     - from:
         instance: arinc_port_reader_1
@@ -73,16 +74,4 @@ links:
         instance: virtio_net_dev_2
         port: portA
 
-#receive
-    - from:
-        instance: virtio_net_dev_1
-        port: portB
-      to:
-        instance: afdx_stop_send_1
-        port: portA
-    - from:
-        instance: virtio_net_dev_2
-        port: portB
-      to:
-        instance: afdx_stop_send_1
-        port: portA
+        

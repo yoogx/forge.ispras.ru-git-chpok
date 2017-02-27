@@ -1,7 +1,7 @@
 /*
  * GENERATED! DO NOT MODIFY!
  *
- * Instead of modifying this file, modify the one it generated from (P2/components-glue/config.yaml).
+ * Instead of modifying this file, modify the one it generated from (examples/syspart-afdx-sampling_ports/P2/glue_config.yaml).
  */
 /*
  * Institute for System Programming of the Russian Academy of Sciences
@@ -27,11 +27,12 @@ struct port_ops{
         void __ARINC_PORT_READER_init__(ARINC_PORT_READER*);
         void __ARINC_PORT_READER_activity__(ARINC_PORT_READER*);
         ARINC_PORT_READER arinc_port_reader_1 = {
+            .instance_name = "arinc_port_reader_1",
             .state = {
                 .port_direction = DESTINATION,
                 .q_port_max_nb_messages = 0,
                 .port_max_message_size = 64,
-                .port_name = "UOUT",
+                .port_name = "SUOUT",
                 .prepend_overhead = 42,
                 .append_overhead = 1,
                 .is_queuing_port = 0,
@@ -43,6 +44,7 @@ struct port_ops{
         void __AFDX_FILLER_init__(AFDX_FILLER*);
         void __AFDX_FILLER_activity__(AFDX_FILLER*);
         AFDX_FILLER afdx_filler_1 = {
+            .instance_name = "afdx_filler_1",
             .state = {
                 .vl_id = 1,
                 .type_of_packet = UNICAST_PACKET,
@@ -59,6 +61,7 @@ struct port_ops{
         void __AFDX_QUEUE_ENQUEUER_init__(AFDX_QUEUE_ENQUEUER*);
         void __AFDX_QUEUE_ENQUEUER_activity__(AFDX_QUEUE_ENQUEUER*);
         AFDX_QUEUE_ENQUEUER afdx_queue_enqueuer_1 = {
+            .instance_name = "afdx_queue_enqueuer_1",
             .state = {
                 .BAG = SECOND,
                 .max_queue_size = 10,
@@ -70,6 +73,7 @@ struct port_ops{
         void __VIRTIO_NET_DEV_init__(VIRTIO_NET_DEV*);
         void __VIRTIO_NET_DEV_activity__(VIRTIO_NET_DEV*);
         VIRTIO_NET_DEV virtio_net_dev_1 = {
+            .instance_name = "virtio_net_dev_1",
             .state = {
                 .pci_fn = 0,
                 .pci_dev = 1,
@@ -82,6 +86,7 @@ struct port_ops{
         void __VIRTIO_NET_DEV_init__(VIRTIO_NET_DEV*);
         void __VIRTIO_NET_DEV_activity__(VIRTIO_NET_DEV*);
         VIRTIO_NET_DEV virtio_net_dev_2 = {
+            .instance_name = "virtio_net_dev_2",
             .state = {
                 .pci_fn = 0,
                 .pci_dev = 2,
@@ -94,12 +99,13 @@ struct port_ops{
         void __AFDX_TIME_ADDER_init__(AFDX_TIME_ADDER*);
         void __AFDX_TIME_ADDER_activity__(AFDX_TIME_ADDER*);
         AFDX_TIME_ADDER afdx_time_adder_1 = {
+            .instance_name = "afdx_time_adder_1",
 
         };
 
 
 
-void __components_init__()
+void glue_main()
 {
             __ARINC_PORT_READER_init__(&arinc_port_reader_1);
 
@@ -125,7 +131,7 @@ void __components_init__()
 
 }
 
-void __components_activity__()
+void glue_activity()
 {
     while (1) {
                 __ARINC_PORT_READER_activity__(&arinc_port_reader_1);

@@ -1,7 +1,7 @@
 /*
  * GENERATED! DO NOT MODIFY!
  *
- * Instead of modifying this file, modify the one it generated from (examples/syspart-afdx-queuing_ports-receive/P2/components-glue/config.yaml).
+ * Instead of modifying this file, modify the one it generated from (examples/syspart-afdx-queuing_ports-receive/P2/glue_config.yaml).
  */
 /*
  * Institute for System Programming of the Russian Academy of Sciences
@@ -27,6 +27,7 @@ struct port_ops{
         void __VIRTIO_NET_DEV_init__(VIRTIO_NET_DEV*);
         void __VIRTIO_NET_DEV_activity__(VIRTIO_NET_DEV*);
         VIRTIO_NET_DEV virtio_net_dev_1 = {
+            .instance_name = "virtio_net_dev_1",
             .state = {
                 .pci_fn = 0,
                 .pci_dev = 1,
@@ -39,6 +40,7 @@ struct port_ops{
         void __VIRTIO_NET_DEV_init__(VIRTIO_NET_DEV*);
         void __VIRTIO_NET_DEV_activity__(VIRTIO_NET_DEV*);
         VIRTIO_NET_DEV virtio_net_dev_2 = {
+            .instance_name = "virtio_net_dev_2",
             .state = {
                 .pci_fn = 0,
                 .pci_dev = 2,
@@ -51,6 +53,7 @@ struct port_ops{
         void __AFDX_TIME_ADDER_init__(AFDX_TIME_ADDER*);
         void __AFDX_TIME_ADDER_activity__(AFDX_TIME_ADDER*);
         AFDX_TIME_ADDER afdx_time_adder_1 = {
+            .instance_name = "afdx_time_adder_1",
 
         };
 
@@ -58,6 +61,7 @@ struct port_ops{
         void __AFDX_TIME_ADDER_init__(AFDX_TIME_ADDER*);
         void __AFDX_TIME_ADDER_activity__(AFDX_TIME_ADDER*);
         AFDX_TIME_ADDER afdx_time_adder_2 = {
+            .instance_name = "afdx_time_adder_2",
 
         };
 
@@ -66,6 +70,7 @@ struct port_ops{
         void __AFDX_ROUTER_activity__(AFDX_ROUTER*);
             struct port_ops afdx_router_1_array_for_portArray[2];
         AFDX_ROUTER afdx_router_1 = {
+            .instance_name = "afdx_router_1",
             .state = {
                 .map_vl_id_to_idx_len = 2,
                 .map_vl_id_to_idx = {{0}, {1}},
@@ -81,6 +86,7 @@ struct port_ops{
         void __AFDX_ROUTER_activity__(AFDX_ROUTER*);
             struct port_ops afdx_router_2_array_for_portArray[2];
         AFDX_ROUTER afdx_router_2 = {
+            .instance_name = "afdx_router_2",
             .state = {
                 .map_vl_id_to_idx_len = 2,
                 .map_vl_id_to_idx = {{0}, {1}},
@@ -95,6 +101,7 @@ struct port_ops{
         void __INTEGRITY_CHECKER_init__(INTEGRITY_CHECKER*);
         void __INTEGRITY_CHECKER_activity__(INTEGRITY_CHECKER*);
         INTEGRITY_CHECKER afdx_integrity_checker_vl_0_net_a = {
+            .instance_name = "afdx_integrity_checker_vl_0_net_a",
             .state = {
                 .network_card = 0,
             },
@@ -105,6 +112,7 @@ struct port_ops{
         void __INTEGRITY_CHECKER_init__(INTEGRITY_CHECKER*);
         void __INTEGRITY_CHECKER_activity__(INTEGRITY_CHECKER*);
         INTEGRITY_CHECKER afdx_integrity_checker_vl_1_net_a = {
+            .instance_name = "afdx_integrity_checker_vl_1_net_a",
             .state = {
                 .network_card = 0,
             },
@@ -115,6 +123,7 @@ struct port_ops{
         void __INTEGRITY_CHECKER_init__(INTEGRITY_CHECKER*);
         void __INTEGRITY_CHECKER_activity__(INTEGRITY_CHECKER*);
         INTEGRITY_CHECKER afdx_integrity_checker_vl_0_net_b = {
+            .instance_name = "afdx_integrity_checker_vl_0_net_b",
             .state = {
                 .network_card = 1,
             },
@@ -125,6 +134,7 @@ struct port_ops{
         void __INTEGRITY_CHECKER_init__(INTEGRITY_CHECKER*);
         void __INTEGRITY_CHECKER_activity__(INTEGRITY_CHECKER*);
         INTEGRITY_CHECKER afdx_integrity_checker_vl_1_net_b = {
+            .instance_name = "afdx_integrity_checker_vl_1_net_b",
             .state = {
                 .network_card = 1,
             },
@@ -135,6 +145,7 @@ struct port_ops{
         void __REDUNDANCY_MANAGER_init__(REDUNDANCY_MANAGER*);
         void __REDUNDANCY_MANAGER_activity__(REDUNDANCY_MANAGER*);
         REDUNDANCY_MANAGER redundancy_manager = {
+            .instance_name = "redundancy_manager",
             .state = {
                 .virtual_link_data[1].vl_id = 1,
                 .virtual_link_data[0].skew_max = 100000000,
@@ -151,6 +162,7 @@ struct port_ops{
         void __AFDX_TO_ARINC_ROUTER_activity__(AFDX_TO_ARINC_ROUTER*);
             struct port_ops afdx_to_arinc_router_array_for_portArray[3];
         AFDX_TO_ARINC_ROUTER afdx_to_arinc_router = {
+            .instance_name = "afdx_to_arinc_router",
             .state = {
                 .map_afdx_dst_port_to_idx = {0, 1, 2},
                 .map_afdx_dst_port_to_idx_len = 3,
@@ -165,6 +177,7 @@ struct port_ops{
         void __ARINC_PORT_WRITER_init__(ARINC_PORT_WRITER*);
         void __ARINC_PORT_WRITER_activity__(ARINC_PORT_WRITER*);
         ARINC_PORT_WRITER arinc_port_writer_1 = {
+            .instance_name = "arinc_port_writer_1",
             .state = {
                 .port_direction = SOURCE,
                 .is_queuing_port = 1,
@@ -177,7 +190,7 @@ struct port_ops{
 
 
 
-void __components_init__()
+void glue_main()
 {
             __VIRTIO_NET_DEV_init__(&virtio_net_dev_1);
 
@@ -241,7 +254,7 @@ void __components_init__()
 
 }
 
-void __components_activity__()
+void glue_activity()
 {
     while (1) {
                 __VIRTIO_NET_DEV_activity__(&virtio_net_dev_1);
