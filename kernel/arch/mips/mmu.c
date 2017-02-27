@@ -82,8 +82,7 @@ void pok_mips_tlb_write(
     mtc0(CP0_PAGEMASK, PageSize_Mask(pgsize_enum));
     uint32_t entrylo0, entrylo1;
     entrylo0 = EntryLo0_PFN(physical) | EntryLo0_D(permissions) | EntryLo0_V(permissions);
-    entrylo1 = EntryLo1_PFN(physical) | EntryLo1_D(permissions) | EntryLo1_V(permissions);
-    
+    entrylo1 = EntryLo1_PFN(physical) | EntryLo1_D(permissions) | EntryLo1_V(permissions) | EntryLo1_PS(pgsize_enum);
     
     /*Registers EntryLo0 and EntryLo1 used only 30 bit, so we can use mtc0*/
     if (pid == 0) //any pid 
