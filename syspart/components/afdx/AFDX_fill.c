@@ -256,10 +256,9 @@ ret_t afdx_filler_send(
         return EINVAL;
 
     frame_data_t *afdx_frame = (frame_data_t *)(payload - HEADER_LENGTH);
-
+    printf(C_NAME"SN= %u\n", self->state.sn);
     fill_afdx_frame(&self->state, afdx_frame, payload, payload_size, self->state.sn);
     self->state.sn = (self->state.sn % 255) + 1;
-
     ret_t res = AFDX_FILLER_call_portB_send(self,
                     (char *) afdx_frame,
                     HEADER_LENGTH + SUFFIX_LENGTH + MAX(payload_size, MIN_AFDX_PAYLOAD_SIZE),

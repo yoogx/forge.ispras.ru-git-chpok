@@ -31,7 +31,7 @@ ret_t integrity_checker_receive_packet(INTEGRITY_CHECKER *self,
                                             SYSTEM_TIME_TYPE arrival_time)
 {
     uint8_t seq_numb = payload[payload_size - 1];
-
+    //~ printf(C_NAME" get message: SN= %u \n", seq_numb);
     /* Transmission ES restarted */
     if (seq_numb == 0)
     {

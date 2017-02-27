@@ -39,14 +39,14 @@ ret_t afdx_router_receive_packet(AFDX_ROUTER *self, const char *payload, size_t 
     int idx = get_vl_id_index(&self->state, afdx_frame->mac_header.mac_dst_addr.vl_id);
 
     if (idx < 0) {
-        printf(C_NAME"Error, there is no vl_id %d", afdx_frame->mac_header.mac_dst_addr.vl_id);
+        printf(C_NAME"Error, there is no vl_id %d\n", afdx_frame->mac_header.mac_dst_addr.vl_id);
         return EINVAL;
     }
-
+    //~ printf(C_NAME"get message for vl_id %d: %s\n", afdx_frame->mac_header.mac_dst_addr.vl_id, afdx_frame->afdx_payload);
     ret_t res = AFDX_ROUTER_call_portArray_handle_by_index(idx, self, payload, payload_size, arrival_time);
     
     if (res != EOK)
             printf(C_NAME"Error in sending to vl_id %d",  afdx_frame->mac_header.mac_dst_addr.vl_id);
-
+    //~ printf(C_NAME" send message\n");
     return EOK;
 }

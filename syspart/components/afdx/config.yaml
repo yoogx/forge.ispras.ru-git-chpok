@@ -57,6 +57,17 @@
       - name: portNetB
         type: preallocated_sender
 
+# for example
+- name: AFDX_STOP
+  additional_h_files: [<arinc653/time.h>]
+  state_struct:
+        st: int
+  in_ports:
+    - name: portA
+      type: message_handler
+      implementation:
+            handle: afdx_stop_func
+
 # receive
 - name: AFDX_TIME_ADDER
   additional_h_files: [<arinc653/time.h>]
@@ -110,3 +121,41 @@
       - name: portB
         type: time_message_handler
 
+- name: REDUNDANCY_MANAGER
+  additional_h_files: [<types.h>, '"redundancy_manager_struct.h"']
+  state_struct:
+            arrival_time[SUBNETWORKS_COUNT][MAX_SEQUENCE_NUMBER + 1]: SYSTEM_TIME_TYPE
+            virtual_link_data[VIRTUAL_LINKS_COUNT]: vl_data_t
+
+  init_func: redundancy_manager_init
+
+  in_ports:
+      - name: portA
+        type: time_message_handler
+        implementation:
+            handle: redundancy_manager_receive_packet_net_a
+      - name: portB
+        type: time_message_handler
+        implementation:
+            handle: redundancy_manager_receive_packet_net_b
+  out_ports:
+      - name: portC
+        type: message_handler
+
+- name: AFDX_TO_ARINC_ROUTER
+  additional_h_files: [<types.h>]
+  state_struct:
+            map_afdx_dst_port_to_idx[10]: uint16_t
+            map_afdx_dst_port_to_idx_len: size_t
+
+  init_func: afdx_to_arinc_router_init
+
+  in_ports:
+      - name: portC
+        type: message_handler
+        implementation:
+            handle: afdx_to_arinc_router_receive
+  out_ports:
+      - name: portArray
+        type: message_handler
+        is_array: true

@@ -140,6 +140,7 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
     if ((system_time > self->state.min_next_time) && (self->state.cur_queue_size > 0)) {
 
         frame_data_t    *afdx_frame = (frame_data_t *) self->state.buffer[self->state.head].data;
+
         printf("QUEUE activity get message: %s\n", afdx_frame->afdx_payload);
 
          //send to 1 card

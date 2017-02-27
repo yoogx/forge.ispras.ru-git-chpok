@@ -287,7 +287,6 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
     lock_preemption(&saved_preemption);
 
     uint16_t old_last_seen_used = vq->last_seen_used;
-
     while (vq->last_seen_used != vq->vring.used->idx) {
         uint16_t index = vq->last_seen_used & (vq->vring.num-1);
         struct vring_used_elem *e = &vq->vring.used->ring[index];
@@ -301,7 +300,6 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
             return;
         }
         */
-
         VIRTIO_NET_DEV_call_portB_handle(self, (const char *)&buf->packet, e->len - sizeof(struct virtio_net_hdr));
 
         // reclaim descriptor
@@ -431,32 +429,32 @@ void virtio_receive_activity(VIRTIO_NET_DEV *self)
 /*
  * init
  */
+
 void virtio_init(VIRTIO_NET_DEV *self)
 {
-    {
-        //TODO add checking that virtio_allocator doesn't inited before
-        //where is dev->tx_vq.vring.num from???
+   static int entered_once = 0;
+   if (!entered_once) {
+       entered_once = 1;
+       //TODO add checking that virtio_allocator doesn't inited before
 
-        pok_ret_t ret = jet_memory_block_get_status("Virtio_Heap", &virtio_heap_mb);
-        if(ret != POK_ERRNO_OK) {
-            PRINTF("ERROR: Memory block for heap is not created.\n");
-            PRINTF("NOTE: Report this error to the developers.\n");
-            abort();
-        }
+       pok_ret_t ret = jet_memory_block_get_status("Virtio_Heap", &virtio_heap_mb);
+       if(ret != POK_ERRNO_OK) {
+           PRINTF("ERROR: Memory block for heap is not created.\n");
+           PRINTF("NOTE: Report this error to the developers.\n");
+           abort();
+       }
 
-        jet_sallocator_init_from_memblock(&virtio_allocator, &virtio_heap_mb);
-    }
+       jet_sallocator_init_from_memblock(&virtio_allocator, &virtio_heap_mb);
+   }
+   {
+       // virtio_net_hdr allocation
+       virtio_net_hdr_ptr = jet_sallocator_alloc(&virtio_allocator, sizeof(*virtio_net_hdr_ptr));
+       if (virtio_net_hdr_ptr == NULL) {
+           PRINTF("heap alloc return zero (not enough memory)\n");
+           return ;
+       }
+   }
 
-    {
-        // virtio_net_hdr allocation
-        virtio_net_hdr_ptr = jet_sallocator_alloc(&virtio_allocator, sizeof(*virtio_net_hdr_ptr));
-        if (virtio_net_hdr_ptr == NULL) {
-            PRINTF("heap alloc return zero (not enough memory)\n");
-            return ;
-        }
-    }
-
-
-    if (init_device(&self->state))
-        self->state.info.inited = 1;
+   if (init_device(&self->state))
+       self->state.info.inited = 1;
 }
