@@ -13,33 +13,47 @@
  * See the GNU General Public License version 3 for more details.
  */
 #include <pci_config.h>
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+#include <utils.h>
 
 struct pci_dev_config pci_configs[] = {
-    {
+    { //vanilla qemu Eth controller
         .bus = 0,
         .dev = 1,
         .fn  = 0,
-        .resources = {
+        .c_resources = {
             [PCI_RESOURCE_BAR0] = {
-                .addr = 0x0, //will be set automatically
-                .pci_addr = 0x1000,
+                //.addr = 0x0, //will be set automatically
+                .pci_addr = 0x1000, //For IO in PPC this is offset in PCI_IO memory block
                 .type = PCI_RESOURCE_TYPE_BAR_IO
             }
         }
-    },
-    {
+    }
+    ,{
         .bus = 0,
         .dev = 2,
         .fn  = 0,
-        .resources = {
+        .c_resources = {
             [PCI_RESOURCE_BAR0] = {
-                .addr = 0x0, //will be set automatically
+                // .addr = 0,
                 .pci_addr = 0x1100,
                 .type = PCI_RESOURCE_TYPE_BAR_IO
             }
         }
     },
+/*
+    {
+        .bus = 0,
+        .dev = 3,
+        .fn  = 0,
+        .resources = {
+            [PCI_RESOURCE_BAR0] = {
+                .addr = 0xe1001100,
+                .pci_addr = 0x1100,
+                .type = PCI_RESOURCE_TYPE_BAR_IO
+            }
+        }
+    },
+    */
 };
 
 unsigned pci_configs_nb = ARRAY_SIZE(pci_configs);
