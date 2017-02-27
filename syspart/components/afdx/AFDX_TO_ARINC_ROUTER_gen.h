@@ -21,6 +21,7 @@
 #ifndef __AFDX_TO_ARINC_ROUTER_GEN_H__
 #define __AFDX_TO_ARINC_ROUTER_GEN_H__
 
+#include <memblocks.h>
     #include <types.h>
 
     #include <interfaces/message_handler_gen.h>
@@ -33,6 +34,7 @@ typedef struct AFDX_TO_ARINC_ROUTER_state {
 }AFDX_TO_ARINC_ROUTER_state;
 
 typedef struct {
+    char instance_name[16];
     AFDX_TO_ARINC_ROUTER_state state;
     struct {
             struct {

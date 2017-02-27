@@ -24,8 +24,6 @@
 
 #include <core/partition.h>
 
-#include <dependencies.h>
-
 #include <core/debug.h>
 #include <core/error.h>
 

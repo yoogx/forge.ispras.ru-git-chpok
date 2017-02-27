@@ -21,8 +21,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ERROR_HANDLING
-
 #include <types.h>
 #include <core/error.h>
 #include <core/sched.h>
@@ -96,8 +94,6 @@ void error_check_after_handler(void);
  */
 void error_ignore_sync(void);
 
-#endif
-
 typedef uint8_t pok_error_action_t;
 #define POK_ERROR_ACTION_IGNORE 1
 #define POK_ERROR_ACTION_IDLE 2
@@ -149,5 +145,4 @@ void pok_thread_emit_deadline_missed(pok_thread_t* thread);
  * should be stopped (or restarted).
  */
 void pok_thread_emit_deadline_oor(pok_thread_t* thread);
-
-#endif /* __POK_CORE_ERROR_ARINC_H__ */
+#endif

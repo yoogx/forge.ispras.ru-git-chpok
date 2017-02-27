@@ -27,6 +27,8 @@ env['ARCH'] = 'ppc'
 
 SConscript(env['JETOS_HOME'] + '/misc/arch/ppc/SConscript', exports = 'env')
 
+env['BSP_PROPERTIES_FILE'] = Dir('.').abspath + "/bsp.properties"
+
 env['BOARD_PHYS_SIZE'] = 2**31 # 2G.
 
 env.Append(CFLAGS = ' -mcpu=e500mc')

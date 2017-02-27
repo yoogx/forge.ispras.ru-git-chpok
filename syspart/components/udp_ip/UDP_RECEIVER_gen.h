@@ -21,6 +21,7 @@
 #ifndef __UDP_RECEIVER_GEN_H__
 #define __UDP_RECEIVER_GEN_H__
 
+#include <memblocks.h>
     #include "state_structs.h"
     #include "ip_addr.h"
 
@@ -32,6 +33,7 @@ typedef struct UDP_RECEIVER_state {
 }UDP_RECEIVER_state;
 
 typedef struct {
+    char instance_name[16];
     UDP_RECEIVER_state state;
     struct {
             struct {

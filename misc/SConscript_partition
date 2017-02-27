@@ -79,12 +79,6 @@ Build single partition according to definition script.
 
 import os
 
-from lxml import etree
-import arinc653_xml_conf
-import chpok_configuration
-import template_generation
-import jetos_configuration_internal
-
 Import('part_env')
 
 part_build_dir = part_env['PARTITION_BUILD_DIR']
@@ -142,10 +136,6 @@ part_env['PARTITION_SOURCES'] = part_env.toAbsPathList(
 	part_env['PARTITION_SOURCES'],
 	part_build_dir
 )
-part_env['PARTITION_XML'] = part_env.toAbsPathList(
-	part_env['PARTITION_XML'],
-	part_env['PARTITION_SOURCE_DIR']
-)
 
 libjet_target = part_env.get('LIBJET_TARGET', None)
 
@@ -153,29 +143,10 @@ libjet_target = part_env.get('LIBJET_TARGET', None)
 if libjet_target is None:
 	libjet_target = part_env.BuildLibJet()
 
-AddMethod(part_env, template_generation.TemplateRender)
-
-def get_pok_partition_definitions(source, part_env):
-    part = part_env['PARTITION_PARSE_CONFIGURATION'](source, part_env)
-
-    part_internal = jetos_configuration_internal.PartitionInternal.from_normal(part, 0)
-
-    return dict(part = part)
-
-deployment_target = part_env.TemplateRender(
-    target = os.path.join(part_build_dir, "deployment.c"),
-    source = part_env['PARTITION_XML'],
-    create_definitions_func = get_pok_partition_definitions,
-    template_main = "deployment_user",
-    template_dir = part_env['JETOS_HOME'] + "/misc/templates"
-    )
 
 part_elf_env = part_env.Clone()
 
 ldscript_partition = part_env['LDSCRIPT_PARTITION']
-# Rewrite LINKFLAGS, as we build '.elf'.
-part_elf_env['LINKFLAGS'] = ' -T ' + ldscript_partition
-
 
 if part_env.get('PARTITION_IS_SYSTEM', default = False):
 	syspart_target = part_env.get('SYSPART_TARGET', None)
@@ -186,8 +157,7 @@ else:
 	syspart_target = []
 
 part_elf = part_elf_env.Program(target = part_build_dir+'/part.elf',
-	source = deployment_target
-		+ part_env['PARTITION_SOURCES']
+	source = part_env['PARTITION_SOURCES']
 		+ syspart_target
 		+ libjet_target
 		+ [part_env['LIBGCC']])

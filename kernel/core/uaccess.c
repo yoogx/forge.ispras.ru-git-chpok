@@ -81,14 +81,14 @@ void* kstrncpy(char* dest, const char* __user src, size_t n)
     if(!(mblock->maccess | MEMORY_BLOCK_ACCESS_READ)) return NULL;
 
     // Maximum size available to the end of the block.
-    uint64_t rest_size = mblock->vaddr + mblock->size - vaddr;
+    uintptr_t rest_size = mblock->vaddr + mblock->size - vaddr;
 
     // Maximum number of bytes to check.
     size_t check_size = rest_size > n ? n : (size_t)rest_size;
 
     const char* __kuser ksrc = jet_memory_block_get_kaddr(mblock, src);
 
-    int i;
+    unsigned i;
     for(i = 0; i < check_size; i++)
     {
         dest[i] = ksrc[i];

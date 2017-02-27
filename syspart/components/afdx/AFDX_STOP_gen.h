@@ -21,6 +21,7 @@
 #ifndef __AFDX_STOP_GEN_H__
 #define __AFDX_STOP_GEN_H__
 
+#include <memblocks.h>
     #include <arinc653/time.h>
 
     #include <interfaces/message_handler_gen.h>
@@ -31,6 +32,7 @@ typedef struct AFDX_STOP_state {
 }AFDX_STOP_state;
 
 typedef struct {
+    char instance_name[16];
     AFDX_STOP_state state;
     struct {
             struct {

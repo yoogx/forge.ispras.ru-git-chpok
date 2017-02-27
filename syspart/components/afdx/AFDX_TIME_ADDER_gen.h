@@ -21,6 +21,7 @@
 #ifndef __AFDX_TIME_ADDER_GEN_H__
 #define __AFDX_TIME_ADDER_GEN_H__
 
+#include <memblocks.h>
     #include <arinc653/time.h>
 
     #include <interfaces/message_handler_gen.h>
@@ -32,6 +33,7 @@ typedef struct AFDX_TIME_ADDER_state {
 }AFDX_TIME_ADDER_state;
 
 typedef struct {
+    char instance_name[16];
     AFDX_TIME_ADDER_state state;
     struct {
             struct {

@@ -17,6 +17,7 @@
 #define __LIBJET_ASSERT_H__
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #ifdef NDEBUG
 #define assert(expr) ((void)0)

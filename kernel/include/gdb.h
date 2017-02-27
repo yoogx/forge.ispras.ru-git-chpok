@@ -20,7 +20,13 @@
 #include <asp/gdb.h>
 
 #define NUMREGBYTES (NUMREGS * 4)
+#define DEBUG_GDB
 
+#ifdef DEBUG_GDB
+#define printf_GDB printf
+#else
+#define printf_GDB(fmt, ...) do {} while (0)
+#endif
 /*
  * Whether we are in user space.
  * 

@@ -21,6 +21,7 @@
 #ifndef __ARINC_PORT_WRITER_GEN_H__
 #define __ARINC_PORT_WRITER_GEN_H__
 
+#include <memblocks.h>
     #include <arinc653/queueing.h>
     #include <arinc653/sampling.h>
     #include <port_info.h>
@@ -38,6 +39,7 @@ typedef struct ARINC_PORT_WRITER_state {
 }ARINC_PORT_WRITER_state;
 
 typedef struct {
+    char instance_name[16];
     ARINC_PORT_WRITER_state state;
     struct {
             struct {

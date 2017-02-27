@@ -21,6 +21,7 @@
 #ifndef __AFDX_QUEUE_ENQUEUER_GEN_H__
 #define __AFDX_QUEUE_ENQUEUER_GEN_H__
 
+#include <memblocks.h>
     #include "afdx.h"
     #include <arinc653/time.h>
 
@@ -32,16 +33,17 @@
 typedef struct AFDX_QUEUE_ENQUEUER_state {
     size_t head;
     SYSTEM_TIME_TYPE min_next_time;
-    size_t cur_queue_size;
     SYSTEM_TIME_TYPE BAG;
-    size_t tail;
+    size_t cur_queue_size;
     afdx_buffer * buffer;
+    size_t tail;
+    size_t max_queue_size;
     size_t prepend_overhead;
     size_t append_overhead;
-    size_t max_queue_size;
 }AFDX_QUEUE_ENQUEUER_state;
 
 typedef struct {
+    char instance_name[16];
     AFDX_QUEUE_ENQUEUER_state state;
     struct {
             struct {

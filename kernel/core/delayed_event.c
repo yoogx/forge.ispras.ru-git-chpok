@@ -82,6 +82,7 @@ void delayed_event_add(struct delayed_event_queue* q,
 void delayed_event_remove(struct delayed_event_queue* q,
     struct delayed_event* event)
 {
+    (void) q;
     if(event->pprev_event == NULL) return; // Event is not in the queue.
 
     struct delayed_event* next_event = event->next_event;

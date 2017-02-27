@@ -21,6 +21,7 @@
 #ifndef __INTEGRITY_CHECKER_GEN_H__
 #define __INTEGRITY_CHECKER_GEN_H__
 
+#include <memblocks.h>
     #include <types.h>
 
     #include <interfaces/time_message_handler_gen.h>
@@ -34,6 +35,7 @@ typedef struct INTEGRITY_CHECKER_state {
 }INTEGRITY_CHECKER_state;
 
 typedef struct {
+    char instance_name[16];
     INTEGRITY_CHECKER_state state;
     struct {
             struct {

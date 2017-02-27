@@ -44,6 +44,15 @@
          return self->out.portB.ops->handle(self->out.portB.owner, arg1, arg2);
       }
 
+ pok_ret_t VIRTIO_NET_DEV_get_memory_block_status(
+         VIRTIO_NET_DEV *self,
+         const char *name,
+         jet_memory_block_status_t *mb_status)
+ {
+     char full_name[30]; //use MAX_NAME_LENGTH instead??
+     snprintf(full_name, 30, "%s_%s", self->instance_name, name);
+     return jet_memory_block_get_status(full_name, mb_status);
+ }
 
 void __VIRTIO_NET_DEV_init__(VIRTIO_NET_DEV *self)
 {

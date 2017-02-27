@@ -297,6 +297,12 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
         .thread_error_info = &partition_thread_error_info_{{loop.index0}},
 
         .partition_hm_table = &partition_hm_table_{{loop.index0}},
+
+        .arinc_config_nbuffers = {{part.num_arinc653_buffers}},
+        .arinc_config_nblackboards = {{part.num_arinc653_blackboards}},
+        .arinc_config_nsemaphores = {{part.num_arinc653_semaphores}},
+        .arinc_config_nevents = {{part.num_arinc653_events}},
+        .arinc_config_messages_memory_size = {{part.buffer_data_size + part.blackboard_data_size}},
     },
 {%endfor%}{#partitions loop#}
 };

@@ -21,6 +21,7 @@
 #ifndef __REDUNDANCY_MANAGER_GEN_H__
 #define __REDUNDANCY_MANAGER_GEN_H__
 
+#include <memblocks.h>
     #include <types.h>
     #include "redundancy_manager_struct.h"
 
@@ -35,6 +36,7 @@ typedef struct REDUNDANCY_MANAGER_state {
 }REDUNDANCY_MANAGER_state;
 
 typedef struct {
+    char instance_name[16];
     REDUNDANCY_MANAGER_state state;
     struct {
             struct {

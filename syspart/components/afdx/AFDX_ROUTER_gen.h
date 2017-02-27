@@ -21,6 +21,7 @@
 #ifndef __AFDX_ROUTER_GEN_H__
 #define __AFDX_ROUTER_GEN_H__
 
+#include <memblocks.h>
     #include "router_state_structs.h"
 
     #include <interfaces/time_message_handler_gen.h>
@@ -33,6 +34,7 @@ typedef struct AFDX_ROUTER_state {
 }AFDX_ROUTER_state;
 
 typedef struct {
+    char instance_name[16];
     AFDX_ROUTER_state state;
     struct {
             struct {

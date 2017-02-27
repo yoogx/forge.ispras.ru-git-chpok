@@ -18,8 +18,6 @@
  *
  * SPDX-License-Identifier: GPL-2.0+
  */
-
-
 /*
  * This file is based on u-boot driver. In new versions of u-boot they have added support 
  * of different endianess and 64-bit platforms. This file is from older u-boot version. Be aware!
@@ -33,10 +31,11 @@
 #include <stdio.h>
 #include <ioports.h>
 #include <string.h>
-//#include <mem.h>
 #include "fm.h"
 #include "dtsec_state.h"
 #include "DTSEC_NET_DEV_gen.h"
+#include <stdlib.h>
+#include <paddr.h>
 
 #define DRV_NAME "dtsec_drv"
 #define DEV_NAME_DTSEC3 "dtsec3"
@@ -90,8 +89,10 @@ static void fm_init_muram(int fm_idx, void *reg)
     muram.top = base + CONFIG_SYS_FM_MURAM_SIZE;
 }
 
-int fm_eth_send(struct fm_eth *fm_eth, void *buf, int len)
+
+int fm_eth_send(DTSEC_NET_DEV *self, void *buf, int len)
 {
+    struct fm_eth *fm_eth = self->state.dev_state.current_fm;
     struct fm_port_global_pram *pram;
     struct fm_port_bd *txbd, *txbd_base;
     uint16_t offset_in;
@@ -105,9 +106,21 @@ int fm_eth_send(struct fm_eth *fm_eth, void *buf, int len)
         return 0;
     }
 
+    /* copy buf to physical continuous memory */
+    if (len > self->state.dev_state.send_buffer_size) {
+        printf(DRV_NAME"%s: message too long\n", __func__);
+        return 0;
+    }
+    memcpy(self->state.dev_state.send_buffer, buf, len);
+
+    uint64_t phys_addr = jet_virt_to_phys(&self->state.dev_state.heap_mb, self->state.dev_state.send_buffer);
+    if (phys_addr > 0xffffffff) { //greater than 4G
+        printf(DRV_NAME"%s: phys_addrs greater than 4G are not supported\n", __func__);
+        return 0;
+    }
     /* setup TxBD */
     txbd->buf_ptr_hi = 0;
-    txbd->buf_ptr_lo = pok_virt_to_phys(buf);
+    txbd->buf_ptr_lo = (uint32_t)phys_addr;
     txbd->len = len;
     sync();
     txbd->status = TxBD_READY | TxBD_LAST;
@@ -153,8 +166,7 @@ int fm_eth_recv(DTSEC_NET_DEV *self)
 
     while (!(status & RxBD_EMPTY)) {
         if (!(status & RxBD_ERROR)) {
-            //XXX phys_to_virt?
-            data = (void *)pok_phys_to_virt(rxbd->buf_ptr_lo);
+            data = jet_phys_to_virt(&self->state.dev_state.heap_mb, rxbd->buf_ptr_lo);
             len = rxbd->len;
             DTSEC_NET_DEV_call_portB_handle(self, data, len);
         } else {
@@ -214,13 +226,12 @@ static int fm_eth_tx_port_parameter_init(struct dev_state *dev_state)
     /* enable global mode- snooping data buffers and BDs */
     out_be32(&pram->mode, PRAM_MODE_GLOBAL);
 
-    /* init the Tx queue descriptor pionter */
+    /* init the Tx queue descriptor pointer */
     out_be32(&pram->txqd_ptr, pram_page_offset + 0x40);
 
-    /* alloc Tx buffer descriptors from main memory */
-    tx_bd_ring_base = dev_state->init_buffers.tx_buffer_pseudo_malloc;
-    if (!tx_bd_ring_base)
-        return 0;
+    /* alloc Tx buffer descriptors */
+    tx_bd_ring_base = jet_sallocator_alloc_array(&dev_state->allocator,
+        sizeof(struct fm_port_bd), TX_BD_RING_SIZE);
 
     memset(tx_bd_ring_base, 0, sizeof(struct fm_port_bd)
             * TX_BD_RING_SIZE);
@@ -241,7 +252,12 @@ static int fm_eth_tx_port_parameter_init(struct dev_state *dev_state)
     /* set the Tx queue decriptor */
     txqd = &pram->txqd;
     out_be16(&txqd->bd_ring_base_hi, 0);
-    txqd->bd_ring_base_lo = pok_virt_to_phys(tx_bd_ring_base);
+    uint64_t phys_addr = jet_virt_to_phys(&dev_state->heap_mb, tx_bd_ring_base);
+    if (phys_addr > 0xffffffff) { //greater than 4G
+        printf(DRV_NAME"%s: phys_addrs greater than 4G are not supported\n", __func__);
+        return 0;
+    }
+    txqd->bd_ring_base_lo = (uint32_t) phys_addr;
     out_be16(&txqd->bd_ring_size, sizeof(struct fm_port_bd)
             * TX_BD_RING_SIZE);
     out_be16(&txqd->offset_in, 0);
@@ -282,17 +298,16 @@ static int fm_eth_rx_port_parameter_init(struct dev_state *dev_state)
     /* set the max receive buffer length, power of 2 */
     out_be16(&pram->mrblr, MAX_RXBUF_LOG2);
 
-    /* alloc Rx buffer descriptors from main memory */
-    rx_bd_ring_base = dev_state->init_buffers.rx_ring_pseudo_malloc;
-    if (!rx_bd_ring_base)
-        return 0;
+    /* alloc Rx buffer descriptors */
+    rx_bd_ring_base  = jet_sallocator_alloc_array(&dev_state->allocator,
+        sizeof(struct fm_port_bd), RX_BD_RING_SIZE);
+
     memset(rx_bd_ring_base, 0, sizeof(struct fm_port_bd)
             * RX_BD_RING_SIZE);
 
-    /* alloc Rx buffer from main memory */
-    rx_buf_pool = dev_state->init_buffers.rx_pool_pseudo_malloc;
-    if (!rx_buf_pool)
-        return 0;
+    /* alloc Rx buffer */
+    rx_buf_pool = jet_sallocator_alloc_array(&dev_state->allocator,
+        MAX_RXBUF_LEN, RX_BD_RING_SIZE);
     memset(rx_buf_pool, 0, MAX_RXBUF_LEN * RX_BD_RING_SIZE);
 
     /* save them to fm_eth */
@@ -306,7 +321,14 @@ static int fm_eth_rx_port_parameter_init(struct dev_state *dev_state)
         rxbd->status = RxBD_EMPTY;
         rxbd->len = 0;
         rxbd->buf_ptr_hi = 0;
-        rxbd->buf_ptr_lo = pok_virt_to_phys(rx_buf_pool + i * MAX_RXBUF_LEN);
+
+        uint64_t phys_addr = jet_virt_to_phys(&dev_state->heap_mb, rx_buf_pool + i * MAX_RXBUF_LEN);
+        if (phys_addr > 0xffffffff) { //greater than 4G
+            printf(DRV_NAME"%s: phys_addrs greater than 4G are not supported\n", __func__);
+            return 0;
+        }
+
+        rxbd->buf_ptr_lo = (uint32_t) phys_addr;
         rxbd++;
     }
 
@@ -314,7 +336,12 @@ static int fm_eth_rx_port_parameter_init(struct dev_state *dev_state)
     rxqd = &pram->rxqd;
     out_be16(&rxqd->gen, 0);
     out_be16(&rxqd->bd_ring_base_hi, 0);
-    rxqd->bd_ring_base_lo = pok_virt_to_phys(rx_bd_ring_base);
+    uint64_t phys_addr = jet_virt_to_phys(&dev_state->heap_mb, rx_buf_pool + i * MAX_RXBUF_LEN);
+    if (phys_addr > 0xffffffff) { //greater than 4G
+        printf(DRV_NAME"%s: phys_addrs greater than 4G are not supported\n", __func__);
+        return 0;
+    }
+    rxqd->bd_ring_base_lo = phys_addr;
     out_be16(&rxqd->bd_ring_size, sizeof(struct fm_port_bd)
             * RX_BD_RING_SIZE);
     out_be16(&rxqd->offset_in, 0);
@@ -393,24 +420,40 @@ static void init_device(DTSEC_NET_DEV_state *state, struct fm_eth *fm_eth)
     fm_eth_rx_port_parameter_init(dev_state);
     fm_eth_tx_port_parameter_init(dev_state);
 
+    dev_state->send_buffer_size = MAX_TXBUF_LEN;
+    dev_state->send_buffer = jet_sallocator_alloc(&state->dev_state.allocator, dev_state->send_buffer_size);
+
     fm_eth_open(dev_state);
 }
 
 void dtsec_init(DTSEC_NET_DEV *self)
 {
-    //TODO move constants to .h file
-    dtsec3.rx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC3_RX_PORT*0x1000);
-    dtsec3.tx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC3_TX_PORT*0x1000);
-    dtsec3.reg_addr = (void *)CONFIG_SYS_FM1_DTSEC3_ADDR;
+    jet_memory_block_status_t fman_mb;
+
+    if (jet_memory_block_get_status("PPC_FMan", &fman_mb) != POK_ERRNO_OK) {
+        printf(DRV_NAME"ERROR: Can't get 'PPC_FMan' memory block\n");
+        abort();
+    }
+
+    dtsec3.rx_port = (void *)(fman_mb.addr + FM_HARDWARE_PORTS + DTSEC3_RX_PORT*0x1000);
+    dtsec3.tx_port = (void *)(fman_mb.addr + FM_HARDWARE_PORTS + DTSEC3_TX_PORT*0x1000);
+    dtsec3.reg_addr = (void *)(fman_mb.addr + 0xe4000);
 
     dtsec4.rx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC4_RX_PORT*0x1000);
     dtsec4.tx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC4_TX_PORT*0x1000);
-    dtsec4.reg_addr = (void *)CONFIG_SYS_FM1_DTSEC4_ADDR;
+    dtsec4.reg_addr = (void *)(fman_mb.addr + 0xe6000);
 
-    fm_init_muram(0, (void *)CONFIG_SYS_FSL_FM1_MURAM_ADDR);
+    fm_init_muram(0, (void *)fman_mb.addr);
     /* XXX HACK. Depend on u-boot! qmi_common and bmi_common are initialized in this memory by u-boot */
     muram.alloc = muram.base + 0x21000;
 
+
+    pok_ret_t ret = DTSEC_NET_DEV_get_memory_block_status(self, "Heap", &self->state.dev_state.heap_mb);
+    if(ret != POK_ERRNO_OK) {
+        printf(DRV_NAME"ERROR: Memory block for heap is not created.\n");
+        abort();
+    }
+    jet_sallocator_init_from_memblock(&self->state.dev_state.allocator, &self->state.dev_state.heap_mb);
 
     if (self->state.dtsec_num == 3)
         init_device(&self->state, &dtsec3);

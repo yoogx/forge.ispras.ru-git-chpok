@@ -73,6 +73,8 @@ pok_ret_t jet_memory_block_get_status(
 static void jet_memory_block_init_zero(pok_partition_arinc_t* part,
     const struct memory_block* const* mblocks)
 {
+    (void) part; //ignore part
+
     for(const struct memory_block* const * p_mblock = mblocks;
         *p_mblock != NULL;
         p_mblock++)
@@ -92,6 +94,8 @@ void jet_memory_block_init(enum jet_memory_block_init_type init_type,
     const struct memory_block* const* mblocks,
     uint16_t source_id)
 {
+    (void) source_id; //currently not used
+
     switch(init_type) {
         case JET_MEMORY_BLOCK_INIT_ZERO:
             jet_memory_block_init_zero(part, mblocks);

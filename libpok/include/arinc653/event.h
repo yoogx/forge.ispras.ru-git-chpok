@@ -16,15 +16,8 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_EVENT
-
 #ifndef APEX_EVENT
 #define APEX_EVENT
-
-
-#ifndef POK_NEEDS_ARINC653_PROCESS
-#define POK_NEEDS_ARINC653_PROCESS 1
-#endif
 
 #include <arinc653/process.h>
 
@@ -115,5 +108,4 @@ extern void GET_EVENT_STATUS (
       /*OUT*/ EVENT_STATUS_TYPE *EVENT_STATUS ,
       /*OUT*/ RETURN_CODE_TYPE *RETURN_CODE );
 /*----------------------------------------------------------------------*/
-#endif
 #endif

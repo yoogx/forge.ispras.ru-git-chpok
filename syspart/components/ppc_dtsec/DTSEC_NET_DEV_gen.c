@@ -23,9 +23,9 @@
 
 
 
-    static ret_t __wrapper_dtsec_send_frame(self_t *arg0, char * arg1, size_t arg2, size_t arg3)
+    static ret_t __wrapper_dtsec_send_frame(self_t *arg0, char * arg1, size_t arg2, size_t arg3, size_t arg4)
     {
-        return dtsec_send_frame((DTSEC_NET_DEV*) arg0, arg1, arg2, arg3);
+        return dtsec_send_frame((DTSEC_NET_DEV*) arg0, arg1, arg2, arg3, arg4);
     }
 
     static ret_t __wrapper_dtsec_flush_send(self_t *arg0)
@@ -44,6 +44,15 @@
          return self->out.portB.ops->handle(self->out.portB.owner, arg1, arg2);
       }
 
+ pok_ret_t DTSEC_NET_DEV_get_memory_block_status(
+         DTSEC_NET_DEV *self,
+         const char *name,
+         jet_memory_block_status_t *mb_status)
+ {
+     char full_name[30]; //use MAX_NAME_LENGTH instead??
+     snprintf(full_name, 30, "%s_%s", self->instance_name, name);
+     return jet_memory_block_get_status(full_name, mb_status);
+ }
 
 void __DTSEC_NET_DEV_init__(DTSEC_NET_DEV *self)
 {

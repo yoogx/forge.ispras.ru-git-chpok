@@ -21,6 +21,7 @@
 #ifndef __AFDX_FILLER_GEN_H__
 #define __AFDX_FILLER_GEN_H__
 
+#include <memblocks.h>
     #include "afdx.h"
 
     #include <interfaces/preallocated_sender_gen.h>
@@ -34,11 +35,12 @@ typedef struct AFDX_FILLER_state {
     uint8_t sn;
     uint8_t dst_partition_id;
     uint8_t ttl;
-    PACKET_TYPE type_of_packet;
     uint8_t src_partition_id;
+    PACKET_TYPE type_of_packet;
 }AFDX_FILLER_state;
 
 typedef struct {
+    char instance_name[16];
     AFDX_FILLER_state state;
     struct {
             struct {

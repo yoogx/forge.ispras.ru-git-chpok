@@ -125,12 +125,12 @@ static void partition_arinc_start(void)
 
     jet_uspace_revoke_access_local(&part->base_part);
 
-    for(int i = 0; i < part->nports_queuing; i++)
+    for(unsigned i = 0; i < part->nports_queuing; i++)
     {
         pok_port_queuing_init(&part->ports_queuing[i]);
     }
 
-    for(int i = 0; i < part->nports_sampling; i++)
+    for(unsigned i = 0; i < part->nports_sampling; i++)
     {
         pok_port_sampling_init(&part->ports_sampling[i]);
     }
@@ -146,10 +146,9 @@ static void partition_arinc_start(void)
     part->nthreads_used = 0;
 
     part->thread_current = NULL;
-#ifdef POK_NEEDS_ERROR_HANDLING
+
     part->thread_error = NULL;
     INIT_LIST_HEAD(&part->error_list);
-#endif
 
     pok_thread_t* thread_main = &part->threads[POK_PARTITION_ARINC_MAIN_THREAD_ID];
 
@@ -169,6 +168,12 @@ static void partition_arinc_start(void)
     part->kshd->current_thread_id = JET_THREAD_ID_NONE;
     part->kshd->max_n_threads = part->nthreads;
     part->kshd->partition_mode = part->mode;
+    // Transfer data about intra communication to user space
+    part->kshd->arinc_config_nbuffers = part->arinc_config_nbuffers;
+    part->kshd->arinc_config_nblackboards = part->arinc_config_nblackboards;
+    part->kshd->arinc_config_nsemaphores = part->arinc_config_nsemaphores;
+    part->kshd->arinc_config_nevents = part->arinc_config_nevents;
+    part->kshd->arinc_config_messages_memory_size = part->arinc_config_messages_memory_size;
 
     sched_arinc_start();
 

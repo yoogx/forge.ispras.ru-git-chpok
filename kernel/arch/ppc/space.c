@@ -238,6 +238,7 @@ void pok_arch_handle_page_fault(
         uint32_t syndrome,
         pf_type_t type)
 {
+    (void) syndrome; //WTF?
 #ifdef POK_NEEDS_DEBUG
     if (vctx->srr1 & MSR_PR) {
         printf("USER ");

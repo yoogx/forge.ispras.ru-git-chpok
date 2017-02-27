@@ -21,18 +21,20 @@
 #ifndef __ARP_ANSWERER_GEN_H__
 #define __ARP_ANSWERER_GEN_H__
 
+#include <memblocks.h>
 
     #include <interfaces/message_handler_gen.h>
 
     #include <interfaces/ethernet_packet_sender_gen.h>
 
 typedef struct ARP_ANSWERER_state {
-    uint8_t src_mac[6];
     uint32_t good_ips_len;
+    uint8_t src_mac[6];
     uint32_t good_ips[10];
 }ARP_ANSWERER_state;
 
 typedef struct {
+    char instance_name[16];
     ARP_ANSWERER_state state;
     struct {
             struct {

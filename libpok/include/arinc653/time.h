@@ -16,7 +16,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_TIME
 #ifndef APEX_TIME
 #define APEX_TIME
 
@@ -53,5 +52,4 @@ extern void GET_TIME (
 /*----------------------------------------------------------------------*/
 void REPLENISH (SYSTEM_TIME_TYPE budget_time, RETURN_CODE_TYPE *return_code);
 /*----------------------------------------------------------------------*/
-#endif
 #endif

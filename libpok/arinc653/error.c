@@ -16,7 +16,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_ERROR
 #include <types.h>
 #include <errno.h>
 #include <arinc653/types.h>
@@ -127,5 +126,3 @@ void RAISE_APPLICATION_ERROR (ERROR_CODE_TYPE            ERROR_CODE,
     
     *RETURN_CODE = NO_ERROR;
 }
-
-#endif

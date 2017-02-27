@@ -167,16 +167,13 @@ def generate_ctype_tables():
 
     lfiles = []
     for l in locales:
-        lfiles.extend(libpok_env.TemplateRender(
-            target = [target_dir + '/ctype_tables_' + l + '.c',
-                target_dir + '/ctype_tables_' + l + '.h'],
-            source = source_dir + '/ctype_' + l + '.yaml',
-            create_definitions_func = get_locale_definition,
-            template_main = ['ctype_tables_c', 'ctype_tables_h'],
-            template_dir = source_dir + '/templates',
-            NO_DEPS = 1,
-            SOURCE_BASE_DIR = libpok_env['JETOS_HOME'],
-            GENERATE_TITLE = template_generation.generate_title_c))
+        for ftype in ['c', 'h']:
+            lfiles.extend(libpok_env.TemplateRender(
+                target = target_dir + '/ctype_tables_' + l + '.' + ftype,
+                source = source_dir + '/ctype_' + l + '.yaml',
+                create_context = get_locale_definition,
+                template_file = source_dir + '/templates/ctype_tables_' + ftype + '.tpl',
+                title = template_generation.generate_title_c))
 
     libpok_env.Depends('regenerate', lfiles)
 

@@ -31,20 +31,20 @@ examples_dirs = [
     ('msections-wait-several', 'P1'),
     ('pure-arinc653-buffer', 'P1'),
     ('syspart-graphic', 'P1', 'P2'),
-    ('syspart-net-demo', 'P1', 'P2'),
-    ('syspart-network-queue-nc', 'P1', 'P2'),
+    ('syspart-net', 'P1'),
+    ('syspart-net-dtsec', 'P1'),
 ]
 
 vars = Variables()
 vars.AddVariables(
-	BoolVariable('jdeveloper', 'Enables developer mode', 0),
+    BoolVariable('jdeveloper', 'Enables developer mode', 0),
 )
 
 env = Environment(variables = vars)
 
 if not env.get('jdeveloper', False):
-	print "Error: This SConstruct is only for JetOS developers ['jdeveloper' option should be true]."
-	Exit(1)
+    print "Error: This SConstruct is only for JetOS developers ['jdeveloper' option should be true]."
+    Exit(1)
 
 # Do not use JETOS_HOME environment variable, as we are definitely in our package
 JETOS_HOME = Dir('..').abspath
@@ -53,24 +53,26 @@ import sys
 import os
 sys.path.insert(1, os.path.join(JETOS_HOME, "misc"))
 import template_generation
-env['SOURCE_BASE_DIR'] = JETOS_HOME
-env['COPY_TITLE'] = """# COPIED! DO NOT MODIFY!
+env.AddMethod(template_generation.CopyWithTitle)
+example_copy_title = """# COPIED! DO NOT MODIFY!
 # Instead of modifying this file, modify original one (%source%).
 #
 # When copy a file outside of JetOS project, remove this line and the lines above.
 """
 
 for example_dirs in examples_dirs:
-	for index, example_dir in enumerate(example_dirs):
-		if index == 0:
-			# Module's directory
-			module_dir = example_dir
-			env.Command(target = module_dir + '/SConstruct',
-				source = 'SConstruct_module',
-				action = template_generation.CopyWithTitle)
-		else:
-			# Partition's directory
-			partition_dir = module_dir + '/' + example_dir
-			env.Command(target = partition_dir + '/SConstruct',
-				source = 'SConstruct_partition',
-				action = template_generation.CopyWithTitle)
+    for index, example_dir in enumerate(example_dirs):
+        if index == 0:
+            # Module's directory
+            module_dir = example_dir
+            env.CopyWithTitle(target = module_dir + '/SConstruct',
+                source = 'SConstruct_module',
+                title = example_copy_title,
+                source_base_dir = JETOS_HOME)
+        else:
+            # Partition's directory
+            partition_dir = module_dir + '/' + example_dir
+            env.CopyWithTitle(target = partition_dir + '/SConstruct',
+                source = 'SConstruct_partition',
+                title = example_copy_title,
+                source_base_dir = JETOS_HOME)
