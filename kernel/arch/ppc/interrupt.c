@@ -213,6 +213,7 @@ void pok_int_inst_tlb_miss(struct jet_interrupt_context* vctx, uintptr_t dear, u
 
 void pok_int_debug(struct jet_interrupt_context* ea) {
 
+#ifdef POK_NEEDS_GDB
     printf_GDB("    DEBUG EVENT!\n");
     printf_GDB("DBSR = %lx\n", mfspr(SPRN_DBSR));
     printf_GDB("ea = 0x%lx\n", (uint32_t) ea);
@@ -224,9 +225,13 @@ void pok_int_debug(struct jet_interrupt_context* ea) {
     printf_GDB("Reason: Watchpoint\n");   
 
     handle_exception(1, ea); 
-    
+
     printf_GDB("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
     printf_GDB("DBCR0 = 0x%lx\n", mfspr(SPRN_DBCR0));
     asm volatile("dcbst 0, %0; sync; icbi 0,%0; sync; isync" : : "r" ((char *) ea->srr0));
     printf_GDB("Exit from debug event\n"); 
+#else
+    (void) ea;
+    pok_fatal("pok_int_debug");
+#endif
 }
