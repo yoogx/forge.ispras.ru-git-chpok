@@ -431,19 +431,12 @@ void virtio_receive_activity(VIRTIO_NET_DEV *self)
         reclaim_receive_buffers(self);
 }
 
-pok_ret_t instance_memory_block_get_status(VIRTIO_NET_DEV *self, const char *name, jet_memory_block_status_t *mb_status)
-{
-    char full_name[30]; //use MAX_NAME_LENGTH instead??
-    snprintf(full_name, 30, "%s_%s", self->instance_name, name);
-    return jet_memory_block_get_status(full_name, mb_status);
-}
-
 /*
  * init
  */
 void virtio_init(VIRTIO_NET_DEV *self)
 {
-    pok_ret_t ret = instance_memory_block_get_status(self, "Heap", &self->state.info.heapmb);
+    pok_ret_t ret = VIRTIO_NET_DEV_get_memory_block_status(self, "Heap", &self->state.info.heapmb);
     if(ret != POK_ERRNO_OK) {
         PRINTF("ERROR: Memory block for heap is not created.\n");
         abort();

@@ -58,6 +58,10 @@ typedef struct {
       ret_t VIRTIO_NET_DEV_call_portB_handle(VIRTIO_NET_DEV *, const char *, size_t);
 
 
+ pok_ret_t VIRTIO_NET_DEV_get_memory_block_status(
+         VIRTIO_NET_DEV *self,
+         const char *name,
+         jet_memory_block_status_t *mb_status);
 
     void virtio_init(VIRTIO_NET_DEV *);
 
