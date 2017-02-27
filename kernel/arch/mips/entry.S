@@ -31,6 +31,7 @@
     save2  - scratch register
     save3  - save   $k0
     save4  - save   $k1
+    save5  - save CP0_CAUSE
 */
         
         .section ".start", "ax"
@@ -67,6 +68,7 @@ reserved_0000:
         save2: .word  0
         save3: .word  0
         save4: .word  0
+        save5: .word  0
 
 #define FRAME_SIZE SIZEOF_jet_interrupt_context
 
@@ -425,8 +427,10 @@ pok_arch_rfi:
         lw     $a0, OFFSETOF_jet_interrupt_context_EPC($sp)
         MTC0($a0, CP0_EPC)
         lw      $a1, OFFSETOF_jet_interrupt_context_CAUSE($sp)
-        MTC0($a1, CP0_CAUSE)        
-
+        /* We can't just change current CAUSE register, so we need this saving to know, which type of interrupt it was*/
+        //MTC0($a1, CP0_CAUSE)        
+        la      $k0, save5
+        sw      $a1, ($k0)
 
 
 
@@ -447,7 +451,9 @@ pok_arch_rfi:
         MTC0($k0, CP0_STATUS)
 
 
-        mfc0    $k0, CP0_CAUSE
+        //mfc0    $k0, CP0_CAUSE
+        la      $k0, save5
+        lw      $k0, ($k0)
         andi    $k0, 0x7f
         li      $k1, 0x20
         JUMP_IF_EQUAL($k1, $k0, 2f)  /*Syscall*/
@@ -671,10 +677,6 @@ _pok_reset:
  */
 
 
-// Useful defines:
-//#define START_EXCEPTION(label)                                               \
-//        .align 5;                                                            \
-//label##_asm:
 #define START_EXCEPTION(symbol)                  \
                 .align  5;                              \
                 .type   symbol##_asm, @function;              \
