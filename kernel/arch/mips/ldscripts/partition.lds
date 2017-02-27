@@ -1,7 +1,6 @@
 OUTPUT_FORMAT("elf32-tradbigmips")
 OUTPUT_ARCH(mips)
 ENTRY(__pok_partition_start)
-
 SECTIONS
 {
   . = 0x60000000;
@@ -36,10 +35,7 @@ SECTIONS
           . = ALIGN(4);
           __sbss2_end = .;
           __SBSS2_END__ = .;
-        }
-        .eh_frame_hdr : { *(.eh_frame_hdr) *(.eh_frame_entry .eh_frame_entry.*) }
-        .eh_frame       : ONLY_IF_RO { KEEP (*(.eh_frame)) *(.eh_frame.*) }
-    
+        }    
         .data :
         {
           __data_start = .;
@@ -74,6 +70,13 @@ SECTIONS
         }
         HIDDEN (_gp = ALIGN (16) + 0x7ff0);
         .got            : { *(.got) }
+        /DISCARD/ : {
+             /* ABI crap starts here */
+             *(.MIPS.abiflags)
+             *(.reginfo)
+             *(.eh_frame)
+             *(.eh_frame_hdr)
+        }
 	__partition_end = . ;
 }
 
