@@ -1,0 +1,193 @@
+components:
+
+    - name: virtio_net_dev_1
+      type: VIRTIO_NET_DEV
+      state:
+          pci_bus: 0
+          pci_dev: 1
+          pci_fn: 0
+
+    - name: virtio_net_dev_2
+      type: VIRTIO_NET_DEV
+      state:
+          pci_bus: 0
+          pci_dev: 2
+          pci_fn: 0
+
+    - name: afdx_time_adder_1
+      type: AFDX_TIME_ADDER
+
+    - name: afdx_time_adder_2
+      type: AFDX_TIME_ADDER
+
+    - name: afdx_router_1
+      type: AFDX_ROUTER
+      state:
+            map_vl_id_to_idx: '{{0}, {1}}'
+            map_vl_id_to_idx_len: 2
+
+    - name: afdx_router_2
+      type: AFDX_ROUTER
+      state:
+            map_vl_id_to_idx: '{{0}, {1}}'
+            map_vl_id_to_idx_len: 2
+
+    - name: afdx_integrity_checker_vl_0_net_a
+      type: INTEGRITY_CHECKER
+      state:
+            network_card: 0 
+            #think about define
+    - name: afdx_integrity_checker_vl_1_net_a
+      type: INTEGRITY_CHECKER
+      state:
+            network_card: 0
+            #think about define
+    - name: afdx_integrity_checker_vl_0_net_b
+      type: INTEGRITY_CHECKER
+      state:
+            network_card: 1 
+            #think about define
+    - name: afdx_integrity_checker_vl_1_net_b
+      type: INTEGRITY_CHECKER
+      state:
+            network_card: 1
+            #think about define
+    - name: redundancy_manager
+      type: REDUNDANCY_MANAGER
+      state:
+            virtual_link_data[0].vl_id: 0
+            virtual_link_data[0].skew_max: 100000000
+            virtual_link_data[0].BAG: 100
+            virtual_link_data[1].vl_id: 1
+            virtual_link_data[1].skew_max: 100000000
+            virtual_link_data[1].BAG: 100
+
+    - name: afdx_to_arinc_router
+      type: AFDX_TO_ARINC_ROUTER
+      state:
+            map_afdx_dst_port_to_idx: '{0, 1, 2}'
+            map_afdx_dst_port_to_idx_len: 3
+
+    - name: arinc_port_writer_1
+      type: ARINC_PORT_WRITER
+      state:
+          port_name: '"UIN"'
+          port_direction: SOURCE
+          port_max_message_size: 64
+          is_queuing_port: 1
+          q_port_max_nb_messages: 10
+links:
+#receive
+# 1 net device
+    - from:
+        instance: virtio_net_dev_1
+        port: portB
+      to:
+        instance: afdx_time_adder_1
+        port: portB
+    - from:
+        instance: afdx_time_adder_1
+        port: portA
+      to:
+        instance: afdx_router_1
+        port: portA
+    - from:
+        instance: afdx_router_1
+        port: portArray
+        array_index: 0
+      to:
+        instance: afdx_integrity_checker_vl_0_net_a
+        port: portA
+    - from:
+        instance: afdx_router_1
+        port: portArray
+        array_index: 1
+      to:
+        instance: afdx_integrity_checker_vl_1_net_a
+        port: portA
+    - from:
+        instance: afdx_integrity_checker_vl_0_net_a
+        port: portB
+      to:
+        instance: redundancy_manager
+        port: portA
+    - from:
+        instance: afdx_integrity_checker_vl_1_net_a
+        port: portB
+      to:
+        instance: redundancy_manager
+        port: portA
+
+
+
+# 2 net device
+    - from:
+        instance: virtio_net_dev_2
+        port: portB
+      to:
+        instance: afdx_time_adder_2
+        port: portB
+
+    - from:
+        instance: afdx_time_adder_2
+        port: portA
+      to:
+        instance: afdx_router_2
+        port: portA
+    - from:
+        instance: afdx_router_2
+        port: portArray
+        array_index: 0
+      to:
+        instance: afdx_integrity_checker_vl_0_net_b
+        port: portA
+    - from:
+        instance: afdx_router_2
+        port: portArray
+        array_index: 1
+      to:
+        instance: afdx_integrity_checker_vl_1_net_b
+        port: portA
+    - from:
+        instance: afdx_integrity_checker_vl_0_net_b
+        port: portB
+      to:
+        instance: redundancy_manager
+        port: portB
+    - from:
+        instance: afdx_integrity_checker_vl_1_net_b
+        port: portB
+      to:
+        instance: redundancy_manager
+        port: portB
+
+# for both network devices
+    - from:
+        instance: redundancy_manager
+        port: portC
+      to:
+        instance: afdx_to_arinc_router
+        port: portC
+# links to arimk writers
+    - from:
+        instance: afdx_to_arinc_router
+        port: portArray
+        array_index: 0
+      to:
+        instance: arinc_port_writer_1
+        port: portA
+    - from:
+        instance: afdx_to_arinc_router
+        port: portArray
+        array_index: 1
+      to:
+        instance: arinc_port_writer_1
+        port: portA
+    - from:
+        instance: afdx_to_arinc_router
+        port: portArray
+        array_index: 2
+      to:
+        instance: arinc_port_writer_1
+        port: portA
+    

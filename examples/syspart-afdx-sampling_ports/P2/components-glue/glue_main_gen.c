@@ -90,6 +90,13 @@ struct port_ops{
 
         };
 
+    #include <AFDX_TIME_ADDER_gen.h>
+        void __AFDX_TIME_ADDER_init__(AFDX_TIME_ADDER*);
+        void __AFDX_TIME_ADDER_activity__(AFDX_TIME_ADDER*);
+        AFDX_TIME_ADDER afdx_time_adder_1 = {
+
+        };
+
 
 
 void __components_init__()
@@ -103,6 +110,8 @@ void __components_init__()
             __VIRTIO_NET_DEV_init__(&virtio_net_dev_1);
 
             __VIRTIO_NET_DEV_init__(&virtio_net_dev_2);
+
+            __AFDX_TIME_ADDER_init__(&afdx_time_adder_1);
 
 
         arinc_port_reader_1.out.portA.ops = &afdx_filler_1.in.portA.ops;
@@ -124,6 +133,7 @@ void __components_activity__()
                 __AFDX_QUEUE_ENQUEUER_activity__(&afdx_queue_enqueuer_1);
                 __VIRTIO_NET_DEV_activity__(&virtio_net_dev_1);
                 __VIRTIO_NET_DEV_activity__(&virtio_net_dev_2);
+                __AFDX_TIME_ADDER_activity__(&afdx_time_adder_1);
     }
 
 }

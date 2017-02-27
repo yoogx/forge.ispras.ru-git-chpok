@@ -119,7 +119,7 @@ struct frame_data {
                                                 //         bit 1: Don't fragment (DF)
                                                 //         bit 2: More fragments (MF)
                                                 //  + 13 bits Fragment offset
-        uint8_t             ttl;
+        uint8_t     ttl;
         uint8_t     protocol;                   // 8 bits (0x11) UDP, according to AFDX,
                                                 // ARINC 664 Tutorial, AFDX Protocol Stack Section
         uint16_t    header_checksum;

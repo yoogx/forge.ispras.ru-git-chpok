@@ -42,7 +42,9 @@ components:
           pci_dev: 2
           pci_fn: 0
 
-
+    - name: afdx_time_adder_1
+      type: AFDX_TIME_ADDER
+      
 links:
     - from:
         instance: arinc_port_reader_1
@@ -71,3 +73,5 @@ links:
       to:
         instance: virtio_net_dev_2
         port: portA
+
+        

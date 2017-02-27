@@ -89,7 +89,7 @@ void arinc_port_writer_init(ARINC_PORT_WRITER *self)
 
 ret_t arinc_receive_message(ARINC_PORT_WRITER *self, const char *payload, size_t payload_size)
 {
-    //printf(C_NAME"%s got message\n", self->state.tmp_name);
+    printf(C_NAME" got message: %s\n", payload);
     if (self->state.is_queuing_port)
         return send_msg_to_user_partition_queuing(self, payload, payload_size);
     else

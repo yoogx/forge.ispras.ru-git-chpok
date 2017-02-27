@@ -41,6 +41,8 @@ components:
           pci_dev: 2
           pci_fn: 0
 
+    - name: afdx_stop_send_1
+      type: AFDX_STOP
 
 links:
     - from:
@@ -69,4 +71,18 @@ links:
         port: portNetB
       to:
         instance: virtio_net_dev_2
+        port: portA
+
+#receive
+    - from:
+        instance: virtio_net_dev_1
+        port: portB
+      to:
+        instance: afdx_stop_send_1
+        port: portA
+    - from:
+        instance: virtio_net_dev_2
+        port: portB
+      to:
+        instance: afdx_stop_send_1
         port: portA

@@ -1,0 +1,7 @@
+- name: time_message_handler
+  additional_h_files: ['<ret_type.h>', '<arinc653/time.h>']
+  functions:
+      - name: handle
+        return_type: ret_t
+        # component, msg, size, time
+        args_type: [self_t *, const char *, size_t, SYSTEM_TIME_TYPE] #const char *!!
