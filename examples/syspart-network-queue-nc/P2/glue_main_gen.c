@@ -120,7 +120,7 @@ struct port_ops{
             .instance_name = "virtio_net_dev_2",
             .state = {
                 .pci_fn = 0,
-                .pci_dev = 3,
+                .pci_dev = 2,
                 .pci_bus = 0,
             },
 
