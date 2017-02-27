@@ -21,6 +21,7 @@
 #ifndef __ARINC_RECEIVER_GEN_H__
 #define __ARINC_RECEIVER_GEN_H__
 
+#include <memblocks.h>
     #include <arinc653/queueing.h>
     #include <arinc653/sampling.h>
     #include <port_info.h>

@@ -21,6 +21,7 @@
 #ifndef __ARINC_SENDER_GEN_H__
 #define __ARINC_SENDER_GEN_H__
 
+#include <memblocks.h>
     #include <arinc653/queueing.h>
     #include <arinc653/sampling.h>
     #include <port_info.h>

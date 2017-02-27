@@ -437,8 +437,10 @@ void dtsec_init(DTSEC_NET_DEV *self)
     jet_memory_block_status_t fman_mb;
 
     if(jet_memory_block_get_status("PPC_FMan", &fman_mb) != POK_ERRNO_OK) {
+        printf(DRV_NAME"ERROR: Can't get 'PPC_FMan' memory block\n");
         abort();
     }
+
     dtsec3.rx_port = (void *)(fman_mb.addr + FM_HARDWARE_PORTS + DTSEC3_RX_PORT*0x1000);
     dtsec3.tx_port = (void *)(fman_mb.addr + FM_HARDWARE_PORTS + DTSEC3_TX_PORT*0x1000);
     dtsec3.reg_addr = (void *)(fman_mb.addr + 0xe4000);
@@ -455,7 +457,6 @@ void dtsec_init(DTSEC_NET_DEV *self)
         pok_ret_t ret = jet_memory_block_get_status("PPC_dTSEC_Heap", &heap_mb);
         if(ret != POK_ERRNO_OK) {
             printf(DRV_NAME"ERROR: Memory block for heap is not created.\n");
-            printf(DRV_NAME"NOTE: Report this error to the developers.\n");
             abort();
         }
 

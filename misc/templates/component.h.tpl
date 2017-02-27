@@ -16,6 +16,7 @@
 #ifndef __{{component.name}}_GEN_H__
 #define __{{component.name}}_GEN_H__
 
+#include <memblocks.h>
 {% for h in component.additional_h_files %}
     #include {{h}}
 {% endfor %}
@@ -87,7 +88,7 @@ typedef struct {
 
 {% if has_per_instance_memory_block %}
  pok_ret_t {{component.name}}_get_memory_block_status(
-         VIRTIO_NET_DEV *self,
+         {{component.name}} *self,
          const char *name,
          jet_memory_block_status_t *mb_status);
 {% endif %}

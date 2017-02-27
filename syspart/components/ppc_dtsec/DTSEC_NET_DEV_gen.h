@@ -21,6 +21,7 @@
 #ifndef __DTSEC_NET_DEV_GEN_H__
 #define __DTSEC_NET_DEV_GEN_H__
 
+#include <memblocks.h>
     #include "dtsec_state.h"
 
     #include <interfaces/preallocated_sender_gen.h>
@@ -56,6 +57,10 @@ typedef struct {
       ret_t DTSEC_NET_DEV_call_portB_handle(DTSEC_NET_DEV *, const char *, size_t);
 
 
+ pok_ret_t DTSEC_NET_DEV_get_memory_block_status(
+         DTSEC_NET_DEV *self,
+         const char *name,
+         jet_memory_block_status_t *mb_status);
 
     void dtsec_component_init(DTSEC_NET_DEV *);
 

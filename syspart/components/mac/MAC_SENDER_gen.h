@@ -21,6 +21,7 @@
 #ifndef __MAC_SENDER_GEN_H__
 #define __MAC_SENDER_GEN_H__
 
+#include <memblocks.h>
 
     #include <interfaces/ethernet_packet_sender_gen.h>
 

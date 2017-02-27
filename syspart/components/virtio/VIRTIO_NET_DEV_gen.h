@@ -21,6 +21,7 @@
 #ifndef __VIRTIO_NET_DEV_GEN_H__
 #define __VIRTIO_NET_DEV_GEN_H__
 
+#include <memblocks.h>
     #include "virtio_network_device.h"
 
     #include <interfaces/preallocated_sender_gen.h>

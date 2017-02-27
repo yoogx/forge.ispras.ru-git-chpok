@@ -21,6 +21,7 @@
 #ifndef __ROUTER_GEN_H__
 #define __ROUTER_GEN_H__
 
+#include <memblocks.h>
     #include "state_structs.h"
     #include "ip_addr.h"
 

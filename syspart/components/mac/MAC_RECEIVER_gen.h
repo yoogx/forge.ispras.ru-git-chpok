@@ -21,6 +21,7 @@
 #ifndef __MAC_RECEIVER_GEN_H__
 #define __MAC_RECEIVER_GEN_H__
 
+#include <memblocks.h>
 
     #include <interfaces/message_handler_gen.h>
 

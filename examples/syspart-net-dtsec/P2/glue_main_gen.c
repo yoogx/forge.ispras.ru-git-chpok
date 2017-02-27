@@ -1,7 +1,7 @@
 /*
  * GENERATED! DO NOT MODIFY!
  *
- * Instead of modifying this file, modify the one it generated from (examples/syspart-net-dtsec/P2/components-glue/config.yaml).
+ * Instead of modifying this file, modify the one it generated from (examples/syspart-net-dtsec/P2/glue_config.yaml).
  */
 /*
  * Institute for System Programming of the Russian Academy of Sciences
@@ -27,6 +27,7 @@ struct port_ops{
         void __ARINC_SENDER_init__(ARINC_SENDER*);
         void __ARINC_SENDER_activity__(ARINC_SENDER*);
         ARINC_SENDER arinc_sender_1 = {
+            .instance_name = "arinc_sender_1",
             .state = {
                 .port_direction = DESTINATION,
                 .q_port_max_nb_messages = 10,
@@ -42,6 +43,7 @@ struct port_ops{
         void __UDP_IP_SENDER_init__(UDP_IP_SENDER*);
         void __UDP_IP_SENDER_activity__(UDP_IP_SENDER*);
         UDP_IP_SENDER udp_ip_sender_1 = {
+            .instance_name = "udp_ip_sender_1",
             .state = {
                 .src_ip = IP_ADDR(192, 168, 56, 101),
                 .dst_ip = IP_ADDR(192, 168, 56, 1),
@@ -56,6 +58,7 @@ struct port_ops{
         void __MAC_SENDER_init__(MAC_SENDER*);
         void __MAC_SENDER_activity__(MAC_SENDER*);
         MAC_SENDER mac_sender_1 = {
+            .instance_name = "mac_sender_1",
             .state = {
                 .src_mac = {0x52, 0x54, 0x00, 0x01, 0x02, 0x03},
             },
@@ -66,6 +69,7 @@ struct port_ops{
         void __DTSEC_NET_DEV_init__(DTSEC_NET_DEV*);
         void __DTSEC_NET_DEV_activity__(DTSEC_NET_DEV*);
         DTSEC_NET_DEV net_dev_1 = {
+            .instance_name = "net_dev_1",
             .state = {
                 .dtsec_num = 3,
             },
@@ -76,6 +80,7 @@ struct port_ops{
         void __ARP_ANSWERER_init__(ARP_ANSWERER*);
         void __ARP_ANSWERER_activity__(ARP_ANSWERER*);
         ARP_ANSWERER arp_answerer_1 = {
+            .instance_name = "arp_answerer_1",
             .state = {
                 .good_ips = {IP_ADDR(192, 168, 56, 101),IP_ADDR(192, 168, 56, 102)},
                 .good_ips_len = 2,
@@ -88,6 +93,7 @@ struct port_ops{
         void __MAC_RECEIVER_init__(MAC_RECEIVER*);
         void __MAC_RECEIVER_activity__(MAC_RECEIVER*);
         MAC_RECEIVER mac_receiver_1 = {
+            .instance_name = "mac_receiver_1",
             .state = {
                 .my_mac = {0x52, 0x54, 0x00, 0x01, 0x02, 0x03},
             },
@@ -98,6 +104,7 @@ struct port_ops{
         void __UDP_RECEIVER_init__(UDP_RECEIVER*);
         void __UDP_RECEIVER_activity__(UDP_RECEIVER*);
         UDP_RECEIVER udp_receiver = {
+            .instance_name = "udp_receiver",
 
         };
 
@@ -106,6 +113,7 @@ struct port_ops{
         void __ROUTER_activity__(ROUTER*);
             struct port_ops router_array_for_portArray[1];
         ROUTER router = {
+            .instance_name = "router",
             .state = {
                 .map_ip_port_to_idx = {{IP_ADDR(192, 168, 56, 101), 10001},{IP_ADDR(192, 168, 56, 102), 10005}},
                 .map_ip_port_to_idx_len = 2,
@@ -120,6 +128,7 @@ struct port_ops{
         void __ARINC_RECEIVER_init__(ARINC_RECEIVER*);
         void __ARINC_RECEIVER_activity__(ARINC_RECEIVER*);
         ARINC_RECEIVER arinc_receiver_1 = {
+            .instance_name = "arinc_receiver_1",
             .state = {
                 .port_direction = SOURCE,
                 .is_queuing_port = 1,
@@ -132,7 +141,7 @@ struct port_ops{
 
 
 
-void __components_init__()
+void glue_main()
 {
             __ARINC_SENDER_init__(&arinc_sender_1);
 
@@ -174,7 +183,7 @@ void __components_init__()
 
 }
 
-void __components_activity__()
+void glue_activity()
 {
     while (1) {
                 __ARINC_SENDER_activity__(&arinc_sender_1);

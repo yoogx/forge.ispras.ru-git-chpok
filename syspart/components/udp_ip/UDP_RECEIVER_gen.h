@@ -21,6 +21,7 @@
 #ifndef __UDP_RECEIVER_GEN_H__
 #define __UDP_RECEIVER_GEN_H__
 
+#include <memblocks.h>
     #include "state_structs.h"
     #include "ip_addr.h"
 
