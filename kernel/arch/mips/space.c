@@ -116,7 +116,7 @@ void pok_arch_space_init (void)
 
     printf("Status = 0x%lx\n", mfsr());
     printf("jet_mips_tlb_get_index = %d\n", jet_mips_tlb_get_index);
-    pok_mips_tlb_print();
+
 
 
     for(int i = 0; i < tlb_entries_n; i++)
@@ -126,13 +126,14 @@ void pok_arch_space_init (void)
         pok_mips_tlb_write(
             entry->virt_addr,
             entry->phys_addr,
-            entry->size,
+            entry->half_size,
             entry->permissions,
             entry->cache_policy,
             entry->pid,
             TRUE
             );
     }
+    pok_mips_tlb_print();
 }
 
 void pok_arch_handle_page_fault(

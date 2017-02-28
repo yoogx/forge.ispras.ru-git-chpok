@@ -25,7 +25,7 @@
 struct tlb_entry {
     uint32_t virt_addr;
     uint64_t phys_addr;
-    unsigned size;
+    unsigned half_size;
     unsigned permissions;
     unsigned cache_policy;
     unsigned pid;

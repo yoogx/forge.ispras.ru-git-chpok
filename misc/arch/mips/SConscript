@@ -36,10 +36,10 @@ env['PREFIX'] = 'mips-linux-gnu-'
 
 env['QEMU'] = '~/workspace/Niisi/niisi/qemu/mips64-softmmu/qemu-system-mips64'
 
-env.Append(CFLAGS = '')
-env.Append(ASFLAGS = '')
+env.Append(CFLAGS = ' -mips32')
+env.Append(ASFLAGS = ' -mips32')
 
-env.Append(CFLAGS_KERNEL = '')
+env.Append(CFLAGS_KERNEL = ' -mips32')
 
 env['LDSCRIPT_KERNEL'] = env['JETOS_HOME'] + '/kernel/arch/mips/ldscripts/kernel.lds'
 env['LDSCRIPT_PARTITION'] = env['JETOS_HOME'] + '/kernel/arch/mips/ldscripts/partition.lds'
@@ -127,17 +127,17 @@ class PhysMemoryTypeMIPS(PhysMemoryType):
         """
         Allocate physical memory block.
         """
-        if size > 2**24:
-            print "Cannot allocate TLB of size greater than 16M."
+        if size > 2**25:
+            print "Cannot allocate TLB of half size greater than 16M."
             return
 
-        if size < 4096:
-            size = 4096
-        size_pow_4 = int(math.ceil(math.log((size + 4095 ) // 4096, 4)))
-
+        if size < 4096*2:
+            size = 4096*2
+        #increase 4096 to 8192
+        size_pow_4 = int(math.ceil(math.log((size + 4095 ) // 8192, 4)))
         size_enum = TLBEntry.size_enum_values[size_pow_4]
-
-        size_real = 4096 * 4**size_pow_4
+        # MIPS has 2 paddr
+        size_real = 4096* 2 * 4**size_pow_4
         align_real = size_real
 
         paddr_real = align_val(paddr, align_real)
