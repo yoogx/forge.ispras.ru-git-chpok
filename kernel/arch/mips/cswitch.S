@@ -30,7 +30,7 @@
 
 /* Restore context from current stack. */
 CONTEXT_RESTORE:
-        //.set    noat 
+        .set    noat 
         lw     $ra, OFFSETOF_jet_context_ra($sp)
         lw     $28, OFFSETOF_jet_context_r28($sp)
         lw     $27, OFFSETOF_jet_context_r27($sp)
