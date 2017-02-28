@@ -82,8 +82,7 @@ void pok_mips_tlb_write(
     mtc0(CP0_PAGEMASK, PageSize_Mask(pgsize_enum));
     uint32_t entrylo0, entrylo1;
     entrylo0 = EntryLo0_PFN(physical) | EntryLo0_D(permissions) | EntryLo0_V(permissions);
-    entrylo1 = EntryLo1_PFN(physical) | EntryLo1_D(permissions) | EntryLo1_V(permissions) | EntryLo1_PS(pgsize_enum);
-    
+    entrylo1 = (EntryLo1_PFN(physical) | EntryLo1_D(permissions) | EntryLo1_V(permissions)) + EntryLo1_PS(pgsize_enum);
     /*Registers EntryLo0 and EntryLo1 used only 30 bit, so we can use mtc0*/
     if (pid == 0) //any pid 
     {
@@ -106,7 +105,8 @@ void pok_mips_tlb_read_entry(
         unsigned *valid, 
         unsigned *tsize, 
         uint32_t *epn,
-        uint64_t *rpn)
+        uint64_t *rpn0,
+        uint64_t *rpn1)
 {
     uint32_t entrylo1, entrylo0, entryhi, pagemask;
 
@@ -126,7 +126,8 @@ void pok_mips_tlb_read_entry(
     *tsize = pagemask;
     *epn = entryhi & EntryHi_VPN2_clear_bit;
 /*  Read only 1 entrylo, because they are the same.*/
-    *rpn = (entrylo0 << 6) & PAGE_MASK(msk2offset(pagemask));
+    *rpn0 = (entrylo0 << 6); //& PAGE_MASK(msk2offset(pagemask));
+    *rpn1 = (entrylo1 << 6); //& PAGE_MASK(msk2offset(pagemask));
 }
 
 
@@ -233,20 +234,24 @@ void pok_mips_tlb_print() {
         unsigned valid;
         unsigned tsize;
         uint32_t epn;
-        uint64_t rpn;
+        uint64_t rpn0;
+        uint64_t rpn1;
         pok_mips_tlb_read_entry(
                 i,
                 &valid,
                 &tsize,
                 &epn,
-                &rpn);
+                &rpn0,
+                &rpn1);
         if (valid) {
             printf("DEBUG:   Index = %d\n", i);
             printf("DEBUG:   Valid\r\n");
             printf("DEBUG:   Effective: %p\r\n", (void*)epn);
             // FIXME This is wrong. We print only 32 bits out of 36
-            printf("DEBUG:   Physical:  %p\r\n",
-                    (void*)(unsigned)rpn);
+            printf("DEBUG:   Physical 0:  %p\r\n",
+                    (void*)(unsigned)rpn0);
+            printf("DEBUG:   Physical 1:  %p\r\n",
+                    (void*)(unsigned)rpn1);
             printf("DEBUG:   Size:      %s\r\n", msk2str(tsize));
             printf("DEBUG:   -----------------\r\n");
         }

@@ -47,7 +47,8 @@ void pok_mips_tlb_read_entry(
         unsigned *valid, 
         unsigned *tsize, 
         uint32_t *epn,
-        uint64_t *rpn);
+        uint64_t *rpn0,
+        uint64_t *rpn1);
 
 void dump_tlb(int first, int last);
 
