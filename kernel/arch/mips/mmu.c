@@ -126,8 +126,8 @@ void pok_mips_tlb_read_entry(
     *tsize = pagemask;
     *epn = entryhi & EntryHi_VPN2_clear_bit;
 /*  Read only 1 entrylo, because they are the same.*/
-    *rpn0 = (entrylo0 << 6); //& PAGE_MASK(msk2offset(pagemask));
-    *rpn1 = (entrylo1 << 6); //& PAGE_MASK(msk2offset(pagemask));
+    *rpn0 = (entrylo0 << 6) & PAGE_MASK(msk2offset(pagemask));
+    *rpn1 = (entrylo1 << 6) & PAGE_MASK(msk2offset(pagemask));
 }
 
 

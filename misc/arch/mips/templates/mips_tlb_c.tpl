@@ -21,7 +21,7 @@ struct tlb_entry tlb_entries[] = {
     {
         .virt_addr = {{"0x%x"|format(entry.vaddr)}},
         .phys_addr = {{"0x%x"|format(entry.paddr)}},
-        .size = MIPS_PGSIZE_{{entry.size_enum}},
+        .half_size = MIPS_PGSIZE_{{entry.size_enum}},
         .permissions = {{entry.permissions}},
         .cache_policy = {{entry.cache_policy}},
         .pid = {{entry.pid}},
