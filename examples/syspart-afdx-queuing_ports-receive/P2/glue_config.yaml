@@ -168,7 +168,7 @@ links:
       to:
         instance: afdx_to_arinc_router
         port: portC
-# links to arimk writers
+# links to arinc writers
     - from:
         instance: afdx_to_arinc_router
         port: portArray

@@ -1,5 +1,24 @@
-0. wireshark should be installed in the system
-1. run `./misc/setup-tap_nobr.sh 2` in POK_PATH dir
-2. run wireshark on tap0 (tap1) (or `tshark -i tap0 (tap1)` for command-line interface)
-3. run this example by `scons run-tap2`
-4. In wireshark (or tshark) you will see outgoing udp packets
+You can run 2 modes of receiving messages:
+Queuing ports or Sampling ports
+
+Queuing ports it is standart condition
+to run this example by `scons run-tap-rec`
+
+Sampling ports:
+
+1. change ports in config.xml in this catalog
+QP1 -> SP1
+UOUT -> SUOUT
+QP2 -> SP2
+UIN -> SUIN
+
+2. change state of arinc_port_writer_1 in P2/glue_config.yaml
+port_name: '"UIN"' to '"SUIN"'
+is_queuing_port: 1 to 0
+
+3. in file P1/src/main.c
+uncomment #define SAMPLING_MODE
+and connent #define QUEUING_MODE
+
+3. build this example by 'scons cdeveloper=1'
+4. run this example by `scons run-tap-rec`

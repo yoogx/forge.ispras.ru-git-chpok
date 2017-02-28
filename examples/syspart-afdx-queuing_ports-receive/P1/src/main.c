@@ -59,47 +59,43 @@ static void first_process(void)
 {
     // send messages in bursts of 10 (maximum queued amount)
     char    afdx_payload[MAX_AFDX_PAYLOAD_SIZE];
-    int i = 0;
     RETURN_CODE_TYPE ret;
 
     TIMED_WAIT(1 * SECOND, &ret);
 
     while (1) {
-            if (i == 0){
-                strcpy(afdx_payload, "Hello!");
-            #ifdef PRINT
-                //~ printf("P1_test message: %s\n", afdx_payload);
-            #endif
+        #ifdef SAMPLING_MODE
+            VALIDITY_TYPE validity;
+            MESSAGE_SIZE_TYPE len;
+            int x = 0;
 
-            #ifdef SAMPLING_MODE
-                WRITE_SAMPLING_MESSAGE(SP1, (MESSAGE_ADDR_TYPE) &afdx_payload, strlen(afdx_payload) + 1, &ret);
-            #endif
-
-            #ifdef QUEUING_MODE
-                SEND_QUEUING_MESSAGE(QP1, (MESSAGE_ADDR_TYPE) &afdx_payload, strlen(afdx_payload) + 1, 0, &ret);
-            #endif
+            READ_SAMPLING_MESSAGE(SP2, (MESSAGE_ADDR_TYPE) &afdx_payload, &len, &validity, &ret);
+            x = 1;
+            if (ret == NO_ERROR) {
+                if (x == 1){
+                    afdx_payload[len] = '\0';
+                    printf("ARINC GET MESSAGE: %s\n", afdx_payload);
+                    printf("=================================================\n");
+                    x = 0;
+                }
             }
-            if (i == 1){
-                strcpy(afdx_payload, "How are you?");
-            #ifdef PRINT
-                //~ printf("P1_test message: %s\n", afdx_payload);
-            #endif
+        #endif
 
-            #ifdef SAMPLING_MODE
-                WRITE_SAMPLING_MESSAGE(SP1, (MESSAGE_ADDR_TYPE) &afdx_payload, strlen(afdx_payload) + 1, &ret);
-            #endif
+        #ifdef QUEUING_MODE
 
-            #ifdef QUEUING_MODE
-                SEND_QUEUING_MESSAGE(QP1, (MESSAGE_ADDR_TYPE) &afdx_payload, strlen(afdx_payload) + 1, 0, &ret);
-            #endif
+            MESSAGE_SIZE_TYPE len;
+
+            RECEIVE_QUEUING_MESSAGE(QP2, INFINITE_TIME_VALUE, (MESSAGE_ADDR_TYPE) &afdx_payload, &len, &ret);
+
+            if (ret == NO_ERROR) {
+                afdx_payload[len] = '\0';
+                printf("ARINC GET MESSAGE: %s\n", afdx_payload);
+                printf("=================================================\n");
             }
-
-            check_ret(ret);
-            i = 1 -i;
-
-            //printf("P1_main, first_process: Here!\n");
-            TIMED_WAIT( 2 * SECOND, &ret);
+        #endif
+        TIMED_WAIT(2 * SECOND, &ret);
     }
+    check_ret(ret);
 }
 
 static int real_main(void)
@@ -135,24 +131,36 @@ static int real_main(void)
     }
 
 #ifdef SAMPLING_MODE
-        CREATE_SAMPLING_PORT("SP1", MAX_AFDX_PAYLOAD_SIZE, SOURCE, SECOND, &SP1, &ret);
-        printf("P1_SP1 = %d\n", (int) SP1);
+    CREATE_SAMPLING_PORT("SP1", MAX_AFDX_PAYLOAD_SIZE, SOURCE, SECOND, &SP1, &ret);
     if (ret != NO_ERROR) {
         printf("P1_couldn't create port SP1, ret %d\n", (int) ret);
+    } else {
+        printf("P1_SP1 = %d\n", (int) SP1);
     }
+    CREATE_SAMPLING_PORT("SP2", MAX_AFDX_PAYLOAD_SIZE, DESTINATION, SECOND, &SP2, &ret);
 
-        CREATE_SAMPLING_PORT("SP2", MAX_AFDX_PAYLOAD_SIZE, DESTINATION, SECOND, &SP2, &ret);
+    if (ret != NO_ERROR) {
+        printf("P1_couldn't create port SP2, ret %d\n", (int) ret);
+    } else {
+        printf("P1_SP2 = %d\n", (int) SP2);
+    }
 #endif
 
  #ifdef QUEUING_MODE
     // CREATING QP port 1
     CREATE_QUEUING_PORT("QP1", MAX_AFDX_PAYLOAD_SIZE, MAX_NB_MESSAGE, SOURCE , FIFO, &QP1, &ret);
-    printf("P1_QP1 = %d\n", (int) QP1);
     if (ret != NO_ERROR) {
         printf("P1_couldn't create port QP1, ret %d\n", (int) ret);
+    } else {
+        printf("created P1_QP1 = %d\n", (int) QP1);
     }
     // CREATING QP port 2
-    CREATE_QUEUING_PORT("QP2", 64, 10, DESTINATION, FIFO, &QP2, &ret);
+    CREATE_QUEUING_PORT("QP2", MAX_AFDX_PAYLOAD_SIZE, MAX_NB_MESSAGE, DESTINATION, FIFO, &QP2, &ret);
+    if (ret != NO_ERROR) {
+        printf("P1_couldn't create port QP2, ret %d\n", (int) ret);
+    } else {
+        printf("created P1_QP2 = %d\n", (int) QP2);
+    }
 #endif
 
     // transition to NORMAL operating mode
@@ -162,7 +170,7 @@ static int real_main(void)
 
     if (ret != NO_ERROR) {
         printf("couldn't transit to normal operating mode: %d\n", (int) ret);
-    } 
+    }
 
     STOP_SELF();
     return 0;

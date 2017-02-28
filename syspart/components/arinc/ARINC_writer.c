@@ -23,6 +23,9 @@
 
 #define C_NAME "ARINC_PORT_WRITER: "
 
+#define SECOND 1000000000LL
+#define SAMPLING_REFRESH_PERIOD SECOND
+
 static ret_t send_msg_to_user_partition_queuing(ARINC_PORT_WRITER *self, const char *payload, size_t length)
 {
     RETURN_CODE_TYPE ret;
@@ -81,7 +84,7 @@ void arinc_port_writer_init(ARINC_PORT_WRITER *self)
                 self->state.port_name,
                 self->state.port_max_message_size,
                 self->state.port_direction,
-                0, //in future should be any positive number
+                SAMPLING_REFRESH_PERIOD, //in future should be any positive number
                 &self->state.port_id,
                 &ret);
     }
