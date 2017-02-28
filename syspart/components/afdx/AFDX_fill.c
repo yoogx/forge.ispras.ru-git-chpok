@@ -186,7 +186,6 @@ uint16_t fill_afdx_frame(AFDX_FILLER_state *state,
     p->ip_header.protocol = IPPROTO_UDP;
 
     p->ip_header.header_checksum = 0;
-    p->ip_header.header_checksum = ip_hdr_checksum_2(&p->ip_header);
     //src
     p->ip_header.u_src_addr.ip_src_addr.ip_const_src = IP_CONST_SRC;
     p->ip_header.u_src_addr.ip_src_addr.network_id = (IP_NETWORK_ID << 4 | DOMAIN_ID);
@@ -204,6 +203,7 @@ uint16_t fill_afdx_frame(AFDX_FILLER_state *state,
         p->ip_header.u_dst_addr.ip_multicast_dst_addr.ip_const_dst = hton16(IP_CONST_DST);
         p->ip_header.u_dst_addr.ip_multicast_dst_addr.vl_id =  hton16(state->vl_id);
     }
+    p->ip_header.header_checksum = ip_hdr_checksum_2(&p->ip_header);
 //UDP
     p->udp_header.afdx_src_port = hton16(state->src_afdx_port);
     p->udp_header.afdx_dst_port = hton16(state->dst_afdx_port);
