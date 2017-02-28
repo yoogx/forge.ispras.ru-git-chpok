@@ -117,7 +117,6 @@ __attribute__((__aligned__(PGSIZE))) uint32_t pgdir[NPDENTRIES] = {
 void ja_space_init(void)
 {
     asm volatile("movl %0,%%cr3" : : "r" (PHYS_ADDR(pgdir)));
-    //TODO do i need asm volatile("invlpg (0)":::"memory");
 }
 
 void ja_space_switch (jet_space_id space_id)
