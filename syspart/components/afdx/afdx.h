@@ -46,8 +46,8 @@
 typedef struct {
     char    data[MAX_AFDX_FRAME_SIZE];
     size_t  size;
-    unsigned prepend_overhead;
-    unsigned append_overhead;
+    unsigned prepend_max_size;
+    unsigned append_max_size;
 } afdx_buffer;
 
 /*

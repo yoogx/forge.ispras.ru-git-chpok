@@ -226,9 +226,10 @@ uint16_t fill_afdx_frame(AFDX_FILLER_state *state,
 
 //UDP Checksum
     p->udp_header.udp_checksum = udp_checksum(&p->udp_header,
-                                                    hton16(payload_size + UDP_H_LENGTH),
-                                                    (p->ip_header.u_src_addr.ip_general_src_addr),
-                                                    (p->ip_header.u_dst_addr.ip_general_dst_addr));
+                                             hton16(payload_size + UDP_H_LENGTH),
+                                             (p->ip_header.u_src_addr.ip_general_src_addr),
+                                             (p->ip_header.u_dst_addr.ip_general_dst_addr)
+                                             );
     if (pad_size == 0)
         return (payload_size + HEADER_LENGTH + SUFFIX_LENGTH);
     else

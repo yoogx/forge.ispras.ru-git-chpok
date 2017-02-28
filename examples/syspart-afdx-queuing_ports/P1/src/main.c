@@ -20,12 +20,8 @@
 #include <arinc653/queueing.h>
 #include <arinc653/sampling.h>
 
-/* ============================== */
+/* Uncomment this if you want to print some debug information */
 #define PRINT
-/* ============================== */
-
-//~ #include <afdx/AFDX_ES.h>
-//~ #include <afdx/AFDX_ES_config.h>
 
 #define SECOND 1000000000LL
 
@@ -33,7 +29,10 @@
 #define MAX_AFDX_PAYLOAD_SIZE 64
 #define MAX_NB_MESSAGE 10
 
-// Two modes Sampling and Queuing -
+ /*
+  * Two modes Sampling and Queuing
+  * Uncomment mode, which you want to use
+  */
 //~ #define SAMPLING_MODE
 #define QUEUING_MODE
 //---------------------------------

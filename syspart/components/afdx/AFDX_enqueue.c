@@ -38,7 +38,7 @@
 
 #include <smalloc.h>
 
-// include generated files
+/* include generated files */
 #include "AFDX_QUEUE_ENQUEUER_gen.h"
 
 #define C_NAME  "AFDX_QUEUE_ENQUEUER: "
@@ -72,8 +72,8 @@ void send_packet(AFDX_QUEUE_ENQUEUER *self, frame_data_t *afdx_frame, int net_ca
         ret_t res = AFDX_QUEUE_ENQUEUER_call_portNetA_send(self,
                         self->state.buffer[self->state.head].data,
                         self->state.buffer[self->state.head].size,
-                        self->state.buffer[self->state.head].prepend_overhead,
-                        self->state.buffer[self->state.head].append_overhead
+                        self->state.buffer[self->state.head].prepend_max_size,
+                        self->state.buffer[self->state.head].append_max_size
                         );
         if (res != EOK)
             printf(C_NAME"Error in send to card A\n");
@@ -88,8 +88,8 @@ void send_packet(AFDX_QUEUE_ENQUEUER *self, frame_data_t *afdx_frame, int net_ca
         ret_t res = AFDX_QUEUE_ENQUEUER_call_portNetB_send(self,
                         self->state.buffer[self->state.head].data,
                         self->state.buffer[self->state.head].size,
-                        self->state.buffer[self->state.head].prepend_overhead,
-                        self->state.buffer[self->state.head].append_overhead
+                        self->state.buffer[self->state.head].prepend_max_size,
+                        self->state.buffer[self->state.head].append_max_size
                         );
         if (res != EOK)
             printf(C_NAME"Error in send to card B\n");
@@ -116,7 +116,10 @@ void afdx_queue_init(AFDX_QUEUE_ENQUEUER *self)
     self->state.tail = 0;
     self->state.cur_queue_size = 0;
 
-    // only for TEST!
+    /*
+     * only for TEST!
+     * DELETE, when support of periodic modules will appear
+     */
     GET_TIME(&system_time, &ret);
 
     if (ret != NO_ERROR)
@@ -131,7 +134,10 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
     SYSTEM_TIME_TYPE system_time;
     RETURN_CODE_TYPE return_code;
 
-    // only for TEST!
+    /*
+     * only for TEST!
+     * DELETE, when support of periodic modules will appear
+     */
     GET_TIME(&system_time, &return_code);
 
     if (return_code != NO_ERROR)
@@ -143,13 +149,13 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
 
         printf("QUEUE activity get message: %s\n", afdx_frame->afdx_payload);
 
-         //send to 1 card
+         /* send to 1 card */
         {
             printf("Sending to the card A \n");
             send_packet(self, afdx_frame, NETWORK_CARD_A);
         }
 
-        //send to 2 card
+        /* send to 2 card */
         {
             printf("Sending to the card B\n");
             send_packet(self, afdx_frame, NETWORK_CARD_B);
@@ -162,7 +168,7 @@ void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
 
         self->state.min_next_time = system_time + self->state.BAG;
 
-        // Change QUEUE state
+        /* Change QUEUE state */
         self->state.head++;
 
         if (self->state.head == self->state.max_queue_size)
@@ -190,11 +196,11 @@ ret_t afdx_enqueuer_implementation(
         SET_PARTITION_MODE(IDLE, &ret);
         return -1;
     }
-
+    /* Queuing */
     memcpy(&(self->state.buffer[self->state.tail].data), afdx_frame, frame_size);
     self->state.buffer[self->state.tail].size = frame_size;
-    self->state.buffer[self->state.tail].prepend_overhead = prepend_max_size;
-    self->state.buffer[self->state.tail].append_overhead = append_max_size;
+    self->state.buffer[self->state.tail].prepend_max_size = prepend_max_size;
+    self->state.buffer[self->state.tail].append_max_size = append_max_size;
 
     self->state.tail++;
     self->state.cur_queue_size++;

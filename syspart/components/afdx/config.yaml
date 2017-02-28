@@ -34,8 +34,6 @@
         # the index in the queue where you want to record information
         tail: size_t
         cur_queue_size: size_t
-        prepend_overhead: size_t
-        append_overhead: size_t
         max_queue_size: size_t
         min_next_time: SYSTEM_TIME_TYPE
 #temporary solution until we can generate a periodic process components

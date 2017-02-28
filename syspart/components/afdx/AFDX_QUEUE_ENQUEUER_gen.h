@@ -31,15 +31,13 @@
     #include <interfaces/preallocated_sender_gen.h>
 
 typedef struct AFDX_QUEUE_ENQUEUER_state {
+    afdx_buffer * buffer;
     size_t head;
+    size_t max_queue_size;
     SYSTEM_TIME_TYPE min_next_time;
     SYSTEM_TIME_TYPE BAG;
     size_t cur_queue_size;
-    afdx_buffer * buffer;
     size_t tail;
-    size_t max_queue_size;
-    size_t prepend_overhead;
-    size_t append_overhead;
 }AFDX_QUEUE_ENQUEUER_state;
 
 typedef struct {
