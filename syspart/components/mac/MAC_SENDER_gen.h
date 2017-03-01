@@ -21,6 +21,7 @@
 #ifndef __MAC_SENDER_GEN_H__
 #define __MAC_SENDER_GEN_H__
 
+#include <memblocks.h>
 
     #include <interfaces/ethernet_packet_sender_gen.h>
 
@@ -31,6 +32,7 @@ typedef struct MAC_SENDER_state {
 }MAC_SENDER_state;
 
 typedef struct {
+    char instance_name[16];
     MAC_SENDER_state state;
     struct {
             struct {

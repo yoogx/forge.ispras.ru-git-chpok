@@ -1,0 +1,75 @@
+// To keep this in the first portion of the binary.
+.section ".text.boot"
+
+
+// Entry point for the kernel.
+// r15 -> should begin execution at 0x8000.
+// r0 -> 0x00000000
+// r1 -> 0x00000C42
+// r2 -> 0x00000100 - start of ATAGS
+// preserve these registers as argument for kernel_main
+.globl jet_start
+jet_start:
+
+        ldr r4, =0x2020040
+        ldr r3, ='J'
+        str r3, [r4]
+        ldr r3, ='E'
+        str r3, [r4]
+        ldr r3, ='T'
+        str r3, [r4]
+        ldr r3, ='\n'
+        str r3, [r4]
+
+
+        //TODO switch to svc and mask interrupts (linux's safe_svcmode_maskall)
+
+
+        adr     r3, 2f
+        ldmia   r3, {r4, r8}
+        sub     r4, r3, r4                      @ (PHYS_OFFSET - PAGE_OFFSET)
+        add     r8, r8, r4                      @ PHYS_OFFSET
+
+        mmu_flags = PMD_TYPE_SECT | PMD_SECT_AP_WRITE | PMD_SECT_AP_READ |  PMD_SECT_AF | PMD_FLAGS_UP | \mm_mmuflags)
+        /*
+
+	bl	__create_page_tables
+	ldr	r13, =__mmap_switched
+
+        // plus enable and disable bits in r0 (CR_A, CR_I, CR_Z, CR_C)
+	mov	r5, #DACR_INIT
+	mcr	p15, 0, r5, c3, c0, 0		@ load domain access register
+	mcr	p15, 0, r4, c2, c0, 0		@ load page table pointer
+
+
+	mov	r0, r0
+	instr_sync
+	mcr	p15, 0, r0, c1, c0, 0		@ write control reg // write r0 !
+	mrc	p15, 0, r3, c0, c0, 0		@ read id reg //FUCK
+	instr_sync // isb instruction
+	mov	r3, r3 //FUCK
+	mov	r3, r13 //FUCK
+	ret	r3 //ret r13
+
+        */
+
+        // Setup the stack.
+        ldr sp, =jet_entry_stack
+
+        // Call arch_init
+        ldr r3, =kernel_main
+        blx r3
+
+        // Call jet_boot. Should not return
+        ldr r3, =jet_boot
+        blx r3
+
+
+2:      .long   .
+        .long   PAGE_OFFSET
+
+
+        // halt
+halt:
+        wfe
+        b halt

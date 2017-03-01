@@ -23,7 +23,7 @@
 static inline uint64_t jet_virt_to_phys(jet_memory_block_status_t *mb, void *virt_ptr) {
     if (mb->paddr == 0) {
         printf("%s: Memory block paddr == 0. Memory block inn't contiguous?"
-                "Memory block addr = 0x%x\n", __func__, mb->addr);
+                "Memory block addr = %p\n", __func__, (void *)mb->addr);
         abort();
     }
 
@@ -41,7 +41,7 @@ static inline uint64_t jet_virt_to_phys(jet_memory_block_status_t *mb, void *vir
 static inline void* jet_phys_to_virt(jet_memory_block_status_t *mb, uint64_t phys) {
     if (mb->paddr == 0) {
         printf("%s: Memory block paddr == 0. Memory block isn't contiguous?"
-                "Memory block addr = 0x%x\n", __func__, mb->addr);
+                "Memory block addr = %p\n", __func__, (void *)mb->addr);
         abort();
     }
     assert(phys >= mb->paddr);

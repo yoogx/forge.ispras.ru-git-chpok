@@ -21,16 +21,14 @@ Import('libpok_env')
 
 Export('libpok_env')
 
-arch        =  SConscript('arch/SConscript')
-arinc653    =  SConscript('arinc653/SConscript')
-core        =  SConscript('core/SConscript')
-libc        =  SConscript('libc/SConscript')
-libm        =  SConscript('libm/SConscript')
-middleware  =  SConscript('middleware/SConscript')
-protocols   =  SConscript('protocols/SConscript')
-utils       =  SConscript('utils/SConscript')
+user_objects = []
 
-user_objects = [arch, arinc653, core, libc, libm, middleware, protocols, utils]
+user_objects += SConscript('arch/SConscript')
+user_objects += SConscript('arinc653/SConscript')
+user_objects += SConscript('core/SConscript')
+user_objects += SConscript('libc/SConscript')
+user_objects += SConscript('libm/SConscript')
+user_objects += SConscript('utils/SConscript')
 
 libpok_target = libpok_env.StaticLibrary(target = 'pok',
     source = user_objects)

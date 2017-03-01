@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <arinc653/time.h>
+#include <arinc653/process.h>
 
 #include <fb.h>
 #define MILLISECOND 1000000
@@ -49,7 +50,10 @@ void fb_example_run(void)
     RETURN_CODE_TYPE ret;
 
     struct uwrm_scm_direct_fb fb;
-    uwrm_scm_get_direct_fb(&fb);
+    if (uwrm_scm_get_direct_fb(&fb) != UWRM_OK) {
+        printf("Can't get framebuffer\n");
+        STOP_SELF();
+    }
 
     int y = fb.height - 100;
     int x = 0;

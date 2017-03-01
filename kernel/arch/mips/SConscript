@@ -19,8 +19,6 @@
 
 Import('arch_env')
 
-libfdt = SConscript('libfdt/SConscript')
-
 arch = arch_env.StaticObject(source = Glob('*.[Sc]'))
 
 if arch_env.get('jdeveloper'):
@@ -62,6 +60,6 @@ if arch_env.get('jdeveloper'):
 
     arch_env.Depends('regenerate', asm_offsets)
 
-Return('arch', 'libfdt')
+Return('arch')
 
 # EOF

@@ -17,5 +17,9 @@
 
 pok_bool_t ja_access_ok(const void* __user addr, size_t size)
 {
+    (void) addr;
+    (void) size;
+
+    //TODO
     return TRUE; // Cannot distinguish kernel and user addresses.
 }

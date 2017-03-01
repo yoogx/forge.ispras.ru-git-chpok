@@ -343,7 +343,7 @@ pok_arch_rfdi_for_debug:
         lwz     %r4,OFFSETOF_jet_interrupt_context_r4(%r1)
         mtsprg  2,%r4
         lwz     %r3,OFFSETOF_jet_interrupt_context_r3(%r1)
-        mtsprg  2,%r3
+        mtsprg  3,%r3
 
         /* srr0->dsrr0, srr1->dsrr1. */
         lwz     %r4,OFFSETOF_jet_interrupt_context_srr1(%r1)
@@ -365,9 +365,9 @@ pok_arch_rfdi_for_debug:
         EXCEPTION_PROLOGUE_COMMON
 
         /* srr0<-dsrr0, srr1<-dsrr1. */
-        mtspr   SPRN_DSRR0, %r3
+        mfspr   %r3, SPRN_DSRR0
         stw     %r3,OFFSETOF_jet_interrupt_context_srr0(%r1)
-        mtspr   SPRN_DSRR0, %r4
+        mfspr   %r4, SPRN_DSRR1
         stw     %r4,OFFSETOF_jet_interrupt_context_srr1(%r1)
 
         mfsprg  %r3,3
@@ -398,11 +398,6 @@ _pok_reset:
         lis %r1, (MSR_KERNEL)@h
         ori %r1,%r1,(MSR_KERNEL)@l
         mtmsr %r1
-
-        /*write r3(devtree addr) to devtree_address global variable*/
-        lis %r1, (devtree_address)@h
-        ori %r1,%r1,(devtree_address)@l
-        stw %r3, 0(r1)
 
         /* Setup stack */
         lis %r1,(jet_entry_stack-4)@h

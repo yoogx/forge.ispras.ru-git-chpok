@@ -34,8 +34,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_TIME
-
 #include <arinc653/types.h>
 #include <arinc653/time.h>
 
@@ -92,6 +90,3 @@ void REPLENISH (SYSTEM_TIME_TYPE budget_time, RETURN_CODE_TYPE *return_code)
         MAP_ERROR_DEFAULT(INVALID_PARAM);
     }
 }
-
-#endif
-

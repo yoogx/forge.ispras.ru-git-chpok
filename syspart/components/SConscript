@@ -81,6 +81,14 @@ def generate_interfaces():
                 )
             comp_env.Depends(COMPONENTS_DEFAULT_TARGET, t)
 
+def has_per_instance_mb(component):
+    if not 'memory_blocks' in component:
+        return False
+    mb_list = component['memory_blocks']
+
+    if any(mb.get('is_per_instance', False) for mb in mb_list):
+        return True
+    return False
 
 def generate_component_files():
     interfaces =  get_interfaces_config(INTERFACES_DIR)
@@ -93,7 +101,8 @@ def generate_component_files():
         for component in cur_config:
             jinja_env = {
                     'component': component,
-                    'interfaces':  interfaces
+                    'interfaces': interfaces,
+                    'has_per_instance_memory_block': has_per_instance_mb(component)
                     }
 
             t = comp_env.TemplateRender(

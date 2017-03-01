@@ -72,6 +72,8 @@ void pok_mips_tlb_write(
         pok_bool_t  valid
         )
 {
+    (void) wimge;
+    (void) valid;
     /*
      * TLB can be written by first writing the necessary information into EntryLo1, EntryLo2, EntryHi and
      * PageMask using mtc0 and then executing the tlbwr instruction.
@@ -143,7 +145,7 @@ void dump_tlb(int first, int last)
         uint32_t s_entryhi, entryhi;//, asid;
         uint32_t entrylo0, entrylo1, pa;
         uint32_t s_index, s_pagemask;
-        uint32_t pagemask, c0, c1, i;
+        uint32_t pagemask, c0, c1;
         uint32_t asidmask = 0xff;
         //~ int asidwidth = DIV_ROUND_UP(ilog2(asidmask) + 1, 4);
 //~ #ifdef CONFIG_32BIT
@@ -161,7 +163,7 @@ void dump_tlb(int first, int last)
         s_index    = mfc0(CP0_INDEX);
         //~ asid = s_entryhi & asidmask;
 
-        for (i = first; i <= last; i++) {
+        for (int i = first; i <= last; i++) {
                 mtc0(CP0_INDEX, i);
                 TLBR();
                 pagemask = mfc0(CP0_PAGEMASK);
@@ -227,10 +229,10 @@ void dump_tlb(int first, int last)
 
 
 void pok_mips_tlb_print() {
-    unsigned limit = jet_mips_tlb_get_index;
+    int limit = jet_mips_tlb_get_index;
     printf("DEBUG:   TLB pages = %d\n", limit + 1);
     printf("DEBUG:   -----------------\r\n");
-    for (unsigned i = 0; i <= limit; i++) {
+    for (int i = 0; i <= limit; i++) {
         unsigned valid;
         unsigned tsize;
         uint32_t epn;

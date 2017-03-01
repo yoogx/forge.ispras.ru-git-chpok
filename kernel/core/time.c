@@ -29,7 +29,6 @@ void jet_on_tick(void)
     pok_sched_on_time_changed();
 }
 
-#ifdef POK_NEEDS_GETTICK
 /**
  * Get the current ticks value, store it in
  * \a clk_val
@@ -52,7 +51,6 @@ pok_ret_t   pok_clock_gettime (clockid_t clk_id, pok_time_t* __user val)
 
    return POK_ERRNO_OK;
 }
-#endif
 
 pok_ret_t   jet_time(time_t* __user val)
 {

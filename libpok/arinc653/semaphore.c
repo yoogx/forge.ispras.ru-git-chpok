@@ -20,8 +20,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_SEMAPHORE
-
 #include "semaphore.h"
 
 #include <arinc653/types.h>
@@ -35,12 +33,22 @@
 #include "arinc_config.h"
 #include "arinc_process_queue.h"
 
-static size_t nsemaphores_used = 0;
+static unsigned nsemaphores_used = 0;
+static inline SEMAPHORE_ID_TYPE index_to_id(unsigned index)
+{
+    // Avoid 0 value.
+    return index + 1;
+}
+
+static inline unsigned id_to_index(SEMAPHORE_ID_TYPE id)
+{
+    return id - 1;
+}
 
 /* Find semaphore by name (in UPPERCASE). Returns NULL if not found. */
 static struct arinc_semaphore* find_semaphore(const char* name)
 {
-   for(int i = 0; i < nsemaphores_used; i++)
+   for(unsigned i = 0; i < nsemaphores_used; i++)
    {
       struct arinc_semaphore* semaphore = &arinc_semaphores[i];
       if(strncasecmp(semaphore->semaphore_name, name, MAX_NAME_LENGTH) == 0)
@@ -104,7 +112,7 @@ void CREATE_SEMAPHORE (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
    msection_init(&semaphore->section);
    msection_wq_init(&semaphore->process_queue);
 
-   *SEMAPHORE_ID = nsemaphores_used + 1;// Avoid 0 value.
+   *SEMAPHORE_ID = index_to_id(nsemaphores_used);
 
    nsemaphores_used++;
 
@@ -115,13 +123,14 @@ void WAIT_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
                      SYSTEM_TIME_TYPE TIME_OUT,
                      RETURN_CODE_TYPE *RETURN_CODE )
 {
-   if (SEMAPHORE_ID <= 0 || SEMAPHORE_ID > nsemaphores_used) {
+    unsigned index = id_to_index(SEMAPHORE_ID);
+   if (index >= nsemaphores_used) {
       // Incorrect semaphore identificator.
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
 
-   struct arinc_semaphore* semaphore = &arinc_semaphores[SEMAPHORE_ID - 1];
+   struct arinc_semaphore* semaphore = &arinc_semaphores[index];
 
    msection_enter(&semaphore->section);
 
@@ -170,13 +179,14 @@ void WAIT_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
 void SIGNAL_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
                        RETURN_CODE_TYPE *RETURN_CODE )
 {
-   if (SEMAPHORE_ID <= 0 || SEMAPHORE_ID > nsemaphores_used) {
+    unsigned index = id_to_index(SEMAPHORE_ID);
+   if (index >= nsemaphores_used) {
       // Incorrect semaphore identificator.
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
 
-   struct arinc_semaphore* semaphore = &arinc_semaphores[SEMAPHORE_ID - 1];
+   struct arinc_semaphore* semaphore = &arinc_semaphores[index];
 
    msection_enter(&semaphore->section);
 
@@ -218,7 +228,7 @@ void GET_SEMAPHORE_ID (SEMAPHORE_NAME_TYPE SEMAPHORE_NAME,
       return;
    }
 
-   *SEMAPHORE_ID = (semaphore - arinc_semaphores) + 1;
+   *SEMAPHORE_ID = index_to_id(semaphore - arinc_semaphores);
    *RETURN_CODE = NO_ERROR;
 }
 
@@ -226,13 +236,14 @@ void GET_SEMAPHORE_STATUS (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
                            SEMAPHORE_STATUS_TYPE *SEMAPHORE_STATUS,
                            RETURN_CODE_TYPE *RETURN_CODE )
 {
-   if (SEMAPHORE_ID <= 0 || SEMAPHORE_ID > nsemaphores_used) {
+    unsigned index = id_to_index(SEMAPHORE_ID);
+   if (index >= nsemaphores_used) {
       // Incorrect semaphore identificator.
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
 
-   struct arinc_semaphore* semaphore = &arinc_semaphores[SEMAPHORE_ID - 1];
+   struct arinc_semaphore* semaphore = &arinc_semaphores[index];
 
    SEMAPHORE_STATUS->MAXIMUM_VALUE = semaphore->maximum_value;
 
@@ -246,5 +257,3 @@ void GET_SEMAPHORE_STATUS (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
 
    *RETURN_CODE = NO_ERROR;
 }
-
-#endif

@@ -142,6 +142,8 @@ void pok_arch_handle_page_fault(
         uint32_t syndrome,
         pf_type_t type)
 {
+   (void) syndrome; //WTF?
+   (void) type;
 #ifdef POK_NEEDS_DEBUG
     if (vctx->STATUS & CP0_STATUS_KSU_1) {
         printf("USER ");

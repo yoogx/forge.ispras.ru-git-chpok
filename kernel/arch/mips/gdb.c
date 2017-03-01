@@ -71,6 +71,7 @@ void gdb_set_regs(const struct jet_interrupt_context* ea, uint32_t* registers)
 void gdb_get_regs(struct jet_interrupt_context* ea, const uint32_t* registers)
 {
     //TODO
+    (void) ea;
+    (void) registers;
 }
-
 #endif /* POK_NEEDS_GDB */

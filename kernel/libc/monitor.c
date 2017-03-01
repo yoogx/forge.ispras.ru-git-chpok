@@ -31,7 +31,7 @@ static void pok_network_thread_init(void)
 #endif
 
 
-#define NCOMMANDS sizeof(commands)/sizeof(commands[0])
+#define NCOMMANDS ((int)(sizeof(commands)/sizeof(commands[0])))
 
 
 
@@ -200,23 +200,21 @@ int info_partition(int argc,char **argv){
     
     pok_partition_arinc_t* part = &pok_partitions_arinc[number];
     
-    //~ printf("\n\n");
-    //~ printf("Info about partition #%d\n",number);
-    //~ printf("is_paused = %d\n", partition_pause_get(number));
-    //~ printf("base_addr = 0x%lx\n", (unsigned long)space_layout.kernel_addr);
-    //~ printf("base_vaddr = 0x%lx\n", (unsigned long)space_layout.user_addr);
-    //~ printf("size = 0x%zx\n", space_layout.size);
-    //~ printf("name = %s\n", part->base_part.name);
-    //~ printf("nthreads = %lu\n", part->nthreads);
+    printf("\n\n");
+    printf("Info about partition #%d\n",number);
+    printf("is_paused = %d\n", partition_pause_get(number));
+    //printf("base_addr = 0x%lx\n", (unsigned long)space_layout.kernel_addr);
+    //printf("base_vaddr = 0x%lx\n", (unsigned long)space_layout.user_addr);
+    //printf("size = 0x%zx\n", space_layout.size);
+    printf("name = %s\n", part->base_part.name);
+    printf("nthreads = %d\n", part->nthreads);
     //~ printf("period = %lu\n", part->base_part.period);
     //~ printf("duration = %lu\n", part->base_part.duration);
-    //~ //printf("activation = %llu\n", part->base_part.activation);
-    //~ printf("lock_level = %u\n", (unsigned) part->lock_level);
-    //~ printf("prev_thread = %u\n", part->lock_level ? (unsigned)(part->thread_locked - part->threads) : (unsigned)-1);
-    //~ printf("current_thread = %u\n", (unsigned)(part->thread_current - part->threads));
-    //~ printf("thread_main = %u\n", POK_PARTITION_ARINC_MAIN_THREAD_ID);
-
-
+    //printf("activation = %llu\n", part->base_part.activation);
+    printf("lock_level = %u\n", (unsigned) part->lock_level);
+    printf("prev_thread = %u\n", part->lock_level ? (unsigned)(part->thread_locked - part->threads) : (unsigned)-1);
+    printf("current_thread = %u\n", (unsigned)(part->thread_current - part->threads));
+    printf("thread_main = %u\n", POK_PARTITION_ARINC_MAIN_THREAD_ID);
 #ifdef POK_NEEDS_IO
     //printf("io_min = %d\n",pok_partitions[number].io_min);        
     //printf("io_max = %d\n",pok_partitions[number].io_max);        
@@ -425,6 +423,10 @@ void monitor_process_error(pok_system_state_t partition_state,
         uint8_t state_byte_preempt_local,
         void* failed_address)
 {
+    (void) failed_address;
+    (void) partition_state;
+    (void) error_id;
+    (void) state_byte_preempt_local;
     pok_fatal("Error in monitor");
 }
 

@@ -79,12 +79,3 @@ void ja_cpu_reset(void)
     uintptr_t addr = pok_bsp.ccsrbar_base + pok_bsp.dcfg_offset + DCFG_RSTCR;
     *(uint32_t *) addr = RSTCR_RESET_REQ;
 }
-
-pok_ret_t pok_bsp_get_info(void * __user addr) {
-    pok_bsp_t* __kuser k_addr = jet_user_to_kernel(addr, sizeof(pok_bsp_t));
-    if(!k_addr) return POK_ERRNO_EFAULT;
-
-    *k_addr = pok_bsp;
-
-    return POK_ERRNO_OK;
-}

@@ -29,18 +29,9 @@
 
 void process_syscall(interrupt_frame* frame)
 {
-   pok_syscall_info_t   syscall_info;
    pok_ret_t            syscall_ret;
    pok_syscall_args_t*  syscall_args;
    pok_syscall_id_t     syscall_id;
-
-   /*
-    * Give informations about syscalls: which partition, thread
-    * initiates the syscall, the base addr of the partition and so on.
-    */
-   syscall_info.partition = 0; // Has no sence with new scheduler
-   syscall_info.base_addr = 0; // Has no sence with new scheduler
-   syscall_info.thread    = 0; // Has no sence with new scheduler
 
    /*
     * Get the syscall id in the eax register
@@ -60,7 +51,7 @@ void process_syscall(interrupt_frame* frame)
       /*
        * Perform the syscall baby !
        */
-      syscall_ret = pok_core_syscall (syscall_id, syscall_args, &syscall_info);
+      syscall_ret = pok_core_syscall (syscall_id, syscall_args);
    }
 
    /*

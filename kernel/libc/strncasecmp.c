@@ -15,8 +15,6 @@
 
 #include <config.h>
 
-#if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_PORTS_QUEUEING) || defined (POK_NEEDS_PORTS_SAMPLING)
-
 #include <libc.h>
 
 __attribute__ ((weak))
@@ -50,4 +48,3 @@ int strncasecmp(const char *s1, const char *s2, size_t size)
   }
   return 0;
 }
-#endif

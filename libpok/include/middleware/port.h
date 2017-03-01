@@ -18,8 +18,6 @@
 
 #include <config.h>
 
-#include <core/dependencies.h>
-
 #include <uapi/port_types.h>
 #include <core/syscall.h>
 

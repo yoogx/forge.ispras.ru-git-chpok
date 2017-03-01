@@ -16,8 +16,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_SAMPLING
-
 #include <arinc653/types.h>
 
 /*--------------------------------------------------------------------*/ 
@@ -80,5 +78,3 @@ extern void GET_SAMPLING_PORT_STATUS (
 extern pok_bool_t SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(
         /*in */ SAMPLING_PORT_ID_TYPE      SAMPLING_PORT_ID);
 #endif 
-
-#endif

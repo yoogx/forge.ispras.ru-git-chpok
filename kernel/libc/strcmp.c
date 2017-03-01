@@ -16,8 +16,6 @@
 
 #include <config.h>
 
-#if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_PORTS_QUEUEING) || defined (POK_NEEDS_PORTS_SAMPLING)
-
 #include <libc.h>
 
 __attribute__ ((weak))
@@ -67,6 +65,3 @@ int strncmp (const char *s1,
    }
    return 0;
 }
-
-#endif
-

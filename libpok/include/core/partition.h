@@ -19,10 +19,6 @@
 
 #include <config.h>
 
-#include <core/dependencies.h>
-
-#ifdef POK_NEEDS_PARTITIONS
-
 #include <types.h>
 #include <errno.h>
 
@@ -40,7 +36,5 @@
 #define pok_current_partition_preemption_disabled() \
     ({int32_t lock_level; pok_current_partition_get_lock_level(&lock_level); lock_level > 0;})
 
-
-#endif
 
 #endif /* __POK_PARTITION_H__ */

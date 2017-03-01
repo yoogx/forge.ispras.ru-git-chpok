@@ -18,7 +18,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_SEMAPHORE
 #include <arinc653/types.h>
 #include <arinc653/semaphore.h>
 #include <msection.h>
@@ -39,7 +38,5 @@ struct arinc_semaphore
 
 /* Preallocated array of semaphores. */
 extern struct arinc_semaphore* arinc_semaphores;
-
-#endif /* POK_NEEDS_ARINC653_SEMAPHORE */
 
 #endif /* __LIBJET_ARINC_SEMAPHORE_H__ */

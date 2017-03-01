@@ -408,8 +408,6 @@ def create_sizes_c(target, source, env):
         sizes.write('uint32_t pok_elf_sizes[] = {\n')
         for s in source:
             part_size = os.path.getsize(str(s))
-            if part_size > pok_env['MAX_PART_SIZE']:
-                raise RuntimeError('Partition size must not exceed %d bytes' % pok_env['MAX_PART_SIZE'])
             sizes.write(str(part_size))
             if source.index(s) != len(source) - 1:
                 sizes.write(',\n')

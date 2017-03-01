@@ -29,26 +29,16 @@
 #include <stdio.h> /* for printf() */
 #include <stdlib.h> /* for abort() */
 
-#ifdef POK_NEEDS_ARINC653_BUFFER
 struct arinc_buffer* arinc_buffers;
-#endif /* POK_NEEDS_ARINC653_BUFFER */
 
-#ifdef POK_NEEDS_ARINC653_BLACKBOARD
 struct arinc_blackboard* arinc_blackboards;
-#endif /* POK_NEEDS_ARINC653_BLACKBOARD */
 
-#ifdef POK_NEEDS_ARINC653_EVENT
 struct arinc_event* arinc_events;
-#endif /* POK_NEEDS_ARINC653_EVENT */
 
-#ifdef POK_NEEDS_ARINC653_SEMAPHORE
 struct arinc_semaphore* arinc_semaphores;
-#endif /* POK_NEEDS_ARINC653_SEMAPHORE */
 
 
-#if defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD)
 char* arinc_intra_heap = NULL;
-#endif /* defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD) */
 
 /*
  * Allocate array for ARINC needs on initialization stage.
