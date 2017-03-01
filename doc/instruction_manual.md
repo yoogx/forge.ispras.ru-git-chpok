@@ -12,14 +12,4 @@
 
 \include{section_build_parameters.md}
 
-\include{section_run.md}
-
-\include{section_monitor.md}
-
-\include{section_debug.md}
-
-\include{section_clean.md}
-
 \include{section_configuration.md}
-
-\include{section_eclipse.md}

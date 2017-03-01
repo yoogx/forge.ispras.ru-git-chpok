@@ -92,4 +92,4 @@ instruction_manual_odt = env.Command('build/instruction_manual.odt', instruction
 
 doc_odt = env.Alias('doc-odt', instruction_manual_odt)
 
-env.Default(doc_html + doc_odt)
+env.Default(doc_html)

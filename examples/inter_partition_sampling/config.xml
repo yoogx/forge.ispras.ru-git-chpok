@@ -24,10 +24,10 @@
     <Connection_Table>
         <Channel>
             <Source>
-                <Standard_Partition PartitionName="P1" PortName="SP1" />
+                <Port_Ref PartitionNameRef="P1" PortNameRef="SP1" />
             </Source>
             <Destination>
-                <Standard_Partition PartitionName="P2" PortName="SP2" />
+                <Port_Ref PartitionNameRef="P2" PortNameRef="SP2" />
             </Destination>
         </Channel>
     </Connection_Table>
