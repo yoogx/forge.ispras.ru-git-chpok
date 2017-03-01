@@ -689,50 +689,6 @@ symbol##_asm:         .frame  $sp, 0, $sp
 
 // Handlers themselves:
 
-    /* TODO: shouldn't critical interrupt level should be used there? */
-    START_EXCEPTION(pok_int_critical_input)
-        EXCEPTION_PROLOGUE
-        move    $a0, $sp
-        JUMP_AND_LINK(pok_int_critical_input)
-        JUMP_TO_ADDR(pok_arch_rfi)
-    END_EXEPTION(pok_int_critical_input)
-    
-    /* TODO: shouldn't machine check interrupt level should be used there? */
-    START_EXCEPTION(pok_int_machine_check)
-        EXCEPTION_PROLOGUE
-        move    $a0, $sp
-        JUMP_AND_LINK(pok_int_machine_check)
-        JUMP_TO_ADDR(pok_arch_rfi)
-    END_EXEPTION(pok_int_machine_check)
-
-    START_EXCEPTION(pok_int_data_storage)
-        EXCEPTION_PROLOGUE
-        move    $a0, $sp
-
-        mfc0    $a1, CP0_BadVAddr
-        mfc0    $a2, CP0_CAUSE
-
-        JUMP_AND_LINK(pok_int_data_storage)
-        JUMP_TO_ADDR(pok_arch_rfi)
-    END_EXEPTION(pok_int_data_storage)
-
-    START_EXCEPTION(pok_int_inst_storage)
-        EXCEPTION_PROLOGUE
-        move    $a0, $sp
-        mfc0    $a1, CP0_BadVAddr
-        mfc0    $a2, CP0_CAUSE
-
-        JUMP_AND_LINK(pok_int_inst_storage)
-        JUMP_TO_ADDR(pok_arch_rfi)
-    END_EXEPTION(pok_int_inst_storage)
-
-    START_EXCEPTION(pok_int_ext_interrupt)
-        EXCEPTION_PROLOGUE
-        move    $a0, $sp
-        JUMP_AND_LINK(pok_int_ext_interrupt)
-        JUMP_TO_ADDR(pok_arch_rfi)
-    END_EXEPTION(pok_int_ext_interrupt)
-
     START_EXCEPTION(pok_int_alignment)
         EXCEPTION_PROLOGUE
         move    $a0, $sp
@@ -742,14 +698,6 @@ symbol##_asm:         .frame  $sp, 0, $sp
         JUMP_AND_LINK(pok_int_alignment)
         JUMP_TO_ADDR(pok_arch_rfi)
     END_EXEPTION(pok_int_alignment)
-
-    START_EXCEPTION(pok_int_program)
-        EXCEPTION_PROLOGUE
-        move    $a0, $sp
-
-        JUMP_AND_LINK(pok_int_program)
-        JUMP_TO_ADDR(pok_arch_rfi)
-    END_EXEPTION(pok_int_program)
 
     START_EXCEPTION(pok_int_fp_unavail)
         EXCEPTION_PROLOGUE
@@ -792,22 +740,6 @@ symbol##_asm:         .frame  $sp, 0, $sp
         JUMP_AND_LINK(pok_int_decrementer) 
         JUMP_TO_ADDR(pok_arch_rfi)
     END_EXEPTION(pok_int_decrementer)
-
-    START_EXCEPTION(pok_int_interval_timer)
-        EXCEPTION_PROLOGUE
-        move    $a0, $sp
-
-        JUMP_AND_LINK(pok_int_interval_timer)
-        JUMP_TO_ADDR(pok_arch_rfi)
-    END_EXEPTION(pok_int_interval_timer)
-
-    START_EXCEPTION(pok_int_watchdog)
-        EXCEPTION_PROLOGUE
-        move    $a0, $sp
-        JUMP_AND_LINK(pok_int_watchdog)
-        JUMP_TO_ADDR(pok_arch_rfi)
-        
-    END_EXEPTION(pok_int_watchdog)
         
     START_EXCEPTION(pok_int_ri)
         EXCEPTION_PROLOGUE

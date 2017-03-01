@@ -38,37 +38,12 @@ int k=0;
 extern void * pok_trap_addr;
 #endif
 
-void pok_int_critical_input(struct jet_interrupt_context* ea) {
-    (void) ea;
-    pok_fatal("Critical input interrupt"); 
-}
-
 void pok_int_ri(struct jet_interrupt_context* ea) {
     (void) ea;
     printf("DEBUG: EPC    = 0x%x\n", ea->EPC);
     printf("DEBUG: Cause  = 0x%x\n", ea->CAUSE);
     printf("DEBUG: Status = 0x%x\n", ea->STATUS);
     pok_fatal("Unrealized instruction"); 
-}
-
-void pok_int_machine_check(struct jet_interrupt_context* ea) {
-    (void) ea;
-    pok_fatal("Machine check interrupt"); 
-}
-
-void pok_int_data_storage(struct jet_interrupt_context *vctx, uintptr_t dear, unsigned long esr) {
-    printf("TLB error\n");
-    pok_arch_handle_page_fault(vctx, dear, esr, PF_DATA_STORAGE);
-}
-
-void pok_int_inst_storage(struct jet_interrupt_context* vctx, uintptr_t dear, unsigned long esr) {
-    printf("TLB error\n");
-    pok_arch_handle_page_fault(vctx, dear, esr, PF_INST_STORAGE);
-}
-
-void pok_int_ext_interrupt(struct jet_interrupt_context* ea) {
-    (void) ea;
-    pok_fatal("External interrupt");
 }
 
 void pok_int_alignment(struct jet_interrupt_context* vctx, uintptr_t dear, unsigned long esr)
@@ -81,11 +56,6 @@ void pok_int_alignment(struct jet_interrupt_context* vctx, uintptr_t dear, unsig
 
 void write_on_screen();
 
-
-void pok_int_program(struct jet_interrupt_context* ea) {
-    (void) ea;
-    pok_fatal("Program interrupt");
-}
 
 void pok_int_fp_unavail(struct jet_interrupt_context* ea) {
     (void) ea;
@@ -151,16 +121,6 @@ void pok_int_decrementer(struct jet_interrupt_context* ea) {
     //~ printf("DECREMENTER: sizeof = 0x%x\n", sizeof(struct jet_interrupt_context));
     (void) ea;
     pok_arch_decr_int();
-}
-
-void pok_int_interval_timer(struct jet_interrupt_context* ea) {
-    (void) ea;
-    pok_fatal("Inteval timer interrupt");
-}
-
-void pok_int_watchdog(struct jet_interrupt_context* ea) {
-    (void) ea;
-    pok_fatal("Watchdog interrupt");
 }
 
 void pok_int_data_tlb_miss(struct jet_interrupt_context* vctx, uintptr_t dear, unsigned long esr) {
