@@ -1718,6 +1718,8 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
             /*If it is last detaching process - continue*/
             if (part_id != 1) break;
             putpacket((unsigned char *)remcomOutBuffer);            
+            
+            goto CONTINUE;
         }
 #endif
         case 's':
@@ -1816,7 +1818,7 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
         case 'k':    /* kill the program, actually just continue */
         case 'c':    /* cAA..AA  Continue; address AA..AA optional */
             /* try to read optional parameter, pc unchanged if no parm */
-
+CONTINUE:
             ptr = &remcomInBuffer[1];
             if (hexToInt(&ptr, &addr)) {
                 gdb_sate_set_thread(&tc, &gdb_thread_current);

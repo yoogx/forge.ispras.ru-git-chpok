@@ -20,7 +20,7 @@
 #include <asp/gdb.h>
 
 #define NUMREGBYTES (NUMREGS * 4)
-#define DEBUG_GDB
+//~ #define DEBUG_GDB
 
 #ifdef DEBUG_GDB
 #define printf_GDB printf
