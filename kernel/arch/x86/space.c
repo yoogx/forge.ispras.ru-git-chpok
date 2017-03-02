@@ -33,7 +33,7 @@
 
 #include <asp/alloc.h>
 #include "memlayout.h"
-#include "mmu.h"
+#include <arch/mmu.h>
 #include "regs.h"
 
 #define KERNEL_STACK_SIZE 8192
@@ -73,7 +73,7 @@ void ja_user_space_jump(
    uint32_t          data_sel;
    uint32_t          sp;
 
-   assert(space_id <= ja_segments_n); //TODO: fix comparision
+   //assert(space_id <= ja_segments_n); //TODO: fix comparision
 
    code_sel = GDT_BUILD_SELECTOR (GDT_PARTITION_CODE_SEGMENT (space_id), 0, 3);
    data_sel = GDT_BUILD_SELECTOR (GDT_PARTITION_DATA_SEGMENT (space_id), 0, 3);

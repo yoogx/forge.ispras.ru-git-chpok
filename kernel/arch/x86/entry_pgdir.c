@@ -13,7 +13,7 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include "mmu.h"
+#include <arch/mmu.h>
 #include <stdint.h>
 #include <memlayout.h>
 typedef uint32_t pte_t;

@@ -12,8 +12,6 @@
  *
  * See the GNU General Public License version 3 for more details.
  *
- * This file also incorporates work covered by POK License.
- * Copyright (c) 2007-2009 POK team
  */
 
 /* Definitions which are used in deployment.c */
@@ -22,25 +20,31 @@
 #define __JET_X86_DEPLOYMENT_H__
 
 #include <stdint.h>
-#include <asp/space.h>
+#include <stddef.h>
+//#include <asp/space.h> //TODO delete?
 
-/* 
- * Description of one segment.
+/*
+ * Description of one page
  */
-struct x86_segment
-{
-    uintptr_t   paddr; /* Set in deployment.c. */
-    size_t      size; /* Set in deployment.c. */
+struct page {
+    uint32_t vaddr;
+    uint32_t paddr_and_flags;
+    uint8_t is_big; //1 if page_size is 4MB
 };
 
 /*
- * Array of memory segments.
- *
- * Segment (i) corresponds to space_id (i+1).
- *
- * Should be defined in deployment.c.
+ * Description of pages for one partition
  */
-extern const struct x86_segment ja_segments[];
-extern const int ja_segments_n;
+struct partition_pages {
+    struct page *pages;
+    size_t len;
+};
+
+/*
+ * Array of partition_pages.
+ * Element i corresponds to space_id i+1.
+ */
+extern struct partition_pages partitions_pages[];
+extern size_t partitions_pages_nb;
 
 #endif /* __JET_PPC_DEPLOYMENT_H__ */
