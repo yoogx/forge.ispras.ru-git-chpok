@@ -34,11 +34,16 @@ SECTIONS
     .bss :
     {
         *(.bss)
+        *(COMMON)
 
        /* Allocate the main stack area.  Make sure it starts 16bytes aligned
           to accommodate any possible program expectation.  */
         . = ALIGN(16) + 0x1000;
         jet_entry_stack = .;
+
+        jet_heap_start = . ;
+        jet_heap_end = . + 0x40000; /* 256 KB for heap  */
+        ASSERT (jet_heap_end < __KERNBASE + 0x800000, "ERROR: KERNEL SIZE > 8MB. If you want more then you should change this check and add pages in kernel_pgdir.c (you should update both entry_pgdir and pgdir_insert_kernel_mapping)");
     }
-    __jet_end = . ;
+
 }
