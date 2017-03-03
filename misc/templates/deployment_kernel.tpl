@@ -180,7 +180,8 @@ static const struct memory_block memory_blocks_{{loop.index0}}[{{pmd.memory_bloc
         .is_contiguous = {%if mbd.is_contiguous%}TRUE{%else%}FALSE{%endif%},
         .paddr = {%if mbd.is_contiguous%}{{"0x%x"|format(mbd.paddr)}}{%else%}0{%endif%},
         .is_shared = {%if mbd.is_shared%}TRUE{%else%}FALSE{%endif%},
-        .kaddr = {{"0x%x"|format(mbd.kaddr)}},
+        //.kaddr = {{"0x%x"|format(mbd.kaddr)}},
+        .kaddr = {{"0x%x"|format(mbd.vaddr)}},
     },
 {%endfor%}
 };

@@ -13,16 +13,12 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <asp/uaccess.h>
-#include "memlayout.h"
+#ifndef __JET_X86_KERNEL_PGDIR_H__
+#define __JET_X86_KERNEL_PGDIR_H__
 
-pok_bool_t ja_access_ok(const void* __user addr, size_t size)
-{
-    (void) addr;
-    (void) size;
+#include <stdint.h>
 
-    uintptr_t vaddr = (uint32_t)addr;
-    return (vaddr + size <= KERNBASE && //check that range lays before kernel space
-            vaddr + size > vaddr) //check overflow
-            ;
-}
+void pgdir_insert_kernel_mapping(uint32_t *pgdir);
+
+#endif
+

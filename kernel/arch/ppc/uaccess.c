@@ -23,5 +23,5 @@ pok_bool_t ja_access_ok(const void* __user addr, size_t size)
     uint32_t vaddr = (uint32_t)addr;
 
     return (vaddr >= POK_PARTITION_MEMORY_BASE)
-        && (vaddr + size >= POK_PARTITION_MEMORY_BASE);
+        && (vaddr + size > vaddr); //check overflow
 }

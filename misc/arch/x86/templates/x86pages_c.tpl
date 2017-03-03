@@ -14,15 +14,27 @@
  */
 
 #include <arch/deployment.h>
+#include <arch/mmu.h>
 
-const struct x86_segment ja_segments[{{segments | length}}] =
-{
-{%for segment in segments%}
+{%for part_pages in partitions_pages%}
+struct page pages_{{loop.index}}[] = {
+    {% for page in part_pages %}
     {
-        .paddr = {{"0x%x"|format(segment.paddr)}},
-        .size = {{segment.size}},
+        .vaddr = {{"0x%x"|format(page.vaddr)}},
+        .paddr_and_flags = {{"0x%x"|format(page.paddr)}}{{"|%s"|format(page.flags) if page.flags}},
+        .is_big = {{'1' if page.is_big else '0'}}
     },
+    {% endfor %}
+};
 {%endfor%}
+
+struct partition_pages ja_partitions_pages[] = {
+    {%for part_pages in partitions_pages%}
+    {
+        .pages = pages_{{loop.index}},
+        .len = {{part_pages | length}}
+    },
+    {%endfor%}
 };
 
-const int ja_segments_n = {{segments | length}};
+size_t ja_partitions_pages_nb = {{partitions_pages | length}};

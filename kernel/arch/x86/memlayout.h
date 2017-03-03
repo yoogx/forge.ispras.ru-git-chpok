@@ -13,16 +13,16 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <asp/uaccess.h>
-#include "memlayout.h"
+#define KERNBASE 0xc0000000
 
-pok_bool_t ja_access_ok(const void* __user addr, size_t size)
-{
-    (void) addr;
-    (void) size;
-
-    uintptr_t vaddr = (uint32_t)addr;
-    return (vaddr + size <= KERNBASE && //check that range lays before kernel space
-            vaddr + size > vaddr) //check overflow
-            ;
-}
+/*
+ * PHYS(va) - translates va (virtual address) to physical address
+ * VIRT(pa) - translates pa (physical address) to virtual address
+ */
+#ifdef __ASSEMBLER__
+#define PHYS(va) ((va) - KERNBASE)
+#define VIRT(pa) ((pa) + KERNBASE)
+#else
+#define PHYS(x) ((uintptr_t)(x) - KERNBASE)
+#define VIRT(x) ((uintptr_t)(x) + KERNBASE)
+#endif
