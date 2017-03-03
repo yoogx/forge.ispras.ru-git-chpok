@@ -108,6 +108,28 @@ void ja_user_space_jump(
        );
 }
 
+/* insert page mapping to pgdir, allocate page table is needed */
+static void pgdir_insert_page(uint32_t *pgdir, struct page *page)
+{
+    if (page->is_big) {
+        //4MB page
+        pgdir[PDX(page->vaddr)] = page->paddr_and_flags | PAGE_P | PAGE_U;
+    } else {
+        // 4KB page
+        if (pgdir[PDX(page->vaddr)] != 0) {
+            //already allocated page table
+            uint32_t *pgtable = (uint32_t *)VIRT(PT_ADDR(pgdir[PDX(page->vaddr)]));
+            pgtable[PTX(page->vaddr)] = page->paddr_and_flags | PAGE_P | PAGE_U;
+        } else {
+            //page table hasn't been created yet
+            uint32_t *pgtable = ja_mem_alloc_aligned(PAGE_SIZE, PAGE_SIZE);
+            memset(pgtable, 0, PAGE_SIZE);
+            pgdir[PDX(page->vaddr)] = PHYS(pgtable) | PAGE_P | PAGE_RW| PAGE_U;
+
+            pgtable[PTX(page->vaddr)] = page->paddr_and_flags | PAGE_P | PAGE_U;
+        }
+    }
+}
 
 uint32_t **pgdirs; //array of pointers to pgdirs
 
@@ -120,33 +142,13 @@ void ja_space_init(void)
         memset(pgdir, 0, PAGE_SIZE);
         pgdirs[i] = pgdir;
 
-        pgdir[PDX(KERNBASE)    ] = (0)           | PAGE_P | PAGE_RW | PAGE_S;
-        pgdir[PDX(KERNBASE) + 1] = (1<<PDXSHIFT) | PAGE_P | PAGE_RW | PAGE_S;
-
-        uint32_t *pgtable = ja_mem_alloc_aligned(PAGE_SIZE, PAGE_SIZE);
-        memset(pgtable, 0, PAGE_SIZE);
+        /* user mapping */
         for (unsigned j = 0; j < ja_partitions_pages[i].len; j++) {
-            struct page *page = &ja_partitions_pages[i].pages[j];
-            if (page->is_big) {
-                //4MB page
-                pgdir[PDX(page->vaddr)] = page->paddr_and_flags | PAGE_P | PAGE_U;
-            } else {
-                // 4KB page
-                if (pgdir[PDX(page->vaddr)] != 0) {
-                    //already allocated page table
-                    uint32_t *pgtable = (uint32_t *)VIRT(PT_ADDR(pgdir[PDX(page->vaddr)]));
-                    pgtable[PTX(page->vaddr)] = page->paddr_and_flags | PAGE_P | PAGE_U;
-                } else {
-                    //page table hasn't been created yet
-                    uint32_t *pgtable = ja_mem_alloc_aligned(PAGE_SIZE, PAGE_SIZE);
-                    memset(pgtable, 0, PAGE_SIZE);
-                    pgdir[PDX(page->vaddr)] = PHYS(pgtable) | PAGE_P | PAGE_RW| PAGE_U;
-
-                    pgtable[PTX(page->vaddr)] = page->paddr_and_flags | PAGE_P | PAGE_U;
-                }
-            }
+            pgdir_insert_page(pgdir, &ja_partitions_pages[i].pages[j]);
         }
 
+        /* kernel mapping */
+        pgdir_insert_kernel_mapping(pgdir);
     }
 }
 

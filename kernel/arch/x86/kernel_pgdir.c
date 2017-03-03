@@ -15,17 +15,25 @@
 
 #include <arch/mmu.h>
 #include <stdint.h>
-#include <memlayout.h>
+#include "memlayout.h"
 
 #define PGDIR_ENTRIES_N  1024 // page directory entries per page directory
 
+/* page directory used while starting of kernel */
 __attribute__((__aligned__(PAGE_SIZE))) uint32_t entry_pgdir[PGDIR_ENTRIES_N] = {
 
-        // Map VA's [0, 4MB) to PA's [0, 4MB)
+        // Map VA's [0, 4MB) to PA's [0, 4MB) //This should be enough
         [0] = (0) | PAGE_P | PAGE_RW| PAGE_S,
 
         // Map VA's [KERNBASE, KERNBASE+8MB) to PA's [0, 8MB)
         [PDX(KERNBASE)]     = (0)           | PAGE_P | PAGE_RW | PAGE_S,
         [PDX(KERNBASE) + 1] = (1<<PDXSHIFT) | PAGE_P | PAGE_RW | PAGE_S,
     };
+
+void pgdir_insert_kernel_mapping(uint32_t *pgdir)
+{
+    // Map VA's [KERNBASE, KERNBASE+8MB) to PA's [0, 8MB)
+    pgdir[PDX(KERNBASE)]     = (0)           | PAGE_P | PAGE_RW | PAGE_S;
+    pgdir[PDX(KERNBASE) + 1] = (1<<PDXSHIFT) | PAGE_P | PAGE_RW | PAGE_S;
+}
 
