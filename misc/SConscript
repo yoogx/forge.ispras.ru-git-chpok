@@ -159,11 +159,8 @@ env.Append(QEMU_FLAGS = ' -serial stdio')
 
 env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -Wuninitialized -ffreestanding -nostdlib -nostdinc -g -Wextra'
 env['ASFLAGS'] = env['CFLAGS']
-env['CFLAGS_KERNEL'] = ' -Werror'
-
-# Store variables which may be redefined by the caller script.
-preset_var_names = ['PREFIX', 'GDB', 'QEMU']
-preset_vars = {name: env.get(name, None) for name in preset_var_names}
+env['CFLAGS_KERNEL'] = '-Werror'
+env['CFLAGS_USER'] = '-include '+ env['JETOS_HOME']+'/libpok/include/config.h'
 
 # Execute bsp-definition script
 bsp_definition_script = os.path.join(env['JETOS_HOME'], 'misc/boards', env['BSP'], 'SConscript')
@@ -227,13 +224,13 @@ else:
     env['BSP_PROPERTIES_FILE'] = None
 env['BSP_PROPERTIES'] = bsp_properties
 
-env['KERNEL_CPPPATH'] = [
+env['CPPPATH_KERNEL'] = [
     env['JETOS_HOME']+'/kernel/include',
     env['JETOS_HOME']+'/kernel/arch/' + env['ARCH'] + '/include',
     env['JETOS_HOME']+'/boards/' + env['BSP'] + '/include',
 ]
 
-env['LIBPOK_CPPPATH'] = [
+env['CPPPATH_USER'] = [
     env['JETOS_HOME']+'/libpok/include',
     env['JETOS_HOME']+'/libpok/arch/' + env['ARCH'] + '/include',
 ]
@@ -261,9 +258,9 @@ def KernelEnvironment(env):
     Create fresh kernel environment from the main one.
     """
     kernel_env = env.Clone()
-    kernel_env['CPPPATH'] = env['KERNEL_CPPPATH']
-    kernel_env['LINKFLAGS'] = ' -T ' + kernel_env['LDSCRIPT_KERNEL']
-    kernel_env.Append(CFLAGS = ' ' + env.get('CFLAGS_KERNEL', default = ''))
+    kernel_env['CPPPATH'] = env['CPPPATH_KERNEL']
+    kernel_env['LINKFLAGS'] = ' -T ' + env['LDSCRIPT_KERNEL']
+    kernel_env.Append(CFLAGS = ' ' + env['CFLAGS_KERNEL'])
     return kernel_env
 
 def PartitionEnvironment(env):
@@ -271,9 +268,9 @@ def PartitionEnvironment(env):
     Create fresh partition's environment from the main one.
     """
     part_env = env.Clone()
-    part_env['CPPPATH'] = env['LIBPOK_CPPPATH']
-    part_env['LINKFLAGS'] = ' -T ' + part_env['LDSCRIPT_PARTITION']
-    part_env.Append(CFLAGS = ' -include '+ part_env['JETOS_HOME']+'/libpok/include/config.h')
+    part_env['CPPPATH'] = env['CPPPATH_USER']
+    part_env['LINKFLAGS'] = ' -T ' + env['LDSCRIPT_PARTITION']
+    part_env.Append(CFLAGS = ' ' + env['CFLAGS_USER'])
     return part_env
 
 env.AddMethod(KernelEnvironment)

@@ -8,8 +8,10 @@
 
 \include{section_creating_application.md}
 
+\include{section_project_data.md}
+
 \include{section_project_build.md}
 
-\include{section_build_parameters.md}
-
 \include{section_configuration.md}
+
+\include{section_project_data_reference.md}
