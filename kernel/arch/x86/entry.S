@@ -26,13 +26,13 @@ multiboot_header:
 
 .section .text
 .globl _core_entry
-_core_entry = PHYS_ADDR(__entry)
+_core_entry = PHYS(__entry)
 
 __entry:
     cli #disable iterrupts
 
     # load page table
-    movl $(PHYS_ADDR(entry_pgdir)), %eax
+    movl $(PHYS(entry_pgdir)), %eax
     movl %eax, %cr3
 
     # Turn on Page Size extension.

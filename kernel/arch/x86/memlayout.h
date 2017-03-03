@@ -15,12 +15,14 @@
 
 #define KERNBASE 0xc0000000
 
-/* return phys address for virtual addresses in kernel memory */
+/*
+ * PHYS(va) - translates va (virtual address) to physical address
+ * VIRT(pa) - translates pa (physical address) to virtual address
+ */
 #ifdef __ASSEMBLER__
-#define PHYS_ADDR(x) ((x) - KERNBASE)
+#define PHYS(va) ((va) - KERNBASE)
+#define VIRT(pa) ((pa) + KERNBASE)
 #else
-#define PHYS_ADDR(x) ((uintptr_t)(x) - KERNBASE)
-
-#define VIRT2PHYS(x) ((uintptr_t)(x) - KERNBASE)
-#define PHYS2VIRT(x) ((uintptr_t)(x) + KERNBASE)
+#define PHYS(x) ((uintptr_t)(x) - KERNBASE)
+#define VIRT(x) ((uintptr_t)(x) + KERNBASE)
 #endif

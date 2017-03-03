@@ -134,13 +134,13 @@ void ja_space_init(void)
                 // 4KB page
                 if (pgdir[PDX(page->vaddr)] != 0) {
                     //already allocated page table
-                    uint32_t *pgtable = (uint32_t *)PHYS2VIRT(PT_ADDR(pgdir[PDX(page->vaddr)]));
+                    uint32_t *pgtable = (uint32_t *)VIRT(PT_ADDR(pgdir[PDX(page->vaddr)]));
                     pgtable[PTX(page->vaddr)] = page->paddr_and_flags | PAGE_P | PAGE_U;
                 } else {
                     //page table hasn't been created yet
                     uint32_t *pgtable = ja_mem_alloc_aligned(PAGE_SIZE, PAGE_SIZE);
                     memset(pgtable, 0, PAGE_SIZE);
-                    pgdir[PDX(page->vaddr)] = VIRT2PHYS(pgtable) | PAGE_P | PAGE_RW| PAGE_U;
+                    pgdir[PDX(page->vaddr)] = PHYS(pgtable) | PAGE_P | PAGE_RW| PAGE_U;
 
                     pgtable[PTX(page->vaddr)] = page->paddr_and_flags | PAGE_P | PAGE_U;
                 }
@@ -153,8 +153,7 @@ void ja_space_init(void)
 void ja_space_switch (jet_space_id space_id)
 {
     if (space_id != 0) {
-        //printf("spaceid %x\n", space_id);
-        asm volatile("movl %0,%%cr3" : : "r" (PHYS_ADDR(pgdirs[space_id - 1])));
+        asm volatile("movl %0,%%cr3" : : "r" (PHYS(pgdirs[space_id - 1])));
     }
 
     current_space_id = space_id;
