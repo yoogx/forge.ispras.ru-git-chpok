@@ -2,7 +2,7 @@
 
 \include{section_introduction.md}
 
-\include{section_virtual_machine.md}
+\include{section_dev_machine.md}
 
 \include{section_project_overview.md}
 
