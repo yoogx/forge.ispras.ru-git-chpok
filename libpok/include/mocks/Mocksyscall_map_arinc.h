@@ -2,7 +2,7 @@
 #ifndef _MOCKSYSCALL_MAP_ARINC_H
 #define _MOCKSYSCALL_MAP_ARINC_H
 
-#include <uapi/syscall_map_arinc_defs.h>
+#include <core/syscall.h>
 
 /* Ignore the following warnings, since we are copying code */
 #if defined(__GNUC__) && !defined(__ICC) && !defined(__TMS470__)

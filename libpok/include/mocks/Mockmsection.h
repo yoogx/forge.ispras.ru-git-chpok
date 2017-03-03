@@ -2,7 +2,7 @@
 #ifndef _MOCKMSECTION_H
 #define _MOCKMSECTION_H
 
-#include <msection_defs.h>
+#include <msection.h>
 
 /* Ignore the following warnings, since we are copying code */
 #if defined(__GNUC__) && !defined(__ICC) && !defined(__TMS470__)
