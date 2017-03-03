@@ -63,10 +63,13 @@ void ja_user_space_jump(
     void (__user * entry_user)(void),
     uintptr_t stack_user)
 {
+    assert(space_id > 0);
+    assert(space_id <= ja_partitions_pages_nb);
+
     /*
      * Reuse layout of interrupt_frame structure, allocated on stack,
      * for own purposes.
-     * 
+     *
      * Usage of this structure here is unrelated to interrupts
      * because it is allocated not at the *beginning* of the stack.
      */
@@ -75,10 +78,8 @@ void ja_user_space_jump(
    uint32_t          data_sel;
    uint32_t          sp;
 
-   //assert(space_id <= ja_segments_n); //TODO: fix comparision
-
-   code_sel = GDT_BUILD_SELECTOR (GDT_PARTITION_CODE_SEGMENT (space_id), 0, 3);
-   data_sel = GDT_BUILD_SELECTOR (GDT_PARTITION_DATA_SEGMENT (space_id), 0, 3);
+   code_sel = GDT_BUILD_SELECTOR(GDT_PARTITION_CODE_SEGMENT, 0, 3);
+   data_sel = GDT_BUILD_SELECTOR(GDT_PARTITION_DATA_SEGMENT, 0, 3);
 
    sp = (uint32_t) &ctx;
 
@@ -107,21 +108,12 @@ void ja_user_space_jump(
        );
 }
 
-__attribute__((__aligned__(PGSIZE))) uint32_t pgdir[NPDENTRIES] = {
-        // Map VA's [0, 4MB) to PA's [64MB, 64MB+4MB)
-        [0] = (0x4000000) | PAGE_P | PAGE_RW| PAGE_S | PAGE_U,
-
-        // Map VA's [KERNBASE, KERNBASE+8MB) to PA's [0, 8MB)
-        [PDX(KERNBASE)]     = (0)           | PAGE_P | PAGE_RW | PAGE_S,
-        [PDX(KERNBASE) + 1] = (1<<PDXSHIFT) | PAGE_P | PAGE_RW | PAGE_S,
-};
-
 
 uint32_t **pgdirs; //array of pointers to pgdirs
 
 void ja_space_init(void)
 {
-    pgdirs = jet_mem_alloc(ja_partitions_pages_nb*sizeof(*pgdir));
+    pgdirs = jet_mem_alloc(ja_partitions_pages_nb*sizeof(*pgdirs));
 
     for (unsigned i = 0; i<ja_partitions_pages_nb; i++) {
         uint32_t *pgdir = ja_mem_alloc_aligned(4096, 4096);

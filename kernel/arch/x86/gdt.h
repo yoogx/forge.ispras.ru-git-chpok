@@ -46,8 +46,8 @@ typedef struct
 #define GDT_CORE_DATA_SEGMENT	2
 #define GDT_TSS_SEGMENT		3
 
-#define GDT_PARTITION_CODE_SEGMENT(space_id) 4
-#define GDT_PARTITION_DATA_SEGMENT(space_id) 5
+#define GDT_PARTITION_CODE_SEGMENT 4
+#define GDT_PARTITION_DATA_SEGMENT 5
 
 #define GDT_BUILD_SELECTOR(seg, local, rpl)	\
    ((seg << 3) | ((local & 0x1) << 2) | (rpl & 0x3))
@@ -68,14 +68,6 @@ void gdt_set_system (uint16_t index,
                      uint32_t limit,
                      e_gdte_type t,
                      int dpl);
-
-void gdt_enable (uint16_t index);
-void gdt_disable (uint16_t index);
-
-/*
- * DEPRECATED
-uint32_t	gdt_segment_base(uint16_t idx);
-*/
 
 #endif /* !__POK_X86_GDT_H__ */
 
