@@ -56,4 +56,5 @@ void __ARP_ANSWERER_init__(ARP_ANSWERER *self)
 
 void __ARP_ANSWERER_activity__(ARP_ANSWERER *self)
 {
+        (void) self; //suppress warning
 }

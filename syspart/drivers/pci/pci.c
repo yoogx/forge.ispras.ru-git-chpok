@@ -155,7 +155,7 @@ static uintptr_t get_resource_addr_from_config(uint8_t bus, uint8_t dev, uint8_t
 {
     //TODO optimize this linear search
     struct pci_dev_config *d;
-    for (int i = 0; i < pci_configs_nb; i++) {
+    for (unsigned i = 0; i < pci_configs_nb; i++) {
         d = &pci_configs[i];
         if (d->bus == bus && d->dev == dev && d->fn == fn)
             return d->c_resources[idx].vaddr;
@@ -493,7 +493,7 @@ void pci_init()
 
     printf("PCI initialization using configuration:\n");
 
-    for (int i = 0; i < pci_configs_nb; i++) {
+    for (unsigned i = 0; i < pci_configs_nb; i++) {
         struct pci_dev_config *dev_config = &pci_configs[i];
         struct pci_dev pci_dev;
 

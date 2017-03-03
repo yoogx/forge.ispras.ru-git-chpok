@@ -56,4 +56,5 @@ void __MAC_RECEIVER_init__(MAC_RECEIVER *self)
 
 void __MAC_RECEIVER_activity__(MAC_RECEIVER *self)
 {
+        (void) self; //suppress warning
 }
