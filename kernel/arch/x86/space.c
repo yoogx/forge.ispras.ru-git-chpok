@@ -36,6 +36,7 @@
 #include <arch/mmu.h>
 #include "regs.h"
 
+#include "kernel_pgdir.h"
 #include <alloc.h>
 
 #define KERNEL_STACK_SIZE 8192

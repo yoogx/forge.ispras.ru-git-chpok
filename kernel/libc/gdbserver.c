@@ -1910,6 +1910,8 @@ CONTINUE:
 void
 handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
 {
+    (void) exceptionVector;
+    (void) ea;
     pok_fatal("Exception without GDB enabled");
 }
 #endif /* POK_NEEDS_GDB */
