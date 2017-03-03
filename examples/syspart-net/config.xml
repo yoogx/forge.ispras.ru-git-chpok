@@ -24,18 +24,18 @@
     <Connection_Table>
         <Channel>
             <Source>
-                <Standard_Partition PartitionName="P1" PortName="QP1" />
+                <Port_Ref PartitionNameRef="P1" PortNameRef="QP1" />
             </Source>
             <Destination>
-                <Standard_Partition PartitionName="P2" PortName="UOUT" />
+                <Port_Ref PartitionNameRef="P2" PortNameRef="UOUT" />
             </Destination>
         </Channel>
         <Channel>
             <Source>
-                <Standard_Partition PartitionName="P2" PortName="UIN" />
+                <Port_Ref PartitionNameRef="P2" PortNameRef="UIN" />
             </Source>
             <Destination>
-                <Standard_Partition PartitionName="P1" PortName="QP2" />
+                <Port_Ref PartitionNameRef="P1" PortNameRef="QP2" />
             </Destination>
         </Channel>
     </Connection_Table>
