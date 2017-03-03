@@ -90,15 +90,14 @@ class PhysMemoryType_x86(PhysMemoryType):
         Allocate physical memory block.
         """
 
-        size_real = align_val(size, min(PAGE_SIZES))
-
-        align_real = size_real
-        paddr_real = align_val(paddr, align_real)
+        align = min(PAGE_SIZES)
+        size_real = align_val(size, align)
+        paddr_real = align_val(paddr, align)
 
         return PhysMemoryBlock_common(
             paddr = paddr_real,
             size = size_real,
-            align = align_real,
+            align = align,
         )
 
 class Page_x86(SerializableObject):

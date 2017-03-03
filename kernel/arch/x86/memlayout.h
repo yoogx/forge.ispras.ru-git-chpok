@@ -20,4 +20,7 @@
 #define PHYS_ADDR(x) ((x) - KERNBASE)
 #else
 #define PHYS_ADDR(x) ((uintptr_t)(x) - KERNBASE)
+
+#define VIRT2PHYS(x) ((uintptr_t)(x) - KERNBASE)
+#define PHYS2VIRT(x) ((uintptr_t)(x) + KERNBASE)
 #endif

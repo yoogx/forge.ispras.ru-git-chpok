@@ -44,7 +44,7 @@ struct partition_pages {
  * Array of partition_pages.
  * Element i corresponds to space_id i+1.
  */
-extern struct partition_pages partitions_pages[];
-extern size_t partitions_pages_nb;
+extern struct partition_pages ja_partitions_pages[];
+extern size_t ja_partitions_pages_nb;
 
 #endif /* __JET_PPC_DEPLOYMENT_H__ */

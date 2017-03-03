@@ -38,9 +38,6 @@
 // offset in page
 #define PGOFF(la)       (((uintptr_t) (la)) & 0xFFF)
 
-// construct linear address from indexes and offset
-#define PGADDR(d, t, o) ((void*) ((d) << PDXSHIFT | (t) << PTXSHIFT | (o)))
-
 // Page directory and page table constants.
 #define NPDENTRIES      1024            // page directory entries per page directory
 #define NPTENTRIES      1024            // page table entries per page table
@@ -53,6 +50,8 @@
 
 #define PTXSHIFT        12              // offset of PTX in a linear address
 #define PDXSHIFT        22              // offset of PDX in a linear address
+
+#define PTE_ADDR(pte) ((uintptr_t) (pte) & ~0xFFF)
 
 
 // Page table/directory entry flags.

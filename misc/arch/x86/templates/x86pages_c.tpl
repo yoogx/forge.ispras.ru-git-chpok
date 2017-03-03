@@ -28,7 +28,7 @@ struct page pages_{{loop.index}}[] = {
 };
 {%endfor%}
 
-struct partition_pages partitions_pages[] = {
+struct partition_pages ja_partitions_pages[] = {
     {%for part_pages in partitions_pages%}
     {
         .pages = pages_{{loop.index}},
@@ -37,4 +37,4 @@ struct partition_pages partitions_pages[] = {
     {%endfor%}
 };
 
-size_t partitions_pages_nb = {{partitions_pages | length}};
+size_t ja_partitions_pages_nb = {{partitions_pages | length}};

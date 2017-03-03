@@ -36,6 +36,8 @@
 #include <arch/mmu.h>
 #include "regs.h"
 
+#include <alloc.h>
+
 #define KERNEL_STACK_SIZE 8192
 
 size_t ja_ustack_get_alignment(void)
@@ -114,23 +116,59 @@ __attribute__((__aligned__(PGSIZE))) uint32_t pgdir[NPDENTRIES] = {
         [PDX(KERNBASE) + 1] = (1<<PDXSHIFT) | PAGE_P | PAGE_RW | PAGE_S,
 };
 
+
+uint32_t **pgdirs; //array of pointers to pgdirs
+
 void ja_space_init(void)
 {
-    asm volatile("movl %0,%%cr3" : : "r" (PHYS_ADDR(pgdir)));
+    pgdirs = jet_mem_alloc(ja_partitions_pages_nb*sizeof(*pgdir));
+
+    for (unsigned i = 0; i<ja_partitions_pages_nb; i++) {
+        uint32_t *pgdir = ja_mem_alloc_aligned(4096, 4096);
+        memset(pgdir, 0, 4096);
+        pgdirs[i] = pgdir;
+
+        pgdir[PDX(KERNBASE)    ] = (0)           | PAGE_P | PAGE_RW | PAGE_S;
+        pgdir[PDX(KERNBASE) + 1] = (1<<PDXSHIFT) | PAGE_P | PAGE_RW | PAGE_S;
+
+        uint32_t *pgtable = ja_mem_alloc_aligned(4096, 4096);
+        memset(pgtable, 0, 4096);
+        for (unsigned j = 0; j<ja_partitions_pages[i].len; j++) {
+            struct page *page = &ja_partitions_pages[i].pages[j];
+            if (page->is_big) {
+                pgdir[PDX(page->vaddr)] = page->paddr_and_flags | PAGE_P | PAGE_U;
+            } else {
+                if (pgdir[PDX(page->vaddr)] != 0) {
+                    //already allocated page table
+                    uint32_t *pgtable = (uint32_t *)PHYS2VIRT(PTE_ADDR(pgdir[PDX(page->vaddr)]));
+                    pgtable[PTX(page->vaddr)] = page->paddr_and_flags | PAGE_P | PAGE_U;
+                } else {
+                    //page table hasn't been created yet
+                    uint32_t *pgtable = ja_mem_alloc_aligned(4096, 4096);
+                    memset(pgtable, 0, 4096);
+                    pgdir[PDX(page->vaddr)] = VIRT2PHYS(pgtable) | PAGE_P | PAGE_RW| PAGE_U;
+
+                    pgtable[PTX(page->vaddr)] = page->paddr_and_flags | PAGE_P | PAGE_U;
+                }
+            }
+        }
+
+        //pgdir[0] = (0x4000000) | PAGE_P | PAGE_RW| PAGE_S | PAGE_U;
+
+//        uint32_t *page_table = (uint32_t *)page_tables[i];
+//        page_table[PDX(KERNBASE)    ] = (0)           | PAGE_P | PAGE_RW | PAGE_S;
+//        page_table[PDX(KERNBASE) + 1] = (1<<PDXSHIFT) | PAGE_P | PAGE_RW | PAGE_S;
+//        page_table[0] = (0x4000000) | PAGE_P | PAGE_RW| PAGE_S | PAGE_U;
+    }
+
 }
 
 void ja_space_switch (jet_space_id space_id)
 {
-    /* TODO
-    if(current_space_id != 0) {
-        gdt_disable (GDT_PARTITION_CODE_SEGMENT(current_space_id));
-        gdt_disable (GDT_PARTITION_DATA_SEGMENT(current_space_id));
+    if (space_id != 0) {
+        //printf("spaceid %x\n", space_id);
+        asm volatile("movl %0,%%cr3" : : "r" (PHYS_ADDR(pgdirs[space_id - 1])));
     }
-    if(space_id != 0) {
-        gdt_enable (GDT_PARTITION_CODE_SEGMENT(space_id));
-        gdt_enable (GDT_PARTITION_DATA_SEGMENT(space_id));
-    }
-    */
 
     current_space_id = space_id;
 }
