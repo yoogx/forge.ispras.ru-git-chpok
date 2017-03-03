@@ -42,13 +42,6 @@ unsigned int pos;
         memset(outstr, 0, UNITY_OUTPUT_MAX_LENGTH); \
     } while (0)
 
-#define UNITY_OUTPUT_COMPLETE()                                                    \
-    do {                                                                           \
-        PARTITION_STATUS_TYPE status;                                              \
-        RETURN_CODE_TYPE ret;                                                      \
-        GET_PARTITION_STATUS(&status, &ret);                                       \
-        if (ret != NO_ERROR) printf("Failed to get partition id, code %d\n", ret); \
-        else printf("\nPartition %ld:\n%s\n", status.IDENTIFIER, outstr);          \
-    } while (0)
+#define UNITY_OUTPUT_COMPLETE() printf("\n%s\n", outstr)
 
 #endif /* UNITY_CONFIG_H */
