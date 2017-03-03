@@ -36,12 +36,15 @@ env['QEMU'] = 'qemu-system-i386'
 env['LDSCRIPT_KERNEL']    = env['JETOS_HOME'] + '/kernel/arch/x86/ldscripts/kernel.lds'
 env['LDSCRIPT_PARTITION'] = env['JETOS_HOME'] + '/kernel/arch/x86/ldscripts/partition.lds'
 
+#env.Append(CFLAGS = ' -DPOK_DISABLE_GDB')
+#env.Append(ASFLAGS = ' -DPOK_DISABLE_GDB')
+
 arch_dir = Dir('.').srcnode().abspath
 
 
+# Below is an implementation of arch deployment functionality.
 from board_deploy_simple import *
 from text_serialization import *
-# Below is an implementation of arch deployment functionality.
 def align_val(val, align):
     return ((val + align - 1) // align) * align
 
