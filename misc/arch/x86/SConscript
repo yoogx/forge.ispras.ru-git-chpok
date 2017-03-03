@@ -33,8 +33,8 @@ env['PREFIX'] = 'i386-elf-'
 
 env['QEMU'] = 'qemu-system-i386'
 
-env['LDSCRIPT_KERNEL'] = env['JETOS_HOME'] + '/boards/' + env['BSP'] + '/ldscripts/kernel.lds'
-env['LDSCRIPT_PARTITION'] = env['JETOS_HOME'] + '/boards/' + env['BSP'] + '/ldscripts/partition.lds'
+env['LDSCRIPT_KERNEL']    = env['JETOS_HOME'] + '/kernel/arch/x86/ldscripts/kernel.lds'
+env['LDSCRIPT_PARTITION'] = env['JETOS_HOME'] + '/kernel/arch/x86/ldscripts/partition.lds'
 
 arch_dir = Dir('.').srcnode().abspath
 
