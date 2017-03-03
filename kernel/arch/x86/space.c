@@ -115,29 +115,31 @@ void ja_space_init(void)
 {
     pgdirs = jet_mem_alloc(ja_partitions_pages_nb*sizeof(*pgdirs));
 
-    for (unsigned i = 0; i<ja_partitions_pages_nb; i++) {
-        uint32_t *pgdir = ja_mem_alloc_aligned(4096, 4096);
-        memset(pgdir, 0, 4096);
+    for (unsigned i = 0; i < ja_partitions_pages_nb; i++) {
+        uint32_t *pgdir = ja_mem_alloc_aligned(PAGE_SIZE, PAGE_SIZE);
+        memset(pgdir, 0, PAGE_SIZE);
         pgdirs[i] = pgdir;
 
         pgdir[PDX(KERNBASE)    ] = (0)           | PAGE_P | PAGE_RW | PAGE_S;
         pgdir[PDX(KERNBASE) + 1] = (1<<PDXSHIFT) | PAGE_P | PAGE_RW | PAGE_S;
 
-        uint32_t *pgtable = ja_mem_alloc_aligned(4096, 4096);
-        memset(pgtable, 0, 4096);
-        for (unsigned j = 0; j<ja_partitions_pages[i].len; j++) {
+        uint32_t *pgtable = ja_mem_alloc_aligned(PAGE_SIZE, PAGE_SIZE);
+        memset(pgtable, 0, PAGE_SIZE);
+        for (unsigned j = 0; j < ja_partitions_pages[i].len; j++) {
             struct page *page = &ja_partitions_pages[i].pages[j];
             if (page->is_big) {
+                //4MB page
                 pgdir[PDX(page->vaddr)] = page->paddr_and_flags | PAGE_P | PAGE_U;
             } else {
+                // 4KB page
                 if (pgdir[PDX(page->vaddr)] != 0) {
                     //already allocated page table
-                    uint32_t *pgtable = (uint32_t *)PHYS2VIRT(PTE_ADDR(pgdir[PDX(page->vaddr)]));
+                    uint32_t *pgtable = (uint32_t *)PHYS2VIRT(PT_ADDR(pgdir[PDX(page->vaddr)]));
                     pgtable[PTX(page->vaddr)] = page->paddr_and_flags | PAGE_P | PAGE_U;
                 } else {
                     //page table hasn't been created yet
-                    uint32_t *pgtable = ja_mem_alloc_aligned(4096, 4096);
-                    memset(pgtable, 0, 4096);
+                    uint32_t *pgtable = ja_mem_alloc_aligned(PAGE_SIZE, PAGE_SIZE);
+                    memset(pgtable, 0, PAGE_SIZE);
                     pgdir[PDX(page->vaddr)] = VIRT2PHYS(pgtable) | PAGE_P | PAGE_RW| PAGE_U;
 
                     pgtable[PTX(page->vaddr)] = page->paddr_and_flags | PAGE_P | PAGE_U;
@@ -145,14 +147,7 @@ void ja_space_init(void)
             }
         }
 
-        //pgdir[0] = (0x4000000) | PAGE_P | PAGE_RW| PAGE_S | PAGE_U;
-
-//        uint32_t *page_table = (uint32_t *)page_tables[i];
-//        page_table[PDX(KERNBASE)    ] = (0)           | PAGE_P | PAGE_RW | PAGE_S;
-//        page_table[PDX(KERNBASE) + 1] = (1<<PDXSHIFT) | PAGE_P | PAGE_RW | PAGE_S;
-//        page_table[0] = (0x4000000) | PAGE_P | PAGE_RW| PAGE_S | PAGE_U;
     }
-
 }
 
 void ja_space_switch (jet_space_id space_id)

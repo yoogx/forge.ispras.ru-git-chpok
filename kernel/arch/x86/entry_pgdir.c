@@ -16,11 +16,10 @@
 #include <arch/mmu.h>
 #include <stdint.h>
 #include <memlayout.h>
-typedef uint32_t pte_t;
-typedef uint32_t pde_t;
 
+#define PGDIR_ENTRIES_N  1024 // page directory entries per page directory
 
-__attribute__((__aligned__(PGSIZE))) pde_t entry_pgdir[NPDENTRIES] = {
+__attribute__((__aligned__(PAGE_SIZE))) uint32_t entry_pgdir[PGDIR_ENTRIES_N] = {
 
         // Map VA's [0, 4MB) to PA's [0, 4MB)
         [0] = (0) | PAGE_P | PAGE_RW| PAGE_S,
