@@ -92,4 +92,9 @@ instruction_manual_odt = env.Command('build/instruction_manual.odt', instruction
 
 doc_odt = env.Alias('doc-odt', instruction_manual_odt)
 
+instruction_manual_odt = env.Command('build/instruction_manual.pdf', instruction_manual_preprocessed,
+    "pandoc --latex-engine=xelatex -V mainfont='DejaVu Sans' --variable geometry:margin=1in --number-sections  -o $TARGET -s -S $SOURCE")
+
+doc_odt = env.Alias('doc-pdf', instruction_manual_odt)
+
 env.Default(doc_html)
