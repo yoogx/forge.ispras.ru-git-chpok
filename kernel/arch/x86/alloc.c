@@ -18,8 +18,8 @@
 #include <common.h>
 #include <libc.h>
 
-extern char __pok_end[];
-static char *heap_end = __pok_end;
+extern char __jet_end[];
+static char *heap_end = __jet_end;
 
 void *ja_mem_alloc_aligned (size_t size, unsigned int alignment)
 {
