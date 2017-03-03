@@ -66,7 +66,7 @@ int pci_read_config_byte(struct pci_dev *dev, int where, uint8_t *val)
 
 #ifdef __PPC__
     out_be32((uint32_t *) pci_controller.cfg_addr, addr);
-    *val = in_8((void *) (pci_controller.cfg_data) + (where & 3));
+    *val = in_8((void *) (pci_controller.cfg_data + (where & 3)));
 #else
     outl(PCI_CONFIG_ADDRESS, addr);
     *val = inb(PCI_CONFIG_DATA + (where & 3));
@@ -81,7 +81,7 @@ int pci_read_config_word(struct pci_dev *dev, int where, uint16_t *val)
 
 #ifdef __PPC__
     out_be32((uint32_t *) pci_controller.cfg_addr, addr);
-    *val = in_le16((void *) (pci_controller.cfg_data) + (where & 3));
+    *val = in_le16((void *) (pci_controller.cfg_data + (where & 3)));
 #else
     outl(PCI_CONFIG_ADDRESS, addr);
     *val = inw(PCI_CONFIG_DATA + (where & 2));
@@ -96,7 +96,7 @@ int pci_read_config_dword(struct pci_dev *dev, int where, uint32_t *val)
 
 #ifdef __PPC__
     out_be32((uint32_t *) pci_controller.cfg_addr, addr);
-    *val = in_le32((void *) pci_controller.cfg_data + (where & 3));
+    *val = in_le32((void *) (pci_controller.cfg_data + (where & 3)));
 #else
     outl(PCI_CONFIG_ADDRESS, addr);
     *val = inl(PCI_CONFIG_DATA);
@@ -111,7 +111,7 @@ int pci_write_config_byte(struct pci_dev *dev, int where, uint8_t val)
 
 #ifdef __PPC__
     out_be32((uint32_t *) pci_controller.cfg_addr, addr);
-    out_8((void *) (pci_controller.cfg_data) + (where & 3), val);
+    out_8((void *) (pci_controller.cfg_data + (where & 3)), val);
 #else
     outl(PCI_CONFIG_ADDRESS, addr);
     outb(val, PCI_CONFIG_DATA + (where & 3));
@@ -126,7 +126,7 @@ int pci_write_config_word(struct pci_dev *dev, int where, uint16_t val)
 
 #ifdef __PPC__
     out_be32((uint32_t *) pci_controller.cfg_addr, addr);
-    out_le16((void *) (pci_controller.cfg_data) + (where & 3), val);
+    out_le16((void *) (pci_controller.cfg_data + (where & 3)), val);
 #else
     outl(PCI_CONFIG_ADDRESS, addr);
     outw(val, PCI_CONFIG_DATA + (where & 2));
@@ -141,7 +141,7 @@ int pci_write_config_dword(struct pci_dev *dev, int where, uint32_t val)
 
 #ifdef __PPC__
     out_be32((uint32_t *) pci_controller.cfg_addr, addr);
-    out_le32((void *) (pci_controller.cfg_data) + (where & 3), val);
+    out_le32((void *) (pci_controller.cfg_data + (where & 3)), val);
 #else
     outl(PCI_CONFIG_ADDRESS, addr);
     outl(PCI_CONFIG_DATA, val);

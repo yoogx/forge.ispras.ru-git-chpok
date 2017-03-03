@@ -327,7 +327,7 @@ static int fm_eth_rx_port_parameter_init(struct dev_state *dev_state)
         rxbd->len = 0;
         rxbd->buf_ptr_hi = 0;
 
-        uint64_t phys_addr = jet_virt_to_phys(&dev_state->heap_mb, rx_buf_pool + i * MAX_RXBUF_LEN);
+        uint64_t phys_addr = jet_virt_to_phys(&dev_state->heap_mb, (uint8_t *) rx_buf_pool + i * MAX_RXBUF_LEN);
         if (phys_addr > 0xffffffff) { //greater than 4G
             printf(DRV_NAME"%s: phys_addrs greater than 4G are not supported\n", __func__);
             return 0;
@@ -341,7 +341,7 @@ static int fm_eth_rx_port_parameter_init(struct dev_state *dev_state)
     rxqd = &pram->rxqd;
     out_be16(&rxqd->gen, 0);
     out_be16(&rxqd->bd_ring_base_hi, 0);
-    uint64_t phys_addr = jet_virt_to_phys(&dev_state->heap_mb, rx_buf_pool + i * MAX_RXBUF_LEN);
+    uint64_t phys_addr = jet_virt_to_phys(&dev_state->heap_mb, (uint8_t *) rx_buf_pool + i * MAX_RXBUF_LEN);
     if (phys_addr > 0xffffffff) { //greater than 4G
         printf(DRV_NAME"%s: phys_addrs greater than 4G are not supported\n", __func__);
         return 0;
