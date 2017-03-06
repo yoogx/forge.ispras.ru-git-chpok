@@ -1,6 +1,6 @@
 <Partition>
     <Definition Name="P2" System="true"/>
-    <!-- Amount of ram allocated (code + stack + static variables) + heap -->
+    <!-- Amount of ram required for ELF -->
     <Memory Bytes="1M" Heap="1M"/>
 
     <Threads Count="10" />

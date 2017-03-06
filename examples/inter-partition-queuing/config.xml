@@ -6,4 +6,16 @@
         <Slot Type="Monitor" Duration="1ms" />
         <Slot Type="GDB" Duration="1ms" />
     </Schedule>
+
+
+    <Connection_Table>
+        <Channel>
+            <Source>
+                <Port_Ref PartitionNameRef="P2" PortNameRef="QP2" />
+            </Source>
+            <Destination>
+                <Port_Ref PartitionNameRef="P1" PortNameRef="QP1" />
+            </Destination>
+        </Channel>
+    </Connection_Table>
 </JetModule>

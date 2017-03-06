@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Partition>
-    <Definition Name="P2" />
+    <Definition Identifier="1" Name="P2" />
     <!-- Amount of ram required for ELF -->
     <Memory Bytes="300K" />
 
@@ -12,10 +12,7 @@
     <ARINC653_Semaphores Count="16" />
 
     <ARINC653_Ports>
-        <Queueing_Port Name="QP2" MaxMessageSize="64" Direction="DESTINATION" MaxNbMessage="10" />
+        <Sampling_Port Name="SP2" MaxMessageSize="64" Direction="DESTINATION" Refresh="1s" />
     </ARINC653_Ports>
 
-    <Memory_Blocks>
-        <Memory_Block Name="shared_mb0" Size="0x10000" Access="R" InitSource="ZERO" InitStage="MODULE"/>
-    </Memory_Blocks>
 </Partition>
