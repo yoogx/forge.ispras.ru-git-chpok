@@ -22,19 +22,6 @@
 # First element of the tuple is an example's directory,
 # other elements - subdirectories with partitions.
 
-examples_dirs = [
-    ('inter_partition_queuing', 'P1', 'P2'),
-    ('inter_partition_sampling', 'P1', 'P2'),
-    ('memblocks', 'P1', 'P2'),
-    ('msections-basic', 'P1'),
-    ('msections-wait', 'P1'),
-    ('msections-wait-several', 'P1'),
-    ('pure-arinc653-buffer', 'P1'),
-    ('syspart-graphic', 'P1', 'P2'),
-    ('syspart-net', 'P1'),
-    ('syspart-net-dtsec', 'P1'),
-]
-
 vars = Variables()
 vars.AddVariables(
     BoolVariable('jdeveloper', 'Enables developer mode', 0),
@@ -53,26 +40,53 @@ import sys
 import os
 sys.path.insert(1, os.path.join(JETOS_HOME, "misc"))
 import template_generation
-env.AddMethod(template_generation.CopyWithTitle)
+
 example_copy_title = """# COPIED! DO NOT MODIFY!
 # Instead of modifying this file, modify original one (%source%).
 #
 # When copy a file outside of JetOS project, remove this line and the lines above.
 """
 
-for example_dirs in examples_dirs:
-    for index, example_dir in enumerate(example_dirs):
-        if index == 0:
-            # Module's directory
-            module_dir = example_dir
-            env.CopyWithTitle(target = module_dir + '/SConstruct',
-                source = 'SConstruct_module',
-                title = example_copy_title,
-                source_base_dir = JETOS_HOME)
-        else:
-            # Partition's directory
-            partition_dir = module_dir + '/' + example_dir
-            env.CopyWithTitle(target = partition_dir + '/SConstruct',
-                source = 'SConstruct_partition',
-                title = example_copy_title,
-                source_base_dir = JETOS_HOME)
+examples_dir = os.path.join(JETOS_HOME, "examples")
+
+def update_sconstructs(target, source, env):
+    """
+    Update SConscruct files for every example.
+    """
+    # Unconditionally copy original files. So, use action function directly.
+    copy_sconstruct_action = template_generation.CopyWithTitleAction(example_copy_title, JETOS_HOME)
+    # Sources for action, as list of Nodes.
+    module_sconstruct_source = [File(os.path.join(examples_dir, "SConstruct_module"))]
+    partition_sconstruct_source = [File(os.path.join(examples_dir, "SConstruct_partition"))]
+
+    for example_dir in os.listdir(examples_dir):
+        module_abs_dir = os.path.join(examples_dir, example_dir)
+        module_sconstruct = os.path.join(module_abs_dir, "SConstruct")
+        if not os.path.exists(module_sconstruct):
+            # Not an example. Ignore.
+            continue
+
+        print "Update module's SConstruct file: %s" % module_sconstruct
+
+        copy_sconstruct_action(
+            target = [File(module_sconstruct)],
+            source = module_sconstruct_source,
+            env = env)
+
+        for partition_dir in os.listdir(module_abs_dir):
+            partition_abs_dir = os.path.join(module_abs_dir, partition_dir)
+            partition_sconstruct = os.path.join(partition_abs_dir, "SConstruct")
+            if not os.path.exists(partition_sconstruct):
+                # Not a partition or it is not intended to be built separately. Ignore.
+                continue
+
+            print "Update partition's SConstruct file: %s" % partition_sconstruct
+
+            copy_sconstruct_action(
+                target = [File(partition_sconstruct)],
+                source = partition_sconstruct_source,
+                env = env)
+
+update_sconstructs_cmd = env.Command("update-sconstructs", [],
+    Action(update_sconstructs, "Update 'SConstruct' files"))
+env.Default(update_sconstructs_cmd)
