@@ -164,7 +164,7 @@
      
         Пример:
 
-            <Error Code="POK_ERROR_KIND_DEADLINE_MISSED" Level="PROCESS" ErrorCode="DEADLINE_MISSED" Action="COLD_START" />
+            <Error Code="DEADLINE_MISSED" Level="PROCESS" ErrorCode="DEADLINE_MISSED" Action="COLD_START" />
 
         Атрибуты:
 
