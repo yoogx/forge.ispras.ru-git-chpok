@@ -51,6 +51,7 @@ if arch_env.get('jdeveloper'):
 
     arch_env.Depends('regenerate', exception_sources)
 
-Return('exception_sources')
+res = Glob('*.[Sc]')
+Return('res')
 
 # EOF
