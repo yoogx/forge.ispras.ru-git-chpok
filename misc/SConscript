@@ -283,12 +283,28 @@ def RemoveDirectories(env, target, dirs):
     if type(dirs) is not list:
         dirs = [dirs]
 
-    # Currently command line for all scons commands is unconditionally replaced
-    # in print_cmd_line().
-    # So do not bother with pretty command line of given command.
     return env.Command(target, [], Delete(dirs))
 
 env.AddMethod(RemoveDirectories)
+
+def CanonicalCleanList(env, field, default):
+    """
+    Make 'field' field of 'env' to be canonical representation of clean directories:
+
+    If env[field] is not defined, set it to default value.
+    If env[field] is not a list, set it to the list of single element.
+
+    Return resulted value of env[field].
+    """
+    val = env.get(field, default)
+    if type(val) is not list:
+        val = [val]
+
+    env[field] = val
+
+    return val
+
+env.AddMethod(CanonicalCleanList)
 
 # Return absolute version of the 'path', which may be instance of
 # SCons.Node.Node or a string.
