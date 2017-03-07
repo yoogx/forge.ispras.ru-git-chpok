@@ -63,15 +63,14 @@ class ArincConfigParser:
 
     # Static map: error code (without prefix) -> error description
     error_description_table = {
-        'ILLEGAL_REQUEST': 'Illegal Request',
+        'DEADLINE_MISSED': 'Deadline Missed',
         'APPLICATION_ERROR': 'Application Error',
         'NUMERIC_ERROR': 'Numeric Error',
+        'ILLEGAL_REQUEST': 'Illegal Request',
+        'STACK_OVERFLOW': 'Stack Overflow',
         'MEMORY_VIOLATION': 'Memory Violation',
-        'DEADLINE_MISSED': 'Deadline Missed',
         'HARDWARE_FAULT': 'Hardware Fault',
         'POWER_FAIL': 'Power Fail',
-        'STACK_OVERFLOW': 'Stack Overflow',
-        'PARTITION_CONFIGURATION': 'Config Error',
     }
 
     @classmethod
@@ -231,10 +230,10 @@ class ArincConfigParser:
 
     @classmethod
     def parse_connection(cls, conf, connection_root):
-        if connection_root.tag == "Standard_Partition":
-            part_name = connection_root.attrib["PartitionName"]
+        if connection_root.tag == "Port_Ref":
+            part_name = connection_root.attrib["PartitionNameRef"]
             part = conf.private_data['partitions_by_name'][part_name]
-            port_name = connection_root.attrib["PortName"]
+            port_name = connection_root.attrib["PortNameRef"]
 
             port = part.private_data['ports_by_name'][port_name]
 
@@ -340,13 +339,13 @@ class ArincConfigParser:
         table.actions['USER'] = {}
 
         for x in root.findall("Error"):
-            # Assume "ErrorCode" to be error id
-            error_id = x.attrib["ErrorCode"]
+            # Assume "Code" to be error id
+            error_id = x.attrib["Code"]
 
             level = x.attrib["Level"]
             recovery_action = x.attrib['Action']
 
-            error_code = x.attrib["Code"].replace('POK_ERROR_KIND_', '')
+            error_code = x.attrib["ErrorCode"]
             description = cls.error_description_table[error_code]
 
             action = chpok_configuration.PartitionHMAction(level, recovery_action, error_code, description)

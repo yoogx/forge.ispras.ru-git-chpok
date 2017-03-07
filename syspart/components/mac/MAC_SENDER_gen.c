@@ -62,4 +62,5 @@ void __MAC_SENDER_init__(MAC_SENDER *self)
 
 void __MAC_SENDER_activity__(MAC_SENDER *self)
 {
+        (void) self; //suppress warning
 }

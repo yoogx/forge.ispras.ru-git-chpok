@@ -17,16 +17,22 @@
 #include <asp/stack.h>
 #include <common.h>
 #include <libc.h>
+#include <core/debug.h>
 
-extern char __pok_end[];
-static char *heap_end = __pok_end;
+extern char jet_heap_start[];
+extern char jet_heap_end[];
+
+static char *cur_heap_end = jet_heap_start;
 
 void *ja_mem_alloc_aligned (size_t size, unsigned int alignment)
 {
   char *res;
 
-  res = (char *)(ALIGN_VAL((unsigned int)heap_end, alignment));
-  heap_end = res + size;
+  res = (char *)(ALIGN_VAL((uintptr_t) cur_heap_end, alignment));
+  cur_heap_end = res + size;
+
+  if (cur_heap_end > jet_heap_end)
+      pok_fatal("Not enough space in heap. Increase jet_heap_end in kernel.lds\n");
   return res;
 }
 

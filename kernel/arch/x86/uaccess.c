@@ -14,12 +14,15 @@
  */
 
 #include <asp/uaccess.h>
+#include "memlayout.h"
 
 pok_bool_t ja_access_ok(const void* __user addr, size_t size)
 {
     (void) addr;
     (void) size;
 
-    //TODO
-    return TRUE; // Cannot distinguish kernel and user addresses.
+    uintptr_t vaddr = (uint32_t)addr;
+    return (vaddr + size <= KERNBASE && //check that range lays before kernel space
+            vaddr + size > vaddr) //check overflow
+            ;
 }

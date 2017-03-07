@@ -49,4 +49,5 @@ void __INTEGRITY_CHECKER_init__(INTEGRITY_CHECKER *self)
 
 void __INTEGRITY_CHECKER_activity__(INTEGRITY_CHECKER *self)
 {
+        (void) self; //suppress warning
 }

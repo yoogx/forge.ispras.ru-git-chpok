@@ -33,7 +33,8 @@ def prepare_environment_partition(env):
 
     env['PARTITION_SOURCE_DIR'] = part_example_dir
     env['PARTITION_BUILD_DIR'] = os.path.join(part_example_dir, 'build', env['BSP'])
-    env['PARTITION_CLEAN_DIRS'] = os.path.join(part_example_dir, 'build')
+    env['PARTITION_CLEAN_DIRS'] = os.path.join(part_example_dir, 'build', env['BSP'])
+    env['PARTITION_DISTCLEAN_DIRS'] = os.path.join(part_example_dir, 'build')
     env['PARTITION_SOURCES'] = []
 
 SConscript('SConscript', exports = ['mode', 'prepare_environment_partition'])

@@ -48,4 +48,5 @@ void __AFDX_ROUTER_init__(AFDX_ROUTER *self)
 
 void __AFDX_ROUTER_activity__(AFDX_ROUTER *self)
 {
+        (void) self; //suppress warning
 }

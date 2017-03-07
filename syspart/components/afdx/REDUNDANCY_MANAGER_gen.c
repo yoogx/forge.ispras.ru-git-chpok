@@ -55,4 +55,5 @@ void __REDUNDANCY_MANAGER_init__(REDUNDANCY_MANAGER *self)
 
 void __REDUNDANCY_MANAGER_activity__(REDUNDANCY_MANAGER *self)
 {
+        (void) self; //suppress warning
 }

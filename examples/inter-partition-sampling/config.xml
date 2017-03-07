@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<JetModule>
+    <Schedule>
+        <Slot Type="Partition" PartitionNameRef="P1" Duration="15ms" PeriodicProcessingStart="true" />
+        <Slot Type="Partition" PartitionNameRef="P2" Duration="15ms" PeriodicProcessingStart="true" />
+        <Slot Type="Monitor" Duration="1ms" />
+        <Slot Type="GDB" Duration="1ms" />
+    </Schedule>
+
+    <Connection_Table>
+        <Channel>
+            <Source>
+                <Port_Ref PartitionNameRef="P1" PortNameRef="SP1" />
+            </Source>
+            <Destination>
+                <Port_Ref PartitionNameRef="P2" PortNameRef="SP2" />
+            </Destination>
+        </Channel>
+    </Connection_Table>
+</JetModule>

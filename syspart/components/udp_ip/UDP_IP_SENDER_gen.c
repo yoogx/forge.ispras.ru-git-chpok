@@ -62,4 +62,5 @@ void __UDP_IP_SENDER_init__(UDP_IP_SENDER *self)
 
 void __UDP_IP_SENDER_activity__(UDP_IP_SENDER *self)
 {
+        (void) self; //suppress warning
 }

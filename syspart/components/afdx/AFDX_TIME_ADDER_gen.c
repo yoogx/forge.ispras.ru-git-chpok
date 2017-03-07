@@ -49,4 +49,5 @@ void __AFDX_TIME_ADDER_init__(AFDX_TIME_ADDER *self)
 
 void __AFDX_TIME_ADDER_activity__(AFDX_TIME_ADDER *self)
 {
+        (void) self; //suppress warning
 }

@@ -39,7 +39,8 @@ def prepare_environment_module(env):
 
     env['MODULE_SOURCE_DIR'] = example_dir
     env['MODULE_BUILD_DIR'] = os.path.join(example_dir, 'build', env['BSP'])
-    env['CLEAN_DIRS'] = os.path.join(example_dir, 'build')
+    env['MODULE_CLEAN_DIRS'] = os.path.join(example_dir, 'build', env['BSP'])
+    env['MODULE_DISTCLEAN_DIRS'] = [os.path.join(example_dir, 'build'), os.path.join(env['JETOS_HOME'], 'build')]
 
     env['MODULE_ENV'] = env
     env['PARTITIONS_XML'] = []
@@ -106,7 +107,8 @@ def example_partition_fill(part_env, part_index):
     part_example_dir = part_env['MODULE_SOURCE_DIR'] + '/' + part_name
     part_env['PARTITION_SOURCE_DIR'] = part_example_dir
     part_env['PARTITION_BUILD_DIR'] = os.path.join(part_example_dir, 'build', part_env['BSP'])
-    part_env['PARTITION_CLEAN_DIRS'] = os.path.join(part_example_dir, 'build')
+    part_env['PARTITION_CLEAN_DIRS'] = os.path.join(part_example_dir, 'build', part_env['BSP'])
+    part_env['PARTITION_DISTCLEAN_DIRS'] = os.path.join(part_example_dir, 'build')
     part_env['PARTITION_SOURCES'] = []
 
 SConscript('SConscript', exports = ['mode', 'prepare_environment_module'])

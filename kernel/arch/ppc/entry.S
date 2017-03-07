@@ -318,7 +318,7 @@ pok_arch_rfi:
 
 /* Exception prologue for non-critical interrupts. */
 .macro EXCEPTION_PROLOGUE
-        /* r3 <-> sprg3, r4 <-> sprg2*/
+        /* r3 -> sprg3, r4 -> sprg2 */
         mtsprg  3,%r3
         mtsprg  2,%r4
         EXCEPTION_PROLOGUE_COMMON
@@ -376,6 +376,7 @@ pok_arch_rfdi_for_debug:
         stw     %r4,OFFSETOF_jet_interrupt_context_r4(%r1)
 .endm
 
+/* for GDB */
         . = base + 0x300
         .global pok_trap_addr
 pok_trap_addr:

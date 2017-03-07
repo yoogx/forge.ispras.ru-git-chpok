@@ -7,6 +7,8 @@ int fm_eth_recv(DTSEC_NET_DEV *self);
 
 ret_t dtsec_send_frame(DTSEC_NET_DEV *self, char *buffer, size_t size, size_t prepend_max_size, size_t append_max_size)
 {
+    (void) prepend_max_size;
+    (void) append_max_size;
 #ifdef __PPC__
     printf("DTSEC %s\n", __func__);
 
@@ -17,6 +19,7 @@ ret_t dtsec_send_frame(DTSEC_NET_DEV *self, char *buffer, size_t size, size_t pr
 
 ret_t dtsec_flush_send(DTSEC_NET_DEV *self)
 {
+    (void) self;
     //Empty
     return EOK;
 }

@@ -45,7 +45,7 @@
 
 static void reclaim_send_buffers(struct virtio_network_device *info);
 
-static void lock_preemption(pok_bool_t *saved)
+static void lock_preemption()
 {
     LOCK_LEVEL_TYPE LOCK_LEVEL;
     RETURN_CODE_TYPE ret_code;
@@ -55,7 +55,7 @@ static void lock_preemption(pok_bool_t *saved)
 }
 
 
-static void unlock_preemption(const pok_bool_t *saved)
+static void unlock_preemption()
 {
     LOCK_LEVEL_TYPE LOCK_LEVEL;
     RETURN_CODE_TYPE ret_code;
@@ -164,8 +164,7 @@ static void notify_receive_buffers(struct virtio_network_device *dev)
 
 static void setup_receive_buffers(struct virtio_network_device *dev)
 {
-    int i;
-    for (i = 0; i < dev->rx_vq.vring.num; i++) {
+    for (unsigned i = 0; i < dev->rx_vq.vring.num; i++) {
         // this pushes buffer to avail ring
         use_receive_buffer(dev, &dev->receive_buffers[i]);
     }
@@ -246,8 +245,7 @@ static void reclaim_send_buffers(struct virtio_network_device *info)
     // callbacks don't do much work, so we can run them all
     // in single critical section without worrying too much
     
-    pok_bool_t saved_preemption;
-    lock_preemption(&saved_preemption);
+    lock_preemption();
     while (vq->last_seen_used != vq->vring.used->idx) {
         uint16_t index = vq->last_seen_used & (vq->vring.num-1);
         struct vring_used_elem *e = &vq->vring.used->ring[index];
@@ -270,7 +268,7 @@ static void reclaim_send_buffers(struct virtio_network_device *info)
         vq->last_seen_used++;
     }
     
-    unlock_preemption(&saved_preemption);
+    unlock_preemption();
 }
 
 static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
@@ -278,8 +276,7 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
     struct virtio_network_device *dev = &self->state.info;
     struct virtio_virtqueue *vq = &dev->rx_vq;
 
-    pok_bool_t saved_preemption;
-    lock_preemption(&saved_preemption);
+    lock_preemption();
 
     uint16_t old_last_seen_used = vq->last_seen_used;
     while (vq->last_seen_used != vq->vring.used->idx) {
@@ -291,7 +288,7 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
         /*
         if (buf == 0) {
             PRINTF("%s: jet_phys_to_virt physical address is wrong\n", __func__);
-            unlock_preemption(&saved_preemption);
+            unlock_preemption();
             return;
         }
         */
@@ -310,8 +307,8 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
         use_receive_buffer(dev, buf);
 
         // preemption point
-        unlock_preemption(&saved_preemption);
-        lock_preemption(&saved_preemption);
+        unlock_preemption();
+        lock_preemption();
     }
 
     if (old_last_seen_used != vq->last_seen_used) {
@@ -320,7 +317,7 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
         notify_receive_buffers(dev);
     }
 
-    unlock_preemption(&saved_preemption);
+    unlock_preemption();
 }
 
 ret_t flush_send(VIRTIO_NET_DEV *self)

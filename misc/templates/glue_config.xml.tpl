@@ -1,6 +1,6 @@
 <Partition>
     <Definition Name="P2" System="true"/>
-    <!-- Amount of ram allocated (code + stack + static variables) + heap -->
+    <!-- Amount of ram required for ELF -->
     <Memory Bytes="1M" Heap="1M"/>
 
     <Threads Count="10" />
@@ -19,11 +19,11 @@
 
     <Memory_Blocks>
 {% raw %}
-{%if arch_name == 'ppc' %}
-        <!-- Powerpc only -->
-            <Memory_Block Name="PCI_IO" Size="0x10000" Access="RW" PhysicalAddress="{{bsp.PCI_IO}}" Contiguous="true" CachePolicy="IO"/>
-            <Memory_Block Name="PCI_Express_1" Size="0x1000" Access="RW" PhysicalAddress="{{bsp.PCI_EXPRESS_CONTROLLER_1}}" Contiguous="true" CachePolicy="IO"/>
-{%endif%}
+ {%if arch_name == 'ppc' %}
+     <!-- PCI -->
+         <Memory_Block Name="PCI_IO" Size="0x10000" Access="RW" PhysicalAddress="{{bsp.PCI_IO}}" Contiguous="true" CachePolicy="IO"/>
+         <Memory_Block Name="PCI_Express_1" Size="0x1000" Access="RW" PhysicalAddress="{{bsp.PCI_EXPRESS_CONTROLLER_1}}" Contiguous="true" CachePolicy="IO"/>
+ {%endif%}
 {% endraw %}
 
 {% for comp in components %}

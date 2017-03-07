@@ -39,10 +39,12 @@ struct ip_hdr {
 
 uint16_t ip_hdr_checksum(const struct ip_hdr *ip_hdr);
 
+/*
 static inline void* ip_hdr_payload(struct ip_hdr *ip_hdr)
 {
     char *p = (char *) ip_hdr;
     return (void*) p + (ip_hdr->version_len & 0xf) * 4;
 }
+*/
 
 #endif

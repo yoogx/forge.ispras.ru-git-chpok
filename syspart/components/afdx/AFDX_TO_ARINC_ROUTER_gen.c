@@ -49,4 +49,5 @@ void __AFDX_TO_ARINC_ROUTER_init__(AFDX_TO_ARINC_ROUTER *self)
 
 void __AFDX_TO_ARINC_ROUTER_activity__(AFDX_TO_ARINC_ROUTER *self)
 {
+        (void) self; //suppress warning
 }

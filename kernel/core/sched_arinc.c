@@ -351,7 +351,10 @@ again:
         part->base_part.entry_sp_user = NULL;
     }
 #endif /* POK_NEEDS_GDB */
-    part->base_part.fp_store_current = new_thread->fp_store;
+    if (new_thread != NULL)
+        part->base_part.fp_store_current = new_thread->fp_store;
+    else
+        part->base_part.fp_store_current = NULL;
 
     if(old_sp)
     {

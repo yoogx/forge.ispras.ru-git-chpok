@@ -37,7 +37,7 @@
 #include <stdlib.h>
 #include <paddr.h>
 
-#define DRV_NAME "dtsec_drv"
+#define DRV_NAME "dtsec_drv "
 #define DEV_NAME_DTSEC3 "dtsec3"
 #define DEV_NAME_DTSEC4 "dtsec4"
 
@@ -79,7 +79,7 @@ uint32_t fm_muram_alloc(uint32_t size, uint32_t align)
     return ret;
 }
 
-static void fm_init_muram(int fm_idx, void *reg)
+static void fm_init_muram(void *reg)
 {
     uint32_t base = (uint32_t)reg;
 
@@ -102,12 +102,17 @@ int fm_eth_send(DTSEC_NET_DEV *self, void *buf, int len)
 
     if (txbd->status & TxBD_READY) {
         //This is not a typo. If status[READY] = 1, then we can't use this buffer now
-        printf("%s: Tx buffer not ready\n", DRV_NAME);
+        printf(DRV_NAME"%s: Tx buffer not ready\n", DRV_NAME);
+        return 0;
+    }
+
+    if (len <= 0) {
+        printf(DRV_NAME"%s: got buffer with len <= 0!", __func__);
         return 0;
     }
 
     /* copy buf to physical continuous memory */
-    if (len > self->state.dev_state.send_buffer_size) {
+    if ((unsigned)len > self->state.dev_state.send_buffer_size) {
         printf(DRV_NAME"%s: message too long\n", __func__);
         return 0;
     }
@@ -322,7 +327,7 @@ static int fm_eth_rx_port_parameter_init(struct dev_state *dev_state)
         rxbd->len = 0;
         rxbd->buf_ptr_hi = 0;
 
-        uint64_t phys_addr = jet_virt_to_phys(&dev_state->heap_mb, rx_buf_pool + i * MAX_RXBUF_LEN);
+        uint64_t phys_addr = jet_virt_to_phys(&dev_state->heap_mb, (uint8_t *) rx_buf_pool + i * MAX_RXBUF_LEN);
         if (phys_addr > 0xffffffff) { //greater than 4G
             printf(DRV_NAME"%s: phys_addrs greater than 4G are not supported\n", __func__);
             return 0;
@@ -336,7 +341,7 @@ static int fm_eth_rx_port_parameter_init(struct dev_state *dev_state)
     rxqd = &pram->rxqd;
     out_be16(&rxqd->gen, 0);
     out_be16(&rxqd->bd_ring_base_hi, 0);
-    uint64_t phys_addr = jet_virt_to_phys(&dev_state->heap_mb, rx_buf_pool + i * MAX_RXBUF_LEN);
+    uint64_t phys_addr = jet_virt_to_phys(&dev_state->heap_mb, (uint8_t *) rx_buf_pool + i * MAX_RXBUF_LEN);
     if (phys_addr > 0xffffffff) { //greater than 4G
         printf(DRV_NAME"%s: phys_addrs greater than 4G are not supported\n", __func__);
         return 0;
@@ -443,7 +448,7 @@ void dtsec_init(DTSEC_NET_DEV *self)
     dtsec4.tx_port = (void *)(CONFIG_SYS_FSL_FM1_ADDR + FM_HARDWARE_PORTS + DTSEC4_TX_PORT*0x1000);
     dtsec4.reg_addr = (void *)(fman_mb.addr + 0xe6000);
 
-    fm_init_muram(0, (void *)fman_mb.addr);
+    fm_init_muram((void *)fman_mb.addr);
     /* XXX HACK. Depend on u-boot! qmi_common and bmi_common are initialized in this memory by u-boot */
     muram.alloc = muram.base + 0x21000;
 

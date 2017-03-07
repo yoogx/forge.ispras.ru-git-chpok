@@ -63,4 +63,5 @@ void __AFDX_FILLER_init__(AFDX_FILLER *self)
 
 void __AFDX_FILLER_activity__(AFDX_FILLER *self)
 {
+        (void) self; //suppress warning
 }

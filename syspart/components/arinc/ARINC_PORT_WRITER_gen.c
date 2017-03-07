@@ -41,4 +41,5 @@ void __ARINC_PORT_WRITER_init__(ARINC_PORT_WRITER *self)
 
 void __ARINC_PORT_WRITER_activity__(ARINC_PORT_WRITER *self)
 {
+        (void) self; //suppress warning
 }

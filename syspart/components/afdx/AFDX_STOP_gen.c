@@ -40,4 +40,5 @@ void __AFDX_STOP_init__(AFDX_STOP *self)
 
 void __AFDX_STOP_activity__(AFDX_STOP *self)
 {
+        (void) self; //suppress warning
 }
