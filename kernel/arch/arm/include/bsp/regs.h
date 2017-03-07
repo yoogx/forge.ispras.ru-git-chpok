@@ -28,13 +28,6 @@ static inline void cpsrset(uint32_t r)
     asm("msr cpsr, %0" : : "r" (r));
 }
 
-static inline void irq_enable()
-{
-    cpsrset(cpsrget() & ~(1 << 7));
-}
+#define CPSR_IRQ (1<<7)
 
-static inline void irq_disable()
-{
-    cpsrset(cpsrget() | (1 << 7));
-}
 #endif //__ARM_REGS_H__
