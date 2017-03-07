@@ -23,14 +23,14 @@
 #define HEADER_LENGTH       42
 #define SUFFIX_LENGTH       1
   
-void afdx_to_arinc_router_init(AFDX_TO_ARINC_ROUTER *self)
-{
-
-}
+//~ void afdx_to_arinc_router_init(AFDX_TO_ARINC_ROUTER *self)
+//~ {
+//~
+//~ }
 /* Return index of afdx_dst_port or -1 if not found */
 static int get_afdx_dst_port_index(AFDX_TO_ARINC_ROUTER_state *state, uint16_t afdx_dst_port)
 {
-    for (int i = 0; i < state->map_afdx_dst_port_to_idx_len; i++) {
+    for (size_t i = 0; i < state->map_afdx_dst_port_to_idx_len; i++) {
         if (state->map_afdx_dst_port_to_idx[i] == afdx_dst_port) {
             return i;
         }

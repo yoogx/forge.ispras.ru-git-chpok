@@ -47,12 +47,13 @@ static void fill_in_mac_header(
 ret_t mac_send(MAC_SENDER *self,
         char *payload,
         size_t payload_size,
-        size_t max_backstep,
+        size_t prepend_max_size,
+        size_t append_max_size,
         uint8_t *dst_mac_addr,
         enum ethertype ethertype
         )
 {
-    if (max_backstep < MAC_HEADER_SIZE)
+    if (prepend_max_size < MAC_HEADER_SIZE)
         return EINVAL;
 
     void *mac_packet = payload - MAC_HEADER_SIZE;
@@ -66,8 +67,8 @@ ret_t mac_send(MAC_SENDER *self,
     MAC_SENDER_call_portB_send(self,
             mac_packet,
             payload_size + MAC_HEADER_SIZE,
-            max_backstep - MAC_HEADER_SIZE,
-            0
+            prepend_max_size - MAC_HEADER_SIZE,
+            append_max_size
             );
     return EOK;
 }

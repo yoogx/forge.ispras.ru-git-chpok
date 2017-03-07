@@ -111,8 +111,8 @@ pok_bool_t redundancy_management(REDUNDANCY_MANAGER *self, uint8_t seq_numb, int
     {
         if ((self->state.virtual_link_data[vl_index].redundancy_management_data.last_accepted_seq_numb + N) > 255)
         {
+            // deleted from if (seq_numb <= 255) &&
             if ((seq_numb > self->state.virtual_link_data[vl_index].redundancy_management_data.last_accepted_seq_numb) &&
-                (seq_numb <= 255) &&
                 (seq_numb >= 1) &&
                 (seq_numb <= ((self->state.virtual_link_data[vl_index].redundancy_management_data.last_accepted_seq_numb + N) % 255)) )
             {

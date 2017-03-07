@@ -30,13 +30,13 @@
 
 
 
-      ret_t ARP_ANSWERER_call_portB_mac_send(ARP_ANSWERER *self, char * arg1, size_t arg2, size_t arg3, uint8_t * arg4, enum ethertype arg5)
+      ret_t ARP_ANSWERER_call_portB_mac_send(ARP_ANSWERER *self, char * arg1, size_t arg2, size_t arg3, size_t arg4, uint8_t * arg5, enum ethertype arg6)
       {
          if (self->out.portB.ops == NULL) {
              printf("WRONG CONFIG: out port portB of component ARP_ANSWERER was not initialized\n");
              //fatal_error?
          }
-         return self->out.portB.ops->mac_send(self->out.portB.owner, arg1, arg2, arg3, arg4, arg5);
+         return self->out.portB.ops->mac_send(self->out.portB.owner, arg1, arg2, arg3, arg4, arg5, arg6);
       }
       ret_t ARP_ANSWERER_call_portB_flush(ARP_ANSWERER *self)
       {

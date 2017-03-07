@@ -97,6 +97,7 @@ ret_t arp_receive(ARP_ANSWERER *self, const char *data, size_t len)
             (void *)&arp_answer_buffer.arp_answer,
             sizeof(arp_answer_buffer.arp_answer),
             sizeof(struct ether_hdr),
+            0,
             arp_answer_buffer.arp_answer.tha,
             ETH_P_ARP);
 

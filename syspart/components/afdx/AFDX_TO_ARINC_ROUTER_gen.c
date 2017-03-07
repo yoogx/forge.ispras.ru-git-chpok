@@ -44,7 +44,6 @@ void __AFDX_TO_ARINC_ROUTER_init__(AFDX_TO_ARINC_ROUTER *self)
 {
             self->in.portC.ops.handle = __wrapper_afdx_to_arinc_router_receive;
 
-        afdx_to_arinc_router_init(self);
 }
 
 void __AFDX_TO_ARINC_ROUTER_activity__(AFDX_TO_ARINC_ROUTER *self)

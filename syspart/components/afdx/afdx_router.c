@@ -23,7 +23,7 @@
 /* Return index of vl_id. -1 if not found */
 static int get_vl_id_index(AFDX_ROUTER_state *state, uint16_t vl_id)
 {
-    for (int i = 0; i < state->map_vl_id_to_idx_len; i++) {
+    for (size_t i = 0; i < state->map_vl_id_to_idx_len; i++) {
         //~ struct vl_index *cur_state = &state->map_vl_id_to_idx[i];
         if (state->map_vl_id_to_idx[i].vl_id == vl_id) {
             return i;

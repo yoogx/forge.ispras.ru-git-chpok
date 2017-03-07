@@ -63,11 +63,11 @@ ret_t udp_ip_send(
         UDP_IP_SENDER *self,
         char *payload,
         size_t payload_size,
-        size_t max_backstep,
-        size_t frontstep
+        size_t prepend_max_size,
+        size_t append_max_size
         )
 {
-    if (max_backstep < UDP_IP_HEADER_SIZE)
+    if (prepend_max_size < UDP_IP_HEADER_SIZE)
         return EINVAL;
 
     void *udp_packet = payload - UDP_IP_HEADER_SIZE;
@@ -80,7 +80,8 @@ ret_t udp_ip_send(
     return UDP_IP_SENDER_call_portB_mac_send(self,
             udp_packet,
             payload_size + UDP_IP_HEADER_SIZE,
-            max_backstep - UDP_IP_HEADER_SIZE,
+            prepend_max_size - UDP_IP_HEADER_SIZE,
+            append_max_size,
             self->state.dst_mac,
             ETH_P_IP);
 }

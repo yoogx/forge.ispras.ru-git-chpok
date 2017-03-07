@@ -1,5 +1,5 @@
 instances:
-    - name: arinc_port_reader_1
+    - name: arinc_port_rdr_1
       type: ARINC_PORT_READER
       state:
           port_name: '"UOUT"'
@@ -21,7 +21,7 @@ instances:
           dst_afdx_port: 2
           type_of_packet: UNICAST_PACKET
 
-    - name: afdx_queue_enqueuer_1
+    - name: afdx_enqueuer_1
       type: AFDX_QUEUE_ENQUEUER
       state:
           BAG: SECOND
@@ -46,7 +46,7 @@ instances:
 
 links:
     - from:
-        instance: arinc_port_reader_1
+        instance: arinc_port_rdr_1
         port: portA
       to:
         instance: afdx_filler_1
@@ -56,18 +56,18 @@ links:
         instance: afdx_filler_1
         port: portB
       to:
-        instance: afdx_queue_enqueuer_1
+        instance: afdx_enqueuer_1
         port: portB
 
     - from:
-        instance: afdx_queue_enqueuer_1
+        instance: afdx_enqueuer_1
         port: portNetA
       to:
         instance: virtio_net_dev_1
         port: portA
 
     - from:
-        instance: afdx_queue_enqueuer_1
+        instance: afdx_enqueuer_1
         port: portNetB
       to:
         instance: virtio_net_dev_2

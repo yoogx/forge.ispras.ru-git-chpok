@@ -28,6 +28,8 @@ ret_t afdx_stop_func(AFDX_STOP *self,
     int a;
     a = 1;
     self->state.st = a;
+    (void) frame_size;
+    (void ) afdx_frame;
     return EOK;
 }
 

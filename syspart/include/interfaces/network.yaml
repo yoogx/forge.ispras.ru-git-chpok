@@ -16,8 +16,8 @@
   functions:
       - name: mac_send
         return_type: ret_t
-        # component, payload, payload_size, max_backstep, dst_mac_addr, ethertype
-        args_type: [self_t *, char *, size_t, size_t, uint8_t *, enum ethertype]
+        # component, payload, payload_size, prepend_max_size, append_max_size, dst_mac_addr, ethertype
+        args_type: [self_t *, char *, size_t, size_t, size_t, uint8_t *, enum ethertype]
 
       - name: flush
         return_type: ret_t

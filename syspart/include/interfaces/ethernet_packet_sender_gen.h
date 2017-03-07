@@ -27,7 +27,7 @@
     #include <net/ether.h>
 
 typedef struct {
-    ret_t (*mac_send)(self_t *, char *, size_t, size_t, uint8_t *, enum ethertype);
+    ret_t (*mac_send)(self_t *, char *, size_t, size_t, size_t, uint8_t *, enum ethertype);
     ret_t (*flush)(self_t *);
 } ethernet_packet_sender;
 

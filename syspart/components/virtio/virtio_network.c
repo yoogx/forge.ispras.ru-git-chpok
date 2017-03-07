@@ -183,6 +183,9 @@ ret_t send_frame(VIRTIO_NET_DEV * self,
     if (prepend_max_size != 0)
         return EINVAL;
 
+    if (append_max_size != 0)
+        return EINVAL;
+
     struct vring_desc *desc;
 
     struct virtio_network_device *dev = &self->state.info;

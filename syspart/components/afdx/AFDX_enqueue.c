@@ -214,5 +214,7 @@ ret_t afdx_enqueuer_implementation(
 
 ret_t afdx_enqueuer_flush(AFDX_QUEUE_ENQUEUER *self)
 {
+    AFDX_QUEUE_ENQUEUER_call_portNetA_flush(self);
+    AFDX_QUEUE_ENQUEUER_call_portNetB_flush(self);
     return EOK;
 }

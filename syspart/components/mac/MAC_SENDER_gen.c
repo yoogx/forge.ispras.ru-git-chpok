@@ -23,9 +23,9 @@
 
 
 
-    static ret_t __wrapper_mac_send(self_t *arg0, char * arg1, size_t arg2, size_t arg3, uint8_t * arg4, enum ethertype arg5)
+    static ret_t __wrapper_mac_send(self_t *arg0, char * arg1, size_t arg2, size_t arg3, size_t arg4, uint8_t * arg5, enum ethertype arg6)
     {
-        return mac_send((MAC_SENDER*) arg0, arg1, arg2, arg3, arg4, arg5);
+        return mac_send((MAC_SENDER*) arg0, arg1, arg2, arg3, arg4, arg5, arg6);
     }
 
     static ret_t __wrapper_mac_flush(self_t *arg0)

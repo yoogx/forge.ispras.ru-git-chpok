@@ -146,7 +146,7 @@
             map_afdx_dst_port_to_idx[10]: uint16_t
             map_afdx_dst_port_to_idx_len: size_t
 
-  init_func: afdx_to_arinc_router_init
+  #init_func: afdx_to_arinc_router_init
 
   in_ports:
       - name: portC

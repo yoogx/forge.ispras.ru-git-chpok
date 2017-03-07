@@ -57,7 +57,6 @@ typedef struct {
 
 
 
-    void afdx_to_arinc_router_init(AFDX_TO_ARINC_ROUTER *);
 
 
 
