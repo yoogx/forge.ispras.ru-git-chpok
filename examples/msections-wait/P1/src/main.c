@@ -52,7 +52,7 @@ static void second_process(void)
     msection_enter(&s);
     if(completion == 0)
     {
-        waited_thread = kshd.current_thread_id;
+        waited_thread = kshd->current_thread_id;
         printf ("Second process waits for completion.\n");
         msection_wait(&s, POK_TIME_INFINITY);
         printf ("Second process resumes.\n");
