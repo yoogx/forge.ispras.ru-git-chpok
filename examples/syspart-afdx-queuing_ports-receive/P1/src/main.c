@@ -24,9 +24,6 @@
 #define PRINT
 /* ============================== */
 
-//~ #include <afdx/AFDX_ES.h>
-//~ #include <afdx/AFDX_ES_config.h>
-
 #define SECOND 1000000000LL
 
 #define MAX_AFDX_FRAME_SIZE    1518
