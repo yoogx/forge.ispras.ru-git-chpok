@@ -95,11 +95,11 @@ struct port_ops{
 
         };
 
-    #include <AFDX_TIME_ADDER_gen.h>
-        void __AFDX_TIME_ADDER_init__(AFDX_TIME_ADDER*);
-        void __AFDX_TIME_ADDER_activity__(AFDX_TIME_ADDER*);
-        AFDX_TIME_ADDER afdx_time_adder_1 = {
-            .instance_name = "afdx_time_adder_1",
+    #include <AFDX_STOP_gen.h>
+        void __AFDX_STOP_init__(AFDX_STOP*);
+        void __AFDX_STOP_activity__(AFDX_STOP*);
+        AFDX_STOP afdx_stop_send_1 = {
+            .instance_name = "afdx_stop_send_1",
 
         };
 
@@ -117,7 +117,7 @@ void glue_main()
 
             __VIRTIO_NET_DEV_init__(&virtio_net_dev_2);
 
-            __AFDX_TIME_ADDER_init__(&afdx_time_adder_1);
+            __AFDX_STOP_init__(&afdx_stop_send_1);
 
 
         arinc_port_reader_1.out.portA.ops = &afdx_filler_1.in.portA.ops;
@@ -128,6 +128,10 @@ void glue_main()
         afdx_queue_enqueuer_1.out.portNetA.owner = &virtio_net_dev_1;
         afdx_queue_enqueuer_1.out.portNetB.ops = &virtio_net_dev_2.in.portA.ops;
         afdx_queue_enqueuer_1.out.portNetB.owner = &virtio_net_dev_2;
+        virtio_net_dev_1.out.portB.ops = &afdx_stop_send_1.in.portA.ops;
+        virtio_net_dev_1.out.portB.owner = &afdx_stop_send_1;
+        virtio_net_dev_2.out.portB.ops = &afdx_stop_send_1.in.portA.ops;
+        virtio_net_dev_2.out.portB.owner = &afdx_stop_send_1;
 
 }
 
@@ -139,7 +143,7 @@ void glue_activity()
                 __AFDX_QUEUE_ENQUEUER_activity__(&afdx_queue_enqueuer_1);
                 __VIRTIO_NET_DEV_activity__(&virtio_net_dev_1);
                 __VIRTIO_NET_DEV_activity__(&virtio_net_dev_2);
-                __AFDX_TIME_ADDER_activity__(&afdx_time_adder_1);
+                __AFDX_STOP_activity__(&afdx_stop_send_1);
     }
 
 }
