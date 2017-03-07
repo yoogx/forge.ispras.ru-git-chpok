@@ -17,7 +17,7 @@
 #include <asp/entries.h>
 #include <assert.h>
 #include <bsp/bsp.h>
-#include <bsp/regs.h>
+#include "regs.h"
 
 void mmu_enable(void); //FIXME DELETEME
 

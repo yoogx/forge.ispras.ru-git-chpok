@@ -17,7 +17,6 @@
 
 #include <bsp/ioports.h>
 #include <libc.h>
-#include <bsp/regs.h> //TODO DELETEME
 #include "irq.h"
 
 #define GIC_GPT_IRQ 87 //irq vector
