@@ -10,10 +10,12 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
+ * See the GNU General Public License version 3 for more details.
  */
+#ifndef __JET_ARM_BSP_H__
+#define __JET_ARM_BSP_H__
 
-void ja_bsp_init(void)
-{
-    irq_init();
-    timer_init();
-}
+/* Initialize bsp-related stuff. */
+void ja_bsp_init(void);
+
+#endif /* __JET_PPC_BSP_H__ */

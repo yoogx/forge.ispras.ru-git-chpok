@@ -16,10 +16,10 @@
 #include <asp/arch.h>
 #include <asp/entries.h>
 #include <assert.h>
+#include <bsp/bsp.h>
+#include <bsp/regs.h>
 
 void mmu_enable(void); //FIXME DELETEME
-//FIXME
-void timer_init(void);
 
 void jet_arch_init(void)
 {
@@ -29,17 +29,18 @@ void jet_arch_init(void)
 
     mmu_enable();
     printf("Hello MMU world\n");
-    timer_init(); //timer interrupts needs MMU
+    ja_bsp_init();
+    ja_preempt_enable();
 }
 
 void ja_preempt_disable (void)
 {
-    //assert(0);
+    irq_disable();
 }
 
 void ja_preempt_enable (void)
 {
-    //assert(0);
+    irq_enable();
 }
 
 pok_bool_t ja_preempt_enabled(void)

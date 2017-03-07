@@ -43,6 +43,11 @@ jet_start:
         ldr r1, =0x55555555
         mcr p15, 0, r1, c3, c0, 0   // Write Domain Access Control Register
 
+        //TODO: init IRQ sp
+        msr cpsr_c, 1<<7 | 1<<6 | 0x12 // switch to IRQ mode
+        ldr sp, =0x10050000
+        msr cpsr_c, 1<<7 | 1<<6 | 0x13 // return to SVC mode
+
         // Call arch_init
         ldr r3, =jet_arch_init
         blx r3

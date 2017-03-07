@@ -23,45 +23,55 @@
 
 #define GICD_ISENABLER0 (GIC_DIST_BASE + 0x100)
 #define GICD_ITARGETSR0 (GIC_DIST_BASE + 0x800)
-/*
-For interrupt ID m, when DIV and MOD are the integer division and modulo operations:
-• the corresponding GICD_ISENABLER number, n, is given by n = m DIV 32
-• the offset of the required GICD_ISENABLER is (0x100 + (4*n))
-• the bit number of the required Set-enable bit in this register is m MOD 32.
- */
-
 
 #define GICC_CTLR (GIC_CPU_BASE + 0x0)
-#define GICC_PMR (GIC_CPU_BASE + 0x4)
+#define GICC_PMR (GIC_CPU_BASE + 0x4) // interrupt priority mask
+#define GICC_IAR (GIC_CPU_BASE + 0xC) // interrupt acknoledge register (read only)
+#define GICC_EOIR (GIC_CPU_BASE + 0x10) // end of interrupt register (write only)
+
+#define PRIORITY_MASK 128
 
 #define CTLR_EN (0x1)
 
 #include <libc.h>
 #include <bsp/ioports.h>
+#include "irq.h"
+#include <core/debug.h>
+#include "timer.h"
 
-#include <bsp/regs.h>
-
-
-static void set_bits(uintptr_t reg, uint32_t mask)
+void irq_handle()
 {
-    iowrite32(reg, ioread32(reg)|mask);
+    int interrupt_id = ioread32(GICC_IAR);
+    printf("%s interrupt id = %d\n", __func__, interrupt_id);
+    if (interrupt_id == IRQ_GPT) {
+        iowrite32(GICC_EOIR, interrupt_id);
+        timer_handle_interrupt();
+    } else {
+        pok_fatal("Unknown interrupt");
+    }
+}
+
+static inline void set_bits(uintptr_t reg, uint32_t bits)
+{
+    iowrite32(reg, ioread32(reg)|bits);
+}
+
+void irq_enable_interrupt(unsigned irq)
+{
+    uint32_t isenablern = GICD_ISENABLER0 + 4*(irq/32);
+    set_bits(isenablern, 1<<(irq%32)); //enable 87 irq
+
+    uint32_t itargetsrn = GICD_ITARGETSR0 + 4*(irq/4);
+    set_bits(itargetsrn, 0b00000001<<(irq%4)); //route 87 irq to cpu interface 0
+
+    //default priority val = 0 (max)
 }
 
 void irq_init(void)
 {
-    irq_enable();
     printf("%s\n", __func__);
 
     iowrite32(GICD_CTLR, CTLR_EN);
     iowrite32(GICC_CTLR, CTLR_EN);
-
-    iowrite32(GICC_PMR, 128);
-
-    //default priority val = 0 (max)
-    uint32_t isenablern = GICD_ISENABLER0 + 4*(87/32);
-    set_bits(isenablern, 1<<(87%32)); //enable 87 irq
-
-    uint32_t itargetsrn = GICD_ITARGETSR0 + 4*(87/4);
-    set_bits(itargetsrn, 0b00000001<<(87%4)); //route 87 irq to cpu interface 0
-
+    iowrite32(GICC_PMR, PRIORITY_MASK);
 }

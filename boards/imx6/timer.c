@@ -17,6 +17,8 @@
 
 #include <bsp/ioports.h>
 #include <libc.h>
+#include <bsp/regs.h> //TODO DELETEME
+#include "irq.h"
 
 #define GIC_GPT_IRQ 87 //irq vector
 
@@ -40,6 +42,8 @@
 
 #define GPT_IR_OF1IE (1<<0)
 
+#define GPT_SR_OF1 (1<<0)
+
 #define GPT_IR_DISABLE_ALL (0)
 
 
@@ -60,43 +64,42 @@ static inline void delay(int32_t count)
             : "=r"(count): [count]"0"(count) : "cc");
 }
 
+void timer_handle_interrupt(void)
+{
+    //Should write 1 to bits in SR you want to reset
+    iowrite32(GPT_SR, GPT_SR_OF1);
+    printf("TIMER_INTERRUPT\n");
+}
+
 void timer_init(void)
 {
-    irq_init();
     printf("%s\n", __func__);
-    // reset device
-    {
-        set_bits(GPT_CR, GPT_CR_SWR);
+    set_bits(GPT_CR, 0); // ensure that GPT is disabled
 
-        /*
-        printf("AAA\n");
-        while (ioread32(GPT_CR)&GPT_CR_SWR)
-            ;
-        printf("OOOO\n");
-        */
-    }
+    // reset device (all register). And check that reset finished correctly
+    //set_bits(GPT_CR, GPT_CR_SWR);
+    //if (ioread32(GPT_CR) & GPT_CR_SWR)
+    //    pok_fatal("Update your QEMU! It has a bug in GPT SWR\n");
 
-    // and clear other bits in GPT_CR
     iowrite32(GPT_CR,
-            GPT_CR_CLCKSRC(GPT_CR_CLCKSRC_24MGH)| //Change clock source TODO: enable bits in CCM_CCGR1 ?
-            GPT_CR_ENMOD| //zero GPT counter after enabling
-            GPT_CR_FRR //free-run mode
+            GPT_CR_CLCKSRC(GPT_CR_CLCKSRC_24MGH) //Set clock source TODO:enable bits in CCM_CCGR1?
+            | GPT_CR_ENMOD //zero GPT counter after enabling
+            | GPT_CR_FRR //free-run mode
             );
 
-
-    iowrite32(GPT_OCR1, 0x05000000);
-
-    // Enable interrupt register on channel 1
+    // Enable interrupts on channel 1
     set_bits(GPT_IR, GPT_IR_OF1IE);
 
     // Enable GPT
     set_bits(GPT_CR, GPT_CR_EN);
 
+    irq_enable_interrupt(IRQ_GPT);
 
+    // check //TODO DELETEME
+    ja_preempt_enable();
+    iowrite32(GPT_OCR1, 0x01000000);
     while (1) {
-        printf("%lx %lx\n", ioread32(GPT_CNT), ioread32(GPT_SR));
+        printf("0x%lx %lx\n", ioread32(GPT_CNT), ioread32(GPT_SR));
         delay(0x10000000);
-
     }
-
 }

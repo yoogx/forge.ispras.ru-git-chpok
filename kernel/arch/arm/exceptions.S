@@ -45,14 +45,21 @@ jet_excp_data_abort_asm:
 
 // IRQ interrupt
 jet_excp_irq_asm:
-    ldr r4, =0x2020040
+    push {r0-r3, r12, lr}
+
+    ldr r1, =0x2020040
     ldr r3,    ='I'
-    str r3, [r4]
+    str r3, [r1]
     ldr r3,    ='R'
-    str r3, [r4]
+    str r3, [r1]
     ldr r3,    ='Q'
-    str r3, [r4]
-    b .
+    str r3, [r1]
+
+    ldr r3, =irq_handle
+    blx r3
+
+    pop {r0-r3, r12, lr}
+    subs pc, lr, #4
 
 // FIQ interrupt
 jet_excp_fiq_asm:
