@@ -40,6 +40,11 @@ static struct {
 
 ret_t arp_receive(ARP_ANSWERER *self, const char *data, size_t len)
 {
+    if (len < sizeof(struct arp_packet_t)) {
+        printf(C_NAME"too small arp packet\n");
+        return EINVAL;
+    }
+
     struct arp_packet_t *arp_packet = (void *) data;
 
     if (arp_packet->htype != hton16(1)) {
@@ -58,16 +63,19 @@ ret_t arp_receive(ARP_ANSWERER *self, const char *data, size_t len)
         printf(C_NAME"wrong arp packet\n");
         return EINVAL; // This is not an ARP request.
     }
-    int found = 0;
-    for (int i=0; i<self->state.good_ips_len; i++) {
-        if (arp_packet->tpa == hton32(self->state.good_ips[i])) {
-            found = 1;
-            break;
+
+    { //TODO this code to dedicated function
+        int found = 0;
+        for (unsigned i=0; i < self->state.good_ips_len; i++) {
+            if (arp_packet->tpa == hton32(self->state.good_ips[i])) {
+                found = 1;
+                break;
+            }
         }
-    }
-    if (!found) {
-        printf(C_NAME"bad ip\n");
-        return EINVAL; // This ARP request is not for us.
+        if (!found) {
+            printf(C_NAME"bad ip\n");
+            return EINVAL; // This ARP request is not for us.
+        }
     }
     printf("ARP_ANSWERER: we have received a request for our MAC.\n");
 

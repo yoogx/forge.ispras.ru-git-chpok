@@ -29,8 +29,8 @@ int memcmp(const void *, const void *, size_t n);
 /*__attribute__ ((weak))*/
 void  *memset(void *dest, unsigned char val, size_t count);
 
-int   strlen (const char* str);
-int   strnlen (const char* str, size_t n);
+size_t   strlen (const char* str);
+size_t   strnlen (const char* str, size_t n);
 
 char* strncpy(char* dest, const char* src, size_t n);
 
@@ -47,7 +47,7 @@ typedef void (*t_putc)(int val, void *out);
 // Generic printf-like function.
 void vprintf(t_putc putc, void *out, const char* format, va_list *args) __attribute__ ((format(printf, 3, 0)));
 
-#if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
+#if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG)
 
 int printf(const char *format, ...)__attribute__ ((format(printf, 1, 2)));
 

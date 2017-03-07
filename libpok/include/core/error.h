@@ -18,13 +18,7 @@
 
 #include <config.h>
 
-#include <core/dependencies.h>
-
-#ifdef POK_NEEDS_ERROR_HANDLING
-
 #include <uapi/error_arinc_types.h>
 #include <core/syscall.h>
-
-#endif /* POK_NEEDS_ERROR_HANDLING */
 
 #endif /* __POK_LIBJET_H */

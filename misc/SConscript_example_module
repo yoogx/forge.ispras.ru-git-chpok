@@ -1,0 +1,114 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+"""
+Common sconscript which may be used for build example module.
+"""
+
+# Assume source directory to be '#' (that is, location of SConstruct
+# from which given script has been called, directly or indirectly).
+# Description of this script see in examples/README.
+
+import os
+from lxml import etree
+from arinc653_xml_conf import ArincConfigParser
+import chpok_configuration
+from template_generation import TemplateRender
+
+
+mode = 'module'
+
+def prepare_environment_module(env):
+    example_dir = Dir('#').abspath
+
+    env['MODULE_SOURCE_DIR'] = example_dir
+    env['MODULE_BUILD_DIR'] = os.path.join(example_dir, 'build', env['BSP'])
+    env['MODULE_CLEAN_DIRS'] = os.path.join(example_dir, 'build', env['BSP'])
+    env['MODULE_DISTCLEAN_DIRS'] = [os.path.join(example_dir, 'build'), os.path.join(env['JETOS_HOME'], 'build')]
+
+    env['MODULE_ENV'] = env
+    env['PARTITIONS_XML'] = []
+
+    env['PARTITION_POST_PROCESS'] = example_partition_post_process
+    env['MODULE_CONFIGURATION_FUNC'] = example_configuration_func
+    env['MODULE_POST_PROCESS'] = example_module_post_process
+    env['PARTITION_FILL'] = example_partition_fill
+
+def example_partition_post_process(part_env):
+    env = part_env['MODULE_ENV']
+    env['PARTITIONS_XML'].append(env.toAbsPath(part_env['PARTITION_XML'], part_env['PARTITION_SOURCE_DIR']))
+
+class ExampleConfigurationAction:
+    def __init__(self, write_configuration):
+        self.write_configuration = write_configuration
+
+    def __call__(self, target, source, env):
+        partitions_name = env['PARTITIONS']
+        partitions = []
+
+        for part_index, part_name in enumerate(partitions_name):
+            part_root = etree.parse(os.path.join(env['MODULE_BUILD_DIR'], part_name + '_config.xml'))
+            part = ArincConfigParser.parse_partition(part_root, part_index)
+            partitions.append(part)
+
+        conf_root = etree.parse(source[0].abspath)
+        conf = ArincConfigParser.parse(conf_root, partitions)
+        self.write_configuration(env, conf, target[0].abspath)
+
+
+def example_configuration_func(env, configuration_file, write_configuration):
+    env.AddMethod(TemplateRender)
+
+    module_xml = env['MODULE_XML']
+
+    partitions = env['PARTITIONS']
+    partitions_xml = env['PARTITIONS_XML']
+    partitions_xml_processed = []
+    for part_index, part_xml in enumerate(partitions_xml):
+        part_name = partitions[part_index]
+        part_t = env.TemplateRender(target = os.path.join(env['MODULE_BUILD_DIR'], part_name + '_config.xml'),
+            source = [],
+            template_file = part_xml,
+            create_context = lambda source, env: {'bsp': env['BSP_PROPERTIES'], 'bsp_name': env['BSP'], 'arch_name': env['ARCH']})
+        env.Depends(part_t, env['BSP_PROPERTIES_FILE'])
+        partitions_xml_processed += part_t
+
+    example_configuration_action = ExampleConfigurationAction(write_configuration)
+
+    t = env.Command(target = configuration_file,
+    source = module_xml,
+    action = Action(example_configuration_action))
+
+    env.Depends(t, partitions_xml_processed)
+
+def example_module_post_process(env):
+    env['PARTITIONS_NUMBER'] = len(env['PARTITIONS'])
+    env['MODULE_XML'] = env.toAbsPath(env['MODULE_XML'], env['MODULE_SOURCE_DIR'])
+
+def example_partition_fill(part_env, part_index):
+    part_name = part_env['PARTITIONS'][part_index]
+    part_env['PARTITION_NAME'] = part_name
+    part_example_dir = part_env['MODULE_SOURCE_DIR'] + '/' + part_name
+    part_env['PARTITION_SOURCE_DIR'] = part_example_dir
+    part_env['PARTITION_BUILD_DIR'] = os.path.join(part_example_dir, 'build', part_env['BSP'])
+    part_env['PARTITION_CLEAN_DIRS'] = os.path.join(part_example_dir, 'build', part_env['BSP'])
+    part_env['PARTITION_DISTCLEAN_DIRS'] = os.path.join(part_example_dir, 'build')
+    part_env['PARTITION_SOURCES'] = []
+
+SConscript('SConscript', exports = ['mode', 'prepare_environment_module'])

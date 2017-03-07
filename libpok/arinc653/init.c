@@ -15,56 +15,73 @@
 
 #include <init_arinc.h>
 #include "arinc_alloc.h"
-#include <arinc_config.h>
+#include "arinc_config.h"
 
-#include <smalloc.h>
+#include <asp/alloc.h>
 
 #include "buffer.h"
 #include "blackboard.h"
 #include "event.h"
 #include "semaphore.h"
 
-#ifdef POK_NEEDS_ARINC653_BUFFER
+#include <kernel_shared_data.h>
+
+#include <stdio.h> /* for printf() */
+#include <stdlib.h> /* for abort() */
+
 struct arinc_buffer* arinc_buffers;
-#endif /* POK_NEEDS_ARINC653_BUFFER */
 
-#ifdef POK_NEEDS_ARINC653_BLACKBOARD
 struct arinc_blackboard* arinc_blackboards;
-#endif /* POK_NEEDS_ARINC653_BLACKBOARD */
 
-#ifdef POK_NEEDS_ARINC653_EVENT
 struct arinc_event* arinc_events;
-#endif /* POK_NEEDS_ARINC653_EVENT */
 
-#ifdef POK_NEEDS_ARINC653_SEMAPHORE
 struct arinc_semaphore* arinc_semaphores;
-#endif /* POK_NEEDS_ARINC653_SEMAPHORE */
 
 
-#if defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD)
 char* arinc_intra_heap = NULL;
-#endif /* defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD) */
+
+/*
+ * Allocate array for ARINC needs on initialization stage.
+ *
+ * On error print appropriate message and abort().
+ */
+
+static void* arinc_alloc_array(size_t n_elems, size_t elem_size, size_t alignment)
+{
+    if (n_elems == 0) return NULL;
+
+    void* res = arinc_alloc(n_elems * elem_size, alignment);
+
+    if(res == NULL)
+    {
+        printf("ERROR: Insufficient memory for ARINC needs.\n");
+        printf("NOTE: Report this error to the developers.\n");
+        abort();
+    }
+
+    return res;
+}
+
+#define ARINC_ALLOC_ARRAY(n_elems, type) (type*)arinc_alloc_array(n_elems, sizeof(type), __alignof__(type))
+
+size_t arinc_config_nbuffers;
+size_t arinc_config_nblackboards;
+size_t arinc_config_nsemaphores;
+size_t arinc_config_nevents;
+size_t arinc_config_messages_memory_size;
 
 void libjet_arinc_init(void)
 {
-#ifdef POK_NEEDS_ARINC653_BUFFER
-    arinc_buffers = smalloc(arinc_config_nbuffers * sizeof(*arinc_buffers));
-#endif /* POK_NEEDS_ARINC653_BUFFER */
+    arinc_allocator_init();
 
-#ifdef POK_NEEDS_ARINC653_BLACKBOARD
-    arinc_blackboards = smalloc(arinc_config_nblackboards * sizeof(*arinc_blackboards));
-#endif /* POK_NEEDS_ARINC653_BLACKBOARD */
+    arinc_config_nbuffers = kshd->arinc_config_nbuffers;
+    arinc_config_nblackboards = kshd->arinc_config_nblackboards;
+    arinc_config_nsemaphores = kshd->arinc_config_nsemaphores;
+    arinc_config_nevents = kshd->arinc_config_nevents;
+    arinc_config_messages_memory_size = kshd->arinc_config_messages_memory_size;
 
-#ifdef POK_NEEDS_ARINC653_SEMAPHORE
-    arinc_semaphores = smalloc(arinc_config_nsemaphores * sizeof(*arinc_semaphores));
-#endif /* POK_NEEDS_ARINC653_SEMAPHORE */
-
-#ifdef POK_NEEDS_ARINC653_EVENT
-    arinc_events = smalloc(arinc_config_nevents * sizeof(*arinc_events));
-#endif /* POK_NEEDS_ARINC653_EVENT */
-
-
-#if defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD)
-    arinc_intra_heap = smalloc(arinc_config_messages_memory_size);
-#endif /* defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD) */
+    arinc_buffers = ARINC_ALLOC_ARRAY(arinc_config_nbuffers, struct arinc_buffer);
+    arinc_blackboards = ARINC_ALLOC_ARRAY(arinc_config_nblackboards, struct arinc_blackboard);
+    arinc_semaphores = ARINC_ALLOC_ARRAY(arinc_config_nsemaphores, struct arinc_semaphore);
+    arinc_events = ARINC_ALLOC_ARRAY(arinc_config_nevents, struct arinc_event);
 }

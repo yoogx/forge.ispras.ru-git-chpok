@@ -1,0 +1,40 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+"""
+Common sconscript which may be used for build example partition.
+"""
+
+# Assume source directory to be '#' (that is, location of SConstruct
+# from which given script has been called, directly or indirectly).
+
+import os
+
+mode = 'partition'
+
+def prepare_environment_partition(env):
+    part_example_dir = Dir('#').abspath
+
+    env['PARTITION_SOURCE_DIR'] = part_example_dir
+    env['PARTITION_BUILD_DIR'] = os.path.join(part_example_dir, 'build', env['BSP'])
+    env['PARTITION_CLEAN_DIRS'] = os.path.join(part_example_dir, 'build', env['BSP'])
+    env['PARTITION_DISTCLEAN_DIRS'] = os.path.join(part_example_dir, 'build')
+    env['PARTITION_SOURCES'] = []
+
+SConscript('SConscript', exports = ['mode', 'prepare_environment_partition'])

@@ -89,7 +89,7 @@ pok_time_t ja_system_time(void)
       high1 = system_time_high;
    } while(high != high1);
 
-   return (((uint64_t)(high) << 32) + low);
+   return (((pok_time_t)(high) << 32) + low);
 }
 
 time_t ja_calendar_time(void)

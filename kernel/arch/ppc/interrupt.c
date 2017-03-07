@@ -31,6 +31,12 @@
 #include "interrupt_context.h"
 
 
+#ifdef POK_NEEDS_GDB
+#include "gdb.h"
+int k=0;
+
+extern void * pok_trap_addr;
+#endif
 
 void pok_int_critical_input(struct jet_interrupt_context* ea) {
     (void) ea;
@@ -81,111 +87,104 @@ void pok_int_alignment(struct jet_interrupt_context* vctx, uintptr_t dear, unsig
     pok_fatal("Alignment interrupt");
 }
 
-int k=0;
-
-extern void * pok_trap_addr;
-extern void * pok_trap;
-void write_on_screen();
+void pok_int_spe(struct jet_interrupt_context* vctx)
+{
+    printf("cr   = 0x%lx\n", vctx->cr);
+    printf("r0   = 0x%lx\n", vctx->r0);
+    printf("r1   = 0x%lx\n", vctx->r1);
+    printf("r2   = 0x%lx\n", vctx->r2);
+    printf("r3   = 0x%lx\n", vctx->r3);
+    printf("r4   = 0x%lx\n", vctx->r4);
+    printf("r5   = 0x%lx\n", vctx->r5);
+    printf("r6   = 0x%lx\n", vctx->r6);
+    printf("r7   = 0x%lx\n", vctx->r7);
+    printf("r8   = 0x%lx\n", vctx->r8);
+    printf("r9   = 0x%lx\n", vctx->r9);
+    printf("r10  = 0x%lx\n", vctx->r10);
+    printf("r11  = 0x%lx\n", vctx->r11);
+    printf("r12  = 0x%lx\n", vctx->r12);
+    printf("ctr  = 0x%lx\n", vctx->ctr);
+    printf("xer  = 0x%lx\n", vctx->xer);
+    printf("srr0 = 0x%lx\n", vctx->srr0);
+    printf("srr1 = 0x%lx\n", vctx->srr1);
+    printf("lr   = 0x%lx\n", vctx->lr);
+    pok_fatal("SPE interrupt\n");
+}
 
 
 void pok_int_program(struct jet_interrupt_context* ea) {
-
-////printf("ea = 0x%lx\n", ea);
-//// pok_trap_addr = address of pok_trap in entry.S
-#ifdef DEBUG_GDB
-    printf("    Pok_int_program interrupt\n");
-    int DBCR0 = mfspr(SPRN_DBCR0);
-    printf("DBCR0 = 0x%x\n", DBCR0);
-    printf("DBSR = %lx\n", mfspr(SPRN_DBSR));
-    printf("DAC1 = %lx\n", mfspr(SPRN_DAC1));
-    printf("DAC2 = %lx\n", mfspr(SPRN_DAC1));
-    printf("srr0 = 0x%lx\n", ea->srr0);
-    printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
+    uint32_t ESR = mfspr(SPRN_ESR);
+    switch (ESR & (SPRN_ESR_PIL | SPRN_ESR_PPR | SPRN_ESR_PTR))
+    {
+        case SPRN_ESR_PIL:
+            pok_fatal("Illegal instruction exception");
+            break;
+        case SPRN_ESR_PPR:
+            pok_fatal("Privileged instruction exception");
+            break;
+        case SPRN_ESR_PTR:
+#ifdef POK_NEEDS_GDB
+            printf_GDB("    Pok_int_program interrupt\n");
+            printf_GDB("DBCR0 = 0x%lx\n", mfspr(SPRN_DBCR0));
+            printf_GDB("DBSR = %lx\n", mfspr(SPRN_DBSR));
+            printf_GDB("DAC1 = %lx\n", mfspr(SPRN_DAC1));
+            printf_GDB("DAC2 = %lx\n", mfspr(SPRN_DAC1));
+            printf_GDB("srr0 = 0x%lx\n", ea->srr0);
+            printf_GDB("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
+            /*
+             * pok_trap_addr = address of pok_trap in entry.S
+             */
+            if (ea->srr0 == (unsigned) (& pok_trap_addr)){
+                k++;
+                printf_GDB("Reason: SIGINT\n");
+                handle_exception(17,ea); 
+            }else{
+                printf_GDB("Reason: Breakpoint\n");
+                handle_exception(3,ea); 
+            }
+            if (k == 1){
+                /*
+                 * it was a trap from gdb.c (in gdb.c function)
+                 */ 
+                ea->srr0 += 4;
+                printf_GDB("Change SRR0");
+            }
+            k=0;
+            printf_GDB("srr0 = 0x%lx\n", ea->srr0);
+            printf_GDB("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
+            //~ asm volatile("isync");
+            printf_GDB("instr = 0x%lx\n", *(uint32_t *)(ea->srr0));
+            printf_GDB("DBCR0 = 0x%lx\n", mfspr(SPRN_DBCR0));
+            printf_GDB("\n          Exit from handle exception\n");
+#else
+            printf("\n\n            In pok_int_programm:\n");
+            printf("addr = 0x%lx\n",(uint32_t) ea);
+            printf("cr = 0x%lx\n",ea->cr);
+            printf("ctr = 0x%lx\n",ea->ctr);
+            printf("xer = 0x%lx\n",ea->xer);
+            printf("srr0 or pc = 0x%lx\n",ea->srr0); 
+            printf("srr1 = 0x%lx\n",ea->srr1);
+            printf("r0 = 0x%lx\n",ea->r0);
+            printf("r1 = 0x%lx\n",ea->r1);
+            printf("r2 = 0x%lx\n",ea->r2);
+            printf("r3 = 0x%lx\n",ea->r3);
+            printf("r4 = 0x%lx\n",ea->r4);
+            printf("r5 = 0x%lx\n",ea->r5);
+            printf("r6 = 0x%lx\n",ea->r6);
+            printf("r7 = 0x%lx\n",ea->r7);
+            printf("r8 = 0x%lx\n",ea->r8);
+            printf("r9 = 0x%lx\n",ea->r9);
+            printf("r10 = 0x%lx\n",ea->r10);
+            printf("r11 = 0x%lx\n",ea->r11);
+            printf("r12 = 0x%lx\n",ea->r12);
+            printf("lr = 0x%lx\n",ea->lr);
+            pok_fatal("Trap exception");
 #endif
-
-    if (ea->srr0 == (unsigned) (& pok_trap_addr)){
-        k++;
-#ifdef DEBUG_GDB
-        printf("Reason: SIGINT\n");
-#endif
-        handle_exception(17,ea); 
-    }else{
-#ifdef DEBUG_GDB
-        printf("Reason: Breakpoint\n");
-#endif
-        handle_exception(3,ea); 
+            break;
+        default:
+            pok_fatal("Program interrupt");
+            
     }
-    //~ printf("\n\n            In pok_int_programm:\n");
-    //~ printf("addr = 0x%lx\n",(uint32_t) ea);
-    //~ printf("offset1 = 0x%lx\n",ea->offset1);
-    //~ printf("cr = 0x%lx\n",ea->cr);
-    //~ printf("ctr = 0x%lx\n",ea->ctr);
-    //~ printf("xer = 0x%lx\n",ea->xer);
-    //~ printf("srr0 or pc = 0x%lx\n",ea->srr0); 
-    //~ printf("srr1 = 0x%lx\n",ea->srr1);
-    //~ printf("r0 = 0x%lx\n",ea->r0);
-    //~ printf("r1 = 0x%lx\n",ea->r1);
-    //~ printf("r2 = 0x%lx\n",ea->r2);
-    //~ printf("r3 = 0x%lx\n",ea->r3);
-    //~ printf("r4 = 0x%lx\n",ea->r4);
-    //~ printf("r5 = 0x%lx\n",ea->r5);
-    //~ printf("r6 = 0x%lx\n",ea->r6);
-    //~ printf("r7 = 0x%lx\n",ea->r7);
-    //~ printf("r8 = 0x%lx\n",ea->r8);
-    //~ printf("r9 = 0x%lx\n",ea->r9);
-    //~ printf("r10 = 0x%lx\n",ea->r10);
-    //~ printf("r11 = 0x%lx\n",ea->r11);
-    //~ printf("r12 = 0x%lx\n",ea->r12);
-    //~ printf("r13 = 0x%lx\n",ea->r13);
-    //~ printf("r14 = 0x%lx\n",ea->r14);
-    //~ printf("r15 = 0x%lx\n",ea->r15);
-    //~ printf("r16 = 0x%lx\n",ea->r16);
-    //~ printf("r17 = 0x%lx\n",ea->r17);
-    //~ printf("r18 = 0x%lx\n",ea->r18);
-    //~ printf("r19 = 0x%lx\n",ea->r19);
-    //~ printf("r20 = 0x%lx\n",ea->r20);
-    //~ printf("r21 = 0x%lx\n",ea->r21);
-    //~ printf("r22 = 0x%lx\n",ea->r22);
-    //~ printf("r23 = 0x%lx\n",ea->r23);
-    //~ printf("r24 = 0x%lx\n",ea->r24);
-    //~ printf("r25 = 0x%lx\n",ea->r25);
-    //~ printf("r26 = 0x%lx\n",ea->r26);
-    //~ printf("r27 = 0x%lx\n",ea->r27);
-    //~ printf("r28 = 0x%lx\n",ea->r28);
-    //~ printf("r29 = 0x%lx\n",ea->r29);
-    //~ printf("r30 = 0x%lx\n",ea->r30);
-    //~ printf("r31 = 0x%lx\n",ea->r31);
-    //~ printf("offset2 = 0x%lx\n",ea->offset2);
-    //~ printf("offset3 = 0x%lx\n",ea->offset3);
-    //~ printf("offset4 = 0x%lx\n",ea->offset4);
-    //~ printf("offset5 = 0x%lx\n",ea->offset5);
-    //~ printf("offset6 = 0x%lx\n",ea->offset6);
-    //~ printf("lr = 0x%lx\n",ea->lr);
-
-
-    if (k == 1){
-/*
- * it was a trap from gdb.c (in gdb.c function)
- */ 
-        ea->srr0 += 4;
-#ifdef DEBUG_GDB
-        printf("Change SRR0");
-#endif
-    }
-    k=0;
-#ifdef DEBUG_GDB
-    printf("srr0 = 0x%lx\n", ea->srr0);
-    printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
-    //~ asm volatile("isync");
-    printf("instr = 0x%lx\n", *(uint32_t *)(ea->srr0));
-    DBCR0 = mfspr(SPRN_DBCR0);
-    printf("DBCR0 = 0x%x\n", DBCR0);
-    printf("\n          Exit from handle exception\n");
-#endif
-    
-//~ asm volatile("acbi");  
-    
-////    pok_fatal("Program interrupt");
 }
 
 void pok_int_fp_unavail(struct jet_interrupt_context* ea) {
@@ -223,26 +222,26 @@ void pok_int_inst_tlb_miss(struct jet_interrupt_context* vctx, uintptr_t dear, u
 }
 
 void pok_int_debug(struct jet_interrupt_context* ea) {
-#ifdef DEBUG_GDB
-    printf("    DEBUG EVENT!\n");
-    printf("DBSR = %lx\n", mfspr(SPRN_DBSR));
-    printf("ea = 0x%lx\n", (uint32_t) ea);
-    int DBCR0 = mfspr(SPRN_DBCR0);
-    printf("DBCR0 = 0x%x\n", DBCR0);
-    printf("DAC1 = %lx\n", mfspr(SPRN_DAC1));
-    printf("DAC2 = %lx\n", mfspr(SPRN_DAC2));
-    printf("srr0 = 0x%lx\n", ea->srr0);
-    printf("srr1 = 0x%lx\n", ea->srr1);
-    printf("Reason: Watchpoint\n");   
-#endif
+
+#ifdef POK_NEEDS_GDB
+    printf_GDB("    DEBUG EVENT!\n");
+    printf_GDB("DBSR = %lx\n", mfspr(SPRN_DBSR));
+    printf_GDB("ea = 0x%lx\n", (uint32_t) ea);
+    printf_GDB("DBCR0 = 0x%lx\n", mfspr(SPRN_DBCR0));
+    printf_GDB("DAC1 = %lx\n", mfspr(SPRN_DAC1));
+    printf_GDB("DAC2 = %lx\n", mfspr(SPRN_DAC2));
+    printf_GDB("srr0 = 0x%lx\n", ea->srr0);
+    printf_GDB("srr1 = 0x%lx\n", ea->srr1);
+    printf_GDB("Reason: Watchpoint\n");   
+
     handle_exception(1, ea); 
-#ifdef DEBUG_GDB
-    printf("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
-    DBCR0 = mfspr(SPRN_DBCR0);
-    printf("DBCR0 = 0x%x\n", DBCR0);
+
+    printf_GDB("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
+    printf_GDB("DBCR0 = 0x%lx\n", mfspr(SPRN_DBCR0));
     asm volatile("dcbst 0, %0; sync; icbi 0,%0; sync; isync" : : "r" ((char *) ea->srr0));
-    printf("Exit from debug event\n");    
-    //~ k = 1;
-    //~ pok_fatal("Debug interrupt");
+    printf_GDB("Exit from debug event\n"); 
+#else
+    (void) ea;
+    pok_fatal("pok_int_debug");
 #endif
 }

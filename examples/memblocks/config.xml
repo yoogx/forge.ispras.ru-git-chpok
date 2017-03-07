@@ -1,50 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<chpok-configuration xmlns:xi="http://www.w3.org/2001/XInclude">
-    <Partitions>
-        <xi:include href="P1/config.xml" parse="xml"/>
-        <xi:include href="P2/config.xml" parse="xml"/>
-    </Partitions>
-
+<JetModule>
     <Schedule>
-        <!--
-            Slot element is close to A653_PartitionTimeWindowType defined
-            in the standard, but not quite it.
-
-            As extension, we allow to specify time in other units,
-            such as milliseconds (for convenience).
-        -->
         <Slot Type="Partition" PartitionNameRef="P1" Duration="15ms" PeriodicProcessingStart="true" />
         <Slot Type="Partition" PartitionNameRef="P2" Duration="15ms" PeriodicProcessingStart="true" />
-        <Slot Type="Monitor" Duration="10ms" />
+        <Slot Type="Monitor" Duration="1ms" />
+        <Slot Type="GDB" Duration="1ms" />
     </Schedule>
-
-    <!--
-        This looks like Connection_Table
-        found in schema in older ARINC-653 standard,
-        but it's somewhat different (because that old thing
-        is very inconsistent).
-
-        Recent standard doesn't define this at all.
-    -->
 
     <Connection_Table>
         <Channel>
             <Source>
-                <Standard_Partition PartitionName="P1" PortName="QP1" />
+                <Port_Ref PartitionNameRef="P1" PortNameRef="QP1" />
             </Source>
             <Destination>
-                <Standard_Partition PartitionName="P2" PortName="QP2" />
+                <Port_Ref PartitionNameRef="P2" PortNameRef="QP2" />
             </Destination>
         </Channel>
     </Connection_Table>
 
-    <Memory_Blocks>
-        <Memory_Block
-            Name="shared_mb0"
-            VirtualAddress ="0xed000000"
-            PhysicalAddress="0x600000"
-            Size="0x10000"
-            /> <!-- PhysicalAddress="0xed000000" -->
-    </Memory_Blocks>
+    <Shared_Memory_Blocks>
+        <Shared_Memory_Blocks_Entry>
+            <Memory_Block_Ref NameRef="shared_mb0" PartitionNameRef="P1"/>
+            <Memory_Block_Ref NameRef="shared_mb0" PartitionNameRef="P2"/>
+        </Shared_Memory_Blocks_Entry>
+    </Shared_Memory_Blocks>
 
-</chpok-configuration>
+</JetModule>

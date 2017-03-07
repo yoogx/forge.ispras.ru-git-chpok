@@ -1,22 +1,20 @@
- /* 
- *  Copyright (C) 2014 Maxim Malkov, ISPRAS <malkov@ispras.ru> 
+/*
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2017 ISPRAS
  *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __POK_KERNEL_ASSERT_H__
-#define __POK_KERNEL_ASSERT_H__
+#ifndef __JET_KERNEL_ASSERT_H__
+#define __JET_KERNEL_ASSERT_H__
 
 #include <core/debug.h>
 
@@ -27,6 +25,7 @@ static inline void pok_assertion_fail(const char *expression, const char *file, 
     pok_fatal("");
 }
 
+//never def?
 #ifndef NDEBUG
     #define assert(expr) ( \
         (expr) ? \
@@ -38,5 +37,12 @@ static inline void pok_assertion_fail(const char *expression, const char *file, 
 #endif
 
 #define unreachable() assert(FALSE)
+
+/* this is strange but we need 2 macros to stringify __LINE__ */
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+#define AT __FILE__ ":" TOSTRING(__LINE__)
+
+#define STATIC_ASSERT(cond) _Static_assert(cond, AT)
 
 #endif

@@ -18,10 +18,6 @@
 
 #include <config.h>
 
-#include <core/dependencies.h>
-
-#ifdef POK_NEEDS_ARINC653_QUEUEING
-
 #include <types.h>
 #include <middleware/port.h>
 #include <arinc653/types.h>
@@ -211,5 +207,3 @@ void CLEAR_QUEUING_PORT (
         MAP_ERROR_DEFAULT(INVALID_CONFIG);
     }
 }
-
-#endif

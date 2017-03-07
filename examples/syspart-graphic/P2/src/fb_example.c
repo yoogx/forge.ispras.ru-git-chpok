@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <arinc653/time.h>
+#include <arinc653/process.h>
 
 #include <fb.h>
 #define MILLISECOND 1000000
@@ -35,8 +36,8 @@ extern const struct gimp_image gimp_image; //Image of airplane
 static void draw_image(struct uwrm_scm_direct_fb *fb, int x_start, int y_start)
 {
     uint32_t *addr;
-    for (int y = 0; y < gimp_image.height; y++) {
-        for (int x = 0; x < gimp_image.width; x++) {
+    for (unsigned y = 0; y < gimp_image.height; y++) {
+        for (unsigned x = 0; x < gimp_image.width; x++) {
             addr = (uint32_t *) fb->back_surface + (y+y_start)*fb->width + x + x_start;
             uint32_t rgba_pixel = (((uint32_t*)gimp_image.pixel_data)[y*gimp_image.width + x]);
             *addr = rgba_to_argb(rgba_pixel);
@@ -49,7 +50,10 @@ void fb_example_run(void)
     RETURN_CODE_TYPE ret;
 
     struct uwrm_scm_direct_fb fb;
-    uwrm_scm_get_direct_fb(&fb);
+    if (uwrm_scm_get_direct_fb(&fb) != UWRM_OK) {
+        printf("Can't get framebuffer\n");
+        STOP_SELF();
+    }
 
     int y = fb.height - 100;
     int x = 0;

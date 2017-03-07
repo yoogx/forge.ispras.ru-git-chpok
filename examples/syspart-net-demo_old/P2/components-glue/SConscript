@@ -1,0 +1,101 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+COMPONENTS_DIR = "syspart/components"
+COMPONENTS_LIST = [
+        'arinc',
+        'udp_ip',
+        'mac',
+        'virtio',
+        'arp',
+        'ppc_dtsec'
+        ]
+
+CONFIG = "config.yaml"
+
+import os
+
+Import('part_env')
+
+#P2_env = part_env.Clone()
+part_env.Append(CFLAGS = ' -O3')
+
+for comp in COMPONENTS_LIST:
+    part_env.Append(CPPPATH = os.path.join(part_env['JETOS_HOME'], COMPONENTS_DIR, comp))
+
+
+from collections import defaultdict
+def get_port_arrays_dict(config):
+    res_dict = defaultdict(dict)
+    for link in config['links']:
+        if 'array_index' in link['from']:
+            instance_name = link['from']['instance']
+            port_name = link['from']['port']
+            array_index = int(link['from']['array_index'])
+
+            per_instance_dict = res_dict[instance_name]
+            port_max_index = max(per_instance_dict.get(port_name, 0), array_index)
+            per_instance_dict[port_name] = port_max_index
+
+    #print(res_dict)
+    return res_dict
+
+def get_glue_definitions(source, env):
+    config = yaml.load(open(source[0].abspath))
+    return { 'components': config['components'],
+        'links': config['links'],
+        'port_array_dict': get_port_arrays_dict(config)
+        }
+
+def generate_glue():
+    cwd = part_env.Dir('.').srcnode().abspath
+    t = part_env.TemplateRender(
+        target = os.path.join(cwd, "glue_main_gen.c"),
+        source = os.path.join(cwd, CONFIG),
+        create_definitions_func = get_glue_definitions,
+        template_main = "glue.c",
+        template_dir = os.path.join(part_env['JETOS_HOME'],"misc/templates"),
+        )
+    part_env.Depends(GLUE_DEFAULT_TARGET, t)
+
+if part_env.get('cdeveloper'):
+    import sys
+    import yaml
+    import glob
+    sys.path.insert(1, os.path.join(part_env["JETOS_HOME"], "misc"))
+    import template_generation
+    AddMethod(part_env, template_generation.TemplateRender)
+
+    part_env.Append(
+            NO_DEPS = 1,
+            SOURCE_BASE_DIR = part_env['LAUNCHDIR'], # TODO: LAUNCHDIR depends on where scons has been invoked: from top-level or from P2.
+            GENERATE_TITLE = template_generation.generate_title_c
+            )
+
+    GLUE_DEFAULT_TARGET = part_env.Command("#/generate_glue_files", [], '')
+    Default(GLUE_DEFAULT_TARGET)
+
+    generate_glue()
+
+objs = []
+sources = Glob('*.c')
+#for src in sources:
+#    objs += P2_env.StaticObject(src)
+
+Return('sources')

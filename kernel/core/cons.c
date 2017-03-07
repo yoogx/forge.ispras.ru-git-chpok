@@ -15,7 +15,7 @@
 
 #include <config.h>
 
-#if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
+#if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG)
 
 #include <errno.h>
 #include <cons.h>
@@ -29,12 +29,16 @@ static void iostream_init(struct jet_iostream* stream)
 
 static size_t iostream_write_null(const char* s, size_t length)
 {
-   return length;
+    (void) s;
+    (void) length;
+    return length;
 }
 
 static size_t iostream_read_null(char* s, size_t length)
 {
-   return 0;
+    (void) s;
+    (void) length;
+    return 0;
 }
 
 struct jet_iostream jet_stream_null =

@@ -56,7 +56,7 @@ static pok_port_queuing_t* get_port_queuing(pok_port_id_t id)
 
     pok_port_queuing_t* port_queuing;
 
-    if(id < 0 || id > part->nports_queuing) return NULL;
+    if(id > part->nports_queuing) return NULL;
 
     port_queuing = &part->ports_queuing[id];
 
@@ -478,7 +478,7 @@ static pok_port_sampling_t* get_port_sampling(pok_port_id_t id)
 {
     pok_port_sampling_t* port_sampling;
 
-    if(id < 0 || id > current_partition_arinc->nports_sampling) return NULL;
+    if(id > current_partition_arinc->nports_sampling) return NULL;
 
     port_sampling = &current_partition_arinc->ports_sampling[id];
 

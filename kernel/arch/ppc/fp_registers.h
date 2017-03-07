@@ -20,7 +20,8 @@
 
 struct jet_fp_store
 {
-  double fp_regs[32];
+  uint64_t fp_regs[32];
+  uint64_t fp_fpscr;
 };
 
 #endif /* __JET_PPC_FP_REGISTERS_H__ */

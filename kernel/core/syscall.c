@@ -57,8 +57,7 @@ static pok_ret_t unprotected_syscall(
  */
 
 static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       syscall_id,
-                            const pok_syscall_args_t*    args,
-                            const pok_syscall_info_t*    infos)
+                            const pok_syscall_args_t*    args)
 {
    switch (syscall_id)
    {
@@ -68,29 +67,19 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
          break;
 #endif
 
-#if defined POK_NEEDS_GETTICK
-      case POK_SYSCALL_CLOCK_GETTIME:
-         return pok_clock_gettime ((clockid_t)args->arg1, (pok_time_t* __user)args->arg2);
-         break;
-#endif
-      case POK_SYSCALL_TIME:
-         return jet_time((time_t*)args->arg1);
+   case POK_SYSCALL_CLOCK_GETTIME:
+      return pok_clock_gettime ((clockid_t)args->arg1, (pok_time_t* __user)args->arg2);
+      break;
+   case POK_SYSCALL_TIME:
+      return jet_time((time_t*)args->arg1);
 
-      SYSCALL_ENTRY(POK_SYSCALL_THREAD_CREATE)
+   SYSCALL_ENTRY(POK_SYSCALL_THREAD_CREATE)
 
-#ifdef POK_NEEDS_THREAD_SLEEP
-      SYSCALL_ENTRY(POK_SYSCALL_THREAD_SLEEP)
-#endif
+   SYSCALL_ENTRY(POK_SYSCALL_THREAD_SLEEP)
 
-#ifdef POK_NEEDS_THREAD_SLEEP_UNTIL
-      SYSCALL_ENTRY(POK_SYSCALL_THREAD_SLEEP_UNTIL)
-#endif
+   SYSCALL_ENTRY(POK_SYSCALL_THREAD_PERIOD)
 
-      SYSCALL_ENTRY(POK_SYSCALL_THREAD_PERIOD)
-
-#if defined (POK_NEEDS_THREAD_SUSPEND) || defined (POK_NEEDS_ERROR_HANDLING)
-      SYSCALL_ENTRY(POK_SYSCALL_THREAD_SUSPEND)
-#endif
+   SYSCALL_ENTRY(POK_SYSCALL_THREAD_SUSPEND)
 
    SYSCALL_ENTRY(POK_SYSCALL_THREAD_STATUS)
    SYSCALL_ENTRY(POK_SYSCALL_THREAD_DELAYED_START)
@@ -111,81 +100,34 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
    SYSCALL_ENTRY(POK_SYSCALL_MSECTION_WQ_NOTIFY)
    SYSCALL_ENTRY(POK_SYSCALL_MSECTION_WQ_SIZE)
 
-#ifdef POK_NEEDS_PARTITIONS
    SYSCALL_ENTRY(POK_SYSCALL_PARTITION_SET_MODE)
    SYSCALL_ENTRY(POK_SYSCALL_PARTITION_GET_STATUS)
    SYSCALL_ENTRY(POK_SYSCALL_PARTITION_INC_LOCK_LEVEL)
    SYSCALL_ENTRY(POK_SYSCALL_PARTITION_DEC_LOCK_LEVEL)
-#endif
 
-#ifdef POK_NEEDS_ERROR_HANDLING
    SYSCALL_ENTRY(POK_SYSCALL_ERROR_HANDLER_CREATE)
    SYSCALL_ENTRY(POK_SYSCALL_ERROR_RAISE_APPLICATION_ERROR)
    SYSCALL_ENTRY(POK_SYSCALL_ERROR_GET)
-#endif
 
    SYSCALL_ENTRY(POK_SYSCALL_ERROR_RAISE_OS_ERROR)
 
    /* Middleware syscalls */
-#ifdef POK_NEEDS_PORTS_SAMPLING
    SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_SAMPLING_CREATE)
    SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_SAMPLING_WRITE)
    SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_SAMPLING_READ)
    SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_SAMPLING_ID)
    SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_SAMPLING_STATUS)
    SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_SAMPLING_CHECK)
-#endif /* POK_NEEDS_PORTS_SAMPLING */
 
 
-#ifdef POK_NEEDS_PORTS_QUEUEING
    SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_QUEUEING_CREATE)
    SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_QUEUEING_SEND)
    SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_QUEUEING_RECEIVE)
    SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_QUEUEING_ID)
    SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_QUEUEING_STATUS)
    SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_QUEUEING_CLEAR)
-#endif /* POK_NEEDS_PORTS_QUEUEING */
 
-#ifdef POK_NEEDS_IO
-      case POK_SYSCALL_INB:
-         if ((args->arg1 < pok_partitions[infos->partition].io_min) ||
-             (args->arg1 > pok_partitions[infos->partition].io_max))
-         {
-            return -POK_ERRNO_EPERM;
-         }
-         else
-         {
-            return inb((unsigned short) args->arg1);
-         }
-         break;
-
-      case POK_SYSCALL_OUTB:
-         if ((args->arg1 < pok_partitions[infos->partition].io_min) ||
-             (args->arg1 > pok_partitions[infos->partition].io_max))
-         {
-            return -POK_ERRNO_EPERM;
-         }
-         else
-         {
-            outb((unsigned short) args->arg1, (unsigned char) args->arg2);
-            return POK_ERRNO_OK;
-         }
-       break;
-#endif /* POK_NEEDS_IO */
-
-      //TODO rewrite this! This two syscall needs to return pok_ret_t!
-      case POK_SYSCALL_MEM_VIRT_TO_PHYS:
-         return pok_virt_to_phys(args->arg1);
-         break;
-      case POK_SYSCALL_MEM_PHYS_TO_VIRT:
-         return pok_phys_to_virt(args->arg1);
-         break;
-
-      case POK_SYSCALL_GET_BSP_INFO:
-         return pok_bsp_get_info((void* __user)args->arg1);
-         break;
-
-      SYSCALL_ENTRY(POK_SYSCALL_MEMORY_BLOCK_GET_STATUS)
+   SYSCALL_ENTRY(POK_SYSCALL_MEMORY_BLOCK_GET_STATUS)
 
       default:
        /*
@@ -202,8 +144,7 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
 }
 
 pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
-                            const pok_syscall_args_t*    args,
-                            const pok_syscall_info_t*    infos)
+                            const pok_syscall_args_t*    args)
 {
     pok_ret_t ret;
 #ifdef POK_NEEDS_GDB
@@ -211,7 +152,7 @@ pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
     pok_in_user_space = FALSE;
 #endif
 
-    ret = pok_core_syscall_internal(syscall_id, args, infos);
+    ret = pok_core_syscall_internal(syscall_id, args);
 
 #if POK_NEEDS_GDB
     pok_in_user_space = TRUE;

@@ -42,7 +42,6 @@ static inline pok_ret_t pok_thread_create(const char* name,
 // Syscall should be accessed only by function
 #undef POK_SYSCALL_THREAD_CREATE
 
-#ifdef POK_NEEDS_THREAD_SLEEP
 static inline pok_ret_t pok_thread_sleep(const pok_time_t* time)
 {
     return pok_syscall1(POK_SYSCALL_THREAD_SLEEP,
@@ -50,17 +49,7 @@ static inline pok_ret_t pok_thread_sleep(const pok_time_t* time)
 }
 // Syscall should be accessed only by function
 #undef POK_SYSCALL_THREAD_SLEEP
-#endif
 
-#ifdef POK_NEEDS_THREAD_SLEEP_UNTIL
-static inline pok_ret_t pok_thread_sleep_until(const pok_time_t* time)
-{
-    return pok_syscall1(POK_SYSCALL_THREAD_SLEEP_UNTIL,
-        (uint32_t)time);
-}
-// Syscall should be accessed only by function
-#undef POK_SYSCALL_THREAD_SLEEP_UNTIL
-#endif
 static inline pok_ret_t pok_sched_end_period(void)
 {
     return pok_syscall0(POK_SYSCALL_THREAD_PERIOD);
@@ -68,7 +57,6 @@ static inline pok_ret_t pok_sched_end_period(void)
 // Syscall should be accessed only by function
 #undef POK_SYSCALL_THREAD_PERIOD
 
-#if defined (POK_NEEDS_THREAD_SUSPEND) || defined (POK_NEEDS_ERROR_HANDLING)
 static inline pok_ret_t pok_thread_suspend(const pok_time_t* time)
 {
     return pok_syscall1(POK_SYSCALL_THREAD_SUSPEND,
@@ -76,7 +64,6 @@ static inline pok_ret_t pok_thread_suspend(const pok_time_t* time)
 }
 // Syscall should be accessed only by function
 #undef POK_SYSCALL_THREAD_SUSPEND
-#endif
 
 static inline pok_ret_t pok_thread_get_status(pok_thread_id_t thread_id,
     char* name,
@@ -229,7 +216,6 @@ static inline pok_ret_t jet_msection_wq_size(struct msection* section,
 #undef POK_SYSCALL_MSECTION_WQ_SIZE
 
 
-#ifdef POK_NEEDS_PARTITIONS
 static inline pok_ret_t pok_partition_set_mode_current(pok_partition_mode_t mode)
 {
     return pok_syscall1(POK_SYSCALL_PARTITION_SET_MODE,
@@ -261,10 +247,8 @@ static inline pok_ret_t pok_current_partition_dec_lock_level(int32_t* lock_level
 }
 // Syscall should be accessed only by function
 #undef POK_SYSCALL_PARTITION_DEC_LOCK_LEVEL
-#endif
 
 
-#ifdef POK_NEEDS_ERROR_HANDLING
 static inline pok_ret_t pok_error_thread_create(uint32_t stack_size,
     void* entry)
 {
@@ -294,7 +278,6 @@ static inline pok_ret_t pok_error_get(pok_error_status_t* status,
 }
 // Syscall should be accessed only by function
 #undef POK_SYSCALL_ERROR_GET
-#endif
 
 static inline pok_ret_t pok_error_raise_os_error(const char* msg,
     size_t msg_size)
@@ -308,7 +291,6 @@ static inline pok_ret_t pok_error_raise_os_error(const char* msg,
 
 
    /* Middleware syscalls */
-#ifdef POK_NEEDS_PORTS_SAMPLING
 static inline pok_ret_t pok_port_sampling_create(const char* name,
     pok_port_size_t size,
     pok_port_direction_t direction,
@@ -378,9 +360,7 @@ static inline pok_ret_t pok_port_sampling_check(pok_port_id_t id)
 }
 // Syscall should be accessed only by function
 #undef POK_SYSCALL_MIDDLEWARE_SAMPLING_CHECK
-#endif /* POK_NEEDS_PORTS_SAMPLING */
 
-#ifdef POK_NEEDS_PORTS_QUEUEING
 static inline pok_ret_t pok_port_queuing_create_packed(const char* name,
     const pok_port_queuing_create_arg_t* arg,
     pok_port_id_t* id)
@@ -449,10 +429,9 @@ static inline pok_ret_t pok_port_queuing_clear(pok_port_id_t id)
 // Syscall should be accessed only by function
 #undef POK_SYSCALL_MIDDLEWARE_QUEUEING_CLEAR
 
-#endif /* POK_NEEDS_PORTS_QUEUEING */
 
 
-static inline pok_ret_t pok_memory_block_get_status(const char* name,
+static inline pok_ret_t jet_memory_block_get_status(const char* name,
     jet_memory_block_status_t* status)
 {
     return pok_syscall2(POK_SYSCALL_MEMORY_BLOCK_GET_STATUS,

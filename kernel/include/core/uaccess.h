@@ -23,14 +23,13 @@
 #include <types.h>
 
 #include <asp/uaccess.h>
-
-#include <libc.h>
+#include <core/partition.h>
 
 /* 
  * Return kernel address which can be used in the kernel for 
  * r/w from/to current partition.
  * 
- * If given area cannot be write by the user space, returns NULL.
+ * If given area cannot be written by the user space, returns NULL.
  */
 void* __kuser jet_user_to_kernel(void* __user addr, size_t size);
 
@@ -58,11 +57,49 @@ pok_bool_t jet_check_access_exec(void* __user addr);
 /* Shortcat for jet_user_to_kernel_ro for typed pointers. */
 #define jet_user_to_kernel_typed_ro(addr) jet_user_to_kernel_ro(addr, sizeof(*addr))
 
+
+/* 
+ * Copy NULL-terminated string from user space to the kernel.
+ * 
+ * Note, that string in user space may occupy less space than its maximum
+ * length.
+ * 
+ * On success, return pointer to the 'dest'. On fail return NULL.
+ */
+void* kstrncpy(char* dest, const char* __user src, size_t n);
+
 /* 
  * Copy name to the user space.
  * 
  * Destination buffer should be checked before.
  */
 void pok_copy_name_to_user(char* __kuser to, const char* name);
+
+#ifdef POK_NEEDS_GDB
+
+/* 
+ * Return address which can be used by GDB for
+ * r/w from/to given kernel or user space area.
+ * 
+ * Access is garanteed only if switched to address space of given partition.
+ * 
+ * If given area cannot be written, returns NULL.
+ */
+void* jet_addr_to_gdb(void* addr, size_t size,
+    pok_partition_t* part);
+
+/* 
+ * Return address which can be used by GDB for
+ * read from given kernel or user space area.
+ * 
+ * Access is garanteed only if switched to address space of given partition.
+ * 
+ * If given area cannot be read by the user space, returns NULL.
+ */
+const void* jet_addr_to_gdb_ro(const void* addr, size_t size,
+    pok_partition_t* part);
+
+#endif /* POK_NEEDS_GDB */
+
 
 #endif /* __POK_UACCESS_H__ */

@@ -16,8 +16,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_BLACKBOARD
-
 /*-------------------------------------------------------------------*/ 
 /*                                                                   */ 
 /* BLACKBOARD constant and type definitions and management services  */ 
@@ -26,10 +24,6 @@
  
 #ifndef APEX_BLACKBOARD 
 #define APEX_BLACKBOARD 
-
-#ifndef POK_NEEDS_ARINC653_PROCESS
-#define POK_NEEDS_ARINC653_PROCESS
-#endif
 
 #include <arinc653/types.h>
 #include <arinc653/process.h>
@@ -82,5 +76,3 @@ extern void GET_BLACKBOARD_STATUS (
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE ); 
  
 #endif 
-
-#endif

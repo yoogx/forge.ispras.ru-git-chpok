@@ -18,7 +18,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_EVENT
 #include <arinc653/types.h>
 #include <arinc653/event.h>
 #include <msection.h>
@@ -36,7 +35,5 @@ struct arinc_event
 
 /* Preallocated array of buffers. */
 extern struct arinc_event* arinc_events;
-
-#endif /* POK_NEEDS_ARINC653_EVENT */
 
 #endif /* __LIBJET_ARINC_EVENT_H__ */

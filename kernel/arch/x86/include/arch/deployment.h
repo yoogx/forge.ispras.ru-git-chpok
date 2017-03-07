@@ -12,8 +12,6 @@
  *
  * See the GNU General Public License version 3 for more details.
  *
- * This file also incorporates work covered by POK License.
- * Copyright (c) 2007-2009 POK team
  */
 
 /* Definitions which are used in deployment.c */
@@ -21,64 +19,32 @@
 #ifndef __JET_X86_DEPLOYMENT_H__
 #define __JET_X86_DEPLOYMENT_H__
 
-/* 
- * Description of one user space.
+#include <stdint.h>
+#include <stddef.h>
+//#include <asp/space.h> //TODO delete?
+
+/*
+ * Description of one page
  */
-struct ja_x86_space
-{
-    /*
-     * Physical address of memory chunk.
-     * 
-     * If it is set to 0 in deployment.c, it will be filled upon space initialization.
-     */
-    uintptr_t   phys_base;
-    
-    /* 
-     * Size of the memory  (code and static data).
-     * 
-     * Set in deployment.c.
-     */
-    size_t      size_normal;
-
-    /* 
-     * Size of the memory  (heap).
-     * 
-     * Set in deployment.c.
-     */
-    size_t      size_heap;
-
-    /*
-     * Size of the memory for stacks.
-     * 
-     * Set in deployment.c.
-     */
-    size_t size_stack;
-    
-    /* 
-     * Total size for partition's use.
-     * 
-     * Calculated upon space initialization.
-     */
-    size_t size_total;
-
-    /*
-     * Offset from the beginning of the space to the ending of the heap.
-     * 
-     * Calculated upon space initialization.
-     */
-    size_t heap_end;
-    /*
-     * Memory currently used for stacks.
-     */
-    size_t size_stack_used;
+struct page {
+    uint32_t vaddr;
+    uint32_t paddr_and_flags;
+    uint8_t is_big; //1 if page_size is 4MB
 };
 
 /*
- * Array of user space descriptions.
- * 
- * Should be defined in deployment.c.
+ * Description of pages for one partition
  */
-extern struct ja_x86_space ja_spaces[];
-extern int ja_spaces_n;
+struct partition_pages {
+    struct page *pages;
+    size_t len;
+};
+
+/*
+ * Array of partition_pages.
+ * Element i corresponds to space_id i+1.
+ */
+extern struct partition_pages ja_partitions_pages[];
+extern size_t ja_partitions_pages_nb;
 
 #endif /* __JET_PPC_DEPLOYMENT_H__ */

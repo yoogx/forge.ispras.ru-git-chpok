@@ -31,7 +31,7 @@ exception_sources = [os.path.join(source_dir, filename) for filename in exceptio
 
 if arch_env.get('jdeveloper'):
     import sys
-    sys.path.insert(1, os.path.join(os.environ["POK_PATH"], "misc"))
+    sys.path.insert(1, os.path.join(os.environ["JETOS_HOME"], "misc"))
     import template_generation
     AddMethod(arch_env, template_generation.TemplateRender)
     
@@ -40,18 +40,18 @@ if arch_env.get('jdeveloper'):
     def parse_yaml(source, env):
         return yaml.load(file(source[0].path, "r"))
     
-    arch_env.TemplateRender(
-        target = exception_sources,
-        source = 'exceptions.yaml',
-        create_definitions_func = parse_yaml,
-        template_main = ['exception_entries', 'exception_handlers'],
-        template_dir = Dir('.').srcnode().path + '/templates',
-        NO_DEPS = True,
-        GENERATE_TITLE = template_generation.generate_title_c
-    )
+    for exception_source, template_name in zip(exception_sources, ['exception_entries', 'exception_handlers']):
+        arch_env.TemplateRender(
+            target = exception_source,
+            source = 'exceptions.yaml',
+            template_file = os.path.join(Dir('.').srcnode().path, 'templates', template_name + '.tpl'),
+            create_context = parse_yaml,
+            title = template_generation.generate_title_c
+        )
 
     arch_env.Depends('regenerate', exception_sources)
 
-Return('exception_sources')
+res = Glob('*.[Sc]')
+Return('res')
 
 # EOF

@@ -31,6 +31,8 @@
 static int week_number(const struct tm* timeptr,
     int first_week_day)
 {
+    (void) first_week_day; //TODO
+
     /* Day in the year when the first week starts. */
     int week_starts = (timeptr->tm_yday - timeptr->tm_wday + 7) % 7;
     
@@ -136,9 +138,7 @@ static int weak_based_week(const struct tm* timeptr)
             if(timeptr->tm_yday < monday_first) return 52;
             week_first = monday_first;
             break;
-        case 4:
-        case 5:
-        case 6:
+        default:
             week_first = monday_first - 7;
     }
     

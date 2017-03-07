@@ -42,8 +42,6 @@
 /* Default stack size for main process */
 #define DEFAULT_STACK_SIZE	4096
 
-#ifdef POK_NEEDS_ERROR_HANDLING
-
 /* 
  * Bits signalled about different *sources* of error.
  * 
@@ -96,8 +94,6 @@ typedef uint8_t pok_thread_error_bits_t;
  */
 #define POK_THREAD_ERROR_BIT_DEADLINE_OOR 4
 
-
-#endif /* POK_NEEDS_ERROR_HANDLING */
 
 typedef struct _pok_thread
 {
@@ -224,7 +220,7 @@ typedef struct _pok_thread
      * Is not defined for aperiodic processes,
      * and when process is not yet started (or not in normal mode).
      */
-    uint64_t            next_activation;
+    pok_time_t            next_activation;
 
     /*
      * Process state.
@@ -336,7 +332,7 @@ typedef struct _pok_thread
      * 
      * Final after thread's initialization.
      */
-    jet_stack_t         initial_sp;
+    uintptr_t         initial_sp;
 
     /*
      * Pointer to area for save floating point registers for given thread.
@@ -346,15 +342,13 @@ typedef struct _pok_thread
     struct jet_fp_store*    fp_store;
 
     /*
-     * ???
+     * Initial virtual address of user stack.
      *
-     * Apparently, it's initial virtual address of user stack.
-     *
-     * It's supposed to be used when thread is restarted (I think).
+     * It's supposed to be used when thread is restarted.
      * 
      * Final after create_process().
      */
-    jet_ustack_t        init_stack_addr;
+    uintptr_t        init_stack_addr;
 
     /*
      * Size of the user space stack.
@@ -368,10 +362,8 @@ typedef struct _pok_thread
      */
     struct list_head       eligible_elem;
 
-#ifdef POK_NEEDS_ERROR_HANDLING
     struct list_head       error_elem;       /** Linkage for partition's `.error_list`. */
     pok_thread_error_bits_t error_bits;
-#endif
 
     // Whether thread is in unrecoverable error state.
     pok_bool_t is_unrecoverable;
@@ -503,13 +495,7 @@ pok_ret_t pok_thread_get_status(pok_thread_id_t id,
 pok_ret_t pok_thread_set_priority(pok_thread_id_t id, const uint32_t priority);
 pok_ret_t pok_thread_resume(pok_thread_id_t id);
 
-#ifdef POK_NEEDS_THREAD_SLEEP
 pok_ret_t pok_thread_sleep(const pok_time_t* __user time);
-#endif
-
-#ifdef POK_NEEDS_THREAD_SLEEP_UNTIL
-pok_ret_t pok_thread_sleep_until(const pok_time_t* __user time);
-#endif
 
 /* Find thread by its name. GET_PROCESS_ID in ARINC. */
 pok_ret_t pok_thread_find(const char* __user name, pok_thread_id_t* id);

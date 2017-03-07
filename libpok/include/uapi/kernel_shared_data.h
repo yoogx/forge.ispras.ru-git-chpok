@@ -98,6 +98,14 @@ struct jet_thread_shared_data
      */
     volatile uint8_t wq_priority;
 
+    /* 
+     * Data specific for the thread.
+     * 
+     * Set with jet_set_process_data() call, extracted with jet_get_my_data().
+     * 
+     * Used only by user space.
+     */
+    void* private_data;
 };
 
 /* Thread is killed. When last msection is leaved, jet_sched() should be called. */
@@ -153,22 +161,22 @@ struct jet_kernel_shared_data
     pok_thread_id_t max_n_threads;
 
     /* 
-     * Start of the heap.
+     * Configuration for ARINC intra communication.
      * 
-     * Set by the kernel in elf loader.
+     * Used only by user space.
      * 
-     * Read by the user for his allocator.
+     * DEV: This should be passed as property tree for user space.
      */
-    char* heap_start;
-
-    /* 
-     * End of the heap.
-     * 
-     * Set by the kernel according to configuration.
-     * 
-     * Read by the user for his allocator.
-     */
-    char* heap_end;
+    // Maximum number of buffers.
+    size_t arinc_config_nbuffers;
+    // Maximum number of blackboards.
+    size_t arinc_config_nblackboards;
+    // Maximum number of semaphores.
+    size_t arinc_config_nsemaphores;
+    // Maximum number of events.
+    size_t arinc_config_nevents;
+    // Memory for messages, used by buffers and blackboards.
+    size_t arinc_config_messages_memory_size;
 
     /* Open-bounds array of thread shared data. */
     struct jet_thread_shared_data tshd[];

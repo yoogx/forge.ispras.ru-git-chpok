@@ -20,7 +20,7 @@
 Import('kernel_env')
 
 arch_env = kernel_env.Clone()
-arch_env.Append(CPPPATH = arch_env['POK_PATH']+'/boards/include')
+arch_env.Append(CPPPATH = arch_env['JETOS_HOME']+'/boards/include')
 
 Export('arch_env')
 

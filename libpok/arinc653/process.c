@@ -34,10 +34,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_PROCESS
-
-#include <core/dependencies.h>
-
 #include <core/thread.h>
 #include <arinc653/arincutils.h>
 #include <arinc653/types.h>
@@ -78,19 +74,19 @@ void GET_PROCESS_ID(
 void GET_MY_ID (PROCESS_ID_TYPE   *process_id,
 		RETURN_CODE_TYPE  *return_code )
 {
-    if(kshd.partition_mode != POK_PARTITION_MODE_NORMAL)
+    if(kshd->partition_mode != POK_PARTITION_MODE_NORMAL)
     {
         // Main thread has no id.
         *return_code = INVALID_MODE;
     }
-    else if(kshd.current_thread_id == kshd.error_thread_id)
+    else if(kshd->current_thread_id == kshd->error_thread_id)
     {
         // Error thread has no id.
         *return_code = INVALID_MODE;
     }
     else
     {
-        *process_id = kshd.current_thread_id + 1;
+        *process_id = kshd->current_thread_id + 1;
         *return_code = NO_ERROR;
     }
 }
@@ -178,6 +174,7 @@ void CREATE_PROCESS (
 
     if (core_ret != POK_ERRNO_OK) return;
     
+    kshd->tshd[core_process_id].private_data = NULL;
     *process_id = core_process_id + 1;
 }
 
@@ -308,5 +305,3 @@ void UNLOCK_PREEMPTION (LOCK_LEVEL_TYPE *LOCK_LEVEL, RETURN_CODE_TYPE *return_co
         MAP_ERROR_DEFAULT(INVALID_PARAM); // shouldn't happen
     }
 }
-
-#endif

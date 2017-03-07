@@ -16,8 +16,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_BUFFER
-
 
 /*----------------------------------------------------------------*/ 
 /*                                                                */ 
@@ -27,10 +25,6 @@
  
 #ifndef APEX_BUFFER 
 #define APEX_BUFFER 
-
-#ifndef POK_NEEDS_ARINC653_PROCESS
-#define POK_NEEDS_ARINC653_PROCESS
-#endif
 
 #include <arinc653/types.h>
 #include <arinc653/process.h>
@@ -83,4 +77,3 @@ extern void GET_BUFFER_STATUS (
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE ); 
  
 #endif 
-#endif

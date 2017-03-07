@@ -15,8 +15,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_BUFFER
-
 #include "buffer.h"
 
 #include <arinc653/types.h>
@@ -29,15 +27,26 @@
 
 #include <string.h>
 #include "arinc_alloc.h"
-#include <arinc_config.h>
+#include "arinc_config.h"
 #include "arinc_process_queue.h"
 
-static size_t nbuffers_used = 0;
+static unsigned nbuffers_used = 0;
+static inline BUFFER_ID_TYPE index_to_id(unsigned index)
+{
+    // Avoid 0 value.
+    return index + 1;
+}
+
+static inline unsigned id_to_index(BUFFER_ID_TYPE id)
+{
+    return id - 1;
+}
+
 
 /* Find buffer by name (in UPPERCASE). Returns NULL if not found. */
 static struct arinc_buffer* find_buffer(const char* name)
 {
-   for(int i = 0; i < nbuffers_used; i++)
+   for(unsigned i = 0; i < nbuffers_used; i++)
    {
       struct arinc_buffer* buffer = &arinc_buffers[i];
       if(strncasecmp(buffer->buffer_name, name, MAX_NAME_LENGTH) == 0)
@@ -51,7 +60,7 @@ static struct arinc_buffer* find_buffer(const char* name)
 static MESSAGE_RANGE_TYPE
 message_index(struct arinc_buffer* buffer, MESSAGE_RANGE_TYPE offset)
 {
-   size_t res = buffer->base_offset + offset;
+   MESSAGE_RANGE_TYPE res = buffer->base_offset + offset;
 
    if(res >= buffer->max_nb_message) res -= buffer->max_nb_message;
 
@@ -73,7 +82,7 @@ void CREATE_BUFFER (
        /*out*/ BUFFER_ID_TYPE           *BUFFER_ID,
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-   if(kshd.partition_mode == POK_PARTITION_MODE_NORMAL) {
+   if(kshd->partition_mode == POK_PARTITION_MODE_NORMAL) {
       // Cannot create buffer in NORMAL mode
       *RETURN_CODE = INVALID_MODE;
       return;
@@ -136,9 +145,10 @@ void CREATE_BUFFER (
    msection_init(&buffer->section);
    msection_wq_init(&buffer->process_queue);
    buffer->base_offset = 0;
+   buffer->nb_message = 0;
    buffer->discipline = QUEUING_DISCIPLINE;
 
-   *BUFFER_ID = nbuffers_used + 1;// Avoid 0 value.
+   *BUFFER_ID = index_to_id(nbuffers_used);
 
    nbuffers_used++;
 
@@ -152,13 +162,14 @@ void SEND_BUFFER (
        /*in */ SYSTEM_TIME_TYPE         TIME_OUT,
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-   if (BUFFER_ID <= 0 || BUFFER_ID > nbuffers_used) {
+    unsigned index = id_to_index(BUFFER_ID);
+   if (index >= nbuffers_used) {
       // Incorrect buffer identificator.
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
 
-   struct arinc_buffer* buffer = &arinc_buffers[BUFFER_ID - 1];
+   struct arinc_buffer* buffer = &arinc_buffers[index];
 
    if(LENGTH <= 0 || LENGTH > buffer->max_message_size) {
       // LENGTH is non-positive or too big.
@@ -176,10 +187,10 @@ void SEND_BUFFER (
          // There are waiters on buffer. We have already awoken the first of them.
          pok_thread_id_t t_awoken = buffer->process_queue.first;
 
-         char* dst = kshd.tshd[t_awoken].wq_buffer.dst;
+         char* dst = kshd->tshd[t_awoken].wq_buffer.dst;
 
          memcpy(dst, MESSAGE_ADDR, LENGTH);
-         kshd.tshd[t_awoken].wq_len = LENGTH;
+         kshd->tshd[t_awoken].wq_len = LENGTH;
 
          msection_wq_del(&buffer->process_queue, t_awoken);
       }
@@ -205,10 +216,10 @@ void SEND_BUFFER (
    else {
       // Buffer is full and waiting is *requested* by the caller.
       // (whether waiting is *allowed* will be checked by the kernel.)
-      pok_thread_id_t t = kshd.current_thread_id;
+      pok_thread_id_t t = kshd->current_thread_id;
 
-      kshd.tshd[t].wq_buffer.src = MESSAGE_ADDR;
-      kshd.tshd[t].wq_len = LENGTH;
+      kshd->tshd[t].wq_buffer.src = MESSAGE_ADDR;
+      kshd->tshd[t].wq_len = LENGTH;
 
       arinc_process_queue_add_common(&buffer->process_queue, buffer->discipline);
 
@@ -243,13 +254,14 @@ void RECEIVE_BUFFER (
        /*out*/ MESSAGE_SIZE_TYPE        *LENGTH,
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-   if (BUFFER_ID <= 0 || BUFFER_ID > nbuffers_used) {
+    unsigned index = id_to_index(BUFFER_ID);
+   if (index >= nbuffers_used) {
       // Incorrect buffer identificator.
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
 
-   struct arinc_buffer* buffer = &arinc_buffers[BUFFER_ID - 1];
+   struct arinc_buffer* buffer = &arinc_buffers[index];
 
    msection_enter(&buffer->section);
 
@@ -276,8 +288,8 @@ void RECEIVE_BUFFER (
          MESSAGE_RANGE_TYPE w_index = message_index(buffer, buffer->nb_message);
          char* w_dest = message_at(buffer, w_index);
 
-         const char* w_src = kshd.tshd[t_awoken].wq_buffer.src;
-         MESSAGE_SIZE_TYPE w_len = kshd.tshd[t_awoken].wq_len;
+         const char* w_src = kshd->tshd[t_awoken].wq_buffer.src;
+         MESSAGE_SIZE_TYPE w_len = kshd->tshd[t_awoken].wq_len;
 
          memcpy(w_dest, w_src, w_len);
          buffer->messages_size[w_index] = w_len;
@@ -295,9 +307,9 @@ void RECEIVE_BUFFER (
    else {
       // Buffer is empty and waiting is *requested* by the caller.
       // (whether waiting is *allowed* will be checked by the kernel.)
-      pok_thread_id_t t = kshd.current_thread_id;
+      pok_thread_id_t t = kshd->current_thread_id;
 
-      kshd.tshd[t].wq_buffer.dst = MESSAGE_ADDR;
+      kshd->tshd[t].wq_buffer.dst = MESSAGE_ADDR;
 
       arinc_process_queue_add_common(&buffer->process_queue, buffer->discipline);
 
@@ -305,7 +317,7 @@ void RECEIVE_BUFFER (
       {
       case POK_ERRNO_OK:
          // Message is already copied from the buffer by the notifier.
-         *LENGTH = kshd.tshd[t].wq_len;
+         *LENGTH = kshd->tshd[t].wq_len;
          *RETURN_CODE = NO_ERROR;
          break;
       case POK_ERRNO_MODE: // Waiting is not allowed
@@ -339,7 +351,7 @@ void GET_BUFFER_ID (
       return;
    }
 
-   *BUFFER_ID = (buffer - arinc_buffers) + 1;
+   *BUFFER_ID = index_to_id(buffer - arinc_buffers);
    *RETURN_CODE = NO_ERROR;
 }
 
@@ -348,13 +360,14 @@ void GET_BUFFER_STATUS (
        /*out*/ BUFFER_STATUS_TYPE       *BUFFER_STATUS,
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-   if (BUFFER_ID <= 0 || BUFFER_ID > nbuffers_used) {
+    unsigned index = id_to_index(BUFFER_ID);
+   if (index >= nbuffers_used) {
       // Incorrect buffer identificator.
       *RETURN_CODE = INVALID_PARAM;
       return;
    }
 
-   struct arinc_buffer* buffer = &arinc_buffers[BUFFER_ID - 1];
+   struct arinc_buffer* buffer = &arinc_buffers[index];
 
    msection_enter(&buffer->section);
 
@@ -368,5 +381,3 @@ void GET_BUFFER_STATUS (
 
    *RETURN_CODE = NO_ERROR;
 }
-
-#endif
