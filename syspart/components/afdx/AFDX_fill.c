@@ -20,7 +20,6 @@
 * should made according to the AFDX standard.
 *
 *
-* Created by ....
 */
 
  

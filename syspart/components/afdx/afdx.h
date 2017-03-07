@@ -14,13 +14,12 @@
 *
 *=======================================================================
 *
-*                   Function that fill the frame
+*             That file describes the frame structure
 *
 * The following file is a part of the AFDX project. Any modification should
 * made according to the AFDX standard.
 *
 *
-* Created by ....
 */
 
 #ifndef __AFDX_H_

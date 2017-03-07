@@ -19,8 +19,6 @@
 * The following file is a part of the AFDX project. Any modification
 * should made according to the AFDX standard.
 *
-*
-* Created by ....
 */
 
 #include <stdint.h>
