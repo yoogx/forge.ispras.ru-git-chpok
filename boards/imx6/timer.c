@@ -73,7 +73,7 @@ void timer_handle_interrupt(void)
 void timer_init(void)
 {
     printf("%s\n", __func__);
-    set_bits(GPT_CR, 0); // ensure that GPT is disabled
+    iowrite32(GPT_CR, 0); // ensure that GPT is disabled
 
     // reset device (all register). And check that reset finished correctly
     //set_bits(GPT_CR, GPT_CR_SWR);
