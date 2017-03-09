@@ -16,6 +16,9 @@
 
 .macro print_hello
     //print "JetOS"
+    /* write to UART phys addr. Without initialization.
+     * Hope it is init correctly by bootloader.
+     */
     ldr r4, =0x2020040
     ldr r3, ='J'
     str r3, [r4]
