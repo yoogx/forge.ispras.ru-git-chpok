@@ -31,6 +31,7 @@ static struct Mockarinc_process_queueInstance
   CMOCK_MEM_INDEX_TYPE arinc_process_queue_add_common_CallInstance;
 } Mock;
 
+
 void Mockarinc_process_queue_Verify(void)
 {
   UNITY_LINE_TYPE cmock_line = TEST_LINE_NUM;

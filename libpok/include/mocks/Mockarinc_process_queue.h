@@ -2,7 +2,7 @@
 #ifndef _MOCKARINC_PROCESS_QUEUE_H
 #define _MOCKARINC_PROCESS_QUEUE_H
 
-#include "arinc_process_queue.h"
+#include <arinc_process_queue.h>
 
 /* Ignore the following warnings, since we are copying code */
 #if defined(__GNUC__) && !defined(__ICC) && !defined(__TMS470__)

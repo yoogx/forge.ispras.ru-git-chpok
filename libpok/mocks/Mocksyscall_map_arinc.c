@@ -13,6 +13,7 @@ static const char* CMockString_direction = "direction";
 static const char* CMockString_entry = "entry";
 static const char* CMockString_id = "id";
 static const char* CMockString_is_all = "is_all";
+static const char* CMockString_jet_memory_block_get_status = "jet_memory_block_get_status";
 static const char* CMockString_jet_msection_enter_helper = "jet_msection_enter_helper";
 static const char* CMockString_jet_msection_notify = "jet_msection_notify";
 static const char* CMockString_jet_msection_wait = "jet_msection_wait";
@@ -32,7 +33,6 @@ static const char* CMockString_pok_error_get = "pok_error_get";
 static const char* CMockString_pok_error_raise_application_error = "pok_error_raise_application_error";
 static const char* CMockString_pok_error_raise_os_error = "pok_error_raise_os_error";
 static const char* CMockString_pok_error_thread_create = "pok_error_thread_create";
-static const char* CMockString_pok_memory_block_get_status = "pok_memory_block_get_status";
 static const char* CMockString_pok_partition_set_mode_current = "pok_partition_set_mode_current";
 static const char* CMockString_pok_port_queuing_clear = "pok_port_queuing_clear";
 static const char* CMockString_pok_port_queuing_create_packed = "pok_port_queuing_create_packed";
@@ -55,7 +55,6 @@ static const char* CMockString_pok_thread_get_status = "pok_thread_get_status";
 static const char* CMockString_pok_thread_resume = "pok_thread_resume";
 static const char* CMockString_pok_thread_set_priority = "pok_thread_set_priority";
 static const char* CMockString_pok_thread_sleep = "pok_thread_sleep";
-static const char* CMockString_pok_thread_sleep_until = "pok_thread_sleep_until";
 static const char* CMockString_pok_thread_stop = "pok_thread_stop";
 static const char* CMockString_pok_thread_stop_target = "pok_thread_stop_target";
 static const char* CMockString_pok_thread_suspend = "pok_thread_suspend";
@@ -91,14 +90,6 @@ typedef struct _CMOCK_pok_thread_sleep_CALL_INSTANCE
   pok_time_t* Expected_time;
 
 } CMOCK_pok_thread_sleep_CALL_INSTANCE;
-
-typedef struct _CMOCK_pok_thread_sleep_until_CALL_INSTANCE
-{
-  UNITY_LINE_TYPE LineNumber;
-  pok_ret_t ReturnVal;
-  pok_time_t* Expected_time;
-
-} CMOCK_pok_thread_sleep_until_CALL_INSTANCE;
 
 typedef struct _CMOCK_pok_sched_end_period_CALL_INSTANCE
 {
@@ -437,20 +428,19 @@ typedef struct _CMOCK_pok_port_queuing_clear_CALL_INSTANCE
 
 } CMOCK_pok_port_queuing_clear_CALL_INSTANCE;
 
-typedef struct _CMOCK_pok_memory_block_get_status_CALL_INSTANCE
+typedef struct _CMOCK_jet_memory_block_get_status_CALL_INSTANCE
 {
   UNITY_LINE_TYPE LineNumber;
   pok_ret_t ReturnVal;
   char* Expected_name;
   jet_memory_block_status_t* Expected_status;
 
-} CMOCK_pok_memory_block_get_status_CALL_INSTANCE;
+} CMOCK_jet_memory_block_get_status_CALL_INSTANCE;
 
 static struct Mocksyscall_map_arincInstance
 {
   CMOCK_MEM_INDEX_TYPE pok_thread_create_CallInstance;
   CMOCK_MEM_INDEX_TYPE pok_thread_sleep_CallInstance;
-  CMOCK_MEM_INDEX_TYPE pok_thread_sleep_until_CallInstance;
   CMOCK_MEM_INDEX_TYPE pok_sched_end_period_CallInstance;
   CMOCK_MEM_INDEX_TYPE pok_thread_suspend_CallInstance;
   CMOCK_MEM_INDEX_TYPE pok_thread_get_status_CallInstance;
@@ -489,8 +479,9 @@ static struct Mocksyscall_map_arincInstance
   CMOCK_MEM_INDEX_TYPE pok_port_queuing_id_CallInstance;
   CMOCK_MEM_INDEX_TYPE pok_port_queuing_status_CallInstance;
   CMOCK_MEM_INDEX_TYPE pok_port_queuing_clear_CallInstance;
-  CMOCK_MEM_INDEX_TYPE pok_memory_block_get_status_CallInstance;
+  CMOCK_MEM_INDEX_TYPE jet_memory_block_get_status_CallInstance;
 } Mock;
+
 
 void Mocksyscall_map_arinc_Verify(void)
 {
@@ -499,8 +490,6 @@ void Mocksyscall_map_arinc_Verify(void)
   UNITY_TEST_ASSERT(CMOCK_GUTS_NONE == Mock.pok_thread_create_CallInstance, cmock_line, CMockStringCalledLess);
   UNITY_SET_DETAIL(CMockString_pok_thread_sleep);
   UNITY_TEST_ASSERT(CMOCK_GUTS_NONE == Mock.pok_thread_sleep_CallInstance, cmock_line, CMockStringCalledLess);
-  UNITY_SET_DETAIL(CMockString_pok_thread_sleep_until);
-  UNITY_TEST_ASSERT(CMOCK_GUTS_NONE == Mock.pok_thread_sleep_until_CallInstance, cmock_line, CMockStringCalledLess);
   UNITY_SET_DETAIL(CMockString_pok_sched_end_period);
   UNITY_TEST_ASSERT(CMOCK_GUTS_NONE == Mock.pok_sched_end_period_CallInstance, cmock_line, CMockStringCalledLess);
   UNITY_SET_DETAIL(CMockString_pok_thread_suspend);
@@ -577,8 +566,8 @@ void Mocksyscall_map_arinc_Verify(void)
   UNITY_TEST_ASSERT(CMOCK_GUTS_NONE == Mock.pok_port_queuing_status_CallInstance, cmock_line, CMockStringCalledLess);
   UNITY_SET_DETAIL(CMockString_pok_port_queuing_clear);
   UNITY_TEST_ASSERT(CMOCK_GUTS_NONE == Mock.pok_port_queuing_clear_CallInstance, cmock_line, CMockStringCalledLess);
-  UNITY_SET_DETAIL(CMockString_pok_memory_block_get_status);
-  UNITY_TEST_ASSERT(CMOCK_GUTS_NONE == Mock.pok_memory_block_get_status_CallInstance, cmock_line, CMockStringCalledLess);
+  UNITY_SET_DETAIL(CMockString_jet_memory_block_get_status);
+  UNITY_TEST_ASSERT(CMOCK_GUTS_NONE == Mock.jet_memory_block_get_status_CallInstance, cmock_line, CMockStringCalledLess);
 }
 
 void Mocksyscall_map_arinc_Init(void)
@@ -676,41 +665,6 @@ void pok_thread_sleep_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const pok
   Mock.pok_thread_sleep_CallInstance = CMock_Guts_MemChain(Mock.pok_thread_sleep_CallInstance, cmock_guts_index);
   cmock_call_instance->LineNumber = cmock_line;
   CMockExpectParameters_pok_thread_sleep(cmock_call_instance, time);
-  memcpy(&cmock_call_instance->ReturnVal, &cmock_to_return, sizeof(pok_ret_t));
-  UNITY_CLR_DETAILS();
-}
-
-pok_ret_t pok_thread_sleep_until(const pok_time_t* time)
-{
-  UNITY_LINE_TYPE cmock_line = TEST_LINE_NUM;
-  CMOCK_pok_thread_sleep_until_CALL_INSTANCE* cmock_call_instance;
-  UNITY_SET_DETAIL(CMockString_pok_thread_sleep_until);
-  cmock_call_instance = (CMOCK_pok_thread_sleep_until_CALL_INSTANCE*)CMock_Guts_GetAddressFor(Mock.pok_thread_sleep_until_CallInstance);
-  Mock.pok_thread_sleep_until_CallInstance = CMock_Guts_MemNext(Mock.pok_thread_sleep_until_CallInstance);
-  UNITY_TEST_ASSERT_NOT_NULL(cmock_call_instance, cmock_line, CMockStringCalledMore);
-  cmock_line = cmock_call_instance->LineNumber;
-  {
-    UNITY_SET_DETAILS(CMockString_pok_thread_sleep_until,CMockString_time);
-    UNITY_TEST_ASSERT_EQUAL_MEMORY((void*)(cmock_call_instance->Expected_time), (void*)(time), sizeof(pok_time_t), cmock_line, CMockStringMismatch);
-  }
-  UNITY_CLR_DETAILS();
-  return cmock_call_instance->ReturnVal;
-}
-
-void CMockExpectParameters_pok_thread_sleep_until(CMOCK_pok_thread_sleep_until_CALL_INSTANCE* cmock_call_instance, const pok_time_t* time)
-{
-  cmock_call_instance->Expected_time = (pok_time_t*)time;
-}
-
-void pok_thread_sleep_until_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const pok_time_t* time, pok_ret_t cmock_to_return)
-{
-  CMOCK_MEM_INDEX_TYPE cmock_guts_index = CMock_Guts_MemNew(sizeof(CMOCK_pok_thread_sleep_until_CALL_INSTANCE));
-  CMOCK_pok_thread_sleep_until_CALL_INSTANCE* cmock_call_instance = (CMOCK_pok_thread_sleep_until_CALL_INSTANCE*)CMock_Guts_GetAddressFor(cmock_guts_index);
-  UNITY_TEST_ASSERT_NOT_NULL(cmock_call_instance, cmock_line, CMockStringOutOfMemory);
-  memset(cmock_call_instance, 0, sizeof(*cmock_call_instance));
-  Mock.pok_thread_sleep_until_CallInstance = CMock_Guts_MemChain(Mock.pok_thread_sleep_until_CallInstance, cmock_guts_index);
-  cmock_call_instance->LineNumber = cmock_line;
-  CMockExpectParameters_pok_thread_sleep_until(cmock_call_instance, time);
   memcpy(&cmock_call_instance->ReturnVal, &cmock_to_return, sizeof(pok_ret_t));
   UNITY_CLR_DETAILS();
 }
@@ -2214,42 +2168,42 @@ void pok_port_queuing_clear_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok
   UNITY_CLR_DETAILS();
 }
 
-pok_ret_t pok_memory_block_get_status(const char* name, jet_memory_block_status_t* status)
+pok_ret_t jet_memory_block_get_status(const char* name, jet_memory_block_status_t* status)
 {
   UNITY_LINE_TYPE cmock_line = TEST_LINE_NUM;
-  CMOCK_pok_memory_block_get_status_CALL_INSTANCE* cmock_call_instance;
-  UNITY_SET_DETAIL(CMockString_pok_memory_block_get_status);
-  cmock_call_instance = (CMOCK_pok_memory_block_get_status_CALL_INSTANCE*)CMock_Guts_GetAddressFor(Mock.pok_memory_block_get_status_CallInstance);
-  Mock.pok_memory_block_get_status_CallInstance = CMock_Guts_MemNext(Mock.pok_memory_block_get_status_CallInstance);
+  CMOCK_jet_memory_block_get_status_CALL_INSTANCE* cmock_call_instance;
+  UNITY_SET_DETAIL(CMockString_jet_memory_block_get_status);
+  cmock_call_instance = (CMOCK_jet_memory_block_get_status_CALL_INSTANCE*)CMock_Guts_GetAddressFor(Mock.jet_memory_block_get_status_CallInstance);
+  Mock.jet_memory_block_get_status_CallInstance = CMock_Guts_MemNext(Mock.jet_memory_block_get_status_CallInstance);
   UNITY_TEST_ASSERT_NOT_NULL(cmock_call_instance, cmock_line, CMockStringCalledMore);
   cmock_line = cmock_call_instance->LineNumber;
   {
-    UNITY_SET_DETAILS(CMockString_pok_memory_block_get_status,CMockString_name);
+    UNITY_SET_DETAILS(CMockString_jet_memory_block_get_status,CMockString_name);
     UNITY_TEST_ASSERT_EQUAL_STRING(cmock_call_instance->Expected_name, name, cmock_line, CMockStringMismatch);
   }
   {
-    UNITY_SET_DETAILS(CMockString_pok_memory_block_get_status,CMockString_status);
+    UNITY_SET_DETAILS(CMockString_jet_memory_block_get_status,CMockString_status);
     UNITY_TEST_ASSERT_EQUAL_MEMORY((void*)(cmock_call_instance->Expected_status), (void*)(status), sizeof(jet_memory_block_status_t), cmock_line, CMockStringMismatch);
   }
   UNITY_CLR_DETAILS();
   return cmock_call_instance->ReturnVal;
 }
 
-void CMockExpectParameters_pok_memory_block_get_status(CMOCK_pok_memory_block_get_status_CALL_INSTANCE* cmock_call_instance, const char* name, jet_memory_block_status_t* status)
+void CMockExpectParameters_jet_memory_block_get_status(CMOCK_jet_memory_block_get_status_CALL_INSTANCE* cmock_call_instance, const char* name, jet_memory_block_status_t* status)
 {
   cmock_call_instance->Expected_name = (char*)name;
   cmock_call_instance->Expected_status = status;
 }
 
-void pok_memory_block_get_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, jet_memory_block_status_t* status, pok_ret_t cmock_to_return)
+void jet_memory_block_get_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, jet_memory_block_status_t* status, pok_ret_t cmock_to_return)
 {
-  CMOCK_MEM_INDEX_TYPE cmock_guts_index = CMock_Guts_MemNew(sizeof(CMOCK_pok_memory_block_get_status_CALL_INSTANCE));
-  CMOCK_pok_memory_block_get_status_CALL_INSTANCE* cmock_call_instance = (CMOCK_pok_memory_block_get_status_CALL_INSTANCE*)CMock_Guts_GetAddressFor(cmock_guts_index);
+  CMOCK_MEM_INDEX_TYPE cmock_guts_index = CMock_Guts_MemNew(sizeof(CMOCK_jet_memory_block_get_status_CALL_INSTANCE));
+  CMOCK_jet_memory_block_get_status_CALL_INSTANCE* cmock_call_instance = (CMOCK_jet_memory_block_get_status_CALL_INSTANCE*)CMock_Guts_GetAddressFor(cmock_guts_index);
   UNITY_TEST_ASSERT_NOT_NULL(cmock_call_instance, cmock_line, CMockStringOutOfMemory);
   memset(cmock_call_instance, 0, sizeof(*cmock_call_instance));
-  Mock.pok_memory_block_get_status_CallInstance = CMock_Guts_MemChain(Mock.pok_memory_block_get_status_CallInstance, cmock_guts_index);
+  Mock.jet_memory_block_get_status_CallInstance = CMock_Guts_MemChain(Mock.jet_memory_block_get_status_CallInstance, cmock_guts_index);
   cmock_call_instance->LineNumber = cmock_line;
-  CMockExpectParameters_pok_memory_block_get_status(cmock_call_instance, name, status);
+  CMockExpectParameters_jet_memory_block_get_status(cmock_call_instance, name, status);
   memcpy(&cmock_call_instance->ReturnVal, &cmock_to_return, sizeof(pok_ret_t));
   UNITY_CLR_DETAILS();
 }

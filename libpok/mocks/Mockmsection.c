@@ -129,6 +129,7 @@ static struct MockmsectionInstance
   CMOCK_MEM_INDEX_TYPE msection_wq_size_CallInstance;
 } Mock;
 
+
 void Mockmsection_Verify(void)
 {
   UNITY_LINE_TYPE cmock_line = TEST_LINE_NUM;

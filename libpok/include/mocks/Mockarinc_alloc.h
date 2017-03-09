@@ -2,7 +2,7 @@
 #ifndef _MOCKARINC_ALLOC_H
 #define _MOCKARINC_ALLOC_H
 
-#include "arinc_alloc.h"
+#include <arinc_alloc.h>
 
 /* Ignore the following warnings, since we are copying code */
 #if defined(__GNUC__) && !defined(__ICC) && !defined(__TMS470__)
@@ -20,6 +20,8 @@ void Mockarinc_alloc_Verify(void);
 
 
 
+#define arinc_allocator_init_Expect() arinc_allocator_init_CMockExpect(__LINE__)
+void arinc_allocator_init_CMockExpect(UNITY_LINE_TYPE cmock_line);
 #define arinc_alloc_ExpectAndReturn(size, alignment, cmock_retval) arinc_alloc_CMockExpectAndReturn(__LINE__, size, alignment, cmock_retval)
 void arinc_alloc_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, size_t size, size_t alignment, void* cmock_to_return);
 #define arinc_allocator_get_state_ExpectAndReturn(cmock_retval) arinc_allocator_get_state_CMockExpectAndReturn(__LINE__, cmock_retval)

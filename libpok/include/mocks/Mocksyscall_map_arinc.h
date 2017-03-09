@@ -24,8 +24,6 @@ void Mocksyscall_map_arinc_Verify(void);
 void pok_thread_create_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, void* entry, const pok_thread_attr_t* attr, pok_thread_id_t* thread_id, pok_ret_t cmock_to_return);
 #define pok_thread_sleep_ExpectAndReturn(time, cmock_retval) pok_thread_sleep_CMockExpectAndReturn(__LINE__, time, cmock_retval)
 void pok_thread_sleep_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const pok_time_t* time, pok_ret_t cmock_to_return);
-#define pok_thread_sleep_until_ExpectAndReturn(time, cmock_retval) pok_thread_sleep_until_CMockExpectAndReturn(__LINE__, time, cmock_retval)
-void pok_thread_sleep_until_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const pok_time_t* time, pok_ret_t cmock_to_return);
 #define pok_sched_end_period_ExpectAndReturn(cmock_retval) pok_sched_end_period_CMockExpectAndReturn(__LINE__, cmock_retval)
 void pok_sched_end_period_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_ret_t cmock_to_return);
 #define pok_thread_suspend_ExpectAndReturn(time, cmock_retval) pok_thread_suspend_CMockExpectAndReturn(__LINE__, time, cmock_retval)
@@ -102,7 +100,7 @@ void pok_port_queuing_id_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const 
 void pok_port_queuing_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_port_id_t id, pok_port_queuing_status_t* status, pok_ret_t cmock_to_return);
 #define pok_port_queuing_clear_ExpectAndReturn(id, cmock_retval) pok_port_queuing_clear_CMockExpectAndReturn(__LINE__, id, cmock_retval)
 void pok_port_queuing_clear_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_port_id_t id, pok_ret_t cmock_to_return);
-#define pok_memory_block_get_status_ExpectAndReturn(name, status, cmock_retval) pok_memory_block_get_status_CMockExpectAndReturn(__LINE__, name, status, cmock_retval)
-void pok_memory_block_get_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, jet_memory_block_status_t* status, pok_ret_t cmock_to_return);
+#define jet_memory_block_get_status_ExpectAndReturn(name, status, cmock_retval) jet_memory_block_get_status_CMockExpectAndReturn(__LINE__, name, status, cmock_retval)
+void jet_memory_block_get_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, jet_memory_block_status_t* status, pok_ret_t cmock_to_return);
 
 #endif

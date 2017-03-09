@@ -8,9 +8,16 @@
 static const char* CMockString_alignment = "alignment";
 static const char* CMockString_arinc_alloc = "arinc_alloc";
 static const char* CMockString_arinc_allocator_get_state = "arinc_allocator_get_state";
+static const char* CMockString_arinc_allocator_init = "arinc_allocator_init";
 static const char* CMockString_arinc_allocator_reset_state = "arinc_allocator_reset_state";
 static const char* CMockString_size = "size";
 static const char* CMockString_state = "state";
+
+typedef struct _CMOCK_arinc_allocator_init_CALL_INSTANCE
+{
+  UNITY_LINE_TYPE LineNumber;
+
+} CMOCK_arinc_allocator_init_CALL_INSTANCE;
 
 typedef struct _CMOCK_arinc_alloc_CALL_INSTANCE
 {
@@ -37,14 +44,18 @@ typedef struct _CMOCK_arinc_allocator_reset_state_CALL_INSTANCE
 
 static struct Mockarinc_allocInstance
 {
+  CMOCK_MEM_INDEX_TYPE arinc_allocator_init_CallInstance;
   CMOCK_MEM_INDEX_TYPE arinc_alloc_CallInstance;
   CMOCK_MEM_INDEX_TYPE arinc_allocator_get_state_CallInstance;
   CMOCK_MEM_INDEX_TYPE arinc_allocator_reset_state_CallInstance;
 } Mock;
 
+
 void Mockarinc_alloc_Verify(void)
 {
   UNITY_LINE_TYPE cmock_line = TEST_LINE_NUM;
+  UNITY_SET_DETAIL(CMockString_arinc_allocator_init);
+  UNITY_TEST_ASSERT(CMOCK_GUTS_NONE == Mock.arinc_allocator_init_CallInstance, cmock_line, CMockStringCalledLess);
   UNITY_SET_DETAIL(CMockString_arinc_alloc);
   UNITY_TEST_ASSERT(CMOCK_GUTS_NONE == Mock.arinc_alloc_CallInstance, cmock_line, CMockStringCalledLess);
   UNITY_SET_DETAIL(CMockString_arinc_allocator_get_state);
@@ -62,6 +73,29 @@ void Mockarinc_alloc_Destroy(void)
 {
   CMock_Guts_MemFreeAll();
   memset(&Mock, 0, sizeof(Mock));
+}
+
+void arinc_allocator_init(void)
+{
+  UNITY_LINE_TYPE cmock_line = TEST_LINE_NUM;
+  CMOCK_arinc_allocator_init_CALL_INSTANCE* cmock_call_instance;
+  UNITY_SET_DETAIL(CMockString_arinc_allocator_init);
+  cmock_call_instance = (CMOCK_arinc_allocator_init_CALL_INSTANCE*)CMock_Guts_GetAddressFor(Mock.arinc_allocator_init_CallInstance);
+  Mock.arinc_allocator_init_CallInstance = CMock_Guts_MemNext(Mock.arinc_allocator_init_CallInstance);
+  UNITY_TEST_ASSERT_NOT_NULL(cmock_call_instance, cmock_line, CMockStringCalledMore);
+  cmock_line = cmock_call_instance->LineNumber;
+  UNITY_CLR_DETAILS();
+}
+
+void arinc_allocator_init_CMockExpect(UNITY_LINE_TYPE cmock_line)
+{
+  CMOCK_MEM_INDEX_TYPE cmock_guts_index = CMock_Guts_MemNew(sizeof(CMOCK_arinc_allocator_init_CALL_INSTANCE));
+  CMOCK_arinc_allocator_init_CALL_INSTANCE* cmock_call_instance = (CMOCK_arinc_allocator_init_CALL_INSTANCE*)CMock_Guts_GetAddressFor(cmock_guts_index);
+  UNITY_TEST_ASSERT_NOT_NULL(cmock_call_instance, cmock_line, CMockStringOutOfMemory);
+  memset(cmock_call_instance, 0, sizeof(*cmock_call_instance));
+  Mock.arinc_allocator_init_CallInstance = CMock_Guts_MemChain(Mock.arinc_allocator_init_CallInstance, cmock_guts_index);
+  cmock_call_instance->LineNumber = cmock_line;
+  UNITY_CLR_DETAILS();
 }
 
 void* arinc_alloc(size_t size, size_t alignment)
