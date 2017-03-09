@@ -13,6 +13,8 @@
  * See the GNU General Public License version 3 for more details.
  */
 
+#include "regs.h"
+
 // Undefined instruction
 jet_excp_undef_asm:
     b .
@@ -45,21 +47,32 @@ jet_excp_data_abort_asm:
 
 // IRQ interrupt
 jet_excp_irq_asm:
-    push {r0-r3, r12, lr}
+    sub lr, lr, #4 //IRQ excp should return to lr-4 addr
+    srsfd sp!, #CPSR_MODE_SVC // save lr and SPSR on SVC stack
 
-    ldr r1, =0x2020040
-    ldr r3,    ='I'
-    str r3, [r1]
-    ldr r3,    ='R'
-    str r3, [r1]
-    ldr r3,    ='Q'
-    str r3, [r1]
+    cps #CPSR_MODE_SVC //switch to SVC mode
+
+    push {r0-r3, r12} //push volatile regs
+
+    //make sp to 8-byte aligned. Store adjustment in stack
+    and r1, sp, #0x7
+    sub sp, sp, r1 //sp = sp - sp&7
+    push {r1}
+
+    push {lr} // lr in non-volatile, but we corrupt it in blx
 
     ldr r3, =irq_handle
     blx r3
 
-    pop {r0-r3, r12, lr}
-    subs pc, lr, #4
+    pop {lr}
+
+    // restore original (possible not 8-byte aligned) sp value
+    pop {r1}
+    add sp, sp, r1
+
+    pop {r0-r3, r12} //restore volatile regs
+
+    rfefd sp! //from stack load saved lr and SPSR  to pc and CPSR
 
 // FIQ interrupt
 jet_excp_fiq_asm:
