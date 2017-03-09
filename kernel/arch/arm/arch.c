@@ -18,17 +18,14 @@
 #include <assert.h>
 #include <bsp/bsp.h>
 #include "regs.h"
-
-void mmu_enable(void); //FIXME DELETEME
+#include "mmu.h"
 
 void jet_arch_init(void)
 {
     jet_console_init_all ();
+    printf("Hello world \n");
 
-    printf("Hello world\n");
-
-    mmu_enable();
-    printf("Hello MMU world\n");
+    copy_vector_table(); //interrupt vec table
     ja_bsp_init();
     ja_preempt_enable();
 }

@@ -36,4 +36,16 @@
 
 #define L1_SECT_MEM_DEVICE (L1_SECT_TEX(2))
 
+// Write l1_table addr to TTBR0
+static inline void load_l1_table(uint32_t *l1_table)
+{
+    asm("mcr p15, 0, %0, c2, c0, 0"
+            :
+            :"r"(l1_table)
+            :"memory");
+}
+
+//copy interrupt vector table to 0 virtual address
+void copy_vector_table(void);
+
 #endif
