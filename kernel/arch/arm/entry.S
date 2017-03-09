@@ -75,7 +75,7 @@ __entry:
 
     // MMU is enabled but pc still has low addressess
     // Jump UP
-    ldr pc, =relocated //long jump 
+    ldr pc, =relocated //long jump
 relocated:
     // finish MMU enabling
 
