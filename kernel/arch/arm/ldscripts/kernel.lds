@@ -49,11 +49,10 @@ SECTIONS
     . = ALIGN(4);
     __data_end = .;
 
-    __bss_start = .;
     .bss :
     {
-        bss = .;
-        *(.bss)
+       *(.bss)
+       *(COMMON)
 
         /* Allocate aligned stack */
         . = ALIGN(16) + 0x1000;
