@@ -18,6 +18,28 @@
 #include <bsp/ioports.h>
 #include <libc.h>
 #include "irq.h"
+#include <core/time.h>
+#include <asp/time.h>
+#include <assert.h>
+
+
+//TODO: should we enable bits in CCM_CCGR1? to use this clock source?
+#define CLOCK_SOURCE (GPT_CR_CLCKSRC_24MHz)
+#define CLOCK_SOURCE_FREQ 0x1800000 //24 MHz
+
+static uint32_t timer_interval; //number of timer ticks in 1/POK_TIMER_FREQUENCY sec.
+static uint64_t intervals_count;
+
+/* Two parts of system time */
+volatile uint32_t system_time_low;
+volatile uint32_t system_time_high;
+
+/*
+ * Hardcoded calendar time at the beginning of the OS loading.
+ *
+ * Could be obtained on https://www.timeanddate.com/.
+ */
+static time_t base_calendar_time = 1480330081; // On 28.11.2016
 
 #define GIC_GPT_IRQ 87 //irq vector
 
@@ -36,7 +58,7 @@
 #define GPT_CR_ENMOD (1<<1)
 #define GPT_CR_FRR (1<<9) //Free-Run or Restart mode
 #define GPT_CR_CLCKSRC(x) (x<<6) // clock source
-#define GPT_CR_CLCKSRC_24MGH (0b111)
+#define GPT_CR_CLCKSRC_24MHz (0b111)
 #define GPT_CR_SWR (1<<15) // software reset
 
 #define GPT_IR_OF1IE (1<<0)
@@ -45,30 +67,51 @@
 
 #define GPT_IR_DISABLE_ALL (0)
 
-
-void unset_bits(uintptr_t reg, uint32_t bits)
+static void unset_bits(uintptr_t reg, uint32_t bits)
 {
     iowrite32(reg, ioread32(reg) & ~bits);
 }
 
-void set_bits(uintptr_t reg, uint32_t bits)
+static void set_bits(uintptr_t reg, uint32_t bits)
 {
     iowrite32(reg, ioread32(reg)|bits);
 }
 
-/* Loop <delay> times in a way that the compiler won't optimize away. */
-static inline void delay(int32_t count)
+static uint32_t abs(uint32_t val)
 {
-    asm volatile("__delay_%=: subs %[count], %[count], #1; bne __delay_%=\n"
-            : "=r"(count): [count]"0"(count) : "cc");
+    if (val>=0)
+        return val;
+    else
+        return -val;
+}
+
+void set_timer(void)
+{
+    //We assume that there are at least 3 (or 2?) interrupts in 2**32 ticks. Therefore
+    //between two sequential calls of set_timer can't pass more than 2**31 ticks.
+
+    intervals_count += 1;
+    uint32_t next = ((intervals_count * timer_interval)%0xffffffff);
+    iowrite32(GPT_OCR1, next);
+    uint32_t current = ioread32(GPT_CNT);
+
+    if (((next > current) && abs(next - current) > 0x80000000) ||
+         ((next < current) && abs(next - current) < 0x80000000)) {
+        // next already passed, so recount
+        set_timer();
+    }
 }
 
 void timer_handle_interrupt(void)
 {
-    //Should write 1 to bits in SR you want to reset
+    //Reset OF1 bit in SR
     iowrite32(GPT_SR, GPT_SR_OF1);
-    printf("TIMER_INTERRUPT\n");
+    //printf("TIMER_INTERRUPT\n");
+    set_timer();
+
+    //jet_on_tick();
 }
+
 
 void timer_init(void)
 {
@@ -81,7 +124,7 @@ void timer_init(void)
     //    pok_fatal("Update your QEMU! It has a bug in GPT SWR\n");
 
     iowrite32(GPT_CR,
-            GPT_CR_CLCKSRC(GPT_CR_CLCKSRC_24MGH) //Set clock source TODO:enable bits in CCM_CCGR1?
+            GPT_CR_CLCKSRC(CLOCK_SOURCE) //Set clock source
             | GPT_CR_ENMOD //zero GPT counter after enabling
             | GPT_CR_FRR //free-run mode
             );
@@ -94,11 +137,21 @@ void timer_init(void)
 
     irq_enable_interrupt(IRQ_GPT);
 
-    // check //TODO DELETEME
-    ja_preempt_enable();
-    iowrite32(GPT_OCR1, 0x01000000);
-    while (1) {
-        printf("0x%lx %lx\n", ioread32(GPT_CNT), ioread32(GPT_SR));
-        delay(0x10000000);
-    }
+    // update timer_interval according selected clock source
+    timer_interval = CLOCK_SOURCE_FREQ / POK_TIMER_FREQUENCY;
+
+    set_timer(); //set next timer interrupt
+}
+
+
+/* Return current system time. */
+pok_time_t ja_system_time(void)
+{
+    return intervals_count*1000000000/POK_TIMER_FREQUENCY;
+}
+
+/* Return current calendar time (seconds since Epoch). */
+time_t ja_calendar_time(void)
+{
+  return base_calendar_time + (time_t)(ja_system_time() / 1000000000);
 }

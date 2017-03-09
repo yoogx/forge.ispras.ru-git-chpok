@@ -42,7 +42,6 @@
 void irq_handle()
 {
     int interrupt_id = ioread32(GICC_IAR);
-    printf("%s interrupt id = %d\n", __func__, interrupt_id);
     if (interrupt_id == IRQ_GPT) {
         iowrite32(GICC_EOIR, interrupt_id);
         timer_handle_interrupt();
