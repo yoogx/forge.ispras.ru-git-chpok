@@ -50,7 +50,12 @@ jet_excp_irq_asm:
     sub lr, lr, #4 //IRQ excp should return to lr-4 addr
     srsfd sp!, #CPSR_MODE_SVC // save lr and SPSR on SVC stack
 
-    cps #CPSR_MODE_SVC //switch to SVC mode
+    /* Switch to SVC mode. If this is a nested interrupt, then
+     * SVC mode's CPSR has a IRQ interrupt enabled. Thus we should
+     * disable interrupt while switching to SVC mode. CPSID instruction
+     * does it for us.
+     */
+    cpsid i, #CPSR_MODE_SVC
 
     push {r0-r3, r12} //push volatile regs
 
