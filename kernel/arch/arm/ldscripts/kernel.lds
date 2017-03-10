@@ -10,16 +10,13 @@ __KERNBASE_VADDR = 0xc0000000;
 SECTIONS
 {
     . = __KERNBASE_VADDR;
-    __text_start = .;
     .text : AT(__KERNBASE_PADDR)
     {
         KEEP(*(.text.boot))
         *(.text)
     }
     . = ALIGN(4);
-    __text_end = .;
 
-    __rodata_start = .;
     .rodata :
     {
         *(.rodata)
@@ -30,7 +27,6 @@ SECTIONS
         __archive2_end = .;
     }
     . = ALIGN(4);
-    __rodata_end = .;
 
     __vector_table_start = .;
     .vector_table :
@@ -41,13 +37,11 @@ SECTIONS
     __vector_table_end = .;
 
 
-    __data_start = .;
     .data :
     {
         *(.data)
     }
     . = ALIGN(4);
-    __data_end = .;
 
     .bss :
     {
@@ -57,8 +51,9 @@ SECTIONS
         /* Allocate aligned stack */
         . = ALIGN(16) + 0x1000;
         jet_entry_stack = .;
+
+        jet_heap_start = . ;
+        jet_heap_end = . + 0x40000; /* 256 KB for heap  */
     }
     . = ALIGN(4);
-    __bss_end = .;
-    __end = .;
 }
