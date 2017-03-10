@@ -30,15 +30,18 @@ struct jet_fp_store* ja_alloc_fp_store(void)
 
 void ja_fp_save(struct jet_fp_store* fp_store)
 {
-    assert(0);
+    //TODO
+    //assert(0);
 }
 
 void ja_fp_restore(struct jet_fp_store* fp_store)
 {
-    assert(0);
+    //TODO
+    //assert(0);
 }
 
 void ja_fp_init(void)
 {
-    assert(0);
+    //TODO
+    //assert(0);
 }
