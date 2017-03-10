@@ -21,6 +21,23 @@ jet_excp_undef_asm:
 
 // Supervision Call
 jet_excp_svc_asm:
+    ldr r4, =0x2020040
+    ldr r3,    ='S'
+    str r3, [r4]
+    ldr r3,    ='Y'
+    str r3, [r4]
+    ldr r3,    ='S'
+    str r3, [r4]
+    ldr r3,    ='C'
+    str r3, [r4]
+    ldr r3,    ='A'
+    str r3, [r4]
+    ldr r3,    ='L'
+    str r3, [r4]
+    ldr r3,    ='L'
+    str r3, [r4]
+    ldr r3,    ='\n'
+    str r3, [r4]
     b .
 
 // Prefetch Abort
