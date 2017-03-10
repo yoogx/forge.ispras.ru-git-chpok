@@ -14,7 +14,6 @@
  */
 
 #include "arinc_alloc.h"
-#include <arinc_config.h>
 #include <utils.h>
 #include <memblocks.h>
 #include <smalloc.h>

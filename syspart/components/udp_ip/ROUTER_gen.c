@@ -48,4 +48,5 @@ void __ROUTER_init__(ROUTER *self)
 
 void __ROUTER_activity__(ROUTER *self)
 {
+        (void) self; //suppress warning
 }

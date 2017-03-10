@@ -31,7 +31,7 @@ static void pok_network_thread_init(void)
 #endif
 
 
-#define NCOMMANDS sizeof(commands)/sizeof(commands[0])
+#define NCOMMANDS ((int)(sizeof(commands)/sizeof(commands[0])))
 
 
 
@@ -207,7 +207,7 @@ int info_partition(int argc,char **argv){
     //printf("base_vaddr = 0x%lx\n", (unsigned long)space_layout.user_addr);
     //printf("size = 0x%zx\n", space_layout.size);
     printf("name = %s\n", part->base_part.name);
-    printf("nthreads = %lu\n", part->nthreads);
+    printf("nthreads = %d\n", part->nthreads);
     printf("period = %lu\n", part->base_part.period);
     printf("duration = %lu\n", part->base_part.duration);
     //printf("activation = %llu\n", part->base_part.activation);
@@ -423,6 +423,10 @@ void monitor_process_error(pok_system_state_t partition_state,
         uint8_t state_byte_preempt_local,
         void* failed_address)
 {
+    (void) failed_address;
+    (void) partition_state;
+    (void) error_id;
+    (void) state_byte_preempt_local;
     pok_fatal("Error in monitor");
 }
 

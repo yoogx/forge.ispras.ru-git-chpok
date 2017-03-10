@@ -18,10 +18,10 @@
 /* GCC requires this function even for freestanding environment. */
 void *memmove(void* dest, const void* src, size_t n)
 {
-    ptrdiff_t distance = dest - src;
+    ptrdiff_t distance = (unsigned char*) dest - (unsigned char*) src;
 
     if((distance >= 0) // dest comes after or at src
-        || (distance + n < 0)) {// regions are not overlapped
+        || (distance + (int)n < 0)) {// regions are not overlapped
         // Copy bytes from the beginning.
         const unsigned char *s = (const unsigned char*) src;
         unsigned char *d = (unsigned char*) dest;

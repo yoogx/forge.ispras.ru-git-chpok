@@ -16,13 +16,8 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_SEMAPHORE
 #ifndef APEX_SEMAPHORE
 #define APEX_SEMAPHORE
-
-#ifndef POK_NEEDS_ARINC653_PROCESS
-#define POK_NEEDS_ARINC653_PROCESS 1
-#endif
 
 #include <arinc653/types.h>
 #include <arinc653/process.h>
@@ -113,5 +108,4 @@ extern void GET_SEMAPHORE_STATUS (
       /*OUT*/ SEMAPHORE_STATUS_TYPE *SEMAPHORE_STATUS,
       /*OUT*/ RETURN_CODE_TYPE *RETURN_CODE );
 /*----------------------------------------------------------------------*/
-#endif
 #endif

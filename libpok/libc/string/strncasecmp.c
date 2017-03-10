@@ -13,12 +13,9 @@
  * See the GNU General Public License version 3 for more details.
  */
  
-#include <core/dependencies.h>
 #include <string.h>
 
 #include <ctype.h>
-
-#ifdef POK_CONFIG_NEEDS_FUNC_STRNCASECMP
 
 __attribute__ ((weak))
 int strncasecmp(const char *s1, const char *s2, size_t n)
@@ -35,7 +32,3 @@ int strncasecmp(const char *s1, const char *s2, size_t n)
   }
   return 0;
 }
-
-#endif
-
-

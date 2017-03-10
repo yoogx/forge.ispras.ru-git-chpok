@@ -39,7 +39,7 @@ env['QEMU'] = 'qemu-system-ppc'
 env.Append(CFLAGS = ' -mregnames')
 env.Append(ASFLAGS = ' -mregnames')
 
-env.Append(CFLAGS_KERNEL = '-msoft-float')
+env.Append(CFLAGS_KERNEL = ' -msoft-float')
 
 env['LDSCRIPT_KERNEL'] = env['JETOS_HOME'] + '/kernel/arch/ppc/ldscripts/kernel.lds'
 env['LDSCRIPT_PARTITION'] = env['JETOS_HOME'] + '/kernel/arch/ppc/ldscripts/partition.lds'
@@ -50,8 +50,8 @@ arch_dir = Dir('.').srcnode().abspath
 def align_val(val, align):
     return ((val + align - 1) // align) * align
 
-class TLBEntry(SerializableObject):
-    yaml_tag = '!PPCTLBEntry'
+class MBmap(SerializableObject):
+    yaml_tag = '!PPC_MBmap'
 
     copy_slots = [
         'vaddr',
@@ -90,11 +90,10 @@ class TLBEntry(SerializableObject):
         """
         For cache_policy string return its integer representation.
         """
-        # Currently only default cache policy is supported.
         if cache_policy == "DEFAULT":
             return "0"
         elif cache_policy == "IO":
-            return "MAS2_W | MAS2_I | MAS2_M | MAS2_G" # WRITE_TROUGH(redundand)+Cache_OFF+GUARDED+COHERENCY
+            return "MAS2_W | MAS2_I | MAS2_M | MAS2_G" # WRITE_THROUGH(redundand if cache if off)+Cache_OFF+GUARDED+COHERENCY
 
 
 class PhysMemoryBlockPPC(PhysMemoryBlock):
@@ -106,19 +105,19 @@ class PhysMemoryBlockPPC(PhysMemoryBlock):
         PhysMemoryBlock.__init__(self, paddr, size, align)
         self.size_enum = size_enum
 
-    def createTLBEntry(self, vaddr, access, cache_policy, space_id):
-        return TLBEntry(vaddr = vaddr,
+    def createMBmap(self, vaddr, access, cache_policy, space_id):
+        return MBmap(vaddr = vaddr,
             paddr = self.paddr,
             size_enum = self.size_enum,
-            permissions = TLBEntry.permissions_from_access(access),
-            cache_policy = TLBEntry.cache_policy_val(cache_policy),
+            permissions = MBmap.permissions_from_access(access),
+            cache_policy = MBmap.cache_policy_val(cache_policy),
             pid = space_id
         )
 
 
+
 class PhysMemoryTypePPC(PhysMemoryType):
     def isCacheSupported(self, cache_policy):
-        # Currently only DEFAULT cache policy is supported.
         return cache_policy in ["DEFAULT", "IO"]
 
     def allocPhysBlock(self, paddr, size):
@@ -133,7 +132,7 @@ class PhysMemoryTypePPC(PhysMemoryType):
             size = 4096
         size_pow_4 = int(math.ceil(math.log((size + 4095 ) // 4096, 4)))
 
-        size_enum = TLBEntry.size_enum_values[size_pow_4]
+        size_enum = MBmap.size_enum_values[size_pow_4]
 
         size_real = 4096 * 4**size_pow_4
         align_real = size_real
@@ -157,16 +156,17 @@ def ppc_deploy_func_unsafe(env, target, source):
         memory_type = memory_type,
     )
 
-    partitionsTLB = allocateMemoryBlocksSimple(mc,
+    partitions_MBmaps = allocateMemoryBlocksSimple(
+        mc,
         phys_segments = [phys_segment],
         memory_type_default = memory_type,
         vaddr_start_all = 2**31, # Hardcoded in ldscript.
     )
 
-    # All TLB entries in the single array
+    # Use MBmaps as TLB entries. Put aLL MBmaps in in the single array
     tlb_entries = []
-    for partitionTLB in partitionsTLB:
-        tlb_entries.extend(partitionTLB.entries)
+    for partitionMBmap in partitions_MBmaps:
+        tlb_entries.extend(partitionMBmap.MBmaps_list)
 
     mc.save_to_file(target[0].abspath)
 
@@ -199,9 +199,9 @@ def ppc_deploy(env, memory_definitions_file, memory_constraints):
     env['BOARD_DEPLOYMENT_SOURCES'] += env.TemplateRender(
         target = os.path.join(env['MODULE_BUILD_DIR'], "ppc_tlb.c"),
         source = arch_deployment_kernel_yaml,
-        create_definitions_func = ppc_create_definitions_for_deployment,
-        template_main = "ppc_tlb_c",
-        template_dir = arch_dir + "/templates"
+        create_context = ppc_create_definitions_for_deployment,
+        template_file = arch_dir + "/templates/ppc_tlb_c.tpl",
+        title = template_generation.generate_title_c
     )
 
 env['BOARD_DEPLOY'] = ppc_deploy

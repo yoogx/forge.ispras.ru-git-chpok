@@ -239,9 +239,7 @@ pok_bool_t thread_is_waiting_allowed(void)
     pok_thread_t* thread_current = part->thread_current;
 
     if(part->lock_level // In the INIT_* mode lock level is positive, no need to check it explicitely.
-#ifdef POK_NEEDS_ERROR_HANDLING
 	|| part->thread_error == thread_current /* error thread cannot wait */
-#endif
     ) {
         return FALSE;
     }

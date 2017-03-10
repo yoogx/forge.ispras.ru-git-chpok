@@ -18,8 +18,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_SAMPLING
-
 #include <types.h>
 #include <middleware/port.h>
 #include <arinc653/types.h>
@@ -68,12 +66,12 @@ void CREATE_SAMPLING_PORT (
       * We treat refresh period which is more than MAX_INT32 of milliseconds as invalid.
       * 
       * TODO: Why? This is not implied by ARINC.
-      */
      if(REFRESH_PERIOD > (((uint64_t)1 << 32) - 1) * 1000000)
      {
          *RETURN_CODE = INVALID_CONFIG;
          return;
      }
+     */
 
      core_ret = pok_port_sampling_create (SAMPLING_PORT_NAME, MAX_MESSAGE_SIZE, core_direction, &REFRESH_PERIOD, &core_id);
 
@@ -194,5 +192,3 @@ pok_bool_t SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(
 {
     return pok_port_sampling_check(SAMPLING_PORT_ID - 1);
 }
-
-#endif

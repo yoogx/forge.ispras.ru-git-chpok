@@ -18,7 +18,7 @@ struct port_ops{
     void *owner;
 };
 
-{% for i in components%}
+{% for i in instances%}
     #include <{{i.type}}_gen.h>
         void __{{i.type}}_init__({{i.type}}*);
         void __{{i.type}}_activity__({{i.type}}*);
@@ -28,6 +28,7 @@ struct port_ops{
          {% endfor %}
         {% endif %}
         {{i.type}} {{i.name}} = {
+            .instance_name = "{{i.name}}",
             {% if i.state %}
             .state = {
               {% for name, val in i.state.iteritems()%}
@@ -48,9 +49,9 @@ struct port_ops{
 {% endfor %}
 
 
-void __components_init__()
+void glue_main()
 {
-    {% for i in components%}
+    {% for i in instances %}
             __{{i.type}}_init__(&{{i.name}});
 
     {% endfor %}
@@ -67,10 +68,10 @@ void __components_init__()
 
 }
 
-void __components_activity__()
+void glue_activity()
 {
     while (1) {
-        {% for i in components%}
+        {% for i in instances%}
                 __{{i.type}}_activity__(&{{i.name}});
         {% endfor %}
     }

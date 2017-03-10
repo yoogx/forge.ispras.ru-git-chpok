@@ -91,14 +91,14 @@ typedef struct _pok_partition_arinc
      *
      * Set in deployment.c.
      */
-    uint32_t               nthreads;
+    int               nthreads;
     /*
      * Array of (allocated) threads inside the partition.
      *
      * Set in deployment.c. (thread needn't to be initialized there).
      */
     pok_thread_t*          threads;
-    uint32_t               nthreads_used;   /**< Number of threads which are currently in use (created). */
+    int               nthreads_used;   /**< Number of threads which are currently in use (created). */
 
 
     pok_thread_t*          thread_current; // Normal thread or special thread. NULL if doing nothing.
@@ -132,7 +132,6 @@ typedef struct _pok_partition_arinc
 
 /* Error and main threads are special in sence that they cannot be reffered by ID.*/
 
-#ifdef POK_NEEDS_ERROR_HANDLING
     pok_thread_t*          thread_error;     /**< Error thread. One of the @threads. */
     struct list_head       error_list;       /** List of threads in errorneus state. */
 
@@ -154,7 +153,6 @@ typedef struct _pok_partition_arinc
      * Should be set in deployment.c
      */
     const pok_thread_error_map_t* thread_error_info;
-#endif
     struct jet_kernel_shared_data* kshd;
 
     /* Memory for allocate stacks. */
@@ -208,6 +206,14 @@ typedef struct _pok_partition_arinc
      * This is context pointer for switch to it.
      */
     struct jet_context*               idle_sp;
+
+    /* For passing to user space via kernel shared data. */
+    size_t arinc_config_nbuffers;
+    size_t arinc_config_nblackboards;
+    size_t arinc_config_nsemaphores;
+    size_t arinc_config_nevents;
+    size_t arinc_config_messages_memory_size;
+
 } pok_partition_arinc_t;
 
 #define current_partition_arinc container_of(current_partition, pok_partition_arinc_t, base_part)

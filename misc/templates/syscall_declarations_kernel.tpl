@@ -9,6 +9,9 @@ pok_ret_t {{sd.func}}(
 );
 static inline pok_ret_t pok_syscall_wrapper_{{sd.syscall_id}}(const pok_syscall_args_t* args)
 {
+{% if not sd.args %}
+    (void) args;
+{% endif%}
     return {{sd.func}}({% for arg in sd.args %}{{''}}
         ({{full_type(arg)}})args->arg{{loop.index}}{%if not loop.last %},{%+endif%}
                        {%- endfor%}

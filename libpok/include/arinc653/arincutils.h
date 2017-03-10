@@ -16,8 +16,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_PROCESS
-
 #include <arinc653/process.h>
 
 /**
@@ -30,5 +28,3 @@ typedef struct {
   PRIORITY_TYPE           BASE_PRIORITY;
   STACK_SIZE_TYPE         STACK_SIZE;
 } ARINC_ATTRIBUTE;
-
-#endif

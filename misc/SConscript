@@ -26,55 +26,109 @@ In the case of the module additional commands are created for run this
 module or debug it.
 """
 
-# Import()s environment 'env'. It must contain variables:
+#
+# Accept scons parameter:
+#
+#  bsp - specifies BSP for build.
+#
+#  jdeveloper - enables developer mode.
+#    If set to True, it enables JetOS developer mode.
+#    In this mode some additional JetOS files may be (re)generated.
+#    By default, these files are already existed.
+#
+#  cdeveloper - enables component developer mode for system partition.
+#    If set to True, it enables component developer mode
+#    in system partitions. In this mode some additional files for such
+#    partitions may be (re)generated. By default, these files are already
+#    existed.
+#
+# Environment variables which affects on building:
+#
+#  JETOS_BSP - specified BSP for build (if 'bsp' scons parameter is absent).
+#
+#  PREFIX - prefix for compile tools, replaces bsp-dependent one.
+#
+#  GDB - gdb executable, bsp-dependent one.
+#
+#  QEMU_<BSP> - qemu executable, replaces one for given BSP.
+#
+#  QEMU - qemu executable, replaces bsp-dependent one.
+#     Take precedence over QEMU_<BSP> (That is, if both are defined,
+#     only given one has an effect.
+
+
+# Create scons environment according to parameters above. It must contain variables:
 #
 # - 'BSP' - board specified for build JetOS against it.
-#
-# Also, imported environment may contain variables:
-#
-# - 'jdeveloper' - if set to True, it enables JetOS developer mode.
-# In this mode some additional JetOS files may be (re)generated.
-# By default, these files are already existed.
-#
-# - 'cdeveloper' - if set to True, it enables component developer mode
-# in system partitions. In this mode some additional files for such
-# partitions may be (re)generated. By default, these files are already
-# existed.
-#
-# - 'GDB' - gdb executable for use instead of one provided in
-# bsp-definition script (see below).
-#
-# - 'PREFIX' - prefix of toolchain for use instead of one provided in
-# bsp-definition script (see below).
-#
-# - 'QEMU' - qemu executable for use instead of one provided in
-# bsp-definition script (see below).
-#
+#   Set according to scons parameter 'bsp' or environment variable 'JETOS_BSP'
 #
 # Then environment is filled with global, arch-independent parameters.
 #
 # Then env['BSP'] value is used for call bsp-definition script located
 # at misc/boards/<BSP>/SConscript and 'env' is passed to it.
 #
+# After that environment is adjusted by OS environment variables(see above).
+#
 # Then 'Import()'s 'mode' variable.
 #
-# If value of 'mode' variable is equal to 'module', executes script
+# If value of 'mode' variable is equal to 'module', 'Import()'s
+# 'prepare_environment_module' variable, and executes it as a function with
+# environment as an argument. Then executes script
 # 'SConscript_module' passing environment ('env') to it.
 #
-# If value of 'mode' variable is equal to 'partition', executes script
+# If value of 'mode' variable is equal to 'partition', 'Import()'s
+# 'prepare_environment_partition' variable, and executes it as a function with
+# environment as an argument. Then executes script
 # 'SConscript_partition' passing partition's environment ('part_env') to it.
 
 import sys
 import os
+from properties_parser import properties_load_from_file
 
-Import('env')
+vars = Variables()
+vars.AddVariables(
+    ('bsp', "Board Support Package for use. List of possible values may be obtained by using value '?'.", None),
+    BoolVariable('jdeveloper', 'Enables developer mode', False),
+    BoolVariable('cdeveloper', 'Enables component developer mode', False)
+)
+
+env = Environment(variables = vars, ENV = os.environ)
+Help(vars.GenerateHelpText(env))
 
 jetos_home = Dir('..').abspath # Do not require os environment variable JETOS_HOME
 
 env['JETOS_HOME'] = jetos_home
-env['LAUNCHDIR'] = GetLaunchDir()
 
-log_file_opened = False
+
+scons_param_bsp = env.get('bsp', None)
+
+if scons_param_bsp is not None:
+    env['BSP'] = scons_param_bsp
+else:
+    os_variable_bsp = os.environ.get('JETOS_BSP')
+    if os_variable_bsp is not None:
+        env['BSP'] = os_variable_bsp
+    else:
+        print "ERROR: BSP is not set."
+        print "HINT: You may set BSP via environment variable JETOS_BSP or via scons parameter 'bsp'."
+        print "HINT: List of available BSP can be obtained by using value '?'."
+        Exit(1)
+
+if env['BSP'] == "":
+    print "ERROR: BSP shouldn't be empty string."
+    Exit(1)
+
+if env['BSP'] == '?':
+    bsp_list = []
+    for entry in os.listdir(os.path.join(env['JETOS_HOME'], 'misc/boards')):
+        if os.path.exists(os.path.join(env['JETOS_HOME'], 'misc/boards', entry, 'SConscript')):
+            bsp_list.append(entry)
+
+    bsp_list.sort()
+    print "Available BSP:"
+    for bsp in bsp_list:
+        print " %s" % bsp
+    Exit(0)
 
 # This tells scons to store all file signatures
 # in a separate .sconsign file in each directory
@@ -101,34 +155,53 @@ if ARGUMENTS.get('VERBOSE') != "1":
 
 
 # Flags common for all architectures
-# Linker flags for '.lo' objects, but not for '.elf'
-env['LINKFLAGS'] = '-r'
 env.Append(QEMU_FLAGS = ' -serial stdio')
-# 16 MBytes
-env['MAX_PART_SIZE'] = 16 * 2**20
 
-env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -Wuninitialized -ffreestanding -nostdlib -nostdinc -g '
+env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -Wuninitialized -ffreestanding -nostdlib -nostdinc -g -Wextra -Wpointer-arith'
 env['ASFLAGS'] = env['CFLAGS']
-env['CFLAGS_KERNEL'] = ''
-
-# Store variables which may be redefined by the caller script.
-preset_var_names = ['PREFIX', 'GDB', 'QEMU']
-preset_vars = {name: env.get(name, None) for name in preset_var_names}
+env['CFLAGS_KERNEL'] = '-Werror'
+env['CFLAGS_USER'] = '-include '+ env['JETOS_HOME']+'/libpok/include/config.h'
 
 # Execute bsp-definition script
 bsp_definition_script = os.path.join(env['JETOS_HOME'], 'misc/boards', env['BSP'], 'SConscript')
 if not os.path.isfile(bsp_definition_script):
     print "ERROR: There is no bsp-definition script '" + bsp_definition_script + "'"
-    print "HINT: Probably, bsp=" + env['BSP'] + " is not supported yet."
+    print "HINT: Probably, BSP '%s' is not supported yet." % env['BSP']
     Exit(1)
 
 SConscript(bsp_definition_script, exports = 'env')
 
-# Restore variables which may be redefined by the caller script
-for name in preset_var_names:
-    var = preset_vars[name]
-    if var is not None:
-        env[name] = var
+# Some bsp definitions may be redefined by OS environment.
+
+# Make string suitable for use in identifier
+def str_to_id(s):
+    return s.replace('-', '_')
+
+# This is a list of possible redefinitions.
+# Every element is a tuple:
+#
+#     (scons_var, os_var1, os_var2, ...)
+#
+# The first defined OS environment variable replaces Scons environment
+# variable <scons_var>.
+os_redefenition_list = [
+    ('PREFIX', 'PREFIX'),
+    ('GDB', 'GDB'),
+    ('QEMU', 'QEMU', 'QEMU_' + str_to_id(env['BSP']))
+]
+
+for redefinition_elem in os_redefenition_list:
+    scons_var = redefinition_elem[0]
+    if len(redefinition_elem) > 1:
+        os_vars = redefinition_elem[1:]
+    else:
+        os_vars = [scons_var]
+
+    for os_var in os_vars:
+        val = os.environ.get(os_var, "")
+        if val != "":
+            env[scons_var] = val
+            break
 
 # Make sure that 'BOARD_IS_EMULATED' variable is defined
 if not 'BOARD_IS_EMULATED' in env:
@@ -143,13 +216,21 @@ if not 'BOARD_PHYS_SIZE' in env:
     print "This is an error of board developers."
     Exit(1)
 
-env['KERNEL_CPPPATH'] = [
+bsp_properties = dict()
+if 'BSP_PROPERTIES_FILE' in env:
+    properties_load_from_file(bsp_properties, env['BSP_PROPERTIES_FILE'])
+else:
+    print "WARNING: BSP definition script doesn't set BSP_PROPERTIES_FILE. Assume it to be empty."
+    env['BSP_PROPERTIES_FILE'] = None
+env['BSP_PROPERTIES'] = bsp_properties
+
+env['CPPPATH_KERNEL'] = [
     env['JETOS_HOME']+'/kernel/include',
     env['JETOS_HOME']+'/kernel/arch/' + env['ARCH'] + '/include',
     env['JETOS_HOME']+'/boards/' + env['BSP'] + '/include',
 ]
 
-env['LIBPOK_CPPPATH'] = [
+env['CPPPATH_USER'] = [
     env['JETOS_HOME']+'/libpok/include',
     env['JETOS_HOME']+'/libpok/arch/' + env['ARCH'] + '/include',
 ]
@@ -162,7 +243,7 @@ env['OBJCOPY'] = env['PREFIX'] + 'objcopy'
 env['OBJDUMP'] = env['PREFIX'] + 'objdump'
 env['RANLIB']  = env['PREFIX'] + 'ranlib'
 
-# 'GDB' may be already set by the caller or by bsp-definition.
+# 'GDB' may be by bsp-definition or by OS environment.
 # So check it before set according to the prefix.
 gdb_val = env.get('GDB', None)
 if gdb_val is None:
@@ -177,8 +258,9 @@ def KernelEnvironment(env):
     Create fresh kernel environment from the main one.
     """
     kernel_env = env.Clone()
-    kernel_env['CPPPATH'] = env['KERNEL_CPPPATH']
-    kernel_env.Append(CFLAGS = ' ' + env.get('CFLAGS_KERNEL', default = ''))
+    kernel_env['CPPPATH'] = env['CPPPATH_KERNEL']
+    kernel_env['LINKFLAGS'] = ' -T ' + env['LDSCRIPT_KERNEL']
+    kernel_env.Append(CFLAGS = ' ' + env['CFLAGS_KERNEL'])
     return kernel_env
 
 def PartitionEnvironment(env):
@@ -186,8 +268,9 @@ def PartitionEnvironment(env):
     Create fresh partition's environment from the main one.
     """
     part_env = env.Clone()
-    part_env['CPPPATH'] = env['LIBPOK_CPPPATH']
-    part_env.Append(CFLAGS = ' -include '+ part_env['JETOS_HOME']+'/libpok/include/config.h')
+    part_env['CPPPATH'] = env['CPPPATH_USER']
+    part_env['LINKFLAGS'] = ' -T ' + env['LDSCRIPT_PARTITION']
+    part_env.Append(CFLAGS = ' ' + env['CFLAGS_USER'])
     return part_env
 
 env.AddMethod(KernelEnvironment)
@@ -200,12 +283,28 @@ def RemoveDirectories(env, target, dirs):
     if type(dirs) is not list:
         dirs = [dirs]
 
-    # Currently command line for all scons commands is unconditionally replaced
-    # in print_cmd_line().
-    # So do not bother with pretty command line of given command.
     return env.Command(target, [], Delete(dirs))
 
 env.AddMethod(RemoveDirectories)
+
+def CanonicalCleanList(env, field, default):
+    """
+    Make 'field' field of 'env' to be canonical representation of clean directories:
+
+    If env[field] is not defined, set it to default value.
+    If env[field] is not a list, set it to the list of single element.
+
+    Return resulted value of env[field].
+    """
+    val = env.get(field, default)
+    if type(val) is not list:
+        val = [val]
+
+    env[field] = val
+
+    return val
+
+env.AddMethod(CanonicalCleanList)
 
 # Return absolute version of the 'path', which may be instance of
 # SCons.Node.Node or a string.
@@ -276,15 +375,28 @@ if env.get('jdeveloper'):
 Import('mode')
 
 if mode == 'module':
+    Import('prepare_environment_module')
+    prepare_environment_module(env)
     mod_elf = SConscript('SConscript_module', exports = 'env')
     Default(mod_elf)
-    ret_env = env
 elif mode == 'partition':
+    Import('prepare_environment_partition')
+    prepare_environment_partition(env)
     part_env = env.PartitionEnvironment()
     part_elf = SConscript('SConscript_partition', exports = 'part_env')
     Default(part_elf)
-    ret_env = part_env
 else:
     print "Error: Invalid value for 'mode' parameter for the main SConscript: " + str(mode)
     print "Should be 'module' or 'partition'."
     raise RuntimeError("Invalid 'mode' parameter")
+
+import SCons.Node.Alias
+if env.GetOption('help'):
+    aliases = SCons.Node.Alias.default_ans.keys()
+    aliases.sort()
+
+    print('---------------')
+    print('Alias list:')
+    for x in aliases:
+        print(x)
+    print('---------------')

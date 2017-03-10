@@ -30,4 +30,4 @@ if jetos_home == "":
 	print "HINT:Environment variable 'JETOS_HOME' should point to the JetOS root directory."
 	Exit(1)
 
-env = SConscript(jetos_home+'/misc/SConscript_example_module')
+SConscript(jetos_home+'/misc/SConscript_example_module')

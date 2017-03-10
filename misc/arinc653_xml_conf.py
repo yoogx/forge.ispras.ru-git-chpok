@@ -57,62 +57,26 @@ def parse_time(s):
     return ns
 
 class ArincConfigParser:
+    """
+    Collections of methods for parse ARINC xml.
+    """
+
     # Static map: error code (without prefix) -> error description
     error_description_table = {
-        'ILLEGAL_REQUEST': 'Illegal Request',
+        'DEADLINE_MISSED': 'Deadline Missed',
         'APPLICATION_ERROR': 'Application Error',
         'NUMERIC_ERROR': 'Numeric Error',
+        'ILLEGAL_REQUEST': 'Illegal Request',
+        'STACK_OVERFLOW': 'Stack Overflow',
         'MEMORY_VIOLATION': 'Memory Violation',
-        'DEADLINE_MISSED': 'Deadline Missed',
         'HARDWARE_FAULT': 'Hardware Fault',
         'POWER_FAIL': 'Power Fail',
-        'STACK_OVERFLOW': 'Stack Overflow',
-        'PARTITION_CONFIGURATION': 'Config Error',
     }
 
-    def parse(self, root):
-        """
-        Returns chpok_configuration.Configuration object.
-        """
-
-        conf = chpok_configuration.Configuration()
-
-        conf_private = dict()
-        # Mapping name => partition.
-        partitions_by_name = dict()
-
-        conf_private['partitions_by_name'] = partitions_by_name
-        conf.private_data = conf_private
-
-        for index, part_root in enumerate(root.find("Partitions").findall("Partition")):
-            part = self.parse_partition(part_root, str(index))
-            part_name = part.name
-            conf.partitions.append(part)
-            partitions_by_name[part_name] = part
-
-        self.parse_schedule(conf, root.find("Schedule"))
-
-        connection_table = root.find("Connection_Table")
-        if connection_table is not None:
-            self.parse_channels(conf, connection_table)
-
-        conf.module_hm_table.default_action = chpok_configuration.ModuleHMAction("MODULE", "SHUTDOWN")
-        # Use some default action for module HM table for partition-level errors.
-        action_partition = chpok_configuration.ModuleHMAction("PARTITION", "SHUTDOWN")
-
-        module_hm_actions_per_state = {error_id: action_partition for error_id in chpok_configuration.HMTable.error_ids }
-        for s in ['ERROR_HANDLER', 'USER']:
-            conf.module_hm_table.actions[s] = module_hm_actions_per_state
-
-        self.parse_shared_memory_blocks(conf, root.find("Shared_Memory_Blocks"))
-
-        return conf
-
-    def parse_partition(self, part_root, part_id = "0"):
+    @classmethod
+    def parse_partition(cls, part_root, part_id):
         """
         Return chpok_configuration.Partition object
-
-        'part_id' meaningfull only when configure the whole module.
         """
 
         part_name = part_root.find("Definition").attrib["Name"]
@@ -152,15 +116,51 @@ class ArincConfigParser:
         part_private['mb_by_name'] = dict()
         part.private_data = part_private
 
-        self.parse_ports(part, part_root.find("ARINC653_Ports"))
+        cls.parse_ports(part, part_root.find("ARINC653_Ports"))
 
-        self.parse_hm(part.hm_table, part_root.find("HM_Table"))
+        cls.parse_hm(part.hm_table, part_root.find("HM_Table"))
 
-        self.parse_partition_memory_blocks(part, part_root.find("Memory_Blocks"))
+        cls.parse_partition_memory_blocks(part, part_root.find("Memory_Blocks"))
 
         return part
 
-    def parse_schedule(self, conf, slot_root):
+    @classmethod
+    def parse(cls, root, partitions_list):
+        """
+        Returns chpok_configuration.Configuration object.
+        """
+
+        conf = chpok_configuration.Configuration()
+
+        conf_private = dict()
+        # Mapping name => partition.
+        partitions_by_name = {part.name: part for part in partitions_list}
+
+        conf_private['partitions_by_name'] = partitions_by_name
+        conf.private_data = conf_private
+
+        conf.partitions = partitions_list
+
+        cls.parse_schedule(conf, root.find("Schedule"))
+
+        connection_table = root.find("Connection_Table")
+        if connection_table is not None:
+            cls.parse_channels(conf, connection_table)
+
+        conf.module_hm_table.default_action = chpok_configuration.ModuleHMAction("MODULE", "SHUTDOWN")
+        # Use some default action for module HM table for partition-level errors.
+        action_partition = chpok_configuration.ModuleHMAction("PARTITION", "SHUTDOWN")
+
+        module_hm_actions_per_state = {error_id: action_partition for error_id in chpok_configuration.HMTable.error_ids }
+        for s in ['ERROR_HANDLER', 'USER']:
+            conf.module_hm_table.actions[s] = module_hm_actions_per_state
+
+        cls.parse_shared_memory_blocks(conf, root.find("Shared_Memory_Blocks"))
+
+        return conf
+
+    @classmethod
+    def parse_schedule(cls, conf, slot_root):
         for x in slot_root.findall("Slot"):
             slot_type = x.attrib["Type"]
 
@@ -186,7 +186,8 @@ class ArincConfigParser:
 
             conf.slots.append(slot)
 
-    def parse_ports(self, part, ports_root):
+    @classmethod
+    def parse_ports(cls, part, ports_root):
         part_private = part.private_data
         ports_by_name = part_private['ports_by_name']
 
@@ -216,21 +217,23 @@ class ArincConfigParser:
 
             ports_by_name[port_name] = port
 
-    def parse_channels(self, conf, channels_root):
+    @classmethod
+    def parse_channels(cls, conf, channels_root):
         for ch in channels_root.findall("Channel"):
 
-            src = self.parse_connection(conf, ch.find("Source")[0])
-            dst = self.parse_connection(conf, ch.find("Destination")[0])
+            src = cls.parse_connection(conf, ch.find("Source")[0])
+            dst = cls.parse_connection(conf, ch.find("Destination")[0])
 
             channel = chpok_configuration.Channel(src, dst)
 
             conf.channels.append(channel)
 
-    def parse_connection(self, conf, connection_root):
-        if connection_root.tag == "Standard_Partition":
-            part_name = connection_root.attrib["PartitionName"]
+    @classmethod
+    def parse_connection(cls, conf, connection_root):
+        if connection_root.tag == "Port_Ref":
+            part_name = connection_root.attrib["PartitionNameRef"]
             part = conf.private_data['partitions_by_name'][part_name]
-            port_name = connection_root.attrib["PortName"]
+            port_name = connection_root.attrib["PortNameRef"]
 
             port = part.private_data['ports_by_name'][port_name]
 
@@ -239,15 +242,17 @@ class ArincConfigParser:
         else:
             raise RuntimeError("unknown connection tag name %r" % connection_root.tag)
 
-    def parse_partition_memory_blocks(self, part, memory_blocks_xml):
+    @classmethod
+    def parse_partition_memory_blocks(cls, part, memory_blocks_xml):
         if memory_blocks_xml is None:
             return
         for memory_block_xml in memory_blocks_xml.findall("Memory_Block"):
-            memory_block = self.parse_memory_block(memory_block_xml)
+            memory_block = cls.parse_memory_block(memory_block_xml)
             part.memory_blocks.append(memory_block)
             part.private_data['mb_by_name'][memory_block.name] = memory_block
 
-    def parse_memory_block(self, mroot):
+    @classmethod
+    def parse_memory_block(cls, mroot):
         name = mroot.attrib["Name"]
         size = parse_bytes(mroot.attrib["Size"])
 
@@ -303,18 +308,20 @@ class ArincConfigParser:
 
         return mblock
 
-    def parse_shared_memory_blocks(self, conf, sroot):
+    @classmethod
+    def parse_shared_memory_blocks(cls, conf, sroot):
         if sroot is None:
             return
 
         for share_entry in sroot.findall('Shared_Memory_Blocks_Entry'):
             mb_sharing = chpok_configuration.MemoryBlockSharing()
             for mb_ref_xml in share_entry.findall('Memory_Block_Ref'):
-                mb_sharing.mb_refs.append(self.parse_memory_block_ref(conf, mb_ref_xml))
+                mb_sharing.mb_refs.append(cls.parse_memory_block_ref(conf, mb_ref_xml))
 
             conf.memory_block_sharings.append(mb_sharing)
 
-    def parse_memory_block_ref(self, conf, ref_entry):
+    @classmethod
+    def parse_memory_block_ref(cls, conf, ref_entry):
         part_name = ref_entry.attrib["PartitionNameRef"]
         part = conf.private_data['partitions_by_name'][part_name]
         mb_name = ref_entry.attrib["NameRef"]
@@ -322,7 +329,8 @@ class ArincConfigParser:
 
         return chpok_configuration.MemoryBlockRef(part, memory_block)
 
-    def parse_hm(self, table, root):
+    @classmethod
+    def parse_hm(cls, table, root):
         table.default_action = chpok_configuration.PartitionHMAction("PARTITION", "IDLE")
 
         if root is None:
@@ -331,14 +339,14 @@ class ArincConfigParser:
         table.actions['USER'] = {}
 
         for x in root.findall("Error"):
-            # Assume "ErrorCode" to be error id
-            error_id = x.attrib["ErrorCode"]
+            # Assume "Code" to be error id
+            error_id = x.attrib["Code"]
 
             level = x.attrib["Level"]
             recovery_action = x.attrib['Action']
 
-            error_code = x.attrib["Code"].replace('POK_ERROR_KIND_', '')
-            description = self.error_description_table[error_code]
+            error_code = x.attrib["ErrorCode"]
+            description = cls.error_description_table[error_code]
 
             action = chpok_configuration.PartitionHMAction(level, recovery_action, error_code, description)
 

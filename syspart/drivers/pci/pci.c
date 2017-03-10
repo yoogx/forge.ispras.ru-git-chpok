@@ -25,8 +25,10 @@
 
 #include <memblocks.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include <string.h>
+
 
 #define OK 0
 
@@ -64,7 +66,7 @@ int pci_read_config_byte(struct pci_dev *dev, int where, uint8_t *val)
 
 #ifdef __PPC__
     out_be32((uint32_t *) pci_controller.cfg_addr, addr);
-    *val = in_8((void *) (pci_controller.cfg_data) + (where & 3));
+    *val = in_8((void *) (pci_controller.cfg_data + (where & 3)));
 #else
     outl(PCI_CONFIG_ADDRESS, addr);
     *val = inb(PCI_CONFIG_DATA + (where & 3));
@@ -79,7 +81,7 @@ int pci_read_config_word(struct pci_dev *dev, int where, uint16_t *val)
 
 #ifdef __PPC__
     out_be32((uint32_t *) pci_controller.cfg_addr, addr);
-    *val = in_le16((void *) (pci_controller.cfg_data) + (where & 3));
+    *val = in_le16((void *) (pci_controller.cfg_data + (where & 3)));
 #else
     outl(PCI_CONFIG_ADDRESS, addr);
     *val = inw(PCI_CONFIG_DATA + (where & 2));
@@ -94,7 +96,7 @@ int pci_read_config_dword(struct pci_dev *dev, int where, uint32_t *val)
 
 #ifdef __PPC__
     out_be32((uint32_t *) pci_controller.cfg_addr, addr);
-    *val = in_le32((void *) pci_controller.cfg_data + (where & 3));
+    *val = in_le32((void *) (pci_controller.cfg_data + (where & 3)));
 #else
     outl(PCI_CONFIG_ADDRESS, addr);
     *val = inl(PCI_CONFIG_DATA);
@@ -109,7 +111,7 @@ int pci_write_config_byte(struct pci_dev *dev, int where, uint8_t val)
 
 #ifdef __PPC__
     out_be32((uint32_t *) pci_controller.cfg_addr, addr);
-    out_8((void *) (pci_controller.cfg_data) + (where & 3), val);
+    out_8((void *) (pci_controller.cfg_data + (where & 3)), val);
 #else
     outl(PCI_CONFIG_ADDRESS, addr);
     outb(val, PCI_CONFIG_DATA + (where & 3));
@@ -124,7 +126,7 @@ int pci_write_config_word(struct pci_dev *dev, int where, uint16_t val)
 
 #ifdef __PPC__
     out_be32((uint32_t *) pci_controller.cfg_addr, addr);
-    out_le16((void *) (pci_controller.cfg_data) + (where & 3), val);
+    out_le16((void *) (pci_controller.cfg_data + (where & 3)), val);
 #else
     outl(PCI_CONFIG_ADDRESS, addr);
     outw(val, PCI_CONFIG_DATA + (where & 2));
@@ -139,7 +141,7 @@ int pci_write_config_dword(struct pci_dev *dev, int where, uint32_t val)
 
 #ifdef __PPC__
     out_be32((uint32_t *) pci_controller.cfg_addr, addr);
-    out_le32((void *) (pci_controller.cfg_data) + (where & 3), val);
+    out_le32((void *) (pci_controller.cfg_data + (where & 3)), val);
 #else
     outl(PCI_CONFIG_ADDRESS, addr);
     outl(PCI_CONFIG_DATA, val);
@@ -153,10 +155,10 @@ static uintptr_t get_resource_addr_from_config(uint8_t bus, uint8_t dev, uint8_t
 {
     //TODO optimize this linear search
     struct pci_dev_config *d;
-    for (int i = 0; i < pci_configs_nb; i++) {
+    for (unsigned i = 0; i < pci_configs_nb; i++) {
         d = &pci_configs[i];
         if (d->bus == bus && d->dev == dev && d->fn == fn)
-            return d->resources[idx].addr;
+            return d->c_resources[idx].vaddr;
     }
 
     return 0;
@@ -183,7 +185,7 @@ static void pci_fill_resource(struct pci_dev *dev, enum PCI_RESOURCE_INDEX res_i
 
 
     if (res_idx != PCI_RESOURCE_ROM) {
-        reg = PCI_BASE_ADDRESS_0 + res_idx*4;
+        reg = PCI_BASE_ADDRESS_0 + res_idx*4; //TODO use pci_resource_address
         mask =  0xffffffff;
     } else {
         reg = PCI_ROM_ADDRESS;
@@ -325,7 +327,7 @@ void pci_list()
                 if (res->pci_addr) {
                     printf("0x%llx ", res->pci_addr);
 #ifdef __PPC__
-                    printf("(addr = 0x%x) ", res->addr);
+                    printf("(virt addr = 0x%x) ", res->addr);
 #endif
                 } else {
                     printf("_ ");
@@ -491,22 +493,19 @@ void pci_init()
 
     printf("PCI initialization using configuration:\n");
 
-    for (int i = 0; i < pci_configs_nb; i++) {
+    for (unsigned i = 0; i < pci_configs_nb; i++) {
         struct pci_dev_config *dev_config = &pci_configs[i];
         struct pci_dev pci_dev;
 
-        printf("%02x:%02x:%02x  ",
-                dev_config->bus,
-                dev_config->dev,
-                dev_config->fn);
-
         pci_dev.bus = dev_config->bus;
         pci_dev.dev = dev_config->dev;
-        pci_dev.fn =  dev_config->fn;
+        pci_dev.fn  = dev_config->fn;
 
         {
             uint16_t vendor_id;
             pci_read_config_word(&pci_dev, PCI_VENDOR_ID, &vendor_id);
+
+            printf("%02x:%02x:%02x  ", pci_dev.bus, pci_dev.dev, pci_dev.fn);
 
             if (vendor_id == 0xFFFF) {
                 printf("Not found\n");
@@ -516,33 +515,45 @@ void pci_init()
         }
 
         int command = 0;
-        for (int i = 0; i < PCI_RESOURCE_ROM; i++) {
-            if (dev_config->resources[i].pci_addr == 0)
-                continue;
+        for (int i = 0; i < PCI_NUM_RESOURCES; i++) {
+            struct pci_resource_config *res = &dev_config->c_resources[i];
+            if (res->type == PCI_RESOURCE_TYPE_NONE)
+                continue; //skip empty resource
 
-            pci_write_config_dword(&pci_dev, PCI_BASE_ADDRESS_0,
-                    dev_config->resources[i].pci_addr);
 
-            if (dev_config->resources[i].type == PCI_RESOURCE_TYPE_BAR_MEM)
+            if (res->type == PCI_RESOURCE_TYPE_BAR_MEM || res->type == PCI_RESOURCE_TYPE_ROM) {
+                jet_memory_block_status_t mb;
+                pok_ret_t ret_val = jet_memory_block_get_status(res->memblock_name, &mb);
+                if (ret_val != POK_ERRNO_OK) {
+                    printf("ERROR: Have not found mem block %s\n", res->memblock_name);
+                    abort();
+                }
+
+                res->pci_addr = mb.paddr;
+                if (i == PCI_RESOURCE_ROM)
+                    res->pci_addr |= PCI_ROM_ADDRESS_ENABLE;
+
+                res->vaddr = mb.addr;
+
                 command |= PCI_COMMAND_MEMORY;
-            else if (dev_config->resources[i].type == PCI_RESOURCE_TYPE_BAR_IO) {
-                command |= PCI_COMMAND_IO;
-                if (!dev_config->resources[i].addr)
+
+            } else if (res->type == PCI_RESOURCE_TYPE_BAR_IO) {
+                assert(res->pci_addr != 0); //IO BAR pci_addr should be non zero
 #ifdef __PPC__
-                    dev_config->resources[i].addr = pci_controller.legacy_io_vaddr + dev_config->resources[i].pci_addr;
+                res->vaddr = pci_controller.legacy_io_vaddr + res->pci_addr;
 #else
-                    dev_config->resources[i].addr = dev_config->resources[i].pci_addr;
+                res->vaddr = res->pci_addr;
 #endif
+
+                command |= PCI_COMMAND_IO;
+
             }
+
+            pci_write_config_dword(&pci_dev, pci_resource_address(i), res->pci_addr);
         }
 
-        if (dev_config->resources[PCI_RESOURCE_ROM].pci_addr != 0) {
-            pci_write_config_dword(&pci_dev, PCI_ROM_ADDRESS,
-                    dev_config->resources[PCI_RESOURCE_ROM].pci_addr|PCI_ROM_ADDRESS_ENABLE);
-            command |= PCI_COMMAND_MEMORY;
-        }
-
-        pci_write_config_word(&pci_dev, PCI_COMMAND, command);
+        if (command != 0)
+            pci_write_config_word(&pci_dev, PCI_COMMAND, command);
     }
     printf("PCI init result:\n");
     pci_list();

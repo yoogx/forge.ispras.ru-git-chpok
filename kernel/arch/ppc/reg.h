@@ -82,6 +82,11 @@
 #define SPRN_MAS6       0x276   /* MMU Assist Register 6 */
 #define SPRN_MAS7       0x3B0   /* MMU Assist Register 7 */
 
+#define SPRN_ESR_PIL    1 << 27 /* Illegal instruction exception */
+#define SPRN_ESR_PPR    1 << 26 /* Privileged instruction exception */
+#define SPRN_ESR_PTR    1 << 25 /* Trap exception */
+
+
 /* Macros for setting and retrieving special purpose registers */
 #ifndef __ASSEMBLY__
 

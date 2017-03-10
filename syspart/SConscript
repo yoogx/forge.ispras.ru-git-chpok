@@ -26,7 +26,7 @@ Export('syspart_env')
 drivers = SConscript('drivers/SConscript')
 components = SConscript('components/SConscript')
 
-syspart_program = syspart_env.Program(target = 'syspart.lo', source = [
+syspart_program = syspart_env.StaticLibrary(target = 'syspart', source = [
     drivers,
     components,
     'pool.c'

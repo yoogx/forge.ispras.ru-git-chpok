@@ -19,8 +19,6 @@
 
 Import('arch_env')
 
-libfdt = SConscript('libfdt/SConscript')
-
 arch = arch_env.StaticObject(source = Glob('*.[Sc]'))
 
 if arch_env.get('jdeveloper'):
@@ -36,32 +34,32 @@ if arch_env.get('jdeveloper'):
         arch_env.BuildAsmOffsets(
             current_source_dir + "/asm_offsets_stack_frame.h",
             "asm_offsets_stack_frame.def",
-            GENERATE_TITLE = template_generation.generate_title_c),
+            title = template_generation.generate_title_c),
 
         arch_env.BuildAsmOffsets(
             current_source_dir + "/asm_offsets_context.h",
             "asm_offsets_context.def",
-            GENERATE_TITLE = template_generation.generate_title_c),
+            title = template_generation.generate_title_c),
 
         arch_env.BuildAsmOffsets(
             current_source_dir + "/asm_offsets_interrupt_context_gdb_off.h",
             "asm_offsets_interrupt_context.def",
-            GENERATE_TITLE = template_generation.generate_title_c),
+            title = template_generation.generate_title_c),
 
         arch_env.BuildAsmOffsets(
             current_source_dir + "/asm_offsets_fp_store.h",
             "asm_offsets_fp_store.def",
-            GENERATE_TITLE = template_generation.generate_title_c),
+            title = template_generation.generate_title_c),
 
         arch_env.BuildAsmOffsets(
             current_source_dir + "/asm_offsets_interrupt_context_gdb_on.h",
             "asm_offsets_interrupt_context.def",
-            CFLAGS = arch_env['CFLAGS'] + " -DPOK_NEEDS_GDB",
-            GENERATE_TITLE = template_generation.generate_title_c),
+            title = template_generation.generate_title_c,
+            CFLAGS = arch_env['CFLAGS'] + " -DPOK_NEEDS_GDB"),
     ]
 
     arch_env.Depends('regenerate', asm_offsets)
 
-Return('arch', 'libfdt')
+Return('arch')
 
 # EOF

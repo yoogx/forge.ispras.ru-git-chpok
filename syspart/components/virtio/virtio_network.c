@@ -43,14 +43,9 @@
 
 #define PRINTF(fmt, ...) printf("VIRTIO_NET_DEV: " fmt, ##__VA_ARGS__)
 
-
-struct jet_sallocator virtio_allocator; //All instancess share this
-jet_memory_block_status_t virtio_heap_mb;
-struct virtio_net_hdr *virtio_net_hdr_ptr; //contains zerros
-
 static void reclaim_send_buffers(struct virtio_network_device *info);
 
-static void lock_preemption(pok_bool_t *saved)
+static void lock_preemption()
 {
     LOCK_LEVEL_TYPE LOCK_LEVEL;
     RETURN_CODE_TYPE ret_code;
@@ -60,7 +55,7 @@ static void lock_preemption(pok_bool_t *saved)
 }
 
 
-static void unlock_preemption(const pok_bool_t *saved)
+static void unlock_preemption()
 {
     LOCK_LEVEL_TYPE LOCK_LEVEL;
     RETURN_CODE_TYPE ret_code;
@@ -87,10 +82,10 @@ static pok_bool_t setup_virtqueue(
     }
 
     // allocate memory and fill in vq fields
-    void *mem = virtio_virtqueue_setup(vq, queue_size, VIRTIO_PCI_VRING_ALIGN);
+    void *mem = virtio_virtqueue_setup(&dev->allocator, vq, queue_size, VIRTIO_PCI_VRING_ALIGN);
 
     // give device queue's physical address
-    uint64_t phys_addr = jet_virt_to_phys(&virtio_heap_mb, mem);
+    uint64_t phys_addr = jet_virt_to_phys(&dev->heapmb, mem);
 
     /*
     if (phys_addr == 0) {
@@ -143,7 +138,7 @@ static void use_receive_buffer(struct virtio_network_device *dev, struct receive
     desc = &vq->vring.desc[head];
     vq->free_index = desc->next;
 
-    desc->addr = jet_virt_to_phys(&virtio_heap_mb, buf);
+    desc->addr = jet_virt_to_phys(&dev->heapmb, buf);
     /*
     if (desc->addr == 0) {
         PRINTF("%s: jet_virt_to_phys: virtual address is wrong\n", __func__);
@@ -169,8 +164,7 @@ static void notify_receive_buffers(struct virtio_network_device *dev)
 
 static void setup_receive_buffers(struct virtio_network_device *dev)
 {
-    int i;
-    for (i = 0; i < dev->rx_vq.vring.num; i++) {
+    for (unsigned i = 0; i < dev->rx_vq.vring.num; i++) {
         // this pushes buffer to avail ring
         use_receive_buffer(dev, &dev->receive_buffers[i]);
     }
@@ -203,7 +197,7 @@ ret_t send_frame(VIRTIO_NET_DEV * self,
     }
 
     //Just in case zero virtio_net_hdr fields
-    memset(virtio_net_hdr_ptr, 0, sizeof(*virtio_net_hdr_ptr));
+    memset(dev->nethdr_ptr, 0, sizeof(*dev->nethdr_ptr));
 
     vq->num_free -= 2; //we use 2 desc. One for virtio_net_hdr, the other one for the message
 
@@ -211,15 +205,15 @@ ret_t send_frame(VIRTIO_NET_DEV * self,
     /* Setup first descriptor as virtio_net_hdr */
     desc = &vq->vring.desc[head];
     //TODO This can be optimized by do virt_to_phys once and remembering it's result
-    desc->addr = jet_virt_to_phys(&virtio_heap_mb, virtio_net_hdr_ptr);
-    desc->len = sizeof(*virtio_net_hdr_ptr);
+    desc->addr = jet_virt_to_phys(&dev->heapmb, dev->nethdr_ptr);
+    desc->len = sizeof(*dev->nethdr_ptr);
     desc->flags = VRING_DESC_F_NEXT;
 
 
     memcpy(dev->send_buffers[head].data, buffer, size);
 
     desc = &vq->vring.desc[desc->next];
-    desc->addr = jet_virt_to_phys(&virtio_heap_mb, dev->send_buffers[head].data);
+    desc->addr = jet_virt_to_phys(&dev->heapmb, dev->send_buffers[head].data);
     /*
     if (desc->addr == 0) {
         PRINTF("%s: jet_virt_to_phys kvirtual address is wrong\n", __func__);
@@ -250,8 +244,7 @@ static void reclaim_send_buffers(struct virtio_network_device *info)
     // callbacks don't do much work, so we can run them all
     // in single critical section without worrying too much
     
-    pok_bool_t saved_preemption;
-    lock_preemption(&saved_preemption);
+    lock_preemption();
     while (vq->last_seen_used != vq->vring.used->idx) {
         uint16_t index = vq->last_seen_used & (vq->vring.num-1);
         struct vring_used_elem *e = &vq->vring.used->ring[index];
@@ -274,7 +267,7 @@ static void reclaim_send_buffers(struct virtio_network_device *info)
         vq->last_seen_used++;
     }
     
-    unlock_preemption(&saved_preemption);
+    unlock_preemption();
 }
 
 static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
@@ -282,8 +275,7 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
     struct virtio_network_device *dev = &self->state.info;
     struct virtio_virtqueue *vq = &dev->rx_vq;
 
-    pok_bool_t saved_preemption;
-    lock_preemption(&saved_preemption);
+    lock_preemption();
 
     uint16_t old_last_seen_used = vq->last_seen_used;
 
@@ -292,11 +284,11 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
         struct vring_used_elem *e = &vq->vring.used->ring[index];
         struct vring_desc *desc = &vq->vring.desc[e->id];
 
-        struct receive_buffer *buf = jet_phys_to_virt(&virtio_heap_mb, desc->addr);
+        struct receive_buffer *buf = jet_phys_to_virt(&dev->heapmb, desc->addr);
         /*
         if (buf == 0) {
             PRINTF("%s: jet_phys_to_virt physical address is wrong\n", __func__);
-            unlock_preemption(&saved_preemption);
+            unlock_preemption();
             return;
         }
         */
@@ -316,8 +308,8 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
         use_receive_buffer(dev, buf);
 
         // preemption point
-        unlock_preemption(&saved_preemption);
-        lock_preemption(&saved_preemption);
+        unlock_preemption();
+        lock_preemption();
     }
 
     if (old_last_seen_used != vq->last_seen_used) {
@@ -326,7 +318,7 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
         notify_receive_buffers(dev);
     }
 
-    unlock_preemption(&saved_preemption);
+    unlock_preemption();
 }
 
 ret_t flush_send(VIRTIO_NET_DEV *self)
@@ -401,7 +393,7 @@ static pok_bool_t init_device(VIRTIO_NET_DEV_state *state)
     set_status_bit(&dev->pci_device, VIRTIO_CONFIG_S_DRIVER_OK);
 
     // 7. buffers allocation
-    dev->send_buffers = jet_sallocator_alloc_array(&virtio_allocator,
+    dev->send_buffers = jet_sallocator_alloc_array(&dev->allocator,
             sizeof(*dev->send_buffers),
             dev->tx_vq.vring.num);
     if (dev->send_buffers == NULL) {
@@ -409,7 +401,7 @@ static pok_bool_t init_device(VIRTIO_NET_DEV_state *state)
         return FALSE;
     }
 
-    dev->receive_buffers = jet_sallocator_alloc_array(&virtio_allocator,
+    dev->receive_buffers = jet_sallocator_alloc_array(&dev->allocator,
             sizeof(*dev->receive_buffers),
             dev->rx_vq.vring.num);
     if (dev->receive_buffers == NULL) {
@@ -418,6 +410,14 @@ static pok_bool_t init_device(VIRTIO_NET_DEV_state *state)
     }
 
     setup_receive_buffers(dev);
+
+
+    dev->nethdr_ptr = jet_sallocator_alloc(&dev->allocator,
+            sizeof(*dev->nethdr_ptr));
+    if (dev->nethdr_ptr  == NULL) {
+        PRINTF("heap alloc return zero (not enough memory)\n");
+        return FALSE;
+    }
 
     return TRUE;
 }
@@ -433,28 +433,13 @@ void virtio_receive_activity(VIRTIO_NET_DEV *self)
  */
 void virtio_init(VIRTIO_NET_DEV *self)
 {
-    {
-        //TODO add checking that virtio_allocator doesn't inited before
-        //where is dev->tx_vq.vring.num from???
-
-        pok_ret_t ret = jet_memory_block_get_status("Virtio_Heap", &virtio_heap_mb);
-        if(ret != POK_ERRNO_OK) {
-            PRINTF("ERROR: Memory block for heap is not created.\n");
-            PRINTF("NOTE: Report this error to the developers.\n");
-            abort();
-        }
-
-        jet_sallocator_init_from_memblock(&virtio_allocator, &virtio_heap_mb);
+    pok_ret_t ret = VIRTIO_NET_DEV_get_memory_block_status(self, "Heap", &self->state.info.heapmb);
+    if(ret != POK_ERRNO_OK) {
+        PRINTF("ERROR: Memory block for heap is not created.\n");
+        abort();
     }
 
-    {
-        // virtio_net_hdr allocation
-        virtio_net_hdr_ptr = jet_sallocator_alloc(&virtio_allocator, sizeof(*virtio_net_hdr_ptr));
-        if (virtio_net_hdr_ptr == NULL) {
-            PRINTF("heap alloc return zero (not enough memory)\n");
-            return ;
-        }
-    }
+    jet_sallocator_init_from_memblock(&self->state.info.allocator, &self->state.info.heapmb);
 
 
     if (init_device(&self->state))

@@ -41,6 +41,7 @@
 #define TX_BD_RING_SIZE  8
 #define MAX_RXBUF_LOG2		11
 #define MAX_RXBUF_LEN		(1 << MAX_RXBUF_LOG2)
+#define MAX_TXBUF_LEN		(1 << MAX_RXBUF_LOG2)
 
 /* Common BD flags */
 #define BD_LAST			0x0800

@@ -247,7 +247,6 @@ again:
             new_thread = NULL;
         }
     }
-#ifdef POK_NEEDS_ERROR_HANDLING
     else if(part->thread_error && part->thread_error->state != POK_STATE_STOPPED)
     {
         // Continue error handler
@@ -266,7 +265,6 @@ again:
 
         part->base_part.is_error_handler = TRUE;
     }
-#endif
     else if(part->lock_level)
     {
         new_thread = part->thread_locked;
@@ -353,7 +351,10 @@ again:
         part->base_part.entry_sp_user = NULL;
     }
 #endif /* POK_NEEDS_GDB */
-    part->base_part.fp_store_current = new_thread->fp_store;
+    if (new_thread != NULL)
+        part->base_part.fp_store_current = new_thread->fp_store;
+    else
+        part->base_part.fp_store_current = NULL;
 
     if(old_sp)
     {

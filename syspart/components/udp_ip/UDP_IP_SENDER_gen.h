@@ -21,6 +21,7 @@
 #ifndef __UDP_IP_SENDER_GEN_H__
 #define __UDP_IP_SENDER_GEN_H__
 
+#include <memblocks.h>
     #include "ip_addr.h"
 
     #include <interfaces/preallocated_sender_gen.h>
@@ -36,6 +37,7 @@ typedef struct UDP_IP_SENDER_state {
 }UDP_IP_SENDER_state;
 
 typedef struct {
+    char instance_name[16];
     UDP_IP_SENDER_state state;
     struct {
             struct {

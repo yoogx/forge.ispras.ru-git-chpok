@@ -38,7 +38,7 @@ if arch_env.get('jdeveloper'):
         arch_env.BuildAsmOffsets(
             current_source_dir + "/asm_offsets_interrupt_context.h",
             "asm_offsets_interrupt_context.def",
-            GENERATE_TITLE = template_generation.generate_title_c),
+            title = template_generation.generate_title_c),
     ]
 
     arch_env.Depends('regenerate', asm_offsets)

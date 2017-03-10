@@ -15,7 +15,7 @@
 
 #include <init_arinc.h>
 #include "arinc_alloc.h"
-#include <arinc_config.h>
+#include "arinc_config.h"
 
 #include <asp/alloc.h>
 
@@ -24,29 +24,21 @@
 #include "event.h"
 #include "semaphore.h"
 
+#include <kernel_shared_data.h>
+
 #include <stdio.h> /* for printf() */
 #include <stdlib.h> /* for abort() */
 
-#ifdef POK_NEEDS_ARINC653_BUFFER
 struct arinc_buffer* arinc_buffers;
-#endif /* POK_NEEDS_ARINC653_BUFFER */
 
-#ifdef POK_NEEDS_ARINC653_BLACKBOARD
 struct arinc_blackboard* arinc_blackboards;
-#endif /* POK_NEEDS_ARINC653_BLACKBOARD */
 
-#ifdef POK_NEEDS_ARINC653_EVENT
 struct arinc_event* arinc_events;
-#endif /* POK_NEEDS_ARINC653_EVENT */
 
-#ifdef POK_NEEDS_ARINC653_SEMAPHORE
 struct arinc_semaphore* arinc_semaphores;
-#endif /* POK_NEEDS_ARINC653_SEMAPHORE */
 
 
-#if defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD)
 char* arinc_intra_heap = NULL;
-#endif /* defined(POK_NEEDS_ARINC653_BUFFER) || defined(POK_NEEDS_ARINC653_BLACKBOARD) */
 
 /*
  * Allocate array for ARINC needs on initialization stage.
@@ -72,23 +64,24 @@ static void* arinc_alloc_array(size_t n_elems, size_t elem_size, size_t alignmen
 
 #define ARINC_ALLOC_ARRAY(n_elems, type) (type*)arinc_alloc_array(n_elems, sizeof(type), __alignof__(type))
 
+size_t arinc_config_nbuffers;
+size_t arinc_config_nblackboards;
+size_t arinc_config_nsemaphores;
+size_t arinc_config_nevents;
+size_t arinc_config_messages_memory_size;
+
 void libjet_arinc_init(void)
 {
     arinc_allocator_init();
 
-#ifdef POK_NEEDS_ARINC653_BUFFER
+    arinc_config_nbuffers = kshd->arinc_config_nbuffers;
+    arinc_config_nblackboards = kshd->arinc_config_nblackboards;
+    arinc_config_nsemaphores = kshd->arinc_config_nsemaphores;
+    arinc_config_nevents = kshd->arinc_config_nevents;
+    arinc_config_messages_memory_size = kshd->arinc_config_messages_memory_size;
+
     arinc_buffers = ARINC_ALLOC_ARRAY(arinc_config_nbuffers, struct arinc_buffer);
-#endif /* POK_NEEDS_ARINC653_BUFFER */
-
-#ifdef POK_NEEDS_ARINC653_BLACKBOARD
     arinc_blackboards = ARINC_ALLOC_ARRAY(arinc_config_nblackboards, struct arinc_blackboard);
-#endif /* POK_NEEDS_ARINC653_BLACKBOARD */
-
-#ifdef POK_NEEDS_ARINC653_SEMAPHORE
     arinc_semaphores = ARINC_ALLOC_ARRAY(arinc_config_nsemaphores, struct arinc_semaphore);
-#endif /* POK_NEEDS_ARINC653_SEMAPHORE */
-
-#ifdef POK_NEEDS_ARINC653_EVENT
     arinc_events = ARINC_ALLOC_ARRAY(arinc_config_nevents, struct arinc_event);
-#endif /* POK_NEEDS_ARINC653_EVENT */
 }

@@ -17,18 +17,6 @@
 #include <arch.h>
 #include <asp/alloc.h>
 
-#ifndef POK_CONFIG_OPTIMIZE_FOR_GENERATED_CODE
-
-void pok_arch_idle (void)
-{
-   while (1)
-   {
-      asm ("nop");
-   }
-}
-
-#endif
-
 size_t libja_mem_get_alignment(size_t obj_size)
 {
    if(obj_size <= 1) {
