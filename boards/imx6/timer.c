@@ -67,10 +67,10 @@ static time_t base_calendar_time = 1480330081; // On 28.11.2016
 
 #define GPT_IR_DISABLE_ALL (0)
 
-static void unset_bits(uintptr_t reg, uint32_t bits)
-{
-    iowrite32(reg, ioread32(reg) & ~bits);
-}
+//static void unset_bits(uintptr_t reg, uint32_t bits)
+//{
+//    iowrite32(reg, ioread32(reg) & ~bits);
+//}
 
 static void set_bits(uintptr_t reg, uint32_t bits)
 {
