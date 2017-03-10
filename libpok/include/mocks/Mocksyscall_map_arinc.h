@@ -22,85 +22,208 @@ void Mocksyscall_map_arinc_Verify(void);
 
 #define pok_thread_create_ExpectAndReturn(name, entry, attr, thread_id, cmock_retval) pok_thread_create_CMockExpectAndReturn(__LINE__, name, entry, attr, thread_id, cmock_retval)
 void pok_thread_create_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, void* entry, const pok_thread_attr_t* attr, pok_thread_id_t* thread_id, pok_ret_t cmock_to_return);
+int pok_thread_create_UseMock;
+pok_ret_t _pok_thread_create_impl(const char* name, void* entry, const pok_thread_attr_t* attr, pok_thread_id_t* thread_id);
+
 #define pok_thread_sleep_ExpectAndReturn(time, cmock_retval) pok_thread_sleep_CMockExpectAndReturn(__LINE__, time, cmock_retval)
 void pok_thread_sleep_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const pok_time_t* time, pok_ret_t cmock_to_return);
+int pok_thread_sleep_UseMock;
+pok_ret_t _pok_thread_sleep_impl(const pok_time_t* time);
+
 #define pok_sched_end_period_ExpectAndReturn(cmock_retval) pok_sched_end_period_CMockExpectAndReturn(__LINE__, cmock_retval)
 void pok_sched_end_period_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_ret_t cmock_to_return);
+int pok_sched_end_period_UseMock;
+pok_ret_t _pok_sched_end_period_impl(void);
+
 #define pok_thread_suspend_ExpectAndReturn(time, cmock_retval) pok_thread_suspend_CMockExpectAndReturn(__LINE__, time, cmock_retval)
 void pok_thread_suspend_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const pok_time_t* time, pok_ret_t cmock_to_return);
+int pok_thread_suspend_UseMock;
+pok_ret_t _pok_thread_suspend_impl(const pok_time_t* time);
+
 #define pok_thread_get_status_ExpectAndReturn(thread_id, name, entry, status, cmock_retval) pok_thread_get_status_CMockExpectAndReturn(__LINE__, thread_id, name, entry, status, cmock_retval)
 void pok_thread_get_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_thread_id_t thread_id, char* name, void** entry, pok_thread_status_t* status, pok_ret_t cmock_to_return);
+int pok_thread_get_status_UseMock;
+pok_ret_t _pok_thread_get_status_impl(pok_thread_id_t thread_id, char* name, void** entry, pok_thread_status_t* status);
+
 #define pok_thread_delayed_start_ExpectAndReturn(thread_id, time, cmock_retval) pok_thread_delayed_start_CMockExpectAndReturn(__LINE__, thread_id, time, cmock_retval)
 void pok_thread_delayed_start_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_thread_id_t thread_id, const pok_time_t* time, pok_ret_t cmock_to_return);
+int pok_thread_delayed_start_UseMock;
+pok_ret_t _pok_thread_delayed_start_impl(pok_thread_id_t thread_id, const pok_time_t* time);
+
 #define pok_thread_set_priority_ExpectAndReturn(thread_id, priority, cmock_retval) pok_thread_set_priority_CMockExpectAndReturn(__LINE__, thread_id, priority, cmock_retval)
 void pok_thread_set_priority_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_thread_id_t thread_id, uint32_t priority, pok_ret_t cmock_to_return);
+int pok_thread_set_priority_UseMock;
+pok_ret_t _pok_thread_set_priority_impl(pok_thread_id_t thread_id, uint32_t priority);
+
 #define pok_thread_resume_ExpectAndReturn(thread_id, cmock_retval) pok_thread_resume_CMockExpectAndReturn(__LINE__, thread_id, cmock_retval)
 void pok_thread_resume_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_thread_id_t thread_id, pok_ret_t cmock_to_return);
+int pok_thread_resume_UseMock;
+pok_ret_t _pok_thread_resume_impl(pok_thread_id_t thread_id);
+
 #define pok_thread_suspend_target_ExpectAndReturn(thread_id, cmock_retval) pok_thread_suspend_target_CMockExpectAndReturn(__LINE__, thread_id, cmock_retval)
 void pok_thread_suspend_target_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_thread_id_t thread_id, pok_ret_t cmock_to_return);
+int pok_thread_suspend_target_UseMock;
+pok_ret_t _pok_thread_suspend_target_impl(pok_thread_id_t thread_id);
+
 #define pok_thread_yield_ExpectAndReturn(cmock_retval) pok_thread_yield_CMockExpectAndReturn(__LINE__, cmock_retval)
 void pok_thread_yield_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_ret_t cmock_to_return);
+int pok_thread_yield_UseMock;
+pok_ret_t _pok_thread_yield_impl(void);
+
 #define pok_sched_replenish_ExpectAndReturn(budget, cmock_retval) pok_sched_replenish_CMockExpectAndReturn(__LINE__, budget, cmock_retval)
 void pok_sched_replenish_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const pok_time_t* budget, pok_ret_t cmock_to_return);
+int pok_sched_replenish_UseMock;
+pok_ret_t _pok_sched_replenish_impl(const pok_time_t* budget);
+
 #define pok_thread_stop_target_ExpectAndReturn(thread_id, cmock_retval) pok_thread_stop_target_CMockExpectAndReturn(__LINE__, thread_id, cmock_retval)
 void pok_thread_stop_target_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_thread_id_t thread_id, pok_ret_t cmock_to_return);
+int pok_thread_stop_target_UseMock;
+pok_ret_t _pok_thread_stop_target_impl(pok_thread_id_t thread_id);
+
 #define pok_thread_stop_ExpectAndReturn(cmock_retval) pok_thread_stop_CMockExpectAndReturn(__LINE__, cmock_retval)
 void pok_thread_stop_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_ret_t cmock_to_return);
+int pok_thread_stop_UseMock;
+pok_ret_t _pok_thread_stop_impl(void);
+
 #define pok_thread_find_ExpectAndReturn(name, id, cmock_retval) pok_thread_find_CMockExpectAndReturn(__LINE__, name, id, cmock_retval)
 void pok_thread_find_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, pok_thread_id_t* id, pok_ret_t cmock_to_return);
+int pok_thread_find_UseMock;
+pok_ret_t _pok_thread_find_impl(const char* name, pok_thread_id_t* id);
+
 #define jet_resched_ExpectAndReturn(cmock_retval) jet_resched_CMockExpectAndReturn(__LINE__, cmock_retval)
 void jet_resched_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_ret_t cmock_to_return);
+int jet_resched_UseMock;
+pok_ret_t _jet_resched_impl(void);
+
 #define jet_msection_enter_helper_ExpectAndReturn(section, cmock_retval) jet_msection_enter_helper_CMockExpectAndReturn(__LINE__, section, cmock_retval)
 void jet_msection_enter_helper_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, struct msection* section, pok_ret_t cmock_to_return);
+int jet_msection_enter_helper_UseMock;
+pok_ret_t _jet_msection_enter_helper_impl(struct msection* section);
+
 #define jet_msection_wait_ExpectAndReturn(section, timeout, cmock_retval) jet_msection_wait_CMockExpectAndReturn(__LINE__, section, timeout, cmock_retval)
 void jet_msection_wait_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, struct msection* section, const pok_time_t* timeout, pok_ret_t cmock_to_return);
+int jet_msection_wait_UseMock;
+pok_ret_t _jet_msection_wait_impl(struct msection* section, const pok_time_t* timeout);
+
 #define jet_msection_notify_ExpectAndReturn(section, thread_id, cmock_retval) jet_msection_notify_CMockExpectAndReturn(__LINE__, section, thread_id, cmock_retval)
 void jet_msection_notify_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, struct msection* section, pok_thread_id_t thread_id, pok_ret_t cmock_to_return);
+int jet_msection_notify_UseMock;
+pok_ret_t _jet_msection_notify_impl(struct msection* section, pok_thread_id_t thread_id);
+
 #define jet_msection_wq_notify_ExpectAndReturn(section, wq, is_all, cmock_retval) jet_msection_wq_notify_CMockExpectAndReturn(__LINE__, section, wq, is_all, cmock_retval)
 void jet_msection_wq_notify_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, struct msection* section, struct msection_wq* wq, pok_bool_t is_all, pok_ret_t cmock_to_return);
+int jet_msection_wq_notify_UseMock;
+pok_ret_t _jet_msection_wq_notify_impl(struct msection* section, struct msection_wq* wq, pok_bool_t is_all);
+
 #define jet_msection_wq_size_ExpectAndReturn(section, wq, size, cmock_retval) jet_msection_wq_size_CMockExpectAndReturn(__LINE__, section, wq, size, cmock_retval)
 void jet_msection_wq_size_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, struct msection* section, struct msection_wq* wq, size_t* size, pok_ret_t cmock_to_return);
+int jet_msection_wq_size_UseMock;
+pok_ret_t _jet_msection_wq_size_impl(struct msection* section, struct msection_wq* wq, size_t* size);
+
 #define pok_partition_set_mode_current_ExpectAndReturn(mode, cmock_retval) pok_partition_set_mode_current_CMockExpectAndReturn(__LINE__, mode, cmock_retval)
 void pok_partition_set_mode_current_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_partition_mode_t mode, pok_ret_t cmock_to_return);
+int pok_partition_set_mode_current_UseMock;
+pok_ret_t _pok_partition_set_mode_current_impl(pok_partition_mode_t mode);
+
 #define pok_current_partition_get_status_ExpectAndReturn(status, cmock_retval) pok_current_partition_get_status_CMockExpectAndReturn(__LINE__, status, cmock_retval)
 void pok_current_partition_get_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_partition_status_t* status, pok_ret_t cmock_to_return);
+int pok_current_partition_get_status_UseMock;
+pok_ret_t _pok_current_partition_get_status_impl(pok_partition_status_t* status);
+
 #define pok_current_partition_inc_lock_level_ExpectAndReturn(lock_level, cmock_retval) pok_current_partition_inc_lock_level_CMockExpectAndReturn(__LINE__, lock_level, cmock_retval)
 void pok_current_partition_inc_lock_level_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, int32_t* lock_level, pok_ret_t cmock_to_return);
+int pok_current_partition_inc_lock_level_UseMock;
+pok_ret_t _pok_current_partition_inc_lock_level_impl(int32_t* lock_level);
+
 #define pok_current_partition_dec_lock_level_ExpectAndReturn(lock_level, cmock_retval) pok_current_partition_dec_lock_level_CMockExpectAndReturn(__LINE__, lock_level, cmock_retval)
 void pok_current_partition_dec_lock_level_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, int32_t* lock_level, pok_ret_t cmock_to_return);
+int pok_current_partition_dec_lock_level_UseMock;
+pok_ret_t _pok_current_partition_dec_lock_level_impl(int32_t* lock_level);
+
 #define pok_error_thread_create_ExpectAndReturn(stack_size, entry, cmock_retval) pok_error_thread_create_CMockExpectAndReturn(__LINE__, stack_size, entry, cmock_retval)
 void pok_error_thread_create_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, uint32_t stack_size, void* entry, pok_ret_t cmock_to_return);
+int pok_error_thread_create_UseMock;
+pok_ret_t _pok_error_thread_create_impl(uint32_t stack_size, void* entry);
+
 #define pok_error_raise_application_error_ExpectAndReturn(msg, msg_size, cmock_retval) pok_error_raise_application_error_CMockExpectAndReturn(__LINE__, msg, msg_size, cmock_retval)
 void pok_error_raise_application_error_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* msg, size_t msg_size, pok_ret_t cmock_to_return);
+int pok_error_raise_application_error_UseMock;
+pok_ret_t _pok_error_raise_application_error_impl(const char* msg, size_t msg_size);
+
 #define pok_error_get_ExpectAndReturn(status, msg, cmock_retval) pok_error_get_CMockExpectAndReturn(__LINE__, status, msg, cmock_retval)
 void pok_error_get_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_error_status_t* status, void* msg, pok_ret_t cmock_to_return);
+int pok_error_get_UseMock;
+pok_ret_t _pok_error_get_impl(pok_error_status_t* status, void* msg);
+
 #define pok_error_raise_os_error_ExpectAndReturn(msg, msg_size, cmock_retval) pok_error_raise_os_error_CMockExpectAndReturn(__LINE__, msg, msg_size, cmock_retval)
 void pok_error_raise_os_error_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* msg, size_t msg_size, pok_ret_t cmock_to_return);
+int pok_error_raise_os_error_UseMock;
+pok_ret_t _pok_error_raise_os_error_impl(const char* msg, size_t msg_size);
+
 #define pok_port_sampling_create_ExpectAndReturn(name, size, direction, refresh, id, cmock_retval) pok_port_sampling_create_CMockExpectAndReturn(__LINE__, name, size, direction, refresh, id, cmock_retval)
 void pok_port_sampling_create_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, pok_port_size_t size, pok_port_direction_t direction, const pok_time_t* refresh, pok_port_id_t* id, pok_ret_t cmock_to_return);
+int pok_port_sampling_create_UseMock;
+pok_ret_t _pok_port_sampling_create_impl(const char* name, pok_port_size_t size, pok_port_direction_t direction, const pok_time_t* refresh, pok_port_id_t* id);
+
 #define pok_port_sampling_write_ExpectAndReturn(id, data, len, cmock_retval) pok_port_sampling_write_CMockExpectAndReturn(__LINE__, id, data, len, cmock_retval)
 void pok_port_sampling_write_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_port_id_t id, const void* data, pok_port_size_t len, pok_ret_t cmock_to_return);
+int pok_port_sampling_write_UseMock;
+pok_ret_t _pok_port_sampling_write_impl(pok_port_id_t id, const void* data, pok_port_size_t len);
+
 #define pok_port_sampling_read_ExpectAndReturn(id, data, len, valid, cmock_retval) pok_port_sampling_read_CMockExpectAndReturn(__LINE__, id, data, len, valid, cmock_retval)
 void pok_port_sampling_read_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_port_id_t id, void* data, pok_port_size_t* len, pok_bool_t* valid, pok_ret_t cmock_to_return);
+int pok_port_sampling_read_UseMock;
+pok_ret_t _pok_port_sampling_read_impl(pok_port_id_t id, void* data, pok_port_size_t* len, pok_bool_t* valid);
+
 #define pok_port_sampling_id_ExpectAndReturn(name, id, cmock_retval) pok_port_sampling_id_CMockExpectAndReturn(__LINE__, name, id, cmock_retval)
 void pok_port_sampling_id_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, pok_port_id_t* id, pok_ret_t cmock_to_return);
+int pok_port_sampling_id_UseMock;
+pok_ret_t _pok_port_sampling_id_impl(const char* name, pok_port_id_t* id);
+
 #define pok_port_sampling_status_ExpectAndReturn(id, status, cmock_retval) pok_port_sampling_status_CMockExpectAndReturn(__LINE__, id, status, cmock_retval)
 void pok_port_sampling_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_port_id_t id, pok_port_sampling_status_t* status, pok_ret_t cmock_to_return);
+int pok_port_sampling_status_UseMock;
+pok_ret_t _pok_port_sampling_status_impl(pok_port_id_t id, pok_port_sampling_status_t* status);
+
 #define pok_port_sampling_check_ExpectAndReturn(id, cmock_retval) pok_port_sampling_check_CMockExpectAndReturn(__LINE__, id, cmock_retval)
 void pok_port_sampling_check_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_port_id_t id, pok_ret_t cmock_to_return);
+int pok_port_sampling_check_UseMock;
+pok_ret_t _pok_port_sampling_check_impl(pok_port_id_t id);
+
 #define pok_port_queuing_create_packed_ExpectAndReturn(name, arg, id, cmock_retval) pok_port_queuing_create_packed_CMockExpectAndReturn(__LINE__, name, arg, id, cmock_retval)
 void pok_port_queuing_create_packed_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, const pok_port_queuing_create_arg_t* arg, pok_port_id_t* id, pok_ret_t cmock_to_return);
+int pok_port_queuing_create_packed_UseMock;
+pok_ret_t _pok_port_queuing_create_packed_impl(const char* name, const pok_port_queuing_create_arg_t* arg, pok_port_id_t* id);
+
 #define pok_port_queuing_send_ExpectAndReturn(id, data, len, timeout, cmock_retval) pok_port_queuing_send_CMockExpectAndReturn(__LINE__, id, data, len, timeout, cmock_retval)
 void pok_port_queuing_send_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_port_id_t id, const void* data, pok_port_size_t len, const pok_time_t* timeout, pok_ret_t cmock_to_return);
+int pok_port_queuing_send_UseMock;
+pok_ret_t _pok_port_queuing_send_impl(pok_port_id_t id, const void* data, pok_port_size_t len, const pok_time_t* timeout);
+
 #define pok_port_queuing_receive_ExpectAndReturn(id, timeout, data, len, cmock_retval) pok_port_queuing_receive_CMockExpectAndReturn(__LINE__, id, timeout, data, len, cmock_retval)
 void pok_port_queuing_receive_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_port_id_t id, const pok_time_t* timeout, void* data, pok_port_size_t* len, pok_ret_t cmock_to_return);
+int pok_port_queuing_receive_UseMock;
+pok_ret_t _pok_port_queuing_receive_impl(pok_port_id_t id, const pok_time_t* timeout, void* data, pok_port_size_t* len);
+
 #define pok_port_queuing_id_ExpectAndReturn(name, id, cmock_retval) pok_port_queuing_id_CMockExpectAndReturn(__LINE__, name, id, cmock_retval)
 void pok_port_queuing_id_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, pok_port_id_t* id, pok_ret_t cmock_to_return);
+int pok_port_queuing_id_UseMock;
+pok_ret_t _pok_port_queuing_id_impl(const char* name, pok_port_id_t* id);
+
 #define pok_port_queuing_status_ExpectAndReturn(id, status, cmock_retval) pok_port_queuing_status_CMockExpectAndReturn(__LINE__, id, status, cmock_retval)
 void pok_port_queuing_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_port_id_t id, pok_port_queuing_status_t* status, pok_ret_t cmock_to_return);
+int pok_port_queuing_status_UseMock;
+pok_ret_t _pok_port_queuing_status_impl(pok_port_id_t id, pok_port_queuing_status_t* status);
+
 #define pok_port_queuing_clear_ExpectAndReturn(id, cmock_retval) pok_port_queuing_clear_CMockExpectAndReturn(__LINE__, id, cmock_retval)
 void pok_port_queuing_clear_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_port_id_t id, pok_ret_t cmock_to_return);
+int pok_port_queuing_clear_UseMock;
+pok_ret_t _pok_port_queuing_clear_impl(pok_port_id_t id);
+
 #define jet_memory_block_get_status_ExpectAndReturn(name, status, cmock_retval) jet_memory_block_get_status_CMockExpectAndReturn(__LINE__, name, status, cmock_retval)
 void jet_memory_block_get_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, jet_memory_block_status_t* status, pok_ret_t cmock_to_return);
+int jet_memory_block_get_status_UseMock;
+pok_ret_t _jet_memory_block_get_status_impl(const char* name, jet_memory_block_status_t* status);
+
 
 #endif
