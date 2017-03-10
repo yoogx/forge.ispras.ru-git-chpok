@@ -34,6 +34,7 @@ env['PREFIX'] = 'arm-eabi-'
 env['QEMU'] = 'qemu-system-arm'
 
 env.Append(CFLAGS = ' -DPOK_DISABLE_GDB')
+env.Append(ASFLAGS = ' -DPOK_DISABLE_GDB')
 
 env.Append(CFLAGS_KERNEL = ' -msoft-float')
 
