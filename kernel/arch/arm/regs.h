@@ -17,17 +17,35 @@
 #define __ARM_REGS_H__
 
 #ifndef __ASSEMBLER__
-static inline uint32_t cpsrget()
+static inline uint32_t cpsr_get()
 {
     uint32_t r;
     asm("mrs %0, cpsr" : "=r" (r));
     return r;
 }
 
-static inline void cpsrset(uint32_t r)
+static inline void cpsr_set(uint32_t r)
 {
     asm("msr cpsr, %0" : : "r" (r));
 }
+
+
+static inline uint32_t sctlr_get (void)
+{
+    uint32_t rval;
+    asm volatile("mrc p15, 0, %0, c1, c0, 0"
+            : "=r" (rval)
+            :: "memory");
+    return rval;
+}
+
+static inline void sctlr_set (uint32_t val)
+{
+    asm volatile("mcr p15, 0, %0, c1, c0, 0"
+            : : "r" (val)
+            : "memory");
+}
+
 #endif // __ASSEMBLER__
 
 #define CPSR_IRQ (1<<7)
@@ -41,5 +59,8 @@ static inline void cpsrset(uint32_t r)
 #define CPSR_MODE_HYP 0x1a // Hyp
 #define CPSR_MODE_UND 0x1b // Undef
 #define CPSR_MODE_SYS 0x1f // System
+
+#define SCTLR_M (1<<0) //enable MMU
+#define SCTLR_V (1<<13) //vector table is high
 
 #endif //__ARM_REGS_H__

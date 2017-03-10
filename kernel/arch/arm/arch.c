@@ -42,17 +42,17 @@ void jet_arch_init(void)
 
 void ja_preempt_disable (void)
 {
-    cpsrset(cpsrget() | (1 << 7));
+    cpsr_set(cpsr_get() | (CPSR_IRQ));
 }
 
 void ja_preempt_enable (void)
 {
-    cpsrset(cpsrget() & ~(1 << 7));
+    cpsr_set(cpsr_get() & ~(CPSR_IRQ));
 }
 
 pok_bool_t ja_preempt_enabled(void)
 {
-    return !(cpsrget() & CPSR_IRQ);
+    return !(cpsr_get() & CPSR_IRQ);
 }
 
 void ja_inf_loop(void)

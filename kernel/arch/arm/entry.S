@@ -13,6 +13,7 @@
  * See the GNU General Public License version 3 for more details.
  */
 #include "memlayout.h"
+#include "regs.h"
 
 .macro print_hello
     //print "JetOS"
@@ -70,7 +71,7 @@ __entry:
 
     // Enable MMU
     mrc p15, 0, r1, c1, c0, 0 //read SCTLR to r1
-    orr r1, r1, #1 //enable bit 0 in r1
+    orr r1, r1, #SCTLR_M //enable bit 0 in r1
     mcr p15, 0, r1, c1, c0, 0 //write r1 to SCTLR
 
     // MMU is enabled but pc still has low addressess
