@@ -18,6 +18,10 @@
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 from __future__ import division
+from board_deploy_simple import *
+from text_serialization import *
+import os
+
 
 """
 Environment definitions for ARM architecture.
@@ -31,181 +35,187 @@ env['QEMU'] = 'qemu-system-arm'
 
 env.Append(CFLAGS = ' -DPOK_DISABLE_GDB')
 
-env.Append(CFLAGS_KERNEL = '-msoft-float')
+env.Append(CFLAGS_KERNEL = ' -msoft-float')
 
 env['LDSCRIPT_KERNEL'] = env['JETOS_HOME'] + '/kernel/arch/arm/ldscripts/kernel.lds'
 env['LDSCRIPT_PARTITION'] = env['JETOS_HOME'] + '/kernel/arch/arm/ldscripts/partition.lds'
 
 
-# ************************ copy of ppc code *************************
-
-
-import os
-import memory_definition
-import template_generation
-import math
-from board_deploy_simple import *
-from text_serialization import *
-
-arch_dir = Dir('.').srcnode().abspath
-
 # Below is an implementation of arch deployment functionality.
 def align_val(val, align):
     return ((val + align - 1) // align) * align
 
-class TLBEntry(SerializableObject):
-    yaml_tag = '!PPCTLBEntry'
+class SegmentX86(SerializableObject):
+    yaml_tag = '!SegmentX86'
 
     copy_slots = [
-        'vaddr',
         'paddr',
-        'size_enum',
-        'permissions',
-        'cache_policy',
-        'pid'
+        'size',
     ]
-
-    # In accordance with E500MC_PGSIZE_* constants
-    # defined in kernel/arch/ppc/include/arch/mmu_ext.h.
-    size_enum_values = ['4K', '16K', '64K', '256K', '1M', '4M', '16M', '64M', '256M', '1G', '4G']
 
     def __init__(self, **kargs):
         copy_constructor(self, kargs)
 
-    @classmethod
-    def permissions_from_access(cls, access):
+# Simple allocator of x86 segments
+class SegmentX86Allocator:
+    def __init__(self, phys_start, phys_end):
+        self.phys_current = phys_start
+        self.phys_end = phys_end
+
+    def alloc_segment(self, size):
         """
-        For given 'access' string return permissions for TLB entry.
+        Allocate x86 segment in the physical memory and return it.
+
+        Return None if failed to allocate segment (reason will be printed).
         """
-        permissions = "MAS3_SR | MAS3_SW" # RW from the kernel
+        # Always align size on 4K.
+        size = align_val(size, 4096)
 
-        if 'R' in access:
-            permissions += " | MAS3_UR"
-        if 'W' in access:
-            permissions += " | MAS3_UW"
-        if 'X' in access:
-            permissions += " | MAS3_UX"
+        # Always align physical address of the segment on 4K.
+        phys_start_segment = align_val(self.phys_current, 4096)
 
-        return permissions
-
-    @classmethod
-    def cache_policy_val(cls, cache_policy):
-        """
-        For cache_policy string return its integer representation.
-        """
-        # Currently only default cache policy is supported.
-        if cache_policy == "DEFAULT":
-            return "0"
-        elif cache_policy == "IO":
-            return "MAS2_W | MAS2_I | MAS2_M | MAS2_G" # WRITE_TROUGH(redundand)+Cache_OFF+GUARDED+COHERENCY
-
-
-class PhysMemoryBlockPPC(PhysMemoryBlock):
-    __slots__ = [
-        'size_enum'
-    ]
-
-    def __init__(self, paddr, size, align, size_enum):
-        PhysMemoryBlock.__init__(self, paddr, size, align)
-        self.size_enum = size_enum
-
-    def createTLBEntry(self, vaddr, access, cache_policy, space_id):
-        return TLBEntry(vaddr = vaddr,
-            paddr = self.paddr,
-            size_enum = self.size_enum,
-            permissions = TLBEntry.permissions_from_access(access),
-            cache_policy = TLBEntry.cache_policy_val(cache_policy),
-            pid = space_id
+        segment = SegmentX86(
+            paddr = phys_start_segment,
+            size = size,
         )
 
+        phys_new = phys_start_segment + size
 
-class PhysMemoryTypePPC(PhysMemoryType):
-    def isCacheSupported(self, cache_policy):
-        # Currently only DEFAULT cache policy is supported.
-        return cache_policy in ["DEFAULT", "IO"]
+        print("%x %x %x %x"%(phys_new,self.phys_end, self.phys_current, size))
+        if phys_new > self.phys_end:
+            print "Insufficient physical memory for add segment."
+            return None
 
-    def allocPhysBlock(self, paddr, size):
-        """
-        Allocate physical memory block.
-        """
-        if size > 2**31:
-            # print "Cannot allocate TLB of size greater than 2G."
-            return
+        self.phys_current = phys_new
 
-        if size < 4096:
-            size = 4096
-        size_pow_4 = int(math.ceil(math.log((size + 4095 ) // 4096, 4)))
+        return segment
 
-        size_enum = TLBEntry.size_enum_values[size_pow_4]
-
-        size_real = 4096 * 4**size_pow_4
-        align_real = size_real
-
-        paddr_real = align_val(paddr, align_real)
-
-        return PhysMemoryBlockPPC(
-            paddr = paddr_real,
-            size = size_real,
-            align = align_real,
-            size_enum = size_enum
-        )
-
-def ppc_deploy_func_unsafe(env, target, source):
+def x86_deploy_func_unsafe(env, target, source):
     mc = memory_definition.ModuleMemoryDefinition.load_from_file(source[0].abspath)
 
-    memory_type = PhysMemoryTypePPC()
-    phys_segment = PhysSegment(
-        paddr_start = 64 * 2**20,
-        paddr_end = mc.phys_total,
-        memory_type = memory_type,
-    )
+    x86_segments = []
+    x86_segment_allocator = SegmentX86Allocator(
+        phys_start = 64 * 2**20  + 0x10000000, #TODO this is for imx6
+        phys_end = mc.phys_total + 0x10000000)
 
-    partitionsTLB = allocateMemoryBlocksSimple(mc,
-        phys_segments = [phys_segment],
-        memory_type_default = memory_type,
-        vaddr_start_all = 2**31, # Hardcoded in ldscript.
-    )
+    if len(mc.memory_block_sharings) != 0:
+        print "ERROR: Memory block sharing is not supported on x86."
+        raise RuntimeError("Memory block sharing is not supported")
 
-    # All TLB entries in the single array
-    tlb_entries = []
-    for partitionTLB in partitionsTLB:
-        tlb_entries.extend(partitionTLB.entries)
+    for pmc in mc.partitions:
+        print(mc.partitions)
+        # Organize memory blocks into 3 groups:
+        #
+        # 0. size is 0.
+        # 1. vaddr is fixed
+        # 2. vaddr is not fixed
+        mb_zero = []
+        mb_vfixed = []
+        mb_float = []
+
+        for mbd in pmc.memory_blocks:
+            if mbd.paddr is not None:
+                print "Partition '%s' has memory block '%s' with fixed physical address. This feature is not supported." % (pmc.name, mbd.name)
+                raise RuntimeError("Unsupported memory block definition")
+
+            if mbd.cache_policy != "DEFAULT":
+                print "Memory block '%s' has non-default cache policy '%s'. This feature is not supported." % (pmc.name, mbd.name, mbd.cache_policy)
+                raise RuntimeError("Unsupported memory block definition")
+
+            if mbd.align > 2 ** 31:
+                print "Memory block '%s' has too high alignment: %x." % (mbd.name, mbd.align)
+                raise RuntimeError("Incorrect memory block definition")
+
+            if mbd.size == 0:
+                mb_zero.append(mbd)
+            elif mbd.vaddr is not None:
+                mb_vfixed.append(mbd)
+            else:
+                mb_float.append(mbd)
+
+        # For zero-sized memory blocks (group 0) assign 0 to every address.
+        for mbd in mb_zero:
+            if mbd.vaddr is None:
+                mbd.vaddr = 0
+
+            mbd.kaddr = 0
+
+            if mbd.is_contiguous and mbd.paddr is None:
+                mbd.paddr = 0
+
+        # Whole partition as a single segment. We have no other choice.
+        vaddr_start = 0
+
+        if len(mb_vfixed) == 0:
+            print "ERROR: There is no memory blocks with fixed virtual address. Where ELF should be loaded?"
+            raise RuntimeError("Incorrect setup for memory blocks with virtual address fixed")
+
+
+        # First setup memory blocks with fixed vaddr (group 1).
+        mb_vfixed.sort(key = lambda mb: mb.vaddr)
+        mb_vfixed_last = mb_vfixed[-1]
+
+        vaddr_end = mb_vfixed_last.vaddr + mb_vfixed_last.size
+
+        # Then setup memory blocks with non-fixed vaddr
+        for mbd in mb_float:
+            mb_vaddr_start = align_val(vaddr_end, mbd.align)
+
+            mbd.vaddr = mb_vaddr_start
+
+            vaddr_end = mb_vaddr_start + mbd.size
+
+        # Create segment
+        x86_segment = x86_segment_allocator.alloc_segment(vaddr_end - vaddr_start)
+        print(x86_segment)
+
+        # And setup kaddr and paddr for all memory blocks in partition (group 1 and group 2).
+        for mbd in mb_vfixed + mb_float:
+            mbd.kaddr = x86_segment.paddr + mbd.vaddr
+            if mbd.is_contiguous:
+                mbd.paddr = x86_segment.paddr + mbd.vaddr
+
+        x86_segments.append(x86_segment)
 
     mc.save_to_file(target[0].abspath)
 
-    serialize_as_text(tlb_entries, target[1].abspath, 'entries')
+    serialize_as_text(x86_segments, target[1].abspath, 'segments')
 
-def ppc_deploy_func(env, target, source):
-    # Just calls ppc_deploy_func_unsafe and catch exceptions
+def x86_deploy_func(env, target, source):
+    # Just calls x86_deploy_func_unsafe and catch exceptions
     try:
-        ppc_deploy_func_unsafe(env, target, source)
+        x86_deploy_func_unsafe(env, target, source)
     except RuntimeError as e:
         print "Error occured while deploy memory blocks: %s." % e.message
         return 1
 
-def ppc_create_definitions_for_deployment(source, env):
-    entries = deserialize_from_text(source[0].abspath, 'entries')
 
-    return {'entries': entries}
+def x86_create_definitions_for_deployment(source, env):
+    segments = deserialize_from_text(source[0].abspath, 'segments')
 
-def ppc_deploy(env, memory_definitions_file, memory_constraints):
+    return {'segments': segments}
 
-    arch_deployment_kernel_yaml = os.path.join(env['MODULE_BUILD_DIR'], "ppc_tlb.yaml")
+def x86_deploy(env, memory_definitions_file, memory_constraints):
+
+    arch_deployment_kernel_yaml = os.path.join(env['MODULE_BUILD_DIR'], "x86_segments.yaml")
 
     env.Command(target = [memory_definitions_file, arch_deployment_kernel_yaml],
         source = memory_constraints,
-        action = Action(ppc_deploy_func, '$ARCH_DEPLOY_FUNC_COMSTR')
+        action = Action(x86_deploy_func, '$ARCH_DEPLOY_FUNC_COMSTR')
     )
 
-    env.AddMethod(template_generation.TemplateRender)
+    env.Depends([memory_definitions_file, arch_deployment_kernel_yaml],
+        env['PARTITIONS_ELF_MAP'].values())
+
+    #env.AddMethod(template_generation.TemplateRender)
 
     #env['BOARD_DEPLOYMENT_SOURCES'] += env.TemplateRender(
-    #    target = os.path.join(env['MODULE_BUILD_DIR'], "ppc_tlb.c"),
+    #    target = os.path.join(env['MODULE_BUILD_DIR'], "x86_segments.c"),
     #    source = arch_deployment_kernel_yaml,
-    #    create_definitions_func = ppc_create_definitions_for_deployment,
-    #    template_main = "ppc_tlb_c",
+    #    create_definitions_func = x86_create_definitions_for_deployment,
+    #    template_main = "x86_segments_c",
     #    template_dir = arch_dir + "/templates"
     #)
 
 
-env['BOARD_DEPLOY'] = ppc_deploy
+env['BOARD_DEPLOY'] = x86_deploy
