@@ -36,6 +36,19 @@
 
 #define L1_SECT_MEM_DEVICE (L1_SECT_TEX(2))
 
+#define L2_SECT_XN     ( 1 << 0)    // execute never
+#define L2_SECT_NON_SUPER  ( 1 << 1)// not a supersection
+#define L2_SECT_B      ( 1 << 2)    // bufferable
+#define L2_SECT_C      ( 1 << 3)    // cacheable
+#define L2_SECT_AP(x)  ((x) << 4)   // access permission
+#define L2_SECT_TEX(x) ((x) << 6)   // type extension
+#define L2_SECT_APX    ( 1 << 9)
+#define L2_SECT_S      ( 1 << 10)  // shareable
+#define L2_SECT_nG     ( 1 << 11)  // non global
+
+#define L2_SECT_PRIVILEGED_RW (L2_SECT_AP(1))
+#define L2_SECT_MEM_DEFAULT (L2_SECT_TEX(0) | L2_SECT_C | L2_SECT_B)
+
 // Write l1_table addr to TTBR0
 static inline void load_l1_table(uint32_t *l1_table)
 {

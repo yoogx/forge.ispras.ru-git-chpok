@@ -18,32 +18,51 @@
 #include <libc.h>
 #include "mmu.h"
 #include "memlayout.h"
+#include "regs.h"
+
+#define VECTOR_HIGH_ADDR 0xffff0000
+
+// 1KB aligned
+__attribute__ ((aligned(0x400))) uint32_t vector_l2_table[256] = {
+    [(VECTOR_HIGH_ADDR >> 12)  & 0xff] = ((KERNBASE_PADDR + (1<<20))&0xfffff000) | L2_SECT_PRIVILEGED_RW |
+        L2_SECT_MEM_DEFAULT |L2_SECT_NON_SUPER,
+};
 
  //aligned by 16K
+ // Here we use '+' instead of '|' because of compiler restrictions . Usage of '|'
+ // and address of vector_l2_table leads to "error: initializer element is not constant"
 __attribute__ ((aligned(0x4000))) uint32_t entry_l1_table[4096] = {
+    // vector table
+    [VECTOR_HIGH_ADDR>>20] = PHYS(vector_l2_table) + L1_TYPE_TABLE,
 
-    [0] = ((KERNBASE_PADDR + (1<<20))&0xfff00000) | L1_SECT_PRIVILEGED_RW |
-        L1_SECT_MEM_NORMAL_CACHEABLE | L1_TYPE_SECT,
-
+    // kernel low address
     [KERNBASE_PADDR>>20] = (KERNBASE_PADDR&0xfff00000) | L1_SECT_PRIVILEGED_RW |
         L1_SECT_MEM_NORMAL_CACHEABLE | L1_TYPE_SECT,
 
+    // kernel high address
     [KERNBASE_VADDR>>20] = (KERNBASE_PADDR&0xfff00000) | L1_SECT_PRIVILEGED_RW |
         L1_SECT_MEM_NORMAL_CACHEABLE | L1_TYPE_SECT,
 
+    // uart
     [0x2020000>>20] = (0x2020000&0xfff00000) | L1_SECT_PRIVILEGED_RW |
-        L1_SECT_MEM_DEVICE | L1_TYPE_SECT, //UART
+        L1_SECT_MEM_DEVICE | L1_TYPE_SECT,
 
+    // scu
     [0xa00000>>20] = (0xa00000&0xfff00000) | L1_SECT_PRIVILEGED_RW |
-        L1_SECT_MEM_DEVICE | L1_TYPE_SECT, //SCU
+        L1_SECT_MEM_DEVICE | L1_TYPE_SECT,
 };
+
+
 
 
 extern char __vector_table_start[];
 extern char __vector_table_end[];
 
+
 void copy_vector_table(void)
 {
-    memcpy(0, __vector_table_start, __vector_table_end - __vector_table_start);
     printf("copy vector table to %p, from %p, size (0x%x)\n", NULL, __vector_table_start, __vector_table_end - __vector_table_start);
+    memcpy((void *)VECTOR_HIGH_ADDR, __vector_table_start, __vector_table_end - __vector_table_start);
+
+    sctlr_set(sctlr_get()|SCTLR_V);
 }
