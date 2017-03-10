@@ -11,6 +11,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
  */
+#include "irq.h"
+#include "timer.h"
 
 void ja_bsp_init(void)
 {

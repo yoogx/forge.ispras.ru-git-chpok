@@ -17,4 +17,5 @@
 #define __IMX6_TIMER_H__
 
 void timer_handle_interrupt(void);
+void timer_init(void);
 #endif
