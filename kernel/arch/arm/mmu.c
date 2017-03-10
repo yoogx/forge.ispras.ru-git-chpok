@@ -57,12 +57,17 @@ __attribute__ ((aligned(0x4000))) uint32_t entry_l1_table[4096] = {
 
 extern char __vector_table_start[];
 extern char __vector_table_end[];
+extern char vector_table[];
 
 
 void copy_vector_table(void)
 {
-    printf("copy vector table to %p, from %p, size (0x%x)\n", NULL, __vector_table_start, __vector_table_end - __vector_table_start);
+    printf("copy vector table to %p, from %p, size (0x%x)\n", (void *)VECTOR_HIGH_ADDR, __vector_table_start, __vector_table_end - __vector_table_start);
     memcpy((void *)VECTOR_HIGH_ADDR, __vector_table_start, __vector_table_end - __vector_table_start);
 
     sctlr_set(sctlr_get()|SCTLR_V);
+
+    // Ask linker to not throw away exceptions.o from libkernel.a
+    int tmp = vector_table[0];
+    (void) tmp;
 }

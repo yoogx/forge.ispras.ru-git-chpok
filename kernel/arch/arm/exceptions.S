@@ -87,6 +87,7 @@ jet_excp_fiq_asm:
 /* 'ldr pc, =<lable>' is pseudo instruction. GCC substitutes is with something like
  * 'ldr pc, [pc, #offset]' and put at the end of this section (.vector_table) instruction '.long <lable>'
  */
+.globl vector_table
 vector_table:
     b . // Not used in normal mode (reset in secuter mode)
     ldr pc, =jet_excp_undef_asm // Undefined instruction
