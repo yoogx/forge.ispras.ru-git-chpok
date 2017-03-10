@@ -63,5 +63,12 @@ SECTIONS
 
       _end = .;
     }
+
+    /DISCARD/ :
+    {
+        *(.ARM.exidx*)
+        *(.gnu.linkonce.armexidx.*)
+    }
     __partition_end = . ;
+
 }
