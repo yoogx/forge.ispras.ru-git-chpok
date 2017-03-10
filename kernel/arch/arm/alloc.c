@@ -51,7 +51,7 @@ unsigned int ja_mem_get_alignment(size_t size)
 
 jet_stack_t pok_stack_alloc(uint32_t stack_size)
 {
-    const unsigned int alignment = 8;
+    size_t alignment = ja_ustack_get_alignment();
     uint32_t stack_size_real = ALIGN_VAL(stack_size, alignment);
 
     char* stack_tail = ja_mem_alloc_aligned(stack_size_real, alignment);

@@ -63,25 +63,5 @@ jet_space_id ja_space_get_current (void)
 
 size_t ja_ustack_get_alignment(void)
 {
-    assert(0);
-}
-
-struct jet_fp_store* ja_alloc_fp_store(void)
-{
-    assert(0);
-}
-
-void ja_fp_save(struct jet_fp_store* fp_store)
-{
-    assert(0);
-}
-
-void ja_fp_restore(struct jet_fp_store* fp_store)
-{
-    assert(0);
-}
-
-void ja_fp_init(void)
-{
-    assert(0);
+    return 8;
 }

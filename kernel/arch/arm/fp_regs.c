@@ -13,17 +13,32 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <asp/memory.h>
+#include <asp/space.h>
 #include <assert.h>
 
-uintptr_t pok_virt_to_phys(uintptr_t virt)
+//TODO
+struct jet_fp_store
 {
-    assert(0);
-    return 0;
+  int todo;
+};
+
+struct jet_fp_store* ja_alloc_fp_store(void)
+{
+    struct jet_fp_store* res = ja_mem_alloc_aligned(sizeof(*res), 4);
+    return res;
 }
 
-uintptr_t pok_phys_to_virt(uintptr_t phys)
+void ja_fp_save(struct jet_fp_store* fp_store)
 {
     assert(0);
-    return 0;
+}
+
+void ja_fp_restore(struct jet_fp_store* fp_store)
+{
+    assert(0);
+}
+
+void ja_fp_init(void)
+{
+    assert(0);
 }
