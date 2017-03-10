@@ -37,11 +37,11 @@ __attribute__ ((aligned(0x4000))) uint32_t entry_l1_table[4096] = {
 
     // kernel low address
     [KERNBASE_PADDR>>20] = (KERNBASE_PADDR&0xfff00000) | L1_SECT_PRIVILEGED_RW |
-        L1_SECT_MEM_NORMAL_CACHEABLE | L1_TYPE_SECT,
+        L1_SECT_MEM_DEFAULT | L1_TYPE_SECT,
 
     // kernel high address
     [KERNBASE_VADDR>>20] = (KERNBASE_PADDR&0xfff00000) | L1_SECT_PRIVILEGED_RW |
-        L1_SECT_MEM_NORMAL_CACHEABLE | L1_TYPE_SECT,
+        L1_SECT_MEM_DEFAULT | L1_TYPE_SECT,
 
     // uart
     [0x2020000>>20] = (0x2020000&0xfff00000) | L1_SECT_PRIVILEGED_RW |
@@ -50,6 +50,12 @@ __attribute__ ((aligned(0x4000))) uint32_t entry_l1_table[4096] = {
     // scu
     [0xa00000>>20] = (0xa00000&0xfff00000) | L1_SECT_PRIVILEGED_RW |
         L1_SECT_MEM_DEVICE | L1_TYPE_SECT,
+
+
+    //USER
+    [0] = (0x14000000) | L1_SECT_USER_RW | L1_SECT_MEM_DEFAULT | L1_TYPE_SECT,
+
+
 };
 
 
