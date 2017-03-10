@@ -77,12 +77,12 @@ static void set_bits(uintptr_t reg, uint32_t bits)
     iowrite32(reg, ioread32(reg)|bits);
 }
 
-static uint32_t abs(uint32_t val)
+static uint32_t abs_diff(uint32_t a, uint32_t b)
 {
-    if (val>=0)
-        return val;
+    if (a >= b)
+        return a - b;
     else
-        return -val;
+        return b - a;
 }
 
 void set_timer(void)
@@ -95,8 +95,9 @@ void set_timer(void)
     iowrite32(GPT_OCR1, next);
     uint32_t current = ioread32(GPT_CNT);
 
-    if (((next > current) && abs(next - current) > 0x80000000) ||
-         ((next < current) && abs(next - current) < 0x80000000)) {
+    if ( (next > current  &&  abs_diff(next,current) > 0x80000000) ||
+         (next < current  &&  abs_diff(next,current) < 0x80000000)
+         ) {
         // next already passed, so recount
         set_timer();
     }
