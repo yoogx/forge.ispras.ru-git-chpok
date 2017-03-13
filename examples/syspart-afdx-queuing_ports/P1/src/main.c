@@ -97,7 +97,7 @@ static void first_process(void)
             i = 1 -i;
 
             //printf("P1_main, first_process: Here!\n");
-            TIMED_WAIT( 2 * SECOND, &ret);
+            TIMED_WAIT(5 * SECOND, &ret);
     }
 }
 

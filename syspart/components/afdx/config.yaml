@@ -35,11 +35,10 @@
         tail: size_t
         cur_queue_size: size_t
         max_queue_size: size_t
-        min_next_time: SYSTEM_TIME_TYPE
+        #min_next_time: SYSTEM_TIME_TYPE
 #temporary solution until we can generate a periodic process components
 
   init_func: afdx_queue_init
-  activity: afdx_queue_enqueuer_activity
 
   in_ports:
       - name: portB

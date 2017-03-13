@@ -79,5 +79,5 @@ void __AFDX_QUEUE_ENQUEUER_init__(AFDX_QUEUE_ENQUEUER *self)
 
 void __AFDX_QUEUE_ENQUEUER_activity__(AFDX_QUEUE_ENQUEUER *self)
 {
-        afdx_queue_enqueuer_activity(self);
+        (void) self; //suppress warning
 }

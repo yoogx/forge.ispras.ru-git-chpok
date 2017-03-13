@@ -34,7 +34,6 @@ typedef struct AFDX_QUEUE_ENQUEUER_state {
     afdx_buffer * buffer;
     size_t head;
     size_t max_queue_size;
-    SYSTEM_TIME_TYPE min_next_time;
     SYSTEM_TIME_TYPE BAG;
     size_t cur_queue_size;
     size_t tail;
@@ -74,7 +73,6 @@ typedef struct {
 
     void afdx_queue_init(AFDX_QUEUE_ENQUEUER *);
 
-    void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *);
 
 
 #endif

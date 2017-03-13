@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
+#include <process.h>
 
 #include <arinc653/time.h>
 #include <arinc653/partition.h>
@@ -99,9 +100,52 @@ void send_packet(AFDX_QUEUE_ENQUEUER *self, frame_data_t *afdx_frame, int net_ca
     }
 }
 
+static void afdx_queue_enqueuer_activity(void)
+{
+    AFDX_QUEUE_ENQUEUER *self;
+    RETURN_CODE_TYPE ret;
+
+    printf("in afdx_queue_enqueuer_activity\n");
+    self = (AFDX_QUEUE_ENQUEUER *)jet_get_my_data();
+
+    while (1) {
+        printf(C_NAME"IN LOOP\n");
+        if (self->state.cur_queue_size != 0) {
+
+            frame_data_t    *afdx_frame = (frame_data_t *) self->state.buffer[self->state.head].data;
+
+            printf("QUEUE activity get message: %s\n", afdx_frame->afdx_payload);
+
+             /* send to 1 card */
+            {
+                printf("Sending to the card A \n");
+                send_packet(self, afdx_frame, NETWORK_CARD_A);
+            }
+
+            /* send to 2 card */
+            {
+                printf("Sending to the card B \n");
+                send_packet(self, afdx_frame, NETWORK_CARD_B);
+            }
+
+            /* Change QUEUE state */
+            self->state.head++;
+
+            if (self->state.head == self->state.max_queue_size)
+                self->state.head = 0;
+
+            self->state.cur_queue_size--;
+        } else {
+            printf("there are no messages, I'm at the END afdx_queue_enqueuer_activity \n");
+        }
+        PERIODIC_WAIT(&ret);
+        printf("==========================\n");
+    }
+}
+
 void afdx_queue_init(AFDX_QUEUE_ENQUEUER *self)
 {
-    SYSTEM_TIME_TYPE system_time;
+    printf("IN afdx_queue_init\n");
     RETURN_CODE_TYPE ret;
 
     /*
@@ -114,67 +158,37 @@ void afdx_queue_init(AFDX_QUEUE_ENQUEUER *self)
     self->state.tail = 0;
     self->state.cur_queue_size = 0;
 
-    /*
-     * only for TEST!
-     * DELETE, when support of periodic modules will appear
-     */
-    GET_TIME(&system_time, &ret);
+    /* Create process */
+    PROCESS_ID_TYPE pid;
+    PROCESS_ATTRIBUTE_TYPE process_attrs = {
+        .PERIOD = SECOND,
+        .TIME_CAPACITY = SECOND / 2,
+        .STACK_SIZE = 8096, // the only accepted stack size!
+        .BASE_PRIORITY = MAX_PRIORITY_VALUE,
+        .DEADLINE = SOFT,
+    };
 
-    if (ret != NO_ERROR)
-        printf(C_NAME"Error in GET_TIME\n");
+    process_attrs.ENTRY_POINT = afdx_queue_enqueuer_activity;
+    strncpy(process_attrs.NAME, "queue process", sizeof(PROCESS_NAME_TYPE));
 
-    self->state.min_next_time = system_time;
-}
-
-
-void afdx_queue_enqueuer_activity(AFDX_QUEUE_ENQUEUER *self)
-{
-    SYSTEM_TIME_TYPE system_time;
-    RETURN_CODE_TYPE return_code;
-
-    /*
-     * only for TEST!
-     * DELETE, when support of periodic modules will appear
-     */
-    GET_TIME(&system_time, &return_code);
-
-    if (return_code != NO_ERROR)
-        printf(C_NAME"Error in GET_TIME\n");
-
-    if ((system_time > self->state.min_next_time) && (self->state.cur_queue_size > 0)) {
-
-        frame_data_t    *afdx_frame = (frame_data_t *) self->state.buffer[self->state.head].data;
-
-        printf("QUEUE activity get message: %s\n", afdx_frame->afdx_payload);
-
-         /* send to 1 card */
-        {
-            printf("Sending to the card A \n");
-            send_packet(self, afdx_frame, NETWORK_CARD_A);
-        }
-
-        /* send to 2 card */
-        {
-            printf("Sending to the card B\n");
-            send_packet(self, afdx_frame, NETWORK_CARD_B);
-        }
-
-        GET_TIME(&system_time, &return_code);
-
-        if (return_code != NO_ERROR)
-            printf(C_NAME"Error in GET_TIME\n");
-
-        self->state.min_next_time = system_time + self->state.BAG;
-
-        /* Change QUEUE state */
-        self->state.head++;
-
-        if (self->state.head == self->state.max_queue_size)
-            self->state.head = 0;
-
-        self->state.cur_queue_size--;
-
+    CREATE_PROCESS(&process_attrs, &pid, &ret);
+    if (ret != NO_ERROR) {
+        printf("couldn't create %s: %d\n", process_attrs.NAME, (int) ret);
+        return;
+    } else {
+        printf("process %s created\n", process_attrs.NAME);
     }
+
+    jet_set_process_data(pid, self);
+
+    START(pid, &ret);
+    if (ret != NO_ERROR) {
+        printf("couldn't start process %s: %d\n", process_attrs.NAME, (int) ret);
+        return;
+    } else {
+        printf("process %s \"started\" (it won't actually run until operating mode becomes NORMAL)\n", process_attrs.NAME);
+    }
+
 }
 
 ret_t afdx_enqueuer_implementation(
@@ -185,6 +199,7 @@ ret_t afdx_enqueuer_implementation(
         const size_t append_max_size
         )
 {
+    printf(C_NAME" I'm in implementation\n");
     if (self->state.cur_queue_size >= self->state.max_queue_size) {
 
         printf("ERROR QUEUE if FULL \n");
@@ -202,6 +217,7 @@ ret_t afdx_enqueuer_implementation(
 
     self->state.tail++;
     self->state.cur_queue_size++;
+    //~ printf("STATE QUEUE %d \n", self->state.cur_queue_size);
 
     if (self->state.tail == self->state.max_queue_size) {
         self->state.tail = 0;

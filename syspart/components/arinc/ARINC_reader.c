@@ -77,8 +77,9 @@ static int receive_msg_samping(ARINC_PORT_READER *self)
 void arinc_port_reader_activity(ARINC_PORT_READER *self)
 {
     int receive_error;
-    if (self->state.is_queuing_port)
+    if (self->state.is_queuing_port) {
         receive_error = receive_msg_queuing(self);
+    }
     else
         receive_error = receive_msg_samping(self);
 

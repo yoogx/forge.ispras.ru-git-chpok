@@ -45,6 +45,7 @@ instances:
       type: AFDX_STOP
 
 links:
+
     - from:
         instance: arinc_port_rdr_1
         port: portA
