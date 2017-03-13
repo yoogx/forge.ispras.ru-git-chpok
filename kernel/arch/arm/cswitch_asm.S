@@ -15,16 +15,11 @@
 
 #include "regs.h"
 
-/* Restore context from current stack. */
-CONTEXT_RESTORE:
-    pop {r4-r11}
-    pop {pc}
-
-.globl ja_context_jump
+    .globl ja_context_jump
 ja_context_jump:
     /* r0: new_sp */
     mov sp, r0
-    b CONTEXT_RESTORE
+    pop {r4-r12, pc}
 
 
     .globl ja_context_restart
@@ -33,7 +28,9 @@ ja_context_restart:
     mov sp, r0
 
     /* TODO Zero registers */
-    mov fp, #0
+    mov fp, #0 //frame pointer
+    mov r4, #0 //...
+
 
     mov pc, r1
 
@@ -61,3 +58,17 @@ ja_user_space_jump:
     mov fp, #0
 
     rfefd sp! //pop from stack to CPSR and pc
+
+
+//void ja_context_switch (struct jet_context** old_sp, struct jet_context* new_sp)
+    .globl ja_context_switch
+ja_context_switch:
+    /* r0 *old_sp, r4: new_sp */
+
+    push {r4-r12, lr}
+
+    /* switch stacks */
+    mov r0, sp //save sp to r0
+    mov sp, r1 //get sp from r1
+
+    pop {r4-r12, pc}

@@ -27,6 +27,7 @@ struct jet_context
     uint32_t r9;
     uint32_t r10;
     uint32_t r11;
+    uint32_t r12;
 
     uint32_t entry;//lr
 } __attribute__((aligned(8)));
@@ -37,11 +38,6 @@ struct jet_context* ja_context_init(jet_stack_t sp, void (*entry)(void))
     struct jet_context *ctx = (struct jet_context *)(sp - sizeof(*ctx));
     memset(ctx, 0, sizeof(*ctx));
     ctx->entry = entry;
-}
-
-void ja_context_switch (struct jet_context** old_sp, struct jet_context* new_sp)
-{
-    assert(0);
 }
 
 void ja_context_restart_and_save(jet_stack_t sp, void (*entry)(void),
