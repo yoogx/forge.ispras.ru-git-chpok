@@ -21,6 +21,7 @@
 #include <core/time.h>
 #include <asp/time.h>
 #include <assert.h>
+#include <asp/entries.h>
 
 
 //TODO: should we enable bits in CCM_CCGR1? to use this clock source?
@@ -110,7 +111,7 @@ void timer_handle_interrupt(void)
     //printf("TIMER_INTERRUPT\n");
     set_timer();
 
-    //jet_on_tick();
+    jet_on_tick();
 }
 
 
