@@ -16,12 +16,12 @@
 #include <asp/uaccess.h>
 #include "space.h"
 
-#define POK_PARTITION_MEMORY_BASE 0x60000000ULL
+#define POK_PARTITION_MEMORY_BASE 0x80000000ULL
 
 pok_bool_t ja_access_ok(const void* __user addr, size_t size)
 {
     uint32_t vaddr = (uint32_t)addr;
 
-    return (vaddr >= POK_PARTITION_MEMORY_BASE)
+    return (vaddr + size < POK_PARTITION_MEMORY_BASE)
         && (vaddr + size > vaddr); //check overflow
 }
