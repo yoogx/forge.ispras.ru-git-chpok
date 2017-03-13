@@ -19,26 +19,37 @@
 jet_excp_undef_asm:
     b .
 
-// Supervision Call
+// Supervision Call (syscall)
+// in syscall we don't need to save/restor volatile registers,
+// because svc is synchronous operation
 jet_excp_svc_asm:
-    ldr r4, =0x2020040
-    ldr r3,    ='S'
-    str r3, [r4]
-    ldr r3,    ='Y'
-    str r3, [r4]
-    ldr r3,    ='S'
-    str r3, [r4]
-    ldr r3,    ='C'
-    str r3, [r4]
-    ldr r3,    ='A'
-    str r3, [r4]
-    ldr r3,    ='L'
-    str r3, [r4]
-    ldr r3,    ='L'
-    str r3, [r4]
-    ldr r3,    ='\n'
-    str r3, [r4]
-    b .
+    // lr is already right
+
+    srsfd sp!, #CPSR_MODE_SVC // save lr and SPSR on our stack
+
+    //push {r0-r3, r12} //push volatile regs
+
+    //make sp to 8-byte aligned. Store adjustment in stack
+    and r2, sp, #0x7
+    sub sp, sp, r2 //sp = sp - sp&7
+    push {r2}
+
+    push {lr} // lr in non-volatile, but we corrupt it in blx
+
+    /* r0 is syscall_id
+       r1 is args */
+    ldr r3, =syscall_handler
+    blx r3
+
+    pop {lr}
+
+    // restore original (possible not 8-byte aligned) sp value
+    pop {r2}
+    add sp, sp, r2
+
+    //pop {r0-r3, r12} //restore volatile regs
+
+    rfefd sp! //from stack load saved lr and SPSR  to pc and CPSR
 
 // Prefetch Abort
 jet_excp_prefetch_abort_asm:

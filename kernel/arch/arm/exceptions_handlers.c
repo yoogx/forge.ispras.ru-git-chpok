@@ -11,10 +11,20 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
  * See the GNU General Public License version 3 for more details.
- *
  */
 
-    .globl lja_do_syscall
-lja_do_syscall:
-    svc #0
-    mov pc, lr
+#include <core/syscall.h>
+#include <core/uaccess.h>
+
+pok_ret_t syscall_handler(
+        pok_syscall_id_t syscall_id,
+        pok_syscall_args_t* __user args)
+{
+    pok_syscall_args_t* syscall_args = jet_user_to_kernel_typed(args);
+
+    if(syscall_args == NULL) {
+        return POK_ERRNO_EINVAL;
+    } else {
+        return pok_core_syscall (syscall_id, syscall_args);
+    }
+}
