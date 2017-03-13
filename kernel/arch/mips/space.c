@@ -97,7 +97,6 @@ extern void dmfc0_asm(void);
 
 void pok_arch_space_init (void)
 {
-    printf("Hello!\n");
     /*
      * Mapping for serial IN/OUT
      */
@@ -110,14 +109,6 @@ void pok_arch_space_init (void)
         0, // any pid
         TRUE
     );
-
-
-    printf("EBASE = 0x%lx\n", mfc0(CP0_EBASE));
-
-    printf("Status = 0x%lx\n", mfsr());
-    printf("jet_mips_tlb_get_index = %d\n", jet_mips_tlb_get_index);
-
-
 
     for(int i = 0; i < tlb_entries_n; i++)
     {
@@ -133,7 +124,7 @@ void pok_arch_space_init (void)
             TRUE
             );
     }
-    pok_mips_tlb_print();
+    //~ pok_mips_tlb_print();
 }
 
 void pok_arch_handle_page_fault(

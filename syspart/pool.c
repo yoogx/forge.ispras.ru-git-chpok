@@ -51,8 +51,8 @@ struct pool *jet_pool_create(size_t elem_size, int num)
 
 struct pool_elem * jet_pool_get_free_elem(struct pool *pool)
 {
-    if (pool->free_elem_idx == -1)
-        return NULL;
+    //if (pool->free_elem_idx == -1)
+    //    return NULL;
 
     struct pool_elem *elem = get_pool_elem(pool, pool->free_elem_idx);
     elem->is_free = 0;

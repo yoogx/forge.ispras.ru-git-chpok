@@ -54,7 +54,10 @@ scripts.
 # After that, following variables, described module's components and
 # configuraton, are expected to be set:
 #
-# - 'MODULE_CLEAN_DIRS' - which directories should be clean on `scons -c local`.
+# - 'MODULE_CLEAN_DIRS' - which directories should be clean on `scons -c local` and `scons clean`.
+# (Absolute path or list of absolute paths; by default equal to MODULE_BUILD_DIR).
+#
+# - 'MODULE_DISTCLEAN_DIRS' - which directories should be clean on `scons -c all` and `scons distclean`.
 # (Absolute path or list of absolute paths; by default equal to MODULE_BUILD_DIR).
 #
 # - 'PARTITIONS_NUMBER' - number of partitions in the module.
@@ -146,6 +149,7 @@ partition_post_process = env.get('PARTITION_POST_PROCESS', None)
 
 partition_build_dirs = []
 partition_clean_dirs = []
+partition_distclean_dirs = []
 partition_elfs = []
 partitions_elf_map = dict()
 
@@ -159,6 +163,7 @@ for part_index in range(env['PARTITIONS_NUMBER']):
     partitions_elf_map[part_env['PARTITION_NAME']] = part_elf[0].abspath
     partition_build_dirs.append(part_env['PARTITION_BUILD_DIR'])
     partition_clean_dirs.extend(part_env['PARTITION_CLEAN_DIRS'])
+    partition_distclean_dirs.extend(part_env['PARTITION_DISTCLEAN_DIRS'])
 
 env['PARTITIONS_ELF_MAP'] = partitions_elf_map
 
@@ -522,19 +527,18 @@ env.Command('gdb_cmd', [], action=[
     ])
 env.Alias('gdb', 'gdb_cmd')
 
-module_clean_dirs = env.get('MODULE_CLEAN_DIRS', module_build_dir)
-if type(module_clean_dirs) is not list:
-    module_clean_dirs = [module_clean_dirs]
-    env['MODULE_CLEAN_DIRS'] = module_clean_dirs
-
+module_clean_dirs = env.CanonicalCleanList('MODULE_CLEAN_DIRS', module_build_dir)
+module_distclean_dirs = env.CanonicalCleanList('MODULE_DISTCLEAN_DIRS', module_build_dir)
 
 clean_directories = module_clean_dirs + partition_clean_dirs
+distclean_directories = module_distclean_dirs + partition_distclean_dirs
 
 env.RemoveDirectories('clean_module_cmd', clean_directories)
+env.RemoveDirectories('distclean_module_cmd', distclean_directories)
 env.Alias('clean', 'clean_module_cmd')
-env.Alias('distclean', 'clean_module_cmd')
+env.Alias('distclean', 'distclean_module_cmd')
 env.Clean('#/local', clean_directories)
-env.Clean('#/all', clean_directories)
+env.Clean('#/all', distclean_directories)
 
 Return('pok_target')
 

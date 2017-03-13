@@ -25,7 +25,7 @@
 /* Return index of (ip, port) pair in array in state. -1 if not found */
 static int get_ip_port_index(ROUTER_state *state, uint32_t ip, uint16_t port)
 {
-    for (int i=0; i<state->map_ip_port_to_idx_len; i++) {
+    for (unsigned i=0; i<state->map_ip_port_to_idx_len; i++) {
         struct udp_ip_pair *cur_pair = &state->map_ip_port_to_idx[i];
         if (cur_pair->ip == ip && cur_pair->port == port)
             return i;

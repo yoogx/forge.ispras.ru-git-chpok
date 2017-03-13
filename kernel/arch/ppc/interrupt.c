@@ -112,69 +112,79 @@ void pok_int_spe(struct jet_interrupt_context* vctx)
 }
 
 
-void write_on_screen();
-
-
 void pok_int_program(struct jet_interrupt_context* ea) {
-
+    uint32_t ESR = mfspr(SPRN_ESR);
+    switch (ESR & (SPRN_ESR_PIL | SPRN_ESR_PPR | SPRN_ESR_PTR))
+    {
+        case SPRN_ESR_PIL:
+            pok_fatal("Illegal instruction exception");
+            break;
+        case SPRN_ESR_PPR:
+            pok_fatal("Privileged instruction exception");
+            break;
+        case SPRN_ESR_PTR:
 #ifdef POK_NEEDS_GDB
-    printf_GDB("    Pok_int_program interrupt\n");
-    printf_GDB("DBCR0 = 0x%lx\n", mfspr(SPRN_DBCR0));
-    printf_GDB("DBSR = %lx\n", mfspr(SPRN_DBSR));
-    printf_GDB("DAC1 = %lx\n", mfspr(SPRN_DAC1));
-    printf_GDB("DAC2 = %lx\n", mfspr(SPRN_DAC1));
-    printf_GDB("srr0 = 0x%lx\n", ea->srr0);
-    printf_GDB("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
-/*
- * pok_trap_addr = address of pok_trap in entry.S
- */
-    if (ea->srr0 == (unsigned) (& pok_trap_addr)){
-        k++;
-        printf_GDB("Reason: SIGINT\n");
-        handle_exception(17,ea); 
-    }else{
-        printf_GDB("Reason: Breakpoint\n");
-        handle_exception(3,ea); 
-    }
-    if (k == 1){
-/*
- * it was a trap from gdb.c (in gdb.c function)
- */ 
-        ea->srr0 += 4;
-        printf_GDB("Change SRR0");
-    }
-    k=0;
-    printf_GDB("srr0 = 0x%lx\n", ea->srr0);
-    printf_GDB("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
-    //~ asm volatile("isync");
-    printf_GDB("instr = 0x%lx\n", *(uint32_t *)(ea->srr0));
-    printf_GDB("DBCR0 = 0x%lx\n", mfspr(SPRN_DBCR0));
-    printf_GDB("\n          Exit from handle exception\n");
+            printf_GDB("    Pok_int_program interrupt\n");
+            printf_GDB("DBCR0 = 0x%lx\n", mfspr(SPRN_DBCR0));
+            printf_GDB("DBSR = %lx\n", mfspr(SPRN_DBSR));
+            printf_GDB("DAC1 = %lx\n", mfspr(SPRN_DAC1));
+            printf_GDB("DAC2 = %lx\n", mfspr(SPRN_DAC1));
+            printf_GDB("srr0 = 0x%lx\n", ea->srr0);
+            printf_GDB("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
+            /*
+             * pok_trap_addr = address of pok_trap in entry.S
+             */
+            if (ea->srr0 == (unsigned) (& pok_trap_addr)){
+                k++;
+                printf_GDB("Reason: SIGINT\n");
+                handle_exception(17,ea); 
+            }else{
+                printf_GDB("Reason: Breakpoint\n");
+                handle_exception(3,ea); 
+            }
+            if (k == 1){
+                /*
+                 * it was a trap from gdb.c (in gdb.c function)
+                 */ 
+                ea->srr0 += 4;
+                printf_GDB("Change SRR0");
+            }
+            k=0;
+            printf_GDB("srr0 = 0x%lx\n", ea->srr0);
+            printf_GDB("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
+            //~ asm volatile("isync");
+            printf_GDB("instr = 0x%lx\n", *(uint32_t *)(ea->srr0));
+            printf_GDB("DBCR0 = 0x%lx\n", mfspr(SPRN_DBCR0));
+            printf_GDB("\n          Exit from handle exception\n");
 #else
-    printf("\n\n            In pok_int_programm:\n");
-    printf("addr = 0x%lx\n",(uint32_t) ea);
-    printf("cr = 0x%lx\n",ea->cr);
-    printf("ctr = 0x%lx\n",ea->ctr);
-    printf("xer = 0x%lx\n",ea->xer);
-    printf("srr0 or pc = 0x%lx\n",ea->srr0); 
-    printf("srr1 = 0x%lx\n",ea->srr1);
-    printf("r0 = 0x%lx\n",ea->r0);
-    printf("r1 = 0x%lx\n",ea->r1);
-    printf("r2 = 0x%lx\n",ea->r2);
-    printf("r3 = 0x%lx\n",ea->r3);
-    printf("r4 = 0x%lx\n",ea->r4);
-    printf("r5 = 0x%lx\n",ea->r5);
-    printf("r6 = 0x%lx\n",ea->r6);
-    printf("r7 = 0x%lx\n",ea->r7);
-    printf("r8 = 0x%lx\n",ea->r8);
-    printf("r9 = 0x%lx\n",ea->r9);
-    printf("r10 = 0x%lx\n",ea->r10);
-    printf("r11 = 0x%lx\n",ea->r11);
-    printf("r12 = 0x%lx\n",ea->r12);
-    printf("lr = 0x%lx\n",ea->lr);
-    pok_fatal("Program interrupt");
+            printf("\n\n            In pok_int_programm:\n");
+            printf("addr = 0x%lx\n",(uint32_t) ea);
+            printf("cr = 0x%lx\n",ea->cr);
+            printf("ctr = 0x%lx\n",ea->ctr);
+            printf("xer = 0x%lx\n",ea->xer);
+            printf("srr0 or pc = 0x%lx\n",ea->srr0); 
+            printf("srr1 = 0x%lx\n",ea->srr1);
+            printf("r0 = 0x%lx\n",ea->r0);
+            printf("r1 = 0x%lx\n",ea->r1);
+            printf("r2 = 0x%lx\n",ea->r2);
+            printf("r3 = 0x%lx\n",ea->r3);
+            printf("r4 = 0x%lx\n",ea->r4);
+            printf("r5 = 0x%lx\n",ea->r5);
+            printf("r6 = 0x%lx\n",ea->r6);
+            printf("r7 = 0x%lx\n",ea->r7);
+            printf("r8 = 0x%lx\n",ea->r8);
+            printf("r9 = 0x%lx\n",ea->r9);
+            printf("r10 = 0x%lx\n",ea->r10);
+            printf("r11 = 0x%lx\n",ea->r11);
+            printf("r12 = 0x%lx\n",ea->r12);
+            printf("lr = 0x%lx\n",ea->lr);
+            pok_fatal("Trap exception");
 #endif
-
+            break;
+        default:
+            pok_fatal("Program interrupt");
+            
+    }
 }
 
 void pok_int_fp_unavail(struct jet_interrupt_context* ea) {
@@ -213,6 +223,7 @@ void pok_int_inst_tlb_miss(struct jet_interrupt_context* vctx, uintptr_t dear, u
 
 void pok_int_debug(struct jet_interrupt_context* ea) {
 
+#ifdef POK_NEEDS_GDB
     printf_GDB("    DEBUG EVENT!\n");
     printf_GDB("DBSR = %lx\n", mfspr(SPRN_DBSR));
     printf_GDB("ea = 0x%lx\n", (uint32_t) ea);
@@ -224,9 +235,13 @@ void pok_int_debug(struct jet_interrupt_context* ea) {
     printf_GDB("Reason: Watchpoint\n");   
 
     handle_exception(1, ea); 
-    
+
     printf_GDB("instr = 0x%lx\n", *(uint32_t *)ea->srr0);
     printf_GDB("DBCR0 = 0x%lx\n", mfspr(SPRN_DBCR0));
     asm volatile("dcbst 0, %0; sync; icbi 0,%0; sync; isync" : : "r" ((char *) ea->srr0));
     printf_GDB("Exit from debug event\n"); 
+#else
+    (void) ea;
+    pok_fatal("pok_int_debug");
+#endif
 }

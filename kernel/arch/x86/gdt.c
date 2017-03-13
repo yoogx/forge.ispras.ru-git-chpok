@@ -37,11 +37,17 @@ pok_ret_t pok_gdt_init()
    sysdesc_t sysdesc;
 
    /* Set null descriptor and clear table */
+   /* WHY? isn't global array already clear? */
    memset(pok_gdt, 0, sizeof (gdt_entry_t) * GDT_SIZE);
 
    /* Set kernel descriptors */
    gdt_set_segment(GDT_CORE_CODE_SEGMENT, 0, ~0UL, GDTE_CODE, 0);
    gdt_set_segment(GDT_CORE_DATA_SEGMENT, 0, ~0UL, GDTE_DATA, 0);
+
+
+    /* set partition descriptors. Same as kernel except for DPL */
+   gdt_set_segment(GDT_PARTITION_CODE_SEGMENT, 0, ~0UL, GDTE_CODE, 3);
+   gdt_set_segment(GDT_PARTITION_DATA_SEGMENT, 0, ~0UL, GDTE_DATA, 3);
 
    /* Load GDT */
    sysdesc.limit = sizeof (pok_gdt);
@@ -140,38 +146,4 @@ void gdt_set_system(uint16_t index,
    pok_gdt[index].available = 0;
    pok_gdt[index].op_size = 0;
 }
-
-void gdt_enable(uint16_t index)
-{
-   pok_gdt[index].present = 1;
-}
-
-void gdt_disable(uint16_t index)
-{
-   pok_gdt[index].present = 0;
-}
-
-int current_segment()
-{
-    if (pok_gdt[GDT_CORE_CODE_SEGMENT].present == 1)
-        return 0;
-    for(int i = 1; i < pok_partitions_arinc_n; i++)
-        if (pok_gdt[GDT_PARTITION_CODE_SEGMENT(i - 1)].present == 1){
-            return i;
-        }
-    return -1;
-}
-
-/*
- * DEPRECATED
- *
-uint32_t	gdt_segment_base(uint16_t idx)
-{
-   uint32_t base;
-
-   base = pok_gdt[idx].base_low | (pok_gdt[idx].base_high << 24);
-
-   return base;
-}
-*/
 

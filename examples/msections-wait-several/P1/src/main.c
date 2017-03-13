@@ -48,7 +48,7 @@ static void notify_process(void)
         printf("Notify processes:\n");
         
         do {
-            pok_thread_id_t t_next = kshd.tshd[t].wq_next;
+            pok_thread_id_t t_next = kshd->tshd[t].wq_next;
             
             printf("- %d\n", t + 1); // Thread ID -> PROCESS_ID
             
@@ -71,7 +71,7 @@ static void notify_process(void)
 
 static void wait_process_common(SYSTEM_TIME_TYPE timeout)
 {
-    pok_thread_id_t t = kshd.current_thread_id;
+    pok_thread_id_t t = kshd->current_thread_id;
     
     printf("Wait process %d starts.\n", t + 1);
 

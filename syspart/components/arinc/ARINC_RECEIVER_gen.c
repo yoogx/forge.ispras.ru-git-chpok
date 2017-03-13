@@ -41,4 +41,5 @@ void __ARINC_RECEIVER_init__(ARINC_RECEIVER *self)
 
 void __ARINC_RECEIVER_activity__(ARINC_RECEIVER *self)
 {
+        (void) self; //suppress warning
 }

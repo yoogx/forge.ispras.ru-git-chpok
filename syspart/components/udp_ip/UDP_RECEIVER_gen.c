@@ -48,4 +48,5 @@ void __UDP_RECEIVER_init__(UDP_RECEIVER *self)
 
 void __UDP_RECEIVER_activity__(UDP_RECEIVER *self)
 {
+        (void) self; //suppress warning
 }

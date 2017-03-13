@@ -87,5 +87,7 @@ void __{{component.name}}_activity__({{component.name}} *self)
 {
     {% if component.activity %}
         {{component.activity}}(self);
+    {% else %}
+        (void) self; //suppress warning
     {% endif %}
 }
