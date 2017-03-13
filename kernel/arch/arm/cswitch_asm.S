@@ -68,7 +68,7 @@ ja_context_switch:
     push {r4-r12, lr}
 
     /* switch stacks */
-    mov r0, sp //save sp to r0
-    mov sp, r1 //get sp from r1
+    str sp, [r0] // *r0=sp
+    mov sp, r1 // sp=r1
 
     pop {r4-r12, pc}
