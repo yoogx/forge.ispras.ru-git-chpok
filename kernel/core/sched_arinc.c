@@ -363,6 +363,7 @@ again:
     else
     {
         jet_context_jump(new_sp);
+        unreachable();
     }
 }
 
