@@ -53,9 +53,7 @@ void delayed_event_add(struct delayed_event_queue* q,
     /*
      * Remove event from queue, if it was.
      */
-    if(event->pprev_event) {
-        *(event->pprev_event) = event->next_event;
-    }
+    delayed_event_remove(q, event);
 
     event->timepoint = timepoint;
     event->handler_id = handler_id;
