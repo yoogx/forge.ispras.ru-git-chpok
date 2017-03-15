@@ -19,6 +19,7 @@
 ja_context_jump:
     /* r0: new_sp */
     mov sp, r0
+    mov lr, #0 //for gdb backtrace
     pop {r4-r12, pc}
 
 
@@ -29,8 +30,8 @@ ja_context_restart:
 
     /* TODO Zero registers */
     mov fp, #0 //frame pointer
+    mov lr, #0
     mov r4, #0 //...
-
 
     mov pc, r1
 
@@ -54,8 +55,8 @@ ja_user_space_jump:
     mov r8, #CPSR_MODE_USR
     push {r2, r8} //push user CPSR and user pc
 
-    mov lr, #0
-    mov fp, #0
+    // TODO nullify user registers (except sp, lr, pc) for dererminism?
+    mov fp, #0 //for gdb backtrace
 
     rfefd sp! //pop from stack to CPSR and pc
 
@@ -71,4 +72,5 @@ ja_context_switch:
     str sp, [r0] // *r0=sp
     mov sp, r1 // sp=r1
 
-    pop {r4-r12, pc}
+    pop {r4-r12, lr}
+    mov pc, lr

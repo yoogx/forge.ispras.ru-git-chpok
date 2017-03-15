@@ -56,6 +56,9 @@ __entry:
     ldr sp, =0x10050000
     msr cpsr_c, 1<<7 | 1<<6 | 0x13 // return to SVC mode
 
+    // TODO reset regs?
+    mov fp, #0
+
     // Start MMU enabling
     // Set all Domains to Client
     ldr r1, =0x55555555

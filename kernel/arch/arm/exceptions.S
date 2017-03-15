@@ -94,9 +94,14 @@ jet_excp_irq_asm:
 
     push {lr} // lr in non-volatile, but we corrupt it in blx
 
+    push {fp}
+    mov lr, #0 //for gdb backtrace
+    mov fp, #0 //for gdb backtrace
+
     ldr r3, =irq_handle
     blx r3
 
+    pop {fp}
     pop {lr}
 
     // restore original (possible not 8-byte aligned) sp value

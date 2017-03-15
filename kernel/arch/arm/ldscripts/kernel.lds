@@ -55,5 +55,9 @@ SECTIONS
         jet_heap_start = . ;
         jet_heap_end = . + 0x40000; /* 256 KB for heap  */
     }
-    . = ALIGN(4);
+    /DISCARD/ :
+    {
+        *(.ARM.exidx*)
+        *(.gnu.linkonce.armexidx.*)
+    }
 }
