@@ -20,11 +20,13 @@ pok_ret_t syscall_handler(
         pok_syscall_id_t syscall_id,
         pok_syscall_args_t* __user args)
 {
-    pok_syscall_args_t* syscall_args = jet_user_to_kernel_typed(args);
+    pok_syscall_args_t* syscall_args_ptr = jet_user_to_kernel_typed(args);
 
-    if(syscall_args == NULL) {
+    if(syscall_args_ptr == NULL) {
         return POK_ERRNO_EINVAL;
     } else {
-        return pok_core_syscall (syscall_id, syscall_args);
+        pok_syscall_args_t  syscall_args_kernel; //syscall args in kernel address space
+        memcpy(&syscall_args_kernel, syscall_args_ptr, sizeof(pok_syscall_args_t));
+        return pok_core_syscall (syscall_id, &syscall_args_kernel);
     }
 }
