@@ -44,7 +44,7 @@ static int receive_msg_queuing(ARINC_SENDER *self)
     return 0;
 }
 
-static int receive_msg_samping(ARINC_SENDER *self)
+static int receive_msg_sampling(ARINC_SENDER *self)
 {
     RETURN_CODE_TYPE ret;
     sys_port_data_t *dst_place = self->state.port_buffer;
@@ -75,7 +75,7 @@ void arinc_sender_activity(ARINC_SENDER *self)
     if (self->state.is_queuing_port)
         receive_error = receive_msg_queuing(self);
     else
-        receive_error = receive_msg_samping(self);
+        receive_error = receive_msg_sampling(self);
 
     if (receive_error != 0)
         return;
