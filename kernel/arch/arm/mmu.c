@@ -24,8 +24,8 @@
 
 // 1KB aligned
 __attribute__ ((aligned(0x400))) uint32_t vector_l2_table[256] = {
-    [(VECTOR_HIGH_ADDR >> 12)  & 0xff] = ((KERNBASE_PADDR + (1<<20))&0xfffff000) | L2_SECT_PRIVILEGED_RW |
-        L2_SECT_MEM_DEFAULT |L2_SECT_NON_SUPER,
+    [(VECTOR_HIGH_ADDR >> 12)  & 0xff] = ((KERNBASE_PADDR + (1<<20))&0xfffff000) |
+        L2_SECT_PRIVILEGED_RW | L2_SECT_MEM_DEFAULT | L2_SECT_NON_SUPER,
 };
 
  //aligned by 16K
