@@ -73,10 +73,7 @@ pok_ret_t msection_notify(struct msection* section, pok_thread_id_t thread_id);
 
 
 /* Initialize waitqueue. */
-static inline void msection_wq_init(struct msection_wq* wq)
-{
-    wq->first = wq->last = JET_THREAD_ID_NONE;
-}
+void msection_wq_init(struct msection_wq* wq);
 
 /* 
  * Add current thread into the msection wait queue.
