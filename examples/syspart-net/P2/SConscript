@@ -87,7 +87,8 @@ def gen_context_for_xml(source, env):
     for s in source[1:]:
         components_configs += yaml.load(open(s.abspath))
 
-    return {'components': components_configs,
+    return {'partition_name': 'P2',
+            'components': components_configs,
             'components_instances': grouped_instances(glue_config['instances'])
             }
 
