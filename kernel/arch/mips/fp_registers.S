@@ -17,10 +17,16 @@
  */
 
 #include "msr.h"
+#include "asm_offsets_fp_store.h" 
 
-#define SAVE_FP(num) sdc1 $f##num,(8*num)($a0)
-#define LOAD_FP(num) ldc1 $f##num,(8*num)($a0)
-
+#define SAVE_FP(num) sdc1 $f##num,(OFFSETOF_jet_fp_store_fp_regs + 8*num)($a0)
+#define LOAD_FP(num) ldc1 $f##num,(OFFSETOF_jet_fp_store_fp_regs + 8*num)($a0)
+#define SAVE_FIR     mfc1 $k0, CP1_FIR;     sw  $k0, OFFSETOF_jet_fp_store_fp_fir($a0);
+#define SAVE_FCONFIG mfc1 $k0, CP1_FCONFIG; sw  $k0, OFFSETOF_jet_fp_store_fp_fconfig($a0);
+#define SAVE_FCSR    mfc1 $k0, CP1_FCSR;    sw  $k0, OFFSETOF_jet_fp_store_fp_fcsr($a0);
+#define LOAD_FIR     lw  $k0, OFFSETOF_jet_fp_store_fp_fir($a0);        MTC1($k0 , CP1_FIR);
+#define LOAD_FCONFIG lw  $k0, OFFSETOF_jet_fp_store_fp_fconfig($a0);    MTC1($k0 , CP1_FCONFIG);
+#define LOAD_FCSR    lw  $k0, OFFSETOF_jet_fp_store_fp_fcsr($a0);       MTC1($k0 , CP1_FCSR);
 .macro ENABLE_FP
     /* Enable floating point bit in msr. Note: uses %r4. */
     mfc0    $k0, CP0_STATUS
@@ -104,6 +110,10 @@ ja_fp_save:
     SAVE_FP(26)
     SAVE_FP(28)
     SAVE_FP(30)
+   
+    SAVE_FIR
+    SAVE_FCONFIG
+    SAVE_FCSR
             
     DISABLE_FP
         
@@ -116,6 +126,10 @@ ja_fp_restore:
     /* $a0 - pointer to 'struct jet_fp_store'. */
 
     ENABLE_FP
+
+    LOAD_FIR
+    LOAD_FCONFIG
+    LOAD_FCSR
     
     LOAD_FP(0)
     LOAD_FP(2)
