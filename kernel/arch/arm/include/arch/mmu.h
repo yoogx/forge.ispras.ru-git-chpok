@@ -33,6 +33,7 @@
 
 #define L1_SECT_PRIVILEGED_RW (L1_SECT_AP(1))
 #define L1_SECT_USER_RW (L1_SECT_AP(3))
+#define L1_SECT_USER_RO (L1_SECT_AP(2))
 
 #define L1_SECT_MEM_DEFAULT (L1_SECT_TEX(0) | L1_SECT_C | L1_SECT_B)
 
@@ -50,6 +51,9 @@
 
 #define L2_SECT_PRIVILEGED_RW (L2_SECT_AP(1))
 #define L2_SECT_MEM_DEFAULT (L2_SECT_TEX(0) | L2_SECT_C | L2_SECT_B)
+
+#define L2_SECT_USER_RW (L2_SECT_AP(3))
+#define L2_SECT_USER_RO (L2_SECT_AP(2))
 
 // Write l1_table addr to TTBR0
 static inline void load_l1_table(uint32_t *l1_table)

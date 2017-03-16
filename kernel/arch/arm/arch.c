@@ -19,7 +19,8 @@
 #include <assert.h>
 #include <bsp/bsp.h>
 #include "regs.h"
-#include "mmu.h"
+#include <arch/mmu.h>
+
 
 void jet_arch_init(void)
 {
