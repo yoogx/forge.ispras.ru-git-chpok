@@ -20,13 +20,13 @@
 static inline uint32_t cpsr_get()
 {
     uint32_t r;
-    asm("mrs %0, cpsr" : "=r" (r));
+    asm volatile("mrs %0, cpsr" : "=r" (r));
     return r;
 }
 
 static inline void cpsr_set(uint32_t r)
 {
-    asm("msr cpsr, %0" : : "r" (r));
+    asm volatile("msr cpsr, %0" : : "r" (r));
 }
 
 
