@@ -104,6 +104,9 @@ static void take_fixed_action(pok_error_action_t action)
             // TODO not all kinds of errors can be ignored just like that
             return;
         case POK_ERROR_ACTION_IDLE:
+#ifdef POK_NEEDS_DEBUG
+            printf("Partition in going to idle state\n");
+#endif
             pok_partition_arinc_idle();
             unreachable();
             break;
