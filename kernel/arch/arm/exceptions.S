@@ -15,10 +15,6 @@
 
 #include "regs.h"
 
-// Undefined instruction
-jet_excp_undef_asm:
-    b .
-
 // Supervision Call (syscall)
 // in syscall we don't need to save/restor volatile registers,
 // because svc is synchronous operation
@@ -26,8 +22,6 @@ jet_excp_svc_asm:
     // lr is already right
 
     srsfd sp!, #CPSR_MODE_SVC // save lr and SPSR on our stack
-
-    //push {r0-r3, r12} //push volatile regs
 
     //make sp to 8-byte aligned. Store adjustment in stack
     and r2, sp, #0x7
@@ -47,38 +41,17 @@ jet_excp_svc_asm:
     pop {r2}
     add sp, sp, r2
 
-    //pop {r0-r3, r12} //restore volatile regs
-
     rfefd sp! //from stack load saved lr and SPSR  to pc and CPSR
 
-// Prefetch Abort
-jet_excp_prefetch_abort_asm:
-    b .
+/* SVC is syncronous exception. We don't do SVC call in kernel, thus we
+ * can't get nested svc exception. Therefore from any other exception we
+ * switch to SVC mode and save everyting on stack there. This allows to
+ * have same handler for nested and not-nested exceptions.
+ */
+.macro common_handling handler
+    srsfd sp!, #CPSR_MODE_SVC // save lr (pc of exception) and SPSR on SVC stack
 
-// Data Abort
-jet_excp_data_abort_asm:
-    //print something
-    ldr r4, =0x2020040
-    ldr r3,    ='E'
-    str r3, [r4]
-    ldr r3,    ='r'
-    str r3, [r4]
-    ldr r3,    ='r'
-    str r3, [r4]
-    ldr r3,    ='o'
-    str r3, [r4]
-    ldr r3,    ='r'
-    str r3, [r4]
-    ldr r3,    ='\n'
-    str r3, [r4]
-    b .
-
-// IRQ interrupt
-jet_excp_irq_asm:
-    sub lr, lr, #4 //IRQ excp should return to lr-4 addr
-    srsfd sp!, #CPSR_MODE_SVC // save lr and SPSR on SVC stack
-
-    /* Switch to SVC mode. If this is a nested interrupt, then
+    /* Switch to SVC mode. If this is a nested exception, then
      * SVC mode's CPSR has a IRQ interrupt enabled. Thus we should
      * disable interrupt while switching to SVC mode. CPSID instruction
      * does it for us.
@@ -88,36 +61,60 @@ jet_excp_irq_asm:
     push {r0-r3, r12} //push volatile regs
 
     //make sp to 8-byte aligned. Store adjustment in stack
-    and r1, sp, #0x7
-    sub sp, sp, r1 //sp = sp - sp&7
-    push {r1}
+    and r3, sp, #0x7
+    sub sp, sp, r3 //sp = sp - sp&7
+    push {r3}
 
-    push {lr} // lr in non-volatile, but we corrupt it in blx
+    push {lr} //lr is non-volatile and banked, but we corrupt it in blx. Save it
 
     push {fp}
-    mov lr, #0 //for gdb backtrace
     mov fp, #0 //for gdb backtrace
 
-    ldr r3, =irq_handle
+    /* r0 is interrupt_context */
+    mov r0, sp
+    ldr r3, =\handler
     blx r3
 
     pop {fp}
     pop {lr}
 
     // restore original (possible not 8-byte aligned) sp value
-    pop {r1}
-    add sp, sp, r1
+    pop {r3}
+    add sp, sp, r3
 
     pop {r0-r3, r12} //restore volatile regs
 
     rfefd sp! //from stack load saved lr and SPSR  to pc and CPSR
+.endm
+
+// Prefetch Abort
+jet_excp_prefetch_abort_asm:
+    sub lr, lr, #4 //prefetch abort xcp should return to lr-4 addr
+    common_handling handler=prefetch_abort_handler
+
+// Data Abort
+jet_excp_data_abort_asm:
+    sub lr, lr, #8 //data abort excp should return to lr-8 addr
+    common_handling handler=data_abort_handler
+
+// IRQ interrupt
+jet_excp_irq_asm:
+    sub lr, lr, #4 //IRQ excp should return to lr-4 addr
+    common_handling handler=irq_handle
 
 // FIQ interrupt
 jet_excp_fiq_asm:
-    b .
+    sub lr, lr, #4 //FIQ excp should return to lr-4 addr
+    common_handling handler=fiq_handler
+
+// Undefined instruction
+jet_excp_undef_asm:
+    // lr is already right
+    common_handling handler=undefined_instruction_handler
+
 
 .section ".vector_table", "a"
-/* 'ldr pc, =<lable>' is pseudo instruction. GCC substitutes is with something like
+/* 'ldr pc, =<lable>' is pseudo instruction. GCC substitutes it with something like
  * 'ldr pc, [pc, #offset]' and put at the end of this section (.vector_table) instruction '.long <lable>'
  */
 .globl vector_table

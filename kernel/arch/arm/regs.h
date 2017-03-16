@@ -30,7 +30,7 @@ static inline void cpsr_set(uint32_t r)
 }
 
 
-static inline uint32_t sctlr_get (void)
+static inline uint32_t sctlr_get(void)
 {
     uint32_t rval;
     asm volatile("mrc p15, 0, %0, c1, c0, 0"
@@ -39,11 +39,47 @@ static inline uint32_t sctlr_get (void)
     return rval;
 }
 
-static inline void sctlr_set (uint32_t val)
+static inline void sctlr_set(uint32_t val)
 {
     asm volatile("mcr p15, 0, %0, c1, c0, 0"
             : : "r" (val)
             : "memory");
+}
+
+static inline uint32_t dfar_get(void)
+{
+    uint32_t rval;
+    asm volatile("MRC p15, 0, %0, c6, c0, 0"
+            : "=r" (rval)
+            :: "memory");
+    return rval;
+}
+
+static inline uint32_t dfsr_get(void)
+{
+    uint32_t rval;
+    asm volatile("MRC p15, 0, %0, c5, c0, 0"
+            : "=r" (rval)
+            :: "memory");
+    return rval;
+}
+
+static inline uint32_t ifar_get(void)
+{
+    uint32_t rval;
+    asm volatile("MRC p15, 0, %0, c6, c0, 2"
+            : "=r" (rval)
+            :: "memory");
+    return rval;
+}
+
+static inline uint32_t ifsr_get(void)
+{
+    uint32_t rval;
+    asm volatile("MRC p15, 0, %0, c5, c0, 1"
+            : "=r" (rval)
+            :: "memory");
+    return rval;
 }
 
 #endif // __ASSEMBLER__
