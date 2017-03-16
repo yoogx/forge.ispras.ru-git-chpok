@@ -47,6 +47,7 @@ pok_ret_t syscall_handler(
 
 void prefetch_abort_handler(struct interrupt_context *ictx)
 {
+    //TODO what about async abort exceptions
     void *fault_addres = (void *)ifar_get();
     int is_user = ictx->saved_psr & CPSR_MODE_SYS;
 
@@ -63,6 +64,7 @@ void prefetch_abort_handler(struct interrupt_context *ictx)
 
 void data_abort_handler(struct interrupt_context *ictx)
 {
+    //TODO what about async abort exceptions
     void *fault_addres = (void *)dfar_get();
     int is_user = ictx->saved_psr & CPSR_MODE_SYS;
 
@@ -79,12 +81,19 @@ void data_abort_handler(struct interrupt_context *ictx)
 
 void fiq_handler()
 {
-    //not supported
-    assert(0);
+    pok_fatal("FIQ interrupt are not supported\n");
 }
 
-void undefined_instruction_handler()
+void undefined_instruction_handler(struct interrupt_context *ictx)
 {
-    printf("bad\n");
-    assert(0);
+    void *fault_addres = (void *)(ictx->saved_pc - 4);
+    int is_user = ictx->saved_psr & CPSR_MODE_SYS;
+#ifdef POK_NEEDS_DEBUG
+    printf("%s called undefined instruction at %p address\n",
+            is_user? "USER" : "KERNEL",
+            (void *)(ictx->saved_pc - 4));
+#endif
+
+    //What to do?
+    pok_raise_error(POK_ERROR_ID_MEMORY_VIOLATION, is_user, fault_addres);
 }
