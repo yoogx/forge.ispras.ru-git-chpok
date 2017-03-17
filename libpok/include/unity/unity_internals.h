@@ -12,7 +12,7 @@
 //~ #endif
 
 #ifndef UNITY_EXCLUDE_SETJMP_H
-#include <setjmp.h>
+#include <core/setjmp.h>
 #endif
 
 #ifndef UNITY_EXCLUDE_MATH_H

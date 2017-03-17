@@ -23,7 +23,7 @@
 
 #define UNITY_EXCLUDE_STDINT_H         1
 #define UNITY_EXCLUDE_LIMITS_H         1
-#define UNITY_EXCLUDE_SETJMP_H         1
+//~ #define UNITY_EXCLUDE_SETJMP_H         1
 #define UNITY_EXCLUDE_MATH_H           1
 #define UNITY_EXCLUDE_STDLIB_MALLOC    1
 
