@@ -39,6 +39,8 @@
 
 #define L1_SECT_MEM_DEVICE (L1_SECT_TEX(2))
 
+#define L2_ADDR(l1_entry) ((uint32_t)l1_entry&0xfffffc00) //make low bit to get l2 base addr
+
 #define L2_SECT_XN     ( 1 << 0)    // execute never
 #define L2_SECT_NON_SUPER  ( 1 << 1)// not a supersection
 #define L2_SECT_B      ( 1 << 2)    // bufferable
@@ -54,6 +56,14 @@
 
 #define L2_SECT_USER_RW (L2_SECT_AP(3))
 #define L2_SECT_USER_RO (L2_SECT_AP(2))
+
+#define L1_TABLE_SIZE 0x4000 // 4096 of 4 byte
+#define L2_TABLE_SIZE 0x400 // 256 of 4 byte
+
+#define L1_IDX(va) (((uint32_t) va) >> 20)
+
+#define L2_IDX(va) ((((uint32_t) va) >> 12) & 0xff)
+
 
 // Write l1_table addr to TTBR0
 static inline void load_l1_table(uint32_t *l1_table)

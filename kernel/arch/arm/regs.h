@@ -46,6 +46,13 @@ static inline void sctlr_set(uint32_t val)
             : "memory");
 }
 
+static inline void ttbr0_set(uint32_t val)
+{
+    asm volatile("mcr p15, 0, %0, c2, c0, 0"
+            : : "r" (val)
+            : "memory");
+}
+
 static inline uint32_t dfar_get(void)
 {
     uint32_t rval;

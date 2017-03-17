@@ -20,6 +20,7 @@
 #include <bsp/bsp.h>
 #include "regs.h"
 #include <arch/mmu.h>
+#include "space.h"
 
 
 void jet_arch_init(void)
@@ -28,6 +29,7 @@ void jet_arch_init(void)
     printf("Hello world \n");
 
     copy_vector_table(); //interrupt vec table
+    space_init(); //user space init
     ja_bsp_init();
 
     //ja_preempt_enable();

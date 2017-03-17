@@ -50,12 +50,6 @@ __attribute__ ((aligned(0x4000))) uint32_t entry_l1_table[4096] = {
     // scu
     [0xa00000>>20] = (0xa00000&0xfff00000) | L1_SECT_PRIVILEGED_RW |
         L1_SECT_MEM_DEVICE | L1_TYPE_SECT,
-
-
-    //USER
-    [0] = (0x14000000) | L1_SECT_USER_RW | L1_SECT_MEM_DEFAULT | L1_TYPE_SECT,
-
-
 };
 
 
@@ -76,4 +70,22 @@ void copy_vector_table(void)
     // Ask linker to not throw away exceptions.o from libkernel.a
     int tmp = vector_table[0];
     (void) tmp;
+}
+
+void l1_insert_kernel_mapping(uint32_t *l1_table)
+{
+    //vector_table
+    l1_table[VECTOR_HIGH_ADDR>>20] = PHYS(vector_l2_table) + L1_TYPE_TABLE;
+
+    // kernel high address
+    l1_table[KERNBASE_VADDR>>20] = (KERNBASE_PADDR&0xfff00000) | L1_SECT_PRIVILEGED_RW |
+        L1_SECT_MEM_DEFAULT | L1_TYPE_SECT;
+
+    // uart
+    l1_table[0x2020000>>20] = (0x2020000&0xfff00000) | L1_SECT_PRIVILEGED_RW |
+        L1_SECT_MEM_DEVICE | L1_TYPE_SECT;
+
+    // scu
+    l1_table[0xa00000>>20] = (0xa00000&0xfff00000) | L1_SECT_PRIVILEGED_RW |
+        L1_SECT_MEM_DEVICE | L1_TYPE_SECT;
 }
