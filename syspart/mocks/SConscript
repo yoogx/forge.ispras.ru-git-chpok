@@ -19,21 +19,10 @@
 
 Import('syspart_env')
 
-syspart_env['CPPPATH'].append([syspart_env['JETOS_HOME']+'/syspart/include'])
+syspart_mocks_env = syspart_env.Clone()
+syspart_mocks_env.Append(CPPPATH = syspart_mocks_env['JETOS_HOME']+'/syspart/components/arinc/')
+mocks = syspart_mocks_env.StaticObject(source = Glob('*.c'))
 
-Export('syspart_env')
-
-drivers = SConscript('drivers/SConscript')
-components = SConscript('components/SConscript')
-mocks = SConscript('mocks/SConscript')
-
-syspart_program = syspart_env.StaticLibrary(target = 'syspart', source = [
-    drivers,
-    components,
-    mocks,
-    'pool.c'
-])
-
-Return('syspart_program')
+Return('mocks')
 
 # EOF
