@@ -20,14 +20,13 @@
 struct interrupt_context {
     uint32_t fp;
     uint32_t svc_lr;
-    uint32_t adj;
-    uint32_t r12;
-    uint32_t r3;
-    uint32_t r2;
-    uint32_t r1;
     uint32_t r0;
-    uint32_t saved_psr;
+    uint32_t r1;
+    uint32_t r2;
+    uint32_t r3;
+    uint32_t r12;
     uint32_t saved_pc;
+    uint32_t saved_psr;
 };
 
 pok_ret_t syscall_handler(

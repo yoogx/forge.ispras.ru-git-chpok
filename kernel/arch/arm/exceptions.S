@@ -60,27 +60,30 @@ jet_excp_svc_asm:
 
     push {r0-r3, r12} //push volatile regs
 
-    //make sp to 8-byte aligned. Store adjustment in stack
-    and r3, sp, #0x7
-    sub sp, sp, r3 //sp = sp - sp&7
-    push {r3}
-
     push {lr} //lr is non-volatile and banked, but we corrupt it in blx. Save it
 
     push {fp}
     mov fp, #0 //for gdb backtrace
 
+    mov r0, sp // mov sp to r0. This is an interrupt context. Stack alignment
+               // won't go to interrupt contxt
+
+    //make sp to 8-byte aligned. Store adjustment in stack
+    and r3, sp, #0x7
+    sub sp, sp, r3 //sp = sp - sp&7
+    push {r3}
+
     /* r0 is interrupt_context */
-    mov r0, sp
     ldr r3, =\handler
     blx r3
-
-    pop {fp}
-    pop {lr}
 
     // restore original (possible not 8-byte aligned) sp value
     pop {r3}
     add sp, sp, r3
+
+    pop {fp}
+
+    pop {lr}
 
     pop {r0-r3, r12} //restore volatile regs
 
