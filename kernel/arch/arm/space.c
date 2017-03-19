@@ -51,6 +51,7 @@ void ja_space_switch(jet_space_id new_space_id)
     if (new_space_id != 0) {
         ttbr0_set(PHYS(l1_tables[new_space_id - 1]));
     }
+    asm volatile ("MCR p15, 0, r0, c8, c7, 0"); // invalidate all TLB
 
     current_space_id = new_space_id;
 }
