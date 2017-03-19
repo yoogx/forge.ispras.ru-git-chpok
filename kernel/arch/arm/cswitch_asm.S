@@ -50,7 +50,7 @@ ja_user_space_jump:
     // usage of 'sp!' here leads to warning, thus we do
     // two steps: loads and sp move
     ldmfd sp, {sp, lr}^ //load user sp, lr
-    sub sp, sp, #8 // size of sp+lr
+    add sp, sp, #8 // size of sp+lr
 
     mov r8, #CPSR_MODE_USR
     push {r2, r8} //push user CPSR and user pc
