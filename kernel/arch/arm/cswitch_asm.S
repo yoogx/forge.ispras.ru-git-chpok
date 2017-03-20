@@ -20,6 +20,11 @@ ja_context_jump:
     /* r0: new_sp */
     mov sp, r0
     mov lr, #0 //for gdb backtrace
+
+    /* load user sp, lr */
+    ldmfd sp, {sp, lr}^ //load user sp, lr
+    add sp, sp, #8 // size of sp+lr
+
     pop {r4-r12, pc}
 
 
@@ -68,9 +73,17 @@ ja_context_switch:
 
     push {r4-r12, lr}
 
+    /* save user sp, lr */
+    stmfd sp, {sp, lr}^ //save user sp, lr
+    sub sp, sp, #8 // size of sp+lr
+
     /* switch stacks */
     str sp, [r0] // *r0=sp
     mov sp, r1 // sp=r1
+
+    /* load user sp, lr */
+    ldmfd sp, {sp, lr}^ //load user sp, lr
+    add sp, sp, #8 // size of sp+lr
 
     pop {r4-r12, lr}
     mov pc, lr

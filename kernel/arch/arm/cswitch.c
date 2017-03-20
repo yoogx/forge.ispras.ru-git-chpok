@@ -19,6 +19,8 @@
 
 struct jet_context
 {
+    uint32_t user_sp;
+    uint32_t user_lr;
     uint32_t r4;
     uint32_t r5;
     uint32_t r6;
