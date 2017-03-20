@@ -255,8 +255,8 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
             // Allocate 1 event slot per queuing port plus 2 slots for timer.
             .partition_event_max = {{part.ports_queueing | length}} + 2,
 
-            .period = {{part.period}},
-            .duration = {{part.duration}},
+            .period = {{part.period}}LL,
+            .duration = {{part.duration}}LL,
             .partition_id = {{part.part_id}},
 
             .space_id = {{part.space_id}},
