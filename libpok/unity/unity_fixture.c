@@ -93,6 +93,8 @@ void UnityTestRunner(unityfunction* setup,
         UnityMalloc_StartTest();
         UnityPointer_Init();
 
+        CMock_Init();
+
         if (TEST_PROTECT())
         {
             setup();
@@ -101,6 +103,7 @@ void UnityTestRunner(unityfunction* setup,
         if (TEST_PROTECT())
         {
             teardown();
+            CMock_Verify();
         }
         if (TEST_PROTECT())
         {
@@ -108,6 +111,7 @@ void UnityTestRunner(unityfunction* setup,
             if (!Unity.CurrentTestFailed)
                 UnityMalloc_EndTest();
         }
+        CMock_Destroy();
         UnityConcludeFixtureTest();
     }
 }

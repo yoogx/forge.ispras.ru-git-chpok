@@ -15,6 +15,9 @@
 
 int UnityMain(int argc, const char* argv[], void (*runAllTests)(void));
 
+void CMock_Init(void);
+void CMock_Destroy(void);
+void CMock_Verify(void);
 
 #define TEST_GROUP(group)\
     static const char* TEST_GROUP_##group = #group
