@@ -24,11 +24,29 @@ void Mocksyscall_map_arinc_Verify(void);
 void pok_thread_create_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, void* entry, const pok_thread_attr_t* attr, pok_thread_id_t* thread_id, pok_ret_t cmock_to_return);
 int pok_thread_create_UseMock;
 pok_ret_t _pok_thread_create_impl(const char* name, void* entry, const pok_thread_attr_t* attr, pok_thread_id_t* thread_id);
+#define pok_thread_create_ReturnThruPtr_entry(entry) pok_thread_create_CMockReturnMemThruPtr_entry(__LINE__, entry, sizeof(*entry))
+#define pok_thread_create_ReturnArrayThruPtr_entry(entry, cmock_len) pok_thread_create_CMockReturnMemThruPtr_entry(__LINE__, entry, (int)(cmock_len * (int)sizeof(*entry)))
+#define pok_thread_create_ReturnMemThruPtr_entry(entry, cmock_size) pok_thread_create_CMockReturnMemThruPtr_entry(__LINE__, entry, cmock_size)
+void pok_thread_create_CMockReturnMemThruPtr_entry(UNITY_LINE_TYPE cmock_line, void* entry, int cmock_size);
+#define pok_thread_create_ReturnThruPtr_thread_id(thread_id) pok_thread_create_CMockReturnMemThruPtr_thread_id(__LINE__, thread_id, sizeof(*thread_id))
+#define pok_thread_create_ReturnArrayThruPtr_thread_id(thread_id, cmock_len) pok_thread_create_CMockReturnMemThruPtr_thread_id(__LINE__, thread_id, (int)(cmock_len * (int)sizeof(*thread_id)))
+#define pok_thread_create_ReturnMemThruPtr_thread_id(thread_id, cmock_size) pok_thread_create_CMockReturnMemThruPtr_thread_id(__LINE__, thread_id, cmock_size)
+void pok_thread_create_CMockReturnMemThruPtr_thread_id(UNITY_LINE_TYPE cmock_line, pok_thread_id_t* thread_id, int cmock_size);
+#define pok_thread_create_IgnoreArg_name() pok_thread_create_CMockIgnoreArg_name(__LINE__)
+void pok_thread_create_CMockIgnoreArg_name(UNITY_LINE_TYPE cmock_line);
+#define pok_thread_create_IgnoreArg_entry() pok_thread_create_CMockIgnoreArg_entry(__LINE__)
+void pok_thread_create_CMockIgnoreArg_entry(UNITY_LINE_TYPE cmock_line);
+#define pok_thread_create_IgnoreArg_attr() pok_thread_create_CMockIgnoreArg_attr(__LINE__)
+void pok_thread_create_CMockIgnoreArg_attr(UNITY_LINE_TYPE cmock_line);
+#define pok_thread_create_IgnoreArg_thread_id() pok_thread_create_CMockIgnoreArg_thread_id(__LINE__)
+void pok_thread_create_CMockIgnoreArg_thread_id(UNITY_LINE_TYPE cmock_line);
 
 #define pok_thread_sleep_ExpectAndReturn(time, cmock_retval) pok_thread_sleep_CMockExpectAndReturn(__LINE__, time, cmock_retval)
 void pok_thread_sleep_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const pok_time_t* time, pok_ret_t cmock_to_return);
 int pok_thread_sleep_UseMock;
 pok_ret_t _pok_thread_sleep_impl(const pok_time_t* time);
+#define pok_thread_sleep_IgnoreArg_time() pok_thread_sleep_CMockIgnoreArg_time(__LINE__)
+void pok_thread_sleep_CMockIgnoreArg_time(UNITY_LINE_TYPE cmock_line);
 
 #define pok_sched_end_period_ExpectAndReturn(cmock_retval) pok_sched_end_period_CMockExpectAndReturn(__LINE__, cmock_retval)
 void pok_sched_end_period_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_ret_t cmock_to_return);
@@ -39,31 +57,65 @@ pok_ret_t _pok_sched_end_period_impl(void);
 void pok_thread_suspend_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const pok_time_t* time, pok_ret_t cmock_to_return);
 int pok_thread_suspend_UseMock;
 pok_ret_t _pok_thread_suspend_impl(const pok_time_t* time);
+#define pok_thread_suspend_IgnoreArg_time() pok_thread_suspend_CMockIgnoreArg_time(__LINE__)
+void pok_thread_suspend_CMockIgnoreArg_time(UNITY_LINE_TYPE cmock_line);
 
 #define pok_thread_get_status_ExpectAndReturn(thread_id, name, entry, status, cmock_retval) pok_thread_get_status_CMockExpectAndReturn(__LINE__, thread_id, name, entry, status, cmock_retval)
 void pok_thread_get_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_thread_id_t thread_id, char* name, void** entry, pok_thread_status_t* status, pok_ret_t cmock_to_return);
 int pok_thread_get_status_UseMock;
 pok_ret_t _pok_thread_get_status_impl(pok_thread_id_t thread_id, char* name, void** entry, pok_thread_status_t* status);
+#define pok_thread_get_status_ReturnThruPtr_name(name) pok_thread_get_status_CMockReturnMemThruPtr_name(__LINE__, name, sizeof(*name))
+#define pok_thread_get_status_ReturnArrayThruPtr_name(name, cmock_len) pok_thread_get_status_CMockReturnMemThruPtr_name(__LINE__, name, (int)(cmock_len * (int)sizeof(*name)))
+#define pok_thread_get_status_ReturnMemThruPtr_name(name, cmock_size) pok_thread_get_status_CMockReturnMemThruPtr_name(__LINE__, name, cmock_size)
+void pok_thread_get_status_CMockReturnMemThruPtr_name(UNITY_LINE_TYPE cmock_line, char* name, int cmock_size);
+#define pok_thread_get_status_ReturnThruPtr_entry(entry) pok_thread_get_status_CMockReturnMemThruPtr_entry(__LINE__, entry, sizeof(*entry))
+#define pok_thread_get_status_ReturnArrayThruPtr_entry(entry, cmock_len) pok_thread_get_status_CMockReturnMemThruPtr_entry(__LINE__, entry, (int)(cmock_len * (int)sizeof(*entry)))
+#define pok_thread_get_status_ReturnMemThruPtr_entry(entry, cmock_size) pok_thread_get_status_CMockReturnMemThruPtr_entry(__LINE__, entry, cmock_size)
+void pok_thread_get_status_CMockReturnMemThruPtr_entry(UNITY_LINE_TYPE cmock_line, void** entry, int cmock_size);
+#define pok_thread_get_status_ReturnThruPtr_status(status) pok_thread_get_status_CMockReturnMemThruPtr_status(__LINE__, status, sizeof(*status))
+#define pok_thread_get_status_ReturnArrayThruPtr_status(status, cmock_len) pok_thread_get_status_CMockReturnMemThruPtr_status(__LINE__, status, (int)(cmock_len * (int)sizeof(*status)))
+#define pok_thread_get_status_ReturnMemThruPtr_status(status, cmock_size) pok_thread_get_status_CMockReturnMemThruPtr_status(__LINE__, status, cmock_size)
+void pok_thread_get_status_CMockReturnMemThruPtr_status(UNITY_LINE_TYPE cmock_line, pok_thread_status_t* status, int cmock_size);
+#define pok_thread_get_status_IgnoreArg_thread_id() pok_thread_get_status_CMockIgnoreArg_thread_id(__LINE__)
+void pok_thread_get_status_CMockIgnoreArg_thread_id(UNITY_LINE_TYPE cmock_line);
+#define pok_thread_get_status_IgnoreArg_name() pok_thread_get_status_CMockIgnoreArg_name(__LINE__)
+void pok_thread_get_status_CMockIgnoreArg_name(UNITY_LINE_TYPE cmock_line);
+#define pok_thread_get_status_IgnoreArg_entry() pok_thread_get_status_CMockIgnoreArg_entry(__LINE__)
+void pok_thread_get_status_CMockIgnoreArg_entry(UNITY_LINE_TYPE cmock_line);
+#define pok_thread_get_status_IgnoreArg_status() pok_thread_get_status_CMockIgnoreArg_status(__LINE__)
+void pok_thread_get_status_CMockIgnoreArg_status(UNITY_LINE_TYPE cmock_line);
 
 #define pok_thread_delayed_start_ExpectAndReturn(thread_id, time, cmock_retval) pok_thread_delayed_start_CMockExpectAndReturn(__LINE__, thread_id, time, cmock_retval)
 void pok_thread_delayed_start_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_thread_id_t thread_id, const pok_time_t* time, pok_ret_t cmock_to_return);
 int pok_thread_delayed_start_UseMock;
 pok_ret_t _pok_thread_delayed_start_impl(pok_thread_id_t thread_id, const pok_time_t* time);
+#define pok_thread_delayed_start_IgnoreArg_thread_id() pok_thread_delayed_start_CMockIgnoreArg_thread_id(__LINE__)
+void pok_thread_delayed_start_CMockIgnoreArg_thread_id(UNITY_LINE_TYPE cmock_line);
+#define pok_thread_delayed_start_IgnoreArg_time() pok_thread_delayed_start_CMockIgnoreArg_time(__LINE__)
+void pok_thread_delayed_start_CMockIgnoreArg_time(UNITY_LINE_TYPE cmock_line);
 
 #define pok_thread_set_priority_ExpectAndReturn(thread_id, priority, cmock_retval) pok_thread_set_priority_CMockExpectAndReturn(__LINE__, thread_id, priority, cmock_retval)
 void pok_thread_set_priority_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_thread_id_t thread_id, uint32_t priority, pok_ret_t cmock_to_return);
 int pok_thread_set_priority_UseMock;
 pok_ret_t _pok_thread_set_priority_impl(pok_thread_id_t thread_id, uint32_t priority);
+#define pok_thread_set_priority_IgnoreArg_thread_id() pok_thread_set_priority_CMockIgnoreArg_thread_id(__LINE__)
+void pok_thread_set_priority_CMockIgnoreArg_thread_id(UNITY_LINE_TYPE cmock_line);
+#define pok_thread_set_priority_IgnoreArg_priority() pok_thread_set_priority_CMockIgnoreArg_priority(__LINE__)
+void pok_thread_set_priority_CMockIgnoreArg_priority(UNITY_LINE_TYPE cmock_line);
 
 #define pok_thread_resume_ExpectAndReturn(thread_id, cmock_retval) pok_thread_resume_CMockExpectAndReturn(__LINE__, thread_id, cmock_retval)
 void pok_thread_resume_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_thread_id_t thread_id, pok_ret_t cmock_to_return);
 int pok_thread_resume_UseMock;
 pok_ret_t _pok_thread_resume_impl(pok_thread_id_t thread_id);
+#define pok_thread_resume_IgnoreArg_thread_id() pok_thread_resume_CMockIgnoreArg_thread_id(__LINE__)
+void pok_thread_resume_CMockIgnoreArg_thread_id(UNITY_LINE_TYPE cmock_line);
 
 #define pok_thread_suspend_target_ExpectAndReturn(thread_id, cmock_retval) pok_thread_suspend_target_CMockExpectAndReturn(__LINE__, thread_id, cmock_retval)
 void pok_thread_suspend_target_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_thread_id_t thread_id, pok_ret_t cmock_to_return);
 int pok_thread_suspend_target_UseMock;
 pok_ret_t _pok_thread_suspend_target_impl(pok_thread_id_t thread_id);
+#define pok_thread_suspend_target_IgnoreArg_thread_id() pok_thread_suspend_target_CMockIgnoreArg_thread_id(__LINE__)
+void pok_thread_suspend_target_CMockIgnoreArg_thread_id(UNITY_LINE_TYPE cmock_line);
 
 #define pok_thread_yield_ExpectAndReturn(cmock_retval) pok_thread_yield_CMockExpectAndReturn(__LINE__, cmock_retval)
 void pok_thread_yield_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_ret_t cmock_to_return);
@@ -74,11 +126,15 @@ pok_ret_t _pok_thread_yield_impl(void);
 void pok_sched_replenish_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const pok_time_t* budget, pok_ret_t cmock_to_return);
 int pok_sched_replenish_UseMock;
 pok_ret_t _pok_sched_replenish_impl(const pok_time_t* budget);
+#define pok_sched_replenish_IgnoreArg_budget() pok_sched_replenish_CMockIgnoreArg_budget(__LINE__)
+void pok_sched_replenish_CMockIgnoreArg_budget(UNITY_LINE_TYPE cmock_line);
 
 #define pok_thread_stop_target_ExpectAndReturn(thread_id, cmock_retval) pok_thread_stop_target_CMockExpectAndReturn(__LINE__, thread_id, cmock_retval)
 void pok_thread_stop_target_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_thread_id_t thread_id, pok_ret_t cmock_to_return);
 int pok_thread_stop_target_UseMock;
 pok_ret_t _pok_thread_stop_target_impl(pok_thread_id_t thread_id);
+#define pok_thread_stop_target_IgnoreArg_thread_id() pok_thread_stop_target_CMockIgnoreArg_thread_id(__LINE__)
+void pok_thread_stop_target_CMockIgnoreArg_thread_id(UNITY_LINE_TYPE cmock_line);
 
 #define pok_thread_stop_ExpectAndReturn(cmock_retval) pok_thread_stop_CMockExpectAndReturn(__LINE__, cmock_retval)
 void pok_thread_stop_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_ret_t cmock_to_return);
@@ -89,6 +145,14 @@ pok_ret_t _pok_thread_stop_impl(void);
 void pok_thread_find_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, pok_thread_id_t* id, pok_ret_t cmock_to_return);
 int pok_thread_find_UseMock;
 pok_ret_t _pok_thread_find_impl(const char* name, pok_thread_id_t* id);
+#define pok_thread_find_ReturnThruPtr_id(id) pok_thread_find_CMockReturnMemThruPtr_id(__LINE__, id, sizeof(*id))
+#define pok_thread_find_ReturnArrayThruPtr_id(id, cmock_len) pok_thread_find_CMockReturnMemThruPtr_id(__LINE__, id, (int)(cmock_len * (int)sizeof(*id)))
+#define pok_thread_find_ReturnMemThruPtr_id(id, cmock_size) pok_thread_find_CMockReturnMemThruPtr_id(__LINE__, id, cmock_size)
+void pok_thread_find_CMockReturnMemThruPtr_id(UNITY_LINE_TYPE cmock_line, pok_thread_id_t* id, int cmock_size);
+#define pok_thread_find_IgnoreArg_name() pok_thread_find_CMockIgnoreArg_name(__LINE__)
+void pok_thread_find_CMockIgnoreArg_name(UNITY_LINE_TYPE cmock_line);
+#define pok_thread_find_IgnoreArg_id() pok_thread_find_CMockIgnoreArg_id(__LINE__)
+void pok_thread_find_CMockIgnoreArg_id(UNITY_LINE_TYPE cmock_line);
 
 #define jet_resched_ExpectAndReturn(cmock_retval) jet_resched_CMockExpectAndReturn(__LINE__, cmock_retval)
 void jet_resched_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_ret_t cmock_to_return);
@@ -99,131 +163,351 @@ pok_ret_t _jet_resched_impl(void);
 void jet_msection_enter_helper_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, struct msection* section, pok_ret_t cmock_to_return);
 int jet_msection_enter_helper_UseMock;
 pok_ret_t _jet_msection_enter_helper_impl(struct msection* section);
+#define jet_msection_enter_helper_ReturnThruPtr_section(section) jet_msection_enter_helper_CMockReturnMemThruPtr_section(__LINE__, section, sizeof(*section))
+#define jet_msection_enter_helper_ReturnArrayThruPtr_section(section, cmock_len) jet_msection_enter_helper_CMockReturnMemThruPtr_section(__LINE__, section, (int)(cmock_len * (int)sizeof(*section)))
+#define jet_msection_enter_helper_ReturnMemThruPtr_section(section, cmock_size) jet_msection_enter_helper_CMockReturnMemThruPtr_section(__LINE__, section, cmock_size)
+void jet_msection_enter_helper_CMockReturnMemThruPtr_section(UNITY_LINE_TYPE cmock_line, struct msection* section, int cmock_size);
+#define jet_msection_enter_helper_IgnoreArg_section() jet_msection_enter_helper_CMockIgnoreArg_section(__LINE__)
+void jet_msection_enter_helper_CMockIgnoreArg_section(UNITY_LINE_TYPE cmock_line);
 
 #define jet_msection_wait_ExpectAndReturn(section, timeout, cmock_retval) jet_msection_wait_CMockExpectAndReturn(__LINE__, section, timeout, cmock_retval)
 void jet_msection_wait_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, struct msection* section, const pok_time_t* timeout, pok_ret_t cmock_to_return);
 int jet_msection_wait_UseMock;
 pok_ret_t _jet_msection_wait_impl(struct msection* section, const pok_time_t* timeout);
+#define jet_msection_wait_ReturnThruPtr_section(section) jet_msection_wait_CMockReturnMemThruPtr_section(__LINE__, section, sizeof(*section))
+#define jet_msection_wait_ReturnArrayThruPtr_section(section, cmock_len) jet_msection_wait_CMockReturnMemThruPtr_section(__LINE__, section, (int)(cmock_len * (int)sizeof(*section)))
+#define jet_msection_wait_ReturnMemThruPtr_section(section, cmock_size) jet_msection_wait_CMockReturnMemThruPtr_section(__LINE__, section, cmock_size)
+void jet_msection_wait_CMockReturnMemThruPtr_section(UNITY_LINE_TYPE cmock_line, struct msection* section, int cmock_size);
+#define jet_msection_wait_IgnoreArg_section() jet_msection_wait_CMockIgnoreArg_section(__LINE__)
+void jet_msection_wait_CMockIgnoreArg_section(UNITY_LINE_TYPE cmock_line);
+#define jet_msection_wait_IgnoreArg_timeout() jet_msection_wait_CMockIgnoreArg_timeout(__LINE__)
+void jet_msection_wait_CMockIgnoreArg_timeout(UNITY_LINE_TYPE cmock_line);
 
 #define jet_msection_notify_ExpectAndReturn(section, thread_id, cmock_retval) jet_msection_notify_CMockExpectAndReturn(__LINE__, section, thread_id, cmock_retval)
 void jet_msection_notify_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, struct msection* section, pok_thread_id_t thread_id, pok_ret_t cmock_to_return);
 int jet_msection_notify_UseMock;
 pok_ret_t _jet_msection_notify_impl(struct msection* section, pok_thread_id_t thread_id);
+#define jet_msection_notify_ReturnThruPtr_section(section) jet_msection_notify_CMockReturnMemThruPtr_section(__LINE__, section, sizeof(*section))
+#define jet_msection_notify_ReturnArrayThruPtr_section(section, cmock_len) jet_msection_notify_CMockReturnMemThruPtr_section(__LINE__, section, (int)(cmock_len * (int)sizeof(*section)))
+#define jet_msection_notify_ReturnMemThruPtr_section(section, cmock_size) jet_msection_notify_CMockReturnMemThruPtr_section(__LINE__, section, cmock_size)
+void jet_msection_notify_CMockReturnMemThruPtr_section(UNITY_LINE_TYPE cmock_line, struct msection* section, int cmock_size);
+#define jet_msection_notify_IgnoreArg_section() jet_msection_notify_CMockIgnoreArg_section(__LINE__)
+void jet_msection_notify_CMockIgnoreArg_section(UNITY_LINE_TYPE cmock_line);
+#define jet_msection_notify_IgnoreArg_thread_id() jet_msection_notify_CMockIgnoreArg_thread_id(__LINE__)
+void jet_msection_notify_CMockIgnoreArg_thread_id(UNITY_LINE_TYPE cmock_line);
 
 #define jet_msection_wq_notify_ExpectAndReturn(section, wq, is_all, cmock_retval) jet_msection_wq_notify_CMockExpectAndReturn(__LINE__, section, wq, is_all, cmock_retval)
 void jet_msection_wq_notify_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, struct msection* section, struct msection_wq* wq, pok_bool_t is_all, pok_ret_t cmock_to_return);
 int jet_msection_wq_notify_UseMock;
 pok_ret_t _jet_msection_wq_notify_impl(struct msection* section, struct msection_wq* wq, pok_bool_t is_all);
+#define jet_msection_wq_notify_ReturnThruPtr_section(section) jet_msection_wq_notify_CMockReturnMemThruPtr_section(__LINE__, section, sizeof(*section))
+#define jet_msection_wq_notify_ReturnArrayThruPtr_section(section, cmock_len) jet_msection_wq_notify_CMockReturnMemThruPtr_section(__LINE__, section, (int)(cmock_len * (int)sizeof(*section)))
+#define jet_msection_wq_notify_ReturnMemThruPtr_section(section, cmock_size) jet_msection_wq_notify_CMockReturnMemThruPtr_section(__LINE__, section, cmock_size)
+void jet_msection_wq_notify_CMockReturnMemThruPtr_section(UNITY_LINE_TYPE cmock_line, struct msection* section, int cmock_size);
+#define jet_msection_wq_notify_ReturnThruPtr_wq(wq) jet_msection_wq_notify_CMockReturnMemThruPtr_wq(__LINE__, wq, sizeof(*wq))
+#define jet_msection_wq_notify_ReturnArrayThruPtr_wq(wq, cmock_len) jet_msection_wq_notify_CMockReturnMemThruPtr_wq(__LINE__, wq, (int)(cmock_len * (int)sizeof(*wq)))
+#define jet_msection_wq_notify_ReturnMemThruPtr_wq(wq, cmock_size) jet_msection_wq_notify_CMockReturnMemThruPtr_wq(__LINE__, wq, cmock_size)
+void jet_msection_wq_notify_CMockReturnMemThruPtr_wq(UNITY_LINE_TYPE cmock_line, struct msection_wq* wq, int cmock_size);
+#define jet_msection_wq_notify_IgnoreArg_section() jet_msection_wq_notify_CMockIgnoreArg_section(__LINE__)
+void jet_msection_wq_notify_CMockIgnoreArg_section(UNITY_LINE_TYPE cmock_line);
+#define jet_msection_wq_notify_IgnoreArg_wq() jet_msection_wq_notify_CMockIgnoreArg_wq(__LINE__)
+void jet_msection_wq_notify_CMockIgnoreArg_wq(UNITY_LINE_TYPE cmock_line);
+#define jet_msection_wq_notify_IgnoreArg_is_all() jet_msection_wq_notify_CMockIgnoreArg_is_all(__LINE__)
+void jet_msection_wq_notify_CMockIgnoreArg_is_all(UNITY_LINE_TYPE cmock_line);
 
 #define jet_msection_wq_size_ExpectAndReturn(section, wq, size, cmock_retval) jet_msection_wq_size_CMockExpectAndReturn(__LINE__, section, wq, size, cmock_retval)
 void jet_msection_wq_size_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, struct msection* section, struct msection_wq* wq, size_t* size, pok_ret_t cmock_to_return);
 int jet_msection_wq_size_UseMock;
 pok_ret_t _jet_msection_wq_size_impl(struct msection* section, struct msection_wq* wq, size_t* size);
+#define jet_msection_wq_size_ReturnThruPtr_section(section) jet_msection_wq_size_CMockReturnMemThruPtr_section(__LINE__, section, sizeof(*section))
+#define jet_msection_wq_size_ReturnArrayThruPtr_section(section, cmock_len) jet_msection_wq_size_CMockReturnMemThruPtr_section(__LINE__, section, (int)(cmock_len * (int)sizeof(*section)))
+#define jet_msection_wq_size_ReturnMemThruPtr_section(section, cmock_size) jet_msection_wq_size_CMockReturnMemThruPtr_section(__LINE__, section, cmock_size)
+void jet_msection_wq_size_CMockReturnMemThruPtr_section(UNITY_LINE_TYPE cmock_line, struct msection* section, int cmock_size);
+#define jet_msection_wq_size_ReturnThruPtr_wq(wq) jet_msection_wq_size_CMockReturnMemThruPtr_wq(__LINE__, wq, sizeof(*wq))
+#define jet_msection_wq_size_ReturnArrayThruPtr_wq(wq, cmock_len) jet_msection_wq_size_CMockReturnMemThruPtr_wq(__LINE__, wq, (int)(cmock_len * (int)sizeof(*wq)))
+#define jet_msection_wq_size_ReturnMemThruPtr_wq(wq, cmock_size) jet_msection_wq_size_CMockReturnMemThruPtr_wq(__LINE__, wq, cmock_size)
+void jet_msection_wq_size_CMockReturnMemThruPtr_wq(UNITY_LINE_TYPE cmock_line, struct msection_wq* wq, int cmock_size);
+#define jet_msection_wq_size_ReturnThruPtr_size(size) jet_msection_wq_size_CMockReturnMemThruPtr_size(__LINE__, size, sizeof(*size))
+#define jet_msection_wq_size_ReturnArrayThruPtr_size(size, cmock_len) jet_msection_wq_size_CMockReturnMemThruPtr_size(__LINE__, size, (int)(cmock_len * (int)sizeof(*size)))
+#define jet_msection_wq_size_ReturnMemThruPtr_size(size, cmock_size) jet_msection_wq_size_CMockReturnMemThruPtr_size(__LINE__, size, cmock_size)
+void jet_msection_wq_size_CMockReturnMemThruPtr_size(UNITY_LINE_TYPE cmock_line, size_t* size, int cmock_size);
+#define jet_msection_wq_size_IgnoreArg_section() jet_msection_wq_size_CMockIgnoreArg_section(__LINE__)
+void jet_msection_wq_size_CMockIgnoreArg_section(UNITY_LINE_TYPE cmock_line);
+#define jet_msection_wq_size_IgnoreArg_wq() jet_msection_wq_size_CMockIgnoreArg_wq(__LINE__)
+void jet_msection_wq_size_CMockIgnoreArg_wq(UNITY_LINE_TYPE cmock_line);
+#define jet_msection_wq_size_IgnoreArg_size() jet_msection_wq_size_CMockIgnoreArg_size(__LINE__)
+void jet_msection_wq_size_CMockIgnoreArg_size(UNITY_LINE_TYPE cmock_line);
 
 #define pok_partition_set_mode_current_ExpectAndReturn(mode, cmock_retval) pok_partition_set_mode_current_CMockExpectAndReturn(__LINE__, mode, cmock_retval)
 void pok_partition_set_mode_current_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_partition_mode_t mode, pok_ret_t cmock_to_return);
 int pok_partition_set_mode_current_UseMock;
 pok_ret_t _pok_partition_set_mode_current_impl(pok_partition_mode_t mode);
+#define pok_partition_set_mode_current_IgnoreArg_mode() pok_partition_set_mode_current_CMockIgnoreArg_mode(__LINE__)
+void pok_partition_set_mode_current_CMockIgnoreArg_mode(UNITY_LINE_TYPE cmock_line);
 
 #define pok_current_partition_get_status_ExpectAndReturn(status, cmock_retval) pok_current_partition_get_status_CMockExpectAndReturn(__LINE__, status, cmock_retval)
 void pok_current_partition_get_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_partition_status_t* status, pok_ret_t cmock_to_return);
 int pok_current_partition_get_status_UseMock;
 pok_ret_t _pok_current_partition_get_status_impl(pok_partition_status_t* status);
+#define pok_current_partition_get_status_ReturnThruPtr_status(status) pok_current_partition_get_status_CMockReturnMemThruPtr_status(__LINE__, status, sizeof(*status))
+#define pok_current_partition_get_status_ReturnArrayThruPtr_status(status, cmock_len) pok_current_partition_get_status_CMockReturnMemThruPtr_status(__LINE__, status, (int)(cmock_len * (int)sizeof(*status)))
+#define pok_current_partition_get_status_ReturnMemThruPtr_status(status, cmock_size) pok_current_partition_get_status_CMockReturnMemThruPtr_status(__LINE__, status, cmock_size)
+void pok_current_partition_get_status_CMockReturnMemThruPtr_status(UNITY_LINE_TYPE cmock_line, pok_partition_status_t* status, int cmock_size);
+#define pok_current_partition_get_status_IgnoreArg_status() pok_current_partition_get_status_CMockIgnoreArg_status(__LINE__)
+void pok_current_partition_get_status_CMockIgnoreArg_status(UNITY_LINE_TYPE cmock_line);
 
 #define pok_current_partition_inc_lock_level_ExpectAndReturn(lock_level, cmock_retval) pok_current_partition_inc_lock_level_CMockExpectAndReturn(__LINE__, lock_level, cmock_retval)
 void pok_current_partition_inc_lock_level_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, int32_t* lock_level, pok_ret_t cmock_to_return);
 int pok_current_partition_inc_lock_level_UseMock;
 pok_ret_t _pok_current_partition_inc_lock_level_impl(int32_t* lock_level);
+#define pok_current_partition_inc_lock_level_ReturnThruPtr_lock_level(lock_level) pok_current_partition_inc_lock_level_CMockReturnMemThruPtr_lock_level(__LINE__, lock_level, sizeof(*lock_level))
+#define pok_current_partition_inc_lock_level_ReturnArrayThruPtr_lock_level(lock_level, cmock_len) pok_current_partition_inc_lock_level_CMockReturnMemThruPtr_lock_level(__LINE__, lock_level, (int)(cmock_len * (int)sizeof(*lock_level)))
+#define pok_current_partition_inc_lock_level_ReturnMemThruPtr_lock_level(lock_level, cmock_size) pok_current_partition_inc_lock_level_CMockReturnMemThruPtr_lock_level(__LINE__, lock_level, cmock_size)
+void pok_current_partition_inc_lock_level_CMockReturnMemThruPtr_lock_level(UNITY_LINE_TYPE cmock_line, int32_t* lock_level, int cmock_size);
+#define pok_current_partition_inc_lock_level_IgnoreArg_lock_level() pok_current_partition_inc_lock_level_CMockIgnoreArg_lock_level(__LINE__)
+void pok_current_partition_inc_lock_level_CMockIgnoreArg_lock_level(UNITY_LINE_TYPE cmock_line);
 
 #define pok_current_partition_dec_lock_level_ExpectAndReturn(lock_level, cmock_retval) pok_current_partition_dec_lock_level_CMockExpectAndReturn(__LINE__, lock_level, cmock_retval)
 void pok_current_partition_dec_lock_level_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, int32_t* lock_level, pok_ret_t cmock_to_return);
 int pok_current_partition_dec_lock_level_UseMock;
 pok_ret_t _pok_current_partition_dec_lock_level_impl(int32_t* lock_level);
+#define pok_current_partition_dec_lock_level_ReturnThruPtr_lock_level(lock_level) pok_current_partition_dec_lock_level_CMockReturnMemThruPtr_lock_level(__LINE__, lock_level, sizeof(*lock_level))
+#define pok_current_partition_dec_lock_level_ReturnArrayThruPtr_lock_level(lock_level, cmock_len) pok_current_partition_dec_lock_level_CMockReturnMemThruPtr_lock_level(__LINE__, lock_level, (int)(cmock_len * (int)sizeof(*lock_level)))
+#define pok_current_partition_dec_lock_level_ReturnMemThruPtr_lock_level(lock_level, cmock_size) pok_current_partition_dec_lock_level_CMockReturnMemThruPtr_lock_level(__LINE__, lock_level, cmock_size)
+void pok_current_partition_dec_lock_level_CMockReturnMemThruPtr_lock_level(UNITY_LINE_TYPE cmock_line, int32_t* lock_level, int cmock_size);
+#define pok_current_partition_dec_lock_level_IgnoreArg_lock_level() pok_current_partition_dec_lock_level_CMockIgnoreArg_lock_level(__LINE__)
+void pok_current_partition_dec_lock_level_CMockIgnoreArg_lock_level(UNITY_LINE_TYPE cmock_line);
 
 #define pok_error_thread_create_ExpectAndReturn(stack_size, entry, cmock_retval) pok_error_thread_create_CMockExpectAndReturn(__LINE__, stack_size, entry, cmock_retval)
 void pok_error_thread_create_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, uint32_t stack_size, void* entry, pok_ret_t cmock_to_return);
 int pok_error_thread_create_UseMock;
 pok_ret_t _pok_error_thread_create_impl(uint32_t stack_size, void* entry);
+#define pok_error_thread_create_ReturnThruPtr_entry(entry) pok_error_thread_create_CMockReturnMemThruPtr_entry(__LINE__, entry, sizeof(*entry))
+#define pok_error_thread_create_ReturnArrayThruPtr_entry(entry, cmock_len) pok_error_thread_create_CMockReturnMemThruPtr_entry(__LINE__, entry, (int)(cmock_len * (int)sizeof(*entry)))
+#define pok_error_thread_create_ReturnMemThruPtr_entry(entry, cmock_size) pok_error_thread_create_CMockReturnMemThruPtr_entry(__LINE__, entry, cmock_size)
+void pok_error_thread_create_CMockReturnMemThruPtr_entry(UNITY_LINE_TYPE cmock_line, void* entry, int cmock_size);
+#define pok_error_thread_create_IgnoreArg_stack_size() pok_error_thread_create_CMockIgnoreArg_stack_size(__LINE__)
+void pok_error_thread_create_CMockIgnoreArg_stack_size(UNITY_LINE_TYPE cmock_line);
+#define pok_error_thread_create_IgnoreArg_entry() pok_error_thread_create_CMockIgnoreArg_entry(__LINE__)
+void pok_error_thread_create_CMockIgnoreArg_entry(UNITY_LINE_TYPE cmock_line);
 
 #define pok_error_raise_application_error_ExpectAndReturn(msg, msg_size, cmock_retval) pok_error_raise_application_error_CMockExpectAndReturn(__LINE__, msg, msg_size, cmock_retval)
 void pok_error_raise_application_error_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* msg, size_t msg_size, pok_ret_t cmock_to_return);
 int pok_error_raise_application_error_UseMock;
 pok_ret_t _pok_error_raise_application_error_impl(const char* msg, size_t msg_size);
+#define pok_error_raise_application_error_IgnoreArg_msg() pok_error_raise_application_error_CMockIgnoreArg_msg(__LINE__)
+void pok_error_raise_application_error_CMockIgnoreArg_msg(UNITY_LINE_TYPE cmock_line);
+#define pok_error_raise_application_error_IgnoreArg_msg_size() pok_error_raise_application_error_CMockIgnoreArg_msg_size(__LINE__)
+void pok_error_raise_application_error_CMockIgnoreArg_msg_size(UNITY_LINE_TYPE cmock_line);
 
 #define pok_error_get_ExpectAndReturn(status, msg, cmock_retval) pok_error_get_CMockExpectAndReturn(__LINE__, status, msg, cmock_retval)
 void pok_error_get_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_error_status_t* status, void* msg, pok_ret_t cmock_to_return);
 int pok_error_get_UseMock;
 pok_ret_t _pok_error_get_impl(pok_error_status_t* status, void* msg);
+#define pok_error_get_ReturnThruPtr_status(status) pok_error_get_CMockReturnMemThruPtr_status(__LINE__, status, sizeof(*status))
+#define pok_error_get_ReturnArrayThruPtr_status(status, cmock_len) pok_error_get_CMockReturnMemThruPtr_status(__LINE__, status, (int)(cmock_len * (int)sizeof(*status)))
+#define pok_error_get_ReturnMemThruPtr_status(status, cmock_size) pok_error_get_CMockReturnMemThruPtr_status(__LINE__, status, cmock_size)
+void pok_error_get_CMockReturnMemThruPtr_status(UNITY_LINE_TYPE cmock_line, pok_error_status_t* status, int cmock_size);
+#define pok_error_get_ReturnThruPtr_msg(msg) pok_error_get_CMockReturnMemThruPtr_msg(__LINE__, msg, sizeof(*msg))
+#define pok_error_get_ReturnArrayThruPtr_msg(msg, cmock_len) pok_error_get_CMockReturnMemThruPtr_msg(__LINE__, msg, (int)(cmock_len * (int)sizeof(*msg)))
+#define pok_error_get_ReturnMemThruPtr_msg(msg, cmock_size) pok_error_get_CMockReturnMemThruPtr_msg(__LINE__, msg, cmock_size)
+void pok_error_get_CMockReturnMemThruPtr_msg(UNITY_LINE_TYPE cmock_line, void* msg, int cmock_size);
+#define pok_error_get_IgnoreArg_status() pok_error_get_CMockIgnoreArg_status(__LINE__)
+void pok_error_get_CMockIgnoreArg_status(UNITY_LINE_TYPE cmock_line);
+#define pok_error_get_IgnoreArg_msg() pok_error_get_CMockIgnoreArg_msg(__LINE__)
+void pok_error_get_CMockIgnoreArg_msg(UNITY_LINE_TYPE cmock_line);
 
 #define pok_error_raise_os_error_ExpectAndReturn(msg, msg_size, cmock_retval) pok_error_raise_os_error_CMockExpectAndReturn(__LINE__, msg, msg_size, cmock_retval)
 void pok_error_raise_os_error_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* msg, size_t msg_size, pok_ret_t cmock_to_return);
 int pok_error_raise_os_error_UseMock;
 pok_ret_t _pok_error_raise_os_error_impl(const char* msg, size_t msg_size);
+#define pok_error_raise_os_error_IgnoreArg_msg() pok_error_raise_os_error_CMockIgnoreArg_msg(__LINE__)
+void pok_error_raise_os_error_CMockIgnoreArg_msg(UNITY_LINE_TYPE cmock_line);
+#define pok_error_raise_os_error_IgnoreArg_msg_size() pok_error_raise_os_error_CMockIgnoreArg_msg_size(__LINE__)
+void pok_error_raise_os_error_CMockIgnoreArg_msg_size(UNITY_LINE_TYPE cmock_line);
 
 #define pok_port_sampling_create_ExpectAndReturn(name, size, direction, refresh, id, cmock_retval) pok_port_sampling_create_CMockExpectAndReturn(__LINE__, name, size, direction, refresh, id, cmock_retval)
 void pok_port_sampling_create_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, pok_port_size_t size, pok_port_direction_t direction, const pok_time_t* refresh, pok_port_id_t* id, pok_ret_t cmock_to_return);
 int pok_port_sampling_create_UseMock;
 pok_ret_t _pok_port_sampling_create_impl(const char* name, pok_port_size_t size, pok_port_direction_t direction, const pok_time_t* refresh, pok_port_id_t* id);
+#define pok_port_sampling_create_ReturnThruPtr_id(id) pok_port_sampling_create_CMockReturnMemThruPtr_id(__LINE__, id, sizeof(*id))
+#define pok_port_sampling_create_ReturnArrayThruPtr_id(id, cmock_len) pok_port_sampling_create_CMockReturnMemThruPtr_id(__LINE__, id, (int)(cmock_len * (int)sizeof(*id)))
+#define pok_port_sampling_create_ReturnMemThruPtr_id(id, cmock_size) pok_port_sampling_create_CMockReturnMemThruPtr_id(__LINE__, id, cmock_size)
+void pok_port_sampling_create_CMockReturnMemThruPtr_id(UNITY_LINE_TYPE cmock_line, pok_port_id_t* id, int cmock_size);
+#define pok_port_sampling_create_IgnoreArg_name() pok_port_sampling_create_CMockIgnoreArg_name(__LINE__)
+void pok_port_sampling_create_CMockIgnoreArg_name(UNITY_LINE_TYPE cmock_line);
+#define pok_port_sampling_create_IgnoreArg_size() pok_port_sampling_create_CMockIgnoreArg_size(__LINE__)
+void pok_port_sampling_create_CMockIgnoreArg_size(UNITY_LINE_TYPE cmock_line);
+#define pok_port_sampling_create_IgnoreArg_direction() pok_port_sampling_create_CMockIgnoreArg_direction(__LINE__)
+void pok_port_sampling_create_CMockIgnoreArg_direction(UNITY_LINE_TYPE cmock_line);
+#define pok_port_sampling_create_IgnoreArg_refresh() pok_port_sampling_create_CMockIgnoreArg_refresh(__LINE__)
+void pok_port_sampling_create_CMockIgnoreArg_refresh(UNITY_LINE_TYPE cmock_line);
+#define pok_port_sampling_create_IgnoreArg_id() pok_port_sampling_create_CMockIgnoreArg_id(__LINE__)
+void pok_port_sampling_create_CMockIgnoreArg_id(UNITY_LINE_TYPE cmock_line);
 
 #define pok_port_sampling_write_ExpectAndReturn(id, data, len, cmock_retval) pok_port_sampling_write_CMockExpectAndReturn(__LINE__, id, data, len, cmock_retval)
 void pok_port_sampling_write_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_port_id_t id, const void* data, pok_port_size_t len, pok_ret_t cmock_to_return);
 int pok_port_sampling_write_UseMock;
 pok_ret_t _pok_port_sampling_write_impl(pok_port_id_t id, const void* data, pok_port_size_t len);
+#define pok_port_sampling_write_IgnoreArg_id() pok_port_sampling_write_CMockIgnoreArg_id(__LINE__)
+void pok_port_sampling_write_CMockIgnoreArg_id(UNITY_LINE_TYPE cmock_line);
+#define pok_port_sampling_write_IgnoreArg_data() pok_port_sampling_write_CMockIgnoreArg_data(__LINE__)
+void pok_port_sampling_write_CMockIgnoreArg_data(UNITY_LINE_TYPE cmock_line);
+#define pok_port_sampling_write_IgnoreArg_len() pok_port_sampling_write_CMockIgnoreArg_len(__LINE__)
+void pok_port_sampling_write_CMockIgnoreArg_len(UNITY_LINE_TYPE cmock_line);
 
 #define pok_port_sampling_read_ExpectAndReturn(id, data, len, valid, cmock_retval) pok_port_sampling_read_CMockExpectAndReturn(__LINE__, id, data, len, valid, cmock_retval)
 void pok_port_sampling_read_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_port_id_t id, void* data, pok_port_size_t* len, pok_bool_t* valid, pok_ret_t cmock_to_return);
 int pok_port_sampling_read_UseMock;
 pok_ret_t _pok_port_sampling_read_impl(pok_port_id_t id, void* data, pok_port_size_t* len, pok_bool_t* valid);
+#define pok_port_sampling_read_ReturnThruPtr_data(data) pok_port_sampling_read_CMockReturnMemThruPtr_data(__LINE__, data, sizeof(*data))
+#define pok_port_sampling_read_ReturnArrayThruPtr_data(data, cmock_len) pok_port_sampling_read_CMockReturnMemThruPtr_data(__LINE__, data, (int)(cmock_len * (int)sizeof(*data)))
+#define pok_port_sampling_read_ReturnMemThruPtr_data(data, cmock_size) pok_port_sampling_read_CMockReturnMemThruPtr_data(__LINE__, data, cmock_size)
+void pok_port_sampling_read_CMockReturnMemThruPtr_data(UNITY_LINE_TYPE cmock_line, void* data, int cmock_size);
+#define pok_port_sampling_read_ReturnThruPtr_len(len) pok_port_sampling_read_CMockReturnMemThruPtr_len(__LINE__, len, sizeof(*len))
+#define pok_port_sampling_read_ReturnArrayThruPtr_len(len, cmock_len) pok_port_sampling_read_CMockReturnMemThruPtr_len(__LINE__, len, (int)(cmock_len * (int)sizeof(*len)))
+#define pok_port_sampling_read_ReturnMemThruPtr_len(len, cmock_size) pok_port_sampling_read_CMockReturnMemThruPtr_len(__LINE__, len, cmock_size)
+void pok_port_sampling_read_CMockReturnMemThruPtr_len(UNITY_LINE_TYPE cmock_line, pok_port_size_t* len, int cmock_size);
+#define pok_port_sampling_read_ReturnThruPtr_valid(valid) pok_port_sampling_read_CMockReturnMemThruPtr_valid(__LINE__, valid, sizeof(*valid))
+#define pok_port_sampling_read_ReturnArrayThruPtr_valid(valid, cmock_len) pok_port_sampling_read_CMockReturnMemThruPtr_valid(__LINE__, valid, (int)(cmock_len * (int)sizeof(*valid)))
+#define pok_port_sampling_read_ReturnMemThruPtr_valid(valid, cmock_size) pok_port_sampling_read_CMockReturnMemThruPtr_valid(__LINE__, valid, cmock_size)
+void pok_port_sampling_read_CMockReturnMemThruPtr_valid(UNITY_LINE_TYPE cmock_line, pok_bool_t* valid, int cmock_size);
+#define pok_port_sampling_read_IgnoreArg_id() pok_port_sampling_read_CMockIgnoreArg_id(__LINE__)
+void pok_port_sampling_read_CMockIgnoreArg_id(UNITY_LINE_TYPE cmock_line);
+#define pok_port_sampling_read_IgnoreArg_data() pok_port_sampling_read_CMockIgnoreArg_data(__LINE__)
+void pok_port_sampling_read_CMockIgnoreArg_data(UNITY_LINE_TYPE cmock_line);
+#define pok_port_sampling_read_IgnoreArg_len() pok_port_sampling_read_CMockIgnoreArg_len(__LINE__)
+void pok_port_sampling_read_CMockIgnoreArg_len(UNITY_LINE_TYPE cmock_line);
+#define pok_port_sampling_read_IgnoreArg_valid() pok_port_sampling_read_CMockIgnoreArg_valid(__LINE__)
+void pok_port_sampling_read_CMockIgnoreArg_valid(UNITY_LINE_TYPE cmock_line);
 
 #define pok_port_sampling_id_ExpectAndReturn(name, id, cmock_retval) pok_port_sampling_id_CMockExpectAndReturn(__LINE__, name, id, cmock_retval)
 void pok_port_sampling_id_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, pok_port_id_t* id, pok_ret_t cmock_to_return);
 int pok_port_sampling_id_UseMock;
 pok_ret_t _pok_port_sampling_id_impl(const char* name, pok_port_id_t* id);
+#define pok_port_sampling_id_ReturnThruPtr_id(id) pok_port_sampling_id_CMockReturnMemThruPtr_id(__LINE__, id, sizeof(*id))
+#define pok_port_sampling_id_ReturnArrayThruPtr_id(id, cmock_len) pok_port_sampling_id_CMockReturnMemThruPtr_id(__LINE__, id, (int)(cmock_len * (int)sizeof(*id)))
+#define pok_port_sampling_id_ReturnMemThruPtr_id(id, cmock_size) pok_port_sampling_id_CMockReturnMemThruPtr_id(__LINE__, id, cmock_size)
+void pok_port_sampling_id_CMockReturnMemThruPtr_id(UNITY_LINE_TYPE cmock_line, pok_port_id_t* id, int cmock_size);
+#define pok_port_sampling_id_IgnoreArg_name() pok_port_sampling_id_CMockIgnoreArg_name(__LINE__)
+void pok_port_sampling_id_CMockIgnoreArg_name(UNITY_LINE_TYPE cmock_line);
+#define pok_port_sampling_id_IgnoreArg_id() pok_port_sampling_id_CMockIgnoreArg_id(__LINE__)
+void pok_port_sampling_id_CMockIgnoreArg_id(UNITY_LINE_TYPE cmock_line);
 
 #define pok_port_sampling_status_ExpectAndReturn(id, status, cmock_retval) pok_port_sampling_status_CMockExpectAndReturn(__LINE__, id, status, cmock_retval)
 void pok_port_sampling_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_port_id_t id, pok_port_sampling_status_t* status, pok_ret_t cmock_to_return);
 int pok_port_sampling_status_UseMock;
 pok_ret_t _pok_port_sampling_status_impl(pok_port_id_t id, pok_port_sampling_status_t* status);
+#define pok_port_sampling_status_ReturnThruPtr_status(status) pok_port_sampling_status_CMockReturnMemThruPtr_status(__LINE__, status, sizeof(*status))
+#define pok_port_sampling_status_ReturnArrayThruPtr_status(status, cmock_len) pok_port_sampling_status_CMockReturnMemThruPtr_status(__LINE__, status, (int)(cmock_len * (int)sizeof(*status)))
+#define pok_port_sampling_status_ReturnMemThruPtr_status(status, cmock_size) pok_port_sampling_status_CMockReturnMemThruPtr_status(__LINE__, status, cmock_size)
+void pok_port_sampling_status_CMockReturnMemThruPtr_status(UNITY_LINE_TYPE cmock_line, pok_port_sampling_status_t* status, int cmock_size);
+#define pok_port_sampling_status_IgnoreArg_id() pok_port_sampling_status_CMockIgnoreArg_id(__LINE__)
+void pok_port_sampling_status_CMockIgnoreArg_id(UNITY_LINE_TYPE cmock_line);
+#define pok_port_sampling_status_IgnoreArg_status() pok_port_sampling_status_CMockIgnoreArg_status(__LINE__)
+void pok_port_sampling_status_CMockIgnoreArg_status(UNITY_LINE_TYPE cmock_line);
 
 #define pok_port_sampling_check_ExpectAndReturn(id, cmock_retval) pok_port_sampling_check_CMockExpectAndReturn(__LINE__, id, cmock_retval)
 void pok_port_sampling_check_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_port_id_t id, pok_ret_t cmock_to_return);
 int pok_port_sampling_check_UseMock;
 pok_ret_t _pok_port_sampling_check_impl(pok_port_id_t id);
+#define pok_port_sampling_check_IgnoreArg_id() pok_port_sampling_check_CMockIgnoreArg_id(__LINE__)
+void pok_port_sampling_check_CMockIgnoreArg_id(UNITY_LINE_TYPE cmock_line);
 
 #define pok_port_queuing_create_packed_ExpectAndReturn(name, arg, id, cmock_retval) pok_port_queuing_create_packed_CMockExpectAndReturn(__LINE__, name, arg, id, cmock_retval)
 void pok_port_queuing_create_packed_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, const pok_port_queuing_create_arg_t* arg, pok_port_id_t* id, pok_ret_t cmock_to_return);
 int pok_port_queuing_create_packed_UseMock;
 pok_ret_t _pok_port_queuing_create_packed_impl(const char* name, const pok_port_queuing_create_arg_t* arg, pok_port_id_t* id);
+#define pok_port_queuing_create_packed_ReturnThruPtr_id(id) pok_port_queuing_create_packed_CMockReturnMemThruPtr_id(__LINE__, id, sizeof(*id))
+#define pok_port_queuing_create_packed_ReturnArrayThruPtr_id(id, cmock_len) pok_port_queuing_create_packed_CMockReturnMemThruPtr_id(__LINE__, id, (int)(cmock_len * (int)sizeof(*id)))
+#define pok_port_queuing_create_packed_ReturnMemThruPtr_id(id, cmock_size) pok_port_queuing_create_packed_CMockReturnMemThruPtr_id(__LINE__, id, cmock_size)
+void pok_port_queuing_create_packed_CMockReturnMemThruPtr_id(UNITY_LINE_TYPE cmock_line, pok_port_id_t* id, int cmock_size);
+#define pok_port_queuing_create_packed_IgnoreArg_name() pok_port_queuing_create_packed_CMockIgnoreArg_name(__LINE__)
+void pok_port_queuing_create_packed_CMockIgnoreArg_name(UNITY_LINE_TYPE cmock_line);
+#define pok_port_queuing_create_packed_IgnoreArg_arg() pok_port_queuing_create_packed_CMockIgnoreArg_arg(__LINE__)
+void pok_port_queuing_create_packed_CMockIgnoreArg_arg(UNITY_LINE_TYPE cmock_line);
+#define pok_port_queuing_create_packed_IgnoreArg_id() pok_port_queuing_create_packed_CMockIgnoreArg_id(__LINE__)
+void pok_port_queuing_create_packed_CMockIgnoreArg_id(UNITY_LINE_TYPE cmock_line);
 
 #define pok_port_queuing_send_ExpectAndReturn(id, data, len, timeout, cmock_retval) pok_port_queuing_send_CMockExpectAndReturn(__LINE__, id, data, len, timeout, cmock_retval)
 void pok_port_queuing_send_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_port_id_t id, const void* data, pok_port_size_t len, const pok_time_t* timeout, pok_ret_t cmock_to_return);
 int pok_port_queuing_send_UseMock;
 pok_ret_t _pok_port_queuing_send_impl(pok_port_id_t id, const void* data, pok_port_size_t len, const pok_time_t* timeout);
+#define pok_port_queuing_send_IgnoreArg_id() pok_port_queuing_send_CMockIgnoreArg_id(__LINE__)
+void pok_port_queuing_send_CMockIgnoreArg_id(UNITY_LINE_TYPE cmock_line);
+#define pok_port_queuing_send_IgnoreArg_data() pok_port_queuing_send_CMockIgnoreArg_data(__LINE__)
+void pok_port_queuing_send_CMockIgnoreArg_data(UNITY_LINE_TYPE cmock_line);
+#define pok_port_queuing_send_IgnoreArg_len() pok_port_queuing_send_CMockIgnoreArg_len(__LINE__)
+void pok_port_queuing_send_CMockIgnoreArg_len(UNITY_LINE_TYPE cmock_line);
+#define pok_port_queuing_send_IgnoreArg_timeout() pok_port_queuing_send_CMockIgnoreArg_timeout(__LINE__)
+void pok_port_queuing_send_CMockIgnoreArg_timeout(UNITY_LINE_TYPE cmock_line);
 
 #define pok_port_queuing_receive_ExpectAndReturn(id, timeout, data, len, cmock_retval) pok_port_queuing_receive_CMockExpectAndReturn(__LINE__, id, timeout, data, len, cmock_retval)
 void pok_port_queuing_receive_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_port_id_t id, const pok_time_t* timeout, void* data, pok_port_size_t* len, pok_ret_t cmock_to_return);
 int pok_port_queuing_receive_UseMock;
 pok_ret_t _pok_port_queuing_receive_impl(pok_port_id_t id, const pok_time_t* timeout, void* data, pok_port_size_t* len);
+#define pok_port_queuing_receive_ReturnThruPtr_data(data) pok_port_queuing_receive_CMockReturnMemThruPtr_data(__LINE__, data, sizeof(*data))
+#define pok_port_queuing_receive_ReturnArrayThruPtr_data(data, cmock_len) pok_port_queuing_receive_CMockReturnMemThruPtr_data(__LINE__, data, (int)(cmock_len * (int)sizeof(*data)))
+#define pok_port_queuing_receive_ReturnMemThruPtr_data(data, cmock_size) pok_port_queuing_receive_CMockReturnMemThruPtr_data(__LINE__, data, cmock_size)
+void pok_port_queuing_receive_CMockReturnMemThruPtr_data(UNITY_LINE_TYPE cmock_line, void* data, int cmock_size);
+#define pok_port_queuing_receive_ReturnThruPtr_len(len) pok_port_queuing_receive_CMockReturnMemThruPtr_len(__LINE__, len, sizeof(*len))
+#define pok_port_queuing_receive_ReturnArrayThruPtr_len(len, cmock_len) pok_port_queuing_receive_CMockReturnMemThruPtr_len(__LINE__, len, (int)(cmock_len * (int)sizeof(*len)))
+#define pok_port_queuing_receive_ReturnMemThruPtr_len(len, cmock_size) pok_port_queuing_receive_CMockReturnMemThruPtr_len(__LINE__, len, cmock_size)
+void pok_port_queuing_receive_CMockReturnMemThruPtr_len(UNITY_LINE_TYPE cmock_line, pok_port_size_t* len, int cmock_size);
+#define pok_port_queuing_receive_IgnoreArg_id() pok_port_queuing_receive_CMockIgnoreArg_id(__LINE__)
+void pok_port_queuing_receive_CMockIgnoreArg_id(UNITY_LINE_TYPE cmock_line);
+#define pok_port_queuing_receive_IgnoreArg_timeout() pok_port_queuing_receive_CMockIgnoreArg_timeout(__LINE__)
+void pok_port_queuing_receive_CMockIgnoreArg_timeout(UNITY_LINE_TYPE cmock_line);
+#define pok_port_queuing_receive_IgnoreArg_data() pok_port_queuing_receive_CMockIgnoreArg_data(__LINE__)
+void pok_port_queuing_receive_CMockIgnoreArg_data(UNITY_LINE_TYPE cmock_line);
+#define pok_port_queuing_receive_IgnoreArg_len() pok_port_queuing_receive_CMockIgnoreArg_len(__LINE__)
+void pok_port_queuing_receive_CMockIgnoreArg_len(UNITY_LINE_TYPE cmock_line);
 
 #define pok_port_queuing_id_ExpectAndReturn(name, id, cmock_retval) pok_port_queuing_id_CMockExpectAndReturn(__LINE__, name, id, cmock_retval)
 void pok_port_queuing_id_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, pok_port_id_t* id, pok_ret_t cmock_to_return);
 int pok_port_queuing_id_UseMock;
 pok_ret_t _pok_port_queuing_id_impl(const char* name, pok_port_id_t* id);
+#define pok_port_queuing_id_ReturnThruPtr_id(id) pok_port_queuing_id_CMockReturnMemThruPtr_id(__LINE__, id, sizeof(*id))
+#define pok_port_queuing_id_ReturnArrayThruPtr_id(id, cmock_len) pok_port_queuing_id_CMockReturnMemThruPtr_id(__LINE__, id, (int)(cmock_len * (int)sizeof(*id)))
+#define pok_port_queuing_id_ReturnMemThruPtr_id(id, cmock_size) pok_port_queuing_id_CMockReturnMemThruPtr_id(__LINE__, id, cmock_size)
+void pok_port_queuing_id_CMockReturnMemThruPtr_id(UNITY_LINE_TYPE cmock_line, pok_port_id_t* id, int cmock_size);
+#define pok_port_queuing_id_IgnoreArg_name() pok_port_queuing_id_CMockIgnoreArg_name(__LINE__)
+void pok_port_queuing_id_CMockIgnoreArg_name(UNITY_LINE_TYPE cmock_line);
+#define pok_port_queuing_id_IgnoreArg_id() pok_port_queuing_id_CMockIgnoreArg_id(__LINE__)
+void pok_port_queuing_id_CMockIgnoreArg_id(UNITY_LINE_TYPE cmock_line);
 
 #define pok_port_queuing_status_ExpectAndReturn(id, status, cmock_retval) pok_port_queuing_status_CMockExpectAndReturn(__LINE__, id, status, cmock_retval)
 void pok_port_queuing_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_port_id_t id, pok_port_queuing_status_t* status, pok_ret_t cmock_to_return);
 int pok_port_queuing_status_UseMock;
 pok_ret_t _pok_port_queuing_status_impl(pok_port_id_t id, pok_port_queuing_status_t* status);
+#define pok_port_queuing_status_ReturnThruPtr_status(status) pok_port_queuing_status_CMockReturnMemThruPtr_status(__LINE__, status, sizeof(*status))
+#define pok_port_queuing_status_ReturnArrayThruPtr_status(status, cmock_len) pok_port_queuing_status_CMockReturnMemThruPtr_status(__LINE__, status, (int)(cmock_len * (int)sizeof(*status)))
+#define pok_port_queuing_status_ReturnMemThruPtr_status(status, cmock_size) pok_port_queuing_status_CMockReturnMemThruPtr_status(__LINE__, status, cmock_size)
+void pok_port_queuing_status_CMockReturnMemThruPtr_status(UNITY_LINE_TYPE cmock_line, pok_port_queuing_status_t* status, int cmock_size);
+#define pok_port_queuing_status_IgnoreArg_id() pok_port_queuing_status_CMockIgnoreArg_id(__LINE__)
+void pok_port_queuing_status_CMockIgnoreArg_id(UNITY_LINE_TYPE cmock_line);
+#define pok_port_queuing_status_IgnoreArg_status() pok_port_queuing_status_CMockIgnoreArg_status(__LINE__)
+void pok_port_queuing_status_CMockIgnoreArg_status(UNITY_LINE_TYPE cmock_line);
 
 #define pok_port_queuing_clear_ExpectAndReturn(id, cmock_retval) pok_port_queuing_clear_CMockExpectAndReturn(__LINE__, id, cmock_retval)
 void pok_port_queuing_clear_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, pok_port_id_t id, pok_ret_t cmock_to_return);
 int pok_port_queuing_clear_UseMock;
 pok_ret_t _pok_port_queuing_clear_impl(pok_port_id_t id);
+#define pok_port_queuing_clear_IgnoreArg_id() pok_port_queuing_clear_CMockIgnoreArg_id(__LINE__)
+void pok_port_queuing_clear_CMockIgnoreArg_id(UNITY_LINE_TYPE cmock_line);
 
 #define jet_memory_block_get_status_ExpectAndReturn(name, status, cmock_retval) jet_memory_block_get_status_CMockExpectAndReturn(__LINE__, name, status, cmock_retval)
 void jet_memory_block_get_status_CMockExpectAndReturn(UNITY_LINE_TYPE cmock_line, const char* name, jet_memory_block_status_t* status, pok_ret_t cmock_to_return);
 int jet_memory_block_get_status_UseMock;
 pok_ret_t _jet_memory_block_get_status_impl(const char* name, jet_memory_block_status_t* status);
+#define jet_memory_block_get_status_ReturnThruPtr_status(status) jet_memory_block_get_status_CMockReturnMemThruPtr_status(__LINE__, status, sizeof(*status))
+#define jet_memory_block_get_status_ReturnArrayThruPtr_status(status, cmock_len) jet_memory_block_get_status_CMockReturnMemThruPtr_status(__LINE__, status, (int)(cmock_len * (int)sizeof(*status)))
+#define jet_memory_block_get_status_ReturnMemThruPtr_status(status, cmock_size) jet_memory_block_get_status_CMockReturnMemThruPtr_status(__LINE__, status, cmock_size)
+void jet_memory_block_get_status_CMockReturnMemThruPtr_status(UNITY_LINE_TYPE cmock_line, jet_memory_block_status_t* status, int cmock_size);
+#define jet_memory_block_get_status_IgnoreArg_name() jet_memory_block_get_status_CMockIgnoreArg_name(__LINE__)
+void jet_memory_block_get_status_CMockIgnoreArg_name(UNITY_LINE_TYPE cmock_line);
+#define jet_memory_block_get_status_IgnoreArg_status() jet_memory_block_get_status_CMockIgnoreArg_status(__LINE__)
+void jet_memory_block_get_status_CMockIgnoreArg_status(UNITY_LINE_TYPE cmock_line);
 
 
 #endif
