@@ -88,12 +88,14 @@ struct jet_interrupt_context
   uint32_t BadVAddr;
   uint32_t STATUS;
   uint32_t CAUSE;
+#ifdef POK_NEEDS_GDB
+  uint32_t FIR;
+  uint32_t FCSR;
+#endif /* POK_NEEDS_GDB */
   uint32_t a0;
   uint32_t a1;
   uint32_t a2;
   uint32_t a3;
-#ifdef POK_NEEDS_GDB
-#endif /* POK_NEEDS_GDB */
 } __attribute__((aligned(16)));
 
 #endif /* __JET_MIPS_INTERRUPT_CONTEXT_NOCONFIG_H__ */

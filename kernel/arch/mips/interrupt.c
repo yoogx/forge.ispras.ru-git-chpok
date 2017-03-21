@@ -54,9 +54,6 @@ void pok_int_alignment(struct jet_interrupt_context* vctx, uintptr_t dear, unsig
     pok_fatal("Alignment interrupt");	
 }
 
-void write_on_screen();
-
-
 void pok_int_fp_unavail(struct jet_interrupt_context* ea) {
     (void) ea;
     pok_fatal("FP unavailable interrupt");
@@ -73,8 +70,6 @@ void pok_int_overflow(struct jet_interrupt_context* ea) {
     (void) ea;
     printf("DEBUG: EPC   = 0x%x\n", ea->EPC);
     printf("DEBUG: Cause = 0x%x\n", ea->CAUSE);
-    while (1 == 1){
-    }
     pok_fatal("OVF Arithmetic overflow");
 }
 
@@ -143,5 +138,29 @@ void pok_int_debug(struct jet_interrupt_context* ea) {
     printf("DEBUG: EPC    = 0x%x\n", ea->EPC);
     printf("DEBUG: Cause  = 0x%x\n", ea->CAUSE);
     printf("DEBUG: Status = 0x%x\n", ea->STATUS);
+#ifdef POK_NEEDS_GDB
+    /*
+     * pok_trap_addr = address of pok_trap in entry.S
+     */
+    if (ea->EPC == (unsigned) (& pok_trap_addr)){
+        k++;
+        printf_GDB("Reason: SIGINT\n");
+        handle_exception(17,ea); 
+    }else{
+        printf_GDB("Reason: Breakpoint\n");
+        handle_exception(3,ea); 
+    }
+    if (k != 1){
+        /*
+         * it was not a trap from gdb.c (in gdb.c function)
+         */ 
+        ea->EPC -= 4; //Because we increase this value in return from interrupt (rfi)
+        printf_GDB("Change SRR0");
+    }
+    k=0;
+    printf_GDB("\n          Exit from handle exception\n");
+#else
     pok_fatal("BKPT break instruction executed");
+#endif
+
 }

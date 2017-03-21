@@ -650,6 +650,9 @@ set_char (char *addr, int val)
 #ifdef __PPC__
 asm volatile("dcbst 0, %0; sync; icbi 0,%0; sync; isync" : : "r" (addr));
 #endif
+#ifdef __mips__
+//FIX FOR MIPS
+#endif
 #ifdef __i386__
 //FIX FOR X86
 #endif
@@ -797,8 +800,6 @@ char instr2[8] = "00000000";
 int addr_instr2 = 0;
 char trap[8] = "7fe00008";
 
-#define SPRN_PID        0x030   /* Process ID */
-
 #define __stringify_1(x)        #x
 #define __stringify(x)          __stringify_1(x)
 
@@ -810,6 +811,18 @@ char trap[8] = "7fe00008";
                                              : "memory")
 #define MSR_EE      1<<(15)              /* External Interrupt Enable */
 
+
+#endif
+#ifdef __mips__
+
+char instr[8] = "00000000";
+int addr_instr = 0;
+char instr2[8] = "00000000";
+int addr_instr2 = 0;
+char trap[8] = "0000000d";
+#define REG_EPC                 37
+#define REG_FP                  72
+#define REG_SP                  29
 
 #endif
 #ifdef __i386__
@@ -870,12 +883,18 @@ static char* write_thread_id(char* ptr, const struct gdb_thread* t)
 #ifdef __PPC__
     ptr = mem2hex( (char *)(&t->inferior_id), ptr, 4);
 #endif
+#ifdef __mips__
+    ptr = mem2hex( (char *)(&t->inferior_id), ptr, 4);
+#endif
 #ifdef __i386__
     ptr = mem2hex( (char *)(&t->inferior_id), ptr, 1);
 #endif
     *ptr++ = '.';
 #endif
 #ifdef __PPC__
+    ptr = mem2hex( (char *)(&t->thread_id), ptr, 4);
+#endif
+#ifdef __mips__
     ptr = mem2hex( (char *)(&t->thread_id), ptr, 4);
 #endif
 #ifdef __i386__
@@ -959,6 +978,9 @@ static void gdb_state_store_registers(struct gdb_state* tc)
     }
 #ifdef __PPC__
     printf("Flush registers. pc = 0x%lx\n", registers[pc]);
+#endif
+#ifdef __mips__
+    printf("Flush registers. pc = 0x%x\n", registers[pc]);
 #endif
 #ifdef __i386__
     printf("Flush registers. PC = 0x%lx\n", registers[PC]);
@@ -1221,6 +1243,14 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
             addr_instr2 = 0;
         }
 #endif
+#ifdef __mips__
+        hex2mem(instr, (char *) (addr_instr), 4);
+        addr_instr = 0;
+        if (addr_instr2 != 0){
+            hex2mem(instr2, (char *) (addr_instr2), 4);
+            addr_instr2 = 0;
+        }
+#endif
     }
 
   /* reply to host that an exception has occurred */
@@ -1266,12 +1296,58 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
         *ptr++ = 'h';
         *ptr++ = ':';
         addr =  mfspr(SPRN_DAC1);
-        ptr = mem2hex( (char *)&addr, ptr, 4, 0); 
+        ptr = mem2hex( (char *)&addr, ptr, 4); 
         *ptr++ = ';';
     }        
 #endif
 
     ptr = 0;
+#endif
+#ifdef __mips__
+	/*
+	 * Send trap type (converted to signal)
+	 */
+	*ptr++ = 'T';
+	*ptr++ = hexchars[sigval >> 4];
+	*ptr++ = hexchars[sigval & 0xf];
+
+	/*
+	 * Send Error PC
+	 */
+	*ptr++ = hexchars[REG_EPC >> 4];
+	*ptr++ = hexchars[REG_EPC & 0xf];
+	*ptr++ = ':';
+	ptr = mem2hex((char *)&registers[pc], ptr, 4);
+	*ptr++ = ';';
+
+	/*
+	 * Send frame pointer
+	 */
+	*ptr++ = hexchars[REG_FP >> 4];
+	*ptr++ = hexchars[REG_FP & 0xf];
+	*ptr++ = ':';
+	ptr = mem2hex((char *)&registers[r30], ptr, 4);
+	*ptr++ = ';';
+
+	/*
+	 * Send stack pointer
+	 */
+	*ptr++ = hexchars[REG_SP >> 4];
+	*ptr++ = hexchars[REG_SP & 0xf];
+	*ptr++ = ':';
+	ptr = mem2hex((char *)&registers[r29], ptr, 4);
+    *ptr++ = ';';
+    *ptr++ = 't';
+    *ptr++ = 'h';
+    *ptr++ = 'r';
+    *ptr++ = 'e';
+    *ptr++ = 'a';
+    *ptr++ = 'd';
+    *ptr++ = ':';
+
+    ptr = write_thread_id(ptr, &gdb_thread_current);
+    *ptr++ = ';';
+    *ptr++ = 0;
 #endif
 #ifdef __i386__
 
@@ -1411,6 +1487,10 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
 #ifdef __PPC__
                     ea->srr0 = ea->srr0 - 4;
 #endif
+#ifdef __mips__
+                    ea->EPC = ea->EPC - 4;
+                    //do nothing
+#endif
 #ifdef __i386__
                     ea->eip--;
 #endif 
@@ -1523,7 +1603,15 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
                  */
         {
             ptr = remcomOutBuffer;
-
+#ifdef __mips__
+			ptr = mem2hex((char *)registers, ptr, 32*4); /* r0...r31 */
+			ptr = mem2hex((char *)&registers[cp0_status], ptr, 6*4); /* cp0: status, lo, hi, badvaddr, cause, epc */
+			ptr = mem2hex((char *)fp_registers, ptr, 32*4); /* f0...31 */
+			ptr = mem2hex((char *)&registers[cp1_fcsr], ptr, 2*4); /* cp1: fcsr, fir*/
+			//~ ptr = mem2hex((char *)&registers[r30], ptr, 2*4); /* framepointer and dummy (unused) */
+			//~ ptr = mem2hex((char *)&registers[cp0_index], ptr, 16*4); /* cp0: index, random, entrylo0, entrylo1, context, pagemask, wired, reg7,
+                                                                              //~ reg8, reg9, entryhi, reg11, reg12, reg13, reg14, prid*/
+#endif
 #ifdef __PPC__
             gdb_state_fill_registers(&tc);
             /* General Purpose Regs */
@@ -1570,6 +1658,15 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
             ptr = hex2mem(ptr, (char *)&registers[lr]/*[link]*/, 4);
             ptr = hex2mem(ptr, (char *)&registers[ctr], 4);
             ptr = hex2mem(ptr, (char *)&registers[xer], 4);
+#endif
+#ifdef __mips__
+            hex2mem(ptr, (char *)registers, 32*4);
+            hex2mem(ptr, (char *)&registers[cp0_status], 6*4);/* cp0: status, lo, hi, badvaddr, cause, epc */
+            hex2mem(ptr, (char *)fp_registers, 32*8);
+            hex2mem(ptr, (char *)&registers[cp1_fcsr], 2*4); /* cp1: fcsr, fir*/
+            //~ hex2mem(ptr, (char *)&registers[r30], 2*4);         /* framepointer and dummy (unused) */
+            //~ hex2mem(ptr, (char *)&registers[cp0_index], 16*4); /* cp0: index, random, entrylo0, entrylo1, context, pagemask, wired, reg7,
+                                                                              //~ reg8, reg9, entryhi, reg11, reg12, reg13, reg14, prid*/
 #endif
 #ifdef __i386__
             hex2mem (ptr, (char *) registers, NUMREGBYTES);
@@ -1692,6 +1789,9 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
 #ifdef __PPC__
                     registers[pc]/*nip*/ = addr;
 #endif
+#ifdef __mips__
+                    registers[pc]/*epc*/ = addr;
+#endif
 #ifdef __i386__
                     registers[PC]/*eip*/ = addr;
 #endif
@@ -1813,6 +1913,59 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
 #ifdef __i386__
             stepping = TRUE;
 #endif
+#ifdef __mips__
+            gdb_sate_set_thread(&tc, &gdb_thread_current);
+            gdb_state_fill_registers(&tc);
+
+            //~ uint32_t inst = *((uint32_t *)registers[pc]);
+            //~ uint32_t c_inst = registers[pc];
+/*
+ *  If it's a 'b' instruction
+ */
+/*
+ *  If it's a 'bal' instruction
+ */
+/*
+ *  If it's a 'beq' instruction
+ */
+/*
+ *  If it's a 'beql' instruction
+ */
+/*
+ *  If it's a 'bgez' instruction
+ */
+/*
+ *  If it's a 'BGEZAL' instruction
+ */
+/*
+ *  If it's a 'BGEZALL' instruction
+ */
+/*
+ *  If it's a 'BGEZL' instruction
+ */
+/*
+ *  If it's a 'BGTZ' instruction
+ */
+/*
+ *  If it's a 'BGTZL' instruction
+ */
+/*
+ *  If it's a 'BLEZ' instruction
+ */
+
+/*
+ *  If it's a 'J' instruction
+ */
+
+/*
+ *  If it's a 'JAL' instruction
+ */
+/*
+ *  If it's a 'JR' instruction
+ */
+
+
+#endif 
         }
 
         case 'k':    /* kill the program, actually just continue */
@@ -1825,6 +1978,9 @@ CONTINUE:
                 gdb_state_fill_registers(&tc);
 #ifdef __PPC__
                 registers[pc]/*nip*/ = addr;
+#endif
+#ifdef __mips__
+                registers[pc]/*epc*/ = addr;
 #endif
 #ifdef __i386__
                 registers[PC]/*eip*/ = addr;
@@ -1865,6 +2021,9 @@ CONTINUE:
 #ifdef __PPC__
                     hex2mem (ptr, (char *) &registers[regno_offset >> 3], 4);
 #endif
+#ifdef __mips__
+                    hex2mem (ptr, (char *) &registers[regno_offset >> 3], 4);
+#endif
 #ifdef __i386__
                     hex2mem (ptr, (char *) &registers[regno_offset >> 3], 1);
 #endif
@@ -1884,6 +2043,9 @@ CONTINUE:
                 if (regno_offset >= 0 && regno_offset < NUMREGS * 8) /* 8 - max length of each register*/
                 {
 #ifdef __PPC__
+                    mem2hex ((char *) &registers[regno_offset >> 3], remcomOutBuffer, 4);
+#endif
+#ifdef __mips__
                     mem2hex ((char *) &registers[regno_offset >> 3], remcomOutBuffer, 4);
 #endif
 #ifdef __i386__

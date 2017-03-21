@@ -279,6 +279,27 @@ ja_user_space_jump:
                  .set    pop                                      
 .endm
 
+#ifdef POK_NEEDS_GDB
+.macro RESTORE_GDB                                               
+                 .set    push                                     
+                 .set    noat                                     
+                 lw     $k0, OFFSETOF_jet_interrupt_context_FIR($sp)  
+                 MTC1($k0, CP1_FIR)
+                 lw     $k0, OFFSETOF_jet_interrupt_context_FCSR($sp)  
+                 MTC1($k0, CP1_FCSR)
+                 .set    pop                                      
+.endm
+
+.macro SAVE_GDB                                               
+                 .set    push                                     
+                 .set    noat                                     
+                 mfc1   $k0, CP1_FIR
+                 sw     $k0, OFFSETOF_jet_interrupt_context_FIR($sp)  
+                 mfc1   $k0, CP1_FCSR
+                 sw     $k0, OFFSETOF_jet_interrupt_context_FCSR($sp)  
+                 .set    pop                                      
+.endm
+#endif
  
 .macro RESTORE_ALL                
                  RESTORE_TEMP     
@@ -292,11 +313,16 @@ ja_user_space_jump:
     SAVE_ALL
 .endm
 
+.macro SAVE_REGS_COMMON_GDB
+    SAVE_REGS_COMMON_BASE
+    SAVE_GDB
+.endm
+
 #ifndef POK_NEEDS_GDB
 #define SAVE_REGS_COMMON SAVE_REGS_COMMON_BASE
 #else
 .macro SAVE_REGS_COMMON
-        SAVE_REGS_COMMON_BASE
+        SAVE_REGS_COMMON_GDB
 .endm
 #endif /* POK_NEEDS_GDB */
 
@@ -319,11 +345,16 @@ ja_user_space_jump:
     RESTORE_ALL
 .endm
 
+.macro RESTORE_REGS_COMMON_GDB
+    RESTORE_GDB
+    RESTORE_REGS_COMMON_BASE
+.endm
+
 #ifndef POK_NEEDS_GDB
 #define RESTORE_REGS_COMMON RESTORE_REGS_COMMON_BASE
 #else
 .macro RESTORE_REGS_COMMON
-        RESTORE_REGS_COMMON_BASE
+        RESTORE_REGS_COMMON_GDB
 .endm
 #endif /* POK_NEEDS_GDB */
 

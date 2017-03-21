@@ -214,6 +214,9 @@ struct T_breakpoint{
 #ifdef __PPC__
     char Instr[8];
 #endif
+#ifdef __mips__
+    char Instr[8];
+#endif
 #ifdef __i386__
     char Instr[2];
 #endif

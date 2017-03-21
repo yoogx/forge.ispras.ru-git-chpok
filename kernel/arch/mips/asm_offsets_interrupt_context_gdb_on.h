@@ -58,9 +58,11 @@
 #define OFFSETOF_jet_interrupt_context_BadVAddr 172
 #define OFFSETOF_jet_interrupt_context_STATUS   176
 #define OFFSETOF_jet_interrupt_context_CAUSE    180
-#define OFFSETOF_jet_interrupt_context_a0       184
-#define OFFSETOF_jet_interrupt_context_a1       188
-#define OFFSETOF_jet_interrupt_context_a2       192
-#define OFFSETOF_jet_interrupt_context_a3       196
+#define OFFSETOF_jet_interrupt_context_FIR      184
+#define OFFSETOF_jet_interrupt_context_FCSR     188
+#define OFFSETOF_jet_interrupt_context_a0       192
+#define OFFSETOF_jet_interrupt_context_a1       196
+#define OFFSETOF_jet_interrupt_context_a2       200
+#define OFFSETOF_jet_interrupt_context_a3       204
 
-#define SIZEOF_jet_interrupt_context 208
+#define SIZEOF_jet_interrupt_context 216

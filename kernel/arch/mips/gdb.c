@@ -59,12 +59,14 @@ void gdb_set_regs(const struct jet_interrupt_context* ea, uint32_t* registers)
     registers[r29] = ea->r29;
     registers[r30] = ea->r30;
     registers[r31] = ea->r31;
-    registers[ctr] = ea->ctr;
-    registers[xer] = ea->xer;
-    registers[pc] = ea->srr0;
-    registers[msr] = ea->srr1;
-    registers[lr] = ea->lr;
-    registers[cr] = ea->cr;
+    registers[cp0_status] = ea->STATUS;
+    registers[cp0_lo] = ea->lo;
+    registers[cp0_hi] = ea->hi;
+    registers[cp0_badvaddr] = ea->BadVAddr;
+    registers[cp0_cause] = ea->CAUSE;
+    registers[pc] = ea->EPC;
+    registers[cp1_fcsr] = ea->FCSR;
+    registers[cp1_fir] = ea->FIR;
 }
 
 /* Fill 'ea' array according to 'registers'. */
