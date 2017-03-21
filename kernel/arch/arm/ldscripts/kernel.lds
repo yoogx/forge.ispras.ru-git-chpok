@@ -53,7 +53,7 @@ SECTIONS
         jet_entry_stack = .;
 
         jet_heap_start = . ;
-        jet_heap_end = . + 0x40000; /* 256 KB for heap  */
+        jet_heap_end = . + 0x80000; /* 256 KB for heap  */
     }
     /DISCARD/ :
     {
