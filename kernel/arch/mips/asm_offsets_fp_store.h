@@ -19,8 +19,9 @@
  */
 
 /* Fields of jet_fp_store structure. */
-#define OFFSETOF_jet_fp_store_fp_fir 256
-#define OFFSETOF_jet_fp_store_fp_fconfig 260
-#define OFFSETOF_jet_fp_store_fp_fcsr 264
-#define OFFSETOF_jet_fp_store_fp_regs 0
 
+#define OFFSETOF_jet_fp_store_big_fp_regs 0
+#define OFFSETOF_jet_fp_store_small_fp_regs 128
+#define OFFSETOF_jet_fp_store_fp_fir 192
+#define OFFSETOF_jet_fp_store_fp_fconfig 196
+#define OFFSETOF_jet_fp_store_fp_fcsr 200

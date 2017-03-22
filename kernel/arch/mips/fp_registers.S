@@ -19,8 +19,11 @@
 #include "msr.h"
 #include "asm_offsets_fp_store.h" 
 
-#define SAVE_FP(num) sdc1 $f##num,(OFFSETOF_jet_fp_store_fp_regs + 8*num)($a0)
-#define LOAD_FP(num) ldc1 $f##num,(OFFSETOF_jet_fp_store_fp_regs + 8*num)($a0)
+#define SAVE_two_FP(num0, num1) sdc1 $f##num0,(OFFSETOF_jet_fp_store_big_fp_regs + 8*num0)($a0); \
+                     mfc1 $k0, $f##num1; sw $k0,(OFFSETOF_jet_fp_store_small_fp_regs + 4*num1)($a0)
+#define LOAD_two_FP(num0, num1) ldc1 $f##num0,(OFFSETOF_jet_fp_store_big_fp_regs + 8*num0)($a0); \
+                     mtc1 $k0, $f##num1; lw $k0,(OFFSETOF_jet_fp_store_small_fp_regs + 4*num1)($a0)
+
 #define SAVE_FIR     mfc1 $k0, CP1_FIR;     sw  $k0, OFFSETOF_jet_fp_store_fp_fir($a0);
 #define SAVE_FCONFIG mfc1 $k0, CP1_FCONFIG; sw  $k0, OFFSETOF_jet_fp_store_fp_fconfig($a0);
 #define SAVE_FCSR    mfc1 $k0, CP1_FCSR;    sw  $k0, OFFSETOF_jet_fp_store_fp_fcsr($a0);
@@ -59,27 +62,45 @@ zero_fp:
 
     .text
 
+
+.set oddspreg
+    
     .globl ja_fp_init
 ja_fp_init:
     ENABLE_FP
-    
     # clear all registers    
-    mtc1  $zero, $f0
-    mtc1  $zero, $f2
-    mtc1  $zero, $f4
-    mtc1  $zero, $f6
-    mtc1  $zero, $f8
-    mtc1  $zero, $f10
-    mtc1  $zero, $f12
-    mtc1  $zero, $f14
-    mtc1  $zero, $f16
-    mtc1  $zero, $f18
-    mtc1  $zero, $f20
-    mtc1  $zero, $f22
-    mtc1  $zero, $f24
-    mtc1  $zero, $f26
-    mtc1  $zero, $f28
-    mtc1  $zero, $f30
+    ldc1  $f0, zero_fp
+    mtc1  $zero, $f1
+    ldc1  $f2, zero_fp
+    mtc1  $zero, $f3
+    ldc1  $f4, zero_fp
+    mtc1  $zero, $f5
+    ldc1  $f6, zero_fp
+    mtc1  $zero, $f7
+    ldc1  $f8, zero_fp
+    mtc1  $zero, $f9
+    ldc1  $f10, zero_fp
+    mtc1  $zero, $f11
+    ldc1  $f12, zero_fp
+    mtc1  $zero, $f13
+    ldc1  $f14, zero_fp
+    mtc1  $zero, $f15
+    ldc1  $f16, zero_fp
+    mtc1  $zero, $f17
+    ldc1  $f18, zero_fp
+    mtc1  $zero, $f19
+    ldc1  $f20, zero_fp
+    mtc1  $zero, $f21
+    ldc1  $f22, zero_fp
+    mtc1  $zero, $f23
+    ldc1  $f24, zero_fp
+    mtc1  $zero, $f25
+    ldc1  $f26, zero_fp
+    mtc1  $zero, $f27
+    ldc1  $f28, zero_fp
+    mtc1  $zero, $f29
+    ldc1  $f30, zero_fp
+    mtc1  $zero, $f31
 
     DISABLE_FP
 
@@ -94,22 +115,22 @@ ja_fp_save:
     ENABLE_FP
     
 
-    SAVE_FP(0)
-    SAVE_FP(2)
-    SAVE_FP(4)
-    SAVE_FP(6)
-    SAVE_FP(8)
-    SAVE_FP(10)
-    SAVE_FP(12)
-    SAVE_FP(14)
-    SAVE_FP(16)
-    SAVE_FP(18)
-    SAVE_FP(20)
-    SAVE_FP(22)
-    SAVE_FP(24)
-    SAVE_FP(26)
-    SAVE_FP(28)
-    SAVE_FP(30)
+    SAVE_two_FP(0, 1)
+    SAVE_two_FP(2, 3)
+    SAVE_two_FP(4, 5)
+    SAVE_two_FP(6, 7)
+    SAVE_two_FP(8, 9)
+    SAVE_two_FP(10, 11)
+    SAVE_two_FP(12, 13)
+    SAVE_two_FP(14, 15)
+    SAVE_two_FP(16, 17)
+    SAVE_two_FP(18, 19)
+    SAVE_two_FP(20, 21)
+    SAVE_two_FP(22, 23)
+    SAVE_two_FP(24, 25)
+    SAVE_two_FP(26, 27)
+    SAVE_two_FP(28, 29)
+    SAVE_two_FP(30, 31)
    
     SAVE_FIR
     SAVE_FCONFIG
@@ -131,22 +152,22 @@ ja_fp_restore:
     LOAD_FCONFIG
     LOAD_FCSR
     
-    LOAD_FP(0)
-    LOAD_FP(2)
-    LOAD_FP(4)
-    LOAD_FP(6)
-    LOAD_FP(8)
-    LOAD_FP(10)
-    LOAD_FP(12)
-    LOAD_FP(14)
-    LOAD_FP(16)
-    LOAD_FP(18)
-    LOAD_FP(20)
-    LOAD_FP(22)
-    LOAD_FP(24)
-    LOAD_FP(26)
-    LOAD_FP(28)
-    LOAD_FP(30)
+    LOAD_two_FP(0, 1)
+    LOAD_two_FP(2, 3)
+    LOAD_two_FP(4, 5)
+    LOAD_two_FP(6, 7)
+    LOAD_two_FP(8, 9)
+    LOAD_two_FP(10, 11)
+    LOAD_two_FP(12, 13)
+    LOAD_two_FP(14, 15)
+    LOAD_two_FP(16, 17)
+    LOAD_two_FP(18, 19)
+    LOAD_two_FP(20, 21)
+    LOAD_two_FP(22, 23)
+    LOAD_two_FP(24, 25)
+    LOAD_two_FP(26, 27)
+    LOAD_two_FP(28, 29)
+    LOAD_two_FP(30, 31)
         
     DISABLE_FP
         

@@ -27,7 +27,7 @@ env['ARCH'] = 'mips'
 
 SConscript(env['JETOS_HOME'] + '/misc/arch/mips/SConscript', exports = 'env')
 
-env.Append(CFLAGS = ' -mips32')
+env.Append(CFLAGS = ' ')
 
 env['BOARD_PHYS_SIZE'] = 2**28 # 256M
 

@@ -36,10 +36,10 @@ env['PREFIX'] = 'mips-linux-gnu-'
 
 env['QEMU'] = '~/workspace/Niisi/niisi/qemu/mips64-softmmu/qemu-system-mips64'
 
-env.Append(CFLAGS = ' -mips32')
-env.Append(ASFLAGS = ' -mips32')
+env.Append(CFLAGS = ' -mips32 -mfpxx')
+env.Append(ASFLAGS = ' -mips32 -mfpxx')
 
-env.Append(CFLAGS_KERNEL = ' -mips32')
+env.Append(CFLAGS_KERNEL = ' ')
 
 env['LDSCRIPT_KERNEL'] = env['JETOS_HOME'] + '/kernel/arch/mips/ldscripts/kernel.lds'
 env['LDSCRIPT_PARTITION'] = env['JETOS_HOME'] + '/kernel/arch/mips/ldscripts/partition.lds'
