@@ -214,6 +214,10 @@ typedef struct _pok_partition_arinc
     size_t arinc_config_nsemaphores;
     size_t arinc_config_nevents;
     size_t arinc_config_messages_memory_size;
+    
+    struct arinc_logbook_data logbooks_data[MAX_LOGBOOK_COUNT];
+    // Number of logbooks in the current partition.
+    size_t arinc_config_nlogbooks;
 
 } pok_partition_arinc_t;
 
