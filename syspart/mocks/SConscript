@@ -21,6 +21,11 @@ Import('syspart_env')
 
 syspart_mocks_env = syspart_env.Clone()
 syspart_mocks_env.Append(CPPPATH = syspart_mocks_env['JETOS_HOME']+'/syspart/components/arinc/')
+syspart_mocks_env.Append(CPPPATH = syspart_mocks_env['JETOS_HOME']+'/syspart/components/arp/')
+syspart_mocks_env.Append(CPPPATH = syspart_mocks_env['JETOS_HOME']+'/syspart/components/mac/')
+syspart_mocks_env.Append(CPPPATH = syspart_mocks_env['JETOS_HOME']+'/syspart/components/ppc_dtsec/')
+syspart_mocks_env.Append(CPPPATH = syspart_mocks_env['JETOS_HOME']+'/syspart/components/udp_ip/')
+syspart_mocks_env.Append(CPPPATH = syspart_mocks_env['JETOS_HOME']+'/syspart/components/virtio/')
 mocks = syspart_mocks_env.StaticObject(source = Glob('*.c'))
 
 Return('mocks')
