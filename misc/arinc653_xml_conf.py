@@ -107,6 +107,10 @@ class ArincConfigParser:
 
         part.buffer_data_size = parse_bytes(part_root.find("ARINC653_Buffers").attrib["Data_Size"])
         part.blackboard_data_size = parse_bytes(part_root.find("ARINC653_Blackboards").attrib["Data_Size"])
+        
+        logbooks_data = part_root.find("ARINC653_Logbooks")
+        if logbooks_data is not None:
+            cls.parse_logbooks(part, logbooks_data)
 
         part_private = dict()
 
@@ -216,6 +220,19 @@ class ArincConfigParser:
             part.ports_sampling.append(port)
 
             ports_by_name[port_name] = port
+            
+    @classmethod
+    def parse_logbooks(cls, part, logbooks_root):
+        for logbook in logbooks_root.findall("Logbook"):
+            lg_instance = {
+                'name' : logbook.attrib["Name"],
+                'max_message_size' : parse_bytes(logbook.attrib["MaxMessageSize"]),
+                'max_nb_in_progress_messages' : int(logbook.attrib["MaxNbInProgressMessages"]),
+                'max_nb_logged_messages' : int(logbook.attrib["MaxNbLoggedMessages"])
+            }
+            
+            part.logbooks_data.append(lg_instance)
+        
 
     @classmethod
     def parse_channels(cls, conf, channels_root):

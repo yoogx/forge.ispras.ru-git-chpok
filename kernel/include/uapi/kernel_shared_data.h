@@ -20,6 +20,15 @@
 #include <uapi/partition_arinc_types.h>
 #include <uapi/msection.h>
 
+#define MAX_LOGBOOK_COUNT   10
+
+struct arinc_logbook_data{
+    const char logbook_name[MAX_NAME_LENGTH];
+    int message_size;
+    int max_nb_logged_messages;
+    int max_nb_in_progress_messages;
+};
+
 /* Data about the thread, shared between kernel and user spaces. */
 struct jet_thread_shared_data
 {
@@ -172,6 +181,10 @@ struct jet_kernel_shared_data
     size_t arinc_config_nevents;
     // Memory for messages, used by buffers and blackboards.
     size_t arinc_config_messages_memory_size;
+
+    struct arinc_logbook_data logbooks_data[MAX_LOGBOOK_COUNT];
+    // Number of logbooks in the current partition.
+    size_t arinc_config_nlogbooks;
 
     /* Open-bounds array of thread shared data. */
     struct jet_thread_shared_data tshd[];

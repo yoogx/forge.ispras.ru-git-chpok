@@ -174,6 +174,9 @@ static void partition_arinc_start(void)
     part->kshd->arinc_config_nsemaphores = part->arinc_config_nsemaphores;
     part->kshd->arinc_config_nevents = part->arinc_config_nevents;
     part->kshd->arinc_config_messages_memory_size = part->arinc_config_messages_memory_size;
+    
+    memcpy(part->kshd->logbooks_data, part->logbooks_data, sizeof(part->logbooks_data[0])*part->arinc_config_nlogbooks);
+    part->kshd->arinc_config_nlogbooks = part->arinc_config_nlogbooks;
 
     sched_arinc_start();
 

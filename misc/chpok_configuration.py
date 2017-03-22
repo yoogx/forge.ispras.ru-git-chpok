@@ -361,6 +361,8 @@ class Partition:
 
         "buffer_data_size", # bytes allocated for buffer data
         "blackboard_data_size", # same, for blackboards
+    
+        "logbooks_data",    # list of logbooks
 
         "hm_table", # partition hm table
 
@@ -400,6 +402,8 @@ class Partition:
 
         self.buffer_data_size = 0
         self.blackboard_data_size = 0
+        
+        self.logbooks_data = []
 
         self.hm_table = PartitionHMTable()
 

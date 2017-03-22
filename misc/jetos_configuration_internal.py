@@ -377,6 +377,8 @@ class PartitionInternal(SerializableObject):
 
         "buffer_data_size", # bytes allocated for buffer data
         "blackboard_data_size", # same, for blackboards
+        
+        "logbooks_data",    # list of logbooks
 
         "arinc_heap_size", # Size of the heap needed for ARINC needs.
         "arinc_heap_align",
@@ -429,6 +431,8 @@ class PartitionInternal(SerializableObject):
 
             buffer_data_size = part.buffer_data_size,
             blackboard_data_size = part.blackboard_data_size,
+            
+            logbooks_data = part.logbooks_data,
 
             arinc_heap_size = 0, # Will be counted
             arinc_heap_align = 1, # Will be counted

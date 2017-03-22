@@ -21,6 +21,7 @@
 #include <core/error_arinc.h>
 #include <core/port.h>
 
+#include <uapi/kernel_shared_data.h>
 #include <uapi/partition_arinc_types.h>
 
 /* One entry for initialize memory block(s) at PARTITION or PARTITION:COLD stage. */

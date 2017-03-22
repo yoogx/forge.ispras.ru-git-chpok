@@ -304,6 +304,19 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
         .arinc_config_nsemaphores = {{part.num_arinc653_semaphores}},
         .arinc_config_nevents = {{part.num_arinc653_events}},
         .arinc_config_messages_memory_size = {{part.buffer_data_size + part.blackboard_data_size}},
+        
+                
+        .logbooks_data = {
+            {%for logbook in part.logbooks_data%}
+                {
+                    .logbook_name = "{{logbook.name}}",
+                    .message_size = {{logbook.max_message_size}},
+                    .max_nb_logged_messages = {{logbook.max_nb_logged_messages}},
+                    .max_nb_in_progress_messages = {{logbook.max_nb_in_progress_messages}},
+                },
+            {%endfor%}
+        },
+        .arinc_config_nlogbooks = {{part.logbooks_data | length}}
     },
 {%endfor%}{#partitions loop#}
 };
