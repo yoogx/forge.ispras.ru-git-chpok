@@ -234,8 +234,8 @@ typedef struct _pok_partition
     const char               *name;          /**< Name of the partition */
 
     // Should be set in deployment.c.
-    uint32_t                 period;         /**< Period of the partition, unused at this time */
-    uint32_t                 duration;       /**< Duration of the partition, unused at this time */
+    pok_time_t               period;         /**< Period of the partition, unused at this time */
+    pok_time_t               duration;       /**< Duration of the partition, unused at this time */
     pok_partition_id_t       partition_id;
 
     /*
