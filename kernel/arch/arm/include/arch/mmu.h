@@ -74,7 +74,4 @@ static inline void load_l1_table(uint32_t *l1_table)
             :"memory");
 }
 
-//copy interrupt vector table to 0 virtual address
-void copy_vector_table(void);
-
 #endif

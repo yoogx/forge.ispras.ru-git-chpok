@@ -28,6 +28,9 @@
 #define KERNBASE_PADDR 0x10000000
 #define KERNBASE_VADDR 0xc0000000
 
+// addr of interrupt vector table
+#define VECTOR_HIGH_ADDR 0xffff0000
+
 
 #ifdef __ASSEMBLER__
 #define PHYS(pa) ((pa) - KERNBASE_VADDR + KERNBASE_PADDR)

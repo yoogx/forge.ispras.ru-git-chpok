@@ -21,14 +21,33 @@
 #include "regs.h"
 #include <arch/mmu.h>
 #include "space.h"
+#include "memlayout.h"
 
+
+extern char __vector_table_start[];
+extern char __vector_table_end[];
+extern char vector_table[];
+
+//copy interrupt vector table to 0 virtual address
+static void copy_vector_table(void)
+{
+    printf("copy vector table to %p, from %p, size (0x%x)\n",
+            (void *)VECTOR_HIGH_ADDR, __vector_table_start, __vector_table_end - __vector_table_start);
+    memcpy((void *)VECTOR_HIGH_ADDR, __vector_table_start, __vector_table_end - __vector_table_start);
+
+    sctlr_set(sctlr_get()|SCTLR_V);
+
+    // Ask linker to not throw away exceptions.o from libkernel.a
+    int tmp = vector_table[0];
+    (void) tmp;
+}
 
 void jet_arch_init(void)
 {
     jet_console_init_all ();
     printf("Hello world \n");
 
-    copy_vector_table(); //interrupt vec table
+    copy_vector_table();
     space_init(); //user space init
     ja_bsp_init();
 
