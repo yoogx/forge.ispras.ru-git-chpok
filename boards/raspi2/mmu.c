@@ -18,7 +18,7 @@
 #include <libc.h>
 #include <arch/mmu.h>
 #include <arch/memlayout.h>
-//#include "regs.h"
+#include <bsp/memory_mapping.h>
 
 
 // 1KB aligned
@@ -48,7 +48,7 @@ __attribute__ ((aligned(0x4000))) uint32_t entry_l1_table[4096] = {
 };
 
 
-void l1_insert_kernel_mapping(uint32_t *l1_table)
+void insert_kernel_mapping_into_table(uint32_t *l1_table)
 {
     //vector_table
     l1_table[VECTOR_HIGH_ADDR>>20] = PHYS(vector_l2_table) + L1_TYPE_TABLE;

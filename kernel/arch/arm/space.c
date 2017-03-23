@@ -20,6 +20,7 @@
 #include "regs.h"
 #include <arch/memlayout.h>
 #include <arch/mmu.h>
+#include <bsp/memory_mapping.h>
 
 /*
  * Currently, kernel has rw access to all pages.
@@ -97,7 +98,7 @@ void space_init()
         }
 
         // kernel mapping
-        l1_insert_kernel_mapping(l1_table);
+        insert_kernel_mapping_into_table(l1_table);
 
         // save created L1 table to L1_table_list
         l1_tables[i] = l1_table;
