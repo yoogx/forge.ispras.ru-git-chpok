@@ -32,16 +32,16 @@ void jet_arch_init(void)
     space_init(); //user space init
     ja_bsp_init();
 
-    ja_preempt_enable();
-    int64_t time, time_old = 0;
-    while (1) {
-        time = ja_system_time();
-            //printf("%lld \n", time);
-        if ((time - time_old) > 1000000000) {
-            printf("%lld \n", time);
-            time_old = time;
-        }
-    }
+    //ja_preempt_enable();
+    //int64_t time, time_old = 0;
+    //while (1) {
+    //    time = ja_system_time();
+    //        //printf("%lld \n", time);
+    //    if ((time - time_old) > 1000000000) {
+    //        printf("%lld \n", time);
+    //        time_old = time;
+    //    }
+    //}
 }
 
 void ja_preempt_disable (void)
