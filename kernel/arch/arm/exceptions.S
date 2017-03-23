@@ -26,19 +26,20 @@ jet_excp_svc_asm:
     //make sp to 8-byte aligned. Store adjustment in stack
     and r2, sp, #0x7
     sub sp, sp, r2 //sp = sp - sp&7
-    push {r2}
+    /* save adjustment and lr.
+     * lr is non-volatile and banked, but we corrupt it in blx. Save it
+     * Note: we have saved two 4-byte values, so stack still is 8 byte aligned
+     */
+    push {r2, lr} // lr in non-volatile, but we corrupt it in blx
 
-    push {lr} // lr in non-volatile, but we corrupt it in blx
 
     /* r0 is syscall_id
        r1 is args */
     ldr r3, =syscall_handler
     blx r3
 
-    pop {lr}
-
     // restore original (possible not 8-byte aligned) sp value
-    pop {r2}
+    pop {r2, lr}
     add sp, sp, r2
 
     rfefd sp! //from stack load saved lr and SPSR  to pc and CPSR
@@ -60,8 +61,6 @@ jet_excp_svc_asm:
 
     push {r0-r3, r12} //push volatile regs
 
-    push {lr} //lr is non-volatile and banked, but we corrupt it in blx. Save it
-
     push {fp}
     mov fp, #0 //for gdb backtrace
 
@@ -71,19 +70,23 @@ jet_excp_svc_asm:
     //make sp to 8-byte aligned. Store adjustment in stack
     and r3, sp, #0x7
     sub sp, sp, r3 //sp = sp - sp&7
-    push {r3}
+    /* save adjustment and lr.
+     * lr is non-volatile and banked, but we corrupt it in blx. Save it
+     * Note: we have saved tow 4-byte values, so stack still is 8 byte aligned
+     */
+    push {r3, lr}
+
 
     /* r0 is interrupt_context */
     ldr r3, =\handler
     blx r3
 
-    // restore original (possible not 8-byte aligned) sp value
-    pop {r3}
+    // restore original sp and lr values
+    pop {r3, lr}
     add sp, sp, r3
 
     pop {fp}
 
-    pop {lr}
 
     pop {r0-r3, r12} //restore volatile regs
 
