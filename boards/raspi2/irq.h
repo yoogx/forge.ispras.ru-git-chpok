@@ -10,13 +10,14 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
+ * See the GNU General Public License version 3 for more details.
  */
 
-#include <bsp/bsp.h>
-#include "irq.h"
-#include "timer.h"
-void ja_bsp_init(void)
-{
-    irq_init();
-    timer_init();
-}
+#ifndef __RASPI2_IRQ_H__
+#define __RASPI2_IRQ_H__
+
+void irq_enable_interrupt(unsigned irq);
+
+void irq_init(void);
+
+#endif
