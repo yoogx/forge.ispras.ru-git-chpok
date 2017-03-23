@@ -31,6 +31,8 @@ SConscript(env['JETOS_HOME'] + '/misc/arch/arm/SConscript', exports = 'env')
 env.Append(CFLAGS = ' -mcpu=cortex-a9')
 env.Append(ASFLAGS = ' -mcpu=cortex-a9')
 
+env['LDSCRIPT_KERNEL'] = env['JETOS_HOME'] + '/boards/imx6/kernel.lds'
+
 env['BOARD_IS_EMULATED'] = True
 env.Append(QEMU_FLAGS = ' -M sabrelite')
 

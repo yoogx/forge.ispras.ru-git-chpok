@@ -30,6 +30,8 @@ SConscript(env['JETOS_HOME'] + '/misc/arch/arm/SConscript', exports = 'env')
 env.Append(CFLAGS = ' -mcpu=cortex-a7')
 env.Append(ASFLAGS = ' -mcpu=cortex-a7')
 
+env['LDSCRIPT_KERNEL'] = env['JETOS_HOME'] + '/boards/raspi2/kernel.lds'
+
 env['BOARD_IS_EMULATED'] = True
 env.Append(QEMU_FLAGS = ' -M raspi2')
 
