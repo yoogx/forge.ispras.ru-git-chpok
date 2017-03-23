@@ -18,7 +18,7 @@
 #include <arch/deployment.h>
 #include <assert.h>
 #include "regs.h"
-#include "memlayout.h"
+#include <arch/memlayout.h>
 #include <arch/mmu.h>
 
 /*

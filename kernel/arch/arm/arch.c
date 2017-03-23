@@ -21,7 +21,7 @@
 #include "regs.h"
 #include <arch/mmu.h>
 #include "space.h"
-#include "memlayout.h"
+#include <arch/memlayout.h>
 
 
 extern char __vector_table_start[];

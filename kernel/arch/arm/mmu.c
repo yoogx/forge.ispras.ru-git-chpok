@@ -17,7 +17,7 @@
 #include <stdint.h>
 #include <libc.h>
 #include <arch/mmu.h>
-#include "memlayout.h"
+#include <arch/memlayout.h>
 #include "regs.h"
 
 
