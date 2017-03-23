@@ -33,3 +33,6 @@ env.Append(ASFLAGS = ' -mcpu=cortex-a9')
 
 env['BOARD_IS_EMULATED'] = True
 env.Append(QEMU_FLAGS = ' -M sabrelite')
+
+env['BOARD_RAM_START_ADDR'] = 0x10000000
+

@@ -194,8 +194,8 @@ def deploy_func_unsafe(env, target, source):
 
     memory_type = PhysMemoryType_x86()
     phys_segment = PhysSegment(
-        paddr_start = 0x10000000 + 64 * 2**20,
-        paddr_end   = 0x10000000 + mc.phys_total,
+        paddr_start = env['BOARD_RAM_START_ADDR'] + 64 * 2**20,
+        paddr_end   = env['BOARD_RAM_START_ADDR'] + mc.phys_total,
         memory_type = memory_type,
     )
 
