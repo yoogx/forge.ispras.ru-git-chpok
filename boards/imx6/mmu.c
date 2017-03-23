@@ -18,7 +18,6 @@
 #include <libc.h>
 #include <arch/mmu.h>
 #include <arch/memlayout.h>
-#include "regs.h"
 
 
 // 1KB aligned
