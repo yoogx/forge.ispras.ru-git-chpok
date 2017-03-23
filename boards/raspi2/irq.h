@@ -16,8 +16,6 @@
 #ifndef __RASPI2_IRQ_H__
 #define __RASPI2_IRQ_H__
 
-void irq_enable_interrupt(unsigned irq);
-
 void irq_init(void);
 
 #endif

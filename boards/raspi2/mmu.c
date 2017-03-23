@@ -45,6 +45,10 @@ __attribute__ ((aligned(0x4000))) uint32_t entry_l1_table[4096] = {
     // gpio (for uart)
     [0x3F200000>>20] = (0x3F200000&0xfff00000) | L1_SECT_PRIVILEGED_RW |
         L1_SECT_MEM_DEVICE | L1_TYPE_SECT,
+
+    // local peripherals (timer irq)
+    [0x40000000>>20] = (0x40000000&0xfff00000) | L1_SECT_PRIVILEGED_RW |
+        L1_SECT_MEM_DEVICE | L1_TYPE_SECT,
 };
 
 
@@ -59,5 +63,9 @@ void insert_kernel_mapping_into_table(uint32_t *l1_table)
 
     // gpio (for uart)
     l1_table[0x3F200000>>20] = (0x3F200000&0xfff00000) | L1_SECT_PRIVILEGED_RW |
+        L1_SECT_MEM_DEVICE | L1_TYPE_SECT;
+
+    // local peripherals (timer irq)
+    l1_table[0x40000000>>20] = (0x40000000&0xfff00000) | L1_SECT_PRIVILEGED_RW |
         L1_SECT_MEM_DEVICE | L1_TYPE_SECT;
 }
