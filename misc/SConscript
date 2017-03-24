@@ -42,6 +42,10 @@ module or debug it.
 #    partitions may be (re)generated. By default, these files are already
 #    existed.
 #
+#  kerneltests - enables unittests mode for the kernel.
+#    If set to True, it enables unittests mode in the kernel.
+#    In this mode, some additional files are linked into the kernel.
+#
 # Environment variables which affects on building:
 #
 #  JETOS_BSP - specified BSP for build (if 'bsp' scons parameter is absent).
@@ -89,7 +93,8 @@ vars = Variables()
 vars.AddVariables(
     ('bsp', "Board Support Package for use. List of possible values may be obtained by using value '?'.", None),
     BoolVariable('jdeveloper', 'Enables developer mode', False),
-    BoolVariable('cdeveloper', 'Enables component developer mode', False)
+    BoolVariable('cdeveloper', 'Enables component developer mode', False),
+    BoolVariable('kerneltests', 'Enables kernel unittests mode', False)
 )
 
 env = Environment(variables = vars, ENV = os.environ)
