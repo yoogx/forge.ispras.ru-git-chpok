@@ -19,29 +19,12 @@
 //TODO
 struct jet_fp_store
 {
-  int todo;
+    uint64_t fp_regs[32];
+    uint64_t fp_fpscr;
 };
 
 struct jet_fp_store* ja_alloc_fp_store(void)
 {
     struct jet_fp_store* res = ja_mem_alloc_aligned(sizeof(*res), 4);
     return res;
-}
-
-void ja_fp_save(struct jet_fp_store* fp_store)
-{
-    //TODO
-    //assert(0);
-}
-
-void ja_fp_restore(struct jet_fp_store* fp_store)
-{
-    //TODO
-    //assert(0);
-}
-
-void ja_fp_init(void)
-{
-    //TODO
-    //assert(0);
 }
