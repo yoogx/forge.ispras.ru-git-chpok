@@ -32,7 +32,9 @@ static void first_process(void)
             break;
         } 
         i++;
+        printf("P1: PERIODIC_WAIT[%d]\n", i);
         PERIODIC_WAIT(&ret);
+        printf("P1: AFTER PERIODIC_WAIT[%d]\n", i);
     }
     STOP_SELF();
 }
@@ -63,8 +65,8 @@ static int real_main(void)
     BUFFER_ID_TYPE id;
     PROCESS_ID_TYPE pid;
     PROCESS_ATTRIBUTE_TYPE periodic_process_attrs = {
-        .PERIOD = 50000000UL,
-        .TIME_CAPACITY = 25000000UL,
+        .PERIOD = 1750000000UL,
+        .TIME_CAPACITY = 250000000UL,
         .STACK_SIZE = 8096, // the only accepted stack size!
         .BASE_PRIORITY = MIN_PRIORITY_VALUE,
         .DEADLINE = SOFT,
@@ -80,10 +82,10 @@ static int real_main(void)
     // create buffer
     CREATE_BUFFER("foo", sizeof(int), 10, FIFO, &id, &ret);
     if (ret != NO_ERROR) {
-        printf("error creating a buffer: %d\n", (int) ret);
+        printf("P1: error creating a buffer: %d\n", (int) ret);
         return 1;
     } else {
-        printf("buffer successfully created\n");
+        printf("P1: buffer successfully created\n");
     }
     global_buffer_id = id;
 
@@ -93,18 +95,18 @@ static int real_main(void)
 
     CREATE_PROCESS(&periodic_process_attrs, &pid, &ret);
     if (ret != NO_ERROR) {
-        printf("couldn't create process 1: %d\n", (int) ret);
+        printf("P1: couldn't create process 1: %d\n", (int) ret);
         return 1;
     } else {
-        printf("process 1 created\n");
+        printf("P1: process 1 created\n");
     }
     
     START(pid, &ret);
     if (ret != NO_ERROR) {
-        printf("couldn't start process 1: %d\n", (int) ret);
+        printf("P1: couldn't start process 1: %d\n", (int) ret);
         return 1;
     } else {
-        printf("process 1 \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
+        printf("P1: process 1 \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
     }
 
     // create process 2
@@ -113,18 +115,18 @@ static int real_main(void)
 
     CREATE_PROCESS(&process_attrs, &pid, &ret);
     if (ret != NO_ERROR) {
-        printf("couldn't create process 2: %d\n", (int) ret);
+        printf("P1: couldn't create process 2: %d\n", (int) ret);
         return 1;
     } else {
-        printf("process 2 created\n");
+        printf("P1: process 2 created\n");
     }
 
     START(pid, &ret);
     if (ret != NO_ERROR) {
-        printf("couldn't start process 2: %d\n", (int) ret);
+        printf("P1: couldn't start process 2: %d\n", (int) ret);
         return 1;
     } else {
-        printf("process 2 \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
+        printf("P1: process 2 \"started\" (it won't actually run until operating mode becomes NORMAL)\n");
     }
 
     // transition to NORMAL operating mode
@@ -132,7 +134,7 @@ static int real_main(void)
     SET_PARTITION_MODE(NORMAL, &ret);
 
     if (ret != NO_ERROR) {
-        printf("couldn't transit to normal operating mode: %d\n", (int) ret);
+        printf("P1: couldn't transit to normal operating mode: %d\n", (int) ret);
     } 
 
     STOP_SELF();
