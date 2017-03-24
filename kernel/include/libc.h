@@ -41,6 +41,8 @@ int   strncasecmp(const char *s1, const char *s2, size_t size);
 char *strchr(const char *s, int c);
 char *strrchr(const char *s, int c);
 
+char *strstr(const char *s1, const char *s2);
+
 void *memchr(const void *s, int c, size_t n);
 
 typedef void (*t_putc)(int val, void *out);
