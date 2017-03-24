@@ -6,10 +6,14 @@
         <xi:include href="P3/config.xml" parse="xml"/>
 	</Partitions>
     <Schedule>
-        <Slot Type="Partition" PartitionNameRef="P1" Duration="25ms" PeriodicProcessingStart="true" />
-        <Slot Type="Partition" PartitionNameRef="P2" Duration="25ms" PeriodicProcessingStart="true" />
-        <Slot Type="Partition" PartitionNameRef="P1" Duration="25ms" PeriodicProcessingStart="true" />
-        <Slot Type="Partition" PartitionNameRef="P3" Duration="25ms" PeriodicProcessingStart="true" />
+        <Slot Type="Partition" PartitionNameRef="P1" Duration="250ms" PeriodicProcessingStart="true" />
+        <Slot Type="Partition" PartitionNameRef="P2" Duration="250ms" PeriodicProcessingStart="true" />
+        <Slot Type="Partition" PartitionNameRef="P1" Duration="250ms" PeriodicProcessingStart="false" />
+        <Slot Type="Partition" PartitionNameRef="P3" Duration="250ms" PeriodicProcessingStart="true" />
+        <Slot Type="Partition" PartitionNameRef="P3" Duration="250ms" PeriodicProcessingStart="false" />
+        <Slot Type="Partition" PartitionNameRef="P1" Duration="250ms" PeriodicProcessingStart="false" />
+        <Slot Type="Partition" PartitionNameRef="P3" Duration="250ms" PeriodicProcessingStart="false" />
+        <Slot Type="Partition" PartitionNameRef="P1" Duration="250ms" PeriodicProcessingStart="false" />
         <!-- Slot Type="Monitor" Duration="1ms" / -->
         <!-- Slot Type="GDB" Duration="1ms" /-->
     </Schedule>
