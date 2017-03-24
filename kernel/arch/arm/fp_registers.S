@@ -13,7 +13,8 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifdef FPU_NEON
+#include <board/cpu_config.h>
+#ifdef JET_ARM_CONFIG_FPU_NEON
 .fpu neon
 #endif
 
@@ -24,7 +25,7 @@ ja_fp_init:
     .globl ja_fp_restore
 ja_fp_restore:
     vldm r0!, {d0-d15}
-#ifdef FPU_NEON
+#ifdef JET_ARM_CONFIG_FPU_NEON
     vldm r0!, {d16-d31}
 #endif
     //restore FPSCR
@@ -36,7 +37,7 @@ ja_fp_restore:
     .globl ja_fp_save
 ja_fp_save:
     vstm r0!, {d0-d15}
-#ifdef FPU_NEON
+#ifdef JET_ARM_CONFIG_FPU_NEON
     vstm r0!, {d16-d31}
 #endif
     //save FPSCR
