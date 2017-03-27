@@ -56,7 +56,7 @@ static void partition_arinc_portals_terminate(enum jet_ippc_portal_state portal_
         struct jet_partition_arinc_ippc_portal_type* arinc_portal_type = &part->portal_types[i];
         for(int j = 0; j < arinc_portal_type->portal_type->n_portals; j++) {
             struct jet_ippc_portal* portal = &arinc_portal_type->portal_type->portals[j];
-            jet_ippc_portal_terminate(portal, JET_IPPC_PORTAL_STATE_INITIALIZING);
+            jet_ippc_portal_terminate(portal, portal_state);
         }
     }
 }
@@ -190,12 +190,12 @@ static void partition_arinc_start(void)
 
     jet_uspace_revoke_access_local(&part->base_part);
 
-    for(int i = 0; i < part->nports_queuing; i++)
+    for(unsigned i = 0; i < part->nports_queuing; i++)
     {
         pok_port_queuing_init(&part->ports_queuing[i]);
     }
 
-    for(int i = 0; i < part->nports_sampling; i++)
+    for(unsigned i = 0; i < part->nports_sampling; i++)
     {
         pok_port_sampling_init(&part->ports_sampling[i]);
     }
@@ -211,10 +211,9 @@ static void partition_arinc_start(void)
     part->nthreads_normal_used = 0;
 
     part->thread_current = NULL;
-#ifdef POK_NEEDS_ERROR_HANDLING
+
     part->thread_error = NULL;
     INIT_LIST_HEAD(&part->error_list);
-#endif
 
     pok_thread_t* thread_main = &part->threads[POK_PARTITION_ARINC_MAIN_THREAD_ID];
 
@@ -234,6 +233,12 @@ static void partition_arinc_start(void)
     part->kshd->current_thread_id = JET_THREAD_ID_NONE;
     part->kshd->max_n_threads = part->nthreads;
     part->kshd->partition_mode = part->mode;
+    // Transfer data about intra communication to user space
+    part->kshd->arinc_config_nbuffers = part->arinc_config_nbuffers;
+    part->kshd->arinc_config_nblackboards = part->arinc_config_nblackboards;
+    part->kshd->arinc_config_nsemaphores = part->arinc_config_nsemaphores;
+    part->kshd->arinc_config_nevents = part->arinc_config_nevents;
+    part->kshd->arinc_config_messages_memory_size = part->arinc_config_messages_memory_size;
 
     sched_arinc_start();
 
@@ -476,6 +481,7 @@ static void partition_set_mode_normal(void)
             if(pok_time_is_infinity(periodic_release_point))
                 periodic_release_point = get_next_periodic_processing_start();
             thread_start_time = periodic_release_point + t->delayed_time;
+            t->next_activation = thread_start_time;
         }
 
         if(thread_start_time <= current_time)

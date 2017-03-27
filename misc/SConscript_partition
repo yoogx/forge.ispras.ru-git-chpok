@@ -39,7 +39,10 @@ Build single partition according to definition script.
 # - 'PARTITION_BUILD_DIR' - where partition's elf should be built.
 # (Absolute path).
 #
-# - 'PARTITION_CLEAN_DIRS' - which directories should be clean on `scons -c local`.
+# - 'PARTITION_CLEAN_DIRS' - which directories should be clean on `scons -c local` and `scons clean`.
+# (Absolute path or list of absolute paths; by default equal to PARTITION_BUILD_DIR).
+#
+# - 'PARTITION_DISTCLEAN_DIRS' - which directories should be clean on `scons -c all` and `scons distclean`.
 # (Absolute path or list of absolute paths; by default equal to PARTITION_BUILD_DIR).
 #
 # After that, it executes SConscript located under 'PARTITION_SOURCE_DIR'.
@@ -78,12 +81,6 @@ Build single partition according to definition script.
 # Return target which builds partition's elf.
 
 import os
-
-from lxml import etree
-import arinc653_xml_conf
-import chpok_configuration
-import template_generation
-import jetos_configuration_internal
 
 Import('part_env')
 
@@ -142,10 +139,6 @@ part_env['PARTITION_SOURCES'] = part_env.toAbsPathList(
 	part_env['PARTITION_SOURCES'],
 	part_build_dir
 )
-part_env['PARTITION_XML'] = part_env.toAbsPathList(
-	part_env['PARTITION_XML'],
-	part_env['PARTITION_SOURCE_DIR']
-)
 
 libjet_target = part_env.get('LIBJET_TARGET', None)
 
@@ -153,29 +146,10 @@ libjet_target = part_env.get('LIBJET_TARGET', None)
 if libjet_target is None:
 	libjet_target = part_env.BuildLibJet()
 
-AddMethod(part_env, template_generation.TemplateRender)
-
-def get_pok_partition_definitions(source, part_env):
-    part = part_env['PARTITION_PARSE_CONFIGURATION'](source, part_env)
-
-    part_internal = jetos_configuration_internal.PartitionInternal.from_normal(part, 0)
-
-    return dict(part = part)
-
-deployment_target = part_env.TemplateRender(
-    target = os.path.join(part_build_dir, "deployment.c"),
-    source = part_env['PARTITION_XML'],
-    create_definitions_func = get_pok_partition_definitions,
-    template_main = "deployment_user",
-    template_dir = part_env['JETOS_HOME'] + "/misc/templates"
-    )
 
 part_elf_env = part_env.Clone()
 
 ldscript_partition = part_env['LDSCRIPT_PARTITION']
-# Rewrite LINKFLAGS, as we build '.elf'.
-part_elf_env['LINKFLAGS'] = ' -T ' + ldscript_partition
-
 
 if part_env.get('PARTITION_IS_SYSTEM', default = False):
 	syspart_target = part_env.get('SYSPART_TARGET', None)
@@ -186,8 +160,7 @@ else:
 	syspart_target = []
 
 part_elf = part_elf_env.Program(target = part_build_dir+'/part.elf',
-	source = deployment_target
-		+ part_env['PARTITION_SOURCES']
+	source = part_env['PARTITION_SOURCES']
 		+ syspart_target
 		+ libjet_target
 		+ [part_env['LIBGCC']])
@@ -195,10 +168,8 @@ part_elf = part_elf_env.Program(target = part_build_dir+'/part.elf',
 part_elf_env.Depends(part_elf, ldscript_partition)
 
 
-part_clean_dirs = part_env.get('PARTITION_CLEAN_DIRS', part_build_dir)
-if type(part_clean_dirs) is not list:
-	part_clean_dirs = [part_clean_dirs]
-	part_env['PARTITION_CLEAN_DIRS'] = part_clean_dirs
+part_clean_dirs = part_env.CanonicalCleanList('PARTITION_CLEAN_DIRS', part_build_dir)
+part_distclean_dirs = part_env.CanonicalCleanList('PARTITION_DISTCLEAN_DIRS', part_build_dir)
 
 if 'part_index' in part_env:
 	# If build as a part of the module, SConscript_module cares about
@@ -206,10 +177,11 @@ if 'part_index' in part_env:
 	pass
 else:
 	part_env.RemoveDirectories('part_clean_cmd', part_clean_dirs)
+	part_env.RemoveDirectories('part_distclean_cmd', part_distclean_dirs)
 	part_env.Alias('clean', 'part_clean_cmd')
-	part_env.Alias('distclean', 'part_clean_cmd')
+	part_env.Alias('distclean', 'part_distclean_cmd')
 	part_env.Clean('#/local', part_clean_dirs)
-	part_env.Clean('#/all', part_clean_dirs)
+	part_env.Clean('#/all', part_distclean_dirs)
 
 Return('part_elf')
 

@@ -18,7 +18,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_BLACKBOARD
 #include <arinc653/types.h>
 #include <arinc653/blackboard.h>
 #include <msection.h>
@@ -39,7 +38,5 @@ struct arinc_blackboard
 
 /* Preallocated array of blackboards. */
 extern struct arinc_blackboard* arinc_blackboards;
-
-#endif /* POK_NEEDS_ARINC653_BLACKBOARD */
 
 #endif /* __LIBJET_ARINC_BLACKBOARD_H__ */

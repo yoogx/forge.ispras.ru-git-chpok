@@ -18,8 +18,6 @@
 #ifndef __POK_TIME_H__
 #define __POK_TIME_H__
 
-#include <core/dependencies.h>
-
 #include <types.h>
 #include <errno.h>
 #include <core/syscall.h>

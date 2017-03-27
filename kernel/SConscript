@@ -28,14 +28,15 @@ Export('kernel_env')
 core = SConscript('core/SConscript')
 libc = SConscript('libc/SConscript')
 arch = SConscript('arch/SConscript')
-bsp_target = SConscript(kernel_env['JETOS_HOME'] + '/boards/SConscript',
-	variant_dir = 'boards',
-	duplicate = 0
+bsp_objects = SConscript(kernel_env['JETOS_HOME'] + '/boards/SConscript',
+        variant_dir = 'boards',
+        duplicate = 0
 )
 
-kernel_objects=[core, libc, arch, bsp_target]
+kernel_objects=[core, libc, arch, bsp_objects]
 
-kernel_core_target = kernel_env.Program(target = 'core.lo', source = kernel_objects)
+kernel_target = kernel_env.StaticLibrary(target = 'kernel',
+    source = kernel_objects)
 
 if kernel_env.get('jdeveloper'):
     import sys
@@ -49,11 +50,6 @@ if kernel_env.get('jdeveloper'):
 
     (uapi_headers, uapi_headers_syscall) = SConscript(source_dir + 'SConscript')
 
-    kernel_env.Replace(
-        SOURCE_BASE_DIR = kernel_env['JETOS_HOME'],
-        GENERATE_TITLE = template_generation.generate_title_c
-    )
-
     # <source-dir> and <target-dir> are the same.
     #
     # No needs to simply copy files. Only files generation takes a place.
@@ -62,10 +58,10 @@ if kernel_env.get('jdeveloper'):
         kernel_syscall_headers.extend(kernel_env.BuildSyscallDefinition(
             target = target_dir + uapi_header_syscall,
             source = source_dir + uapi_header_syscall + '.in',
-            template_main = 'syscall_declarations_kernel',
-            template_dir = kernel_env['JETOS_HOME'] + '/misc/templates'))
+            template_file = kernel_env['JETOS_HOME'] + '/misc/templates/syscall_declarations_kernel.tpl',
+            title = template_generation.generate_title_c))
 
     kernel_env.Depends('regenerate', kernel_syscall_headers)
 
-Return('kernel_core_target')
+Return('kernel_target')
 # EOF

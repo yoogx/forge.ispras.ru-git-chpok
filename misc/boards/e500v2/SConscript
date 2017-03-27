@@ -32,7 +32,5 @@ env['PREFIX'] = 'powerpc-elf-eabispe-' # This will rewrite PREFIX set by arch
 env.Append(CFLAGS = ' -mcpu=8548 -mspe=yes -mfloat-gprs=double -mno-eabi')
 env.Append(ASFLAGS = ' -mcpu=8548 -mspe=yes -mfloat-gprs=double -mno-eabi')
 
-env['BOARD_PHYS_SIZE'] = 2**28 # 256M
-
 env['BOARD_IS_EMULATED'] = True
 env.Append(QEMU_FLAGS = ' -M ppce500 -cpu e500v2')

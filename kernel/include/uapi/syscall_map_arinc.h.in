@@ -49,23 +49,15 @@ SYSCALL_DECLARE(POK_SYSCALL_THREAD_CREATE, pok_thread_create,
    pok_thread_id_t*, thread_id)
 
 //! User function accepts int64_t arg, checks that it fits into int32_t and transforms it.
-#ifdef POK_NEEDS_THREAD_SLEEP
 SYSCALL_DECLARE(POK_SYSCALL_THREAD_SLEEP, pok_thread_sleep,
    const pok_time_t*, time)
-#endif
 
-#ifdef POK_NEEDS_THREAD_SLEEP_UNTIL
-SYSCALL_DECLARE(POK_SYSCALL_THREAD_SLEEP_UNTIL, pok_thread_sleep_until,
-   const pok_time_t*, time)
-#endif
 //! User name - pok_thread_period
 SYSCALL_DECLARE(POK_SYSCALL_THREAD_PERIOD, pok_sched_end_period)
 
-#if defined (POK_NEEDS_THREAD_SUSPEND) || defined (POK_NEEDS_ERROR_HANDLING)
 //! User function accepts int64_t arg, checks that it fits into int32_t and transforms it.
 SYSCALL_DECLARE(POK_SYSCALL_THREAD_SUSPEND, pok_thread_suspend,
    const pok_time_t*, time)
-#endif
 
 //! User name - pok_thread_status
 SYSCALL_DECLARE(POK_SYSCALL_THREAD_STATUS, pok_thread_get_status,
@@ -129,7 +121,6 @@ SYSCALL_DECLARE(POK_SYSCALL_MSECTION_WQ_SIZE, jet_msection_wq_size,
    size_t*, size)
 
 
-#ifdef POK_NEEDS_PARTITIONS
 //! User name - pok_partition_set_mode
 SYSCALL_DECLARE(POK_SYSCALL_PARTITION_SET_MODE, pok_partition_set_mode_current,
    pok_partition_mode_t, mode)
@@ -144,10 +135,8 @@ SYSCALL_DECLARE(POK_SYSCALL_PARTITION_INC_LOCK_LEVEL, pok_current_partition_inc_
 //! User name - pok_partition_dec_lock_level
 SYSCALL_DECLARE(POK_SYSCALL_PARTITION_DEC_LOCK_LEVEL, pok_current_partition_dec_lock_level,
    int32_t*, lock_level)
-#endif
 
 
-#ifdef POK_NEEDS_ERROR_HANDLING
 //! Used directly for CREATE_ERROR_HANDLER
 SYSCALL_DECLARE(POK_SYSCALL_ERROR_HANDLER_CREATE, pok_error_thread_create,
    uint32_t, stack_size,
@@ -160,7 +149,6 @@ SYSCALL_DECLARE(POK_SYSCALL_ERROR_RAISE_APPLICATION_ERROR, pok_error_raise_appli
 SYSCALL_DECLARE(POK_SYSCALL_ERROR_GET, pok_error_get,
    pok_error_status_t*, status,
    void*, msg)
-#endif
 
 SYSCALL_DECLARE(POK_SYSCALL_ERROR_RAISE_OS_ERROR, pok_error_raise_os_error,
    const char*, msg,
@@ -168,7 +156,6 @@ SYSCALL_DECLARE(POK_SYSCALL_ERROR_RAISE_OS_ERROR, pok_error_raise_os_error,
 
 
    /* Middleware syscalls */
-#ifdef POK_NEEDS_PORTS_SAMPLING
 //! User function accepts uint64_t and transforms it to uint32_t without checks
 SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_SAMPLING_CREATE, pok_port_sampling_create,
    const char*, name,
@@ -198,9 +185,7 @@ SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_SAMPLING_STATUS, pok_port_sampling_status
 
 SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_SAMPLING_CHECK, pok_port_sampling_check,
    pok_port_id_t, id)
-#endif /* POK_NEEDS_PORTS_SAMPLING */
 
-#ifdef POK_NEEDS_PORTS_QUEUEING
 SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_QUEUEING_CREATE, pok_port_queuing_create_packed,
     const char*, name,
     const pok_port_queuing_create_arg_t*, arg,
@@ -230,10 +215,9 @@ SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_QUEUEING_STATUS, pok_port_queuing_status,
 SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_QUEUEING_CLEAR, pok_port_queuing_clear,
    pok_port_id_t, id)
 
-#endif /* POK_NEEDS_PORTS_QUEUEING */
 
 
-SYSCALL_DECLARE(POK_SYSCALL_MEMORY_BLOCK_GET_STATUS, pok_memory_block_get_status,
+SYSCALL_DECLARE(POK_SYSCALL_MEMORY_BLOCK_GET_STATUS, jet_memory_block_get_status,
    const char*, name,
    jet_memory_block_status_t*, status)
 

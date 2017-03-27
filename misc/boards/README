@@ -67,11 +67,13 @@ and should fill some environment variables in it:
    This size is used in memory constraints generated for the module.
 
    For Qemu-boards (see BOARD_IS_EMULATED below) this size is used when
-   run module under Qemu.
+   run module under Qemu. For Qemu-boards default value is 128Mb
 
    This size may be changed by module definition script(see description
    of 'BOARD_DEPLOY' function above).
  (Integer, required for non-Qemu boards).
+
+ - BSP_PROPERTIES_FILE - file which contains "key = value" definitions for given BSP.
 
  - 'BOARD_IS_EMULATED' - whether given board can be emulated using qemu.
  For emulated board scons targets for running module are automatically

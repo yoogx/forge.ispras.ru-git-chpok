@@ -1,16 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
 <Partition>
     <Definition Identifier="1" Name="P2" />
-    <!-- Amount of ram allocated (code + stack + static variables) -->
+    <!-- Amount of ram required for ELF -->
     <Memory Bytes="300K" />
 
-    <!-- Number of threads that can be created in this partition.
-         Note that this number doesn't include main and error handler threads,
-         (the former always exists, and the latter can always be created).
-
-         Values less than 1 probably don't make sense, because otherwise
-         you won't be able to create any threads that can be run in
-         NORMAL partition state.
-        -->
     <Threads Count="10" />
 
     <ARINC653_Buffers Data_Size="4096" Count="16" />
@@ -19,10 +12,6 @@
     <ARINC653_Semaphores Count="16" />
 
     <ARINC653_Ports>
-        <!-- Those correspond to 
-             A653_SamplingPortType and A653_QueueingPortType
-             defined in the standard
-        -->
         <Queueing_Port Name="QP2" MaxMessageSize="64" Direction="SOURCE" MaxNbMessage="10" />
     </ARINC653_Ports>
 

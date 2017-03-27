@@ -18,8 +18,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ERROR_HANDLING
-
 #include <types.h>
 #include <core/error_arinc.h>
 #include <core/partition_arinc.h>
@@ -142,7 +140,6 @@ static pok_bool_t process_error_partition(pok_system_state_t system_state,
     switch(system_state)
     {
     case POK_SYSTEM_STATE_USER:
-#ifdef POK_NEEDS_ERROR_HANDLING
         if(pok_error_level_select(part->partition_hm_selector,
             system_state, error_id)
             && part->mode == POK_PARTITION_MODE_NORMAL
@@ -150,7 +147,6 @@ static pok_bool_t process_error_partition(pok_system_state_t system_state,
         // Fallback
     case POK_SYSTEM_STATE_ERROR_HANDLER: // This state can only be viewed with error handling enabled.
         // Fallback
-#endif /* POK_NEEDS_ERROR_HANDLING */
     case POK_SYSTEM_STATE_OS_PART:
         break;
     default:
@@ -188,7 +184,6 @@ static void thread_set_unrecoverable(pok_thread_t* thread)
     }
 }
 
-#ifdef POK_NEEDS_ERROR_HANDLING
 
 /*
  * Set error bit in the thread.
@@ -252,7 +247,6 @@ static void thread_emit_sync_error(pok_thread_t* thread,
     thread_add_error_bit(thread, POK_THREAD_ERROR_BIT_SYNC);
 }
 
-#endif /* POK_NEEDS_ERROR_HANDLING */
 
 void pok_partition_arinc_process_error(
     pok_system_state_t partition_state,
@@ -260,13 +254,12 @@ void pok_partition_arinc_process_error(
     uint8_t preempt_local_disabled_old,
     void* failed_address)
 {
-    pok_partition_arinc_t* part = current_partition_arinc;
+    (void) preempt_local_disabled_old; // TODO: Take into account `preempt_local_disabled_old`
 
-    // TODO: Take into account `preempt_local_disabled_old`
+    pok_partition_arinc_t* part = current_partition_arinc;
 
     if(process_error_partition(partition_state, error_id)) return;
 
-#ifdef POK_NEEDS_ERROR_HANDLING
 
     assert(partition_state == POK_SYSTEM_STATE_USER);
     assert(part->thread_current != part->thread_error);
@@ -276,9 +269,6 @@ void pok_partition_arinc_process_error(
     thread_emit_sync_error(part->thread_current, error_id, (__user void*)failed_address);
 
     pok_preemption_local_enable();
-#else
-    assert(FALSE); // Unreachable
-#endif /* POK_NEEDS_ERROR_HANDLING */
 }
 
 void pok_thread_emit_deadline_missed(pok_thread_t* thread)
@@ -286,11 +276,7 @@ void pok_thread_emit_deadline_missed(pok_thread_t* thread)
     if(process_error_partition(POK_SYSTEM_STATE_USER,
         POK_ERROR_ID_DEADLINE_MISSED)) return;
 
-#ifdef POK_NEEDS_ERROR_HANDLING
     thread_add_error_bit(thread, POK_THREAD_ERROR_BIT_DEADLINE);
-#else
-    assert(FALSE); // Unreachable
-#endif /* POK_NEEDS_ERROR_HANDLING */
 }
 
 void pok_thread_emit_deadline_oor(pok_thread_t* thread)
@@ -300,14 +286,9 @@ void pok_thread_emit_deadline_oor(pok_thread_t* thread)
     if(process_error_partition(POK_SYSTEM_STATE_USER,
         POK_ERROR_ID_ILLEGAL_REQUEST)) return;
 
-#ifdef POK_NEEDS_ERROR_HANDLING
     thread_add_error_bit(thread, POK_THREAD_ERROR_BIT_DEADLINE_OOR);
-#else
-    assert(FALSE); // Unreachable
-#endif /* POK_NEEDS_ERROR_HANDLING */
 }
 
-#ifdef POK_NEEDS_ERROR_HANDLING
 pok_ret_t pok_error_raise_application_error (const char* __user msg, size_t msg_size)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
@@ -488,7 +469,4 @@ void error_ignore_sync(void)
     if(thread->error_bits & POK_THREAD_ERROR_BIT_SYNC)
         thread_clear_error_bit(thread, POK_THREAD_ERROR_BIT_SYNC);
 }
-#endif /* POK_NEEDS_ERROR_HANDLING */
-
-#endif
 

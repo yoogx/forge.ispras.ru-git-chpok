@@ -60,8 +60,8 @@ extern pok_partition_t partition_gdb;
 
 typedef struct
 {
-    uint64_t duration; // Set in deployment.c
-    uint64_t offset; // Set in deployment.c
+    pok_time_t duration; // Set in deployment.c
+    pok_time_t offset; // Set in deployment.c
 
     pok_partition_t* partition; // Set in deployment.c
 

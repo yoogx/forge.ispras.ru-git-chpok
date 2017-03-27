@@ -27,7 +27,7 @@ void* __kuser jet_memory_block_get_kaddr(const struct memory_block* mblock,
     return (void* __kuser)((uintptr_t)addr - mblock->vaddr + mblock->kaddr);
 }
 
-pok_ret_t pok_memory_block_get_status(
+pok_ret_t jet_memory_block_get_status(
     const char* __user name,
     jet_memory_block_status_t* __user status)
 {
@@ -57,6 +57,7 @@ pok_ret_t pok_memory_block_get_status(
 
     status_kernel->addr = mblock->vaddr;
     status_kernel->size = mblock->size;
+    status_kernel->align = mblock->align;
 
     if(mblock->is_contiguous) {
         status_kernel->is_contiguous = TRUE;
@@ -72,6 +73,8 @@ pok_ret_t pok_memory_block_get_status(
 static void jet_memory_block_init_zero(pok_partition_arinc_t* part,
     const struct memory_block* const* mblocks)
 {
+    (void) part; //ignore part
+
     for(const struct memory_block* const * p_mblock = mblocks;
         *p_mblock != NULL;
         p_mblock++)
@@ -91,6 +94,8 @@ void jet_memory_block_init(enum jet_memory_block_init_type init_type,
     const struct memory_block* const* mblocks,
     uint16_t source_id)
 {
+    (void) source_id; //currently not used
+
     switch(init_type) {
         case JET_MEMORY_BLOCK_INIT_ZERO:
             jet_memory_block_init_zero(part, mblocks);

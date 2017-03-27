@@ -110,6 +110,15 @@ struct jet_thread_shared_data
 
     uintptr_t ippc_output_params_server[IPPC_MAX_OUTPUT_PARAMS_N];
     int ippc_output_params_server_n;
+
+    /* 
+     * Data specific for the thread.
+     * 
+     * Set with jet_set_process_data() call, extracted with jet_get_my_data().
+     * 
+     * Used only by user space.
+     */
+    void* private_data;
 };
 
 /* Thread is killed. When last msection is leaved, jet_sched() should be called. */
@@ -163,6 +172,24 @@ struct jet_kernel_shared_data
      * TODO: Does partition really need that info?
      */
     pok_thread_id_t max_n_threads;
+
+    /* 
+     * Configuration for ARINC intra communication.
+     * 
+     * Used only by user space.
+     * 
+     * DEV: This should be passed as property tree for user space.
+     */
+    // Maximum number of buffers.
+    size_t arinc_config_nbuffers;
+    // Maximum number of blackboards.
+    size_t arinc_config_nblackboards;
+    // Maximum number of semaphores.
+    size_t arinc_config_nsemaphores;
+    // Maximum number of events.
+    size_t arinc_config_nevents;
+    // Memory for messages, used by buffers and blackboards.
+    size_t arinc_config_messages_memory_size;
 
     /* Open-bounds array of thread shared data. */
     struct jet_thread_shared_data tshd[];

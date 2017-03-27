@@ -23,13 +23,15 @@
 #include "gdt.h"
 #include "space.h"
 #include <bsp/bsp.h>
+#include <asp/entries.h>
 
 void pok_arch_init (void)
 {
-  pok_gdt_init ();
-  ja_event_init ();
-  ja_bsp_init();
-  ja_space_init();
+    jet_console_init_all();
+    pok_gdt_init ();
+    ja_event_init ();
+    ja_bsp_init();
+    ja_space_init();
 }
 
 void ja_preempt_disable(void)

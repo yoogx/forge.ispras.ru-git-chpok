@@ -34,10 +34,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_PROCESS
-
-#include <core/dependencies.h>
-
 #include <core/thread.h>
 #include <arinc653/arincutils.h>
 #include <arinc653/types.h>
@@ -178,6 +174,7 @@ void CREATE_PROCESS (
 
     if (core_ret != POK_ERRNO_OK) return;
     
+    kshd->tshd[core_process_id].private_data = NULL;
     *process_id = core_process_id + 1;
 }
 
@@ -308,5 +305,3 @@ void UNLOCK_PREEMPTION (LOCK_LEVEL_TYPE *LOCK_LEVEL, RETURN_CODE_TYPE *return_co
         MAP_ERROR_DEFAULT(INVALID_PARAM); // shouldn't happen
     }
 }
-
-#endif

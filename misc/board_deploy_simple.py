@@ -18,24 +18,46 @@
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 """
-Simple allocator of memory blocks, which can be used by env['BOARD_DEPLOY'] function.
+Simple allocator of memory blocks, which can be used by env['BOARD_DEPLOY']
+function. Simple allocator create mapping where all memory blocks are physical
+contiguous.
 
-1. Define class for TLB entry, which describes mapping of memory region
+MBmap (Memory Block map) name is used for memory block mapping from virtual
+space to physical one.
+
+Simple allocator assumes that physical memory are devided in chunks. Some
+chunks are RAM and other one are for periphery.
+
+Chunks of RAM are called here as PhysSegments. Anything outside the PhysSegment
+is memory for periphery. If memory block has *not* a fixed phys address than it
+gets in some of PhysSegments. If memory block has fixed phys address than it
+gets outside of any PhysSegments.
+
+Simple allocator is divided in two parts "core" (arch independent) and "arch"
+(arch dependent). This file contains "core".
+
+
+Arch should:
+
+1. Define class for MBmap, which describes mapping of memory block
 from virtual space to physical one.
 
 2. Extend 'PhysMemoryBlock', so it will reflect block in physical memory,
-for which TLB entry can be created.
+for which MBmap can be created.
 
 3. Extend 'PhysMemoryType' which defines possible cache policies for some
 physical area and creation of 'PhysMemoryBlock' objects.
 
-4. Declare regions of physical memory, in which memory blocks with non-fixed
+4. Declare regions of RAM physical memory, in which memory blocks with non-fixed
 physical addresses can be allocated.
 For each such region 'PhysMemoryType' object should be binded.
+Regions declaration is a list of PhysSegment
 
 5. For memory block constraints call allocateMemoryBlocksSimple().
 This function will transform constraints into definitions and return
-per-partition lists of TLB entries. (It returns list of 'PartitionTLBEntries' objects).
+per-partition lists of MBmaps. (It returns list of 'PartitionMBmaps' objects).
+When calling allocateMemoryBlocksSimple() pass memory_type_default which is
+used for memory blocks with fixed physical memory
 """
 
 from __future__ import division
@@ -66,7 +88,7 @@ class PhysMemoryBlock:
         self.align = align
 
     @abc.abstractmethod
-    def createTLBEntry(self, vaddr, access, cache_policy, space_id):
+    def createMBmap(self, vaddr, access, cache_policy, space_id):
         """
         Create object which maps given virtual address to this physical
         block.
@@ -116,24 +138,24 @@ class PhysSegment:
         self.paddr_end = paddr_end
         self.memory_type = memory_type
 
-class PartitionTLBEntries:
+class PartitionMBmaps:
     """
-    TLB entries allocated for partition.
+    MPmaps allocated for partition.
     """
     slots = [
         'name', # Name of the partition
-        'entries' # List of TLB entries
+        'MBmaps_list'
     ]
 
     def __init__(self, name):
         self.name = name
-        self.entries = []
+        self.MBmaps_list = []
 
 
 def allocateMemoryBlocksSimple(memory_constraints, phys_segments,
         memory_type_default, vaddr_start_all):
     """
-    Create TLB entries for given memory_constraints, allocating
+    Create MBmaps for given memory_constraints, allocating
     them from given list of physical segments.
 
     'memory_type_default' - PhysMemoryType object, which will be used
@@ -147,7 +169,7 @@ def allocateMemoryBlocksSimple(memory_constraints, phys_segments,
     After the call 'memory_constrains' object will contain memory
     *definitions*.
 
-    Return list of 'PartitionTLBEntries' objects with '.entries' filled.
+    Return list of 'PartitionMBmaps' objects with '.MBmaps' filled.
     """
     pb_allocator = _PhysBlockAllocator(phys_segments, memory_type_default)
     # Memory blocks reserved by sharing.
@@ -161,6 +183,7 @@ def allocateMemoryBlocksSimple(memory_constraints, phys_segments,
 
         # Compute all information required for physical memory block creation.
         size = first_mb.size
+        align = first_mb.align
         cache_policies = set()
         paddr = first_mb.paddr
 
@@ -175,6 +198,10 @@ def allocateMemoryBlocksSimple(memory_constraints, phys_segments,
                 print "ERROR: Sharing %d has memory blocks of different sizes." % i
                 raise RuntimeError("Incorrect memory blocks sharing")
 
+            if mb.align != align:
+                print "ERROR: Sharing %d has memory blocks of different alignments." % i
+                raise RuntimeError("Incorrect memory blocks sharing")
+
             cache_policies.add(mb.cache_policy)
 
         if size == 0:
@@ -183,7 +210,7 @@ def allocateMemoryBlocksSimple(memory_constraints, phys_segments,
 
         # Create physical memory block.
         if paddr is None:
-            pb = pb_allocator.allocPhysBlock(size, cache_policies)
+            pb = pb_allocator.allocPhysBlock(size, align, cache_policies)
         else:
             pb = pb_allocator.allocPhysBlockFixed(paddr, size, cache_policies)
 
@@ -191,19 +218,19 @@ def allocateMemoryBlocksSimple(memory_constraints, phys_segments,
         for mb_ref in mb_sharing.mb_refs:
             shared_mb[mb_ref.part_name][mb_ref.mb_name] = pb
 
-    partitionsTLB = [] # Returned list
+    partitions_MBmaps = [] # Returned list
 
     for pmc in memory_constraints.partitions:
-        partitionTLB = PartitionTLBEntries(pmc.name)
+        partitionMBmaps = PartitionMBmaps(pmc.name)
 
         # Organize memory blocks into 6 groups:
         #
         # 0. size is 0.
         # 1. vaddr is not None, paddr is None, not shared
         # 2. vaddr is None, paddr is None, not shared
-        # 3. vaddr is None, paddr is not None, not shared
-        # 4. vaddr is None, paddr is None, shared
-        # 5. vaddr is None, paddr is not None, shared
+        # 3. vaddr is None, paddr is None, shared
+        # 4. vaddr is None, paddr is not None, shared
+        # 5. vaddr is None, paddr is not None, not shared
         #
         # (All other combinations of vaddr, paddr and sharing are prohibited).
         #
@@ -229,10 +256,6 @@ def allocateMemoryBlocksSimple(memory_constraints, phys_segments,
 
                 if mbd.name in shared_mb[pmc.name]:
                     print "ERROR: Partition '%s' has memory block '%s' with fixed virtual address shared with other partitions. This feature is not supported." % (pmc.name, mbd.name)
-                    raise RuntimeError("Unsupported memory block")
-
-                if mbd.cache_policy != "DEFAULT":
-                    print "ERROR: Partition '%s' has non-shared memory block '%s' without fixed physical address and non-default cache policy. This feature is not supported." % (pmc.name, mbd.name)
                     raise RuntimeError("Unsupported memory block")
 
                 mb_vfixed.append(mbd)
@@ -269,6 +292,8 @@ def allocateMemoryBlocksSimple(memory_constraints, phys_segments,
             print "ERROR: There is no memory blocks with fixed virtual address. Where ELF should be loaded?"
             raise RuntimeError("Incorrect setup for memory blocks with virtual address fixed")
 
+        align = max(mbd.align for mbd in mb_vfixed)
+
         mb_vfixed.sort(key=lambda mb: mb.vaddr)
 
         mb_vfixed_first = mb_vfixed[0]
@@ -289,7 +314,7 @@ def allocateMemoryBlocksSimple(memory_constraints, phys_segments,
                 print "ERROR: Partition '%s' has memory block '%s' with fixed virtual address and cache policy '%s', which differs from other blocks in that group. This feature is not supported." % (pmc.name, mbd.name, mbd.cache_policy)
                 raise RuntimeError("Incorrect setup for memory blocks with virtual address fixed")
 
-        pb = pb_allocator.allocPhysBlock(vaddr_end - vaddr_start, {cache_policy})
+        pb = pb_allocator.allocPhysBlock(vaddr_end - vaddr_start, align, {cache_policy})
 
         if vaddr_start % pb.align:
             print "ERROR: Board start virtual address 0x%x doesn't satisfy alignment 0x%x." (vaddr_start, pb.align)
@@ -301,18 +326,18 @@ def allocateMemoryBlocksSimple(memory_constraints, phys_segments,
         for mbd in mb_vfixed:
             vb.setup_memblock(mbd)
 
-        te = pb.createTLBEntry(vb.vaddr, "RWX", cache_policy, pmc.space_id)
-        partitionTLB.entries.append(te)
+        te = pb.createMBmap(vb.vaddr, "RWX", cache_policy, pmc.space_id)
+        partitionMBmaps.MBmaps_list.append(te)
 
         # Process group 2.
         for mbd in mb_float:
-            pb = pb_allocator.allocPhysBlock(mbd.size, {mbd.cache_policy})
+            pb = pb_allocator.allocPhysBlock(mbd.size, mbd.align, {mbd.cache_policy})
 
             vb = vb_allocator.allocVirtBlock(pb, mbd.align)
             vb.setup_memblock(mbd)
 
-            te = pb.createTLBEntry(vb.vaddr, mbd.access, mbd.cache_policy, pmc.space_id)
-            partitionTLB.entries.append(te)
+            te = pb.createMBmap(vb.vaddr, mbd.access, mbd.cache_policy, pmc.space_id)
+            partitionMBmaps.MBmaps_list.append(te)
 
         # Process group 3.
         for mbd in mb_pfixed:
@@ -321,8 +346,8 @@ def allocateMemoryBlocksSimple(memory_constraints, phys_segments,
             vb = vb_allocator.allocVirtBlock(pb, mbd.align)
             vb.setup_memblock(mbd)
 
-            te = pb.createTLBEntry(vb.vaddr, mbd.access, mbd.cache_policy, pmc.space_id)
-            partitionTLB.entries.append(te)
+            te = pb.createMBmap(vb.vaddr, mbd.access, mbd.cache_policy, pmc.space_id)
+            partitionMBmaps.MBmaps_list.append(te)
 
         # Process group 4 and 5: For both of them physical blocks are already created.
         for mbd in mb_shared + mb_pfixed_shared:
@@ -331,12 +356,12 @@ def allocateMemoryBlocksSimple(memory_constraints, phys_segments,
             vb = vb_allocator.allocVirtBlock(pb, mbd.align)
             vb.setup_memblock(mbd)
 
-            te = pb.createTLBEntry(vb.vaddr, mbd.access, mbd.cache_policy, pmc.space_id)
-            partitionTLB.entries.append(te)
+            te = pb.createMBmap(vb.vaddr, mbd.access, mbd.cache_policy, pmc.space_id)
+            partitionMBmaps.MBmaps_list.append(te)
 
-        partitionsTLB.append(partitionTLB)
+        partitions_MBmaps.append(partitionMBmaps)
 
-    return partitionsTLB
+    return partitions_MBmaps
 
 class _VirtMemoryBlock:
     """
@@ -395,7 +420,7 @@ class _VirtBlockAllocator:
         """
         if align < pb.align:
             align = pb.align
-        
+
         vaddr_block_start = align_val(self.vaddr_current, align)
 
         self.vaddr_current = vaddr_block_start + pb.size
@@ -435,11 +460,13 @@ class _PhysSegmentBlockAllocator:
         self.memory_type = phys_segment.memory_type
         self.paddr_current = phys_segment.paddr_start
 
-    def allocPhysBlock(self, size):
+    def allocPhysBlock(self, size, align):
         """
         Allocate block in physical memory. Return None if cannot.
+
+        'align' is alignment in *both* physical and virtual memory.
         """
-        phys_memblock = self.memory_type.allocPhysBlock(self.paddr_current, size)
+        phys_memblock = self.memory_type.allocPhysBlock(align_val(self.paddr_current, align), size)
 
         if phys_memblock is None:
             return None
@@ -484,23 +511,14 @@ class _PhysBlockAllocator:
         self.segment_allocators = [_PhysSegmentBlockAllocator(segment) for segment in phys_segments]
         self.memory_type_default = memory_type_default
 
-    def isCacheSupported(self, cache_policy):
-        """
-        Check that at least one physical segment may have memory blocks
-        with given cache policy
-        """
-        for segment_allocator in self.segment_allocators:
-            if segment_allocator.isCacheSupported(cache_policy):
-                return True
-
-            return False
-
-    def allocPhysBlock(self, size, cache_policies):
+    def allocPhysBlock(self, size, align, cache_policies):
         """
         Allocate physical memory block of given parameters suitable for
         any cache policy in the array.
 
         If block cannot be allocated, exception will be raised.
+
+        'align' is alignment in *both* physical and virtual memory.
         """
         # Whether given combination of cache policies is supported at least by one memory region.
         caches_are_supported = False
@@ -509,7 +527,7 @@ class _PhysBlockAllocator:
                 continue
 
             caches_are_supported = True
-            phys_memblock = segment_allocator.allocPhysBlock(size)
+            phys_memblock = segment_allocator.allocPhysBlock(size, align)
             if not phys_memblock:
                 continue
 
@@ -547,7 +565,7 @@ class _PhysBlockAllocator:
         if self.memory_type_default is None:
             print "ERROR: Memory blocks with fixed addresses are not supported for given board."
             raise RuntimeError("Physically-fixed memory blocks are not supported")
-            
+
         # Allocate block using default memory type
         for cache_policy in cache_policies:
             if not self.memory_type_default.isCacheSupported(cache_policy):

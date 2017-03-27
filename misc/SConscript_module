@@ -36,6 +36,15 @@ scripts.
 # - 'MODULE_SOURCE_DIR' - where module sources are located.
 # (Absolute path).
 #
+# - 'MODULE_CONFIGURATION_FUNC' - function (or any callable object),
+# which accepts:
+#   -- 'env' - environment
+#   -- 'configuration_file' - file for write configuration to
+#   -- write_configuration - callback function.
+# This function should define rule (SCons Command) which creates
+# configuration object of type 'chpok_configuration.Configuration' and calls
+# 'write_configuration(env, configuration, configuration_file)'.
+#
 # After that, it executes SConscript located under 'MODULE_SOURCE_DIR'.
 # This script is called with variant dir equal to 'MODULE_BUILD_DIR'.
 #
@@ -45,17 +54,11 @@ scripts.
 # After that, following variables, described module's components and
 # configuraton, are expected to be set:
 #
-# - 'MODULE_CLEAN_DIRS' - which directories should be clean on `scons -c local`.
+# - 'MODULE_CLEAN_DIRS' - which directories should be clean on `scons -c local` and `scons clean`.
 # (Absolute path or list of absolute paths; by default equal to MODULE_BUILD_DIR).
 #
-# - 'MODULE_XML' - xml or other file(s), from which configuration of module
-# may be extracted.
-# Note: per-partition 'XML' needn't be listed there.
-# (Single element or list of element; element could be absolute path, relative (against source dir) or object of type 'File').
-#
-# - 'MODULE_PARSE_CONFIGURATION' - parser of files listed in 'XML', which should
-# return object of type 'chpok_configuration.Configuration'.
-# (Function with signature '(sources, env)').
+# - 'MODULE_DISTCLEAN_DIRS' - which directories should be clean on `scons -c all` and `scons distclean`.
+# (Absolute path or list of absolute paths; by default equal to MODULE_BUILD_DIR).
 #
 # - 'PARTITIONS_NUMBER' - number of partitions in the module.
 #
@@ -88,8 +91,13 @@ scripts.
 # 2) 'PARTITION_FILL' method is called
 # 3) Script 'SConscript_partition' is executed (that is, method
 #    PARTITION_FILL' should set variables required for that script).
+# 4) If set, method 'PARTITION_POST_PROCESS' is called with parameter
+# 'part_env'.
+
 #
-# After that, target for module's creation are generated.
+# Then method 'MODULE_CONFIGURATION_FUNC' is called.
+#
+# After that, targets for module's creation are generated.
 #
 # Return target which builds module's elf.
 
@@ -137,9 +145,11 @@ module_post_process = env.get('MODULE_POST_PROCESS', None)
 if module_post_process is not None:
     module_post_process(env)
 
+partition_post_process = env.get('PARTITION_POST_PROCESS', None)
+
 partition_build_dirs = []
 partition_clean_dirs = []
-partition_xmls = []
+partition_distclean_dirs = []
 partition_elfs = []
 partitions_elf_map = dict()
 
@@ -153,7 +163,7 @@ for part_index in range(env['PARTITIONS_NUMBER']):
     partitions_elf_map[part_env['PARTITION_NAME']] = part_elf[0].abspath
     partition_build_dirs.append(part_env['PARTITION_BUILD_DIR'])
     partition_clean_dirs.extend(part_env['PARTITION_CLEAN_DIRS'])
-    partition_xmls.append(part_env['PARTITION_XML'])
+    partition_distclean_dirs.extend(part_env['PARTITION_DISTCLEAN_DIRS'])
 
 env['PARTITIONS_ELF_MAP'] = partitions_elf_map
 
@@ -176,32 +186,21 @@ if env['BOARD_IS_EMULATED']:
     if board_phys_size_new % 2**20:
         print "ERROR: Phisical size of emulated board should be divisible by 1M, but it is %d." % board_phys_size_new
 
-AddMethod(env, template_generation.TemplateRender)
-
-module_xml = env.toAbsPathList(env['MODULE_XML'], env['MODULE_SOURCE_DIR'])
-
-def create_conf_total(target, source, env):
-    """
-    Create YAML file with "total" configuration.
-    TODO: More useful name.
-    """
-    conf = env['MODULE_PARSE_CONFIGURATION'](source, env)
-
+def write_configuration(env, configuration, configuration_file):
     treqs = types_requirements.TypesRequirements()
     treqs.load_from_yaml(env['TYPES_REQUIREMENTS_YAML'])
 
-    conf_internal = jetos_configuration_internal.ConfigurationInternal.from_normal(conf, treqs)
+    conf_internal = jetos_configuration_internal.ConfigurationInternal.from_normal(configuration, treqs)
 
-    conf_internal.save_to_file(target[0].abspath)
+    conf_internal.save_to_file(configuration_file)
 
-conf_total = env.Command(
-    target = os.path.join(module_build_dir, "conf_total.yaml"),
-    source = module_xml + partition_xmls,
-    action = Action(create_conf_total, '$CONF_TOTAL_COMSTR')
-)
+configuration_file = os.path.join(module_build_dir, "conf_total.yaml")
 
-env.Depends(conf_total, env['TYPES_REQUIREMENTS_YAML'])
+env['MODULE_CONFIGURATION_FUNC'](env, configuration_file, write_configuration)
 
+env.Depends(configuration_file, env['TYPES_REQUIREMENTS_YAML'])
+
+AddMethod(env, template_generation.TemplateRender)
 
 def create_memory_constraints(source, target, env):
     """
@@ -218,12 +217,13 @@ def create_memory_constraints(source, target, env):
 # Generate 'memory_constrains.yaml' for arch processing.
 memory_constraints = env.Command(
     target = os.path.join(module_build_dir, "memory_constraints.yaml"),
-    source = [conf_total,
+    source = [configuration_file,
         env.Value(str(env['BOARD_PHYS_SIZE'])) # This is Node for value.
     ],
     action = Action(create_memory_constraints, '$MEMORY_CONSTRAINTS_COMSTR')
 )
 
+env.Depends(memory_constraints, partition_elfs)
 
 memory_definitions_file = os.path.join(module_build_dir, "memory_definitions.yaml")
 
@@ -347,11 +347,10 @@ def create_definitions_for_deployment(source, env):
 # Generate "deployment.c" for kernel
 deployment_kernel = env.TemplateRender(
     target = os.path.join(module_build_dir, "deployment.c"),
-    source = conf_total + [memory_definitions_file],
-    create_definitions_func = create_definitions_for_deployment,
-    template_main = "deployment_kernel",
-    template_dir = env['JETOS_HOME'] + "/misc/templates",
-    GENERATE_TITLE = template_generation.generate_title_c_no_track
+    source = [configuration_file, memory_definitions_file],
+    create_context = create_definitions_for_deployment,
+    template_file = env['JETOS_HOME'] + "/misc/templates/deployment_kernel.tpl",
+    title = template_generation.generate_title_c_no_track
     )
 
 
@@ -385,11 +384,10 @@ if ARGUMENTS.get('debug'):
     # Generate file with commands for GDB for possible debugging
     gdb_commands_spec = env.TemplateRender(
         target = module_build_dir + "/GDB_commands_" + ARGUMENTS.get('debug'),
-        source = conf_total,
-        create_definitions_func = create_definitions_for_gdb,
-        template_main = "GDB_commands_" + ARGUMENTS.get('debug'),
-        template_dir = env['JETOS_HOME'] + "/misc/templates",
-        GENERATE_TITLE = template_generation.generate_title_python_no_track
+        source = configuration_file,
+        create_context = create_definitions_for_gdb,
+        template_file = env['JETOS_HOME'] + "/misc/templates/GDB_commands_" + ARGUMENTS.get('debug') + '.tpl',
+        title = template_generation.generate_title_python_no_track
         )
     gdb_commands = env.Command(gdb_commands_file, gdb_commands_spec, Action(gdb_commands_action, '$GDB_COMMANDS_COMSTR'))
 
@@ -401,9 +399,6 @@ if kernel_target is None:
     kernel_target = env.BuildKernel()
 
 pok_env = env.KernelEnvironment()
-
-kernel_lo = pok_env.Program(target = module_build_dir+'/kernel.lo',
-    source = kernel_target + deployment_kernel + env['BOARD_DEPLOYMENT_SOURCES'])
 
 # there should (perhaps) also be padding to get aligned file size
 def merge_partitions(target, source, env):
@@ -418,8 +413,6 @@ def create_sizes_c(target, source, env):
         sizes.write('uint32_t pok_elf_sizes[] = {\n')
         for s in source:
             part_size = os.path.getsize(str(s))
-            if part_size > pok_env['MAX_PART_SIZE']:
-                raise RuntimeError('Partition size must not exceed %d bytes' % pok_env['MAX_PART_SIZE'])
             sizes.write(str(part_size))
             if source.index(s) != len(source) - 1:
                 sizes.write(',\n')
@@ -451,12 +444,10 @@ pok_env.Depends(compile_sizes, merge_target)
 pok_elf_env = pok_env.Clone()
 
 ldscript_kernel = pok_env['LDSCRIPT_KERNEL']
-# Rewrite LINKFLAGS, as we build '.elf'.
-pok_elf_env['LINKFLAGS'] = ' -T ' + ldscript_kernel
-
 
 pok_target = pok_elf_env.Program(target = module_build_dir+'/pok.elf',
-    source = compile_sizes + kernel_lo + [pok_env['LIBGCC']])
+    source = compile_sizes + kernel_target + deployment_kernel +
+            env['BOARD_DEPLOYMENT_SOURCES'] + [pok_env['LIBGCC']])
 pok_env.Depends(pok_target, [ldscript_kernel])
 
 pok_target_file = pok_target[0].abspath
@@ -536,19 +527,18 @@ env.Command('gdb_cmd', [], action=[
     ])
 env.Alias('gdb', 'gdb_cmd')
 
-module_clean_dirs = env.get('MODULE_CLEAN_DIRS', module_build_dir)
-if type(module_clean_dirs) is not list:
-    module_clean_dirs = [module_clean_dirs]
-    env['MODULE_CLEAN_DIRS'] = module_clean_dirs
-
+module_clean_dirs = env.CanonicalCleanList('MODULE_CLEAN_DIRS', module_build_dir)
+module_distclean_dirs = env.CanonicalCleanList('MODULE_DISTCLEAN_DIRS', module_build_dir)
 
 clean_directories = module_clean_dirs + partition_clean_dirs
+distclean_directories = module_distclean_dirs + partition_distclean_dirs
 
 env.RemoveDirectories('clean_module_cmd', clean_directories)
+env.RemoveDirectories('distclean_module_cmd', distclean_directories)
 env.Alias('clean', 'clean_module_cmd')
-env.Alias('distclean', 'clean_module_cmd')
+env.Alias('distclean', 'distclean_module_cmd')
 env.Clean('#/local', clean_directories)
-env.Clean('#/all', clean_directories)
+env.Clean('#/all', distclean_directories)
 
 Return('pok_target')
 

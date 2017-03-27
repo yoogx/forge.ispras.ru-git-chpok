@@ -58,6 +58,17 @@
  {% endif %}
 {% endfor %}
 
+{% if has_per_instance_memory_block %}
+ pok_ret_t {{component.name}}_get_memory_block_status(
+         {{component.name}} *self,
+         const char *name,
+         jet_memory_block_status_t *mb_status)
+ {
+     char full_name[30]; //use MAX_NAME_LENGTH instead??
+     snprintf(full_name, 30, "%s_%s", self->instance_name, name);
+     return jet_memory_block_get_status(full_name, mb_status);
+ }
+{% endif %}
 
 void __{{component.name}}_init__({{component.name}} *self)
 {
@@ -76,5 +87,7 @@ void __{{component.name}}_activity__({{component.name}} *self)
 {
     {% if component.activity %}
         {{component.activity}}(self);
+    {% else %}
+        (void) self; //suppress warning
     {% endif %}
 }

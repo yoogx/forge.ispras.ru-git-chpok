@@ -19,7 +19,7 @@
 
 #ifdef POK_NEEDS_DEBUG
 
-int strlen (const char* str)
+size_t strlen (const char* str)
 {
    int i;
 
@@ -35,7 +35,7 @@ int strlen (const char* str)
 }
 
 // TODO: move into own file?
-int strnlen (const char* str, size_t n)
+size_t strnlen (const char* str, size_t n)
 {
    int i;
 
@@ -53,7 +53,7 @@ int strnlen (const char* str, size_t n)
 // TODO: move into own file?
 char* strncpy(char* dest, const char* src, size_t n)
 {
-   int m = strnlen(src, n);
+   size_t m = strnlen(src, n);
 
    if(m < n) m++;
    

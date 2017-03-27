@@ -18,7 +18,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_BUFFER
 #include <arinc653/types.h>
 #include <arinc653/buffer.h>
 #include <msection.h>
@@ -47,7 +46,5 @@ struct arinc_buffer
 
 /* Preallocated array of buffers. */
 extern struct arinc_buffer* arinc_buffers;
-
-#endif /* POK_NEEDS_ARINC653_BUFFER */
 
 #endif /* __LIBJET_ARINC_BUFFER_H__ */

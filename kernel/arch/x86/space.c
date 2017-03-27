@@ -32,6 +32,12 @@
 #include <core/sched.h>
 
 #include <asp/alloc.h>
+#include "memlayout.h"
+#include <arch/mmu.h>
+#include "regs.h"
+
+#include "kernel_pgdir.h"
+#include <alloc.h>
 
 #define KERNEL_STACK_SIZE 8192
 
@@ -58,10 +64,13 @@ void ja_user_space_jump(
     void (__user * entry_user)(void),
     uintptr_t stack_user)
 {
+    assert(space_id > 0);
+    assert(space_id <= ja_partitions_pages_nb);
+
     /*
      * Reuse layout of interrupt_frame structure, allocated on stack,
      * for own purposes.
-     * 
+     *
      * Usage of this structure here is unrelated to interrupts
      * because it is allocated not at the *beginning* of the stack.
      */
@@ -70,10 +79,8 @@ void ja_user_space_jump(
    uint32_t          data_sel;
    uint32_t          sp;
 
-   assert(space_id <= ja_segments_n); //TODO: fix comparision
-
-   code_sel = GDT_BUILD_SELECTOR (GDT_PARTITION_CODE_SEGMENT (space_id), 0, 3);
-   data_sel = GDT_BUILD_SELECTOR (GDT_PARTITION_DATA_SEGMENT (space_id), 0, 3);
+   code_sel = GDT_BUILD_SELECTOR(GDT_PARTITION_CODE_SEGMENT, 0, 3);
+   data_sel = GDT_BUILD_SELECTOR(GDT_PARTITION_DATA_SEGMENT, 0, 3);
 
    sp = (uint32_t) &ctx;
 
@@ -102,35 +109,54 @@ void ja_user_space_jump(
        );
 }
 
-static void ja_space_create (jet_space_id space_id,
-                            uintptr_t addr,
-                            size_t size)
+/* insert page mapping to pgdir, allocate page table is needed */
+static void pgdir_insert_page(uint32_t *pgdir, struct page *page)
 {
-   gdt_set_segment (GDT_PARTITION_CODE_SEGMENT (space_id),
-         addr, size, GDTE_CODE, 3);
+    if (page->is_big) {
+        //4MB page
+        pgdir[PDX(page->vaddr)] = page->paddr_and_flags | PAGE_P | PAGE_U;
+    } else {
+        // 4KB page
+        if (pgdir[PDX(page->vaddr)] != 0) {
+            //already allocated page table
+            uint32_t *pgtable = (uint32_t *)VIRT(PT_ADDR(pgdir[PDX(page->vaddr)]));
+            pgtable[PTX(page->vaddr)] = page->paddr_and_flags | PAGE_P | PAGE_U;
+        } else {
+            //page table hasn't been created yet
+            uint32_t *pgtable = ja_mem_alloc_aligned(PAGE_SIZE, PAGE_SIZE);
+            memset(pgtable, 0, PAGE_SIZE);
+            pgdir[PDX(page->vaddr)] = PHYS(pgtable) | PAGE_P | PAGE_RW| PAGE_U;
 
-   gdt_set_segment (GDT_PARTITION_DATA_SEGMENT (space_id),
-         addr, size, GDTE_DATA, 3);
+            pgtable[PTX(page->vaddr)] = page->paddr_and_flags | PAGE_P | PAGE_U;
+        }
+    }
 }
+
+uint32_t **pgdirs; //array of pointers to pgdirs
 
 void ja_space_init(void)
 {
-    for(int i = 0; i < ja_segments_n; i++)
-    {
-        const struct x86_segment* segment = &ja_segments[i];
+    pgdirs = jet_mem_alloc(ja_partitions_pages_nb*sizeof(*pgdirs));
 
-        ja_space_create(i + 1, (uintptr_t)segment->paddr, segment->size);
+    for (unsigned i = 0; i < ja_partitions_pages_nb; i++) {
+        uint32_t *pgdir = ja_mem_alloc_aligned(PAGE_SIZE, PAGE_SIZE);
+        memset(pgdir, 0, PAGE_SIZE);
+        pgdirs[i] = pgdir;
+
+        /* user mapping */
+        for (unsigned j = 0; j < ja_partitions_pages[i].len; j++) {
+            pgdir_insert_page(pgdir, &ja_partitions_pages[i].pages[j]);
+        }
+
+        /* kernel mapping */
+        pgdir_insert_kernel_mapping(pgdir);
     }
 }
+
 void ja_space_switch (jet_space_id space_id)
 {
-    if(current_space_id != 0) {
-        gdt_disable (GDT_PARTITION_CODE_SEGMENT(current_space_id));
-        gdt_disable (GDT_PARTITION_DATA_SEGMENT(current_space_id));
-    }
-    if(space_id != 0) {
-        gdt_enable (GDT_PARTITION_CODE_SEGMENT(space_id));
-        gdt_enable (GDT_PARTITION_DATA_SEGMENT(space_id));
+    if (space_id != 0) {
+        asm volatile("movl %0,%%cr3" : : "r" (PHYS(pgdirs[space_id - 1])));
     }
 
     current_space_id = space_id;

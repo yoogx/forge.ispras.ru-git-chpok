@@ -63,13 +63,7 @@ extern int signgam;
 /* A union which permits us to convert between a double and two 32 bit
    ints.  */
 
-/*
- * The ARM ports are little endian except for the FPA word order which is
- * big endian.
- */
-/*
-#if (BYTE_ORDER == BIG_ENDIAN) || (defined(__arm__) && !defined(__VFP_FP__))
-
+#if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 typedef union
 {
   double value;
@@ -81,9 +75,9 @@ typedef union
 } ieee_double_shape_type;
 
 #endif
-*/
-#if (BYTE_ORDER == LITTLE_ENDIAN) && \
-    !(defined(__arm__) && !defined(__VFP_FP__))
+
+
+#if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
 typedef union
 {
   double value;

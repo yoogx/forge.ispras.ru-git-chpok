@@ -213,11 +213,13 @@ static const struct memory_block memory_blocks_{{loop.index0}}[{{pmd.memory_bloc
         .name = "{{mbd.name}}",
         .size = {{mbd.size}},
         .maccess = 0{%if 'R' in mbd.access%} | MEMORY_BLOCK_ACCESS_READ{%endif%}{%if 'W' in mbd.access%} | MEMORY_BLOCK_ACCESS_WRITE{%endif%}{%if 'X' in mbd.access%} | MEMORY_BLOCK_ACCESS_EXEC{%endif%},
-        .vaddr = {{mbd.vaddr}},
+        .vaddr = {{"0x%x"| format(mbd.vaddr)}},
+        .align = {{mbd.align}},
         .is_contiguous = {%if mbd.is_contiguous%}TRUE{%else%}FALSE{%endif%},
-        .paddr = {%if mbd.is_contiguous%}{{mbd.paddr}}{%else%}0{%endif%},
+        .paddr = {%if mbd.is_contiguous%}{{"0x%x"|format(mbd.paddr)}}{%else%}0{%endif%},
         .is_shared = {%if mbd.is_shared%}TRUE{%else%}FALSE{%endif%},
-        .kaddr = {{mbd.kaddr}},
+        //.kaddr = {{"0x%x"|format(mbd.kaddr)}},
+        .kaddr = {{"0x%x"|format(mbd.vaddr)}},
     },
 {%endfor%}
 };
@@ -226,7 +228,7 @@ static const struct memory_block memory_blocks_{{loop.index0}}[{{pmd.memory_bloc
 static const struct jet_partition_arinc_mb_addr_entry mb_addr_table_{{loop.index0}} [{{pmd.memory_blocks | length}}] = {
 {%for mbd in pmd.memory_blocks | sort(attribute = 'vaddr')%}
     {
-        .vaddr = {{mbd.vaddr}},
+        .vaddr = {{"0x%x"|format(mbd.vaddr)}},
         .size = {{mbd.size}},
         .mblock = &memory_blocks_{{part.index}}[{{mbd.index}}],
     },
@@ -315,8 +317,8 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
             // Allocate 1 event slot per queuing port plus 2 slots for timer.
             .partition_event_max = {{part.ports_queueing | length}} + 2,
 
-            .period = {{part.period}},
-            .duration = {{part.duration}},
+            .period = {{part.period}}LL,
+            .duration = {{part.duration}}LL,
             .partition_id = {{part.part_id}},
 
             .space_id = {{part.space_id}},
@@ -365,6 +367,12 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
         .thread_error_info = &partition_thread_error_info_{{loop.index0}},
 
         .partition_hm_table = &partition_hm_table_{{loop.index0}},
+
+        .arinc_config_nbuffers = {{part.num_arinc653_buffers}},
+        .arinc_config_nblackboards = {{part.num_arinc653_blackboards}},
+        .arinc_config_nsemaphores = {{part.num_arinc653_semaphores}},
+        .arinc_config_nevents = {{part.num_arinc653_events}},
+        .arinc_config_messages_memory_size = {{part.buffer_data_size + part.blackboard_data_size}},
     },
 {%endfor%}{#partitions loop#}
 };

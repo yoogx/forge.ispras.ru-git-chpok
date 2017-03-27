@@ -31,24 +31,23 @@ from SCons.Action import Action
 def print_error(message):
     print "Error: %s\n" % message
 
-def format_title(title, target, source, env):
+def format_title(title, target, source, source_base_dir = ""):
     """
     Format title according to rules below. Returns result of formatting.
 
     1. Each '%source%' keyword in pattern is replaced with path to the
         first of source file. That path is relative to one given by
-        'SOURCE_BASE_DIR' variable. If absent, path relative to current
-        directory is calculated.
+        'source_base_dir' variable. If the variable is empty, absolute path is used.
     """
     if title.find('%source%'):
-        source_base_dir=env.get('SOURCE_BASE_DIR')
-        if source_base_dir is None:
-            source_base_dir = env.Dir('.').abspath
-        source_path = os.path.relpath(source[0].srcnode().abspath, source_base_dir)
+        source_path = source[0].srcnode().abspath
+        if source_base_dir != "":
+            source_path = os.path.relpath(source_path, source_base_dir)
         title = title.replace('%source%', source_path)
 
     return title
 
+# Ready made titles.
 copy_title_c = """/*
  * COPIED! DO NOT MODIFY!
  *
@@ -63,34 +62,64 @@ generate_title_c = """/*
  */
 """
 
+generate_title_xml = """<!--
+  GENERATED! DO NOT MODIFY!
+  Instead of modifying this file, modify the one it generated from (%source%).
+-->
+"""
+
 generate_title_c_no_track = '/* GENERATED! DO NOT MODIFY! */\n'
 generate_title_python_no_track = '# GENERATED! DO NOT MODIFY!\n'
 
-
-def CopyWithTitle(target, source, env):
+class CopyWithTitleAction:
     """
     Copy source file into target with appended title.
     Intended to be used as 'action' parameter of SCons '.Command'.
-
-    Title should be given by 'COPY_TITLE' environment variable. It is
-    formatted according to format_title() description.
     """
+    __slots__ = [
+        'title',
+        'source_base_dir',
+    ]
 
-    title = env.get('COPY_TITLE')
-    if title is None:
-        print_error("AddTitle: 'COPY_TITLE' variable is not set")
-        return 1
+    def __init__(self, title, source_base_dir = ""):
+        """
+        'title' - title for created file.
+            The title is formatted according to format_title() description.
 
-    title = format_title(title, target, source, env)
+        'source_base_dir' - if non-empty, path to the source file
+            rendered into the title is relative to this directory.
+        """
+        self.title = title
+        self.source_base_dir = source_base_dir
 
-    try:
-        with open(target[0].abspath, 'w') as dest_file:
-            dest_file.write(title)
-            with open(source[0].path, 'r') as src_file:
-                shutil.copyfileobj(src_file, dest_file)
-    except Exception as e:
-        print_error("Failed to copy file: %s" % e.message)
+    def __call__(self, target, source, env):
+        title = format_title(self.title, target, source, self.source_base_dir)
 
+        try:
+            with open(target[0].abspath, 'w') as dest_file:
+                dest_file.write(title)
+                with open(source[0].path, 'r') as src_file:
+                    shutil.copyfileobj(src_file, dest_file)
+        except Exception as e:
+            print_error("Failed to copy file: %s" % e.message)
+
+
+def CopyWithTitle(env, target, source, title, source_base_dir = None):
+    """
+    Copy source file into target with appended title.
+
+    Title is formatted according to format_title() description.
+    By default, 'source_base_dir' is env['JETOS_HOME'].
+
+    Use env.AddMethod() for add this builder it into the environment.
+    """
+    if source_base_dir is None:
+        source_base_dir = env['JETOS_HOME']
+
+    t = env.Command(target, source,
+        CopyWithTitleAction(title, source_base_dir))
+
+    return t
 
 class ParseContext:
     def __init__(self, filename):
@@ -103,31 +132,6 @@ class ParseContext:
     def parse_error(self, message):
         print_error("%s, line %d: %s" % (self.filename, self.lineno, message))
 
-class TemplateLoader(jinja2.BaseLoader):
-    """ Template loader wich locates templates in the 'path/%name%.tpl'.
-    """
-    def __init__(self, path, debug=False, used=None):
-        self.path = path.rstrip("/")
-        self.debug = debug
-        self.used = used
-    
-    def get_source(self, environment, template):
-        filename = os.path.join(self.path, template + '.tpl')
-        if not os.path.exists(filename):
-            if self.debug:
-                source = '{TODO:' + template + '}' 
-                return source, None, lambda: True
-            else:
-                raise jinja2.TemplateNotFound(template,
-                    message = "Couldn't find template '" + template + "' under '" + self.path + "'")
-        mtime = os.path.getmtime(filename)
-        with file(filename) as f:
-            source = f.read().decode('utf-8')
-        # Update list of used templates.
-        if self.used is not None:
-            self.used.add(filename)
-        return source, filename, lambda: mtime == os.path.getmtime(filename)
-
 jinja_env_global = jinja2.Environment(
     trim_blocks=True,
     lstrip_blocks=True, # This requires jinja2 >= 2.7
@@ -135,68 +139,69 @@ jinja_env_global = jinja2.Environment(
 )
 
 
-# Create source file by rendering template.
-#
-# Callback for Command(action).
-#
-# Required environment variables:
-#
-# 'TEMPLATE_DIR' - directory from which templates will be used,
-# 'TEMPLATE_MAIN' - main template for render (one per-target)
-# 'TEMPLATE_CREATE_DEFINITIONS_FUNC' - function, which accepts our 'source'
-#     and 'env' parameters and return definitions, which will be rendered.
-#
-# Optional environment variables:
-#
-# 'GENERATE_TITLE' - if set, it is used as title for prepend rendering
-#     content. The title is formatted according to format_title() description.
-# 'NO_DEPS' - if set, per-target `.dep` file won't be created. This file
-#      contains dependency list of all templates used when generate particular file.
-#      Without this file only dependency from main template file is tracked.
-def template_render_action(target, source, env):
-    template_dir = env['TEMPLATE_DIR']
-    if template_dir is None:
-        raise RuntimeError('TEMPLATE_DIR is not specified for renderer')
-    
-    template_main = env['TEMPLATE_MAIN']
-    if template_main is None:
-        raise RuntimeError('TEMPLATE_MAIN is not specified for renderer')
-    
-    template_create_definitions_func = env['TEMPLATE_CREATE_DEFINITIONS_FUNC']
-    if template_create_definitions_func is None:
-        raise RuntimeError('TEMPLATE_CREATE_DEFINITIONS_FUNC is not specified for renderer')
+class TemplateRenderAction:
+    """
+    Copy source file into target with appended title.
+    Intended to be used as 'action' parameter of SCons '.Command'.
+    """
+    __slots__ = [
+        'template_file',
+        'create_context',
+        'title',
+        'source_base_dir',
+        'jinja_env',
+    ]
 
-    no_deps = env.get('NO_DEPS')
-    
-    # Create some tree from the source files in memory
-    tree = template_create_definitions_func(source, env)
-    
-    used_list = None
-    if not no_deps:
-        used_list = set()
-    # Create jinja environment with specific template loader.
-    loader = TemplateLoader(template_dir, used = used_list)
-    jinja_env = jinja_env_global.overlay(loader = loader)
-    
-    for target_single, template_main_single in zip(target, template_main):
+    def __init__(self, template_file, create_context,
+        title = None, source_base_dir = "", **kargs):
+        """
+        'template_file' is a template file for render.
+
+        'create_context' function should accept 'source' and 'env'
+            parameters and return context (as dictionary-like object),
+            which will be rendered.
+
+        Optional arguments:
+
+        'title' - if given, it is used as title for prepend rendering content.
+            The title is formatted according to format_title() description.
+
+        'source_base_dir' - if non-empty, path to the source file
+            rendered into the title is relative to this directory.
+
+        Other arguments are used for redefine parameters of jinja2
+        environment 'jinja_env_global' (defined above).
+        See description of TemplateRender below for example of such parameters.
+        """
+
+        self.template_file = template_file
+        self.create_context = create_context
+        self.title = title
+        self.source_base_dir = source_base_dir
+
+        if kargs:
+            self.jinja_env = jinja_env_global.overlay(**kargs)
+        else:
+            self.jinja_env = jinja_env_global
+
+    def __call__(self, target, source, env):
+        context = self.create_context(source, env)
+
         try:
-            # Choose template for instantiate
-            template = jinja_env.get_template(template_main_single)
+            with file(self.template_file) as f:
+                template_str = f.read().decode('utf-8')
+        except IOError as e:
+            print "Error while read template file: " + e.message
+            return 1
 
-            # Render template into stream...
-            stream = template.stream(tree)
-            # ..and dump stream itself into file.
-            with open(target_single.path, "w") as f:
-                generate_title = env.get('GENERATE_TITLE')
-                if generate_title is not None:
-                    f.write(format_title(generate_title, target, source, env))
+        try:
+            template = jinja_env_global.from_string(template_str)
+            stream = template.stream(context)
+
+            with open(target[0].path, "w") as f:
+                if self.title is not None:
+                    f.write(format_title(self.title, target, source, self.source_base_dir))
                 stream.dump(f)
-
-            if not no_deps:
-                deps_file_path = target_single.path + '.deps'
-                with open(deps_file_path, "w") as deps_file:
-                    for f in used_list:
-                        deps_file.write("%s: %s\n" % (target_single.abspath, f))
         except jinja2.TemplateError as e:
             print "Error while rendering templates: " + e.message
             return 1
@@ -204,61 +209,61 @@ def template_render_action(target, source, env):
             print "Error while interpret template data: " + e.message
             return 1
 
-# Pseudo builder(method).
-#
-# Generate 'target' file(s) using jinja2 template rendering.
-#
-# Function 'create_definitions_func' should accept 'source' and 'env'
-# parameters and return map(dict) of definitions, which will be rendered.
-#
-# 'template_main' is a list of per-target template names for render.
-#
-# 'template_dir' is a (single) directory, when templates should be located.
-# File '{template_dir}/{template_name}.tpl' correcponds to template
-# '{template_name}'.
-#
-# In case of single target, both 'target' and 'template_main' may be single
-# objects, not a list.
-#
-# All other dictionary arguments are assigned to the environment.
-#
-# Optional environment variables which affects behaviour:
-#
-# 'GENERATE_TITLE' - if set, it is used as title for prepend rendering
-#     content. The title is formatted according to format_title() description.
-# 'NO_DEPS' - if set, per-target `.dep` file won't be created. This file
-#      contains dependency list of all templates used when generate particular file.
-#      Without this file only dependency from main template file is tracked.
-#
-# Use env.AddMethod() for add this builder it into the environment.
-def TemplateRender(env, target, source, create_definitions_func,
-    template_main, template_dir, **kargs):
 
-    if type(target) is not list:
-        target = [target]
+def TemplateRender(env, target, source, template_file, create_context,
+    title = None, source_base_dir = None, **kargs):
+    """
+    Pseudo builder: Generate 'target' file using jinja2 template rendering.
 
-    if type(template_main) is not list:
-        template_main = [template_main]
+    'template_file' is a template file for render.
 
-    if len(target) != len(template_main):
-        raise RuntimeError("'target' and 'template_main' lists have different lengths.")
+    'create_context' function should accept 'source' and 'env' parameters
+        and return context (as dictionary-like object), which will be rendered.
 
-    t = env.Command(target=target,
-                source=source,
-                action=Action(template_render_action, '$JINJACOMSTR'),
-                TEMPLATE_DIR = template_dir,
-                TEMPLATE_MAIN = template_main,
-                TEMPLATE_CREATE_DEFINITIONS_FUNC = create_definitions_func,
-                **kargs
-                )
+    Optional arguments:
 
-    for target_single, template_main_single in zip(t, template_main):
-        if env.get('NO_DEPS') or kargs.get('NO_DEPS'):
-            main_template_file = os.path.join(template_dir, template_main_single + '.tpl')
-            env.Depends(target_single, main_template_file)
-        else:
-            env.SideEffect(target_single.abspath + '.deps', t)
-            env.ParseDepends(target_single.abspath + '.deps')
+    'title' - if given, it is used as title for prepend rendering content.
+        The title is formatted according to format_title() description.
+
+    'source_base_dir' - if non-empty, path to the source file
+        rendered into the title is relative to this directory.
+        Default is env['JETOS_HOME'].
+
+    Other arguments are used for redefine parameters of jinja2 environment
+      'jinja_env_global' (defined above).
+    E.g. one may redefine following jinja2 environment parameters
+    (default values are given after equal sign):
+
+    - block_start_string = '{%'
+        The string marking the beginning of a block.
+    - lock_end_string = '%}'
+        The string marking the end of a block.
+    - variable_start_string = '{{'
+        The string marking the beginning of a print statement.
+    - variable_end_string = '}}'
+        The string marking the end of a print statement.
+    - comment_start_string = '{#'
+        The string marking the beginning of a comment.
+    - comment_end_string = '#}'
+        The string marking the end of a comment.
+    - line_statement_prefix
+        If given and a string, this will be used as prefix for line based statements.
+    - line_comment_prefix
+        If given and a string, this will be used as prefix for line based comments.
+
+    Use env.AddMethod() for add this builder it into the environment.
+    """
+    if source_base_dir is None:
+        source_base_dir = env['JETOS_HOME']
+
+    template_render_action = TemplateRenderAction(template_file,
+        create_context, title, source_base_dir, **kargs)
+
+    t = env.Command(target=target, source=source,
+        action=Action(template_render_action, '$JINJACOMSTR'),
+    )
+
+    env.Depends(t, template_file)
 
     return t
 
@@ -297,157 +302,155 @@ class ParseContextSyscallDeclaration(ParseContext):
         print_error("Failed to parse syscall at %d: %s" % (self.syscall_lineno, message))
 
 
-# Build source file from another by expanding SYSCALL_DECLARE definitions.
-# Expansion is performed using jinja2 templates.
-#
-# Callback for Command(action).
-#
-# Required environment variables:
-#
-# 'TEMPLATE_DIR' - directory from which templates will be used,
-# 'TEMPLATE_MAIN' - main template for render
-#
-# If 'GENERATE_TITLE' variable is set, it is used as title
-# for prepend rendering content. The title is formatted according to
-# format_title() description.
-def syscall_build_action(target, source, env):
-    template_dir = env.get('TEMPLATE_DIR')
-    if template_dir is None:
-        print_error("TEMPLATE_DIR is not specified for template renderer")
-        return 1
+class SyscallBuildAction:
+    """
+    Build source file from another by expanding SYSCALL_DECLARE definitions.
+    Expansion is performed using jinja2 templates.
 
-    template_main = env.get('TEMPLATE_MAIN')
-    if template_main is None:
-        print_error("TEMPLATE_MAIN is not specified for renderer\n")
-        return 1
+    Callback for Command(action).
+    """
+    def __init__(self, template_file, title = None, source_base_dir = ""):
+        """
+        'template_file' is a template file for render syscalls declarations.
 
-    # Create jinja environment with specific template loader.
-    loader = TemplateLoader(template_dir)
+        Optional arguments:
 
-    jinja_env = jinja_env_global.overlay(loader = loader)
+        'title' - if given, it is used as title for prepend rendering content.
+            The title is formatted according to format_title() description.
 
-    try:
-        template = jinja_env.get_template(template_main)
-    except jinja2.TemplateError as e:
-        print_error("Failed to load main template: %s\n" % e.message)
-        return 1
-    # Parse input and produce output
-    input_path = source[0].path
-    input_f = open(input_path, "r")
-    if not input_f:
-        print_error("Cannot open file %s for read syscalls\n" % input_path)
-        return 1
-    output_path = target[0].abspath
-    output_f = open(output_path, "w")
-    if not output_f:
-        print_error("Cannot open file %s for write syscalls\n" % output_path)
-        return 1
+        'source_base_dir' - if non-empty, path to the source file
+            rendered into the title is relative to this directory.
+        """
 
-    generate_title = env.get('GENERATE_TITLE')
-    if generate_title is not None:
-        output_f.write(format_title(generate_title, target, source, env))
+        self.template_file = template_file
+        self.title = title
+        self.source_base_dir = source_base_dir
 
-
-    syscall_start_re = re.compile("^SYSCALL_DECLARE\\(")
-    syscall_end_re = re.compile("[)]")
-    syscall_delim_re = re.compile("\s*,\s*")
-    syscall_token_spaces = re.compile("\s+")
-
-    syscall_string = None
-
-    pc = ParseContextSyscallDeclaration(input_path)
-
-    # Read input file line by line and produce output.
-    for line in input_f:
-        pc.next_line()
-        if syscall_string is None:
-            if line.startswith("//!"):
-                continue
-            if not syscall_start_re.match(line):
-                output_f.write(line)
-                continue
-            syscall_string = syscall_start_re.sub("", line)
-            pc.syscall_start()
-        else:
-            syscall_string += line
-
-        if not syscall_end_re.search(syscall_string):
-            continue
-
-        syscall_string = syscall_end_re.sub("", syscall_string)
-
-        # Original tokens, "as is"
-        tokens_orig = syscall_delim_re.split(syscall_string)
-        # Tokens with minimal spaces.
-        tokens = [syscall_token_spaces.sub(" ", t.strip()) for t in tokens_orig]
-
-        if len(tokens) < 2:
-            pc.print_syscall_parse_error("Too few tokens for syscall")
-            return 1
-
-        sd = SyscallDeclaration(tokens[0], tokens[1])
-
-        args_tokens = tokens[2:]
-
-        if len(args_tokens) > SYSCALL_MAX_ARG_NUMBER * 2:
-            pc.print_syscall_parse_error("Too many arguments for system call. Should be at most " + str(MAX_ARG_NUMBER))
-            return 1
-
-        if len(args_tokens) % 2 == 1:
-            pc.print_syscall_parse_error("Missed argument name after last type")
-            return 1
-
-        for pair in zip(*[iter(args_tokens)]*2):
-            is_pointer = 0
-            if pair[0].find("*") != -1:
-                is_pointer = 1
-            sd.args.append(SyscallArg(pair[0], pair[1], is_pointer))
+    def __call__(self, target, source, env):
+        jinja_env = jinja_env_global
 
         try:
-            output_f.write(template.render(sd = sd))
-        except jinja2.TemplateError as e:
-            print_error("Failed to render syscall definition at %s: %s" % (pc.syscall_lineno, e.message))
+            with file(self.template_file) as f:
+                template_str = f.read().decode('utf-8')
+        except IOError as e:
+            print "Error while read template file: " + e.message
             return 1
+
+        try:
+            template = jinja_env_global.from_string(template_str)
+        except jinja2.TemplateError as e:
+            print_error("Failed to load template: %s\n" % e.message)
+            return 1
+        # Parse input and produce output
+        input_path = source[0].path
+        input_f = open(input_path, "r")
+        if not input_f:
+            print_error("Cannot open file %s for read syscalls\n" % input_path)
+            return 1
+        output_path = target[0].abspath
+        output_f = open(output_path, "w")
+        if not output_f:
+            print_error("Cannot open file %s for write syscalls\n" % output_path)
+            return 1
+
+        if self.title is not None:
+            output_f.write(format_title(self.title, target, source, self.source_base_dir))
+
+        syscall_start_re = re.compile("^SYSCALL_DECLARE\\(")
+        syscall_end_re = re.compile("[)]")
+        syscall_delim_re = re.compile("\s*,\s*")
+        syscall_token_spaces = re.compile("\s+")
 
         syscall_string = None
 
-    if syscall_string is not None:
-        print_error("Unterminated syscall definition")
-        return 1
+        pc = ParseContextSyscallDeclaration(input_path)
 
-# Pseudo builder(method).
-#
-# Build 'target' from 'source' file by expanding SYSCALL_DECLARE definitions.
-# Expansion is performed using jinja2 templates.
-#
-# 'template_main' is a template for render.
-#
-# 'template_dir' is a (single) directory, when templates should be located.
-# File '{template_dir}/{template_name}.tpl' correcponds to template
-# '{template_name}'.
-#
-# All other dictionary arguments are assigned to the environment.
-#
-# If 'GENERATE_TITLE' variable is set, it is used as title
-# for prepend rendering content. The title is formatted according to
-# format_title() description.
-#
-# Use env.AddMethod() for add this builder into the environment
-def BuildSyscallDefinition(env, target, source, template_main,
-    template_dir, **kargs):
+        # Read input file line by line and produce output.
+        for line in input_f:
+            pc.next_line()
+            if syscall_string is None:
+                if line.startswith("//!"):
+                    continue
+                if not syscall_start_re.match(line):
+                    output_f.write(line)
+                    continue
+                syscall_string = syscall_start_re.sub("", line)
+                pc.syscall_start()
+            else:
+                syscall_string += line
 
-    if type(target) is list:
-        target = target[0]
+            if not syscall_end_re.search(syscall_string):
+                continue
 
-    t = env.Command(target,
-                source,
-                syscall_build_action,
-                TEMPLATE_DIR = template_dir,
-                TEMPLATE_MAIN = template_main,
-                **kargs
-                )
+            syscall_string = syscall_end_re.sub("", syscall_string)
 
-    env.Depends(t, template_dir + '/' + template_main + '.tpl')
+            # Original tokens, "as is"
+            tokens_orig = syscall_delim_re.split(syscall_string)
+            # Tokens with minimal spaces.
+            tokens = [syscall_token_spaces.sub(" ", t.strip()) for t in tokens_orig]
+
+            if len(tokens) < 2:
+                pc.print_syscall_parse_error("Too few tokens for syscall")
+                return 1
+
+            sd = SyscallDeclaration(tokens[0], tokens[1])
+
+            args_tokens = tokens[2:]
+
+            if len(args_tokens) > SYSCALL_MAX_ARG_NUMBER * 2:
+                pc.print_syscall_parse_error("Too many arguments for system call. Should be at most " + str(MAX_ARG_NUMBER))
+                return 1
+
+            if len(args_tokens) % 2 == 1:
+                pc.print_syscall_parse_error("Missed argument name after last type")
+                return 1
+
+            for pair in zip(*[iter(args_tokens)]*2):
+                is_pointer = 0
+                if pair[0].find("*") != -1:
+                    is_pointer = 1
+                sd.args.append(SyscallArg(pair[0], pair[1], is_pointer))
+
+            try:
+                output_f.write(template.render(sd = sd))
+            except jinja2.TemplateError as e:
+                print_error("Failed to render syscall definition at %s: %s" % (pc.syscall_lineno, e.message))
+                return 1
+
+            syscall_string = None
+
+        if syscall_string is not None:
+            print_error("Unterminated syscall definition")
+            return 1
+
+def BuildSyscallDefinition(env, target, source, template_file,
+    title = None, source_base_dir = None):
+    """
+    Pseudo builder: Build 'target' from 'source' file by expanding
+    SYSCALL_DECLARE definitions. Expansion is performed using jinja2 templates.
+
+    'template_file' is a template file for render syscall definitions.
+
+    Optional arguments:
+
+    'title' - if given, it is used as title for prepend target's file context.
+        The title is formatted according to format_title() description.
+
+    'source_base_dir' - if non-empty, path to the source file
+        rendered into the title is relative to this directory.
+        Default is env['JETOS_HOME'].
+
+    Use env.AddMethod() for add this builder into the environment.
+    """
+    if source_base_dir is None:
+        source_base_dir = env['JETOS_HOME']
+
+    syscall_build_action = SyscallBuildAction(template_file, title,
+        source_base_dir)
+
+    t = env.Command(target, source, syscall_build_action)
+
+    env.Depends(t, template_file)
 
     return t
 
@@ -478,15 +481,13 @@ def stringify_comment(comment):
     escaped_comment = re.sub('\n', "\\\\n", escaped_comment)
     return "\"" + escaped_comment + "\""
 
-# Build C-source file from C-like file by grouping DEFINE and DEFINE-like
-# calls into C-function call.
-#
-# Callback for Command(action).
-#
-# If 'GENERATE_TITLE' variable is set, it is used as title
-# for prepend rendering content. The title is formatted according to
-# format_title() description.
 def asm_offsets_build_c_action(target, source, env):
+    """
+    Build C-source file from C-like file by grouping DEFINE and DEFINE-like
+    calls into C-function call.
+
+    Callback for Command(action).
+    """
     # Parse input and produce output
     input_path = source[0].path
     input_f = open(input_path, "r")
@@ -574,67 +575,87 @@ def asm_offsets_build_c_action(target, source, env):
     input_f.close()
     output_f.close()
 
-# Build asm file from C file produced at previous stage.
-#
-# Callback for Command(action).
-#
-# If 'GENERATE_TITLE' variable is set, it is used as title
-# for prepend rendering content. The title is formatted according to
-# format_title() description.
-#
-# Because direct source file is actually intermediate one, for generate
-# title use filename contained in REAL_SOURCE environment variable.
-def asm_offsets_build_asm_action(target, source, env):
-    # Parse input and produce output
-    input_path = source[0].path
-    input_f = open(input_path, "r")
-    if not input_f:
-        print_error("Cannot open file %s for read encoded asm definitions\n" % input_path)
-        return 1
+class _BuildAsmOffsetsAsmAction:
+    """
+    Build asm file from C file produced at previous stage.
 
-    output_path = target[0].abspath
-    output_f = open(output_path, "w")
-    if not output_f:
-        print_error("Cannot open file %s for write asm definitions\n" % output_path)
-        return 1
+    Callback for Command(action).
+    """
+    def __init__(self, title = None, real_source = None, source_base_dir = ""):
+        """
+        Optional arguments:
 
-    generate_title = env.get('GENERATE_TITLE')
-    if generate_title is not None:
-        real_source = env['REAL_SOURCE']
-        output_f.write(format_title(generate_title, target, real_source, env))
+        'title' - if given, it is used as title for prepend rendering content.
+            The title is formatted according to format_title() description.
 
-    # Read input file line by line and produce output.
-    for line in input_f:
-        define_match = re.match("-> (\\w+) (\\$)?(\\w+)", line)
-        if define_match:
-            output_f.write("#define %s %s\n" % (
-                define_match.group(1),
-                define_match.group(3)
-            ))
-            continue
-        comment_match = re.match("->#(.*)", line)
-        if comment_match is not None:
-            comment = comment_match.group(1)
-            output_f.write("%s\n" % comment)
-            continue
+        'real_source' - used as 'source' for rendering the title.
+            This is because direct source file is actually an intermediate one.
 
-    input_f.close()
-    output_f.close()
+        'source_base_dir' - if non-empty, path to the source file
+            rendered into the title is relative to this directory.
+        """
+        self.title = title
+        self.real_source = real_source
+        self.source_base_dir = source_base_dir
+
+    def __call__(self, target, source, env):
+        # Parse input and produce output
+        input_path = source[0].path
+        input_f = open(input_path, "r")
+        if not input_f:
+            print_error("Cannot open file %s for read encoded asm definitions\n" % input_path)
+            return 1
+
+        output_path = target[0].abspath
+        output_f = open(output_path, "w")
+        if not output_f:
+            print_error("Cannot open file %s for write asm definitions\n" % output_path)
+            return 1
+
+        if self.title is not None:
+            output_f.write(format_title(self.title, target, self.real_source, self.source_base_dir))
+
+        # Read input file line by line and produce output.
+        for line in input_f:
+            define_match = re.match("-> (\\w+) (\\$)?(\\w+)", line)
+            if define_match:
+                output_f.write("#define %s %s\n" % (
+                    define_match.group(1),
+                    define_match.group(3)
+                ))
+                continue
+            comment_match = re.match("->#(.*)", line)
+            if comment_match is not None:
+                comment = comment_match.group(1)
+                output_f.write("%s\n" % comment)
+                continue
+
+        input_f.close()
+        output_f.close()
 
 
-# Pseudo builder(method).
-#
-# Build 'target' from source 'file' by expanding DEFINE and DEFINE-like
-# calls with C-values into asm definitions `#define`.
-#
-# All other dictionary arguments are assigned to the environment.
-#
-# If 'GENERATE_TITLE' variable is set, it is used as title
-# for prepend rendering content. The title is formatted according to
-# format_title() description.
-#
-# Use AddMethod for add it into the environment
-def BuildAsmOffsets(env, target, source, **kargs):
+def BuildAsmOffsets(env, target, source, title = None, source_base_dir = None, **kargs):
+    """
+    Pseudo builder: Build 'target' file from source by expanding
+    DEFINE and DEFINE-like calls with C-values into asm definitions `#define`.
+
+    Optional arguments:
+
+    'title' - if given, it is used as title for prepend target's file context.
+        The title is formatted according to format_title() description.
+
+    'source_base_dir' - if non-empty, path to the source file
+        rendered into the title is relative to this directory.
+        Default is env['JETOS_HOME'].
+
+    All other dictionary arguments are assigned to the environment for
+    compilation stage when interpret C-values.
+
+    Use AddMethod for add it into the environment.
+    """
+    if source_base_dir is None:
+        source_base_dir = env['JETOS_HOME']
+
     source_node = env.File(source)
     target_node = env.File(target)
 
@@ -672,12 +693,9 @@ def BuildAsmOffsets(env, target, source, **kargs):
 
     asm_file = precompile_env.Object(asm_filename, c_file)
 
-    # Pass original source file for correct title generated.
-    precompile_env['REAL_SOURCE'] = [source_node]
+    asm_offsets_build_asm_action = _BuildAsmOffsetsAsmAction(title,
+        [source_node], source_base_dir)
 
-    t = precompile_env.Command(target,
-                asm_file,
-                asm_offsets_build_asm_action
-                )
+    t = env.Command(target, asm_file, asm_offsets_build_asm_action)
 
     return t

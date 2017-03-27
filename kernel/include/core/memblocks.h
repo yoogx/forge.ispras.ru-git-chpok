@@ -41,9 +41,16 @@ struct memory_block
     uintptr_t vaddr;
 
     /*
+     * Alignment of the virtual block (virtual).
+     */
+    size_t align;
+
+    /*
      * Whether memory block is physically contiguous.
      *
      * Set only when it is requested by configuration.
+     * 
+     * If block is physically contiguous,
      */
     pok_bool_t is_contiguous;
 
@@ -73,7 +80,7 @@ void* __kuser jet_memory_block_get_kaddr(const struct memory_block* mblock,
     const void* __user addr);
 
 
-pok_ret_t pok_memory_block_get_status(
+pok_ret_t jet_memory_block_get_status(
         const char* __user name,
         jet_memory_block_status_t* __user status);
 
