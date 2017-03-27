@@ -39,6 +39,7 @@ if kernel_env.get('kerneltests'):
     import os
     jetos_unittests = os.environ.get('JETOS_UNITTESTS', '')
     kernel_env.Append(CPPPATH = jetos_unittests + '/unity/')
+    kernel_env.Append(CFLAGS = ' -DKERNEL_UNITTESTS')
 
     tests = SConscript(Dir('#').abspath + '/P1/test/SConscript',
         variant_dir = 'tests',

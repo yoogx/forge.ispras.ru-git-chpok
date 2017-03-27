@@ -38,7 +38,7 @@
 #include <gdb.h>
 #endif
 
-#ifdef POK_NEEDS_UNITTESTS
+#ifdef KERNEL_UNITTESTS
 #include <unity_fixture.h>
 void RunAllTests(void);
 #endif
@@ -67,7 +67,7 @@ void jet_boot (void)
   pok_trap();
 #endif
 
-#ifdef POK_NEEDS_UNITTESTS
+#ifdef KERNEL_UNITTESTS
   UnityMain(1, (const char**)"", RunAllTests);
 #else
   pok_sched_start();
