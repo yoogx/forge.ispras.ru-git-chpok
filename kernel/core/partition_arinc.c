@@ -29,7 +29,6 @@
 
 #include <core/memblocks.h>
 
-
 /*
  * Function which is executed in kernel-only partition's context when
  * partition's mode is IDLE.
@@ -37,11 +36,47 @@
  * Note, that we do not enable local preemption here.
  * This has nice effect in case when partition has moved into this mode
  * because of errors: even if some partition's data are corrupted,
- * idle have high chance to work.
+ * idle has high chance to work.
  */
 static void idle_func(void)
 {
     ja_inf_loop();
+}
+
+/*
+ * Terminates all (server) portals for given partition.
+ *
+ * Should be executed with local preemption disabled.
+ */
+static void partition_arinc_portals_terminate(enum jet_ippc_portal_state portal_state)
+{
+    pok_partition_arinc_t* part = current_partition_arinc;
+
+    for(int i = 0; i < part->portal_types_n; i++) {
+        struct jet_partition_arinc_ippc_portal_type* arinc_portal_type = &part->portal_types[i];
+        for(int j = 0; j < arinc_portal_type->portal_type->n_portals; j++) {
+            struct jet_ippc_portal* portal = &arinc_portal_type->portal_type->portals[j];
+            jet_ippc_portal_terminate(portal, JET_IPPC_PORTAL_STATE_INITIALIZING);
+        }
+    }
+}
+
+/*
+ * Cancels all active (client) connections for given partition.
+ *
+ * Should be executed with local preemption disabled.
+ */
+static void partition_arinc_connections_cancel(void)
+{
+    pok_partition_arinc_t* part = current_partition_arinc;
+
+    for(int i = 0; i < part->nthreads; i++) {
+        pok_thread_t* t = &part->threads[i];
+
+        if(t->ippc_connection) {
+            jet_ippc_connection_cancel(t->ippc_connection);
+        }
+    }
 }
 
 void pok_partition_arinc_idle(void)
@@ -50,6 +85,9 @@ void pok_partition_arinc_idle(void)
 
     // Unconditionally off preemption.
     part->base_part.preempt_local_disabled = 1;
+
+    partition_arinc_portals_terminate(JET_IPPC_PORTAL_STATE_UNUSABLE);
+    partition_arinc_connections_cancel();
 
     jet_context_restart(part->base_part.initial_sp, &idle_func);
 }
@@ -62,7 +100,34 @@ void pok_partition_arinc_idle(void)
 static void thread_reset(pok_thread_t* t)
 {
     t->name[0] = '\0';
-    // Everything else will be set at thread creation time.
+
+    if(t->ippc_connection) {
+        pok_partition_arinc_t* part = current_partition_arinc;
+
+        // Connection is already cancelled. Need to wait it until terminate.
+        while(jet_ippc_connection_get_state(t->ippc_connection) != JET_IPPC_CONNECTION_STATE_TERMINATED)
+        {
+            /*
+             * Because local preemption is disabled, we cannot react
+             * on outer events with 'on_event()' handler. But we should
+             * react on these events, otherwise executing IPPC connection
+             * returns immediately without a progress.
+             *
+             * The only "event" possible in initialization state is
+             * changing 'part->ippc_handled' field. So it is sufficient
+             * to set 'ippc_handled_actual' field for mark this event as handled.
+             */
+             part->base_part.ippc_handled_actual = ACCESS_ONCE(part->base_part.ippc_handled);
+
+             jet_ippc_connection_execute(t->ippc_connection,
+                part->base_part.ippc_handled_actual);
+        }
+
+        jet_ippc_connection_close(t->ippc_connection);
+        t->ippc_connection = NULL;
+    }
+
+    t->ippc_server_connection = NULL;
 }
 
 
@@ -143,7 +208,7 @@ static void partition_arinc_start(void)
         thread_reset(&part->threads[i]);
     }
 
-    part->nthreads_used = 0;
+    part->nthreads_normal_used = 0;
 
     part->thread_current = NULL;
 #ifdef POK_NEEDS_ERROR_HANDLING
@@ -191,6 +256,9 @@ void pok_partition_arinc_reset(pok_partition_mode_t mode)
         part->mode != POK_PARTITION_MODE_INIT_COLD);
 
     part->mode = mode;
+
+    partition_arinc_portals_terminate(JET_IPPC_PORTAL_STATE_INITIALIZING);
+    partition_arinc_connections_cancel();
 
     pok_partition_restart();
 }
@@ -348,6 +416,17 @@ void pok_partition_arinc_init(pok_partition_arinc_t* part)
 
     part->base_part.part_ops = &arinc_ops;
     part->base_part.part_sched_ops = &arinc_sched_ops;
+
+    for(int i = 0; i < part->portal_types_n; i++) {
+        struct jet_ippc_portal_type* portal_type = part->portal_types[i].portal_type;
+
+        for(int j = 0; j < portal_type->n_portals; j++) {
+            struct jet_ippc_portal* portal = &portal_type->portals[j];
+
+            jet_ippc_portal_create(portal, 0);
+            portal->init_connection->server_handler_is_shared = TRUE;
+        }
+    }
 }
 
 /*
@@ -402,15 +481,27 @@ static void partition_set_mode_normal(void)
         if(thread_start_time <= current_time)
             thread_wake_up(t);
         else
-            thread_delay_event(t, thread_start_time, &thread_wake_up);
+            thread_delay_event(t, thread_start_time, &thread_wait_timeout);
 
         if(!pok_time_is_infinity(t->time_capacity))
         {
             thread_set_deadline(t, thread_start_time + t->time_capacity);
         }
     }
-}
 
+    // Mark portals with fully initialized connections as READY.
+    for(int i = 0; i < part->portal_types_n; i++) {
+        struct jet_partition_arinc_ippc_portal_type* arinc_portal_type = &part->portal_types[i];
+
+        for(int j = 0; j < arinc_portal_type->portal_type->n_portals; j++) {
+            struct jet_ippc_portal* portal = &arinc_portal_type->portal_type->portals[j];
+
+            jet_ippc_portal_finish_initialization(portal,
+                portal->n_connections_ready == portal->n_connections);
+        }
+    }
+
+}
 
 // Executed with local preemption disabled.
 static pok_ret_t partition_set_mode_internal (const pok_partition_mode_t mode)

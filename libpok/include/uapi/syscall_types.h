@@ -101,6 +101,14 @@ typedef enum
      POK_SYSCALL_PCI_REGISTER                        = 601,
 #endif
      POK_SYSCALL_MEMORY_BLOCK_GET_STATUS             = 701,
+
+     POK_SYSCALL_IPPC_INIT_PORTAL                    = 750,
+     POK_SYSCALL_IPPC_CALL                           = 751,
+
+     POK_SYSCALL_IPPC_GET_PORTAL_TYPE_INFO           = 752,
+     POK_SYSCALL_IPPC_GET_PORTAL_INFO                = 753,
+     POK_SYSCALL_IPPC_CREATE_CONNECTIONS             = 754,
+     POK_SYSCALL_IPPC_RETURN                         = 755,
 } pok_syscall_id_t;
 
 #endif /* __LIBJET_SYSCALL_TYPES_H__ */

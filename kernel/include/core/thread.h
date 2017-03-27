@@ -38,6 +38,7 @@
 #include <asp/cswitch.h>
 
 #include <core/space.h>
+#include <core/ippc.h>
 
 /* Default stack size for main process */
 #define DEFAULT_STACK_SIZE	4096
@@ -164,7 +165,7 @@ typedef struct _pok_thread
     pok_time_t delayed_time;
 
     /* 
-     * Function, processing delayed event in @thread_deadline_event.
+     * Function, processing delayed event in @thread_delayed_event.
      * 
      * Used only in conjunction with that field.
      */
@@ -208,6 +209,19 @@ typedef struct _pok_thread
      * If wait on something, here will be stored result of this wait.
      */
     pok_ret_t wait_result;
+
+    /* 
+     * For server thread this is a IPPC connection initialized with
+     * given thread. For normal threads this is NULL. 
+     */
+    struct jet_ippc_connection* ippc_server_connection;
+
+    /* 
+     * If thread initiates (opens) connection, this is a pointer to it
+     * Otherwise this is NULL. 
+     */
+    struct jet_ippc_connection* ippc_connection;
+
 
     /*
      * Next activation for periodic process (called "release point" in ARINC-653).

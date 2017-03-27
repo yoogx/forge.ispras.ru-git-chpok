@@ -419,3 +419,60 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MEMORY_BLOCK_GET_STATUS(
         (const char* __user)args->arg1,
         (jet_memory_block_status_t* __user)args->arg2);
 }
+
+pok_ret_t jet_ippc_partition_arinc_init_portal(const char* __user portal_name,
+    int* __user portal_id);
+static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_INIT_PORTAL(const pok_syscall_args_t* args)
+{
+    return jet_ippc_partition_arinc_init_portal(
+        (const char* __user)args->arg1,
+        (int* __user)args->arg2);
+}
+
+pok_ret_t jet_ippc_partition_arinc_call(int portal_id);
+static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_CALL(const pok_syscall_args_t* args)
+{
+    return jet_ippc_partition_arinc_call(
+        (int)args->arg1);
+}
+
+pok_ret_t jet_ippc_partition_arinc_get_portal_type_info(const char* __user portal_name,
+    int* __user portal_type_id,
+    int* __user n_clients);
+static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_GET_PORTAL_TYPE_INFO(const pok_syscall_args_t* args)
+{
+    return jet_ippc_partition_arinc_get_portal_type_info(
+        (const char* __user)args->arg1,
+        (int* __user)args->arg2,
+        (int* __user)args->arg3);
+}
+
+pok_ret_t jet_ippc_partition_arinc_get_portal_info(int server_portal_id,
+    int* __user n_connections);
+static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_GET_PORTAL_INFO(const pok_syscall_args_t* args)
+{
+    return jet_ippc_partition_arinc_get_portal_info(
+        (int)args->arg1,
+        (int* __user)args->arg2);
+}
+
+pok_ret_t jet_ippc_partition_arinc_create_connections(int server_portal_id,
+    void* __user entry,
+    size_t stack_size,
+    int n_connections,
+    pok_thread_id_t* __user thread_id);
+static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_CREATE_CONNECTIONS(const pok_syscall_args_t* args)
+{
+    return jet_ippc_partition_arinc_create_connections(
+        (int)args->arg1,
+        (void* __user)args->arg2,
+        (size_t)args->arg3,
+        (int)args->arg4,
+        (pok_thread_id_t* __user)args->arg5);
+}
+
+pok_ret_t jet_ippc_partition_arinc_return(void);
+static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_RETURN(const pok_syscall_args_t* args)
+{
+    return jet_ippc_partition_arinc_return();
+}

@@ -236,3 +236,28 @@ SYSCALL_DECLARE(POK_SYSCALL_MIDDLEWARE_QUEUEING_CLEAR, pok_port_queuing_clear,
 SYSCALL_DECLARE(POK_SYSCALL_MEMORY_BLOCK_GET_STATUS, pok_memory_block_get_status,
    const char*, name,
    jet_memory_block_status_t*, status)
+
+SYSCALL_DECLARE(POK_SYSCALL_IPPC_INIT_PORTAL, jet_ippc_partition_arinc_init_portal,
+    const char*, portal_name,
+    int*, portal_id)
+
+SYSCALL_DECLARE(POK_SYSCALL_IPPC_CALL, jet_ippc_partition_arinc_call,
+    int, portal_id)
+
+SYSCALL_DECLARE(POK_SYSCALL_IPPC_GET_PORTAL_TYPE_INFO, jet_ippc_partition_arinc_get_portal_type_info,
+    const char*, portal_name,
+    int*, portal_type_id,
+    int*, n_clients)
+
+SYSCALL_DECLARE(POK_SYSCALL_IPPC_GET_PORTAL_INFO, jet_ippc_partition_arinc_get_portal_info,
+    int, server_portal_id,
+    int*, n_connections)
+
+SYSCALL_DECLARE(POK_SYSCALL_IPPC_CREATE_CONNECTIONS, jet_ippc_partition_arinc_create_connections,
+    int, server_portal_id,
+    void*, entry,
+    size_t, stack_size,
+    int, n_connections,
+    pok_thread_id_t*, thread_id)
+
+SYSCALL_DECLARE(POK_SYSCALL_IPPC_RETURN, jet_ippc_partition_arinc_return)

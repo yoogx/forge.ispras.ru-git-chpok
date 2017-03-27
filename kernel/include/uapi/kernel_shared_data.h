@@ -19,6 +19,7 @@
 #include <types.h>
 #include <uapi/partition_arinc_types.h>
 #include <uapi/msection.h>
+#include <uapi/ippc_types.h>
 
 /* Data about the thread, shared between kernel and user spaces. */
 struct jet_thread_shared_data
@@ -93,6 +94,17 @@ struct jet_thread_shared_data
      */
     volatile uint8_t wq_priority;
 
+    uintptr_t ippc_input_params[IPPC_MAX_INPUT_PARAMS_N];
+    int ippc_input_params_n;
+
+    uintptr_t ippc_output_params[IPPC_MAX_OUTPUT_PARAMS_N];
+    int ippc_output_params_n;
+
+    uintptr_t ippc_input_params_server[IPPC_MAX_INPUT_PARAMS_N];
+    int ippc_input_params_server_n;
+
+    uintptr_t ippc_output_params_server[IPPC_MAX_OUTPUT_PARAMS_N];
+    int ippc_output_params_server_n;
 };
 
 /* Thread is killed. When last msection is leaved, jet_sched() should be called. */

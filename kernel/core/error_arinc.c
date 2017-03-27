@@ -63,9 +63,8 @@ pok_ret_t pok_error_thread_create (uint32_t stack_size, void* __user entry)
     if(part->thread_error)
         return POK_ERRNO_EXISTS;
 
-    if (part->nthreads_used == part->nthreads) {
-        return POK_ERRNO_TOOMANY;
-    }
+    // There is always a place for the error thread.
+    assert(part->nthreads_used < part->nthreads);
 
     // do at least basic check of entry point
     if (!jet_check_access_exec(entry)) {

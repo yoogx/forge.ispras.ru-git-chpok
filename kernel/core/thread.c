@@ -34,9 +34,9 @@
 
 /*
  * Find thread by name.
- * 
+ *
  * Note: Doesn't require disable local preemption.
- * 
+ *
  * Note: Name should be located in kernel space.
  */
 static pok_thread_t* find_thread(const char name[MAX_NAME_LENGTH])
@@ -61,9 +61,9 @@ static pok_thread_t* find_thread(const char name[MAX_NAME_LENGTH])
 
 /*
  * Return thread by id.
- * 
+ *
  * Return NULL if no such thread created.
- * 
+ *
  * Note: Doesn't require disable local preemption.
  */
 static pok_thread_t* get_thread_by_id(pok_thread_id_t id)
@@ -106,9 +106,12 @@ pok_ret_t pok_thread_create (const char* __user name,
     const char* __kuser k_name = jet_user_to_kernel_ro(name, MAX_NAME_LENGTH);
     if(!k_name) return POK_ERRNO_EFAULT;
 
-    if (part->nthreads_used == part->nthreads) {
+    // Check quota for normal threads
+    if (part->nthreads_normal_used == part->nthreads_normal) {
         return POK_ERRNO_TOOMANY;
     }
+
+    assert(part->nthreads_used < part->nthreads);
 
     t = &part->threads[part->nthreads_used];
 
@@ -159,15 +162,16 @@ pok_ret_t pok_thread_create (const char* __user name,
     *k_thread_id = part->nthreads_used;
 
     part->nthreads_used++;
+    part->nthreads_normal_used++;
 
     return POK_ERRNO_OK;
 }
 
 #ifdef POK_NEEDS_THREAD_SLEEP
 
-/* 
+/*
  * Turn current thread into the sleep for a while.
- * 
+ *
  * NOTE: It is possible to sleep forever(ARINC prohibits that).
  */
 pok_ret_t pok_thread_sleep(const pok_time_t* __user time)
@@ -230,9 +234,6 @@ static pok_ret_t thread_delayed_start_internal (pok_thread_t* thread,
 
     pok_time_t thread_start_time;
 
-    struct jet_thread_shared_data* tshd = part->kshd->tshd
-        + (thread - part->threads);
-
     assert(!pok_time_is_infinity(delay));
 
     if (thread->state != POK_STATE_STOPPED) {
@@ -243,15 +244,9 @@ static pok_ret_t thread_delayed_start_internal (pok_thread_t* thread,
         return POK_ERRNO_EINVAL;
     }
 
-    thread->priority = thread->base_priority;
-	thread->sp = 0;
+	thread_start_prepare(thread);
 
-    tshd->msection_count = 0;
-    tshd->msection_entering = NULL;
-    tshd->priority = thread->priority;
-    tshd->thread_kernel_flags = 0;
-
-	if(part->mode != POK_PARTITION_MODE_NORMAL)
+    if(part->mode != POK_PARTITION_MODE_NORMAL)
 	{
 		/* Delay thread's starting until normal mode. */
 		thread->delayed_time = delay;
@@ -535,6 +530,11 @@ pok_ret_t pok_thread_stop_target(pok_thread_id_t id)
         // Target process is already stopped.
         goto out;
     }
+    else if(t->state == POK_STATE_WAITING) {
+        // Interrupt waiting.
+        thread_wait_cancel(t);
+    }
+
 
     if(t->relations_stop.donate_target != NULL)
     {
@@ -558,16 +558,23 @@ pok_ret_t pok_thread_stop_target(pok_thread_id_t id)
         thread_current->relations_stop.next_donator = t->relations_stop.first_donator;
         t->relations_stop.first_donator = thread_current;
     }
+    else if(t->ippc_connection) {
+        /*
+         * Target thread has IPPC connection opened.
+         *
+         * Need to wait this connection to terminate and close it.
+         */
+        jet_ippc_connection_cancel(t->ippc_connection);
+
+        thread_current->relations_stop.donate_target = t;
+        thread_current->relations_stop.next_donator = NULL;
+        t->relations_stop.first_donator = thread_current;
+
+        ret = POK_ERRNO_OK;
+    }
     else if(tshd_target->msection_count != 0)
     {
         /* target currently owners the section. Cannot kill it immediately. */
-        if(t->state == POK_STATE_WAITING)
-        {
-            // Interrupt waiting on msection.
-            thread_wake_up(t);
-            t->wait_result = POK_ERRNO_CANCELLED;
-        }
-
         thread_current->relations_stop.donate_target = t;
         thread_current->relations_stop.next_donator = NULL;
         t->relations_stop.first_donator = thread_current;
@@ -600,14 +607,14 @@ pok_ret_t pok_thread_stop(void)
 
     pok_preemption_local_disable();
 
-    // Thread cannot executed anything in donation state.
+    // Thread cannot execute anything in donation state.
     assert(t->relations_stop.donate_target == NULL);
     // While already stopped, thread shouldn't stop itself.
     assert_os(t->relations_stop.first_donator == NULL);
     /*
      * It is *possible* for thread to be stopped while in msection.
      * But this cannot hurt kernel.
-     * 
+     *
      * TODO: Should additional os-check to be added?
      */
     thread_stop(t);
@@ -803,16 +810,16 @@ pok_ret_t jet_msection_wait(struct msection* __user section,
     // ... And use common wait.
     thread_wait_common(thread_current, *kernel_timeout);
 
-    /* 
+    /*
      * It is possible, that current thread wasn't the highest-priority
      * thread. Because of that, `thread_wait_common` may do not cause
      * scheduling invalidation.
-     * 
+     *
      * From the other side, waiting on msection and leaving msection
      * are the only possible state-modifications for non-highest-priority
      * thread. Normal msection leaving is followed by jet_resched(),
      * which invalidates scheduling.
-     * 
+     *
      * So, explicitely invalidate scheduling here.
      */
     pok_sched_local_invalidate();
@@ -854,8 +861,8 @@ pok_ret_t jet_msection_notify(struct msection* __user section,
 
     thread_wake_up(t);
 
-    t->wait_result = POK_ERRNO_OK;
-    ret = POK_ERRNO_OK;
+    if(t->wait_result == POK_ERRNO_OK);
+        ret = POK_ERRNO_OK;
 
 out:
     pok_preemption_local_enable();
@@ -901,21 +908,21 @@ static void msection_wq_del(struct msection_wq* wq,
     tshd_t->wq_next = tshd_t->wq_prev = JET_THREAD_ID_NONE;
 }
 
-/* 
+/*
  * Awoke waiting threads in the waitqueue.
- * 
+ *
  * Every thread in the queue which hasn't waited at the function's call
  * is removed from the queue.
- * 
+ *
  * If 'first_only' is TRUE, the first waiting thread only. This thread
  * will be pointed by wq->first after the call.
  * If 'first_only' is FALSE, notify all waiting threads. List of the
  * awoken threads may be iterated directly from user space.
- * 
+ *
  * May be called only by the owner of the section.
- * 
+ *
  * Returns:
- * 
+ *
  *     POK_ERRNO_OK - at least on thread has been notified.
  *     POK_ERRNO_EMPTY - there is no waiting threads in the waitqueue.
  */
@@ -952,18 +959,16 @@ pok_ret_t jet_msection_wq_notify(struct msection* __user section,
 
         thread_id = tshd_t->wq_next;
 
-        if(t->state != POK_STATE_WAITING)
-        {
-            msection_wq_del(wq_kernel, tshd_t);
-        }
-        else
-        {
+        if(t->state == POK_STATE_WAITING) {
             thread_wake_up(t);
-            t->wait_result = POK_ERRNO_OK;
-            ret = POK_ERRNO_OK;
-
-            if(!is_all) break;
+            if(t->wait_result == POK_ERRNO_OK) {
+                ret = POK_ERRNO_OK;
+                if(!is_all) break;
+                continue;
+            }
         }
+        // If thread wasn't in waiting state, delete it from the queue.
+        msection_wq_del(wq_kernel, tshd_t);
     }
 
     pok_preemption_local_enable();
@@ -973,10 +978,10 @@ pok_ret_t jet_msection_wq_notify(struct msection* __user section,
 
 /*
  * Compute number of waiting threads in the waitqueue.
- * 
+ *
  * Every thread in the queue which hasn't waited at the function's call
  * is removed from the queue.
- * 
+ *
  * Returns: POK_ERRNO_OK.
  */
 pok_ret_t jet_msection_wq_size(struct msection* __user section,
@@ -1072,11 +1077,13 @@ pok_thread_t* pok_thread_wq_wake_up(pok_thread_wq_t* wq)
         pok_thread_t* t = list_first_entry(&wq->waits, pok_thread_t, wait_elem);
         /*
          * First, remove thread from the waiters list.
-         * 
+         *
          * So futher thread_wake_up() will not interpret it as timeouted.
          */
         list_del_init(&t->wait_elem);
         thread_wake_up(t);
+
+        assert(t->wait_result == POK_ERRNO_OK);
 
         return t;
     }

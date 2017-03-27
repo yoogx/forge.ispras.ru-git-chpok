@@ -40,6 +40,7 @@ class ConfigurationInternal(SerializableObject):
         'channels_queueing',
         'major_frame',
         'memory_block_sharings', # List of 'MemoryBlockSharingInternal' objects.
+        'portal_types', # List of 'IPPCPortalTypeInternal' objects.
     ]
 
     def __init__(self, **kargs):
@@ -69,6 +70,7 @@ class ConfigurationInternal(SerializableObject):
             channels_queueing = [],
             major_frame = 0,
             memory_block_sharings = [],
+            portal_types = [],
         )
 
         for index, part in enumerate(conf.partitions):
@@ -100,6 +102,41 @@ class ConfigurationInternal(SerializableObject):
                 mb_refs = mb_refs_internal)
 
             conf_internal.memory_block_sharings.append(memory_block_sharing_internal)
+
+        for portal_type in conf.portal_types:
+            server_part_internal = PartitionInternal.ref_from_normal(portal_type.server_part)
+            portal_type_internal = IPPCPortalTypeInternal(
+                portal_type_name = portal_type.name,
+                portal_type_index = len(conf_internal.portal_types),
+                server_part_name = server_part_internal.name,
+                server_part_index = server_part_internal.index,
+                portals = []
+            )
+
+            conf_internal.portal_types.append(portal_type_internal)
+            portal_type_server_internal = IPPCPortalTypeServerInternal(
+                portal_type_name = portal_type_internal.portal_type_name,
+                portal_type_index = portal_type_internal.portal_type_index
+            )
+            server_part_internal.portal_types.append(portal_type_server_internal)
+
+            for portal in portal_type.portals:
+                client_part_internal = PartitionInternal.ref_from_normal(portal.client_part)
+                portal_internal = IPPCPortalInternal(
+                    portal_index = len(portal_type_internal.portals),
+                    client_part_name = client_part_internal.name,
+                    client_part_index =  client_part_internal.index,
+                    connections_n = portal.connections_n,
+                )
+
+                portal_type_internal.portals.append(portal_internal)
+                portal_client_internal = IPPCPortalClientInternal(
+                    portal_type_name = portal_type_internal.portal_type_name,
+                    portal_type_index = portal_type_internal.portal_type_index,
+                    portal_index = portal_internal.portal_index,
+                    connections_n = portal_internal.connections_n,
+                )
+                client_part_internal.portals.append(portal_client_internal)
 
         for part in conf.partitions:
             compute_arinc_requirements(part, types_requirements)
@@ -341,6 +378,32 @@ class ModuleHMTableInternal(HMTableInternal):
 def align_val(val, align):
     return ((val + align - 1) / align) * align
 
+class IPPCPortalClientInternal(SerializableObject):
+    yaml_tag = '!IPPCPortalClient'
+
+    copy_slots = [
+        "portal_type_name", # Name of the portal type
+        "portal_type_index", # Index of the portal type in global list.
+        "portal_index", # Index of the portal in portal type.
+        "connections_n", # Number of connections
+    ]
+
+    def __init__(self, **kargs):
+        copy_constructor(self, kargs)
+
+class IPPCPortalTypeServerInternal(SerializableObject):
+    yaml_tag = '!IPPCPortalTypeServer'
+
+    copy_slots = [
+        "portal_type_name", # Name of the portal type
+        "portal_type_index", # Index of the portal type in global list.
+    ]
+
+    def __init__(self, **kargs):
+        copy_constructor(self, kargs)
+
+
+
 class PartitionInternal(SerializableObject):
     yaml_tag = '!IPartition'
 
@@ -363,7 +426,7 @@ class PartitionInternal(SerializableObject):
 
         'num_threads',
 
-        'num_threads_total', # Include main thread and error thread.
+        'num_threads_total', # Include main, error and server threads.
 
         'stack_size_all', # Total memory for all stacks
 
@@ -384,6 +447,9 @@ class PartitionInternal(SerializableObject):
         'partition_hm_table',
 
         'memory_blocks',
+
+        'portal_types', # List of IPPCPortalTypeServerInternal objects, provided by given partition
+        'portals', # List of IPPCPortalClientInternal objects, used by given partition
     ]
 
     def __init__(self, **kargs):
@@ -436,6 +502,9 @@ class PartitionInternal(SerializableObject):
             partition_hm_table = partition_hm_table,
 
             memory_blocks = [],
+
+            portal_types = [], # Will be set in global code
+            portals = [], # Will be set in global code
         )
 
         part_private = PartitionPrivate(part_internal)
@@ -493,6 +562,12 @@ class PartitionInternal(SerializableObject):
 
         return part_internal
 
+    @classmethod
+    def ref_from_normal(cls, part):
+        """
+        Extract reference to internal partition from normal one.
+        """
+        return part.private_data.part_internal
 
     def arinc_heap_add_array(self, n_elems, types_requirements,
         type_name):
@@ -720,7 +795,7 @@ class ChannelConnectionInternal(SerializableObject):
         NOTE: partitions should be processes before (so 'private_data' field for every partition is set).
         """
         return ChannelConnectionInternal(
-            partition_index = localConnection.partition.private_data.part_internal.index,
+            partition_index = PartitionInternal.ref_from_normal(localConnection.partition).index,
             port_index = localConnection.port.private_data.index
         )
 
@@ -751,6 +826,36 @@ class ChannelSamplingInternal(SerializableObject):
 
     def __init__(self, **kargs):
         copy_constructor(self, kargs)
+
+
+class IPPCPortalTypeInternal(SerializableObject):
+    yaml_tag = '!IIPPCPortalType'
+
+    copy_slots = [
+        'portal_type_name', # Name of portal type.
+        'portal_type_index', # Index of the portal type.
+        'server_part_name', # Name of the server partition.
+        'server_part_index', # Index of the client partition.
+        'portals', # List of portals
+    ]
+
+    def __init__(self, **kargs):
+        copy_constructor(self, kargs)
+
+
+class IPPCPortalInternal(SerializableObject):
+    yaml_tag = '!IIPPCPortal'
+
+    copy_slots = [
+        'portal_index', # Index of the portal in portal type.
+        'client_part_name', # Name of the client partition.
+        'client_part_index', # Index of the client partition.
+        'connections_n', # Number of connections
+    ]
+
+    def __init__(self, **kargs):
+        copy_constructor(self, kargs)
+
 
 
 # Private data for 'Partition' object.

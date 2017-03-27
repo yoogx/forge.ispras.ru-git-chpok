@@ -100,6 +100,7 @@ void pok_partition_add_event(pok_partition_t* part,
 
    if(set_event) {
       part->is_event = TRUE;
+      pok_sched_invalidate();
    }
 }
 
