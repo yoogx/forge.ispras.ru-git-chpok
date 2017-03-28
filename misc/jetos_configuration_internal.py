@@ -630,11 +630,11 @@ class QueueingPortInternal(SerializableObject):
 class PartitionHMActionInternal(HMActionInternal):
     yaml_tag = '!IPartitionHMAction'
 
-    def __init__(self, level, recovery_action, error_code = None, description = None):
+    def __init__(self, level, recovery_action, error_code = None, error_description = None):
         HMActionInternal.__init__(self, level = level, recovery_action = recovery_action)
         if error_code is not None:
             self.error_code = error_code # Error code, only for errors in 'USER' state.
-            self.description = description # Description of the error, only for errors in 'USER' state.
+            self.error_description = error_description # Description of the error, only for errors in 'USER' state.
 
     @classmethod
     def from_normal(cls, action):
@@ -642,7 +642,7 @@ class PartitionHMActionInternal(HMActionInternal):
             level = action.level,
             recovery_action = action.recovery_action,
             error_code = getattr(action, 'error_code', None),
-            description = getattr(action, 'description', None),
+            error_description = getattr(action, 'description', None),
         )
 
 
