@@ -316,6 +316,8 @@ ja_user_space_jump:
 .macro SAVE_REGS_COMMON_GDB
     SAVE_REGS_COMMON_BASE
     SAVE_GDB
+    la      $k0, global_thread_stack
+    sw      $sp, 0($k0)
 .endm
 
 #ifndef POK_NEEDS_GDB
