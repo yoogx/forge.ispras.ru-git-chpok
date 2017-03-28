@@ -19,7 +19,6 @@
 
 struct interrupt_context {
     uint32_t fp;
-    uint32_t svc_lr;
     uint32_t r0;
     uint32_t r1;
     uint32_t r2;
