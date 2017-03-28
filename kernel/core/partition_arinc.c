@@ -402,6 +402,7 @@ static void partition_set_mode_normal(void)
             if(pok_time_is_infinity(periodic_release_point))
                 periodic_release_point = get_next_periodic_processing_start();
             thread_start_time = periodic_release_point + t->delayed_time;
+            t->next_activation = thread_start_time;
         }
 
         if(thread_start_time <= current_time)
