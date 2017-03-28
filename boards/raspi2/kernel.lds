@@ -1,8 +1,8 @@
 ENTRY(jet_start)
 
 /* __KERNBASE_ values should be aligned by 1MB */
-__KERNBASE_PADDR = 0x0;
-__KERNBASE_VADDR = 0xc0000000;
+__KERNBASE_PADDR = 0          + 0x1000;
+__KERNBASE_VADDR = 0xc0000000 + 0x1000;
 
 
 SECTIONS

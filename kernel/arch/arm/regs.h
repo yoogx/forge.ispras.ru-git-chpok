@@ -130,6 +130,8 @@ static inline uint32_t ifsr_get(void)
 #define CPSR_MODE_UND 0x1b // Undef
 #define CPSR_MODE_SYS 0x1f // System
 
+#define CPSR_MODE_MASK 0x1f
+
 #define CPACR_CP0(x)  (x<<0)
 #define CPACR_CP1(x)  (x<<2)
 #define CPACR_CP2(x)  (x<<4)
