@@ -46,6 +46,10 @@ module or debug it.
 #    If set to True, it enables unittests mode in the kernel.
 #    In this mode, some additional files are linked into the kernel.
 #
+#  libpoktests - enables unittests mode for libpok.
+#    If set to True, it enables unittests mode in libpok.
+#    In this mode, some additional files are added to libjet.a.
+#
 # Environment variables which affects on building:
 #
 #  JETOS_BSP - specified BSP for build (if 'bsp' scons parameter is absent).
@@ -94,7 +98,8 @@ vars.AddVariables(
     ('bsp', "Board Support Package for use. List of possible values may be obtained by using value '?'.", None),
     BoolVariable('jdeveloper', 'Enables developer mode', False),
     BoolVariable('cdeveloper', 'Enables component developer mode', False),
-    BoolVariable('kerneltests', 'Enables kernel unittests mode', False)
+    BoolVariable('kerneltests', 'Enables kernel unittests mode', False),
+    BoolVariable('libpoktests', 'Enables libpok unittests mode', False)
 )
 
 env = Environment(variables = vars, ENV = os.environ)

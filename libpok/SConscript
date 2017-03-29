@@ -28,9 +28,23 @@ user_objects += SConscript('arinc653/SConscript')
 user_objects += SConscript('core/SConscript')
 user_objects += SConscript('libc/SConscript')
 user_objects += SConscript('libm/SConscript')
-user_objects += SConscript('mocks/SConscript')
-user_objects += SConscript('unity/SConscript')
 user_objects += SConscript('utils/SConscript')
+
+if libpok_env.get('libpoktests'):
+    libpok_env.Append(CPPPATH = [
+        libpok_env['JETOS_UNITTESTS'] + '/mocks/libpok/',
+        libpok_env['JETOS_UNITTESTS'] + '/unity/'
+    ])
+
+    user_objects += SConscript(libpok_env['JETOS_UNITTESTS'] + '/mocks/SConscript',
+        variant_dir = 'mocks',
+        duplicate = 0
+    )
+
+    user_objects += SConscript(libpok_env['JETOS_UNITTESTS'] + '/unity/SConscript',
+        variant_dir = 'unity',
+        duplicate = 0
+    )
 
 libpok_target = libpok_env.StaticLibrary(target = 'pok',
     source = user_objects)
