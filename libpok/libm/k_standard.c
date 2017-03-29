@@ -32,7 +32,7 @@
 #include "math_private.h"
 #include <errno.h>
 
-#include <libc/stdio.h>
+#include <stdio.h>
 #define WRITE2(u,v) printf (u)
 
 static const double zero = 0.0;	/* used as const */
