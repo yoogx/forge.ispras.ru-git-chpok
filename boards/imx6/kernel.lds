@@ -4,7 +4,6 @@ ENTRY(jet_start)
 __KERNBASE_PADDR = 0x10000000;
 __KERNBASE_VADDR = 0xc0000000;
 
-
 SECTIONS
 {
     . = __KERNBASE_VADDR;
@@ -49,13 +48,13 @@ SECTIONS
         /* Allocate aligned stack */
         . = ALIGN(16) + 0x1000;
         jet_entry_stack = .;
-
-        jet_heap_start = . ;
-        jet_heap_end = . + 0x80000; /* 256 KB for heap  */
     }
     /DISCARD/ :
     {
         *(.ARM.exidx*)
         *(.gnu.linkonce.armexidx.*)
     }
+
+    jet_heap_start = . ;
+    jet_heap_end = . + 0x500000; /* 5 MB heap */
 }

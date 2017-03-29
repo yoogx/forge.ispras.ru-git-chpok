@@ -22,7 +22,7 @@
 
 // 1KB aligned
 __attribute__ ((aligned(0x400))) uint32_t vector_l2_table[256] = {
-    [(VECTOR_HIGH_ADDR >> 12)  & 0xff] = ((KERNBASE_PADDR + (1<<20))&0xfffff000) |
+    [(VECTOR_HIGH_ADDR >> 12)  & 0xff] = ((KERNBASE_PADDR + 0x3fff000)&0xfffff000) |
         L2_SECT_PRIVILEGED_RW | L2_SECT_MEM_DEFAULT | L2_SECT_NON_SUPER,
 };
 
@@ -39,6 +39,14 @@ __attribute__ ((aligned(0x4000))) uint32_t entry_l1_table[4096] = {
 
     // kernel high address
     [KERNBASE_VADDR>>20] = (KERNBASE_PADDR&0xfff00000) | L1_SECT_PRIVILEGED_RW |
+        L1_SECT_MEM_DEFAULT | L1_TYPE_SECT,
+    [(KERNBASE_VADDR>>20) + 1] = (KERNBASE_PADDR + (1<<20)) | L1_SECT_PRIVILEGED_RW |
+        L1_SECT_MEM_DEFAULT | L1_TYPE_SECT,
+    [(KERNBASE_VADDR>>20) + 2] = (KERNBASE_PADDR + (2<<20)) | L1_SECT_PRIVILEGED_RW |
+        L1_SECT_MEM_DEFAULT | L1_TYPE_SECT,
+    [(KERNBASE_VADDR>>20) + 3] = (KERNBASE_PADDR + (3<<20)) | L1_SECT_PRIVILEGED_RW |
+        L1_SECT_MEM_DEFAULT | L1_TYPE_SECT,
+    [(KERNBASE_VADDR>>20) + 4] = (KERNBASE_PADDR + (4<<20)) | L1_SECT_PRIVILEGED_RW |
         L1_SECT_MEM_DEFAULT | L1_TYPE_SECT,
 
     // uart
@@ -58,6 +66,14 @@ void insert_kernel_mapping_into_table(uint32_t *l1_table)
 
     // kernel high address
     l1_table[KERNBASE_VADDR>>20] = (KERNBASE_PADDR&0xfff00000) | L1_SECT_PRIVILEGED_RW |
+        L1_SECT_MEM_DEFAULT | L1_TYPE_SECT;
+    l1_table[(KERNBASE_VADDR>>20) + 1] = (KERNBASE_PADDR + (1<<20)) | L1_SECT_PRIVILEGED_RW |
+        L1_SECT_MEM_DEFAULT | L1_TYPE_SECT;
+    l1_table[(KERNBASE_VADDR>>20) + 2] = (KERNBASE_PADDR + (2<<20)) | L1_SECT_PRIVILEGED_RW |
+        L1_SECT_MEM_DEFAULT | L1_TYPE_SECT;
+    l1_table[(KERNBASE_VADDR>>20) + 3] = (KERNBASE_PADDR + (3<<20)) | L1_SECT_PRIVILEGED_RW |
+        L1_SECT_MEM_DEFAULT | L1_TYPE_SECT;
+    l1_table[(KERNBASE_VADDR>>20) + 4] = (KERNBASE_PADDR + (4<<20)) | L1_SECT_PRIVILEGED_RW |
         L1_SECT_MEM_DEFAULT | L1_TYPE_SECT;
 
     // uart
