@@ -104,6 +104,8 @@ jetos_home = Dir('..').abspath # Do not require os environment variable JETOS_HO
 
 env['JETOS_HOME'] = jetos_home
 
+env['JETOS_UNITTESTS'] = os.environ.get('JETOS_UNITTESTS', '')
+
 
 scons_param_bsp = env.get('bsp', None)
 
