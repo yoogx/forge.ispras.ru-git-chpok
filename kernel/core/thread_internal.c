@@ -373,13 +373,36 @@ void thread_start_prepare(pok_thread_t* t)
         + (t - part->threads);
 
     t->priority = t->base_priority;
-	t->sp = 0;
+    t->sp = 0;
 
     tshd->msection_count = 0;
     tshd->msection_entering = NULL;
     tshd->priority = t->priority;
     tshd->thread_kernel_flags = 0;
 }
+
+/* Start thread in normal mode. */
+void thread_start_normal(pok_thread_t* t, pok_time_t delay)
+{
+    if (pok_time_is_infinity(t->period)) {
+        // aperiodic process
+        t->release_point = jet_system_time() + delay;
+    }
+    else {
+        // periodic process
+        t->release_point = get_next_periodic_processing_start() + delay;
+    }
+
+    if(!pok_time_is_infinity(t->time_capacity))
+        thread_set_deadline(t, t->release_point + t->time_capacity);
+
+    /* Only non-delayed aperiodic process starts immediately */
+    if(delay == 0 && pok_time_is_infinity(t->period))
+        thread_start(t);
+    else
+        thread_wait_timed(t, t->release_point);
+}
+
 
 void thread_start(pok_thread_t* t)
 {

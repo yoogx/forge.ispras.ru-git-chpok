@@ -310,7 +310,7 @@ static void pok_sched(void)
     }
 
     /* Check time for base partition. */
-    if(base_partition->timer != 0 && now >= base_partition->timer)
+    if((base_partition->timer != 0) && (now >= base_partition->timer))
     {
         pok_partition_add_event(base_partition, JET_PARTITION_EVENT_TYPE_TIMER, 0);
         base_partition->timer = 0;

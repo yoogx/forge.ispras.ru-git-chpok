@@ -50,7 +50,7 @@ static pok_thread_t* find_thread(const char name[MAX_NAME_LENGTH])
         t != t_end;
         t++)
     {
-		if(part->thread_error == t) continue; /* error thread is not searchable. */
+        if(part->thread_error == t) continue; /* error thread is not searchable. */
         if(!pok_compare_names(t->name, name)) return t;
     }
 
@@ -66,15 +66,15 @@ static pok_thread_t* find_thread(const char name[MAX_NAME_LENGTH])
  */
 static pok_thread_t* get_thread_by_id(pok_thread_id_t id)
 {
-	pok_partition_arinc_t* part = current_partition_arinc;
+    pok_partition_arinc_t* part = current_partition_arinc;
 
-	if(id == 0 /* main thread have no id*/
-		|| id >= part->nthreads_used /* thread is not created yet */
-		|| part->thread_error == &part->threads[id] /* error thread has no id */
+    if(id == 0 /* main thread have no id*/
+        || id >= part->nthreads_used /* thread is not created yet */
+        || part->thread_error == &part->threads[id] /* error thread has no id */
         )
         return NULL;
 
-	return &part->threads[id];
+    return &part->threads[id];
 }
 
 
@@ -139,7 +139,11 @@ pok_ret_t pok_thread_create (const char* __user name,
             return POK_ERRNO_PARAM;
         }
 
-        // TODO: Check period for being multiple to partition's period.
+
+        if(t->period % part->base_part.period) {
+            // Process period should be multiple to partition's period.
+            return POK_ERRNO_THREADATTR; // TODO: Name is bad
+        }
    }
 
     // do at least basic check of entry point
@@ -185,16 +189,16 @@ pok_ret_t pok_thread_sleep(const pok_time_t* __user time)
         thread_wait_common(current_thread, kernel_time);
     }
 
-	pok_preemption_local_enable();
+    pok_preemption_local_enable();
 
-	return POK_ERRNO_OK;
+    return POK_ERRNO_OK;
 }
 
 pok_ret_t pok_thread_yield (void)
 {
-	pok_preemption_local_disable();
-	thread_yield(current_thread);
-	pok_preemption_local_enable();
+    pok_preemption_local_disable();
+    thread_yield(current_thread);
+    pok_preemption_local_enable();
 
     return POK_ERRNO_OK;
 }
@@ -202,11 +206,9 @@ pok_ret_t pok_thread_yield (void)
 
 // Called with local preemption disabled
 static pok_ret_t thread_delayed_start_internal (pok_thread_t* thread,
-												pok_time_t delay)
+                                                pok_time_t delay)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
-
-    pok_time_t thread_start_time;
 
     assert(!pok_time_is_infinity(delay));
 
@@ -218,36 +220,19 @@ static pok_ret_t thread_delayed_start_internal (pok_thread_t* thread,
         return POK_ERRNO_EINVAL;
     }
 
-	thread_start_prepare(thread);
+    thread_start_prepare(thread);
 
     if(part->mode != POK_PARTITION_MODE_NORMAL)
-	{
-		/* Delay thread's starting until normal mode. */
-		thread->delayed_time = delay;
-		thread->state = POK_STATE_WAITING;
+    {
+        /* Delay thread's starting until normal mode. */
+        thread->delayed_time = delay;
+        thread->state = POK_STATE_WAITING;
 
-		return POK_ERRNO_OK;
-	}
+        return POK_ERRNO_OK;
+    }
 
     // Normal mode.
-    if (pok_time_is_infinity(thread->period)) {
-        // aperiodic process
-        thread_start_time = jet_system_time() + delay;
-    }
-    else {
-		// periodic process
-		thread_start_time = get_next_periodic_processing_start() + delay;
-		thread->next_activation = thread_start_time + thread->period;
-	}
-
-	if(!pok_time_is_infinity(thread->time_capacity))
-		thread_set_deadline(thread, thread_start_time + thread->time_capacity);
-
-	/* Only non-delayed aperiodic process starts immediately */
-	if(delay == 0 && pok_time_is_infinity(thread->period))
-        thread_start(thread);
-	else
-		thread_wait_timed(thread, thread_start_time);
+    thread_start_normal(thread, delay);
 
     return POK_ERRNO_OK;
 }
@@ -276,16 +261,16 @@ pok_ret_t pok_thread_delayed_start (pok_thread_id_t id,
 
 pok_ret_t pok_thread_start (pok_thread_id_t id)
 {
-	pok_ret_t ret;
+    pok_ret_t ret;
 
     pok_thread_t *thread = get_thread_by_id(id);
     if(!thread) return POK_ERRNO_PARAM;
 
-	pok_preemption_local_disable();
-	ret = thread_delayed_start_internal(thread, 0);
-	pok_preemption_local_enable();
+    pok_preemption_local_disable();
+    ret = thread_delayed_start_internal(thread, 0);
+    pok_preemption_local_enable();
 
-	return ret;
+    return ret;
 }
 
 
@@ -365,9 +350,9 @@ pok_ret_t pok_thread_set_priority(pok_thread_id_t id, uint32_t priority)
 
     thread_yield(t);
 
-	ret = POK_ERRNO_OK;
+    ret = POK_ERRNO_OK;
 out:
-	pok_preemption_local_enable();
+    pok_preemption_local_enable();
 
     return ret;
 }
@@ -382,8 +367,8 @@ pok_ret_t pok_thread_resume(pok_thread_id_t id)
     // can't resume self, lol
     if (t == current_thread) return POK_ERRNO_THREADATTR;
 
-	// although periodic process can never be suspended anyway,
-	// ARINC-653 requires different error code
+    // although periodic process can never be suspended anyway,
+    // ARINC-653 requires different error code
     if (pok_thread_is_periodic(t)) return POK_ERRNO_MODE;
 
     pok_preemption_local_disable();
@@ -391,14 +376,14 @@ pok_ret_t pok_thread_resume(pok_thread_id_t id)
     ret = POK_ERRNO_MODE;
     if (t->state == POK_STATE_STOPPED) goto out;
 
-	ret = POK_ERRNO_UNAVAILABLE;
+    ret = POK_ERRNO_UNAVAILABLE;
     if (!t->suspended) goto out;
 
     thread_resume(t);
 
-	ret = POK_ERRNO_OK;
+    ret = POK_ERRNO_OK;
 out:
-	pok_preemption_local_enable();
+    pok_preemption_local_enable();
 
     return ret;
 }
@@ -410,13 +395,13 @@ pok_ret_t pok_thread_suspend_target(pok_thread_id_t id)
     pok_thread_t *t = get_thread_by_id(id);
     if(!t) return POK_ERRNO_PARAM;
 
-	// can't suspend current process
-	// _using this function_
-	// (use pok_thread_suspend instead)
+    // can't suspend current process
+    // _using this function_
+    // (use pok_thread_suspend instead)
     if (t == current_thread) return POK_ERRNO_THREADATTR;
 
-	// although periodic process can never be suspended anyway,
-	// ARINC-653 requires different error code
+    // although periodic process can never be suspended anyway,
+    // ARINC-653 requires different error code
     if (pok_thread_is_periodic(t)) return POK_ERRNO_MODE;
 
     pok_preemption_local_disable();
@@ -427,16 +412,16 @@ pok_ret_t pok_thread_suspend_target(pok_thread_id_t id)
 
     // Cannot suspend process holded preemption lock.
     if (current_partition_arinc->lock_level > 0
-		&& current_partition_arinc->thread_locked == t) goto out;
+        && current_partition_arinc->thread_locked == t) goto out;
 
-	ret = POK_ERRNO_UNAVAILABLE;
+    ret = POK_ERRNO_UNAVAILABLE;
     if (t->suspended) goto out;
 
     thread_suspend(t);
 
-	ret = POK_ERRNO_OK;
+    ret = POK_ERRNO_OK;
 out:
-	pok_preemption_local_enable();
+    pok_preemption_local_enable();
 
     return ret;
 }
@@ -445,27 +430,27 @@ pok_ret_t pok_thread_suspend(const pok_time_t* __user time)
 {
     pok_thread_t *t = current_thread;
 
-	const pok_time_t* __kuser k_time = jet_user_to_kernel_typed_ro(time);
+    const pok_time_t* __kuser k_time = jet_user_to_kernel_typed_ro(time);
     if(!k_time) return POK_ERRNO_EFAULT;
 
     pok_time_t kernel_time = *k_time;
 
     // although periodic process can never be suspended anyway,
-	// ARINC-653 requires different error code
+    // ARINC-653 requires different error code
     if (pok_thread_is_periodic(t)) return POK_ERRNO_MODE;
 
     if (!thread_is_waiting_allowed()) return POK_ERRNO_MODE;
 
     pok_preemption_local_disable();
 
-	if(kernel_time == 0) goto out; // Nothing to do with 0 timeout.
+    if(kernel_time == 0) goto out; // Nothing to do with 0 timeout.
 
     thread_suspend(t);
 
-	if(!pok_time_is_infinity(kernel_time)) goto suspend_timed;
+    if(!pok_time_is_infinity(kernel_time)) goto suspend_timed;
 
 out:
-	pok_preemption_local_enable();
+    pok_preemption_local_enable();
 
     return POK_ERRNO_OK;
 
@@ -486,10 +471,10 @@ pok_ret_t pok_thread_stop_target(pok_thread_id_t id)
     pok_thread_t *t = get_thread_by_id(id);
     if(!t) return POK_ERRNO_PARAM;
 
-	pok_thread_t* thread_current = part->thread_current;
+    pok_thread_t* thread_current = part->thread_current;
 
     // can's stop self
-	// use pok_thread_stop to do that
+    // use pok_thread_stop to do that
     if (t == thread_current) return POK_ERRNO_THREADATTR;
 
     struct jet_thread_shared_data* tshd_target = part->kshd->tshd
@@ -568,7 +553,7 @@ pok_ret_t pok_thread_stop_target(pok_thread_id_t id)
     pok_sched_local_invalidate();
 
 out:
-	pok_preemption_local_enable();
+    pok_preemption_local_enable();
 
     return ret;
 }
@@ -600,9 +585,9 @@ pok_ret_t pok_thread_stop(void)
     }
     // Stopping current thread always change scheduling.
     pok_sched_local_invalidate();
-	pok_preemption_local_enable();
+    pok_preemption_local_enable();
 
-	return POK_ERRNO_OK;
+    return POK_ERRNO_OK;
 }
 
 pok_ret_t pok_thread_find(const char* __user name, pok_thread_id_t* __user id)
@@ -624,7 +609,7 @@ pok_ret_t pok_thread_find(const char* __user name, pok_thread_id_t* __user id)
 
     *k_id = t - current_partition_arinc->threads;
 
-	return POK_ERRNO_OK;
+    return POK_ERRNO_OK;
 }
 
 // called by periodic process when it's done its work
@@ -635,15 +620,16 @@ pok_ret_t pok_sched_end_period(void)
 
     if(!pok_thread_is_periodic(t)) return POK_ERRNO_MODE;
 
-	if(!thread_is_waiting_allowed()) return POK_ERRNO_MODE;
+    if(!thread_is_waiting_allowed()) return POK_ERRNO_MODE;
 
     pok_preemption_local_disable();
 
-	thread_wait_timed(t, t->next_activation);
-	thread_set_deadline(t, t->next_activation + t->time_capacity);
-	t->next_activation += t->period;
+    t->release_point += t->period;
 
-	pok_preemption_local_enable();
+    thread_wait_timed(t, t->release_point);
+    thread_set_deadline(t, t->release_point + t->time_capacity);
+
+    pok_preemption_local_enable();
 
     return POK_ERRNO_OK;
 }
@@ -663,7 +649,7 @@ pok_ret_t pok_sched_replenish(const pok_time_t* __user budget)
     if(t == part->thread_error) return POK_ERRNO_UNAVAILABLE;
 
     if(part->mode != POK_PARTITION_MODE_NORMAL)
-		return POK_ERRNO_UNAVAILABLE;
+        return POK_ERRNO_UNAVAILABLE;
 
     if(pok_time_is_infinity(t->time_capacity)) return POK_ERRNO_OK; //nothing to do
 
@@ -686,8 +672,9 @@ pok_ret_t pok_sched_replenish(const pok_time_t* __user budget)
         pok_time_t calculated_deadline = jet_system_time() + kernel_budget;
 
         if(!pok_time_is_infinity(t->period)
-            && calculated_deadline >= t->next_activation)
+            && (calculated_deadline >= (t->release_point + t->period)))
         {
+            // For periodic process new deadline will exceed next release point.
             ret = POK_ERRNO_MODE;
             goto out;
         }

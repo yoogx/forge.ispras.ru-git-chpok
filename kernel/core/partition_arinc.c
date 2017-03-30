@@ -443,17 +443,6 @@ static void partition_set_mode_normal(void)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
 
-    // Cached value of current time.
-    pok_time_t current_time = jet_system_time();
-    /*
-     * Cached value of first release point.
-     *
-     * NOTE: Initially it is not cached. Such implementation allows to
-     * not calculate release point for partition which have no periodic
-     * processes.
-     */
-    pok_time_t periodic_release_point = POK_TIME_INFINITY;
-
     part->mode = POK_PARTITION_MODE_NORMAL;
     part->lock_level = 0;
     pok_sched_local_invalidate();
@@ -461,7 +450,6 @@ static void partition_set_mode_normal(void)
     for(int i = POK_PARTITION_ARINC_MAIN_THREAD_ID + 1; i < part->nthreads_used; i++)
     {
         pok_thread_t* t = &part->threads[i];
-        pok_time_t thread_start_time;
 
         if(t->state == POK_STATE_STOPPED) continue;
 
@@ -470,29 +458,7 @@ static void partition_set_mode_normal(void)
          * NORMAL mode switch.
          */
 
-        if(pok_time_is_infinity(t->period))
-        {
-            // Aperiodic process.
-            thread_start_time = current_time + t->delayed_time;
-        }
-        else
-        {
-            // Periodic process
-            if(pok_time_is_infinity(periodic_release_point))
-                periodic_release_point = get_next_periodic_processing_start();
-            thread_start_time = periodic_release_point + t->delayed_time;
-            t->next_activation = thread_start_time;
-        }
-
-        if(thread_start_time <= current_time)
-            thread_wake_up(t);
-        else
-            thread_delay_event(t, thread_start_time, &thread_wait_timeout);
-
-        if(!pok_time_is_infinity(t->time_capacity))
-        {
-            thread_set_deadline(t, thread_start_time + t->time_capacity);
-        }
+        thread_start_normal(t, t->delayed_time);
     }
 
     // Mark portals with fully initialized connections as READY.

@@ -221,6 +221,13 @@ pok_bool_t thread_is_waiting_allowed(void);
  */
 void thread_start_prepare(pok_thread_t* t);
 
+/* 
+ * Start a thread in a NORMAL mode.
+ * 
+ * For server thread use `thread_start()` instead.
+ */
+void thread_start_normal(pok_thread_t* t, pok_time_t delay);
+
 /*
  * Mark given thread as runnable in NORMAL mode.
  *

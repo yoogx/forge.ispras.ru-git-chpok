@@ -218,23 +218,8 @@ typedef struct _pok_thread
      */
     struct jet_ippc_connection* ippc_connection;
 
-
-    /*
-     * Next activation for periodic process (called "release point" in ARINC-653).
-     *
-     * It's calculated when:
-     *  - START/DELAYED_START is called in NORMAL mode
-     *  - SET_PARTITION_MODE is called, and START/DELAYED start was
-     *    already called before
-     *  - TIMED_WAIT (pok_sched_end_period) is called
-     * 
-     * This also implies that for currently active periodic process,
-     * next_activation actually refers to time of _current_ activation.
-     *
-     * Is not defined for aperiodic processes,
-     * and when process is not yet started (or not in normal mode).
-     */
-    pok_time_t            next_activation;
+    /* Time when (next period of the) process starts. */
+    pok_time_t release_point;
 
     /*
      * Process state.

@@ -133,7 +133,7 @@ pok_bool_t pok_partition_get_event(struct jet_partition_event* event)
 void pok_partition_set_timer(pok_partition_t* part,
     pok_time_t timer_new)
 {
-     part->timer = timer_new;
+    part->timer = timer_new;
 }
 
 
