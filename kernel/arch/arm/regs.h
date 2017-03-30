@@ -16,6 +16,8 @@
 #ifndef __ARM_REGS_H__
 #define __ARM_REGS_H__
 
+#include "cpu.h"
+
 #ifndef __ASSEMBLER__
 static inline uint32_t cpsr_get()
 {
@@ -43,6 +45,8 @@ static inline void cpacr_set(uint32_t val)
     asm volatile("MCR p15, 0, %0, c1, c0, 2" : : "r" (val));
 }
 
+#ifdef ARMv7_SECURE_EXTENSION
+
 //Non-Secure Access Control Register,
 static inline uint32_t nsacr_get()
 {
@@ -55,6 +59,17 @@ static inline void nsacr_set(uint32_t val)
 {
     asm volatile("MCR p15, 0, %0, c1, c1, 2" : : "r" (val));
 }
+
+//Secure Configuration Register
+static inline uint32_t scr_get()
+{
+    uint32_t r;
+    asm volatile("MRC p15, 0, %0, c1, c1, 0" : "=r" (r));
+    return r;
+}
+#endif
+
+
 
 
 static inline uint32_t sctlr_get(void)
@@ -176,5 +191,7 @@ static inline uint32_t ifsr_get(void)
 
 #define SCTLR_M (1<<0) //enable MMU
 #define SCTLR_V (1<<13) //vector table is high
+
+#define SCR_NS (1<<0) // non-secure bit
 
 #endif //__ARM_REGS_H__
