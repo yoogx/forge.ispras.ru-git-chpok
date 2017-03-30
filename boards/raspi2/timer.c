@@ -20,6 +20,7 @@
 #include <core/time.h>
 #include <assert.h>
 #include <asp/entries.h>
+#include <common.h>
 
 /* The Generic Timer */
 /* Timer has physical and virtual counters. AFAIU QEMU doesn't check
@@ -94,8 +95,7 @@ void timer_init(void)
     frequency = frequency_get();
     printf("Timer frequency = %ld Hz\n", frequency);
 
-    if ( NANO % frequency != 0 ||
-         frequency % POK_TIMER_FREQUENCY != 0
+    if ( frequency % POK_TIMER_FREQUENCY != 0
        ) {
         printf("WARNING: timer counting is not precise with current frequency\n");
     }
@@ -112,11 +112,11 @@ void timer_init(void)
 /* Return current system time. */
 pok_time_t ja_system_time(void)
 {
-    return (pok_time_t)(vcounter_get() * (NANO / frequency));
+    return (pok_time_t)muldiv64(vcounter_get(), NANO, frequency);
 }
 
 /* Return current calendar time (seconds since Epoch). */
 time_t ja_calendar_time(void)
 {
-    return base_calendar_time + (time_t)(ja_system_time() / 1000000000);
+    return base_calendar_time + (time_t)(ja_system_time() / NANO);
 }
