@@ -472,7 +472,6 @@ static void partition_set_mode_normal(void)
                 portal->n_connections_ready == portal->n_connections);
         }
     }
-
 }
 
 // Executed with local preemption disabled.

@@ -334,6 +334,8 @@ pok_ret_t pok_thread_set_priority(pok_thread_id_t id, uint32_t priority)
     pok_thread_t *t = get_thread_by_id(id);
     if(!t) return POK_ERRNO_PARAM;
 
+    if(t->ippc_server_connection) return POK_ERRNO_PARAM; // Priority has no sence for server threads.
+
     if(priority > MAX_PRIORITY_VALUE) return POK_ERRNO_PARAM;
     if(priority < MIN_PRIORITY_VALUE) return POK_ERRNO_PARAM;
 
@@ -404,6 +406,9 @@ pok_ret_t pok_thread_suspend_target(pok_thread_id_t id)
     // ARINC-653 requires different error code
     if (pok_thread_is_periodic(t)) return POK_ERRNO_MODE;
 
+    // Server threads cannot be suspended.
+    if (t->ippc_server_connection) return POK_ERRNO_MODE;
+
     pok_preemption_local_disable();
 
     ret = POK_ERRNO_MODE;
@@ -438,6 +443,9 @@ pok_ret_t pok_thread_suspend(const pok_time_t* __user time)
     // although periodic process can never be suspended anyway,
     // ARINC-653 requires different error code
     if (pok_thread_is_periodic(t)) return POK_ERRNO_MODE;
+
+    // Server threads cannot be suspended.
+    if (t->ippc_server_connection) return POK_ERRNO_MODE;
 
     if (!thread_is_waiting_allowed()) return POK_ERRNO_MODE;
 

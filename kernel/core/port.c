@@ -229,6 +229,8 @@ pok_ret_t pok_port_queuing_receive(
         ret = POK_ERRNO_EMPTY;
     else if(!thread_is_waiting_allowed())
         ret = POK_ERRNO_MODE;
+    else if(t->ippc_server_connection)
+        ret = POK_ERRNO_MODE; // Server threads may not wait on ports.
     else
         ret = POK_ERRNO_OK;
 
@@ -327,6 +329,8 @@ pok_ret_t pok_port_queuing_send(
         ret = POK_ERRNO_FULL;
     else if(!thread_is_waiting_allowed())
         ret = POK_ERRNO_MODE;
+    else if(t->ippc_server_connection)
+        ret = POK_ERRNO_MODE; // Server threads may not wait on ports.
     else
         ret = POK_ERRNO_OK;
 
