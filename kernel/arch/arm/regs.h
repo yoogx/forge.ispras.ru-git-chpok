@@ -118,7 +118,9 @@ static inline uint32_t ifsr_get(void)
 
 #endif // __ASSEMBLER__
 
-#define CPSR_IRQ (1<<7)
+#define CPSR_IRQ    (1<<7) //disable IRQ
+#define CPSR_FIQ    (1<<6) //disable FIQ
+#define CPSR_ABORT  (1<<6) //disable async ABORT
 
 #define CPSR_MODE_USR 0x10 //User
 #define CPSR_MODE_FIQ 0x11 //Fast IRQ
@@ -131,6 +133,8 @@ static inline uint32_t ifsr_get(void)
 #define CPSR_MODE_SYS 0x1f // System
 
 #define CPSR_MODE_MASK 0x1f
+
+#define KERNEL_ENTRY_MODE (CPSR_MODE_SVC | CPSR_IRQ | CPSR_FIQ)
 
 #define CPACR_CP0(x)  (x<<0)
 #define CPACR_CP1(x)  (x<<2)

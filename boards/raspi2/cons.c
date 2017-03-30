@@ -81,6 +81,7 @@ uint8_t uart_getc()
 
 void uart_init()
 {
+    /*
     // Disable UART0.
     iowrite32(UART0_CR, 0x00000000);
     // Setup the GPIO pin 14 && 15.
@@ -118,6 +119,7 @@ void uart_init()
 
     // Enable UART0, receive & transfer part of UART.
     iowrite32(UART0_CR, (1 << 0) | (1 << 8) | (1 << 9));
+    */
 }
 
 static size_t iostream_write_common(const char* s, size_t length, int flag)
@@ -166,7 +168,7 @@ static size_t iostream_read_main(char* s, size_t length)
 
 static void iostream_init_main(void)
 {
-    return iostream_init_common(0);
+    iostream_init_common(0);
 }
 
 struct jet_iostream arm_stream_main =

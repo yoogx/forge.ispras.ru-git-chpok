@@ -18,4 +18,6 @@
 
 #define JET_ARM_CONFIG_FPU_NEON
 
+#define JET_ARM_CONFIG_CORTEX_A9
+
 #endif

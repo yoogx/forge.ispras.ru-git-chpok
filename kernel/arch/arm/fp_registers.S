@@ -13,7 +13,7 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <board/cpu_config.h>
+#include "cpu.h"
 #ifdef JET_ARM_CONFIG_FPU_NEON
 .fpu neon
 #endif
