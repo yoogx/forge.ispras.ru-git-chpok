@@ -156,6 +156,13 @@ class ArincConfigParser:
             conf.module_hm_table.actions[s] = module_hm_actions_per_state
 
         cls.parse_shared_memory_blocks(conf, root.find("Shared_Memory_Blocks"))
+        
+        portal_types_root = root.find("Portal_Types")
+
+        if portal_types_root is not None:
+            for portal_type_entry in portal_types_root.findall("Portal_Type"):
+                portal_type = cls.parse_portal_type(conf, portal_type_entry)
+                conf.portal_types.append(portal_type)
 
         return conf
 
@@ -351,3 +358,27 @@ class ArincConfigParser:
             action = chpok_configuration.PartitionHMAction(level, recovery_action, error_code, description)
 
             table.actions['USER'][error_id] = action
+
+    @classmethod
+    def parse_portal_type(cls, conf, portal_type_entry):
+        portal_type_name = portal_type_entry.attrib["PortalTypeName"]
+        server_part_name = portal_type_entry.attrib["ServerPartitionName"]
+        server_part = conf.private_data['partitions_by_name'][server_part_name]
+
+        portal_type = chpok_configuration.IPPCPortalType(portal_type_name, server_part)
+
+        for portal_entry in portal_type_entry.findall("Portal"):
+            portal = cls.parse_portal(conf, portal_entry)
+            portal_type.portals.append(portal)
+
+        return portal_type
+
+    @classmethod
+    def parse_portal(cls, conf, portal_entry):
+        client_part_name = portal_entry.attrib["ClientPartitionName"]
+        client_part = conf.private_data['partitions_by_name'][client_part_name]
+        connections_n = int(portal_entry.attrib["ConnectionsNumber"])
+
+        portal = chpok_configuration.IPPCPortal(client_part, connections_n)
+
+        return portal

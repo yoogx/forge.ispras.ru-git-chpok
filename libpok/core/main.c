@@ -18,8 +18,24 @@
 #include "smalloc_internal.h"
 #include <memblocks.h>
 #include <stdlib.h>
+#include <arinc653/process.h>
+#include <stdio.h>
 
-int main(void);
+void main(void);
+
+/*
+ * By default, main() function is called and expected to not return.
+ *
+ * It is possible to redefine this function to another wrapper around main.
+ */
+void __attribute__ ((weak)) __main(void)
+{
+    main();
+
+    printf("ERROR: Main process returns.\n");
+
+    STOP_SELF();
+}
 
 struct jet_kernel_shared_data* kshd;
 
@@ -42,6 +58,7 @@ int __pok_partition_start (void)
 
    libjet_arinc_init();
 
-   main(); /* main loop from user */
-   return (0);
+   __main(); /* main loop from user */
+
+   return 0; // Unreachable
 }

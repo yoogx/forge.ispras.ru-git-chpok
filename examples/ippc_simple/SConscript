@@ -17,27 +17,7 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-# List of headers which are used both by kernel and user.
-uapi_headers = [
-    'errno.h',
-    'error_arinc_types.h',
-    'ippc_types.h',
-    'kernel_shared_data.h',
-    'msection.h',
-    'memblock_types.h',
-    'partition_arinc_types.h',
-    'partition_types.h',
-    'port_types.h',
-    'syscall_types.h',
-    'thread_types.h',
-    'time.h',
-    'types.h',
-]
+Import('env')
 
-# List of headers files, described syscalls, for generate.
-# Filenames do not include `.in` suffix.
-uapi_headers_syscall = [
-    'syscall_map_arinc.h'
-]
-
-Return('uapi_headers', 'uapi_headers_syscall')
+env['PARTITIONS'] = ['P1', 'P2']
+env['MODULE_XML'] = 'config.xml'

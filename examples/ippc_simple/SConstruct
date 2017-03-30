@@ -1,3 +1,7 @@
+# COPIED! DO NOT MODIFY!
+# Instead of modifying this file, modify original one (examples/SConstruct_module).
+#
+# When copy a file outside of JetOS project, remove this line and the lines above.
 #******************************************************************
 #
 # Institute for System Programming of the Russian Academy of Sciences
@@ -17,27 +21,13 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-# List of headers which are used both by kernel and user.
-uapi_headers = [
-    'errno.h',
-    'error_arinc_types.h',
-    'ippc_types.h',
-    'kernel_shared_data.h',
-    'msection.h',
-    'memblock_types.h',
-    'partition_arinc_types.h',
-    'partition_types.h',
-    'port_types.h',
-    'syscall_types.h',
-    'thread_types.h',
-    'time.h',
-    'types.h',
-]
+import os
 
-# List of headers files, described syscalls, for generate.
-# Filenames do not include `.in` suffix.
-uapi_headers_syscall = [
-    'syscall_map_arinc.h'
-]
+jetos_home = os.environ.get('JETOS_HOME', "")
 
-Return('uapi_headers', 'uapi_headers_syscall')
+if jetos_home == "":
+	print "ERROR: Environment variable 'JETOS_HOME' is not set."
+	print "HINT:Environment variable 'JETOS_HOME' should point to the JetOS root directory."
+	Exit(1)
+
+env = SConscript(jetos_home+'/misc/SConscript_example_module')
