@@ -24,12 +24,26 @@
 #include <core/syscall.h>
 #include <core/uaccess.h>
 
+#include <uapi/kernel_shared_data.h>
+
 static void thread_start_func(void)
 {
-    pok_thread_t* thread_current = current_thread;
+    pok_partition_arinc_t* part = current_partition_arinc;
+    pok_thread_t* thread_current = part->thread_current;
+
+    void (*thread_entry)(void) = thread_current->entry;
+
+    int thread_id = thread_current - part->threads;
+
+    if((thread_id != POK_PARTITION_ARINC_MAIN_THREAD_ID)
+        && part->kshd->thread_entry_wrapper) {
+        // If 'thread_start_wrapper' is set, it is used for all non-main threads.
+        part->kshd->tshd[thread_id].thread_entry_point = thread_entry;
+        thread_entry = part->kshd->thread_entry_wrapper;
+    }
 
     pok_partition_jump_user(
-        thread_current->entry,
+        thread_entry,
         thread_current->init_stack_addr,
         thread_current->initial_sp);
 }
