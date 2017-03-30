@@ -92,6 +92,7 @@ void timer_handle_interrupt(void)
 
 void timer_init(void)
 {
+    bcm2836_init_timer(); //make bmc2836 specific initialization
     frequency = frequency_get();
     printf("Timer frequency = %ld Hz\n", frequency);
 
