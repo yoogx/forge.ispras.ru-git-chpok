@@ -357,6 +357,9 @@ class Partition:
 
         "is_system",
 
+        'period',
+        'duration',
+
         # Memory required for code and data defined in partition's elf.
         #
         # Such parameter implies that *whole* elf can be mapped into

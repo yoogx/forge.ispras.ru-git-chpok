@@ -79,34 +79,48 @@ class ArincConfigParser:
         Return chpok_configuration.Partition object
         """
 
-        part_name = part_root.find("Definition").attrib["Name"]
+        part_definition_elem = part_root.find("Definition")
+
+        part_name = part_definition_elem.attrib["Name"]
 
         part = chpok_configuration.Partition(part_id, part_name)
 
         part.memory_size = parse_bytes(part_root.find("Memory").attrib["Bytes"])
         part.heap_size = parse_bytes(part_root.find("Memory").attrib.get('Heap', default='0'))
 
-        # FIXME support partition period, which is simply a fixed attribute
-        #       with no real meaning (except it can be introspected)
-        part.is_system = False
-        if "System" in part_root.find("Definition").attrib:
-            part.is_system = parse_bool(part_root.find("Definition").attrib["System"])
+        part_period_str = part_definition_elem.attrib.get("Period")
+        if part_period_str is not None:
+            part.period = parse_time(part_period_str)
 
-        # FIXME support partition period, which is simply a fixed attribute
-        #       with no real meaning (except it can be introspected)
+        part_duration_str = part_definition_elem.attrib.get("Duration")
+        if part_duration_str is not None:
+            part.duration = parse_time(part_duration_str)
+
+
+        part.is_system = parse_bool(part_definition_elem.attrib.get("System", default = "false"))
 
         part.num_threads = int(part_root.find("Threads").attrib["Count"])
 
         # Reserve 8K stack for every thread, including main and error ones
         part.stack_size_all = (part.num_threads + 2) * 8096
 
-        part.num_arinc653_buffers = int(part_root.find("ARINC653_Buffers").attrib["Count"])
-        part.num_arinc653_blackboards = int(part_root.find("ARINC653_Blackboards").attrib["Count"])
-        part.num_arinc653_events = int(part_root.find("ARINC653_Events").attrib["Count"])
-        part.num_arinc653_semaphores = int(part_root.find("ARINC653_Semaphores").attrib["Count"])
+        arinc_buffers_elem = part_root.find("ARINC653_Buffers")
+        if arinc_buffers_elem is not None:
+            part.num_arinc653_buffers = int(arinc_buffers_elem.attrib["Count"])
+            part.buffer_data_size = parse_bytes(arinc_buffers_elem.attrib["Data_Size"])
 
-        part.buffer_data_size = parse_bytes(part_root.find("ARINC653_Buffers").attrib["Data_Size"])
-        part.blackboard_data_size = parse_bytes(part_root.find("ARINC653_Blackboards").attrib["Data_Size"])
+        arinc_blackboards_elem = part_root.find("ARINC653_Blackboards")
+        if arinc_blackboards_elem is not None:
+            part.num_arinc653_blackboards = int(arinc_blackboards_elem.attrib["Count"])
+            part.blackboard_data_size = parse_bytes(arinc_blackboards_elem.attrib["Data_Size"])
+
+        arinc_events_elem = part_root.find("ARINC653_Events")
+        if arinc_events_elem is not None:
+            part.num_arinc653_events = int(arinc_events_elem.attrib["Count"])
+
+        arinc_semaphores_elem = part_root.find("ARINC653_Semaphores")
+        if arinc_semaphores_elem is not None:
+            part.num_arinc653_semaphores = int(arinc_semaphores_elem.attrib["Count"])
 
         part_private = dict()
 
@@ -116,11 +130,18 @@ class ArincConfigParser:
         part_private['mb_by_name'] = dict()
         part.private_data = part_private
 
-        cls.parse_ports(part, part_root.find("ARINC653_Ports"))
+        arinc_ports_elem = part_root.find("ARINC653_Ports")
+        if arinc_ports_elem is not None:
+            cls.parse_ports(part, arinc_ports_elem)
 
-        cls.parse_hm(part.hm_table, part_root.find("HM_Table"))
+        part.hm_table.default_action = chpok_configuration.PartitionHMAction("PARTITION", "IDLE")
+        hm_table_elem = part_root.find("HM_Table")
+        if hm_table_elem is not None:
+            cls.parse_hm(part.hm_table, hm_table_elem)
 
-        cls.parse_partition_memory_blocks(part, part_root.find("Memory_Blocks"))
+        memblocks_elem = part_root.find("Memory_Blocks")
+        if memblocks_elem is not None:
+            cls.parse_partition_memory_blocks(part, memblocks_elem)
 
         return part
 
@@ -156,7 +177,7 @@ class ArincConfigParser:
             conf.module_hm_table.actions[s] = module_hm_actions_per_state
 
         cls.parse_shared_memory_blocks(conf, root.find("Shared_Memory_Blocks"))
-        
+
         portal_types_root = root.find("Portal_Types")
 
         if portal_types_root is not None:
@@ -251,8 +272,6 @@ class ArincConfigParser:
 
     @classmethod
     def parse_partition_memory_blocks(cls, part, memory_blocks_xml):
-        if memory_blocks_xml is None:
-            return
         for memory_block_xml in memory_blocks_xml.findall("Memory_Block"):
             memory_block = cls.parse_memory_block(memory_block_xml)
             part.memory_blocks.append(memory_block)
@@ -338,11 +357,6 @@ class ArincConfigParser:
 
     @classmethod
     def parse_hm(cls, table, root):
-        table.default_action = chpok_configuration.PartitionHMAction("PARTITION", "IDLE")
-
-        if root is None:
-            return
-
         table.actions['USER'] = {}
 
         for x in root.findall("Error"):

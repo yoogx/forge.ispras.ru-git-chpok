@@ -928,7 +928,7 @@ def process_time_slots(conf_internal, conf):
 
     if conf.major_frame is not None:
         if conf.major_frame != major_frame:
-            raise RuntimeError("Configuration sets major frame equal to %d, but sum of all time slots is %d." % [conf.major_frame, major_frame])
+            raise RuntimeError("Configuration sets major frame equal to %d, but sum of all time slots is %d." % (conf.major_frame, major_frame))
 
     conf_internal.major_frame = major_frame
 
@@ -943,12 +943,14 @@ def process_time_slots(conf_internal, conf):
         #        raise RuntimeError("Partition %s has time slot(s) assigned to it, but none of them has periodic processing start property." % part.name)
 
         if part.period is not None:
-            if part.period % major_frame != 0:
-                raise RuntimeError("Partition %s has period %d which is not divident of major time frame (%d)." % [part.name, part.period, major_frame])
-            duration_max = part_private.total_duration * (part.period / major_frame)
+            if major_frame % part.period != 0:
+                raise RuntimeError("Partition %s has period %d which is not divident of major time frame (%d)." % (part.name, part.period, major_frame))
+            # TODO: More checks for partition period.
+            # TODO: Below is not a *precize* limit for partition duration
+            duration_max = part_private.total_duration / ( major_frame / part.period)
             if part.duration is not None:
                 if part.duration > duration_max:
-                    raise RuntimeError("Partition %s has duration %d ns, but only %d ns is available to it during period." % [part.name, part.duration, duration_max])
+                    raise RuntimeError("Partition %s has duration %d ns, but only %d ns is available to it during period." % (part.name, part.duration, duration_max))
             else:
                 part.duration = duration_max
         else:
