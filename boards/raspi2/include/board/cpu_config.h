@@ -16,8 +16,6 @@
 #ifndef __JET_RASPI2_CPU_CONFIG_H__
 #define __JET_RASPI2_CPU_CONFIG_H__
 
-#define JET_ARM_CONFIG_FPU_NEON
-
 #define JET_ARM_CONFIG_CORTEX_A7
 
 #endif

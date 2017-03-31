@@ -17,6 +17,7 @@
 #define __JET_IMX6_CPU_CONFIG_H__
 
 #define JET_ARM_CONFIG_FPU_NEON
+#define JET_ARM_CONFIG_FPU
 
 #define JET_ARM_CONFIG_CORTEX_A9
 

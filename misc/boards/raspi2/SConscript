@@ -30,7 +30,7 @@ SConscript(env['JETOS_HOME'] + '/misc/arch/arm/SConscript', exports = 'env')
 env.Append(CFLAGS = ' -mcpu=cortex-a7')
 env.Append(ASFLAGS = ' -mcpu=cortex-a7')
 
-env.Append(CFLAGS_USER = ' -mfpu=neon -mfloat-abi=softfp')
+#env.Append(CFLAGS_USER = ' -mfpu=neon -mfloat-abi=softfp')
 
 env['LDSCRIPT_KERNEL'] = env['JETOS_HOME'] + '/boards/raspi2/kernel.lds'
 

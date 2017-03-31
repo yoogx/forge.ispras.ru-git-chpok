@@ -53,7 +53,7 @@ void jet_arch_init(void)
 
 
     //enable access to coprocessors 10 and 11 for user and kernel
-    nsacr_set(NSACR_CP10|NSACR_CP11);
+    //nsacr_set(NSACR_CP10|NSACR_CP11);
     cpacr_set(CPACR_CP10(CPACR_ACCESS_FULL) | CPACR_CP11(CPACR_ACCESS_FULL));
     floating_point_enable();
 

@@ -14,6 +14,9 @@
  */
 
 #include "cpu.h"
+
+#ifdef JET_ARM_CONFIG_FPU
+
 #ifdef JET_ARM_CONFIG_FPU_NEON
 .fpu neon
 #endif
@@ -47,9 +50,12 @@ ja_fp_save:
     mov pc, lr
 
 
+
 #define FPEXC_EN (1<<30)
     .globl floating_point_enable
 floating_point_enable:
     ldr r3, =FPEXC_EN
     VMSR FPEXC, r3
     mov pc, lr
+
+#endif //JET_ARM_CONFIG_FPU

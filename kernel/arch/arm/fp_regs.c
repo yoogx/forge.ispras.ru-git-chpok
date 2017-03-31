@@ -16,7 +16,7 @@
 #include <asp/space.h>
 #include <assert.h>
 
-//TODO
+#ifdef JET_ARM_CONFIG_FPU
 struct jet_fp_store
 {
     uint64_t fp_regs[32];
@@ -28,3 +28,28 @@ struct jet_fp_store* ja_alloc_fp_store(void)
     struct jet_fp_store* res = ja_mem_alloc_aligned(sizeof(*res), 4);
     return res;
 }
+
+#else
+// floating points are not supported
+
+struct jet_fp_store;
+
+struct jet_fp_store* ja_alloc_fp_store(void)
+{
+    // there is an assert othervise
+    return (void *)1;
+}
+
+void ja_fp_save(struct jet_fp_store* fp_store)
+{
+    (void) fp_store;
+}
+void ja_fp_restore(struct jet_fp_store* fp_store)
+{
+    (void) fp_store;
+}
+void ja_fp_init(void) {}
+
+void floating_point_enable(void) {}
+#endif //JET_ARM_CONFIG_FPU
+
