@@ -32,7 +32,7 @@
 #include <core/sched.h>
 
 #include <asp/alloc.h>
-#include "memlayout.h"
+#include <arch/memlayout.h>
 #include <arch/mmu.h>
 #include "regs.h"
 
