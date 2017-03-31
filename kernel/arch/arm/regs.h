@@ -131,6 +131,17 @@ static inline uint32_t ifsr_get(void)
     return rval;
 }
 
+//Main ID Register
+static inline uint32_t midr_get(void)
+{
+    uint32_t rval;
+    asm volatile("MRC p15, 0, %0, c0, c0, 0"
+            : "=r" (rval)
+            :: "memory");
+    return rval;
+}
+
+ 
 #endif // __ASSEMBLER__
 
 #define CPSR_IRQ    (1<<7) //disable IRQ

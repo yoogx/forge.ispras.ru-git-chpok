@@ -28,6 +28,8 @@ extern char __vector_table_start[];
 extern char __vector_table_end[];
 extern char vector_table[];
 
+void floating_point_enable(void);
+
 //copy interrupt vector table to 0 virtual address
 static void copy_vector_table(void)
 {
@@ -42,10 +44,28 @@ static void copy_vector_table(void)
     (void) tmp;
 }
 
+void print_mainid()
+{
+    uint32_t midr, part;
+    midr = midr_get();
+    part = (midr>>4)&0xfff;
+    /* part values:
+        0xc08 is Cortex-A8
+        0xc09 is Cortex-A9
+        0xc05 is Cortex-A5
+        0xc07 is Cortex-A7
+        0xc0d is Cortex-A12
+        0xc0e is Cortex-A17
+        0xc0f is Cortex-A15
+        0xd07 is Cortex-A57 - ARMv8
+        0xd03 is Cortex-A53 - ARMv8
+    */
+    printf("Main ID Register (MIDR) = 0x%lx (part = 0x%lx)\n", midr, part);
+}
 void jet_arch_init(void)
 {
     jet_console_init_all ();
-    printf("Hello world \n");
+    print_mainid();
 
     copy_vector_table();
     space_init(); //user space init
