@@ -30,7 +30,7 @@
 
 uint32_t frequency;
 uint32_t timer_interval;
-uint64_t intervals_count; //number of passed intervals
+uint64_t next_time;
 
 #define NANO 1000000000
 
@@ -72,14 +72,13 @@ static void ctl_set(uint32_t val)
 static void set_timer(void)
 {
     while (1) {
-        intervals_count += 1;
-        uint64_t next_time = intervals_count*timer_interval;
+        next_time += timer_interval;
         compare_val_set(next_time);
 
         if (next_time > vcounter_get()) {
             return;
         }
-        //printf("%llx < %llx repeating\n", next_time , vcounter_get());
+        //printf("%lld < %lld repeating\n", next_time , vcounter_get());
     }
 }
 
@@ -102,7 +101,7 @@ void timer_init(void)
     }
 
     timer_interval = frequency/POK_TIMER_FREQUENCY;
-    intervals_count = vcounter_get()/timer_interval;
+    next_time = vcounter_get();
 
     //printf("timer interval %ld\n", timer_interval);
     set_timer();
