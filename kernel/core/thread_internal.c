@@ -228,8 +228,8 @@ void thread_delay_event(pok_thread_t* t, pok_time_t delay_time,
 static void thread_deadline_occured(uint16_t handler_id)
 {
     pok_thread_t* thread = &current_partition_arinc->threads[handler_id];
-    printf_debug("%s: Deadline missed for thread '%s' (%d)\n",
-                 current_partition->name, thread->name, (thread - current_partition_arinc->threads));
+    printf_debug("%s: Deadline missed for thread '%s' (%ld)\n",
+                 current_partition->name, thread->name, (long)(thread - current_partition_arinc->threads));
     pok_thread_emit_deadline_missed(thread);
 
     // TODO: if error was ignored, what to do?
