@@ -58,6 +58,12 @@ __repeat2_\@:
 
 #ifdef ARMv7_VIRT_EXTENSION
 switch_from_hyp_mode:
+    // as we already in SVC mode lets clean CNTVOFF (for raspi2 timer)
+    // TODO: add check if board has a timer?
+    mov r0, #0
+    MCRR p15, 4, r0, r0, c14
+
+    // Switch to KERNEL_ENTRY_MODE
     ldr r1, =PHYS(__entry_cont)
     msr ELR_hyp, r1
     mov r1, #KERNEL_ENTRY_MODE
