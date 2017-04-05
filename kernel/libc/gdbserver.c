@@ -5,7 +5,7 @@
 #define PC_REGNUM 64
 #define SP_REGNUM 1
 
-#define QEMU
+
 #define MULTIPROCESS
 
 /*
@@ -457,7 +457,7 @@ void gdb_thread_set_fp_regs(struct gdb_thread* t, const uint32_t* registers)
  * external low-level support routines
  */
 
-char        *strcpy(char *dest, const char *str)
+char *gdb_strcpy(char *dest, const char *str)
 {
     unsigned int i;
     for (i = 0; str[i];i++)
@@ -647,13 +647,7 @@ set_char (char *addr, int val)
 /*
  * Instructions sync
  */
-#ifdef __PPC__
-asm volatile("dcbst 0, %0; sync; icbi 0,%0; sync; isync" : : "r" (addr));
-#endif
-#ifdef __i386__
-//FIX FOR X86
-#endif
-
+    GDB_INSTR_SYNC(addr);
 }
 /*
  * Convert the memory pointed to by mem into hex, placing result in buf 
@@ -787,50 +781,7 @@ hexToInt (char **ptr, uintptr_t *intValue)
     return (numChars);
 }
 
-/*
- * Saving instruction for single step
- */
-#ifdef __PPC__
-char instr[8] = "00000000";
-int addr_instr = 0;
-char instr2[8] = "00000000";
-int addr_instr2 = 0;
-char trap[8] = "7fe00008";
-
-#define SPRN_PID        0x030   /* Process ID */
-
-#define __stringify_1(x)        #x
-#define __stringify(x)          __stringify_1(x)
-
-#define mfspr(rn)       ({unsigned long rval; \
-                                asm volatile("mfspr %0," __stringify(rn) \
-                                                                    : "=r" (rval)); rval;})
-#define mtspr(rn, v)    asm volatile("mtspr " __stringify(rn) ",%0" : \
-                                             : "r" ((unsigned long)(v)) \
-                                             : "memory")
-#define MSR_EE      1<<(15)              /* External Interrupt Enable */
-
-
-#endif
-#ifdef __i386__
-char instr[2] = "00";
-int addr_instr = 0;
-char trap[2] = "CC";
-
-#endif
-
-
-
-#define MSR_SE_LG   10      /* Single Step */
-#define __MASK(X)   (1<<(X))
-#define MSR_SE      __MASK(MSR_SE_LG)   /* Single Step */
-
-static inline void set_msr(int msr)
-{
-    asm volatile("mtmsr %0" : : "r" (msr));
-}
-
-
+static char * trap;
 
 #define max_breakpoints  20
 int max_breakpoint = max_breakpoints;
@@ -843,21 +794,6 @@ int Head_of_breakpoints;
 int last_breakpoint;
 
 
-pok_bool_t watchpoint_is_set = FALSE;
-/*
- *  Added watchpoint.
- *  Types:   2 -  Write watchpoint
- *           3 -   Read watchpoint
- *           4 - Access watchpoint
- */
-//FIX IT - архитектурно зависимый код
-#define SPRN_DBCR0      0x134   /* Debug Control Register 0 */
-#define SPRN_DBCR2       0x136   /* Debug Control Register 2 */
-#define SPRN_DAC1       0x13C   /* Data Address Compare 1 */
-#define SPRN_DAC2       0x13D   /* Data Address Compare 2 */
-#define SPRN_DBSR       0x130   /* Debug Status Register */
-#define SPRN_DBSRWR       0x132   /* Debug Status Register Write Register*/
-
 
 /*
  * Helper: writes identificator of the thread into output packet.
@@ -867,20 +803,10 @@ static char* write_thread_id(char* ptr, const struct gdb_thread* t)
 {
 #ifdef MULTIPROCESS
     *ptr++ = 'p';
-#ifdef __PPC__
-    ptr = mem2hex( (char *)(&t->inferior_id), ptr, 4);
-#endif
-#ifdef __i386__
-    ptr = mem2hex( (char *)(&t->inferior_id), ptr, 1);
-#endif
+    ptr = mem2hex( (char *)(&t->inferior_id), ptr, GDB_INSTR_SIZE);
     *ptr++ = '.';
 #endif
-#ifdef __PPC__
-    ptr = mem2hex( (char *)(&t->thread_id), ptr, 4);
-#endif
-#ifdef __i386__
-    ptr = mem2hex( (char *)(&t->thread_id), ptr, 1);
-#endif
+    ptr = mem2hex( (char *)(&t->thread_id), ptr, GDB_INSTR_SIZE);
     return ptr;
 }
 
@@ -957,12 +883,7 @@ static void gdb_state_store_registers(struct gdb_state* tc)
     {
         ea = tc->current_ea;
     }
-#ifdef __PPC__
     printf("Flush registers. pc = 0x%lx\n", registers[pc]);
-#endif
-#ifdef __i386__
-    printf("Flush registers. PC = 0x%lx\n", registers[PC]);
-#endif
 
     gdb_get_regs(ea, registers);
 }
@@ -1011,100 +932,26 @@ void clear_breakpoints(){
         breakpoints[i].addr = 0;
 }
 
+
+
+/*
+ *  Added watchpoint.
+ *  Types:   2 -  Write watchpoint
+ *           3 -   Read watchpoint
+ *           4 - Access watchpoint
+ */
+
 //Work only on bared metal p3041
 
 void add_watchpoint(uintptr_t addr, int length, const struct gdb_thread* t, int type)
 {
-#ifdef QEMU
-    (void) addr;
-    (void) length;
-    (void) t;
-    (void) type;
-    /*do nothing*/
-    strcpy (remcomOutBuffer, "E22");
-    return;
-#else
-    /*If 1 watchpoint was already set*/
-    if ((watchpoint_is_set) || (type > 4) || (type < 2)){
-        strcpy (remcomOutBuffer, "E22");
-        return;
-    }
-
-    uintptr_t gdb_addr = gdb_thread_write_addr(t, addr, 4);
-
-    if (!gdb_addr){
-        strcpy (remcomOutBuffer, "E03");
-        goto out;
-    }
-
-    int old_pid = pok_space_get_current();
-    int new_pid = gdb_thread_get_space(t);
-    pok_space_switch(new_pid);
-
-    mtspr(SPRN_DAC1, addr); // Use original address, as it is not accessed immediately.
-    mtspr(SPRN_DAC2, addr + length);
-    uint32_t DBCR2 = mfspr(SPRN_DBCR2);
-    DBCR2 |= 0x800000UL;
-    mtspr(SPRN_DBCR2, DBCR2);
-    int DAC;
-    if (type == 2) DAC = 0x40050000UL;
-    if (type == 3) DAC = 0x400A0000UL;
-    if (type == 4) DAC = 0x400F0000UL;
-    uint32_t DBCR0 = mfspr(SPRN_DBCR0);
-
-    printf_GDB("\nBefore DBCR0 = 0x%lx\n", DBCR0);
-    DBCR0 |= DAC;
-    printf_GDB("After DBCR0 = 0x%lx\n", DBCR0);
-    mtspr(SPRN_DBCR0, DBCR0);
-    ((struct regs *)pok_threads[*using_thread].entry_sp)->srr1 |= 0x200;
-    watchpoint_is_set = TRUE;
-    strcpy(remcomOutBuffer, "OK");
-#endif
-#ifndef QEMU
-out:
-    // pok_space_switch(old_pid); // Not needed
-#endif
+    GDB_ADD_WATCHPOINT(addr, length, type, gdb_thread_get_regs(t), remcomOutBuffer);
 }
 
-void remove_watchpoint(uintptr_t addr, int length, const struct gdb_thread* t, int type){
-#ifdef QEMU
-    (void) addr;
-    (void) length;
-    (void) t;
-    (void) type;
-    /*do nothing*/
-    strcpy (remcomOutBuffer, "E22");
-    return;
-#else
-    /*do nothing*/
-    if ((!watchpoint_is_set) || (type > 4) || (type < 2)){
-        
-        strcpy (remcomOutBuffer, "E22");
-        return;
-    }
+//Work only on bared metal p3041
 
-    strcpy(remcomOutBuffer, "OK");
-    watchpoint_is_set = FALSE;
-    printf_GDB("\nWatchpoint_is_set = %d \n",watchpoint_is_set);
-    uint32_t DBCR0 = mfspr(SPRN_DBCR0);
-    printf_GDB("Before set MSR DBCR0 = 0x%lx\n", DBCR0);
-    struct jet_interrupt_context* MSR = pok_threads[*using_thread].entry_sp;
-    MSR->srr1 &= (~0x200);
-    DBCR0 = mfspr(SPRN_DBCR0);    
-    printf_GDB("Before DBCR0 = 0x%lx\n", DBCR0);
-    DBCR0 &= (~0x400F0000UL);
-    printf_GDB("After DBCR0 = 0x%lx\n", DBCR0);
-    mtspr(SPRN_DBCR0, DBCR0);
-    uint32_t DBSR = mfspr(SPRN_DBSR);
-    printf_GDB("Before DBSR = 0x%lx\n", DBSR);
-    DBSR &= (~0xF0000);
-    mtspr(SPRN_DBSRWR, DBSR);
-    DBSR = mfspr(SPRN_DBSR);
-    printf_GDB("After DBSR = 0x%lx\n", DBSR);
-    uint32_t DBCR2 = mfspr(SPRN_DBCR2);
-    DBCR2 &= (~0x800000);
-    mtspr(SPRN_DBCR2, DBCR2);
-#endif    
+void remove_watchpoint(uintptr_t addr, int length, const struct gdb_thread* t, int type){
+    GDB_REMOVE_WATCHPOINT(addr, length, type, gdb_thread_get_regs(t), remcomOutBuffer);   
 }
 
 void add_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t){
@@ -1135,14 +982,14 @@ void add_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t){
 
     if (!hex2mem(trap, (char *)gdb_addr, length)) goto err;
 
-    strcpy(remcomOutBuffer, "OK");
+    gdb_strcpy(remcomOutBuffer, "OK");
 
     pok_space_switch(old_space_id);
     return;
 
 err:
     pok_space_switch(old_space_id);
-    strcpy(remcomOutBuffer, "E22");
+    gdb_strcpy(remcomOutBuffer, "E22");
     return;
 }
 
@@ -1175,12 +1022,12 @@ void remove_0_breakpoint(uintptr_t addr, int length, const struct gdb_thread* t)
 
     if (!hex2mem(breakpoints[i].Instr, (char *)gdb_addr, length)) goto err;
 
-    strcpy(remcomOutBuffer, "OK");
+    gdb_strcpy(remcomOutBuffer, "OK");
 
     pok_space_switch(old_pid);
     return;
 err:
-    strcpy (remcomOutBuffer, "E22");
+    gdb_strcpy (remcomOutBuffer, "E22");
     pok_space_switch(old_pid);
 }
 
@@ -1192,7 +1039,7 @@ void
 handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
 {
     Connect_to_new_inferior = -1;
-
+    trap = GDB_ALLOC_TRAP();
     gdb_thread_get_current();
     // Cached thread for current operation.
     struct gdb_state tc;
@@ -1203,25 +1050,14 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
     memset(remcomOutBuffer, 0, BUFMAX);
     memset(remcomInBuffer, 0, BUFMAX);
     int sigval;
-#ifdef __i386__
-    pok_bool_t stepping = FALSE;
-#endif
     uintptr_t addr;
     int length;
     char *ptr;
 
-
-    if (addr_instr != 0){
-#ifdef __PPC__
-        ea->srr1 |= MSR_EE;
-        hex2mem(instr, (char *) (addr_instr), 4);
-        addr_instr = 0;
-        if (addr_instr2 != 0){
-            hex2mem(instr2, (char *) (addr_instr2), 4);
-            addr_instr2 = 0;
-        }
-#endif
-    }
+    /*
+     * Resore instructions if single step was used
+     */
+    GDB_RESTORE_INSTR(ea);
 
   /* reply to host that an exception has occurred */
     sigval = computeSignal (exceptionVector);
@@ -1229,20 +1065,7 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
     ptr = remcomOutBuffer;
 
     gdb_state_fill_registers(&tc);
-#ifdef __PPC__
-    *ptr++ = 'T';
-    *ptr++ = hexchars[sigval >> 4];
-    *ptr++ = hexchars[sigval & 0xf];
-    *ptr++ = hexchars[64 >> 4];
-    *ptr++ = hexchars[64 & 0xf];
-    *ptr++ = ':';
-    ptr = mem2hex((char *)(&registers[pc]), ptr, 4);
-    *ptr++ = ';';
-    *ptr++ = hexchars[1 >> 4];
-    *ptr++ = hexchars[1 & 0xf];
-    *ptr++ = ':';
-    ptr = mem2hex((char *)(&registers) + 1*4, ptr, 4);
-    *ptr++ = ';';
+    ptr = GDB_SEND_FIRST_PACKAGE(ptr, sigval, registers);
     *ptr++ = 't';
     *ptr++ = 'h';
     *ptr++ = 'r';
@@ -1253,7 +1076,7 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
 
     ptr = write_thread_id(ptr, &gdb_thread_current);
     *ptr++ = ';';
-
+#ifdef __PPC__
 
 #ifdef QEMU
 
@@ -1273,37 +1096,6 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
 
     ptr = 0;
 #endif
-#ifdef __i386__
-
-    *ptr++ = 'T';         /* notify gdb with signo, PC, FP and SP */
-    *ptr++ = hexchars[sigval >> 4];
-    *ptr++ = hexchars[sigval & 0xf];
-
-    *ptr++ = hexchars[ESP]; 
-    *ptr++ = ':';
-    ptr = mem2hex((char *)&registers[ESP], ptr, 4);    /* SP */
-    *ptr++ = ';';
-
-    *ptr++ = hexchars[EBP]; 
-    *ptr++ = ':';
-    ptr = mem2hex((char *)&registers[EBP], ptr, 4);    /* FP */
-    *ptr++ = ';';
-
-    *ptr++ = hexchars[PC]; 
-    *ptr++ = ':';
-    ptr = mem2hex((char *)&registers[PC], ptr, 4);     /* PC */
-    *ptr++ = ';';
-    *ptr++ = 't';
-    *ptr++ = 'h';
-    *ptr++ = 'r';
-    *ptr++ = 'e';
-    *ptr++ = 'a';
-    *ptr++ = 'd';
-    *ptr++ = ':';
-    ptr = write_thread_id(ptr, &gdb_thread_current);
-    *ptr++ = ';';
-  *ptr = 0;
-#endif      
     data_to_read_1();
     //~ int flag = 0;
     putpacket ( (unsigned char *) remcomOutBuffer);
@@ -1407,13 +1199,8 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
                     if (hexToInt(&ptr, &addr)) {
                         //ea->srr0 = addr;
                     }
-                    
-#ifdef __PPC__
-                    ea->srr0 = ea->srr0 - 4;
-#endif
-#ifdef __i386__
-                    ea->eip--;
-#endif 
+ 
+                    GDB_DECREASE_PC(ea);
                     return;
                 }
 
@@ -1523,68 +1310,38 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
                  */
         {
             ptr = remcomOutBuffer;
-
-#ifdef __PPC__
             gdb_state_fill_registers(&tc);
-            /* General Purpose Regs */
-            ptr = mem2hex((char *)registers, ptr, 32 * 4);
-            /* Floating Point registers - FIXME */
-            ptr = mem2hex((char *)fp_registers, ptr, 32 * 8);
-            //~ ptr += 32*8*2;
-            /* pc, msr, cr, lr, ctr, xer, (mq is unused) */
-            ptr = mem2hex((char *)&registers[pc], ptr, 4);
-            ptr = mem2hex((char *)&registers[msr], ptr, 4);
-            ptr = mem2hex((char *)&registers[cr]/*[ccr]*/, ptr, 4);
-            ptr = mem2hex((char *)&registers[lr]/*[link]*/, ptr, 4);
-            ptr = mem2hex((char *)&registers[ctr], ptr, 4);
-            ptr = mem2hex((char *)&registers[xer], ptr, 4);
+            /*
+             * If the stack pointer has moved, you should pray.
+             * (cause only god can help you).
+             */
+#ifdef NUMREGS_FP
+            ptr = GDB_READ_REGS(ptr, registers, fp_registers);
+#else
+            ptr = GDB_READ_REGS(ptr, registers);
 #endif
-#ifdef __i386__
-            gdb_state_fill_registers(&tc);
-            mem2hex ((char *) registers, remcomOutBuffer, NUMREGBYTES);
-#endif
-
             break;
         }
 
         case 'G':   /* set the value of the CPU registers */
         {
             ptr = &remcomInBuffer[1];
-
-#ifdef __PPC__
-            /*
-             * If the stack pointer has moved, you should pray.
-             * (cause only god can help you).
-             */
-
-            /* General Purpose registers */
-            hex2mem(ptr, (char *)registers, 32 * 4);
-
-            /* Floating Point registers - FIXME?? */
-            ptr = hex2mem(ptr, (char *)fp_registers, 32 * 8);
-            ////ptr += 32*8*2;
-            /* pc, msr, cr, lr, ctr, xer, (mq is unused) */
-            ptr = hex2mem(ptr, (char *)&registers[pc]/*nip*/, 4);
-            ptr = hex2mem(ptr, (char *)&registers[msr], 4);
-            ptr = hex2mem(ptr, (char *)&registers[cr]/*[ccr]*/, 4);
-            ptr = hex2mem(ptr, (char *)&registers[lr]/*[link]*/, 4);
-            ptr = hex2mem(ptr, (char *)&registers[ctr], 4);
-            ptr = hex2mem(ptr, (char *)&registers[xer], 4);
-#endif
-#ifdef __i386__
-            hex2mem (ptr, (char *) registers, NUMREGBYTES);
+#ifdef NUMREGS_FP
+            ptr = GDB_WRITE_REGS(ptr, registers, fp_registers);
+#else
+            ptr = GDB_WRITE_REGS(ptr, registers);
 #endif
             gdb_state_store_registers(&tc);
 
 
-            strcpy(remcomOutBuffer,"OK");
+            gdb_strcpy(remcomOutBuffer,"OK");
             }
             break;
         case 'H':                   /*Set thread for subsequent operations (‘m’, ‘M’, ‘g’, ‘G’, et.al.). */
             ptr = &remcomInBuffer[1];
             if ( *ptr == 'c'){
                 // Ignore thread id and assume it to be current one.
-                strcpy(remcomOutBuffer, "OK");
+                gdb_strcpy(remcomOutBuffer, "OK");
             }else if (*ptr == 'g'){
                 ptr++;
                 ptr = read_thread_id(ptr, &t);
@@ -1593,14 +1350,14 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
                 // TODO: What means "all" choice in that case?
                 if(t.inferior_id == -1 || t.inferior_id == 0) {
                     gdb_sate_set_thread(&tc, &gdb_thread_current);
-                    strcpy(remcomOutBuffer,"OK");
+                    gdb_strcpy(remcomOutBuffer,"OK");
                 }
 
                 else if(gdb_thread_find(&t)) {
-                    strcpy(remcomOutBuffer,"E22");
+                    gdb_strcpy(remcomOutBuffer,"E22");
                 }else {
                     gdb_sate_set_thread(&tc, &t);
-                    strcpy(remcomOutBuffer,"OK");
+                    gdb_strcpy(remcomOutBuffer,"OK");
                 }
             }
             break;
@@ -1620,7 +1377,7 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
                     && hexToInt(&ptr, (uintptr_t *)(&length))) {
                     uintptr_t gdb_addr = gdb_thread_read_addr(&tc.t, addr, length);
                     if (!gdb_addr){
-                        strcpy (remcomOutBuffer, "E03");
+                        gdb_strcpy (remcomOutBuffer, "E03");
                         break;
                     }else{ 
 
@@ -1629,11 +1386,11 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
                         pok_space_switch(new_pid);
                     }
                     if (!mem2hex((char *)gdb_addr, remcomOutBuffer,length)){
-                        strcpy (remcomOutBuffer, "E03");
+                        gdb_strcpy (remcomOutBuffer, "E03");
                     }
                     pok_space_switch(old_pid);
                 } else {
-                    strcpy(remcomOutBuffer,"E01");
+                    gdb_strcpy(remcomOutBuffer,"E01");
                 }
                 break;
             }
@@ -1651,7 +1408,7 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
 
                     uintptr_t gdb_addr = gdb_thread_write_addr(&tc.t, addr, length);
                     if (!gdb_addr) {
-                        strcpy (remcomOutBuffer, "E03");
+                        gdb_strcpy (remcomOutBuffer, "E03");
                         break;
                     }
 
@@ -1659,13 +1416,13 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
                     if (strncmp(ptr, "7d821008", 8) == 0) // TODO: Magic constant
                         ptr = trap;
                     if (hex2mem(ptr, (char *)gdb_addr, length)) {
-                        strcpy(remcomOutBuffer, "OK");
+                        gdb_strcpy(remcomOutBuffer, "OK");
                     } else {
-                        strcpy(remcomOutBuffer, "E03");
+                        gdb_strcpy(remcomOutBuffer, "E03");
                     }
                     pok_space_switch(old_pid);
                 } else {
-                    strcpy(remcomOutBuffer, "E02");
+                    gdb_strcpy(remcomOutBuffer, "E02");
                 }
                 break;
             }
@@ -1684,17 +1441,13 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
 
                 printf_GDB("Added reply\n");
 
-                strcpy(remcomOutBuffer, "Any stop packet");
+                gdb_strcpy(remcomOutBuffer, "Any stop packet");
             }
             if (strncmp(ptr, "Cont;c", 6) == 0) {
                 ptr = &remcomInBuffer[1];
                 if (hexToInt(&ptr, &addr)) {
-#ifdef __PPC__
-                    registers[pc]/*nip*/ = addr;
-#endif
-#ifdef __i386__
-                    registers[PC]/*eip*/ = addr;
-#endif
+                    registers[pc] = addr;
+
                 }
                 return;
             }         
@@ -1724,95 +1477,12 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
 #endif
         case 's':
         {
-#ifdef __PPC__
             gdb_sate_set_thread(&tc, &gdb_thread_current);
             gdb_state_fill_registers(&tc);
-
-            uint32_t inst = *((uint32_t *)registers[pc]);
-            uint32_t c_inst = registers[pc];
-            ea->srr1 &= (~((uint32_t)MSR_EE));
-
-/*  
- * if it's  unconditional branching, e.g. 'b' or 'bl'
- */
-            if ((inst >> (6*4+2)) == 0x12){
-                if (!(inst & 0x2)){
-                    inst = ((inst << 6) >> 8) << 2;
-                    if (inst >> 25){
-                        inst = inst | 0xFE000000;
-                    }
-                    inst = inst + c_inst;
-                    mem2hex((char *)(registers[pc]+4), instr,4);            
-                    hex2mem(trap, (char *)(registers[pc]+4), 4);
-                    addr_instr = registers[pc] + 4;
-                    mem2hex((char *)(inst), instr2,4);            
-                    hex2mem(trap, (char *)(inst), 4);
-                    addr_instr2 = inst;
-                    return;
-                }else{
-                    inst = ((inst << 6) >> 8) << 2;
-                    mem2hex((char *)(registers[pc]+4), instr,4);            
-                    hex2mem(trap, (char *)(registers[pc]+4), 4);
-                    addr_instr = registers[pc] + 4;
-                    mem2hex((char *)(inst), instr2,4);            
-                    hex2mem(trap, (char *)(inst), 4);
-                    addr_instr2 = inst;
-                    return;
-                }
-                if (inst & 0x1){
-                }
-            }
-/*
- * if it's conditional branching, e.g. 'bne' or 'beq'
- */    
-            if ((inst >> (6*4+2)) == 0x10){
-                if (!(inst & 0x2)){
-                    inst = ((inst << 16) >> 18) << 2;
-                    if (inst >> 15){
-                        inst=inst | 0xFFFF8000;
-                    }
-                    inst = inst + c_inst;
-                    mem2hex((char *)(registers[pc]+4), instr,4);            
-                    hex2mem(trap, (char *)(registers[pc]+4), 4);
-                    addr_instr = registers[pc] + 4;
-                    mem2hex((char *)(inst), instr2,4);            
-                    hex2mem(trap, (char *)(inst), 4);
-                    addr_instr2 = inst;
-                    return;
-            
-                }else{
-                    inst = ((inst << 16) >> 18) << 2;
-                    mem2hex((char *)(registers[pc]+4), instr,4);            
-                    hex2mem(trap, (char *)(registers[pc]+4), 4);
-                    addr_instr = registers[pc] + 4;
-                    mem2hex((char *)(inst), instr2,4);            
-                    hex2mem(trap, (char *)(inst), 4);
-                    addr_instr2 = inst;
-                    return;
-                }
-                if (inst & 0x1){
-                }
-            }
-/*
- *  If it's a 'brl' instruction
- */            
-            if ((inst >> (6*4+2)) == 0x13){
-                mem2hex((char *)(registers[lr]), instr,4);            
-                hex2mem(trap, (char *)(registers[lr]), 4);
-                addr_instr = registers[lr];                
-                mem2hex((char *)(registers[pc]+4), instr2,4);            
-                hex2mem(trap, (char *)(registers[pc]+4), 4);
-                addr_instr2 = registers[pc] + 4;
+            /*Do we need return from handler now or after 'c'*/
+            if (GDB_SINGLE_STEP(ea, registers)){
                 return;
             }
-            mem2hex((char *)(registers[pc]+4), instr,4);            
-            hex2mem(trap, (char *)(registers[pc]+4), 4);
-            addr_instr = registers[pc] + 4;
-            return;
-#endif
-#ifdef __i386__
-            stepping = TRUE;
-#endif
         }
 
         case 'k':    /* kill the program, actually just continue */
@@ -1823,29 +1493,9 @@ CONTINUE:
             if (hexToInt(&ptr, &addr)) {
                 gdb_sate_set_thread(&tc, &gdb_thread_current);
                 gdb_state_fill_registers(&tc);
-#ifdef __PPC__
-                registers[pc]/*nip*/ = addr;
-#endif
-#ifdef __i386__
-                registers[PC]/*eip*/ = addr;
-#endif
+                registers[pc] = addr;
                 gdb_state_store_registers(&tc);
             }
-#ifdef __i386__
-      /* clear the trace bit */
-            registers[PS] &= 0xfffffeff;
-            ea->eflags = registers[PS];
-      /* set the trace bit if we're stepping */
-            if (stepping){
-
-                printf_GDB("\n\n\nStepping\n\n\n");
-
-                stepping=FALSE; 
-                registers[PS] |= 0x100;
-                ea->eflags = registers[PS];      
-            }
-#endif
-
             return;
 
         case 'r':       /* Reset (if user process..exit ???)*/
@@ -1862,17 +1512,12 @@ CONTINUE:
             if (hexToInt (&ptr, (uintptr_t *)&regno_offset) && *ptr++ == '=')
                 if (regno_offset >= 0 && regno_offset < NUMREGS * 8) /* 8 - max length of each register*/
                 {
-#ifdef __PPC__
-                    hex2mem (ptr, (char *) &registers[regno_offset >> 3], 4);
-#endif
-#ifdef __i386__
-                    hex2mem (ptr, (char *) &registers[regno_offset >> 3], 1);
-#endif
-                    strcpy (remcomOutBuffer, "OK");
+                    hex2mem (ptr, (char *) &registers[regno_offset >> 3], GDB_INSTR_SIZE);
+                    gdb_strcpy (remcomOutBuffer, "OK");
                     break;
                 }
 
-            strcpy (remcomOutBuffer, "E01");
+            gdb_strcpy (remcomOutBuffer, "E01");
             break;
         }
         case 'p':       /* Read the value of register; Register is in hex. */
@@ -1883,16 +1528,11 @@ CONTINUE:
             {
                 if (regno_offset >= 0 && regno_offset < NUMREGS * 8) /* 8 - max length of each register*/
                 {
-#ifdef __PPC__
-                    mem2hex ((char *) &registers[regno_offset >> 3], remcomOutBuffer, 4);
-#endif
-#ifdef __i386__
-                    mem2hex ((char *) &registers[regno_offset >> 3], remcomOutBuffer, 1);
-#endif
+                    mem2hex ((char *) &registers[regno_offset >> 3], remcomOutBuffer, GDB_INSTR_SIZE);
                     break;
                 }
             }
-            strcpy (remcomOutBuffer, "E01");
+            gdb_strcpy (remcomOutBuffer, "E01");
             break;
         }
 
