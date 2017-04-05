@@ -318,6 +318,33 @@ class MemoryBlock:
         self.init_stage = None
 
 
+class IPPCPortalType:
+    __slots__ = [
+        "name", # Name of the portal
+        "server_part", # Server partition
+        "portals", # List of portals of given type.
+    ]
+
+    def __init__(self, name, server_part):
+        self.name = name
+        self.server_part = server_part
+        self.portals = []
+
+
+class IPPCPortal:
+    """
+    Single portal in PortalType object.
+    """
+    __slots__ = [
+        "client_part", # Client partition
+        "connections_n", # Number of connections
+    ]
+
+    def __init__(self, client_part, connections_n):
+        self.client_part = client_part
+        self.connections_n = connections_n
+
+
 # ARINC partition.
 #
 # - name - name of the partition
@@ -329,6 +356,9 @@ class Partition:
         "name",
 
         "is_system",
+
+        'period',
+        'duration',
 
         # Memory required for code and data defined in partition's elf.
         #
@@ -407,7 +437,6 @@ class Partition:
         self.ports_sampling = []
 
         self.memory_blocks = []
-
 
 def _get_port_direction(port):
     direction = port.direction.lower()
@@ -587,6 +616,11 @@ class Configuration:
 
         "memory_block_sharings", # List of MemoryBlockSharing objects.
 
+        # List of IPPC portal types.
+        # Ordering should be such that once a partition provides a portal type,
+        # this partition should never be client for futher portal types.
+        "portal_types",
+
         # Data private for implementation.
         #
         # During filling the object, you may use this field as you want.
@@ -605,5 +639,7 @@ class Configuration:
         self.major_frame = None # Not set yet.
 
         self.memory_block_sharings = []
+
+        self.portal_types = []
 
         self.private_data = None

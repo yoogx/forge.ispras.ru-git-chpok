@@ -34,9 +34,9 @@
 
 /*
  * Find thread by name.
- * 
+ *
  * Note: Doesn't require disable local preemption.
- * 
+ *
  * Note: Name should be located in kernel space.
  */
 static pok_thread_t* find_thread(const char name[MAX_NAME_LENGTH])
@@ -50,7 +50,7 @@ static pok_thread_t* find_thread(const char name[MAX_NAME_LENGTH])
         t != t_end;
         t++)
     {
-		if(part->thread_error == t) continue; /* error thread is not searchable. */
+        if(part->thread_error == t) continue; /* error thread is not searchable. */
         if(!pok_compare_names(t->name, name)) return t;
     }
 
@@ -59,22 +59,22 @@ static pok_thread_t* find_thread(const char name[MAX_NAME_LENGTH])
 
 /*
  * Return thread by id.
- * 
+ *
  * Return NULL if no such thread created.
- * 
+ *
  * Note: Doesn't require disable local preemption.
  */
 static pok_thread_t* get_thread_by_id(pok_thread_id_t id)
 {
-	pok_partition_arinc_t* part = current_partition_arinc;
+    pok_partition_arinc_t* part = current_partition_arinc;
 
-	if(id == 0 /* main thread have no id*/
-		|| id >= part->nthreads_used /* thread is not created yet */
-		|| part->thread_error == &part->threads[id] /* error thread has no id */
+    if(id == 0 /* main thread have no id*/
+        || id >= part->nthreads_used /* thread is not created yet */
+        || part->thread_error == &part->threads[id] /* error thread has no id */
         )
         return NULL;
 
-	return &part->threads[id];
+    return &part->threads[id];
 }
 
 
@@ -102,9 +102,12 @@ pok_ret_t pok_thread_create (const char* __user name,
     const char* __kuser k_name = jet_user_to_kernel_ro(name, MAX_NAME_LENGTH);
     if(!k_name) return POK_ERRNO_EFAULT;
 
-    if (part->nthreads_used == part->nthreads) {
+    // Check quota for normal threads
+    if (part->nthreads_normal_used == part->nthreads_normal) {
         return POK_ERRNO_TOOMANY;
     }
+
+    assert(part->nthreads_used < part->nthreads);
 
     t = &part->threads[part->nthreads_used];
 
@@ -136,7 +139,11 @@ pok_ret_t pok_thread_create (const char* __user name,
             return POK_ERRNO_PARAM;
         }
 
-        // TODO: Check period for being multiple to partition's period.
+
+        if(t->period % part->base_part.period) {
+            // Process period should be multiple to partition's period.
+            return POK_ERRNO_THREADATTR; // TODO: Name is bad
+        }
    }
 
     // do at least basic check of entry point
@@ -155,13 +162,14 @@ pok_ret_t pok_thread_create (const char* __user name,
     *k_thread_id = part->nthreads_used;
 
     part->nthreads_used++;
+    part->nthreads_normal_used++;
 
     return POK_ERRNO_OK;
 }
 
-/* 
+/*
  * Turn current thread into the sleep for a while.
- * 
+ *
  * NOTE: It is possible to sleep forever(ARINC prohibits that).
  */
 pok_ret_t pok_thread_sleep(const pok_time_t* __user time)
@@ -181,16 +189,16 @@ pok_ret_t pok_thread_sleep(const pok_time_t* __user time)
         thread_wait_common(current_thread, kernel_time);
     }
 
-	pok_preemption_local_enable();
+    pok_preemption_local_enable();
 
-	return POK_ERRNO_OK;
+    return POK_ERRNO_OK;
 }
 
 pok_ret_t pok_thread_yield (void)
 {
-	pok_preemption_local_disable();
-	thread_yield(current_thread);
-	pok_preemption_local_enable();
+    pok_preemption_local_disable();
+    thread_yield(current_thread);
+    pok_preemption_local_enable();
 
     return POK_ERRNO_OK;
 }
@@ -198,14 +206,9 @@ pok_ret_t pok_thread_yield (void)
 
 // Called with local preemption disabled
 static pok_ret_t thread_delayed_start_internal (pok_thread_t* thread,
-												pok_time_t delay)
+                                                pok_time_t delay)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
-
-    pok_time_t thread_start_time;
-
-    struct jet_thread_shared_data* tshd = part->kshd->tshd
-        + (thread - part->threads);
 
     assert(!pok_time_is_infinity(delay));
 
@@ -217,42 +220,19 @@ static pok_ret_t thread_delayed_start_internal (pok_thread_t* thread,
         return POK_ERRNO_EINVAL;
     }
 
-    thread->priority = thread->base_priority;
-	thread->sp = 0;
+    thread_start_prepare(thread);
 
-    tshd->msection_count = 0;
-    tshd->msection_entering = NULL;
-    tshd->priority = thread->priority;
-    tshd->thread_kernel_flags = 0;
+    if(part->mode != POK_PARTITION_MODE_NORMAL)
+    {
+        /* Delay thread's starting until normal mode. */
+        thread->delayed_time = delay;
+        thread->state = POK_STATE_WAITING;
 
-	if(part->mode != POK_PARTITION_MODE_NORMAL)
-	{
-		/* Delay thread's starting until normal mode. */
-		thread->delayed_time = delay;
-		thread->state = POK_STATE_WAITING;
-
-		return POK_ERRNO_OK;
-	}
+        return POK_ERRNO_OK;
+    }
 
     // Normal mode.
-    if (pok_time_is_infinity(thread->period)) {
-        // aperiodic process
-        thread_start_time = jet_system_time() + delay;
-    }
-    else {
-		// periodic process
-		thread_start_time = get_next_periodic_processing_start() + delay;
-		thread->next_activation = thread_start_time + thread->period;
-	}
-
-	if(!pok_time_is_infinity(thread->time_capacity))
-		thread_set_deadline(thread, thread_start_time + thread->time_capacity);
-
-	/* Only non-delayed aperiodic process starts immediately */
-	if(delay == 0 && pok_time_is_infinity(thread->period))
-        thread_start(thread);
-	else
-		thread_wait_timed(thread, thread_start_time);
+    thread_start_normal(thread, delay);
 
     return POK_ERRNO_OK;
 }
@@ -281,16 +261,16 @@ pok_ret_t pok_thread_delayed_start (pok_thread_id_t id,
 
 pok_ret_t pok_thread_start (pok_thread_id_t id)
 {
-	pok_ret_t ret;
+    pok_ret_t ret;
 
     pok_thread_t *thread = get_thread_by_id(id);
     if(!thread) return POK_ERRNO_PARAM;
 
-	pok_preemption_local_disable();
-	ret = thread_delayed_start_internal(thread, 0);
-	pok_preemption_local_enable();
+    pok_preemption_local_disable();
+    ret = thread_delayed_start_internal(thread, 0);
+    pok_preemption_local_enable();
 
-	return ret;
+    return ret;
 }
 
 
@@ -354,6 +334,8 @@ pok_ret_t pok_thread_set_priority(pok_thread_id_t id, uint32_t priority)
     pok_thread_t *t = get_thread_by_id(id);
     if(!t) return POK_ERRNO_PARAM;
 
+    if(t->ippc_server_connection) return POK_ERRNO_PARAM; // Priority has no sence for server threads.
+
     if(priority > MAX_PRIORITY_VALUE) return POK_ERRNO_PARAM;
     if(priority < MIN_PRIORITY_VALUE) return POK_ERRNO_PARAM;
 
@@ -370,9 +352,9 @@ pok_ret_t pok_thread_set_priority(pok_thread_id_t id, uint32_t priority)
 
     thread_yield(t);
 
-	ret = POK_ERRNO_OK;
+    ret = POK_ERRNO_OK;
 out:
-	pok_preemption_local_enable();
+    pok_preemption_local_enable();
 
     return ret;
 }
@@ -387,8 +369,8 @@ pok_ret_t pok_thread_resume(pok_thread_id_t id)
     // can't resume self, lol
     if (t == current_thread) return POK_ERRNO_THREADATTR;
 
-	// although periodic process can never be suspended anyway,
-	// ARINC-653 requires different error code
+    // although periodic process can never be suspended anyway,
+    // ARINC-653 requires different error code
     if (pok_thread_is_periodic(t)) return POK_ERRNO_MODE;
 
     pok_preemption_local_disable();
@@ -396,14 +378,14 @@ pok_ret_t pok_thread_resume(pok_thread_id_t id)
     ret = POK_ERRNO_MODE;
     if (t->state == POK_STATE_STOPPED) goto out;
 
-	ret = POK_ERRNO_UNAVAILABLE;
+    ret = POK_ERRNO_UNAVAILABLE;
     if (!t->suspended) goto out;
 
     thread_resume(t);
 
-	ret = POK_ERRNO_OK;
+    ret = POK_ERRNO_OK;
 out:
-	pok_preemption_local_enable();
+    pok_preemption_local_enable();
 
     return ret;
 }
@@ -415,14 +397,17 @@ pok_ret_t pok_thread_suspend_target(pok_thread_id_t id)
     pok_thread_t *t = get_thread_by_id(id);
     if(!t) return POK_ERRNO_PARAM;
 
-	// can't suspend current process
-	// _using this function_
-	// (use pok_thread_suspend instead)
+    // can't suspend current process
+    // _using this function_
+    // (use pok_thread_suspend instead)
     if (t == current_thread) return POK_ERRNO_THREADATTR;
 
-	// although periodic process can never be suspended anyway,
-	// ARINC-653 requires different error code
+    // although periodic process can never be suspended anyway,
+    // ARINC-653 requires different error code
     if (pok_thread_is_periodic(t)) return POK_ERRNO_MODE;
+
+    // Server threads cannot be suspended.
+    if (t->ippc_server_connection) return POK_ERRNO_MODE;
 
     pok_preemption_local_disable();
 
@@ -432,16 +417,16 @@ pok_ret_t pok_thread_suspend_target(pok_thread_id_t id)
 
     // Cannot suspend process holded preemption lock.
     if (current_partition_arinc->lock_level > 0
-		&& current_partition_arinc->thread_locked == t) goto out;
+        && current_partition_arinc->thread_locked == t) goto out;
 
-	ret = POK_ERRNO_UNAVAILABLE;
+    ret = POK_ERRNO_UNAVAILABLE;
     if (t->suspended) goto out;
 
     thread_suspend(t);
 
-	ret = POK_ERRNO_OK;
+    ret = POK_ERRNO_OK;
 out:
-	pok_preemption_local_enable();
+    pok_preemption_local_enable();
 
     return ret;
 }
@@ -450,27 +435,30 @@ pok_ret_t pok_thread_suspend(const pok_time_t* __user time)
 {
     pok_thread_t *t = current_thread;
 
-	const pok_time_t* __kuser k_time = jet_user_to_kernel_typed_ro(time);
+    const pok_time_t* __kuser k_time = jet_user_to_kernel_typed_ro(time);
     if(!k_time) return POK_ERRNO_EFAULT;
 
     pok_time_t kernel_time = *k_time;
 
     // although periodic process can never be suspended anyway,
-	// ARINC-653 requires different error code
+    // ARINC-653 requires different error code
     if (pok_thread_is_periodic(t)) return POK_ERRNO_MODE;
+
+    // Server threads cannot be suspended.
+    if (t->ippc_server_connection) return POK_ERRNO_MODE;
 
     if (!thread_is_waiting_allowed()) return POK_ERRNO_MODE;
 
     pok_preemption_local_disable();
 
-	if(kernel_time == 0) goto out; // Nothing to do with 0 timeout.
+    if(kernel_time == 0) goto out; // Nothing to do with 0 timeout.
 
     thread_suspend(t);
 
-	if(!pok_time_is_infinity(kernel_time)) goto suspend_timed;
+    if(!pok_time_is_infinity(kernel_time)) goto suspend_timed;
 
 out:
-	pok_preemption_local_enable();
+    pok_preemption_local_enable();
 
     return POK_ERRNO_OK;
 
@@ -491,10 +479,10 @@ pok_ret_t pok_thread_stop_target(pok_thread_id_t id)
     pok_thread_t *t = get_thread_by_id(id);
     if(!t) return POK_ERRNO_PARAM;
 
-	pok_thread_t* thread_current = part->thread_current;
+    pok_thread_t* thread_current = part->thread_current;
 
     // can's stop self
-	// use pok_thread_stop to do that
+    // use pok_thread_stop to do that
     if (t == thread_current) return POK_ERRNO_THREADATTR;
 
     struct jet_thread_shared_data* tshd_target = part->kshd->tshd
@@ -508,6 +496,11 @@ pok_ret_t pok_thread_stop_target(pok_thread_id_t id)
         // Target process is already stopped.
         goto out;
     }
+    else if(t->state == POK_STATE_WAITING) {
+        // Interrupt waiting.
+        thread_wait_cancel(t);
+    }
+
 
     if(t->relations_stop.donate_target != NULL)
     {
@@ -531,16 +524,23 @@ pok_ret_t pok_thread_stop_target(pok_thread_id_t id)
         thread_current->relations_stop.next_donator = t->relations_stop.first_donator;
         t->relations_stop.first_donator = thread_current;
     }
+    else if(t->ippc_connection) {
+        /*
+         * Target thread has IPPC connection opened.
+         *
+         * Need to wait this connection to terminate and close it.
+         */
+        jet_ippc_connection_cancel(t->ippc_connection);
+
+        thread_current->relations_stop.donate_target = t;
+        thread_current->relations_stop.next_donator = NULL;
+        t->relations_stop.first_donator = thread_current;
+
+        ret = POK_ERRNO_OK;
+    }
     else if(tshd_target->msection_count != 0)
     {
         /* target currently owners the section. Cannot kill it immediately. */
-        if(t->state == POK_STATE_WAITING)
-        {
-            // Interrupt waiting on msection.
-            thread_wake_up(t);
-            t->wait_result = POK_ERRNO_CANCELLED;
-        }
-
         thread_current->relations_stop.donate_target = t;
         thread_current->relations_stop.next_donator = NULL;
         t->relations_stop.first_donator = thread_current;
@@ -561,7 +561,7 @@ pok_ret_t pok_thread_stop_target(pok_thread_id_t id)
     pok_sched_local_invalidate();
 
 out:
-	pok_preemption_local_enable();
+    pok_preemption_local_enable();
 
     return ret;
 }
@@ -573,14 +573,14 @@ pok_ret_t pok_thread_stop(void)
 
     pok_preemption_local_disable();
 
-    // Thread cannot executed anything in donation state.
+    // Thread cannot execute anything in donation state.
     assert(t->relations_stop.donate_target == NULL);
     // While already stopped, thread shouldn't stop itself.
     assert_os(t->relations_stop.first_donator == NULL);
     /*
      * It is *possible* for thread to be stopped while in msection.
      * But this cannot hurt kernel.
-     * 
+     *
      * TODO: Should additional os-check to be added?
      */
     thread_stop(t);
@@ -593,9 +593,9 @@ pok_ret_t pok_thread_stop(void)
     }
     // Stopping current thread always change scheduling.
     pok_sched_local_invalidate();
-	pok_preemption_local_enable();
+    pok_preemption_local_enable();
 
-	return POK_ERRNO_OK;
+    return POK_ERRNO_OK;
 }
 
 pok_ret_t pok_thread_find(const char* __user name, pok_thread_id_t* __user id)
@@ -617,7 +617,7 @@ pok_ret_t pok_thread_find(const char* __user name, pok_thread_id_t* __user id)
 
     *k_id = t - current_partition_arinc->threads;
 
-	return POK_ERRNO_OK;
+    return POK_ERRNO_OK;
 }
 
 // called by periodic process when it's done its work
@@ -628,15 +628,16 @@ pok_ret_t pok_sched_end_period(void)
 
     if(!pok_thread_is_periodic(t)) return POK_ERRNO_MODE;
 
-	if(!thread_is_waiting_allowed()) return POK_ERRNO_MODE;
+    if(!thread_is_waiting_allowed()) return POK_ERRNO_MODE;
 
     pok_preemption_local_disable();
 
-	thread_wait_timed(t, t->next_activation);
-	thread_set_deadline(t, t->next_activation + t->time_capacity);
-	t->next_activation += t->period;
+    t->release_point += t->period;
 
-	pok_preemption_local_enable();
+    thread_wait_timed(t, t->release_point);
+    thread_set_deadline(t, t->release_point + t->time_capacity);
+
+    pok_preemption_local_enable();
 
     return POK_ERRNO_OK;
 }
@@ -656,7 +657,7 @@ pok_ret_t pok_sched_replenish(const pok_time_t* __user budget)
     if(t == part->thread_error) return POK_ERRNO_UNAVAILABLE;
 
     if(part->mode != POK_PARTITION_MODE_NORMAL)
-		return POK_ERRNO_UNAVAILABLE;
+        return POK_ERRNO_UNAVAILABLE;
 
     if(pok_time_is_infinity(t->time_capacity)) return POK_ERRNO_OK; //nothing to do
 
@@ -679,8 +680,9 @@ pok_ret_t pok_sched_replenish(const pok_time_t* __user budget)
         pok_time_t calculated_deadline = jet_system_time() + kernel_budget;
 
         if(!pok_time_is_infinity(t->period)
-            && calculated_deadline >= t->next_activation)
+            && (calculated_deadline >= (t->release_point + t->period)))
         {
+            // For periodic process new deadline will exceed next release point.
             ret = POK_ERRNO_MODE;
             goto out;
         }
@@ -770,16 +772,16 @@ pok_ret_t jet_msection_wait(struct msection* __user section,
     // ... And use common wait.
     thread_wait_common(thread_current, *kernel_timeout);
 
-    /* 
+    /*
      * It is possible, that current thread wasn't the highest-priority
      * thread. Because of that, `thread_wait_common` may do not cause
      * scheduling invalidation.
-     * 
+     *
      * From the other side, waiting on msection and leaving msection
      * are the only possible state-modifications for non-highest-priority
      * thread. Normal msection leaving is followed by jet_resched(),
      * which invalidates scheduling.
-     * 
+     *
      * So, explicitely invalidate scheduling here.
      */
     pok_sched_local_invalidate();
@@ -821,8 +823,8 @@ pok_ret_t jet_msection_notify(struct msection* __user section,
 
     thread_wake_up(t);
 
-    t->wait_result = POK_ERRNO_OK;
-    ret = POK_ERRNO_OK;
+    if(t->wait_result == POK_ERRNO_OK)
+        ret = POK_ERRNO_OK;
 
 out:
     pok_preemption_local_enable();
@@ -868,21 +870,21 @@ static void msection_wq_del(struct msection_wq* wq,
     tshd_t->wq_next = tshd_t->wq_prev = JET_THREAD_ID_NONE;
 }
 
-/* 
+/*
  * Awoke waiting threads in the waitqueue.
- * 
+ *
  * Every thread in the queue which hasn't waited at the function's call
  * is removed from the queue.
- * 
+ *
  * If 'first_only' is TRUE, the first waiting thread only. This thread
  * will be pointed by wq->first after the call.
  * If 'first_only' is FALSE, notify all waiting threads. List of the
  * awoken threads may be iterated directly from user space.
- * 
+ *
  * May be called only by the owner of the section.
- * 
+ *
  * Returns:
- * 
+ *
  *     POK_ERRNO_OK - at least on thread has been notified.
  *     POK_ERRNO_EMPTY - there is no waiting threads in the waitqueue.
  */
@@ -919,18 +921,16 @@ pok_ret_t jet_msection_wq_notify(struct msection* __user section,
 
         thread_id = tshd_t->wq_next;
 
-        if(t->state != POK_STATE_WAITING)
-        {
-            msection_wq_del(wq_kernel, tshd_t);
-        }
-        else
-        {
+        if(t->state == POK_STATE_WAITING) {
             thread_wake_up(t);
-            t->wait_result = POK_ERRNO_OK;
-            ret = POK_ERRNO_OK;
-
-            if(!is_all) break;
+            if(t->wait_result == POK_ERRNO_OK) {
+                ret = POK_ERRNO_OK;
+                if(!is_all) break;
+                continue;
+            }
         }
+        // If thread wasn't in waiting state, delete it from the queue.
+        msection_wq_del(wq_kernel, tshd_t);
     }
 
     pok_preemption_local_enable();
@@ -940,10 +940,10 @@ pok_ret_t jet_msection_wq_notify(struct msection* __user section,
 
 /*
  * Compute number of waiting threads in the waitqueue.
- * 
+ *
  * Every thread in the queue which hasn't waited at the function's call
  * is removed from the queue.
- * 
+ *
  * Returns: POK_ERRNO_OK.
  */
 pok_ret_t jet_msection_wq_size(struct msection* __user section,
@@ -1039,11 +1039,13 @@ pok_thread_t* pok_thread_wq_wake_up(pok_thread_wq_t* wq)
         pok_thread_t* t = list_first_entry(&wq->waits, pok_thread_t, wait_elem);
         /*
          * First, remove thread from the waiters list.
-         * 
+         *
          * So futher thread_wake_up() will not interpret it as timeouted.
          */
         list_del_init(&t->wait_elem);
         thread_wake_up(t);
+
+        assert(t->wait_result == POK_ERRNO_OK);
 
         return t;
     }

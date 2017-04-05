@@ -99,10 +99,13 @@ def elf_read_segments(env, filename):
     """
     Read list of segments from the ELF file.
     """
+    standard_env = env['ENV'].copy()
+    standard_env['LANG'] = "C"
     readelf_process = subprocess.Popen(
         args = (env['PREFIX'] + "readelf", "-lW", filename),
         stdout = subprocess.PIPE,
         stderr = subprocess.STDOUT,
+        env = standard_env
     )
 
     (readelf_stdout, readelf_stderr_unused) = readelf_process.communicate()
@@ -160,6 +163,18 @@ def _parse_output_as_table(output, matcher_before, matcher_after,
 
     entries = []
 
+    # Limit of the line's length in the output. (Only for lines with values).
+    len_limit = 100000
+
+    # Definitions of the columns.
+    #
+    # Each definition is a triple:
+    #
+    # - column_name
+    # - start position of the value
+    # - end position of the value. For the last column this is line's length limit.
+    column_defs = []
+
     # State of the output scanning:
     #
     # - 0 - before the table
@@ -172,21 +187,27 @@ def _parse_output_as_table(output, matcher_before, matcher_after,
             if re.match(matcher_before, l):
                 scan_state = 1
         elif scan_state == 1:
-            column_names = re.split(r'\s+', l)
-            column_indicies = []
-            for i, column_name in enumerate(column_names):
+            line_end = len(l)
+            for m in re.compile(r'(\S+)(\s*)').finditer(l):
+                column_name = m.group(1)
                 if column_name != "" and column_filter(column_name):
-                    column_indicies.append(i)
+                    column_start = m.start()
+                    column_end = m.end(2)
+                    if column_end == line_end: # The last column
+                        column_end = len_limit
+                    column_def = (column_name, column_start, column_end)
+                    column_defs.append(column_def)
             scan_state = 2
         else: #scan_state == 2
             if re.match(matcher_after, l):
                 break
-            entry_values = re.split(r'\s+', l)
 
+            assert(len(l) < len_limit)
             entry = entry_type()
 
-            for i in column_indicies:
-                field_setter(entry, column_names[i], entry_values[i])
+            for column_def in column_defs:
+                entry_value = l[column_def[1]:column_def[2]].strip()
+                field_setter(entry, column_def[0], entry_value)
 
             entries.append(entry)
 
@@ -195,3 +216,24 @@ def _parse_output_as_table(output, matcher_before, matcher_after,
 # Default 'field_setter' callback for _parse_output_as_table().
 def _default_field_setter(entry, column_name, value):
     entry[column_name] = value
+
+if __name__ == '__main__':
+
+    import sys
+    import yaml
+    if len(sys.argv) <= 2:
+        print ("ERROR: Regex matchers before and after should be given")
+        exit(1)
+
+    matcher_before = sys.argv[1]
+    matcher_after = sys.argv[2]
+
+    output = ""
+
+    for line in sys.stdin:
+        output += line
+
+    entries = _parse_output_as_table(output, matcher_before, matcher_after)
+
+    print "Result of parsing:"
+    print yaml.dump({'Entries':entries})

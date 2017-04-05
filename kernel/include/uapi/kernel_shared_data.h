@@ -19,31 +19,32 @@
 #include <types.h>
 #include <uapi/partition_arinc_types.h>
 #include <uapi/msection.h>
+#include <uapi/ippc_types.h>
 
 /* Data about the thread, shared between kernel and user spaces. */
 struct jet_thread_shared_data
 {
-    /* 
+    /*
      * Priority of the current thread.
-     * 
+     *
      * This value may be changed by the kernel at any time.
      */
     volatile uint8_t priority;
 
-    /* 
+    /*
      * Count of currently entered msections.
-     * 
+     *
      * This value is controlled from user space and checked in kernel.
-     * 
+     *
      * DEV: Actually kernel needs only zero-or-not comparision.
      */
     uint16_t msection_count;
-    /* 
+    /*
      * If thread is currently entering msection, this is a pointer to it.
-     * 
+     *
      * If thread is switched with this field is set, switching back
      * to the thread automatically enters into the critical section.
-     * 
+     *
      * DEV: This field is needed only on single-CPU for omit CAS
      * instruction on section entering.
      */
@@ -52,13 +53,13 @@ struct jet_thread_shared_data
     /* User space may "signal" kernel by setting these flags. */
     volatile uint8_t thread_kernel_flags;
 
-    /* 
+    /*
      * Next and previous threads in the waitqueue protected by msection
      * ('struct msection_wq').
-     * 
+     *
      * When thread is removed from the queue, both fields should be set
      * to JET_THREAD_ID_NONE.
-     * 
+     *
      * NOTE: Using these fields only it is impossible to distinguish
      * "single element" case from "thread doesn't belong to waitqueue".
      * One need to check waitqueue itself for that.
@@ -67,9 +68,15 @@ struct jet_thread_shared_data
     pok_thread_id_t wq_prev; // JET_THREAD_ID_NONE for the first thread.
 
     /*
+     * If partition's 'thread_entry_wrapper' is used, this points to
+     * actual entry of the thread.
+     */
+    void (*thread_entry_point)(void);
+
+    /*
      * Pointer to source or destination buffers when implements
      * waiting on ARINC buffer/blackboard.
-     * 
+     *
      * Used only by user space.
      */
     union
@@ -77,27 +84,39 @@ struct jet_thread_shared_data
         const void* src;
         void* dst;
     } wq_buffer;
-    /* 
+    /*
      * Length of copied message for ARINC purposes.
-     * 
+     *
      * This could be an input or output parameter.
-     * 
+     *
      * Used only by user space.
      */
     size_t wq_len;
 
-    /* 
+    /*
      * Priority of the waited thread for ARINC purposes.
-     * 
+     *
      * Used only by user space.
      */
     volatile uint8_t wq_priority;
 
-    /* 
+    uintptr_t ippc_input_params[IPPC_MAX_INPUT_PARAMS_N];
+    int ippc_input_params_n;
+
+    uintptr_t ippc_output_params[IPPC_MAX_OUTPUT_PARAMS_N];
+    int ippc_output_params_n;
+
+    uintptr_t ippc_input_params_server[IPPC_MAX_INPUT_PARAMS_N];
+    int ippc_input_params_server_n;
+
+    uintptr_t ippc_output_params_server[IPPC_MAX_OUTPUT_PARAMS_N];
+    int ippc_output_params_server_n;
+
+    /*
      * Data specific for the thread.
-     * 
+     *
      * Set with jet_set_process_data() call, extracted with jet_get_my_data().
-     * 
+     *
      * Used only by user space.
      */
     void* private_data;
@@ -109,29 +128,29 @@ struct jet_thread_shared_data
 /* Instance of this struct will be shared between kernel and user spaces. */
 struct jet_kernel_shared_data
 {
-    /* 
+    /*
      * Set by the kernel, read by the user.
-     * 
+     *
      * Race while reading is impossible, as changing mode invalidates
      * all running threads.
      */
     pok_partition_mode_t partition_mode;
 
-    /* 
+    /*
      * Set by the kernel, read by the user.
-     * 
+     *
      * NOTE: Any thread has its id, even main and error.
      * For ARINC requests, id is filtered out.
-     * 
+     *
      * Each thread sees its own id, race is impossible.
-     * 
+     *
      * DEV: When porting to multicore, this should be stored in the register.
      */
     pok_thread_id_t current_thread_id;
 
     /*
      * Actually, accessed only by the user.
-     * 
+     *
      * Set once before partition's entry is executed.
      * Read when need to check process_id from ARINC.
      */
@@ -140,26 +159,35 @@ struct jet_kernel_shared_data
     /*
      * Set by the kernel when error thread is created.
      * Until that, it is JET_THREAD_ID_NONE.
-     * 
+     *
      * Read by the user when it needs to determine whether error thread
      * currently is executed or when need to check process_id from ARINC.
-     * 
+     *
      * Race is impossible, as the field is changed in INIT mode.
      */
     pok_thread_id_t error_thread_id;
 
-    /* 
+    /*
      * Maximum number of threads.
-     * 
+     *
      * TODO: Does partition really need that info?
      */
     pok_thread_id_t max_n_threads;
 
-    /* 
+    /*
+     * If non-NULL, this function is executed when the thread starts.
+     * In that case real thread's entry point may be obtained from
+     * thread's 'entry_actual' field.
+     *
+     * Default is set by libJet, but may be redefined by application later.
+     */
+    void (*thread_entry_wrapper)(void);
+
+    /*
      * Configuration for ARINC intra communication.
-     * 
+     *
      * Used only by user space.
-     * 
+     *
      * DEV: This should be passed as property tree for user space.
      */
     // Maximum number of buffers.

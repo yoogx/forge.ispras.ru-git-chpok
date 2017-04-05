@@ -38,6 +38,7 @@
 #include <asp/cswitch.h>
 
 #include <core/space.h>
+#include <core/ippc.h>
 
 /* Default stack size for main process */
 #define DEFAULT_STACK_SIZE	4096
@@ -160,7 +161,7 @@ typedef struct _pok_thread
     pok_time_t delayed_time;
 
     /* 
-     * Function, processing delayed event in @thread_deadline_event.
+     * Function, processing delayed event in @thread_delayed_event.
      * 
      * Used only in conjunction with that field.
      */
@@ -205,22 +206,20 @@ typedef struct _pok_thread
      */
     pok_ret_t wait_result;
 
-    /*
-     * Next activation for periodic process (called "release point" in ARINC-653).
-     *
-     * It's calculated when:
-     *  - START/DELAYED_START is called in NORMAL mode
-     *  - SET_PARTITION_MODE is called, and START/DELAYED start was
-     *    already called before
-     *  - TIMED_WAIT (pok_sched_end_period) is called
-     * 
-     * This also implies that for currently active periodic process,
-     * next_activation actually refers to time of _current_ activation.
-     *
-     * Is not defined for aperiodic processes,
-     * and when process is not yet started (or not in normal mode).
+    /* 
+     * For server thread this is a IPPC connection initialized with
+     * given thread. For normal threads this is NULL. 
      */
-    pok_time_t            next_activation;
+    struct jet_ippc_connection* ippc_server_connection;
+
+    /* 
+     * If thread initiates (opens) connection, this is a pointer to it
+     * Otherwise this is NULL. 
+     */
+    struct jet_ippc_connection* ippc_connection;
+
+    /* Time when (next period of the) process starts. */
+    pok_time_t release_point;
 
     /*
      * Process state.

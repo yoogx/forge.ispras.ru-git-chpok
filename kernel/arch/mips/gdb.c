@@ -76,4 +76,195 @@ void gdb_get_regs(struct jet_interrupt_context* ea, const uint32_t* registers)
     (void) ea;
     (void) registers;
 }
+
+
+static const char hexchars[]="0123456789abcdef";
+
+char instr[8] = "00000000";
+int addr_instr = 0;
+char instr2[8] = "00000000";
+int addr_instr2 = 0;
+char trap[8] = "0000000d";
+#define REG_EPC                 37
+#define REG_FP                  72
+#define REG_SP                  29
+
+
+pok_bool_t ja_gdb_single_step(struct jet_interrupt_context* ea, uint32_t* registers)
+{
+    (void) ea;
+    (void) registers;
+    //~ uint32_t inst = *((uint32_t *)registers[pc]);
+    //~ uint32_t c_inst = registers[pc];
+/*
+ *  If it's a 'b' instruction
+ */
+/*
+ *  If it's a 'bal' instruction
+ */
+/*
+ *  If it's a 'beq' instruction
+ */
+/*
+ *  If it's a 'beql' instruction
+ */
+/*
+ *  If it's a 'bgez' instruction
+ */
+/*
+ *  If it's a 'BGEZAL' instruction
+ */
+/*
+ *  If it's a 'BGEZALL' instruction
+ */
+/*
+ *  If it's a 'BGEZL' instruction
+ */
+/*
+ *  If it's a 'BGTZ' instruction
+ */
+/*
+ *  If it's a 'BGTZL' instruction
+ */
+/*
+ *  If it's a 'BLEZ' instruction
+ */
+
+/*
+ *  If it's a 'J' instruction
+ */
+
+/*
+ *  If it's a 'JAL' instruction
+ */
+/*
+ *  If it's a 'JR' instruction
+ */
+
+  
+    return TRUE; 
+}
+
+char * ja_gdb_write_regs(char * ptr, const uint32_t* registers, const uint32_t* fp_registers)
+{
+    hex2mem(ptr, (char *)registers, 32*4);
+    hex2mem(ptr, (char *)&registers[cp0_status], 6*4);/* cp0: status, lo, hi, badvaddr, cause, epc */
+    hex2mem(ptr, (char *)fp_registers, 32*8);
+    hex2mem(ptr, (char *)&registers[cp1_fcsr], 2*4); /* cp1: fcsr, fir*/
+    //~ hex2mem(ptr, (char *)&registers[r30], 2*4);         /* framepointer and dummy (unused) */
+    //~ hex2mem(ptr, (char *)&registers[cp0_index], 16*4); /* cp0: index, random, entrylo0, entrylo1, context, pagemask, wired, reg7,
+                                                                      //~ reg8, reg9, entryhi, reg11, reg12, reg13, reg14, prid*/
+    return ptr;
+}
+
+
+char * ja_gdb_read_regs(char * ptr, const uint32_t* registers, const uint32_t* fp_registers)
+{
+    ptr = mem2hex((char *)registers, ptr, 32*4); /* r0...r31 */
+    ptr = mem2hex((char *)&registers[cp0_status], ptr, 6*4); /* cp0: status, lo, hi, badvaddr, cause, epc */
+    ptr = mem2hex((char *)fp_registers, ptr, 32*4); /* f0...31 */
+    ptr = mem2hex((char *)&registers[cp1_fcsr], ptr, 2*4); /* cp1: fcsr, fir*/
+    //~ ptr = mem2hex((char *)&registers[r30], ptr, 2*4); /* framepointer and dummy (unused) */
+    //~ ptr = mem2hex((char *)&registers[cp0_index], ptr, 16*4); /* cp0: index, random, entrylo0, entrylo1, context, pagemask, wired, reg7,
+    return ptr;
+}
+
+void ja_gdb_decrease_pc(struct jet_interrupt_context* ea)
+{
+    ea->EPC = ea->EPC - 4;
+}
+
+
+char * ja_gdb_send_first_package(char * ptr, int sigval, const uint32_t* registers)
+{
+	/*
+	 * Send trap type (converted to signal)
+	 */
+	*ptr++ = 'T';
+	*ptr++ = hexchars[sigval >> 4];
+	*ptr++ = hexchars[sigval & 0xf];
+
+	/*
+	 * Send Error PC
+	 */
+	*ptr++ = hexchars[REG_EPC >> 4];
+	*ptr++ = hexchars[REG_EPC & 0xf];
+	*ptr++ = ':';
+	ptr = mem2hex((char *)&registers[pc], ptr, 4);
+	*ptr++ = ';';
+
+	/*
+	 * Send frame pointer
+	 */
+	*ptr++ = hexchars[REG_FP >> 4];
+	*ptr++ = hexchars[REG_FP & 0xf];
+	*ptr++ = ':';
+	ptr = mem2hex((char *)&registers[r30], ptr, 4);
+	*ptr++ = ';';
+
+	/*
+	 * Send stack pointer
+	 */
+	*ptr++ = hexchars[REG_SP >> 4];
+	*ptr++ = hexchars[REG_SP & 0xf];
+	*ptr++ = ':';
+	ptr = mem2hex((char *)&registers[r29], ptr, 4);
+    *ptr++ = ';';
+    return ptr;
+}
+void ja_gdb_restore_instr(struct jet_interrupt_context* ea)
+{
+    (void) ea;
+    if (addr_instr != 0){
+        hex2mem(instr, (char *) (addr_instr), 4);
+        addr_instr = 0;
+        if (addr_instr2 != 0){
+            hex2mem(instr2, (char *) (addr_instr2), 4);
+            addr_instr2 = 0;
+        }
+    }
+    
+}
+
+void ja_gdb_add_watchpoint(uintptr_t addr, int length, int type, struct jet_interrupt_context* ea, char * remcomOutBuffer)
+{
+    /* 
+     * Didn't realized in x86
+     */
+    (void) addr;
+    (void) length;
+    (void) type;
+    (void) ea;
+    (void) remcomOutBuffer;
+    gdb_strcpy (remcomOutBuffer, "E22");
+}
+
+
+void ja_gdb_remove_watchpoint(uintptr_t addr, int length, int type, struct jet_interrupt_context* ea, char * remcomOutBuffer)
+{
+    /* 
+     * Didn't realized in x86
+     */
+    (void) addr;
+    (void) length;
+    (void) type;
+    (void) ea;
+    (void) remcomOutBuffer;
+    gdb_strcpy (remcomOutBuffer, "E22");
+}
+
+char * ja_gdb_alloc_trap(){
+    return trap;
+}
+
+void ja_gdb_instr_sync(char* addr)
+{
+    /* 
+     * Didn't realized in x86
+     */
+    (void) addr;
+}
+
+
+
 #endif /* POK_NEEDS_GDB */

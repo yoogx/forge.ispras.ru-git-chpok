@@ -224,8 +224,12 @@ struct T_breakpoint{
 
 struct jet_interrupt_context;
 
-void handle_exception (int exceptionVector, struct jet_interrupt_context* ea);
 
+
+char *gdb_strcpy(char *dest, const char *str);
+void handle_exception (int exceptionVector, struct jet_interrupt_context* ea);
+char * hex2mem (char *buf, char *mem, int count);
+char * mem2hex (const char *mem, char *buf, int count);
 void pok_monitor_thread(void);
 void pok_monitor_thread_init(void);
 void pok_gdb_thread(void);

@@ -16,6 +16,8 @@
 #ifndef __JET_MIPS_GDB_H__
 #define __JET_MIPS_GDB_H__
 
+#define ja_GDB_INSTR_SIZE 4
+
 #define NUMREGS_FP 32
 enum fp_regnames {
 f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13,
