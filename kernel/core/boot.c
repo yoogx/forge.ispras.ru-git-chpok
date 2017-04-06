@@ -68,7 +68,8 @@ void jet_boot (void)
 #endif
 
 #ifdef KERNEL_UNITTESTS
-  UnityMain(1, (const char**)"", RunAllTests);
+  const char* argv[] = {"kernel", "-v"};
+  UnityMain(2, argv, RunAllTests);
 #else
   pok_sched_start();
 #endif
