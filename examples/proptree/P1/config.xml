@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Partition>
+    <Definition Identifier="1" Name="P1" />
+    <!-- Amount of ram required for ELF -->
+    <Memory Bytes="300K" Heap="1000"/>
+
+    <Threads Count="10" />
+
+</Partition>

@@ -29,6 +29,7 @@ user_objects += SConscript('core/SConscript')
 user_objects += SConscript('libc/SConscript')
 user_objects += SConscript('libm/SConscript')
 user_objects += SConscript('utils/SConscript')
+user_objects += SConscript('proptree/SConscript')
 
 libpok_target = libpok_env.StaticLibrary(target = 'pok',
     source = user_objects)
