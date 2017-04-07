@@ -29,13 +29,7 @@ void delayed_event_queue_check(struct delayed_event_queue* q,
     {
         if(event->timepoint > time) break;
 
-        struct delayed_event* next_event = event->next_event;
-
-        q->first_event = next_event;
-        if(next_event)
-            next_event->pprev_event = &q->first_event;
-
-        event->pprev_event = NULL;
+        delayed_event_remove(q, event);
 
         event->process_event(event->handler_id);
     }
@@ -53,9 +47,7 @@ void delayed_event_add(struct delayed_event_queue* q,
     /*
      * Remove event from queue, if it was.
      */
-    if(event->pprev_event) {
-        *(event->pprev_event) = event->next_event;
-    }
+    delayed_event_remove(q, event);
 
     event->timepoint = timepoint;
     event->handler_id = handler_id;

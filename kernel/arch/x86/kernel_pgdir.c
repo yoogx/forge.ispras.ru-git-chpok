@@ -15,7 +15,7 @@
 
 #include <arch/mmu.h>
 #include <stdint.h>
-#include "memlayout.h"
+#include <arch/memlayout.h>
 
 #define PGDIR_ENTRIES_N  1024 // page directory entries per page directory
 

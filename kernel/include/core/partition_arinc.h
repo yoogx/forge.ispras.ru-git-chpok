@@ -17,9 +17,12 @@
 #define __POK_PARTITION_ARINC_H__
 
 #include <core/partition.h>
+#include <core/ippc.h>
 #include <core/memblocks.h>
 #include <core/error_arinc.h>
 #include <core/port.h>
+#include <core/ippc_arinc.h>
+#include <core/thread.h>
 
 #include <uapi/partition_arinc_types.h>
 
@@ -40,6 +43,24 @@ struct jet_partition_arinc_mb_addr_entry
     const struct memory_block* mblock;
 };
 
+/* Portal type provided by the partition. */
+struct jet_partition_arinc_ippc_portal_type
+{
+    struct jet_ippc_portal_type* portal_type;
+};
+
+/* Portal used by the partition. */
+struct jet_partition_arinc_ippc_portal
+{
+    /* Same as name for portal type. */
+    const char* portal_name;
+    struct jet_ippc_portal* portal;
+
+    /* Whether portal is initialized from the sence of the partition. */
+    pok_bool_t is_initialized;
+};
+
+
 /*
  * ARINC partition.
  */
@@ -47,8 +68,12 @@ typedef struct _pok_partition_arinc
 {
     pok_partition_t        base_part;
 
-    /* Information which affects on scheduling has been changed. */
+    /*
+     * Information which affects on scheduling in current execution mode
+     * (.ippc_handled_prev).
+     */
     pok_bool_t sched_local_recheck_needed;
+
 
     pok_partition_mode_t   mode;           /**< Current mode of the partition */
 
@@ -63,7 +88,7 @@ typedef struct _pok_partition_arinc
 
     /*
      * Array of memory blocks for given partition.
-     * 
+     *
      * Set in deployment.c.
      */
     const struct memory_block* memory_blocks;
@@ -71,9 +96,9 @@ typedef struct _pok_partition_arinc
 
     /*
      * Array of memory block entries for search by address.
-     * 
+     *
      * Ordered by addresses (ascending).
-     * 
+     *
      * Set in deployment.c.
      */
     const struct jet_partition_arinc_mb_addr_entry* mb_addr_table;
@@ -86,8 +111,18 @@ typedef struct _pok_partition_arinc
     const struct jet_partition_memory_block_init_entry* memory_block_init_entries_cold;
     int memory_block_init_entries_cold_n;
 
+    /* Array of IPPC portal types *provided* by partition. Set in deployment.c. */
+    struct jet_partition_arinc_ippc_portal_type* portal_types;
+    int portal_types_n;
+
+    /* Array of IPPC portals *used* by partition. Set in deployment.c. */
+    struct jet_partition_arinc_ippc_portal* portals;
+    int portals_n;
+
     /*
      * Number of (allocated) threads inside the partition.
+     *
+     * nthreads = nthreads_normal + <nthreads_server> + 1 (main thread) + 1 (error thread).
      *
      * Set in deployment.c.
      */
@@ -95,13 +130,31 @@ typedef struct _pok_partition_arinc
     /*
      * Array of (allocated) threads inside the partition.
      *
-     * Set in deployment.c. (thread needn't to be initialized there).
+     * All threads are listed here: main one, normal ones and server ones.
+     *
+     * Set in deployment.c. (threads needn't to be initialized there).
      */
     pok_thread_t*          threads;
-    int               nthreads_used;   /**< Number of threads which are currently in use (created). */
 
+    /*
+     * Number of threads which are currently in use (created).
+     *
+     * Threads are created continuously, that is 0...(nthreads_used - 1) are used.
+     */
+    int               nthreads_used;
 
-    pok_thread_t*          thread_current; // Normal thread or special thread. NULL if doing nothing.
+    /*
+     * Maximum number of threads for work in "normal" execution mode.
+     *
+     * Set in deployment.c.
+     */
+    int               nthreads_normal;
+
+    /* Number of "main" threads which are currently in use (created). */
+    int               nthreads_normal_used;
+
+    /* Currently executed thread. */
+    pok_thread_t*          thread_current;
 
     /*
      * Thread, selected according to scheduling algorithm.

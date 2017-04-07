@@ -60,4 +60,32 @@ void gdb_get_regs(struct jet_interrupt_context* ea, const uint32_t* registers);
 
 void pok_trap(void);
 
+#define GDB_INSTR_SIZE ja_GDB_INSTR_SIZE
+#define GDB_SINGLE_STEP ja_gdb_single_step
+#define GDB_WRITE_REGS ja_gdb_write_regs
+#define GDB_READ_REGS ja_gdb_read_regs
+#define GDB_DECREASE_PC ja_gdb_decrease_pc
+#define GDB_SEND_FIRST_PACKAGE ja_gdb_send_first_package
+#define GDB_ADD_WATCHPOINT ja_gdb_add_watchpoint
+#define GDB_REMOVE_WATCHPOINT ja_gdb_remove_watchpoint
+#define GDB_ALLOC_TRAP ja_gdb_alloc_trap
+#define GDB_INSTR_SYNC ja_gdb_instr_sync
+#define GDB_RESTORE_INSTR ja_gdb_restore_instr
+
+pok_bool_t ja_gdb_single_step(struct jet_interrupt_context* ea, uint32_t* registers);
+#ifdef NUMREGS_FP
+char * ja_gdb_write_regs(char * ptr, const uint32_t* registers, const uint32_t* fp_registers);
+char * ja_gdb_read_regs(char * ptr, const uint32_t* registers, const uint32_t* fp_registers);
+#else
+char * ja_gdb_write_regs(char * ptr, const uint32_t* registers);
+char * ja_gdb_read_regs(char * ptr, const uint32_t* registers);
+#endif
+void ja_gdb_decrease_pc(struct jet_interrupt_context* ea);
+char * ja_gdb_send_first_package(char * ptr, int sigval, const uint32_t* registers);
+void ja_gdb_add_watchpoint(uintptr_t addr, int length, int type, struct jet_interrupt_context* ea, char * remcomOutBuffer);
+void ja_gdb_remove_watchpoint(uintptr_t addr, int length, int type, struct jet_interrupt_context* ea, char * remcomOutBuffer);
+char * ja_gdb_alloc_trap();
+void ja_gdb_instr_sync(char* addr);
+void ja_gdb_restore_instr(struct jet_interrupt_context* ea);
+
 #endif /* __JET_ASP_GDB_H__ */

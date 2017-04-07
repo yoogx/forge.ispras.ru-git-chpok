@@ -524,3 +524,80 @@ pok_ret_t _jet_memory_block_get_status_impl(const char* name,
 pok_ret_t jet_memory_block_get_status(const char* name,
     jet_memory_block_status_t* status)
 __attribute__ ((weak, alias ("_jet_memory_block_get_status_impl")));
+
+pok_ret_t _jet_ippc_partition_arinc_init_portal_impl(const char* portal_name,
+    int* portal_id)
+{
+    return pok_syscall2(POK_SYSCALL_IPPC_INIT_PORTAL,
+        (uint32_t)portal_name,
+        (uint32_t)portal_id);
+}
+
+pok_ret_t jet_ippc_partition_arinc_init_portal(const char* portal_name,
+    int* portal_id)
+__attribute__ ((weak, alias ("_jet_ippc_partition_arinc_init_portal_impl")));
+
+pok_ret_t _jet_ippc_partition_arinc_call_impl(int portal_id)
+{
+    return pok_syscall1(POK_SYSCALL_IPPC_CALL,
+        (uint32_t)portal_id);
+}
+
+pok_ret_t jet_ippc_partition_arinc_call(int portal_id)
+__attribute__ ((weak, alias ("_jet_ippc_partition_arinc_call_impl")));
+
+pok_ret_t _jet_ippc_partition_arinc_get_portal_type_info_impl(const char* portal_name,
+    int* portal_type_id,
+    int* n_clients)
+{
+    return pok_syscall3(POK_SYSCALL_IPPC_GET_PORTAL_TYPE_INFO,
+        (uint32_t)portal_name,
+        (uint32_t)portal_type_id,
+        (uint32_t)n_clients);
+}
+
+pok_ret_t jet_ippc_partition_arinc_get_portal_type_info(const char* portal_name,
+    int* portal_type_id,
+    int* n_clients)
+__attribute__ ((weak, alias ("_jet_ippc_partition_arinc_get_portal_type_info_impl")));
+
+pok_ret_t _jet_ippc_partition_arinc_get_portal_info_impl(int server_portal_id,
+    int* n_connections)
+{
+    return pok_syscall2(POK_SYSCALL_IPPC_GET_PORTAL_INFO,
+        (uint32_t)server_portal_id,
+        (uint32_t)n_connections);
+}
+
+pok_ret_t jet_ippc_partition_arinc_get_portal_info(int server_portal_id,
+    int* n_connections)
+__attribute__ ((weak, alias ("_jet_ippc_partition_arinc_get_portal_info_impl")));
+
+pok_ret_t _jet_ippc_partition_arinc_create_connections_impl(int server_portal_id,
+    void* entry,
+    size_t stack_size,
+    int n_connections,
+    pok_thread_id_t* thread_id)
+{
+    return pok_syscall5(POK_SYSCALL_IPPC_CREATE_CONNECTIONS,
+        (uint32_t)server_portal_id,
+        (uint32_t)entry,
+        (uint32_t)stack_size,
+        (uint32_t)n_connections,
+        (uint32_t)thread_id);
+}
+
+pok_ret_t jet_ippc_partition_arinc_create_connections(int server_portal_id,
+    void* entry,
+    size_t stack_size,
+    int n_connections,
+    pok_thread_id_t* thread_id)
+__attribute__ ((weak, alias ("_jet_ippc_partition_arinc_create_connections_impl")));
+
+pok_ret_t _jet_ippc_partition_arinc_return_impl(void)
+{
+    return pok_syscall0(POK_SYSCALL_IPPC_RETURN);
+}
+
+pok_ret_t jet_ippc_partition_arinc_return(void)
+__attribute__ ((weak, alias ("_jet_ippc_partition_arinc_return_impl")));

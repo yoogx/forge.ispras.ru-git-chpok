@@ -157,3 +157,23 @@ pok_ret_t pok_port_queuing_clear(pok_port_id_t id);
 
 pok_ret_t jet_memory_block_get_status(const char* name,
     jet_memory_block_status_t* status);
+
+pok_ret_t jet_ippc_partition_arinc_init_portal(const char* portal_name,
+    int* portal_id);
+
+pok_ret_t jet_ippc_partition_arinc_call(int portal_id);
+
+pok_ret_t jet_ippc_partition_arinc_get_portal_type_info(const char* portal_name,
+    int* portal_type_id,
+    int* n_clients);
+
+pok_ret_t jet_ippc_partition_arinc_get_portal_info(int server_portal_id,
+    int* n_connections);
+
+pok_ret_t jet_ippc_partition_arinc_create_connections(int server_portal_id,
+    void* entry,
+    size_t stack_size,
+    int n_connections,
+    pok_thread_id_t* thread_id);
+
+pok_ret_t jet_ippc_partition_arinc_return(void);

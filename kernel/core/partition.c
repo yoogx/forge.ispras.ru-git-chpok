@@ -100,6 +100,7 @@ void pok_partition_add_event(pok_partition_t* part,
 
    if(set_event) {
       part->is_event = TRUE;
+      pok_sched_invalidate();
    }
 }
 
@@ -132,7 +133,7 @@ pok_bool_t pok_partition_get_event(struct jet_partition_event* event)
 void pok_partition_set_timer(pok_partition_t* part,
     pok_time_t timer_new)
 {
-     part->timer = timer_new;
+    part->timer = timer_new;
 }
 
 
