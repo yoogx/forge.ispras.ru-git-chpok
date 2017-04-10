@@ -24,8 +24,7 @@
 #include <core/memblocks.h>
 #include <core/uaccess.h>
 
-extern size_t pok_elf_sizes[];
-extern char __archive2_begin;
+#include <conftree.h>
 
 static const struct memory_block* get_memory_block_for_addr(
     const struct memory_block* const* mblocks,
@@ -62,14 +61,8 @@ void jet_loader_elf_load   (uint8_t elf_id,
                                  const struct memory_block* const* mblocks,
                                  void (** entry)(void))
 {
-    // Determine offset of required elf in the file.
-    size_t elf_offset = 0;
-
-    for (uint8_t i = 0; i < elf_id; i++) {
-        elf_offset += pok_elf_sizes[i];
-    }
-
-    const char* elf_start = &__archive2_begin + elf_offset;
+    jet_pt_node_t elf_node = jet_pt_get_child(kernel_config_tree, JET_PT_ROOT, elf_id);
+    const char* elf_start = jet_pt_get_binary(kernel_config_tree, elf_node, NULL, NULL);
 
     Elf32_Ehdr*  elf_header;
     Elf32_Phdr*  elf_phdr;

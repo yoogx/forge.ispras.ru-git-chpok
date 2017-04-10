@@ -44,6 +44,9 @@ env.Append(CFLAGS_KERNEL = ' -msoft-float')
 env['LDSCRIPT_KERNEL'] = env['JETOS_HOME'] + '/kernel/arch/ppc/ldscripts/kernel.lds'
 env['LDSCRIPT_PARTITION'] = env['JETOS_HOME'] + '/kernel/arch/ppc/ldscripts/partition.lds'
 
+env['ELF_FORMAT_KERNEL'] = 'elf32-powerpc'
+env['ELF_ARCH_KERNEL'] = 'powerpc'
+
 arch_dir = Dir('.').srcnode().abspath
 
 # Below is an implementation of arch deployment functionality.
