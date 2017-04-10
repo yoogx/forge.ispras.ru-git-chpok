@@ -7,7 +7,7 @@ SECTIONS
   /* Read-only sections, merged into text segment: */
   . = 0x80000000;
 
-  .text           :
+  .text :
   {
     *(.start)
     *(.text .text.* .gnu.linkonce.t.*)
@@ -26,7 +26,7 @@ SECTIONS
     __archive_begin = .;
     *(.archive)
     __archive_end = .;
-    . = ALIGN(4);
+    . = ALIGN(4096);
     __archive2_begin = .;
     *(.archive2)
     __archive2_end = .;
