@@ -19,6 +19,12 @@ and should fill some environment variables in it:
  - 'PREFIX' - prefix of toolchain tools used for compile, link, etc.
  (String, required).
 
+ - 'ELF_FORMAT_KERNEL' - bfd-target, used by the linker for create kernel image.
+ (String, required).
+
+ - 'ELF_ARHC_KERNEL' - target architecture, for which linker creates kernel image.
+ (String, required).
+
  - 'BOARD_DEPLOY' - function, which is called as
 
     f(env, memory_definitions_file, memory_constraints)
