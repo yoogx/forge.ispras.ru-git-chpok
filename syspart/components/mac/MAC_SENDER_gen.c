@@ -35,7 +35,7 @@
 
 
 
-      ret_t MAC_SENDER_call_portB_send(MAC_SENDER *self, char * arg1, size_t arg2, size_t arg3, size_t arg4)
+      ret_t _MAC_SENDER_call_portB_send_impl(MAC_SENDER *self, char * arg1, size_t arg2, size_t arg3, size_t arg4)
       {
          if (self->out.portB.ops == NULL) {
              printf("WRONG CONFIG: out port portB of component MAC_SENDER was not initialized\n");
@@ -43,7 +43,9 @@
          }
          return self->out.portB.ops->send(self->out.portB.owner, arg1, arg2, arg3, arg4);
       }
-      ret_t MAC_SENDER_call_portB_flush(MAC_SENDER *self)
+      ret_t MAC_SENDER_call_portB_send(MAC_SENDER *self, char * arg1, size_t arg2, size_t arg3, size_t arg4)
+      __attribute__ ((weak, alias ("_MAC_SENDER_call_portB_send_impl")));
+      ret_t _MAC_SENDER_call_portB_flush_impl(MAC_SENDER *self)
       {
          if (self->out.portB.ops == NULL) {
              printf("WRONG CONFIG: out port portB of component MAC_SENDER was not initialized\n");
@@ -51,6 +53,8 @@
          }
          return self->out.portB.ops->flush(self->out.portB.owner);
       }
+      ret_t MAC_SENDER_call_portB_flush(MAC_SENDER *self)
+      __attribute__ ((weak, alias ("_MAC_SENDER_call_portB_flush_impl")));
 
 
 void __MAC_SENDER_init__(MAC_SENDER *self)

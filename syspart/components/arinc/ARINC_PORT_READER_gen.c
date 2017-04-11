@@ -25,7 +25,7 @@
 
 
 
-      ret_t ARINC_PORT_READER_call_portA_send(ARINC_PORT_READER *self, char * arg1, size_t arg2, size_t arg3, size_t arg4)
+      ret_t _ARINC_PORT_READER_call_portA_send_impl(ARINC_PORT_READER *self, char * arg1, size_t arg2, size_t arg3, size_t arg4)
       {
          if (self->out.portA.ops == NULL) {
              printf("WRONG CONFIG: out port portA of component ARINC_PORT_READER was not initialized\n");
@@ -33,8 +33,9 @@
          }
          return self->out.portA.ops->send(self->out.portA.owner, arg1, arg2, arg3, arg4);
       }
-
-      ret_t ARINC_PORT_READER_call_portA_flush(ARINC_PORT_READER *self)
+      ret_t ARINC_PORT_READER_call_portA_send(ARINC_PORT_READER *self, char * arg1, size_t arg2, size_t arg3, size_t arg4)
+      __attribute__ ((weak, alias ("_ARINC_PORT_READER_call_portA_send_impl")));
+      ret_t _ARINC_PORT_READER_call_portA_flush_impl(ARINC_PORT_READER *self)
       {
          if (self->out.portA.ops == NULL) {
              printf("WRONG CONFIG: out port portA of component ARINC_PORT_READER was not initialized\n");
@@ -42,8 +43,8 @@
          }
          return self->out.portA.ops->flush(self->out.portA.owner);
       }
-      ret_t ARINC_SENDER_call_portA_flush(ARINC_SENDER *self)
-      __attribute__ ((weak, alias ("_ARINC_SENDER_call_portA_flush_impl")));
+      ret_t ARINC_PORT_READER_call_portA_flush(ARINC_PORT_READER *self)
+      __attribute__ ((weak, alias ("_ARINC_PORT_READER_call_portA_flush_impl")));
 
 
 void __ARINC_PORT_READER_init__(ARINC_PORT_READER *self)

@@ -30,7 +30,7 @@
 
 
 
-      ret_t ROUTER_call_portArray_handle_by_index(int idx, ROUTER *self, const uint8_t * arg1, size_t arg2)
+      ret_t _ROUTER_call_portArray_handle_by_index_impl(int idx, ROUTER *self, const uint8_t * arg1, size_t arg2)
       {
          if (self->out.portArray[idx].ops == NULL) {
              printf("WRONG CONFIG: out port portArray of component ROUTER was not initialized\n");
@@ -38,6 +38,8 @@
          }
          return self->out.portArray[idx].ops->handle(self->out.portArray[idx].owner, arg1, arg2);
       }
+      ret_t ROUTER_call_portArray_handle_by_index(int idx, ROUTER *self, const uint8_t * arg1, size_t arg2)
+      __attribute__ ((weak, alias ("_ROUTER_call_portArray_handle_by_index_impl")));
 
 
 void __ROUTER_init__(ROUTER *self)

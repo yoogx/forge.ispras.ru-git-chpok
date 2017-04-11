@@ -30,7 +30,7 @@
 
 
 
-      ret_t AFDX_TIME_ADDER_call_portA_handle(AFDX_TIME_ADDER *self, const uint8_t * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
+      ret_t _AFDX_TIME_ADDER_call_portA_handle_impl(AFDX_TIME_ADDER *self, const uint8_t * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
       {
          if (self->out.portA.ops == NULL) {
              printf("WRONG CONFIG: out port portA of component AFDX_TIME_ADDER was not initialized\n");
@@ -38,6 +38,8 @@
          }
          return self->out.portA.ops->handle(self->out.portA.owner, arg1, arg2, arg3);
       }
+      ret_t AFDX_TIME_ADDER_call_portA_handle(AFDX_TIME_ADDER *self, const uint8_t * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
+      __attribute__ ((weak, alias ("_AFDX_TIME_ADDER_call_portA_handle_impl")));
 
 
 void __AFDX_TIME_ADDER_init__(AFDX_TIME_ADDER *self)

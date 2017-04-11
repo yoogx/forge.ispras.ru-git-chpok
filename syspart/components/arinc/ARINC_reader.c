@@ -49,7 +49,7 @@ static int receive_msg_queuing(ARINC_PORT_READER *self)
 }
 
 
-static int receive_msg_samping(ARINC_PORT_READER *self)
+static int receive_msg_sampling(ARINC_PORT_READER *self)
 {
     RETURN_CODE_TYPE ret;
     VALIDITY_TYPE   validity;

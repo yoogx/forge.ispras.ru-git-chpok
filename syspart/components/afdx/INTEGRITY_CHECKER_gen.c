@@ -30,7 +30,7 @@
 
 
 
-      ret_t INTEGRITY_CHECKER_call_portB_handle(INTEGRITY_CHECKER *self, const uint8_t * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
+      ret_t _INTEGRITY_CHECKER_call_portB_handle_impl(INTEGRITY_CHECKER *self, const uint8_t * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
       {
          if (self->out.portB.ops == NULL) {
              printf("WRONG CONFIG: out port portB of component INTEGRITY_CHECKER was not initialized\n");
@@ -38,6 +38,8 @@
          }
          return self->out.portB.ops->handle(self->out.portB.owner, arg1, arg2, arg3);
       }
+      ret_t INTEGRITY_CHECKER_call_portB_handle(INTEGRITY_CHECKER *self, const uint8_t * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
+      __attribute__ ((weak, alias ("_INTEGRITY_CHECKER_call_portB_handle_impl")));
 
 
 void __INTEGRITY_CHECKER_init__(INTEGRITY_CHECKER *self)

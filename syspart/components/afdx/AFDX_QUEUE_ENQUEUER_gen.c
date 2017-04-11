@@ -35,7 +35,7 @@
 
 
 
-      ret_t AFDX_QUEUE_ENQUEUER_call_portNetA_send(AFDX_QUEUE_ENQUEUER *self, char * arg1, size_t arg2, size_t arg3, size_t arg4)
+      ret_t _AFDX_QUEUE_ENQUEUER_call_portNetA_send_impl(AFDX_QUEUE_ENQUEUER *self, char * arg1, size_t arg2, size_t arg3, size_t arg4)
       {
          if (self->out.portNetA.ops == NULL) {
              printf("WRONG CONFIG: out port portNetA of component AFDX_QUEUE_ENQUEUER was not initialized\n");
@@ -43,7 +43,9 @@
          }
          return self->out.portNetA.ops->send(self->out.portNetA.owner, arg1, arg2, arg3, arg4);
       }
-      ret_t AFDX_QUEUE_ENQUEUER_call_portNetA_flush(AFDX_QUEUE_ENQUEUER *self)
+      ret_t AFDX_QUEUE_ENQUEUER_call_portNetA_send(AFDX_QUEUE_ENQUEUER *self, char * arg1, size_t arg2, size_t arg3, size_t arg4)
+      __attribute__ ((weak, alias ("_AFDX_QUEUE_ENQUEUER_call_portNetA_send_impl")));
+      ret_t _AFDX_QUEUE_ENQUEUER_call_portNetA_flush_impl(AFDX_QUEUE_ENQUEUER *self)
       {
          if (self->out.portNetA.ops == NULL) {
              printf("WRONG CONFIG: out port portNetA of component AFDX_QUEUE_ENQUEUER was not initialized\n");
@@ -51,7 +53,9 @@
          }
          return self->out.portNetA.ops->flush(self->out.portNetA.owner);
       }
-      ret_t AFDX_QUEUE_ENQUEUER_call_portNetB_send(AFDX_QUEUE_ENQUEUER *self, char * arg1, size_t arg2, size_t arg3, size_t arg4)
+      ret_t AFDX_QUEUE_ENQUEUER_call_portNetA_flush(AFDX_QUEUE_ENQUEUER *self)
+      __attribute__ ((weak, alias ("_AFDX_QUEUE_ENQUEUER_call_portNetA_flush_impl")));
+      ret_t _AFDX_QUEUE_ENQUEUER_call_portNetB_send_impl(AFDX_QUEUE_ENQUEUER *self, char * arg1, size_t arg2, size_t arg3, size_t arg4)
       {
          if (self->out.portNetB.ops == NULL) {
              printf("WRONG CONFIG: out port portNetB of component AFDX_QUEUE_ENQUEUER was not initialized\n");
@@ -59,7 +63,9 @@
          }
          return self->out.portNetB.ops->send(self->out.portNetB.owner, arg1, arg2, arg3, arg4);
       }
-      ret_t AFDX_QUEUE_ENQUEUER_call_portNetB_flush(AFDX_QUEUE_ENQUEUER *self)
+      ret_t AFDX_QUEUE_ENQUEUER_call_portNetB_send(AFDX_QUEUE_ENQUEUER *self, char * arg1, size_t arg2, size_t arg3, size_t arg4)
+      __attribute__ ((weak, alias ("_AFDX_QUEUE_ENQUEUER_call_portNetB_send_impl")));
+      ret_t _AFDX_QUEUE_ENQUEUER_call_portNetB_flush_impl(AFDX_QUEUE_ENQUEUER *self)
       {
          if (self->out.portNetB.ops == NULL) {
              printf("WRONG CONFIG: out port portNetB of component AFDX_QUEUE_ENQUEUER was not initialized\n");
@@ -67,6 +73,8 @@
          }
          return self->out.portNetB.ops->flush(self->out.portNetB.owner);
       }
+      ret_t AFDX_QUEUE_ENQUEUER_call_portNetB_flush(AFDX_QUEUE_ENQUEUER *self)
+      __attribute__ ((weak, alias ("_AFDX_QUEUE_ENQUEUER_call_portNetB_flush_impl")));
 
 
 void __AFDX_QUEUE_ENQUEUER_init__(AFDX_QUEUE_ENQUEUER *self)

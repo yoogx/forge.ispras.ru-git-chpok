@@ -30,7 +30,7 @@
 
 
 
-      ret_t UDP_RECEIVER_call_portB_udp_message_handle(UDP_RECEIVER *self, const uint8_t * arg1, size_t arg2, uint32_t arg3, uint16_t arg4)
+      ret_t _UDP_RECEIVER_call_portB_udp_message_handle_impl(UDP_RECEIVER *self, const uint8_t * arg1, size_t arg2, uint32_t arg3, uint16_t arg4)
       {
          if (self->out.portB.ops == NULL) {
              printf("WRONG CONFIG: out port portB of component UDP_RECEIVER was not initialized\n");
@@ -38,6 +38,8 @@
          }
          return self->out.portB.ops->udp_message_handle(self->out.portB.owner, arg1, arg2, arg3, arg4);
       }
+      ret_t UDP_RECEIVER_call_portB_udp_message_handle(UDP_RECEIVER *self, const uint8_t * arg1, size_t arg2, uint32_t arg3, uint16_t arg4)
+      __attribute__ ((weak, alias ("_UDP_RECEIVER_call_portB_udp_message_handle_impl")));
 
 
 void __UDP_RECEIVER_init__(UDP_RECEIVER *self)

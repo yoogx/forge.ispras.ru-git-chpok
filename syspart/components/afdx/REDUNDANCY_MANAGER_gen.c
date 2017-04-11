@@ -35,7 +35,7 @@
 
 
 
-      ret_t REDUNDANCY_MANAGER_call_portC_handle(REDUNDANCY_MANAGER *self, const uint8_t * arg1, size_t arg2)
+      ret_t _REDUNDANCY_MANAGER_call_portC_handle_impl(REDUNDANCY_MANAGER *self, const uint8_t * arg1, size_t arg2)
       {
          if (self->out.portC.ops == NULL) {
              printf("WRONG CONFIG: out port portC of component REDUNDANCY_MANAGER was not initialized\n");
@@ -43,6 +43,8 @@
          }
          return self->out.portC.ops->handle(self->out.portC.owner, arg1, arg2);
       }
+      ret_t REDUNDANCY_MANAGER_call_portC_handle(REDUNDANCY_MANAGER *self, const uint8_t * arg1, size_t arg2)
+      __attribute__ ((weak, alias ("_REDUNDANCY_MANAGER_call_portC_handle_impl")));
 
 
 void __REDUNDANCY_MANAGER_init__(REDUNDANCY_MANAGER *self)

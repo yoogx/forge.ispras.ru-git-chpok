@@ -30,7 +30,7 @@
 
 
 
-      ret_t AFDX_TO_ARINC_ROUTER_call_portArray_handle_by_index(int idx, AFDX_TO_ARINC_ROUTER *self, const uint8_t * arg1, size_t arg2)
+      ret_t _AFDX_TO_ARINC_ROUTER_call_portArray_handle_by_index_impl(int idx, AFDX_TO_ARINC_ROUTER *self, const uint8_t * arg1, size_t arg2)
       {
          if (self->out.portArray[idx].ops == NULL) {
              printf("WRONG CONFIG: out port portArray of component AFDX_TO_ARINC_ROUTER was not initialized\n");
@@ -38,6 +38,8 @@
          }
          return self->out.portArray[idx].ops->handle(self->out.portArray[idx].owner, arg1, arg2);
       }
+      ret_t AFDX_TO_ARINC_ROUTER_call_portArray_handle_by_index(int idx, AFDX_TO_ARINC_ROUTER *self, const uint8_t * arg1, size_t arg2)
+      __attribute__ ((weak, alias ("_AFDX_TO_ARINC_ROUTER_call_portArray_handle_by_index_impl")));
 
 
 void __AFDX_TO_ARINC_ROUTER_init__(AFDX_TO_ARINC_ROUTER *self)

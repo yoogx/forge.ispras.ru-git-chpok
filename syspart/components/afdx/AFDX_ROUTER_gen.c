@@ -30,7 +30,7 @@
 
 
 
-      ret_t AFDX_ROUTER_call_portArray_handle_by_index(int idx, AFDX_ROUTER *self, const uint8_t * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
+      ret_t _AFDX_ROUTER_call_portArray_handle_by_index_impl(int idx, AFDX_ROUTER *self, const uint8_t * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
       {
          if (self->out.portArray[idx].ops == NULL) {
              printf("WRONG CONFIG: out port portArray of component AFDX_ROUTER was not initialized\n");
@@ -38,6 +38,8 @@
          }
          return self->out.portArray[idx].ops->handle(self->out.portArray[idx].owner, arg1, arg2, arg3);
       }
+      ret_t AFDX_ROUTER_call_portArray_handle_by_index(int idx, AFDX_ROUTER *self, const uint8_t * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
+      __attribute__ ((weak, alias ("_AFDX_ROUTER_call_portArray_handle_by_index_impl")));
 
 
 void __AFDX_ROUTER_init__(AFDX_ROUTER *self)

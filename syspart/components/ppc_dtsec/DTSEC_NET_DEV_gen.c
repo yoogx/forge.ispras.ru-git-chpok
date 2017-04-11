@@ -35,7 +35,7 @@
 
 
 
-      ret_t DTSEC_NET_DEV_call_portB_handle(DTSEC_NET_DEV *self, const uint8_t * arg1, size_t arg2)
+      ret_t _DTSEC_NET_DEV_call_portB_handle_impl(DTSEC_NET_DEV *self, const uint8_t * arg1, size_t arg2)
       {
          if (self->out.portB.ops == NULL) {
              printf("WRONG CONFIG: out port portB of component DTSEC_NET_DEV was not initialized\n");
@@ -43,6 +43,8 @@
          }
          return self->out.portB.ops->handle(self->out.portB.owner, arg1, arg2);
       }
+      ret_t DTSEC_NET_DEV_call_portB_handle(DTSEC_NET_DEV *self, const uint8_t * arg1, size_t arg2)
+      __attribute__ ((weak, alias ("_DTSEC_NET_DEV_call_portB_handle_impl")));
 
  pok_ret_t DTSEC_NET_DEV_get_memory_block_status(
          DTSEC_NET_DEV *self,
