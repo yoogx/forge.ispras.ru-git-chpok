@@ -25,9 +25,13 @@
 #ifndef __AFDX_H_
 #define __AFDX_H_
 
+#include <ret_type.h>
+#include <types.h>
+
 #define SECOND 1000000000LL
 
 #define MAX_AFDX_FRAME_SIZE     1518
+#define MIN_AFDX_PAYLOAD_SIZE   17
 
 /*
  * This define for filling function
@@ -154,6 +158,8 @@ struct frame_data {
 
 }__attribute__((packed));
 
-typedef struct frame_data frame_data_t;
+typedef struct frame_data afdx_frame_t;
+
+ret_t check_afdx_frame_size(size_t afdx_frame_size);
 
 #endif
