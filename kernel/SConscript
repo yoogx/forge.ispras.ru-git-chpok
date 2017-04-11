@@ -27,13 +27,15 @@ Export('kernel_env')
 
 core = SConscript('core/SConscript')
 libc = SConscript('libc/SConscript')
+proptree = SConscript('proptree/SConscript')
 arch = SConscript('arch/SConscript')
+
 bsp_objects = SConscript(kernel_env['JETOS_HOME'] + '/boards/SConscript',
         variant_dir = 'boards',
         duplicate = 0
 )
 
-kernel_objects=[core, libc, arch, bsp_objects]
+kernel_objects=[core, libc, proptree, arch, bsp_objects]
 
 if kernel_env.get('kerneltests'):
     jetos_unittests = kernel_env['JETOS_UNITTESTS']

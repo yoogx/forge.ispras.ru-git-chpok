@@ -33,6 +33,10 @@
 #include <core/channel.h>
 #include <asp/entries.h>
 #include <libc.h>
+#include <conftree.h>
+
+jet_pt_tree_t kernel_config_tree;
+extern const char __archive2_begin; // Actual kernel config tree is here.
 
 #ifdef POK_NEEDS_GDB
 #include <gdb.h>
@@ -45,6 +49,12 @@ void RunAllTests(void);
 
 void jet_boot (void)
 {
+   kernel_config_tree = (jet_pt_tree_t)&__archive2_begin;
+
+   if(jet_pt_check_magic(kernel_config_tree)) {
+       pok_fatal("Magic field for kernel config tree is incorrect\n");
+   }
+
    kernel_state = POK_SYSTEM_STATE_OS_MOD; // TODO: is this choice for state right?
 
    pok_partition_arinc_init_all();

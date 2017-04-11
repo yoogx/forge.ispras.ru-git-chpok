@@ -443,10 +443,10 @@ void pok_sched_on_time_changed(void)
 {
     assert(!ja_preempt_enabled());
 
-    pok_partition_t* part = current_partition;
     pok_sched_invalidate();
 
 #if POK_NEEDS_GDB
+    pok_partition_t* part = current_partition;
     pok_bool_t in_user_space = pok_in_user_space;
 
     if(in_user_space)
