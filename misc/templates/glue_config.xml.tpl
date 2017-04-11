@@ -1,5 +1,5 @@
 <Partition>
-    <Definition Name="P2" System="true"/>
+    <Definition Name="{{partition_name}}" System="true"/>
     <!-- Amount of ram required for ELF -->
     <Memory Bytes="1M" Heap="1M"/>
 

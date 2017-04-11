@@ -13,7 +13,7 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include "memlayout.h"
+#include <arch/memlayout.h>
 #include "regs.h"
 
 .section .multiboot

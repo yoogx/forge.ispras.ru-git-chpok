@@ -23,12 +23,23 @@ syspart_env['CPPPATH'].append([syspart_env['JETOS_HOME']+'/syspart/include'])
 
 Export('syspart_env')
 
-drivers = SConscript('drivers/SConscript')
-components = SConscript('components/SConscript')
+syspart_objects = []
+
+syspart_objects += SConscript('drivers/SConscript')
+syspart_objects += SConscript('components/SConscript')
+
+if syspart_env.get('libpoktests'):
+    syspart_env['CPPPATH'].append([
+        syspart_env['JETOS_UNITTESTS']+'/mocks/syspart/',
+        syspart_env['JETOS_UNITTESTS']+'/unity/'
+    ])
+    syspart_objects += SConscript(syspart_env['JETOS_UNITTESTS'] + '/mocks/SConscript',
+        variant_dir = 'mocks',
+        duplicate = 0
+    )
 
 syspart_program = syspart_env.StaticLibrary(target = 'syspart', source = [
-    drivers,
-    components,
+    syspart_objects,
     'pool.c'
 ])
 

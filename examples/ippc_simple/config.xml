@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<JetModule>
+    <Schedule>
+        <!--
+            Slot element is close to A653_PartitionTimeWindowType defined
+            in the standard, but not quite it.
+
+            As extension, we allow to specify time in other units,
+            such as milliseconds (for convenience).
+        -->
+        <Slot Type="Partition" PartitionNameRef="P1" Duration="15ms" PeriodicProcessingStart="true" />
+        <Slot Type="Partition" PartitionNameRef="P2" Duration="15ms" PeriodicProcessingStart="true" />
+    </Schedule>
+
+    <!-- IPPC connections between partitions. -->
+    <Portal_Types>
+        <Portal_Type PortalTypeName="Test" ServerPartitionName="P1">
+            <Portal ClientPartitionName="P2" ConnectionsNumber="3"/>
+        </Portal_Type>
+    </Portal_Types>
+
+</JetModule>

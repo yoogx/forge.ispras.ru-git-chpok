@@ -112,6 +112,9 @@ import memory_definition
 
 import yaml
 
+import struct
+
+import prop_tree
 
 Import('env')
 
@@ -400,55 +403,38 @@ if kernel_target is None:
 
 pok_env = env.KernelEnvironment()
 
-# there should (perhaps) also be padding to get aligned file size
-def merge_partitions(target, source, env):
-    with open(str(target[0]), 'wb') as part:
-        for s in source:
-            with open(str(s), 'rb') as orig_part:
-                shutil.copyfileobj(orig_part, part)
+def create_prop_tree(target, source, env):
+    """
+    Creates kernel property tree from partition's elfs.
+    """
+    prop_tree_instance = [prop_tree.PropertyTreeBinaryNode(align = 4096, filename = source_single.abspath) for source_single in source]
 
-def create_sizes_c(target, source, env):
-    with open(str(target[0]), 'w') as sizes:
-        sizes.write('#include <stdint.h>\n')
-        sizes.write('uint32_t pok_elf_sizes[] = {\n')
-        for s in source:
-            part_size = os.path.getsize(str(s))
-            sizes.write(str(part_size))
-            if source.index(s) != len(source) - 1:
-                sizes.write(',\n')
-        sizes.write('\n};\n')
+    prop_tree.property_tree_write(prop_tree_instance, target[0].abspath, True)
 
-merge_target = pok_env.Command(target = module_build_dir+'/partitions.bin',
+
+# Create property tree from partition's elfs.
+prop_tree_file = pok_env.Command(target = module_build_dir+'/prop_tree.bin',
     source = partition_elfs,
-    action = Action(merge_partitions, '$MERGE_PARTITIONS_COMSTR'))
-pok_env.Depends(merge_target, partition_elfs)
+    action = create_prop_tree
+)
 
-merge_file = merge_target[0].abspath
+# Transform property tree into the object for link it into the kernel image.
+prop_tree_file_o = pok_env.Command(
+    target = module_build_dir + "/prop_tree.o",
+    source = prop_tree_file,
+    action = "$OBJCOPY -I binary -O $ELF_FORMAT_KERNEL -B $ELF_ARCH_KERNEL --rename-section .data=.archive2,alloc,load,readonly,data,contents $SOURCE $TARGET"
+)
 
-sizes_c_target = pok_env.Command(target = module_build_dir+'/sizes.c',
-    source = partition_elfs,
-    action = Action(create_sizes_c, '$SIZES_C_GEN_COMSTR'))
-pok_env.Depends(sizes_c_target, partition_elfs)
-
-compile_sizes = pok_env.Command(target = module_build_dir+'/sizes.o',
-    source = sizes_c_target,
-    action = Action([
-        pok_env['CC']+' -c -o $TARGET '+pok_env['CFLAGS']+' $SOURCE',
-        pok_env['OBJCOPY']+' --add-section .archive2='+merge_file+' $TARGET'
-    ],
-    "$SIZES_O_CREATE_COMSTR"
-    ))
-
-pok_env.Depends(compile_sizes, merge_target)
 
 pok_elf_env = pok_env.Clone()
 
 ldscript_kernel = pok_env['LDSCRIPT_KERNEL']
 
 pok_target = pok_elf_env.Program(target = module_build_dir+'/pok.elf',
-    source = compile_sizes + kernel_target + deployment_kernel +
+    source = prop_tree_file_o + kernel_target + deployment_kernel +
             env['BOARD_DEPLOYMENT_SOURCES'] + [pok_env['LIBGCC']])
 pok_env.Depends(pok_target, [ldscript_kernel])
+
 
 pok_target_file = pok_target[0].abspath
 

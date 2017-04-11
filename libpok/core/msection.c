@@ -76,6 +76,11 @@ pok_ret_t msection_notify(struct msection* section, pok_thread_id_t thread_id)
     return jet_msection_notify(section, thread_id);
 }
 
+void msection_wq_init(struct msection_wq* wq)
+{
+    wq->first = wq->last = JET_THREAD_ID_NONE;
+}
+
 void msection_wq_add(struct msection_wq* wq, pok_thread_id_t next)
 {
     pok_thread_id_t *pnext = (next != JET_THREAD_ID_NONE)

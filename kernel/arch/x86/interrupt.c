@@ -50,6 +50,8 @@ void process_breakpoint(interrupt_frame* frame)
    }else{
         handle_exception(3, frame);
     }
+    /* clear the trace bit */
+    frame->eflags &= 0xfffffeff;
     //printf("es = 0x%lx\n",frame->es);
     //printf("ds = 0x%lx\n",frame->ds);
     //printf("edi = 0x%lx\n",frame->edi);

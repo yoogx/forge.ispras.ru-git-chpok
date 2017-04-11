@@ -34,6 +34,8 @@
 
 #include <core/memblocks.h>
 
+#include <core/ippc.h>
+
 static pok_time_t first_frame_starts; // Time when first major frame is started.
 
 static pok_time_t            pok_sched_next_deadline;
@@ -42,15 +44,22 @@ static uint8_t               pok_sched_current_slot = 0; /* Which slot are we ex
 
 pok_partition_t* current_partition = NULL;
 
+/*
+ * Partition which belongs to the current timeslot.
+ *
+ * May differ from current_partition in case of IPPC request processing.
+ */
+pok_partition_t* base_partition = NULL;
+
 #if POK_NEEDS_GDB
 struct jet_interrupt_context* global_thread_stack = NULL;
 volatile pok_bool_t pok_in_user_space = 0;
 #endif
 
 #ifdef POK_NEEDS_MONITOR
-/* 
+/*
  * Whether current partition has `.is_paused` flag set.
- * 
+ *
  * This flag affects on the place, where currently used context should
  * be stored on context switch.
  * From the other side, the flag can be changed *outside* of scheduler.
@@ -68,9 +77,9 @@ static void idle_function(void)
 }
 #endif
 
-/* 
+/*
  * Pointer to the store area for last executed (user) thread.
- * 
+ *
  * If no thread has been executed yet, or the last one dies, this is NULL.
  */
 struct jet_fp_store* fp_store_last = NULL;
@@ -91,6 +100,12 @@ static void pok_partition_reset(pok_partition_t* part)
 
 
 static pok_bool_t sched_need_recheck;
+
+void pok_sched_invalidate(void)
+{
+    assert(!ja_preempt_enabled());
+    sched_need_recheck = TRUE;
+}
 
 static void start_partition(void)
 {
@@ -127,10 +142,10 @@ static void intra_partition_switch(void)
 
         if(*old_sp == NULL)
         {
-            /* 
+            /*
              * Restart is requested by currently executed context.
              * (new context is idle, so it doesn't need restart.)
-             * 
+             *
              * Perform jump instead of switch.
              */
              jet_context_jump(*new_sp);
@@ -138,10 +153,10 @@ static void intra_partition_switch(void)
         }
         else if(*new_sp == NULL)
         {
-            /* 
+            /*
              * Restart is requested by new context.
              * (current context is idle, so it doesn't need restart.)
-             * 
+             *
              * Need to initialize new context before switch.
              */
             *new_sp = jet_context_init(
@@ -196,10 +211,10 @@ static void inter_partition_switch(pok_partition_t* part)
 
     if(*new_sp == NULL)
     {
-        /* 
+        /*
          * Restart is requested by new context.
          * (current context is different)
-         * 
+         *
          * Need to initialize new context before switch.
          */
         *new_sp = jet_context_init(part->initial_sp, &start_partition);
@@ -229,15 +244,15 @@ void pok_sched_restart (void)
 
     for_each_partition(&pok_partition_reset);
 
-    sched_need_recheck = 0; // Acquire semantic
-    barrier();
+    pok_sched_invalidate();
 
     // Navigate to the first slot
     pok_sched_current_slot = 0;
     pok_sched_next_major_frame = first_frame_starts + pok_config_scheduling_major_frame;
     pok_sched_next_deadline = pok_module_sched[0].duration + first_frame_starts;
 
-    current_partition = pok_module_sched[0].partition;
+    base_partition = pok_module_sched[0].partition;
+    current_partition = base_partition;
 
     new_sp = &current_partition->sp;
 #ifdef POK_NEEDS_MONITOR
@@ -267,52 +282,66 @@ void pok_sched_start (void)
     pok_sched_restart();
 }
 
-/* 
+/*
  * Perform scheduling.
- * 
+ *
  * Should be called with preemption disabled.
  */
 static void pok_sched(void)
 {
     pok_partition_t* part = current_partition;
-    pok_partition_t* new_partition;
     pok_time_t now;
 
     if(!flag_test_and_reset(sched_need_recheck)) return;
 
     now = jet_system_time();
 
-    if(pok_sched_next_deadline > now) goto same_partition;
+    /* (Re)compute 'base_partition' first. */
+    if(now >= pok_sched_next_deadline) {
+        pok_sched_current_slot = (pok_sched_current_slot + 1);
+        if(pok_sched_current_slot == pok_module_sched_n)
+        {
+            pok_sched_next_major_frame += pok_config_scheduling_major_frame;
+            pok_sched_current_slot = 0;
+        }
+        pok_sched_next_deadline += pok_module_sched[pok_sched_current_slot].duration;
 
-    pok_sched_current_slot = (pok_sched_current_slot + 1);
-    if(pok_sched_current_slot == pok_module_sched_n)
-    {
-        pok_sched_next_major_frame += pok_config_scheduling_major_frame;
-        pok_sched_current_slot = 0;
-    }
-    pok_sched_next_deadline += pok_module_sched[pok_sched_current_slot].duration;
-
-    new_partition = pok_module_sched[pok_sched_current_slot].partition;
-
-    if(new_partition == part) goto same_partition;
-
-    inter_partition_switch(new_partition);
-
-    /*
-     * If original partition's timer expires during other partition work,
-     * deliver timer event now.
-     */
-    now = jet_system_time();
-    if(part->timer != 0 && part->timer <= now)
-    {
-        pok_partition_add_event(part, JET_PARTITION_EVENT_TYPE_TIMER, 0);
-        part->timer = 0;
+        base_partition = pok_module_sched[pok_sched_current_slot].partition;
     }
 
-    return;
+    /* Check time for base partition. */
+    if((base_partition->timer != 0) && (now >= base_partition->timer))
+    {
+        pok_partition_add_event(base_partition, JET_PARTITION_EVENT_TYPE_TIMER, 0);
+        base_partition->timer = 0;
+        // Clear 'sched_need_recheck' flag: we are currently rechecking.
+        sched_need_recheck = FALSE;
+    }
 
-same_partition:
-    intra_partition_switch();
+    if(base_partition->is_event) {
+        // Interrupt IPPC request if base partition has events pending.
+        base_partition->ippc_executed = NULL;
+    }
+
+    if(base_partition->ippc_executed) {
+        // Switch to server partition.
+        struct jet_ippc_connection* last_connection = jet_ippc_connection_last(base_partition->ippc_executed);
+        part = last_connection->server_part;
+        part->ippc_handled = last_connection;
+    }
+    else {
+        // Switch to base partition
+        part = base_partition;
+        part->ippc_handled = NULL;
+    }
+
+    /* Switch to the selected partition. */
+    if(part == current_partition) {
+        intra_partition_switch();
+    }
+    else {
+        inter_partition_switch(part);
+    }
 }
 
 void pok_preemption_disable(void)
@@ -322,23 +351,30 @@ void pok_preemption_disable(void)
     ja_preempt_disable();
 }
 
-
-void pok_preemption_enable(void)
+/* Whether partition's state has been changed and required processing (with on_event()). */
+static pok_bool_t is_partition_state_changed(pok_partition_t* part)
 {
-    assert(!ja_preempt_enabled());
+    if(part->ippc_handled != part->ippc_handled_actual) return TRUE;
 
+    if((part->ippc_handled == NULL) && part->is_event) return TRUE;
+
+    return FALSE;
+}
+
+static void prepare_for_preemption(void)
+{
     pok_sched();
-    if(current_partition->preempt_local_disabled
-        || !current_partition->is_event)
-    {
-        // Partition doesn't require notifications. Common case.
-        ja_preempt_enable();
-        return;
-    }
 
+    if(current_partition->preempt_local_disabled)
+        return; // Partition is in its critical section. Do not interrupt it.
+
+    if(!is_partition_state_changed(current_partition))
+        return; // Partition's state is not changed.
+
+    // Need to call .on_event()
     current_partition->preempt_local_disabled = 1;
 
-    // Until partition "consume" all state bits or enables preemption.
+    // Repear on_event() until partition "consumes" process all events or enables preemption.
     do
     {
         ja_preempt_enable();
@@ -347,9 +383,17 @@ void pok_preemption_enable(void)
 
         ja_preempt_disable();
     } while(current_partition->preempt_local_disabled
-        && current_partition->is_event);
+        && is_partition_state_changed(current_partition));
 
     current_partition->preempt_local_disabled = 0;
+}
+
+void pok_preemption_enable(void)
+{
+    assert(!ja_preempt_enabled());
+
+    prepare_for_preemption();
+
     ja_preempt_enable();
 }
 
@@ -362,7 +406,7 @@ void __pok_preemption_enable(void)
 
 /*
  * Forward implementation, which iterates over all slots.
- * 
+ *
  * May be optimized in the future.
  */
 pok_time_t get_next_periodic_processing_start(void)
@@ -399,10 +443,10 @@ void pok_sched_on_time_changed(void)
 {
     assert(!ja_preempt_enabled());
 
-    pok_partition_t* part = current_partition;
-    sched_need_recheck = TRUE;
+    pok_sched_invalidate();
 
 #if POK_NEEDS_GDB
+    pok_partition_t* part = current_partition;
     pok_bool_t in_user_space = pok_in_user_space;
 
     if(in_user_space)
@@ -411,40 +455,12 @@ void pok_sched_on_time_changed(void)
         pok_in_user_space = FALSE;
     }
 #endif /* POK_NEEDS_GDB */
-    pok_sched();
-
-    if(current_partition_is_paused) goto out;
-
-    pok_bool_t preempt_local_disabled_old = current_partition->preempt_local_disabled;
-
-    pok_time_t current_time = jet_system_time();
-
-    if(part->timer != 0 && part->timer <= current_time)
-    {
-        pok_partition_add_event(part, JET_PARTITION_EVENT_TYPE_TIMER, 0);
-        part->timer = 0;
-    }
-
-    if(preempt_local_disabled_old || !part->is_event) goto out;
-    // Emit events for partition.
-    do
-    {
-        part->preempt_local_disabled = 1;
-        ja_preempt_enable();
-        part->part_sched_ops->on_event();
-        ja_preempt_disable();
-    } while(part->preempt_local_disabled && part->is_event);
-
-    part->preempt_local_disabled = 0;
-
+    prepare_for_preemption();
     // Still with disabled preemption. It is needed for returning from interrupt.
 
-out:
 #if POK_NEEDS_GDB
     // Restore user space indicator on return
     pok_in_user_space = in_user_space;
-#else
-    return;
 #endif
 }
 
@@ -456,7 +472,7 @@ static void pok_partition_return_user_common(void)
 
     // Emit events for partition.
     while(part->preempt_local_disabled
-        && part->is_event)
+        && is_partition_state_changed(part))
     {
         part->preempt_local_disabled = 1;
         ja_preempt_enable();
@@ -528,7 +544,7 @@ void pok_partition_restart(void)
     if(part->partition_generation == 0) part->partition_generation = 1;
 
 	part->sp = 0;
-    sched_need_recheck = TRUE;
+    pok_sched_invalidate();
 
     pok_preemption_enable();
 

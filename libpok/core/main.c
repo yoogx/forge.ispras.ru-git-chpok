@@ -18,10 +18,60 @@
 #include "smalloc_internal.h"
 #include <memblocks.h>
 #include <stdlib.h>
-
-int main(void);
+#include <arinc653/process.h>
+#include <stdio.h>
 
 struct jet_kernel_shared_data* kshd;
+
+void main(void);
+
+/*
+ * By default, main() function is called and expected to not return.
+ *
+ * It is possible to redefine this function to another wrapper around main.
+ */
+void __attribute__ ((weak)) __main(void)
+{
+    main();
+
+    printf("ERROR: Main function returned.\n");
+
+    STOP_SELF();
+}
+
+static void thread_print_message_after_return(void)
+{
+    PROCESS_STATUS_TYPE process_status;
+    RETURN_CODE_TYPE ret;
+    PROCESS_ID_TYPE process_id;
+
+    GET_MY_ID(&process_id, &ret);
+
+    if(ret == NO_ERROR) {
+        // Normal thread, can request status for it.
+        GET_PROCESS_STATUS(process_id, &process_status, &ret);
+        printf("WARNING: Function for process '%s' returns. Forgot about STOP_SELF()?\n", process_status.ATTRIBUTES.NAME);
+    }
+    else {
+        // Error thread.
+        printf("WARNING: Error handler function returns. Forgot about STOP_SELF()?\n");
+    }
+}
+
+/* Default wrapper around thread entry point. */
+static void default_thread_entry_wrapper(void)
+{
+    // Call actual thread entry.
+    struct jet_thread_shared_data* tshd = &kshd->tshd[kshd->current_thread_id];
+
+    tshd->thread_entry_point();
+
+    thread_print_message_after_return();
+
+    STOP_SELF();
+}
+
+
 
 int __pok_partition_start (void)
 {
@@ -42,6 +92,9 @@ int __pok_partition_start (void)
 
    libjet_arinc_init();
 
-   main(); /* main loop from user */
-   return (0);
+   kshd->thread_entry_wrapper = &default_thread_entry_wrapper;
+
+   __main(); /* main loop from user */
+
+   return 0; // Unreachable
 }

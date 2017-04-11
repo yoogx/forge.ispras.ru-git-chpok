@@ -1,6 +1,6 @@
 /*
  * Institute for System Programming of the Russian Academy of Sciences
- * Copyright (C) 2016 ISPRAS
+ * Copyright (C) 2017 ISPRAS
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -13,13 +13,10 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-/* Stack for the (kernel) thread. */
+#ifndef __JET_UAPI_IPPC_TYPES_H__
+#define __JET_UAPI_IPPC_TYPES_H__
 
-#ifndef __JET_PPC_STACK_H__
-#define __JET_PPC_STACK_H__
+#define IPPC_MAX_INPUT_PARAMS_N 6 // Request identificator as function's selector plus (at most) 5 function parameters.
+#define IPPC_MAX_OUTPUT_PARAMS_N 2 // Return status plus (at most) 1 OUT function's parameter.
 
-#include <stdint.h>
-
-typedef uint32_t jet_stack_t;
-
-#endif /* __JET_PPC_STACK_H__ */
+#endif /* __JET_UAPI_IPPC_TYPES_H__ */

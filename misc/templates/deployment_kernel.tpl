@@ -92,6 +92,44 @@ pok_channel_sampling_t pok_channels_sampling[{{ conf.channels_sampling | length 
 
 uint8_t pok_channels_sampling_n = {{ conf.channels_sampling | length }};
 
+/****************** Setup IPPC portal types **********************/
+{%for portal_type in conf.portal_types%}
+// First iteration: declare connections
+{%for portal in portal_type.portals%}
+static struct jet_ippc_connection ippc_init_connection_{{portal_type.portal_type_index}}_{{portal.portal_index}} = {
+    .client_part = &pok_partitions_arinc[{{portal.client_part_index}}].base_part,
+    .server_part = &pok_partitions_arinc[{{portal_type.server_part_index}}].base_part,
+};
+
+static struct jet_ippc_connection ippc_connections_{{portal_type.portal_type_index}}_{{portal.portal_index}}[] = {
+{%for connection_index in range(portal.connections_n) %}
+    {
+        .client_part = &pok_partitions_arinc[{{portal.client_part_index}}].base_part,
+        .server_part = &pok_partitions_arinc[{{portal_type.server_part_index}}].base_part,
+    },
+{%endfor%}{#connection_index loop#}
+};
+{%endfor%}{#portal loop#}
+// Second iteration: declare portals array
+static struct jet_ippc_portal ippc_portals_{{portal_type.portal_type_index}}[] = {
+{%for portal in portal_type.portals%}
+    {
+        .init_connection = &ippc_init_connection_{{portal_type.portal_type_index}}_{{portal.portal_index}},
+        .n_connections = {{portal.connections_n}},
+        .connections = ippc_connections_{{portal_type.portal_type_index}}_{{portal.portal_index}},
+    },
+{%endfor%}{#portal loop#}
+};
+
+// Finally, portal_type object.
+static struct jet_ippc_portal_type ippc_portal_type_{{portal_type.portal_type_index}} = {
+    .portal_name = "{{portal_type.portal_type_name}}",
+    .n_portals = {{portal_type.portals | length}},
+    .portals = ippc_portals_{{portal_type.portal_type_index}}
+};
+
+{%endfor%}{#portal_type loop#}
+
 {%for part in conf.partitions%}
 
 {%set pmd = memory_definitions.partitions[loop.index0]%}
@@ -242,6 +280,30 @@ static const struct jet_partition_memory_block_init_entry memory_block_init_entr
 {%endfor%}
 };
 
+{%if part.portal_types%}
+// Portal types, provided by partition
+static struct jet_partition_arinc_ippc_portal_type partition_portal_types_{{part.index}}[] = {
+{%for part_portal_type in part.portal_types%}
+    {
+        .portal_type = &ippc_portal_type_{{part_portal_type.portal_type_index}},
+    },
+{%endfor%}
+};
+{%endif%}
+
+{%if part.portals%}
+// Portals, used by partition
+static struct jet_partition_arinc_ippc_portal partition_portals_{{part.index}}[] = {
+{%for part_portal in part.portals%}
+    {
+        .portal_name = "{{part_portal.portal_type_name}}",
+        .portal = &ippc_portals_{{part_portal.portal_type_index}}[{{part_portal.portal_index}}],
+    },
+{%endfor%}
+};
+{%endif%}
+
+
 {%endfor%}{#partitions loop#}
 
 /*************** Setup partitions array *******************************/
@@ -255,8 +317,8 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
             // Allocate 1 event slot per queuing port plus 2 slots for timer.
             .partition_event_max = {{part.ports_queueing | length}} + 2,
 
-            .period = {{part.period}},
-            .duration = {{part.duration}},
+            .period = {{part.period}}LL,
+            .duration = {{part.duration}}LL,
             .partition_id = {{part.part_id}},
 
             .space_id = {{part.space_id}},
@@ -282,6 +344,13 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
 
         .nthreads = {{part.num_threads_total}},
         .threads = partition_threads_{{loop.index0}},
+        .nthreads_normal = {{part.num_threads}},
+
+        .portal_types = {%if part.portal_types%}partition_portal_types_{{part.index}}{%else%}NULL{%endif%},
+        .portal_types_n = {{part.portal_types | length}},
+
+        .portals = {%if part.portals%}partition_portals_{{part.index}}{%else%}NULL{%endif%},
+        .portals_n = {{part.portals | length}},
 
         .main_user_stack_size = 8192, {# TODO: This should be set in config somehow. #}
 

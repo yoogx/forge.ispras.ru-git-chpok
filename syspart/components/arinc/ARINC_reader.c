@@ -48,6 +48,7 @@ static int receive_msg_queuing(ARINC_PORT_READER *self)
     return 0;
 }
 
+
 static int receive_msg_samping(ARINC_PORT_READER *self)
 {
     RETURN_CODE_TYPE ret;
@@ -81,7 +82,7 @@ void arinc_port_reader_activity(ARINC_PORT_READER *self)
         receive_error = receive_msg_queuing(self);
     }
     else
-        receive_error = receive_msg_samping(self);
+        receive_error = receive_msg_sampling(self);
 
     if (receive_error != 0)
         return;

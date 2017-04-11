@@ -42,6 +42,14 @@ module or debug it.
 #    partitions may be (re)generated. By default, these files are already
 #    existed.
 #
+#  kerneltests - enables unittests mode for the kernel.
+#    If set to True, it enables unittests mode in the kernel.
+#    In this mode, some additional files are linked into the kernel.
+#
+#  libpoktests - enables unittests mode for libpok.
+#    If set to True, it enables unittests mode in libpok.
+#    In this mode, some additional files are added to libjet.a.
+#
 # Environment variables which affects on building:
 #
 #  JETOS_BSP - specified BSP for build (if 'bsp' scons parameter is absent).
@@ -89,7 +97,9 @@ vars = Variables()
 vars.AddVariables(
     ('bsp', "Board Support Package for use. List of possible values may be obtained by using value '?'.", None),
     BoolVariable('jdeveloper', 'Enables developer mode', False),
-    BoolVariable('cdeveloper', 'Enables component developer mode', False)
+    BoolVariable('cdeveloper', 'Enables component developer mode', False),
+    BoolVariable('kerneltests', 'Enables kernel unittests mode', False),
+    BoolVariable('libpoktests', 'Enables libpok unittests mode', False)
 )
 
 env = Environment(variables = vars, ENV = os.environ)
@@ -98,6 +108,8 @@ Help(vars.GenerateHelpText(env))
 jetos_home = Dir('..').abspath # Do not require os environment variable JETOS_HOME
 
 env['JETOS_HOME'] = jetos_home
+
+env['JETOS_UNITTESTS'] = os.environ.get('JETOS_UNITTESTS', '')
 
 
 scons_param_bsp = env.get('bsp', None)

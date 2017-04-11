@@ -1,0 +1,33 @@
+# COPIED! DO NOT MODIFY!
+# Instead of modifying this file, modify original one (examples/SConstruct_module).
+#
+# When copy a file outside of JetOS project, remove this line and the lines above.
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+import os
+
+jetos_home = os.environ.get('JETOS_HOME', "")
+
+if jetos_home == "":
+	print "ERROR: Environment variable 'JETOS_HOME' is not set."
+	print "HINT:Environment variable 'JETOS_HOME' should point to the JetOS root directory."
+	Exit(1)
+
+env = SConscript(jetos_home+'/misc/SConscript_example_module')

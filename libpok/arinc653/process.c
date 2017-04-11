@@ -48,7 +48,7 @@
 #define MAP_ERROR_DEFAULT(to) default: *return_code = (to); break
 
 #define CHECK_PROCESS_ID() \
-    if (process_id == 0) { \
+    if (process_id <= 0) { \
         *return_code = INVALID_PARAM; \
         return; \
     }

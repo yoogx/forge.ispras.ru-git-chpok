@@ -33,6 +33,7 @@
          }
          return self->out.portA.ops->send(self->out.portA.owner, arg1, arg2, arg3, arg4);
       }
+
       ret_t ARINC_PORT_READER_call_portA_flush(ARINC_PORT_READER *self)
       {
          if (self->out.portA.ops == NULL) {
@@ -41,6 +42,8 @@
          }
          return self->out.portA.ops->flush(self->out.portA.owner);
       }
+      ret_t ARINC_SENDER_call_portA_flush(ARINC_SENDER *self)
+      __attribute__ ((weak, alias ("_ARINC_SENDER_call_portA_flush_impl")));
 
 
 void __ARINC_PORT_READER_init__(ARINC_PORT_READER *self)

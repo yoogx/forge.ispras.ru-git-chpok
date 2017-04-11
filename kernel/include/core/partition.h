@@ -150,6 +150,23 @@ enum jet_partition_event_type
     JET_PARTITION_EVENT_TYPE_PORT_SEND_AVAILABLE,
     /* Message is available for receive it from the queuing port. */
     JET_PARTITION_EVENT_TYPE_PORT_RECEIVE_AVAILABLE,
+    /*
+     * IPPC connection is paused.
+     *
+     * Two PAUSED events cannot be raised without execute() between them.
+     */
+    JET_PARTITION_EVENT_TYPE_IPPC_PAUSED,
+    /*
+     * IPPC connection is resumed after pausing.
+     *
+     * Two UNPAUSED events cannot be raised without execute() between them.
+     */
+    JET_PARTITION_EVENT_TYPE_IPPC_UNPAUSED,
+    /*
+     * IPPC connection is cancelled. This event is for server.
+     */
+    JET_PARTITION_EVENT_TYPE_IPPC_CANCELLED,
+
 };
 
 /* Outer event for partition. */
@@ -210,6 +227,37 @@ typedef struct _pok_partition
     pok_bool_t is_event;
 
     /*
+     * IPPC request which should be handled by the partition.
+     *
+     * If partition is executed normally (in its time), this is NULL.
+     *
+     * This field is set by the global scheduler, and should be checked
+     * by the local one.
+     */
+    struct jet_ippc_connection* ippc_handled;
+
+    /*
+     * IPPC request which is currently handled by the partition.
+     *
+     * Inequality of difference given one and '.ippc_handled' means
+     * that rescheduling is needed.
+     *
+     * Set by the local scheduler, checked by both global and local schedulers.
+     */
+    struct jet_ippc_connection* ippc_handled_actual;
+
+    /*
+     * When jet_ippc_execute() is called, this is set to its connection.
+     *
+     * Such a way, IPPC request execution becomes a *state* of the partition,
+     * not a simple function call which should be restarted after timer
+     * interrupt.
+     *
+     * This field is only for global scheduler.
+     */
+    struct jet_ippc_connection* ippc_executed;
+
+    /*
      * Whether local preemption is disabled.
      *
      * Flag can be read, modified or cleared by the partition itself.
@@ -234,8 +282,8 @@ typedef struct _pok_partition
     const char               *name;          /**< Name of the partition */
 
     // Should be set in deployment.c.
-    uint32_t                 period;         /**< Period of the partition, unused at this time */
-    uint32_t                 duration;       /**< Duration of the partition, unused at this time */
+    pok_time_t               period;         /**< Period of the partition, unused at this time */
+    pok_time_t               duration;       /**< Duration of the partition, unused at this time */
     pok_partition_id_t       partition_id;
 
     /*
