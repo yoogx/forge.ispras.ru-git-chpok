@@ -15,6 +15,8 @@
 
 #include <asp/space.h>
 #include <assert.h>
+#include "cpu.h"
+#include <asp/alloc.h>
 
 #ifdef JET_ARM_CONFIG_FPU
 struct jet_fp_store
