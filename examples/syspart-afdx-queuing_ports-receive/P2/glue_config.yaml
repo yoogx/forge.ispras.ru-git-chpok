@@ -35,7 +35,7 @@ instances:
     - name: afdx_ic_vl1_ntA
       type: INTEGRITY_CHECKER
       state:
-            network_card: 0 
+            network_card: 0
             #think about define
     - name: afdx_ic_vl2_ntA
       type: INTEGRITY_CHECKER
@@ -45,15 +45,13 @@ instances:
     - name: afdx_ic_vl1_ntB
       type: INTEGRITY_CHECKER
       state:
-            network_card: 1 
+            network_card: 1
             #think about define
     - name: afdx_ic_vl2_ntB
       type: INTEGRITY_CHECKER
       state:
             network_card: 1
-    
-    - name: z_test
-      type: Z_TEST
+
             #think about define
     - name: red_mngr
       type: REDUNDANCY_MANAGER
@@ -191,4 +189,3 @@ links:
       to:
         instance: arinc_prt_wrtr_2
         port: portA
-

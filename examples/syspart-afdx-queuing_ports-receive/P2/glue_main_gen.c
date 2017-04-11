@@ -141,14 +141,6 @@ struct port_ops{
 
         };
 
-    #include <Z_TEST_gen.h>
-        void __Z_TEST_init__(Z_TEST*);
-        void __Z_TEST_activity__(Z_TEST*);
-        Z_TEST z_test = {
-            .instance_name = "z_test",
-
-        };
-
     #include <REDUNDANCY_MANAGER_gen.h>
         void __REDUNDANCY_MANAGER_init__(REDUNDANCY_MANAGER*);
         void __REDUNDANCY_MANAGER_activity__(REDUNDANCY_MANAGER*);
@@ -230,8 +222,6 @@ void glue_main()
 
             __INTEGRITY_CHECKER_init__(&afdx_ic_vl2_ntB);
 
-            __Z_TEST_init__(&z_test);
-
             __REDUNDANCY_MANAGER_init__(&red_mngr);
 
             __AFDX_TO_ARINC_ROUTER_init__(&afdx_t_arinc_rtr);
@@ -287,7 +277,6 @@ void glue_activity()
                 __INTEGRITY_CHECKER_activity__(&afdx_ic_vl2_ntA);
                 __INTEGRITY_CHECKER_activity__(&afdx_ic_vl1_ntB);
                 __INTEGRITY_CHECKER_activity__(&afdx_ic_vl2_ntB);
-                __Z_TEST_activity__(&z_test);
                 __REDUNDANCY_MANAGER_activity__(&red_mngr);
                 __AFDX_TO_ARINC_ROUTER_activity__(&afdx_t_arinc_rtr);
                 __ARINC_PORT_WRITER_activity__(&arinc_prt_wrtr_1);
