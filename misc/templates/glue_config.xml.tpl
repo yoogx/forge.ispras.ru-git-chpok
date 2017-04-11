@@ -13,6 +13,7 @@
     <ARINC653_Ports>
         <Queueing_Port Name="UIN"  Protocol="UDP" MaxMessageSize="64" Direction="SOURCE" MaxNbMessage="10" />
         <Queueing_Port Name="UOUT" Protocol="UDP" MaxMessageSize="64" Direction="DESTINATION" MaxNbMessage="10" />
+        <Queueing_Port Name="UOUT2" Protocol="UDP" MaxMessageSize="64" Direction="DESTINATION" MaxNbMessage="10" />
         <Sampling_Port Name="SUIN" Protocol="UDP" MaxMessageSize="64" Direction="SOURCE" Refresh="1s"/>
         <Sampling_Port Name="SUOUT" Protocol="UDP" MaxMessageSize="64" Direction="DESTINATION" Refresh="1s"/>
     </ARINC653_Ports>

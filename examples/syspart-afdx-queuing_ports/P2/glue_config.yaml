@@ -8,7 +8,18 @@ instances:
           append_overhead: 1
           port_max_message_size: 64
           is_queuing_port: 1
-          q_port_max_nb_messages: 10          
+          q_port_max_nb_messages: 10
+
+    - name: arinc_port_rdr_2
+      type: ARINC_PORT_READER
+      state:
+          port_name: '"UOUT2"'
+          port_direction: DESTINATION
+          prepend_overhead: 42 #14+20+8
+          append_overhead: 1
+          port_max_message_size: 64
+          is_queuing_port: 1
+          q_port_max_nb_messages: 10
 
     - name: afdx_filler_1
       type: AFDX_FILLER
@@ -17,11 +28,28 @@ instances:
           ttl: 5
           src_partition_id: 1
           dst_partition_id: 2
+          src_afdx_port: 0
+          dst_afdx_port: 1
+          type_of_packet: UNICAST_PACKET
+
+    - name: afdx_filler_2
+      type: AFDX_FILLER
+      state:
+          vl_id: 2
+          ttl: 5
+          src_partition_id: 1
+          dst_partition_id: 2
           src_afdx_port: 1
           dst_afdx_port: 2
           type_of_packet: UNICAST_PACKET
 
     - name: afdx_enqueuer_1
+      type: AFDX_QUEUE_ENQUEUER
+      state:
+          BAG: SECOND
+          max_queue_size: 10
+
+    - name: afdx_enqueuer_2
       type: AFDX_QUEUE_ENQUEUER
       state:
           BAG: SECOND
@@ -45,7 +73,7 @@ instances:
       type: AFDX_STOP
 
 links:
-
+#vl 1
     - from:
         instance: arinc_port_rdr_1
         port: portA
@@ -69,6 +97,34 @@ links:
 
     - from:
         instance: afdx_enqueuer_1
+        port: portNetB
+      to:
+        instance: virtio_net_dev_2
+        port: portA
+ #vl 2
+    - from:
+        instance: arinc_port_rdr_2
+        port: portA
+      to:
+        instance: afdx_filler_2
+        port: portA
+
+    - from:
+        instance: afdx_filler_2
+        port: portB
+      to:
+        instance: afdx_enqueuer_2
+        port: portB
+
+    - from:
+        instance: afdx_enqueuer_2
+        port: portNetA
+      to:
+        instance: virtio_net_dev_1
+        port: portA
+
+    - from:
+        instance: afdx_enqueuer_2
         port: portNetB
       to:
         instance: virtio_net_dev_2

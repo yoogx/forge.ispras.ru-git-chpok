@@ -52,16 +52,16 @@ struct port_ops{
     #include <AFDX_TIME_ADDER_gen.h>
         void __AFDX_TIME_ADDER_init__(AFDX_TIME_ADDER*);
         void __AFDX_TIME_ADDER_activity__(AFDX_TIME_ADDER*);
-        AFDX_TIME_ADDER afdx_time_adder_1 = {
-            .instance_name = "afdx_time_adder_1",
+        AFDX_TIME_ADDER afdx_time_add_1 = {
+            .instance_name = "afdx_time_add_1",
 
         };
 
     #include <AFDX_TIME_ADDER_gen.h>
         void __AFDX_TIME_ADDER_init__(AFDX_TIME_ADDER*);
         void __AFDX_TIME_ADDER_activity__(AFDX_TIME_ADDER*);
-        AFDX_TIME_ADDER afdx_time_adder_2 = {
-            .instance_name = "afdx_time_adder_2",
+        AFDX_TIME_ADDER afdx_time_add_2 = {
+            .instance_name = "afdx_time_add_2",
 
         };
 
@@ -73,7 +73,7 @@ struct port_ops{
             .instance_name = "afdx_router_1",
             .state = {
                 .map_vl_id_to_idx_len = 2,
-                .map_vl_id_to_idx = {{0}, {1}},
+                .map_vl_id_to_idx = {1, 2},
             },
 
             .out = {
@@ -89,7 +89,7 @@ struct port_ops{
             .instance_name = "afdx_router_2",
             .state = {
                 .map_vl_id_to_idx_len = 2,
-                .map_vl_id_to_idx = {{0}, {1}},
+                .map_vl_id_to_idx = {1, 2},
             },
 
             .out = {
@@ -100,8 +100,8 @@ struct port_ops{
     #include <INTEGRITY_CHECKER_gen.h>
         void __INTEGRITY_CHECKER_init__(INTEGRITY_CHECKER*);
         void __INTEGRITY_CHECKER_activity__(INTEGRITY_CHECKER*);
-        INTEGRITY_CHECKER afdx_integrity_checker_vl_0_net_a = {
-            .instance_name = "afdx_integrity_checker_vl_0_net_a",
+        INTEGRITY_CHECKER afdx_ic_vl1_ntA = {
+            .instance_name = "afdx_ic_vl1_ntA",
             .state = {
                 .network_card = 0,
             },
@@ -111,8 +111,8 @@ struct port_ops{
     #include <INTEGRITY_CHECKER_gen.h>
         void __INTEGRITY_CHECKER_init__(INTEGRITY_CHECKER*);
         void __INTEGRITY_CHECKER_activity__(INTEGRITY_CHECKER*);
-        INTEGRITY_CHECKER afdx_integrity_checker_vl_1_net_a = {
-            .instance_name = "afdx_integrity_checker_vl_1_net_a",
+        INTEGRITY_CHECKER afdx_ic_vl2_ntA = {
+            .instance_name = "afdx_ic_vl2_ntA",
             .state = {
                 .network_card = 0,
             },
@@ -122,8 +122,8 @@ struct port_ops{
     #include <INTEGRITY_CHECKER_gen.h>
         void __INTEGRITY_CHECKER_init__(INTEGRITY_CHECKER*);
         void __INTEGRITY_CHECKER_activity__(INTEGRITY_CHECKER*);
-        INTEGRITY_CHECKER afdx_integrity_checker_vl_0_net_b = {
-            .instance_name = "afdx_integrity_checker_vl_0_net_b",
+        INTEGRITY_CHECKER afdx_ic_vl1_ntB = {
+            .instance_name = "afdx_ic_vl1_ntB",
             .state = {
                 .network_card = 1,
             },
@@ -133,26 +133,29 @@ struct port_ops{
     #include <INTEGRITY_CHECKER_gen.h>
         void __INTEGRITY_CHECKER_init__(INTEGRITY_CHECKER*);
         void __INTEGRITY_CHECKER_activity__(INTEGRITY_CHECKER*);
-        INTEGRITY_CHECKER afdx_integrity_checker_vl_1_net_b = {
-            .instance_name = "afdx_integrity_checker_vl_1_net_b",
+        INTEGRITY_CHECKER afdx_ic_vl2_ntB = {
+            .instance_name = "afdx_ic_vl2_ntB",
             .state = {
                 .network_card = 1,
             },
+
+        };
+
+    #include <Z_TEST_gen.h>
+        void __Z_TEST_init__(Z_TEST*);
+        void __Z_TEST_activity__(Z_TEST*);
+        Z_TEST z_test = {
+            .instance_name = "z_test",
 
         };
 
     #include <REDUNDANCY_MANAGER_gen.h>
         void __REDUNDANCY_MANAGER_init__(REDUNDANCY_MANAGER*);
         void __REDUNDANCY_MANAGER_activity__(REDUNDANCY_MANAGER*);
-        REDUNDANCY_MANAGER redundancy_manager = {
-            .instance_name = "redundancy_manager",
+        REDUNDANCY_MANAGER red_mngr = {
+            .instance_name = "red_mngr",
             .state = {
-                .virtual_link_data[1].vl_id = 1,
-                .virtual_link_data[0].skew_max = 100000000,
-                .virtual_link_data[1].skew_max = 100000000,
-                .virtual_link_data[0].vl_id = 0,
-                .virtual_link_data[1].BAG = 100,
-                .virtual_link_data[0].BAG = 100,
+                .virtual_link_data = {{.vl_id=1, .skew_max=100000000, .BAG=100}, {.vl_id=2, .skew_max=100000000, .BAG=100}},
             },
 
         };
@@ -160,24 +163,39 @@ struct port_ops{
     #include <AFDX_TO_ARINC_ROUTER_gen.h>
         void __AFDX_TO_ARINC_ROUTER_init__(AFDX_TO_ARINC_ROUTER*);
         void __AFDX_TO_ARINC_ROUTER_activity__(AFDX_TO_ARINC_ROUTER*);
-            struct port_ops afdx_to_arinc_router_array_for_portArray[3];
-        AFDX_TO_ARINC_ROUTER afdx_to_arinc_router = {
-            .instance_name = "afdx_to_arinc_router",
+            struct port_ops afdx_t_arinc_rtr_array_for_portArray[2];
+        AFDX_TO_ARINC_ROUTER afdx_t_arinc_rtr = {
+            .instance_name = "afdx_t_arinc_rtr",
             .state = {
-                .map_afdx_dst_port_to_idx = {0, 1, 2},
-                .map_afdx_dst_port_to_idx_len = 3,
+                .map_afdx_dst_port_vl_id_to_idx = {{1,1}, {2,2}},
+                .map_afdx_dst_port_to_idx_len = 2,
             },
 
             .out = {
-                .portArray = (void *)afdx_to_arinc_router_array_for_portArray,
+                .portArray = (void *)afdx_t_arinc_rtr_array_for_portArray,
             }
         };
 
     #include <ARINC_PORT_WRITER_gen.h>
         void __ARINC_PORT_WRITER_init__(ARINC_PORT_WRITER*);
         void __ARINC_PORT_WRITER_activity__(ARINC_PORT_WRITER*);
-        ARINC_PORT_WRITER arinc_port_writer_1 = {
-            .instance_name = "arinc_port_writer_1",
+        ARINC_PORT_WRITER arinc_prt_wrtr_1 = {
+            .instance_name = "arinc_prt_wrtr_1",
+            .state = {
+                .port_direction = SOURCE,
+                .is_queuing_port = 1,
+                .port_max_message_size = 64,
+                .port_name = "UIN",
+                .q_port_max_nb_messages = 10,
+            },
+
+        };
+
+    #include <ARINC_PORT_WRITER_gen.h>
+        void __ARINC_PORT_WRITER_init__(ARINC_PORT_WRITER*);
+        void __ARINC_PORT_WRITER_activity__(ARINC_PORT_WRITER*);
+        ARINC_PORT_WRITER arinc_prt_wrtr_2 = {
+            .instance_name = "arinc_prt_wrtr_2",
             .state = {
                 .port_direction = SOURCE,
                 .is_queuing_port = 1,
@@ -196,61 +214,63 @@ void glue_main()
 
             __VIRTIO_NET_DEV_init__(&virtio_net_dev_2);
 
-            __AFDX_TIME_ADDER_init__(&afdx_time_adder_1);
+            __AFDX_TIME_ADDER_init__(&afdx_time_add_1);
 
-            __AFDX_TIME_ADDER_init__(&afdx_time_adder_2);
+            __AFDX_TIME_ADDER_init__(&afdx_time_add_2);
 
             __AFDX_ROUTER_init__(&afdx_router_1);
 
             __AFDX_ROUTER_init__(&afdx_router_2);
 
-            __INTEGRITY_CHECKER_init__(&afdx_integrity_checker_vl_0_net_a);
+            __INTEGRITY_CHECKER_init__(&afdx_ic_vl1_ntA);
 
-            __INTEGRITY_CHECKER_init__(&afdx_integrity_checker_vl_1_net_a);
+            __INTEGRITY_CHECKER_init__(&afdx_ic_vl2_ntA);
 
-            __INTEGRITY_CHECKER_init__(&afdx_integrity_checker_vl_0_net_b);
+            __INTEGRITY_CHECKER_init__(&afdx_ic_vl1_ntB);
 
-            __INTEGRITY_CHECKER_init__(&afdx_integrity_checker_vl_1_net_b);
+            __INTEGRITY_CHECKER_init__(&afdx_ic_vl2_ntB);
 
-            __REDUNDANCY_MANAGER_init__(&redundancy_manager);
+            __Z_TEST_init__(&z_test);
 
-            __AFDX_TO_ARINC_ROUTER_init__(&afdx_to_arinc_router);
+            __REDUNDANCY_MANAGER_init__(&red_mngr);
 
-            __ARINC_PORT_WRITER_init__(&arinc_port_writer_1);
+            __AFDX_TO_ARINC_ROUTER_init__(&afdx_t_arinc_rtr);
+
+            __ARINC_PORT_WRITER_init__(&arinc_prt_wrtr_1);
+
+            __ARINC_PORT_WRITER_init__(&arinc_prt_wrtr_2);
 
 
-        virtio_net_dev_1.out.portB.ops = &afdx_time_adder_1.in.portB.ops;
-        virtio_net_dev_1.out.portB.owner = &afdx_time_adder_1;
-        afdx_time_adder_1.out.portA.ops = &afdx_router_1.in.portA.ops;
-        afdx_time_adder_1.out.portA.owner = &afdx_router_1;
-        afdx_router_1.out.portArray[0].ops = &afdx_integrity_checker_vl_0_net_a.in.portA.ops;
-        afdx_router_1.out.portArray[0].owner = &afdx_integrity_checker_vl_0_net_a;
-        afdx_router_1.out.portArray[1].ops = &afdx_integrity_checker_vl_1_net_a.in.portA.ops;
-        afdx_router_1.out.portArray[1].owner = &afdx_integrity_checker_vl_1_net_a;
-        afdx_integrity_checker_vl_0_net_a.out.portB.ops = &redundancy_manager.in.portA.ops;
-        afdx_integrity_checker_vl_0_net_a.out.portB.owner = &redundancy_manager;
-        afdx_integrity_checker_vl_1_net_a.out.portB.ops = &redundancy_manager.in.portA.ops;
-        afdx_integrity_checker_vl_1_net_a.out.portB.owner = &redundancy_manager;
-        virtio_net_dev_2.out.portB.ops = &afdx_time_adder_2.in.portB.ops;
-        virtio_net_dev_2.out.portB.owner = &afdx_time_adder_2;
-        afdx_time_adder_2.out.portA.ops = &afdx_router_2.in.portA.ops;
-        afdx_time_adder_2.out.portA.owner = &afdx_router_2;
-        afdx_router_2.out.portArray[0].ops = &afdx_integrity_checker_vl_0_net_b.in.portA.ops;
-        afdx_router_2.out.portArray[0].owner = &afdx_integrity_checker_vl_0_net_b;
-        afdx_router_2.out.portArray[1].ops = &afdx_integrity_checker_vl_1_net_b.in.portA.ops;
-        afdx_router_2.out.portArray[1].owner = &afdx_integrity_checker_vl_1_net_b;
-        afdx_integrity_checker_vl_0_net_b.out.portB.ops = &redundancy_manager.in.portB.ops;
-        afdx_integrity_checker_vl_0_net_b.out.portB.owner = &redundancy_manager;
-        afdx_integrity_checker_vl_1_net_b.out.portB.ops = &redundancy_manager.in.portB.ops;
-        afdx_integrity_checker_vl_1_net_b.out.portB.owner = &redundancy_manager;
-        redundancy_manager.out.portC.ops = &afdx_to_arinc_router.in.portC.ops;
-        redundancy_manager.out.portC.owner = &afdx_to_arinc_router;
-        afdx_to_arinc_router.out.portArray[0].ops = &arinc_port_writer_1.in.portA.ops;
-        afdx_to_arinc_router.out.portArray[0].owner = &arinc_port_writer_1;
-        afdx_to_arinc_router.out.portArray[1].ops = &arinc_port_writer_1.in.portA.ops;
-        afdx_to_arinc_router.out.portArray[1].owner = &arinc_port_writer_1;
-        afdx_to_arinc_router.out.portArray[2].ops = &arinc_port_writer_1.in.portA.ops;
-        afdx_to_arinc_router.out.portArray[2].owner = &arinc_port_writer_1;
+        virtio_net_dev_1.out.portB.ops = &afdx_time_add_1.in.portB.ops;
+        virtio_net_dev_1.out.portB.owner = &afdx_time_add_1;
+        afdx_time_add_1.out.portA.ops = &afdx_router_1.in.portA.ops;
+        afdx_time_add_1.out.portA.owner = &afdx_router_1;
+        afdx_router_1.out.portArray[0].ops = &afdx_ic_vl1_ntA.in.portA.ops;
+        afdx_router_1.out.portArray[0].owner = &afdx_ic_vl1_ntA;
+        afdx_router_1.out.portArray[1].ops = &afdx_ic_vl2_ntA.in.portA.ops;
+        afdx_router_1.out.portArray[1].owner = &afdx_ic_vl2_ntA;
+        afdx_ic_vl1_ntA.out.portB.ops = &red_mngr.in.portA.ops;
+        afdx_ic_vl1_ntA.out.portB.owner = &red_mngr;
+        afdx_ic_vl2_ntA.out.portB.ops = &red_mngr.in.portA.ops;
+        afdx_ic_vl2_ntA.out.portB.owner = &red_mngr;
+        virtio_net_dev_2.out.portB.ops = &afdx_time_add_2.in.portB.ops;
+        virtio_net_dev_2.out.portB.owner = &afdx_time_add_2;
+        afdx_time_add_2.out.portA.ops = &afdx_router_2.in.portA.ops;
+        afdx_time_add_2.out.portA.owner = &afdx_router_2;
+        afdx_router_2.out.portArray[0].ops = &afdx_ic_vl1_ntB.in.portA.ops;
+        afdx_router_2.out.portArray[0].owner = &afdx_ic_vl1_ntB;
+        afdx_router_2.out.portArray[1].ops = &afdx_ic_vl2_ntB.in.portA.ops;
+        afdx_router_2.out.portArray[1].owner = &afdx_ic_vl2_ntB;
+        afdx_ic_vl1_ntB.out.portB.ops = &red_mngr.in.portB.ops;
+        afdx_ic_vl1_ntB.out.portB.owner = &red_mngr;
+        afdx_ic_vl2_ntB.out.portB.ops = &red_mngr.in.portB.ops;
+        afdx_ic_vl2_ntB.out.portB.owner = &red_mngr;
+        red_mngr.out.portC.ops = &afdx_t_arinc_rtr.in.portC.ops;
+        red_mngr.out.portC.owner = &afdx_t_arinc_rtr;
+        afdx_t_arinc_rtr.out.portArray[0].ops = &arinc_prt_wrtr_1.in.portA.ops;
+        afdx_t_arinc_rtr.out.portArray[0].owner = &arinc_prt_wrtr_1;
+        afdx_t_arinc_rtr.out.portArray[1].ops = &arinc_prt_wrtr_2.in.portA.ops;
+        afdx_t_arinc_rtr.out.portArray[1].owner = &arinc_prt_wrtr_2;
 
 }
 
@@ -259,17 +279,19 @@ void glue_activity()
     while (1) {
                 __VIRTIO_NET_DEV_activity__(&virtio_net_dev_1);
                 __VIRTIO_NET_DEV_activity__(&virtio_net_dev_2);
-                __AFDX_TIME_ADDER_activity__(&afdx_time_adder_1);
-                __AFDX_TIME_ADDER_activity__(&afdx_time_adder_2);
+                __AFDX_TIME_ADDER_activity__(&afdx_time_add_1);
+                __AFDX_TIME_ADDER_activity__(&afdx_time_add_2);
                 __AFDX_ROUTER_activity__(&afdx_router_1);
                 __AFDX_ROUTER_activity__(&afdx_router_2);
-                __INTEGRITY_CHECKER_activity__(&afdx_integrity_checker_vl_0_net_a);
-                __INTEGRITY_CHECKER_activity__(&afdx_integrity_checker_vl_1_net_a);
-                __INTEGRITY_CHECKER_activity__(&afdx_integrity_checker_vl_0_net_b);
-                __INTEGRITY_CHECKER_activity__(&afdx_integrity_checker_vl_1_net_b);
-                __REDUNDANCY_MANAGER_activity__(&redundancy_manager);
-                __AFDX_TO_ARINC_ROUTER_activity__(&afdx_to_arinc_router);
-                __ARINC_PORT_WRITER_activity__(&arinc_port_writer_1);
+                __INTEGRITY_CHECKER_activity__(&afdx_ic_vl1_ntA);
+                __INTEGRITY_CHECKER_activity__(&afdx_ic_vl2_ntA);
+                __INTEGRITY_CHECKER_activity__(&afdx_ic_vl1_ntB);
+                __INTEGRITY_CHECKER_activity__(&afdx_ic_vl2_ntB);
+                __Z_TEST_activity__(&z_test);
+                __REDUNDANCY_MANAGER_activity__(&red_mngr);
+                __AFDX_TO_ARINC_ROUTER_activity__(&afdx_t_arinc_rtr);
+                __ARINC_PORT_WRITER_activity__(&arinc_prt_wrtr_1);
+                __ARINC_PORT_WRITER_activity__(&arinc_prt_wrtr_2);
     }
 
 }

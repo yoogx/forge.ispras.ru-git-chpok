@@ -38,7 +38,7 @@
 //---------------------------------
 
  #ifdef QUEUING_MODE
-QUEUING_PORT_ID_TYPE QP1, QP2;
+QUEUING_PORT_ID_TYPE QP1, QP2, QP3;
 #endif
 
 #ifdef SAMPLING_MODE
@@ -76,6 +76,7 @@ static void first_process(void)
 
             #ifdef QUEUING_MODE
                 SEND_QUEUING_MESSAGE(QP1, (MESSAGE_ADDR_TYPE) &afdx_payload, strlen(afdx_payload) + 1, 0, &ret);
+                SEND_QUEUING_MESSAGE(QP3, (MESSAGE_ADDR_TYPE) &afdx_payload, strlen(afdx_payload) + 1, 0, &ret);
             #endif
             }
             if (i == 1){
@@ -90,6 +91,7 @@ static void first_process(void)
 
             #ifdef QUEUING_MODE
                 SEND_QUEUING_MESSAGE(QP1, (MESSAGE_ADDR_TYPE) &afdx_payload, strlen(afdx_payload) + 1, 0, &ret);
+                SEND_QUEUING_MESSAGE(QP3, (MESSAGE_ADDR_TYPE) &afdx_payload, strlen(afdx_payload) + 1, 0, &ret);
             #endif
             }
 
@@ -135,9 +137,10 @@ static int real_main(void)
 
 #ifdef SAMPLING_MODE
         CREATE_SAMPLING_PORT("SP1", MAX_AFDX_PAYLOAD_SIZE, SOURCE, SECOND, &SP1, &ret);
-        printf("P1_SP1 = %d\n", (int) SP1);
     if (ret != NO_ERROR) {
         printf("P1_couldn't create port SP1, ret %d\n", (int) ret);
+    } else {
+        printf("P1_SP1 = %d\n", (int) SP1);
     }
 
         CREATE_SAMPLING_PORT("SP2", MAX_AFDX_PAYLOAD_SIZE, DESTINATION, SECOND, &SP2, &ret);
@@ -146,12 +149,29 @@ static int real_main(void)
  #ifdef QUEUING_MODE
     // CREATING QP port 1
     CREATE_QUEUING_PORT("QP1", MAX_AFDX_PAYLOAD_SIZE, MAX_NB_MESSAGE, SOURCE , FIFO, &QP1, &ret);
-    printf("P1_QP1 = %d\n", (int) QP1);
+
     if (ret != NO_ERROR) {
         printf("P1_couldn't create port QP1, ret %d\n", (int) ret);
+    } else {
+        printf("P1_created QP1 = %d\n", (int) QP1);
     }
+
     // CREATING QP port 2
     CREATE_QUEUING_PORT("QP2", 64, 10, DESTINATION, FIFO, &QP2, &ret);
+
+    if (ret != NO_ERROR) {
+        printf("P1_couldn't create port QP2, ret %d\n", (int) ret);
+    } else {
+        printf("P1_created QP2 = %d\n", (int) QP2);
+    }
+    // CREATING QP port 3
+    CREATE_QUEUING_PORT("QP3", MAX_AFDX_PAYLOAD_SIZE, MAX_NB_MESSAGE, SOURCE , FIFO, &QP3, &ret);
+
+    if (ret != NO_ERROR) {
+        printf("P1_couldn't create port QP3, ret %d\n", (int) ret);
+    } else {
+        printf("P1_created QP3 = %d\n", (int) QP3);
+    }
 #endif
 
     // transition to NORMAL operating mode

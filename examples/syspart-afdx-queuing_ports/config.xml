@@ -24,5 +24,13 @@
                 <Port_Ref PartitionNameRef="P1" PortNameRef="QP2" />
             </Destination>
         </Channel>
+        <Channel>
+            <Source>
+                <Port_Ref PartitionNameRef="P1" PortNameRef="QP3" />
+            </Source>
+            <Destination>
+                <Port_Ref PartitionNameRef="P2" PortNameRef="UOUT2" />
+            </Destination>
+        </Channel>
     </Connection_Table>
 </JetModule>
