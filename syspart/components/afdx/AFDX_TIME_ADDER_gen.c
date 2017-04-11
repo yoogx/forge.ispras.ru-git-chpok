@@ -23,14 +23,14 @@
 
 
 
-    static ret_t __wrapper_time_adder_send(self_t *arg0, const char * arg1, size_t arg2)
+    static ret_t __wrapper_time_adder_send(self_t *arg0, const uint8_t * arg1, size_t arg2)
     {
         return time_adder_send((AFDX_TIME_ADDER*) arg0, arg1, arg2);
     }
 
 
 
-      ret_t AFDX_TIME_ADDER_call_portA_handle(AFDX_TIME_ADDER *self, const char * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
+      ret_t AFDX_TIME_ADDER_call_portA_handle(AFDX_TIME_ADDER *self, const uint8_t * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
       {
          if (self->out.portA.ops == NULL) {
              printf("WRONG CONFIG: out port portA of component AFDX_TIME_ADDER was not initialized\n");
@@ -44,7 +44,6 @@ void __AFDX_TIME_ADDER_init__(AFDX_TIME_ADDER *self)
 {
             self->in.portB.ops.handle = __wrapper_time_adder_send;
 
-        afdx_time_adder_init(self);
 }
 
 void __AFDX_TIME_ADDER_activity__(AFDX_TIME_ADDER *self)

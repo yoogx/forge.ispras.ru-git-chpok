@@ -23,14 +23,14 @@
 
 
 
-    static ret_t __wrapper_afdx_router_receive_packet(self_t *arg0, const char * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
+    static ret_t __wrapper_afdx_router_receive_packet(self_t *arg0, const uint8_t * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
     {
         return afdx_router_receive_packet((AFDX_ROUTER*) arg0, arg1, arg2, arg3);
     }
 
 
 
-      ret_t AFDX_ROUTER_call_portArray_handle_by_index(int idx, AFDX_ROUTER *self, const char * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
+      ret_t AFDX_ROUTER_call_portArray_handle_by_index(int idx, AFDX_ROUTER *self, const uint8_t * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
       {
          if (self->out.portArray[idx].ops == NULL) {
              printf("WRONG CONFIG: out port portArray of component AFDX_ROUTER was not initialized\n");

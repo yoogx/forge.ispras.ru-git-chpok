@@ -14,7 +14,7 @@
 *
 *=======================================================================
 *
-*                  AFDX Function that fill the frame 
+*                  AFDX Function that fill the frame
 *
 * The following file is a part of the AFDX project. Any modification
 * should made according to the AFDX standard.
@@ -37,6 +37,8 @@
 
 #include <smalloc.h>
 
+#include <msection.h>
+
 /* include generated files */
 #include "AFDX_QUEUE_ENQUEUER_gen.h"
 
@@ -52,7 +54,9 @@
 #define MAC_INTERFACE_ID_B  0x2    // (010 b) for the network B
 #define MAC_INTERFACE_ID_2  0
 
-void fill_afdx_interface_id (frame_data_t *p, int net_card)
+static struct msection sec;
+
+void fill_afdx_interface_id (afdx_frame_t *p, int net_card)
 {
     if (net_card == NETWORK_CARD_A)
         p->mac_header.mac_src_addr.interface_id = (MAC_INTERFACE_ID_A << 5 | MAC_INTERFACE_ID_2);
@@ -63,7 +67,7 @@ void fill_afdx_interface_id (frame_data_t *p, int net_card)
 /*
  * Take packet and write information of interface_id and send to the cards
  */
-void send_packet(AFDX_QUEUE_ENQUEUER *self, frame_data_t *afdx_frame, int net_card)
+void send_packet(AFDX_QUEUE_ENQUEUER *self, afdx_frame_t *afdx_frame, int net_card)
 {
     fill_afdx_interface_id(afdx_frame, net_card);
 
@@ -109,11 +113,11 @@ static void afdx_queue_enqueuer_activity(void)
     self = (AFDX_QUEUE_ENQUEUER *)jet_get_my_data();
 
     while (1) {
-        printf(C_NAME"IN LOOP\n");
         if (self->state.cur_queue_size != 0) {
 
-            frame_data_t    *afdx_frame = (frame_data_t *) self->state.buffer[self->state.head].data;
+            afdx_frame_t    *afdx_frame = (afdx_frame_t *) self->state.buffer[self->state.head].data;
 
+            printf("%s \n", self->instance_name);
             printf("QUEUE activity get message: %s\n", afdx_frame->afdx_payload);
 
              /* send to 1 card */
@@ -134,8 +138,11 @@ static void afdx_queue_enqueuer_activity(void)
             if (self->state.head == self->state.max_queue_size)
                 self->state.head = 0;
 
+            msection_enter(&sec);     //process entered mutual section
             self->state.cur_queue_size--;
+            msection_leave(&sec);     // process leaved the section
         } else {
+            printf("%s \n", self->instance_name);
             printf("there are no messages, I'm at the END afdx_queue_enqueuer_activity \n");
         }
         PERIODIC_WAIT(&ret);
@@ -147,6 +154,12 @@ void afdx_queue_init(AFDX_QUEUE_ENQUEUER *self)
 {
     printf("IN afdx_queue_init\n");
     RETURN_CODE_TYPE ret;
+
+    /*
+     * Initialize msection
+     * to work with cur_queue_size
+     */
+    msection_init(&sec);
 
     /*
      * Initialize the memory for the queue,
@@ -161,15 +174,21 @@ void afdx_queue_init(AFDX_QUEUE_ENQUEUER *self)
     /* Create process */
     PROCESS_ID_TYPE pid;
     PROCESS_ATTRIBUTE_TYPE process_attrs = {
-        .PERIOD = SECOND,
-        .TIME_CAPACITY = SECOND / 2,
+        .PERIOD = self->state.BAG,
+        .TIME_CAPACITY = self->state.BAG,
         .STACK_SIZE = 8096, // the only accepted stack size!
         .BASE_PRIORITY = MAX_PRIORITY_VALUE,
         .DEADLINE = SOFT,
     };
 
+    /*
+     * Providing different process names
+     */
     process_attrs.ENTRY_POINT = afdx_queue_enqueuer_activity;
-    strncpy(process_attrs.NAME, "queue process", sizeof(PROCESS_NAME_TYPE));
+    /*
+     * We hope, that instance names are unique being truncated to sizeof PROCESS_NAME_TYPE
+     */
+    strncpy(process_attrs.NAME, self->instance_name, sizeof(PROCESS_NAME_TYPE));
 
     CREATE_PROCESS(&process_attrs, &pid, &ret);
     if (ret != NO_ERROR) {
@@ -199,15 +218,17 @@ ret_t afdx_enqueuer_implementation(
         const size_t append_max_size
         )
 {
-    printf(C_NAME" I'm in implementation\n");
+    printf("%s I'm in implementation \n", self->instance_name);
     if (self->state.cur_queue_size >= self->state.max_queue_size) {
 
         printf("ERROR QUEUE if FULL \n");
-        printf("Partition P2 will be stopped\n");
-        //kill partition
-        RETURN_CODE_TYPE ret;
-        SET_PARTITION_MODE(IDLE, &ret);
-        return -1;
+        //~ printf("Partition P2 will be stopped\n");
+        //~ //kill partition
+        //~ RETURN_CODE_TYPE ret;
+        //~ SET_PARTITION_MODE(IDLE, &ret);
+        //~ return -1;
+
+        return EINVAL; // maybe EAGAIN?? NOT_AVAILABLE
     }
     /* Queuing */
     memcpy(&(self->state.buffer[self->state.tail].data), afdx_frame, frame_size);
@@ -216,12 +237,14 @@ ret_t afdx_enqueuer_implementation(
     self->state.buffer[self->state.tail].append_max_size = append_max_size;
 
     self->state.tail++;
-    self->state.cur_queue_size++;
     //~ printf("STATE QUEUE %d \n", self->state.cur_queue_size);
 
     if (self->state.tail == self->state.max_queue_size) {
         self->state.tail = 0;
     }
+    msection_enter(&sec); //process entered mutual section
+    self->state.cur_queue_size++;
+    msection_leave(&sec); //process leaved the section
 
     return EOK;
 }

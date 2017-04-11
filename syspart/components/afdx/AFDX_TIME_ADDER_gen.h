@@ -22,14 +22,12 @@
 #define __AFDX_TIME_ADDER_GEN_H__
 
 #include <memblocks.h>
-    #include <arinc653/time.h>
 
     #include <interfaces/message_handler_gen.h>
 
     #include <interfaces/time_message_handler_gen.h>
 
 typedef struct AFDX_TIME_ADDER_state {
-    SYSTEM_TIME_TYPE arrival_time;
 }AFDX_TIME_ADDER_state;
 
 typedef struct {
@@ -50,13 +48,12 @@ typedef struct {
 
 
 
-      ret_t time_adder_send(AFDX_TIME_ADDER *, const char *, size_t);
+      ret_t time_adder_send(AFDX_TIME_ADDER *, const uint8_t *, size_t);
 
-      ret_t AFDX_TIME_ADDER_call_portA_handle(AFDX_TIME_ADDER *, const char *, size_t, SYSTEM_TIME_TYPE);
+      ret_t AFDX_TIME_ADDER_call_portA_handle(AFDX_TIME_ADDER *, const uint8_t *, size_t, SYSTEM_TIME_TYPE);
 
 
 
-    void afdx_time_adder_init(AFDX_TIME_ADDER *);
 
 
 

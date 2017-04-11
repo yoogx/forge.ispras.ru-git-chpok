@@ -23,19 +23,19 @@
 
 
 
-    static ret_t __wrapper_redundancy_manager_receive_packet_net_a(self_t *arg0, const char * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
+    static ret_t __wrapper_redundancy_manager_receive_packet_net_a(self_t *arg0, const uint8_t * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
     {
         return redundancy_manager_receive_packet_net_a((REDUNDANCY_MANAGER*) arg0, arg1, arg2, arg3);
     }
 
-    static ret_t __wrapper_redundancy_manager_receive_packet_net_b(self_t *arg0, const char * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
+    static ret_t __wrapper_redundancy_manager_receive_packet_net_b(self_t *arg0, const uint8_t * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
     {
         return redundancy_manager_receive_packet_net_b((REDUNDANCY_MANAGER*) arg0, arg1, arg2, arg3);
     }
 
 
 
-      ret_t REDUNDANCY_MANAGER_call_portC_handle(REDUNDANCY_MANAGER *self, const char * arg1, size_t arg2)
+      ret_t REDUNDANCY_MANAGER_call_portC_handle(REDUNDANCY_MANAGER *self, const uint8_t * arg1, size_t arg2)
       {
          if (self->out.portC.ops == NULL) {
              printf("WRONG CONFIG: out port portC of component REDUNDANCY_MANAGER was not initialized\n");

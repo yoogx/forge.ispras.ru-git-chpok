@@ -23,13 +23,14 @@
 
 #include <memblocks.h>
     #include <types.h>
+    #include "afdx_to_arinc_router_struct.h"
 
     #include <interfaces/message_handler_gen.h>
 
     #include <interfaces/message_handler_gen.h>
 
 typedef struct AFDX_TO_ARINC_ROUTER_state {
-    uint16_t map_afdx_dst_port_to_idx[10];
+    afdx_to_arinc_router_data_t map_afdx_dst_port_vl_id_to_idx[10];
     size_t map_afdx_dst_port_to_idx_len;
 }AFDX_TO_ARINC_ROUTER_state;
 
@@ -51,9 +52,9 @@ typedef struct {
 
 
 
-      ret_t afdx_to_arinc_router_receive(AFDX_TO_ARINC_ROUTER *, const char *, size_t);
+      ret_t afdx_to_arinc_router_receive(AFDX_TO_ARINC_ROUTER *, const uint8_t *, size_t);
 
-      ret_t AFDX_TO_ARINC_ROUTER_call_portArray_handle_by_index(int, AFDX_TO_ARINC_ROUTER *, const char *, size_t);
+      ret_t AFDX_TO_ARINC_ROUTER_call_portArray_handle_by_index(int, AFDX_TO_ARINC_ROUTER *, const uint8_t *, size_t);
 
 
 

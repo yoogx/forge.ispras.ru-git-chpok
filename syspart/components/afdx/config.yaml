@@ -67,11 +67,6 @@
 
 # receive
 - name: AFDX_TIME_ADDER
-  additional_h_files: [<arinc653/time.h>]
-  state_struct:
-        arrival_time: SYSTEM_TIME_TYPE
-
-  init_func: afdx_time_adder_init
 
   in_ports:
       - name: portB
@@ -82,11 +77,10 @@
   out_ports:
       - name: portA
         type: time_message_handler
-        
+
 - name: AFDX_ROUTER
-  additional_h_files: ['"router_state_structs.h"']
   state_struct:
-      map_vl_id_to_idx[10]: struct vl_index
+      map_vl_id_to_idx[10]: uint16_t
       map_vl_id_to_idx_len: size_t
   in_ports:
       - name: portA
@@ -102,8 +96,7 @@
 - name: INTEGRITY_CHECKER
   additional_h_files: [<types.h>]
   state_struct:
-      last_in_seq_number: uint8_t
-      first_message_received: pok_bool_t
+      expected_seq_number: uint8_t
       network_card: uint8_t
 
   init_func: integrity_checker_init
@@ -118,10 +111,10 @@
       - name: portB
         type: time_message_handler
 
+
 - name: REDUNDANCY_MANAGER
   additional_h_files: [<types.h>, '"redundancy_manager_struct.h"']
   state_struct:
-            arrival_time[SUBNETWORKS_COUNT][MAX_SEQUENCE_NUMBER + 1]: SYSTEM_TIME_TYPE
             virtual_link_data[VIRTUAL_LINKS_COUNT]: vl_data_t
 
   init_func: redundancy_manager_init
@@ -140,9 +133,9 @@
         type: message_handler
 
 - name: AFDX_TO_ARINC_ROUTER
-  additional_h_files: [<types.h>]
+  additional_h_files: [<types.h>, '"afdx_to_arinc_router_struct.h"']
   state_struct:
-            map_afdx_dst_port_to_idx[10]: uint16_t
+            map_afdx_dst_port_vl_id_to_idx[10]: afdx_to_arinc_router_data_t
             map_afdx_dst_port_to_idx_len: size_t
 
   #init_func: afdx_to_arinc_router_init

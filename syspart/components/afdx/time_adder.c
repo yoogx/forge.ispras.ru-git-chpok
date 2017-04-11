@@ -15,40 +15,31 @@
 
 #include <stdio.h>
 #include <string.h>
-//~ #include "afdx.h"  // TO DELETE
+#include <arinc653/time.h>
 
 #include "AFDX_TIME_ADDER_gen.h"
 
 #define C_NAME "AFDX_TIME_ADDER: "
 
-void afdx_time_adder_init(AFDX_TIME_ADDER *self)
-{
-    self->state.arrival_time = 0;
-    printf(C_NAME" initialized successfully\n");
-}
-
 ret_t time_adder_send(AFDX_TIME_ADDER *self,
-        const char * afdx_frame,
-        const size_t frame_size
+        const uint8_t * afdx_packet,
+        const size_t afdx_packet_size
         )
 {
     RETURN_CODE_TYPE return_code;
+    SYSTEM_TIME_TYPE arrival_time;
 
-    GET_TIME(&self->state.arrival_time, &return_code);
-
-    //~ uint8_t sn =  afdx_frame[frame_size - 1];
-    //~ printf(C_NAME"get message: SN=%u\n", sn);
-    //~ printf(C_NAME"get message: %s\n", afdx_frame + 42);
+    GET_TIME(&arrival_time, &return_code);
 
     if (return_code != NO_ERROR)
         printf(C_NAME"Error in GET_TIME\n");
 
     ret_t res = AFDX_TIME_ADDER_call_portA_handle(self,
-                                            afdx_frame,
-                                            frame_size,
-                                            self->state.arrival_time);
+                                            afdx_packet,
+                                            afdx_packet_size,
+                                            arrival_time);
 
     if (res != EOK)
         printf(C_NAME"Error in send\n");
-    return EOK;
+    return res;
 }

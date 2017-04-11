@@ -23,14 +23,14 @@
 
 
 
-    static ret_t __wrapper_integrity_checker_receive_packet(self_t *arg0, const char * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
+    static ret_t __wrapper_integrity_checker_receive_packet(self_t *arg0, const uint8_t * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
     {
         return integrity_checker_receive_packet((INTEGRITY_CHECKER*) arg0, arg1, arg2, arg3);
     }
 
 
 
-      ret_t INTEGRITY_CHECKER_call_portB_handle(INTEGRITY_CHECKER *self, const char * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
+      ret_t INTEGRITY_CHECKER_call_portB_handle(INTEGRITY_CHECKER *self, const uint8_t * arg1, size_t arg2, SYSTEM_TIME_TYPE arg3)
       {
          if (self->out.portB.ops == NULL) {
              printf("WRONG CONFIG: out port portB of component INTEGRITY_CHECKER was not initialized\n");

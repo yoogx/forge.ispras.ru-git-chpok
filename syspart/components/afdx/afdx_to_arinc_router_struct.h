@@ -12,23 +12,14 @@
  *
  * See the GNU General Public License version 3 for more details.
  */
+ 
+  #ifndef __AFDX_TO_ARINC_ROUTER_H__
+#define __AFDX_TO_ARINC_ROUTER_H__
 
-#include <stdio.h>
-#include <string.h>
+typedef struct
+ {
+    uint16_t        vl_id;
+    uint16_t        afdx_dst_port;
+ } afdx_to_arinc_router_data_t;
 
-#include "AFDX_STOP_gen.h"
-
-#define C_NAME "AFDX_STOP: "
-
-ret_t afdx_stop_func(AFDX_STOP *self,
-        const uint8_t * afdx_frame,
-        const size_t frame_size
-        )
-{
-    int a;
-    a = 1;
-    self->state.st = a;
-    (void) frame_size;
-    (void ) afdx_frame;
-    return EOK;
-}
+#endif

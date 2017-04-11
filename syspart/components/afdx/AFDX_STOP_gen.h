@@ -45,7 +45,7 @@ typedef struct {
 
 
 
-      ret_t afdx_stop_func(AFDX_STOP *, const char *, size_t);
+      ret_t afdx_stop_func(AFDX_STOP *, const uint8_t *, size_t);
 
 
 

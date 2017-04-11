@@ -22,14 +22,13 @@
 #define __AFDX_ROUTER_GEN_H__
 
 #include <memblocks.h>
-    #include "router_state_structs.h"
 
     #include <interfaces/time_message_handler_gen.h>
 
     #include <interfaces/time_message_handler_gen.h>
 
 typedef struct AFDX_ROUTER_state {
-    struct vl_index map_vl_id_to_idx[10];
+    uint16_t map_vl_id_to_idx[10];
     size_t map_vl_id_to_idx_len;
 }AFDX_ROUTER_state;
 
@@ -51,9 +50,9 @@ typedef struct {
 
 
 
-      ret_t afdx_router_receive_packet(AFDX_ROUTER *, const char *, size_t, SYSTEM_TIME_TYPE);
+      ret_t afdx_router_receive_packet(AFDX_ROUTER *, const uint8_t *, size_t, SYSTEM_TIME_TYPE);
 
-      ret_t AFDX_ROUTER_call_portArray_handle_by_index(int, AFDX_ROUTER *, const char *, size_t, SYSTEM_TIME_TYPE);
+      ret_t AFDX_ROUTER_call_portArray_handle_by_index(int, AFDX_ROUTER *, const uint8_t *, size_t, SYSTEM_TIME_TYPE);
 
 
 

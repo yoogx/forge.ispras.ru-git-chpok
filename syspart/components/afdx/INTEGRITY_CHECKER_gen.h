@@ -29,9 +29,8 @@
     #include <interfaces/time_message_handler_gen.h>
 
 typedef struct INTEGRITY_CHECKER_state {
-    uint8_t last_in_seq_number;
     uint8_t network_card;
-    pok_bool_t first_message_received;
+    uint8_t expected_seq_number;
 }INTEGRITY_CHECKER_state;
 
 typedef struct {
@@ -52,9 +51,9 @@ typedef struct {
 
 
 
-      ret_t integrity_checker_receive_packet(INTEGRITY_CHECKER *, const char *, size_t, SYSTEM_TIME_TYPE);
+      ret_t integrity_checker_receive_packet(INTEGRITY_CHECKER *, const uint8_t *, size_t, SYSTEM_TIME_TYPE);
 
-      ret_t INTEGRITY_CHECKER_call_portB_handle(INTEGRITY_CHECKER *, const char *, size_t, SYSTEM_TIME_TYPE);
+      ret_t INTEGRITY_CHECKER_call_portB_handle(INTEGRITY_CHECKER *, const uint8_t *, size_t, SYSTEM_TIME_TYPE);
 
 
 

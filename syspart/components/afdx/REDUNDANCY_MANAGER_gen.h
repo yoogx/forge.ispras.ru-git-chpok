@@ -32,7 +32,6 @@
 
 typedef struct REDUNDANCY_MANAGER_state {
     vl_data_t virtual_link_data[VIRTUAL_LINKS_COUNT];
-    SYSTEM_TIME_TYPE arrival_time[SUBNETWORKS_COUNT][MAX_SEQUENCE_NUMBER + 1];
 }REDUNDANCY_MANAGER_state;
 
 typedef struct {
@@ -56,10 +55,10 @@ typedef struct {
 
 
 
-      ret_t redundancy_manager_receive_packet_net_a(REDUNDANCY_MANAGER *, const char *, size_t, SYSTEM_TIME_TYPE);
-      ret_t redundancy_manager_receive_packet_net_b(REDUNDANCY_MANAGER *, const char *, size_t, SYSTEM_TIME_TYPE);
+      ret_t redundancy_manager_receive_packet_net_a(REDUNDANCY_MANAGER *, const uint8_t *, size_t, SYSTEM_TIME_TYPE);
+      ret_t redundancy_manager_receive_packet_net_b(REDUNDANCY_MANAGER *, const uint8_t *, size_t, SYSTEM_TIME_TYPE);
 
-      ret_t REDUNDANCY_MANAGER_call_portC_handle(REDUNDANCY_MANAGER *, const char *, size_t);
+      ret_t REDUNDANCY_MANAGER_call_portC_handle(REDUNDANCY_MANAGER *, const uint8_t *, size_t);
 
 
 

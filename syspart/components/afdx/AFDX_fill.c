@@ -66,7 +66,6 @@
 #define FCS_LENGTH          4
 #define SUFFIX_LENGTH       1
 
-#define MIN_AFDX_PAYLOAD_SIZE    17
 
 /* basic functions for filling the package */
 
@@ -159,7 +158,7 @@ uint16_t ip_hdr_checksum_2(const struct ip_header *ip_hdr)
  * packets to the network cards
  */
 uint16_t fill_afdx_frame(AFDX_FILLER_state *state,
-                         frame_data_t *p,
+                         afdx_frame_t *p,
                          char afdx_payload[],
                          uint16_t payload_size,
                          uint8_t seq_num
@@ -255,7 +254,7 @@ ret_t afdx_filler_send(
     if (append_max_size < 1)
         return EINVAL;
 
-    frame_data_t *afdx_frame = (frame_data_t *)(payload - HEADER_LENGTH);
+    afdx_frame_t *afdx_frame = (afdx_frame_t *)(payload - HEADER_LENGTH);
     printf(C_NAME"SN= %u\n", self->state.sn);
     fill_afdx_frame(&self->state, afdx_frame, payload, payload_size, self->state.sn);
     self->state.sn = (self->state.sn % 255) + 1;
