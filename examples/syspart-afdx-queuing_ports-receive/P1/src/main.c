@@ -31,7 +31,7 @@
 #define MAX_NB_MESSAGE 10
 
 // Two modes Sampling and Queuing -
-//~ #define SAMPLING_MODE
+ // #define SAMPLING_MODE
 #define QUEUING_MODE
 //---------------------------------
 
