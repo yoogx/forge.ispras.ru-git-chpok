@@ -94,8 +94,8 @@ struct port_ops{
     #include <AFDX_QUEUE_ENQUEUER_gen.h>
         void __AFDX_QUEUE_ENQUEUER_init__(AFDX_QUEUE_ENQUEUER*);
         void __AFDX_QUEUE_ENQUEUER_activity__(AFDX_QUEUE_ENQUEUER*);
-        AFDX_QUEUE_ENQUEUER afdx_enqueuer_1 = {
-            .instance_name = "afdx_enqueuer_1",
+        AFDX_QUEUE_ENQUEUER afdx_enqr_1 = {
+            .instance_name = "afdx_enqr_1",
             .state = {
                 .BAG = SECOND,
                 .max_queue_size = 10,
@@ -106,8 +106,8 @@ struct port_ops{
     #include <AFDX_QUEUE_ENQUEUER_gen.h>
         void __AFDX_QUEUE_ENQUEUER_init__(AFDX_QUEUE_ENQUEUER*);
         void __AFDX_QUEUE_ENQUEUER_activity__(AFDX_QUEUE_ENQUEUER*);
-        AFDX_QUEUE_ENQUEUER afdx_enqueuer_2 = {
-            .instance_name = "afdx_enqueuer_2",
+        AFDX_QUEUE_ENQUEUER afdx_enqr_2 = {
+            .instance_name = "afdx_enqr_2",
             .state = {
                 .BAG = SECOND,
                 .max_queue_size = 10,
@@ -161,9 +161,9 @@ void glue_main()
 
             __AFDX_FILLER_init__(&afdx_filler_2);
 
-            __AFDX_QUEUE_ENQUEUER_init__(&afdx_enqueuer_1);
+            __AFDX_QUEUE_ENQUEUER_init__(&afdx_enqr_1);
 
-            __AFDX_QUEUE_ENQUEUER_init__(&afdx_enqueuer_2);
+            __AFDX_QUEUE_ENQUEUER_init__(&afdx_enqr_2);
 
             __VIRTIO_NET_DEV_init__(&virtio_net_dev_1);
 
@@ -174,20 +174,20 @@ void glue_main()
 
         arinc_port_rdr_1.out.portA.ops = &afdx_filler_1.in.portA.ops;
         arinc_port_rdr_1.out.portA.owner = &afdx_filler_1;
-        afdx_filler_1.out.portB.ops = &afdx_enqueuer_1.in.portB.ops;
-        afdx_filler_1.out.portB.owner = &afdx_enqueuer_1;
-        afdx_enqueuer_1.out.portNetA.ops = &virtio_net_dev_1.in.portA.ops;
-        afdx_enqueuer_1.out.portNetA.owner = &virtio_net_dev_1;
-        afdx_enqueuer_1.out.portNetB.ops = &virtio_net_dev_2.in.portA.ops;
-        afdx_enqueuer_1.out.portNetB.owner = &virtio_net_dev_2;
+        afdx_filler_1.out.portB.ops = &afdx_enqr_1.in.portB.ops;
+        afdx_filler_1.out.portB.owner = &afdx_enqr_1;
+        afdx_enqr_1.out.portNetA.ops = &virtio_net_dev_1.in.portA.ops;
+        afdx_enqr_1.out.portNetA.owner = &virtio_net_dev_1;
+        afdx_enqr_1.out.portNetB.ops = &virtio_net_dev_2.in.portA.ops;
+        afdx_enqr_1.out.portNetB.owner = &virtio_net_dev_2;
         arinc_port_rdr_2.out.portA.ops = &afdx_filler_2.in.portA.ops;
         arinc_port_rdr_2.out.portA.owner = &afdx_filler_2;
-        afdx_filler_2.out.portB.ops = &afdx_enqueuer_2.in.portB.ops;
-        afdx_filler_2.out.portB.owner = &afdx_enqueuer_2;
-        afdx_enqueuer_2.out.portNetA.ops = &virtio_net_dev_1.in.portA.ops;
-        afdx_enqueuer_2.out.portNetA.owner = &virtio_net_dev_1;
-        afdx_enqueuer_2.out.portNetB.ops = &virtio_net_dev_2.in.portA.ops;
-        afdx_enqueuer_2.out.portNetB.owner = &virtio_net_dev_2;
+        afdx_filler_2.out.portB.ops = &afdx_enqr_2.in.portB.ops;
+        afdx_filler_2.out.portB.owner = &afdx_enqr_2;
+        afdx_enqr_2.out.portNetA.ops = &virtio_net_dev_1.in.portA.ops;
+        afdx_enqr_2.out.portNetA.owner = &virtio_net_dev_1;
+        afdx_enqr_2.out.portNetB.ops = &virtio_net_dev_2.in.portA.ops;
+        afdx_enqr_2.out.portNetB.owner = &virtio_net_dev_2;
         virtio_net_dev_1.out.portB.ops = &afdx_stop_send_1.in.portA.ops;
         virtio_net_dev_1.out.portB.owner = &afdx_stop_send_1;
         virtio_net_dev_2.out.portB.ops = &afdx_stop_send_1.in.portA.ops;
@@ -202,8 +202,8 @@ void glue_activity()
                 __ARINC_PORT_READER_activity__(&arinc_port_rdr_2);
                 __AFDX_FILLER_activity__(&afdx_filler_1);
                 __AFDX_FILLER_activity__(&afdx_filler_2);
-                __AFDX_QUEUE_ENQUEUER_activity__(&afdx_enqueuer_1);
-                __AFDX_QUEUE_ENQUEUER_activity__(&afdx_enqueuer_2);
+                __AFDX_QUEUE_ENQUEUER_activity__(&afdx_enqr_1);
+                __AFDX_QUEUE_ENQUEUER_activity__(&afdx_enqr_2);
                 __VIRTIO_NET_DEV_activity__(&virtio_net_dev_1);
                 __VIRTIO_NET_DEV_activity__(&virtio_net_dev_2);
                 __AFDX_STOP_activity__(&afdx_stop_send_1);

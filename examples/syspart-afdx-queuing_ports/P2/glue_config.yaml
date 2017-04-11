@@ -43,13 +43,13 @@ instances:
           dst_afdx_port: 2
           type_of_packet: UNICAST_PACKET
 
-    - name: afdx_enqueuer_1
+    - name: afdx_enqr_1
       type: AFDX_QUEUE_ENQUEUER
       state:
           BAG: SECOND
           max_queue_size: 10
 
-    - name: afdx_enqueuer_2
+    - name: afdx_enqr_2
       type: AFDX_QUEUE_ENQUEUER
       state:
           BAG: SECOND
@@ -85,18 +85,18 @@ links:
         instance: afdx_filler_1
         port: portB
       to:
-        instance: afdx_enqueuer_1
+        instance: afdx_enqr_1
         port: portB
 
     - from:
-        instance: afdx_enqueuer_1
+        instance: afdx_enqr_1
         port: portNetA
       to:
         instance: virtio_net_dev_1
         port: portA
 
     - from:
-        instance: afdx_enqueuer_1
+        instance: afdx_enqr_1
         port: portNetB
       to:
         instance: virtio_net_dev_2
@@ -113,18 +113,18 @@ links:
         instance: afdx_filler_2
         port: portB
       to:
-        instance: afdx_enqueuer_2
+        instance: afdx_enqr_2
         port: portB
 
     - from:
-        instance: afdx_enqueuer_2
+        instance: afdx_enqr_2
         port: portNetA
       to:
         instance: virtio_net_dev_1
         port: portA
 
     - from:
-        instance: afdx_enqueuer_2
+        instance: afdx_enqr_2
         port: portNetB
       to:
         instance: virtio_net_dev_2

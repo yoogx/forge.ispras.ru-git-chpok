@@ -3,7 +3,7 @@
   Instead of modifying this file, modify the one it generated from (examples/syspart-afdx-queuing_ports/P2/glue_config.yaml).
 -->
 <Partition>
-    <Definition Name="" System="true"/>
+    <Definition Name="P2" System="true"/>
     <!-- Amount of ram required for ELF -->
     <Memory Bytes="1M" Heap="1M"/>
 

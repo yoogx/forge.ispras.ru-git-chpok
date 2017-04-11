@@ -11,10 +11,10 @@
  *
  *                                      Copyright (c) 2007-2009 POK team
  *
- * This file also incorporates work covered by the following 
+ * This file also incorporates work covered by the following
  * copyright and license notice:
  *
- *  Copyright (C) 2013-2014 Maxim Malkov, ISPRAS <malkov@ispras.ru> 
+ *  Copyright (C) 2013-2014 Maxim Malkov, ISPRAS <malkov@ispras.ru>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -60,14 +60,14 @@ void GET_PROCESS_ID(
 {
     pok_thread_id_t id;
     pok_ret_t core_ret;
-    
+
     core_ret = pok_thread_find(process_name, &id);
-    
+
     if (core_ret == POK_ERRNO_OK) {
         *process_id = id + 1;
         *return_code = NO_ERROR;
     } else {
-        *return_code = INVALID_CONFIG;  
+        *return_code = INVALID_CONFIG;
     }
 }
 
