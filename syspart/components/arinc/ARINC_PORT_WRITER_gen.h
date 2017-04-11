@@ -52,7 +52,7 @@ typedef struct {
 
 
 
-      ret_t arinc_receive_message(ARINC_PORT_WRITER *, const char *, size_t);
+      ret_t arinc_receive_message(ARINC_PORT_WRITER *, const uint8_t *, size_t);
 
 
 

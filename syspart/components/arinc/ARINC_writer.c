@@ -26,7 +26,7 @@
 #define SECOND 1000000000LL
 #define SAMPLING_REFRESH_PERIOD SECOND
 
-static ret_t send_msg_to_user_partition_queuing(ARINC_PORT_WRITER *self, const char *payload, size_t length)
+static ret_t send_msg_to_user_partition_queuing(ARINC_PORT_WRITER *self, const uint8_t *payload, size_t length)
 {
     RETURN_CODE_TYPE ret;
 
@@ -49,7 +49,7 @@ static ret_t send_msg_to_user_partition_queuing(ARINC_PORT_WRITER *self, const c
     return EOK;
 }
 
-static ret_t send_msg_to_user_partition_sampling(ARINC_PORT_WRITER *self, const char *payload, size_t length)
+static ret_t send_msg_to_user_partition_sampling(ARINC_PORT_WRITER *self, const uint8_t *payload, size_t length)
 {
     RETURN_CODE_TYPE ret;
 
@@ -90,9 +90,10 @@ void arinc_port_writer_init(ARINC_PORT_WRITER *self)
     }
 }
 
-ret_t arinc_receive_message(ARINC_PORT_WRITER *self, const char *payload, size_t payload_size)
+ret_t arinc_receive_message(ARINC_PORT_WRITER *self, const uint8_t *payload, size_t payload_size)
 {
-    printf(C_NAME" got message: %s\n", payload);
+    //~ printf(C_NAME" got message: %s\n", payload);
+    printf("%s got message: %s\n", self->instance_name, payload);
     if (self->state.is_queuing_port)
         return send_msg_to_user_partition_queuing(self, payload, payload_size);
     else

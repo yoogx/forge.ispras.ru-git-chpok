@@ -23,7 +23,7 @@
 
 
 
-    static ret_t __wrapper_arp_receive(self_t *arg0, const char * arg1, size_t arg2)
+    static ret_t __wrapper_arp_receive(self_t *arg0, const uint8_t * arg1, size_t arg2)
     {
         return arp_receive((ARP_ANSWERER*) arg0, arg1, arg2);
     }

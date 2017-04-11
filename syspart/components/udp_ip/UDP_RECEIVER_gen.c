@@ -23,14 +23,14 @@
 
 
 
-    static ret_t __wrapper_udp_receive(self_t *arg0, const char * arg1, size_t arg2)
+    static ret_t __wrapper_udp_receive(self_t *arg0, const uint8_t * arg1, size_t arg2)
     {
         return udp_receive((UDP_RECEIVER*) arg0, arg1, arg2);
     }
 
 
 
-      ret_t UDP_RECEIVER_call_portB_udp_message_handle(UDP_RECEIVER *self, const char * arg1, size_t arg2, uint32_t arg3, uint16_t arg4)
+      ret_t UDP_RECEIVER_call_portB_udp_message_handle(UDP_RECEIVER *self, const uint8_t * arg1, size_t arg2, uint32_t arg3, uint16_t arg4)
       {
          if (self->out.portB.ops == NULL) {
              printf("WRONG CONFIG: out port portB of component UDP_RECEIVER was not initialized\n");

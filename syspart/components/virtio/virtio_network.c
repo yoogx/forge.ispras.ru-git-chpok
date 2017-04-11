@@ -66,8 +66,8 @@ static void unlock_preemption()
 }
 
 static pok_bool_t setup_virtqueue(
-        struct virtio_network_device *dev, 
-        int16_t index, 
+        struct virtio_network_device *dev,
+        int16_t index,
         struct virtio_virtqueue *vq)
 {
     // queue selector
@@ -150,9 +150,9 @@ static void use_receive_buffer(struct virtio_network_device *dev, struct receive
 
     int avail = vq->vring.avail->idx & (vq->vring.num-1); // wrap around
     vq->vring.avail->ring[avail] = head;
-    
+
     __sync_synchronize();
-    
+
     vq->vring.avail->idx++;
 }
 
@@ -243,11 +243,11 @@ ret_t send_frame(VIRTIO_NET_DEV * self,
 static void reclaim_send_buffers(struct virtio_network_device *info)
 {
     struct virtio_virtqueue *vq = &(info->tx_vq);
-    
+
     // this function can be called by any thread
     // callbacks don't do much work, so we can run them all
     // in single critical section without worrying too much
-    
+
     lock_preemption();
     while (vq->last_seen_used != vq->vring.used->idx) {
         uint16_t index = vq->last_seen_used & (vq->vring.num-1);
@@ -263,14 +263,14 @@ static void reclaim_send_buffers(struct virtio_network_device *info)
         }
 
         vq->num_free += total_descriptors;
-        
+
         // insert chain in the beginning of the free desc. list
-        tail->next = vq->free_index; 
+        tail->next = vq->free_index;
         vq->free_index = e->id; // id of head
 
         vq->last_seen_used++;
     }
-    
+
     unlock_preemption();
 }
 
@@ -295,7 +295,7 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
             return;
         }
         */
-        VIRTIO_NET_DEV_call_portB_handle(self, (const char *)&buf->packet, e->len - sizeof(struct virtio_net_hdr));
+        VIRTIO_NET_DEV_call_portB_handle(self, (const uint8_t *)&buf->packet, e->len - sizeof(struct virtio_net_hdr));
 
         // reclaim descriptor
         // FIXME support chained descriptors as well

@@ -35,7 +35,7 @@
 
 
 
-      ret_t DTSEC_NET_DEV_call_portB_handle(DTSEC_NET_DEV *self, const char * arg1, size_t arg2)
+      ret_t DTSEC_NET_DEV_call_portB_handle(DTSEC_NET_DEV *self, const uint8_t * arg1, size_t arg2)
       {
          if (self->out.portB.ops == NULL) {
              printf("WRONG CONFIG: out port portB of component DTSEC_NET_DEV was not initialized\n");

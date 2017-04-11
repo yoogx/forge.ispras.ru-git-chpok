@@ -54,7 +54,7 @@ typedef struct {
       ret_t dtsec_send_frame(DTSEC_NET_DEV *, char *, size_t, size_t, size_t);
       ret_t dtsec_flush_send(DTSEC_NET_DEV *);
 
-      ret_t DTSEC_NET_DEV_call_portB_handle(DTSEC_NET_DEV *, const char *, size_t);
+      ret_t DTSEC_NET_DEV_call_portB_handle(DTSEC_NET_DEV *, const uint8_t *, size_t);
 
 
  pok_ret_t DTSEC_NET_DEV_get_memory_block_status(

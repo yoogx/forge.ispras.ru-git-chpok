@@ -23,7 +23,7 @@
 
 
 
-    static ret_t __wrapper_arinc_receive_message(self_t *arg0, const char * arg1, size_t arg2)
+    static ret_t __wrapper_arinc_receive_message(self_t *arg0, const uint8_t * arg1, size_t arg2)
     {
         return arinc_receive_message((ARINC_PORT_WRITER*) arg0, arg1, arg2);
     }

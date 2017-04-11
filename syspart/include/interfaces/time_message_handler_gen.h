@@ -27,7 +27,7 @@
     #include <arinc653/time.h>
 
 typedef struct {
-    ret_t (*handle)(self_t *, const char *, size_t, SYSTEM_TIME_TYPE);
+    ret_t (*handle)(self_t *, const uint8_t *, size_t, SYSTEM_TIME_TYPE);
 } time_message_handler;
 
 
