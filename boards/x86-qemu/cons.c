@@ -18,7 +18,7 @@
 
 #include <errno.h>
 
-#include <ioports.h>
+#include <arch/ioports.h>
 #include <libc.h>
 #include <core/debug.h>
 #include <asp/cons.h>

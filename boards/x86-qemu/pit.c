@@ -18,7 +18,7 @@
 #include <errno.h>
 #include <core/time.h>
 #include <core/sched.h>
-#include <ioports.h>
+#include <arch/ioports.h>
 
 #include "pic.h"
 

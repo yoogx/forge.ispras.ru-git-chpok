@@ -1,65 +1,58 @@
 /*
- *                               POK header
- * 
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *                                      Copyright (c) 2007-2009 POK team 
- *
- * Created by julien on Thu Jan 15 23:34:13 2009 
+ * See the GNU General Public License version 3 for more details.
  */
 
 
-#ifndef __POK_X86_IOPORTS_H__
-#define __POK_X86_IOPORTS_H__
+#ifndef __JET_X86_IOPORTS_H__
+#define __JET_X86_IOPORTS_H__
 
-#define JET_ARCH_DECLARE_IO_PORT 1
+#include <stdint.h>
 
-#define ja_outb(port, data)                                        \
-  asm volatile ("outb %b0,%w1"                                  \
-                :						\
-		:"a" (data),"d" (port))
+static inline void outb(uint16_t port, uint8_t value)
+{
+    asm volatile("outb %b0,%w1"::"a" (value),"d" (port));
+}
 
-#define ja_inb(port)                                               \
-({                                                              \
-  unsigned char res;                                            \
-  asm volatile ("inb %w1,%0"                                    \
-                :"=a" (res)                                     \
-                :"d" (port));                                   \
-  res;                                                          \
-})
+static inline uint8_t inb(uint16_t port)
+{
+    uint8_t res;
+    asm volatile("inb %w1,%0" :"=a" (res) :"d" (port));
+    return res;
+}
 
-#define ja_outw(port, data)                                        \
-  asm volatile ("outw %0,%w1"					\
-                :						\
-		:"a" (data),"d" (port))
+static inline void outw(uint16_t port, uint16_t value)
+{
+    asm volatile("outw %0,%w1"::"a" (value),"d" (port));
+}
 
-#define ja_inw(port)                                               \
-({                                                              \
-  unsigned short res;						\
-  asm volatile ("inw %w1,%0"					\
-                :"=a" (res)                                     \
-                :"d" (port));					\
-  res;                                                          \
-})
+static inline uint16_t inw(uint16_t port)
+{
+    uint16_t res;
+    asm volatile("inw %w1,%0" :"=a" (res) :"d" (port));
+    return res;
+}
 
-#define ja_outl(port, data)                                        \
-  asm volatile ("outl %0,%w1"					\
-                :						\
-		:"a" (data),"d" (port))
+static inline void outl(uint16_t port, uint8_t value)
+{
+    asm volatile("outl %0,%w1"::"a" (value),"d" (port));
+}
 
-#define ja_inl(port)                                               \
-({                                                              \
-  unsigned int res;						\
-  asm volatile ("inl %w1,%0"					\
-                :"=a" (res)                                     \
-                :"d" (port));					\
-  res;                                                          \
-})
+static inline uint32_t inl(uint16_t port)
+{
+    uint32_t res;
+    asm volatile("inl %w1,%0" :"=a" (res) :"d" (port));
+    return res;
+}
 
-#endif /* __POK_X86_IOPORTS_H__ */
+#endif /* __JET_X86_IOPORTS_H__ */

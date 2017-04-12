@@ -73,7 +73,7 @@ void ja_inf_loop(void)
    }
 }
 
-#include <ioports.h>
+#include <arch/ioports.h>
 void ja_cpu_reset(void)
 {
     uint8_t good = 0x02;
