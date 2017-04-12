@@ -41,6 +41,8 @@ env.Append(CFLAGS_KERNEL = ' -msoft-float')
 
 env['LDSCRIPT_PARTITION'] = env['JETOS_HOME'] + '/kernel/arch/arm/ldscripts/partition.lds'
 
+env['ELF_FORMAT_KERNEL'] = 'elf32-littlearm'
+env['ELF_ARCH_KERNEL'] = 'arm'
 
 # Below is an implementation of arch deployment functionality.
 arch_dir = Dir('.').srcnode().abspath
