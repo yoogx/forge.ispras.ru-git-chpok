@@ -19,7 +19,7 @@
 #include <asp/entries.h>
 
 #include <libc.h>
-#include <bsp/ioports.h>
+#include <arch/ioports.h>
 
 enum
 {

@@ -15,7 +15,7 @@
 
 /* General Purpose Timer (GPT) registers */
 
-#include <bsp/ioports.h>
+#include <arch/ioports.h>
 #include <libc.h>
 #include "irq.h"
 #include <core/time.h>

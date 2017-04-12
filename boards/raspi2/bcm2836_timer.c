@@ -13,7 +13,7 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <bsp/ioports.h>
+#include <arch/ioports.h>
 #include <libc.h>
 #include "irq.h"
 #include <asp/time.h>

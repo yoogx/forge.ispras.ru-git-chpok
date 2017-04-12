@@ -20,7 +20,7 @@
 #include <asp/entries.h>
 
 #include <libc.h>
-#include <bsp/ioports.h>
+#include <arch/ioports.h>
 
 // The base address for UART.
 #define UART1_BASE 0x2020000

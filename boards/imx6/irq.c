@@ -34,7 +34,7 @@
 #define CTLR_EN (0x1)
 
 #include <libc.h>
-#include <bsp/ioports.h>
+#include <arch/ioports.h>
 #include "irq.h"
 #include <core/debug.h>
 #include "timer.h"
