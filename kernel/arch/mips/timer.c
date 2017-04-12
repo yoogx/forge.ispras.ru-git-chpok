@@ -50,24 +50,38 @@ static uint64_t get_timebase(void)
 
 /* Compute new value for the decrementer.  If the value is in the future,
    sets the decrementer else returns an error.  */
-static void set_decrementer(void)
+static int set_decrementer(void)
 {
-  time_last = get_timebase();
-  /*We need to always set this value to clear IP7 bit*/
-  mtc0(CP0_COMPARE, time_inter);
-  //~ time_first = time_last;
-  //~ printf("TIMER: STATUS = 0x%lx\n", mfsr());
-  //~ printf("TIMER: mfc0(CP0_COUNT) before = 0x%lx\n", mfc0(CP0_COUNT));
-  //~ printf("TIMER: mfc0(CP0_COMPARE) = 0x%lx\n", mfc0(CP0_COMPARE));
-  mtc0(CP0_COUNT, 0x0);
-  //~ printf("TIMER: mfc0(CP0_COUNT) after = 0x%lx\n", mfc0(CP0_COUNT));
+  uint64_t time_new = time_last + time_inter;
+  uint64_t time_cur = get_timebase();
+  int32_t delta = time_new - time_cur;
+  time_last = time_new;
+  //~ printf("time_new = %lld; time_cur = %lld; delta = %d;\n", time_new, time_cur, delta);
+  if (delta < 0){
+    // that delta already expired
+    /*Clear time count, because we saved it in time_last*/
+    mtc0(CP0_COUNT, 0x0);
+    return POK_ERRNO_EINVAL;
+  }
+  else{
+    mtc0(CP0_COMPARE, delta);
+    //~ printf("TIMER: STATUS = 0x%lx\n", mfsr());
+    //~ printf("TIMER: mfc0(CP0_COUNT) before = 0x%lx\n", mfc0(CP0_COUNT));
+    //~ printf("TIMER: mfc0(CP0_COMPARE) = 0x%lx\n", mfc0(CP0_COMPARE));
+    mtc0(CP0_COUNT, 0x0);
+    return POK_ERRNO_OK;
+  }  //~ printf("TIMER: mfc0(CP0_COUNT) after = 0x%lx\n", mfc0(CP0_COUNT));
 }
 
 /* Called by the interrupt handled.  */
 void pok_arch_decr_int (void)
 {
-
-  set_decrementer();
+  int err;
+  do
+  {
+    err = set_decrementer();
+    //~ printf("Error\n");
+  } while (err != POK_ERRNO_OK);
 
   jet_on_tick();
 }
@@ -76,8 +90,10 @@ void ja_time_init (void)
 {
   time_inter = pok_bsp.timebase_freq / POK_TIMER_FREQUENCY;
   printf("Timer interval: %u\n", time_inter);
-  time_first = time_last = 0;
-
+  time_last = 0;
+  time_first = time_last = get_timebase ();
+  /*Clear time count, because we saved it in time_last*/
+  mtc0(CP0_COUNT, 0x0);
   set_decrementer();
   
   mtsr((mfsr() | CP0_STATUS_IM7)); // enable decrementer
