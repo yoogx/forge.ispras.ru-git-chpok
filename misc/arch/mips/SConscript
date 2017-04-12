@@ -132,15 +132,15 @@ class PhysMemoryTypeMIPS(PhysMemoryType):
             print "Cannot allocate TLB of half size greater than 16M."
             return
 
-        if size < 4096*2:
-            size = 4096*2
+        if size < 8192:
+            size = 8192
         #increase 4096 to 8192
-        size_pow_4 = int(math.ceil(math.log((size + 4095 ) // 8192, 4)))
+        size_pow_4 = int(math.ceil(math.log((size + 8191 ) // 8192, 4)))
 
         size_enum = MBmap.size_enum_values[size_pow_4]
 
         # MIPS has 2 paddr
-        size_real = 4096* 2 * 4**size_pow_4
+        size_real = 8192 * 4**size_pow_4
         align_real = size_real
 
         paddr_real = align_val(paddr, align_real)
