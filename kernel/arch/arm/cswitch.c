@@ -39,12 +39,13 @@ struct jet_context* ja_context_init(jet_stack_t sp, void (*entry)(void))
 {
     struct jet_context *ctx = (struct jet_context *)(sp - sizeof(*ctx));
     memset(ctx, 0, sizeof(*ctx));
-    ctx->entry = entry;
+    ctx->entry = (uint32_t)entry;
+    return ctx;
 }
 
 void ja_context_restart_and_save(jet_stack_t sp, void (*entry)(void),
         struct jet_context** new_context_p)
 {
-    *new_context_p = 1; //something not NULL
+    *new_context_p = (void *)1; //something not NULL
     ja_context_restart(sp, entry);
 }

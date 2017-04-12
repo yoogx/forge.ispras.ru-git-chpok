@@ -177,6 +177,8 @@ void uart_init(uintptr_t uart_base)
 static size_t iostream_write_common(const char* s, size_t length, int flag)
 {
     (void) flag;
+    (void) length;
+
     char c = *s;
     if (c != '\n')
         uart_putc(UART1_BASE, c);
@@ -191,10 +193,10 @@ static size_t iostream_write_common(const char* s, size_t length, int flag)
 static size_t iostream_read_common(char* s, size_t length, int flag)
 {
     (void) flag;
+    (void) length;
 
     // Check if there is something
     if (ioread32(UART1_BASE + URXD) & URXD_CHARRDY) {
-
         //Read single character
         s[0] = ioread32(UART1_BASE + URXD) & 0xFF;
         return 1;
@@ -206,6 +208,7 @@ static size_t iostream_read_common(char* s, size_t length, int flag)
 
 static void iostream_init_common(int flag)
 {
+    (void) flag;
     uart_init(UART1_BASE);
 }
 

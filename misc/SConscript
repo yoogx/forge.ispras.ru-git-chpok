@@ -171,7 +171,7 @@ env.Append(QEMU_FLAGS = ' -serial stdio')
 
 env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -Wuninitialized -ffreestanding -nostdlib -nostdinc -g -Wextra -Wpointer-arith'
 env['ASFLAGS'] = env['CFLAGS']
-env['CFLAGS_KERNEL'] = '' #'-Werror'
+env['CFLAGS_KERNEL'] = '' '-Werror'
 env['CFLAGS_USER'] = '-include '+ env['JETOS_HOME']+'/libpok/include/config.h'
 
 # Execute bsp-definition script

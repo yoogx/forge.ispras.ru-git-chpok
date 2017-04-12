@@ -16,6 +16,7 @@
 #include <types.h>
 #include <asp/alloc.h>
 #include <asp/stack.h>
+#include <asp/space.h>
 #include <assert.h>
 #include <common.h>
 
