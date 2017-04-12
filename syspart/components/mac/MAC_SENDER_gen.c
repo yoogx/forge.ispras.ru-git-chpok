@@ -23,9 +23,9 @@
 
 
 
-    static ret_t __wrapper_mac_send(self_t *arg0, char * arg1, size_t arg2, size_t arg3, uint8_t * arg4, enum ethertype arg5)
+    static ret_t __wrapper_mac_send(self_t *arg0, char * arg1, size_t arg2, size_t arg3, size_t arg4, uint8_t * arg5, enum ethertype arg6)
     {
-        return mac_send((MAC_SENDER*) arg0, arg1, arg2, arg3, arg4, arg5);
+        return mac_send((MAC_SENDER*) arg0, arg1, arg2, arg3, arg4, arg5, arg6);
     }
 
     static ret_t __wrapper_mac_flush(self_t *arg0)
@@ -35,15 +35,17 @@
 
 
 
-      ret_t MAC_SENDER_call_portB_send(MAC_SENDER *self, char * arg1, size_t arg2, size_t arg3)
+      ret_t _MAC_SENDER_call_portB_send_impl(MAC_SENDER *self, char * arg1, size_t arg2, size_t arg3, size_t arg4)
       {
          if (self->out.portB.ops == NULL) {
              printf("WRONG CONFIG: out port portB of component MAC_SENDER was not initialized\n");
              //fatal_error?
          }
-         return self->out.portB.ops->send(self->out.portB.owner, arg1, arg2, arg3);
+         return self->out.portB.ops->send(self->out.portB.owner, arg1, arg2, arg3, arg4);
       }
-      ret_t MAC_SENDER_call_portB_flush(MAC_SENDER *self)
+      ret_t MAC_SENDER_call_portB_send(MAC_SENDER *self, char * arg1, size_t arg2, size_t arg3, size_t arg4)
+      __attribute__ ((weak, alias ("_MAC_SENDER_call_portB_send_impl")));
+      ret_t _MAC_SENDER_call_portB_flush_impl(MAC_SENDER *self)
       {
          if (self->out.portB.ops == NULL) {
              printf("WRONG CONFIG: out port portB of component MAC_SENDER was not initialized\n");
@@ -51,6 +53,8 @@
          }
          return self->out.portB.ops->flush(self->out.portB.owner);
       }
+      ret_t MAC_SENDER_call_portB_flush(MAC_SENDER *self)
+      __attribute__ ((weak, alias ("_MAC_SENDER_call_portB_flush_impl")));
 
 
 void __MAC_SENDER_init__(MAC_SENDER *self)

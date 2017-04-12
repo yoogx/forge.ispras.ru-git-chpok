@@ -14,7 +14,7 @@
  */
 
 #include <asp/uaccess.h>
-#include "memlayout.h"
+#include <arch/memlayout.h>
 
 pok_bool_t ja_access_ok(const void* __user addr, size_t size)
 {

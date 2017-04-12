@@ -35,7 +35,7 @@
 {% for p in component.out_ports %}
  {% if p.is_array %}
   {% for i_func in interfaces[p.type].functions %}
-      {{i_func.return_type}} {{component.name}}_call_{{p.name}}_{{i_func.name}}_by_index(int idx, {{component.name}} *self{{args(i_func)}})
+      {{i_func.return_type}} _{{component.name}}_call_{{p.name}}_{{i_func.name}}_by_index_impl(int idx, {{component.name}} *self{{args(i_func)}})
       {
          if (self->out.{{p.name}}[idx].ops == NULL) {
              printf("WRONG CONFIG: out port {{p.name}} of component {{component.name}} was not initialized\n");
@@ -43,10 +43,12 @@
          }
          return self->out.{{p.name}}[idx].ops->{{i_func.name}}(self->out.{{p.name}}[idx].owner{%for i in range(1, i_func.args_type|length)%}, arg{{i}}{%endfor%});
       }
+      {{i_func.return_type}} {{component.name}}_call_{{p.name}}_{{i_func.name}}_by_index(int idx, {{component.name}} *self{{args(i_func)}})
+      __attribute__ ((weak, alias ("_{{component.name}}_call_{{p.name}}_{{i_func.name}}_by_index_impl")));
   {% endfor %}
  {% else %}
   {% for i_func in interfaces[p.type].functions %}
-      {{i_func.return_type}} {{component.name}}_call_{{p.name}}_{{i_func.name}}({{component.name}} *self{{args(i_func)}})
+      {{i_func.return_type}} _{{component.name}}_call_{{p.name}}_{{i_func.name}}_impl({{component.name}} *self{{args(i_func)}})
       {
          if (self->out.{{p.name}}.ops == NULL) {
              printf("WRONG CONFIG: out port {{p.name}} of component {{component.name}} was not initialized\n");
@@ -54,6 +56,8 @@
          }
          return self->out.{{p.name}}.ops->{{i_func.name}}(self->out.{{p.name}}.owner{%for i in range(1, i_func.args_type|length)%}, arg{{i}}{%endfor%});
       }
+      {{i_func.return_type}} {{component.name}}_call_{{p.name}}_{{i_func.name}}({{component.name}} *self{{args(i_func)}})
+      __attribute__ ((weak, alias ("_{{component.name}}_call_{{p.name}}_{{i_func.name}}_impl")));
   {% endfor %}
  {% endif %}
 {% endfor %}

@@ -50,9 +50,9 @@ typedef struct {
 
 
 
-      ret_t udp_receive(UDP_RECEIVER *, const char *, size_t);
+      ret_t udp_receive(UDP_RECEIVER *, const uint8_t *, size_t);
 
-      ret_t UDP_RECEIVER_call_portB_udp_message_handle(UDP_RECEIVER *, const char *, size_t, uint32_t, uint16_t);
+      ret_t UDP_RECEIVER_call_portB_udp_message_handle(UDP_RECEIVER *, const uint8_t *, size_t, uint32_t, uint16_t);
 
 
 

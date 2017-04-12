@@ -18,12 +18,13 @@
 
 #include <errno.h>
 
-#include <ioports.h>
+#include <arch/ioports.h>
 #include <libc.h>
 #include <core/debug.h>
 #include <asp/cons.h>
 
 #include "cons.h"
+#include "terminal.h"
 
 #ifdef POK_NEEDS_CONSOLE
 
@@ -92,12 +93,18 @@ static size_t iostream_write_common (int port, const char *s, size_t length)
             write_serial(port, '\r');
             write_serial(port, '\n');
         }
+        terminal_putchar(c);
     }
    return length;
 }
 
 static void iostream_init_common (int port)
 {
+    static int t = 0;
+    if (t == 0) {
+        terminal_initialize();
+        t++;
+    }
    /* To be fixed : init serial */
    outb(port + 1, 0x00);    // Disable all interrupts
    outb(port + 3, 0x80);    // Enable DLAB (set baud rate divisor)

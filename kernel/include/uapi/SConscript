@@ -21,6 +21,7 @@
 uapi_headers = [
     'errno.h',
     'error_arinc_types.h',
+    'ippc_types.h',
     'kernel_shared_data.h',
     'msection.h',
     'memblock_types.h',

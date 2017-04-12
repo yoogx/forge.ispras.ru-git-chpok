@@ -3,8 +3,8 @@
   functions:
       - name: send
         return_type: ret_t
-        # component, payload, size, max_backstep
-        args_type: [self_t *, char *, size_t, size_t]
+        # component, payload, size, prepend_max_size, append_max_size
+        args_type: [self_t *, char *, size_t, size_t, size_t]
 
       - name: flush
         return_type: ret_t
@@ -16,8 +16,8 @@
   functions:
       - name: mac_send
         return_type: ret_t
-        # component, payload, payload_size, max_backstep, dst_mac_addr, ethertype
-        args_type: [self_t *, char *, size_t, size_t, uint8_t *, enum ethertype]
+        # component, payload, payload_size, prepend_max_size, append_max_size, dst_mac_addr, ethertype
+        args_type: [self_t *, char *, size_t, size_t, size_t, uint8_t *, enum ethertype]
 
       - name: flush
         return_type: ret_t
@@ -30,7 +30,7 @@
       - name: handle
         return_type: ret_t
         # component, msg, size
-        args_type: [self_t *, const char *, size_t] #const char *!!
+        args_type: [self_t *, const uint8_t *, size_t] #const char *!!
 
 - name: udp_message_handler
   additional_h_files: ['<ret_type.h>']
@@ -38,4 +38,4 @@
       - name: udp_message_handle #udp_message_handle
         return_type: ret_t
         # component, udp_msg, size, dst_ip, dst_udp_port
-        args_type: [self_t *, const char *, size_t, uint32_t, uint16_t]  #const char *!!
+        args_type: [self_t *, const uint8_t *, size_t, uint32_t, uint16_t]  #const char *!!

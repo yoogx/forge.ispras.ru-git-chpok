@@ -21,6 +21,7 @@
 
 #define NUMREGBYTES (NUMREGS * 4)
 //~ #define DEBUG_GDB
+#define QEMU
 
 #ifdef DEBUG_GDB
 #define printf_GDB printf

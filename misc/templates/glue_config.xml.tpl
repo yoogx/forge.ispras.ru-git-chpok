@@ -1,5 +1,5 @@
 <Partition>
-    <Definition Name="P2" System="true"/>
+    <Definition Name="{{partition_name}}" System="true"/>
     <!-- Amount of ram required for ELF -->
     <Memory Bytes="1M" Heap="1M"/>
 
@@ -11,8 +11,11 @@
     <ARINC653_Semaphores Count="16" />
 
     <ARINC653_Ports>
-        <Queueing_Port Name="UIN"  MaxMessageSize="64" Direction="SOURCE" MaxNbMessage="10" />
-        <Queueing_Port Name="UOUT" MaxMessageSize="64" Direction="DESTINATION" MaxNbMessage="10" />
+        <Queueing_Port Name="UIN"  Protocol="UDP" MaxMessageSize="64" Direction="SOURCE" MaxNbMessage="10" />
+        <Queueing_Port Name="UOUT" Protocol="UDP" MaxMessageSize="64" Direction="DESTINATION" MaxNbMessage="10" />
+        <Queueing_Port Name="UOUT2" Protocol="UDP" MaxMessageSize="64" Direction="DESTINATION" MaxNbMessage="10" />
+        <Sampling_Port Name="SUIN" Protocol="UDP" MaxMessageSize="64" Direction="SOURCE" Refresh="1s"/>
+        <Sampling_Port Name="SUOUT" Protocol="UDP" MaxMessageSize="64" Direction="DESTINATION" Refresh="1s"/>
     </ARINC653_Ports>
 
     <Memory_Blocks>

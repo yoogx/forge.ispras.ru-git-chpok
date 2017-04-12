@@ -1,26 +1,29 @@
-- name: ARINC_SENDER
+- name: ARINC_PORT_READER
   additional_h_files: ['<arinc653/queueing.h>', '<arinc653/sampling.h>', '<port_info.h>']
   state_struct:
       port_name: NAME_TYPE
       port_direction: PORT_DIRECTION_TYPE
-      overhead: unsigned
+      prepend_overhead: size_t
+      append_overhead: size_t
       port_max_message_size: MESSAGE_SIZE_TYPE
       is_queuing_port: int
       q_port_max_nb_messages: MESSAGE_RANGE_TYPE
 
       #not inited
       port_id: APEX_INTEGER
-      port_buffer: sys_port_data_t *
+      #port_buffer: sys_port_data_t *
+      port_buffer: char *
+      message_size: MESSAGE_SIZE_TYPE
 
-  init_func: arinc_sender_init
-  activity: arinc_sender_activity
+  init_func: arinc_port_reader_init
+  activity: arinc_port_reader_activity
 
   out_ports:
       - name: portA
         type: preallocated_sender
 
 
-- name: ARINC_RECEIVER
+- name: ARINC_PORT_WRITER
   additional_h_files: ['<arinc653/queueing.h>', '<arinc653/sampling.h>', '<port_info.h>']
   state_struct:
       port_name: NAME_TYPE
@@ -31,7 +34,7 @@
       #not inited
       port_id: APEX_INTEGER
 
-  init_func: arinc_receiver_init
+  init_func: arinc_port_writer_init
 
   in_ports:
       - name: portA

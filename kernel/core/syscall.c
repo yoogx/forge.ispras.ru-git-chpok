@@ -22,7 +22,6 @@
 #include <asp/bsp_common.h>
 #include <types.h>
 #include <libc.h>
-#include <ioports.h>
 
 #include <errno.h>
 #include <core/debug.h>
@@ -128,6 +127,13 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
    SYSCALL_ENTRY(POK_SYSCALL_MIDDLEWARE_QUEUEING_CLEAR)
 
    SYSCALL_ENTRY(POK_SYSCALL_MEMORY_BLOCK_GET_STATUS)
+
+   SYSCALL_ENTRY(POK_SYSCALL_IPPC_INIT_PORTAL)
+   SYSCALL_ENTRY(POK_SYSCALL_IPPC_CALL)
+   SYSCALL_ENTRY(POK_SYSCALL_IPPC_GET_PORTAL_TYPE_INFO)
+   SYSCALL_ENTRY(POK_SYSCALL_IPPC_GET_PORTAL_INFO)
+   SYSCALL_ENTRY(POK_SYSCALL_IPPC_CREATE_CONNECTIONS)
+   SYSCALL_ENTRY(POK_SYSCALL_IPPC_RETURN)
 
       default:
        /*

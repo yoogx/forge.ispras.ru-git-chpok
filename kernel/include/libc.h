@@ -41,6 +41,8 @@ int   strncasecmp(const char *s1, const char *s2, size_t size);
 char *strchr(const char *s, int c);
 char *strrchr(const char *s, int c);
 
+char *strstr(const char *s1, const char *s2);
+
 void *memchr(const void *s, int c, size_t n);
 
 typedef void (*t_putc)(int val, void *out);
@@ -174,8 +176,12 @@ struct T_breakpoint{
 
 struct jet_interrupt_context;
 
-void handle_exception (int exceptionVector, struct jet_interrupt_context* ea);
 
+
+char *gdb_strcpy(char *dest, const char *str);
+void handle_exception (int exceptionVector, struct jet_interrupt_context* ea);
+char * hex2mem (char *buf, char *mem, int count);
+char * mem2hex (const char *mem, char *buf, int count);
 void pok_monitor_thread(void);
 void pok_monitor_thread_init(void);
 void pok_gdb_thread(void);
