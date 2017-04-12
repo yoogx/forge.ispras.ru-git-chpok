@@ -345,7 +345,6 @@ void GET_BUFFER_ID (
        /*out*/ BUFFER_ID_TYPE           *BUFFER_ID,
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-
    struct arinc_buffer* buffer = find_buffer(BUFFER_NAME);
    if(buffer == NULL) {
       *RETURN_CODE = INVALID_CONFIG;

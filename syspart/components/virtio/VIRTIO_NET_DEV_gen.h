@@ -53,10 +53,10 @@ typedef struct {
 
 
 
-      ret_t send_frame(VIRTIO_NET_DEV *, char *, size_t, size_t);
+      ret_t send_frame(VIRTIO_NET_DEV *, char *, size_t, size_t, size_t);
       ret_t flush_send(VIRTIO_NET_DEV *);
 
-      ret_t VIRTIO_NET_DEV_call_portB_handle(VIRTIO_NET_DEV *, const char *, size_t);
+      ret_t VIRTIO_NET_DEV_call_portB_handle(VIRTIO_NET_DEV *, const uint8_t *, size_t);
 
 
  pok_ret_t VIRTIO_NET_DEV_get_memory_block_status(

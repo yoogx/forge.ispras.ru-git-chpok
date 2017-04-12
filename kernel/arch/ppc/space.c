@@ -190,7 +190,7 @@ void pok_arch_space_init (void)
         0,
         0,
         E500MC_PGSIZE_256M,  //TODO make smaller
-        MAS3_SW | MAS3_SR | MAS3_SX,
+        MAS3_SW | MAS3_SR | MAS3_SX, // MAS3_UX
         0,
         0, // any pid
         TRUE

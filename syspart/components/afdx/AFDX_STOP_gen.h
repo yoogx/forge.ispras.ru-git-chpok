@@ -1,7 +1,7 @@
 /*
  * GENERATED! DO NOT MODIFY!
  *
- * Instead of modifying this file, modify the one it generated from (syspart/components/arinc/config.yaml).
+ * Instead of modifying this file, modify the one it generated from (syspart/components/afdx/config.yaml).
  */
 /*
  * Institute for System Programming of the Russian Academy of Sciences
@@ -18,29 +18,22 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __ARINC_RECEIVER_GEN_H__
-#define __ARINC_RECEIVER_GEN_H__
+#ifndef __AFDX_STOP_GEN_H__
+#define __AFDX_STOP_GEN_H__
 
 #include <memblocks.h>
-    #include <arinc653/queueing.h>
-    #include <arinc653/sampling.h>
-    #include <port_info.h>
+    #include <arinc653/time.h>
 
     #include <interfaces/message_handler_gen.h>
 
 
-typedef struct ARINC_RECEIVER_state {
-    PORT_DIRECTION_TYPE port_direction;
-    MESSAGE_RANGE_TYPE q_port_max_nb_messages;
-    MESSAGE_SIZE_TYPE port_max_message_size;
-    NAME_TYPE port_name;
-    int is_queuing_port;
-    APEX_INTEGER port_id;
-}ARINC_RECEIVER_state;
+typedef struct AFDX_STOP_state {
+    int st;
+}AFDX_STOP_state;
 
 typedef struct {
     char instance_name[16];
-    ARINC_RECEIVER_state state;
+    AFDX_STOP_state state;
     struct {
             struct {
                 message_handler ops;
@@ -48,16 +41,15 @@ typedef struct {
     } in;
     struct {
     } out;
-} ARINC_RECEIVER;
+} AFDX_STOP;
 
 
 
-      ret_t arinc_receive_message(ARINC_RECEIVER *, const char *, size_t);
+      ret_t afdx_stop_func(AFDX_STOP *, const uint8_t *, size_t);
 
 
 
 
-    void arinc_receiver_init(ARINC_RECEIVER *);
 
 
 

@@ -20,19 +20,23 @@
 
 #include <smalloc.h>
 
-#include "ARINC_SENDER_gen.h"
-#define C_NAME "ARINC_SENDER: "
+#include "ARINC_PORT_READER_gen.h"
+#define C_NAME "ARINC_PORT_READER: "
 
-static int receive_msg_queuing(ARINC_SENDER *self)
+#define SECOND 1000000000LL
+#define NO_WAIT_TIME 0
+
+#define SAMPLING_REFRESH_PERIOD SECOND
+
+
+static int receive_msg_queuing(ARINC_PORT_READER *self)
 {
-    sys_port_data_t *dst_place = self->state.port_buffer;
-
     RETURN_CODE_TYPE ret;
     RECEIVE_QUEUING_MESSAGE(
             self->state.port_id,
-            0,
-            (MESSAGE_ADDR_TYPE ) (dst_place->data + self->state.overhead),
-            &dst_place->message_size,
+            NO_WAIT_TIME,
+            (MESSAGE_ADDR_TYPE ) (self->state.port_buffer + self->state.prepend_overhead),
+            &self->state.message_size,
             &ret
             );
 
@@ -44,24 +48,26 @@ static int receive_msg_queuing(ARINC_SENDER *self)
     return 0;
 }
 
-static int receive_msg_samping(ARINC_SENDER *self)
+
+static int receive_msg_sampling(ARINC_PORT_READER *self)
 {
     RETURN_CODE_TYPE ret;
-    sys_port_data_t *dst_place = self->state.port_buffer;
+    VALIDITY_TYPE   validity;
 
-    if (!SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(self->state.port_id))
+    //~ printf("SYS_CHECK: %d\n", SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(self->state.port_id));
+    if (SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(self->state.port_id))
         return -1;
 
     READ_SAMPLING_MESSAGE(
             self->state.port_id,
-            (MESSAGE_ADDR_TYPE ) (dst_place->data + self->state.overhead),
-            &dst_place->message_size,
-            NULL,
+            (MESSAGE_ADDR_TYPE ) (self->state.port_buffer + self->state.prepend_overhead),
+            &self->state.message_size,
+            &validity,
             &ret
             );
 
     if (ret != NO_ERROR) {
-        if (ret != NOT_AVAILABLE)
+        if (ret != NO_ACTION)
             printf(C_NAME"%s port error: %u\n", self->state.port_name, ret);
         return -1;
     }
@@ -69,31 +75,32 @@ static int receive_msg_samping(ARINC_SENDER *self)
     return 0;
 }
 
-void arinc_sender_activity(ARINC_SENDER *self)
+void arinc_port_reader_activity(ARINC_PORT_READER *self)
 {
     int receive_error;
-    if (self->state.is_queuing_port)
+    if (self->state.is_queuing_port) {
         receive_error = receive_msg_queuing(self);
+    }
     else
-        receive_error = receive_msg_samping(self);
+        receive_error = receive_msg_sampling(self);
 
     if (receive_error != 0)
         return;
 
-    sys_port_data_t *dst_place = self->state.port_buffer;
-    ret_t res = ARINC_SENDER_call_portA_send(self,
-            dst_place->data + self->state.overhead,
-            dst_place->message_size,
-            self->state.overhead
+    ret_t res = ARINC_PORT_READER_call_portA_send(self,
+            self->state.port_buffer + self->state.prepend_overhead,
+            self->state.message_size,
+            self->state.prepend_overhead,
+            self->state.append_overhead
             );
 
     if (res != EOK)
         printf(C_NAME"Error in send_udp\n");
 
-    ARINC_SENDER_call_portA_flush(self);
+    ARINC_PORT_READER_call_portA_flush(self);
 }
 
-void arinc_sender_init(ARINC_SENDER *self)
+void arinc_port_reader_init(ARINC_PORT_READER *self)
 {
     RETURN_CODE_TYPE ret;
     if (self->state.is_queuing_port) {
@@ -110,7 +117,7 @@ void arinc_sender_init(ARINC_SENDER *self)
                 self->state.port_name,
                 self->state.port_max_message_size,
                 self->state.port_direction,
-                0, //in future should be any positive number
+                SAMPLING_REFRESH_PERIOD, //in future should be any positive number
                 &self->state.port_id,
                 &ret);
     }
@@ -123,7 +130,7 @@ void arinc_sender_init(ARINC_SENDER *self)
     printf(C_NAME"successfuly create %s port\n", self->state.port_name);
 
     self->state.port_buffer = smalloc(
-            sizeof(*self->state.port_buffer) +
-            self->state.overhead +
-            self->state.port_max_message_size);
+            self->state.prepend_overhead +
+            self->state.port_max_message_size +
+            self->state.append_overhead);
 }

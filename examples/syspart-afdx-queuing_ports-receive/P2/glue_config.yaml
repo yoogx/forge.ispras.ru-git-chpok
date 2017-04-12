@@ -1,0 +1,191 @@
+instances:
+
+    - name: virtio_net_dev_1
+      type: VIRTIO_NET_DEV
+      state:
+          pci_bus: 0
+          pci_dev: 1
+          pci_fn: 0
+
+    - name: virtio_net_dev_2
+      type: VIRTIO_NET_DEV
+      state:
+          pci_bus: 0
+          pci_dev: 2
+          pci_fn: 0
+
+    - name: afdx_time_add_1
+      type: AFDX_TIME_ADDER
+
+    - name: afdx_time_add_2
+      type: AFDX_TIME_ADDER
+
+    - name: afdx_router_1
+      type: AFDX_ROUTER
+      state:
+            map_vl_id_to_idx: '{1, 2}'
+            map_vl_id_to_idx_len: 2
+
+    - name: afdx_router_2
+      type: AFDX_ROUTER
+      state:
+            map_vl_id_to_idx: '{1, 2}'
+            map_vl_id_to_idx_len: 2
+
+    - name: afdx_ic_vl1_ntA
+      type: INTEGRITY_CHECKER
+      state:
+            network_card: 0
+            #think about define
+    - name: afdx_ic_vl2_ntA
+      type: INTEGRITY_CHECKER
+      state:
+            network_card: 0
+            #think about define
+    - name: afdx_ic_vl1_ntB
+      type: INTEGRITY_CHECKER
+      state:
+            network_card: 1
+            #think about define
+    - name: afdx_ic_vl2_ntB
+      type: INTEGRITY_CHECKER
+      state:
+            network_card: 1
+
+            #think about define
+    - name: red_mngr
+      type: REDUNDANCY_MANAGER
+      state:
+            virtual_link_data : '{{.vl_id=1, .skew_max=100000000, .BAG=100}, {.vl_id=2, .skew_max=100000000, .BAG=100}}'
+
+    - name: afdx_t_arinc_rtr
+      type: AFDX_TO_ARINC_ROUTER
+      state:
+            map_afdx_dst_port_vl_id_to_idx: '{{1,1}, {2,2}}'
+            map_afdx_dst_port_to_idx_len: 2
+
+    - name: arinc_prt_wrtr_1
+      type: ARINC_PORT_WRITER
+      state:
+          port_name: '"UIN"'
+          port_direction: SOURCE
+          port_max_message_size: 64
+          is_queuing_port: 1
+          q_port_max_nb_messages: 10
+
+    - name: arinc_prt_wrtr_2
+      type: ARINC_PORT_WRITER
+      state:
+          port_name: '"UIN"'
+          port_direction: SOURCE
+          port_max_message_size: 64
+          is_queuing_port: 1
+          q_port_max_nb_messages: 10
+
+links:
+#receive
+# 1 net device
+    - from:
+        instance: virtio_net_dev_1
+        port: portB
+      to:
+        instance: afdx_time_add_1
+        port: portB
+    - from:
+        instance: afdx_time_add_1
+        port: portA
+      to:
+        instance: afdx_router_1
+        port: portA
+    - from:
+        instance: afdx_router_1
+        port: portArray
+        array_index: 0
+      to:
+        instance: afdx_ic_vl1_ntA
+        port: portA
+    - from:
+        instance: afdx_router_1
+        port: portArray
+        array_index: 1
+      to:
+        instance: afdx_ic_vl2_ntA
+        port: portA
+    - from:
+        instance: afdx_ic_vl1_ntA
+        port: portB
+      to:
+        instance: red_mngr
+        port: portA
+    - from:
+        instance: afdx_ic_vl2_ntA
+        port: portB
+      to:
+        instance: red_mngr
+        port: portA
+
+
+
+# 2 net device
+    - from:
+        instance: virtio_net_dev_2
+        port: portB
+      to:
+        instance: afdx_time_add_2
+        port: portB
+
+    - from:
+        instance: afdx_time_add_2
+        port: portA
+      to:
+        instance: afdx_router_2
+        port: portA
+    - from:
+        instance: afdx_router_2
+        port: portArray
+        array_index: 0
+      to:
+        instance: afdx_ic_vl1_ntB
+        port: portA
+    - from:
+        instance: afdx_router_2
+        port: portArray
+        array_index: 1
+      to:
+        instance: afdx_ic_vl2_ntB
+        port: portA
+    - from:
+        instance: afdx_ic_vl1_ntB
+        port: portB
+      to:
+        instance: red_mngr
+        port: portB
+    - from:
+        instance: afdx_ic_vl2_ntB
+        port: portB
+      to:
+        instance: red_mngr
+        port: portB
+
+# for both network devices
+    - from:
+        instance: red_mngr
+        port: portC
+      to:
+        instance: afdx_t_arinc_rtr
+        port: portC
+# links to arinc writers
+    - from:
+        instance: afdx_t_arinc_rtr
+        port: portArray
+        array_index: 0
+      to:
+        instance: arinc_prt_wrtr_1
+        port: portA
+    - from:
+        instance: afdx_t_arinc_rtr
+        port: portArray
+        array_index: 1
+      to:
+        instance: arinc_prt_wrtr_2
+        port: portA

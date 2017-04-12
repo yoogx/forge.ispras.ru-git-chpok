@@ -37,6 +37,23 @@ bsp_objects = SConscript(kernel_env['JETOS_HOME'] + '/boards/SConscript',
 
 kernel_objects=[core, libc, proptree, arch, bsp_objects]
 
+if kernel_env.get('kerneltests'):
+    jetos_unittests = kernel_env['JETOS_UNITTESTS']
+    kernel_env.Append(CPPPATH = kernel_env['JETOS_UNITTESTS'] + '/unity/')
+    kernel_env.Append(CFLAGS = ' -DKERNEL_UNITTESTS')
+
+    tests = SConscript(Dir('#').abspath + '/P1/test/SConscript',
+        variant_dir = 'tests',
+        duplicate = 0
+    )
+
+    unity = SConscript(kernel_env['JETOS_UNITTESTS'] + '/unity/SConscript',
+        variant_dir = 'unity',
+        duplicate = 0
+    )
+
+    kernel_objects.extend([tests, unity])
+
 kernel_target = kernel_env.StaticLibrary(target = 'kernel',
     source = kernel_objects)
 

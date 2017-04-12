@@ -18,8 +18,8 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __ARINC_SENDER_GEN_H__
-#define __ARINC_SENDER_GEN_H__
+#ifndef __ARINC_PORT_READER_GEN_H__
+#define __ARINC_PORT_READER_GEN_H__
 
 #include <memblocks.h>
     #include <arinc653/queueing.h>
@@ -29,20 +29,22 @@
 
     #include <interfaces/preallocated_sender_gen.h>
 
-typedef struct ARINC_SENDER_state {
+typedef struct ARINC_PORT_READER_state {
     PORT_DIRECTION_TYPE port_direction;
     MESSAGE_RANGE_TYPE q_port_max_nb_messages;
-    sys_port_data_t * port_buffer;
+    char * port_buffer;
+    MESSAGE_SIZE_TYPE message_size;
     MESSAGE_SIZE_TYPE port_max_message_size;
     NAME_TYPE port_name;
-    unsigned overhead;
+    size_t prepend_overhead;
+    size_t append_overhead;
     int is_queuing_port;
     APEX_INTEGER port_id;
-}ARINC_SENDER_state;
+}ARINC_PORT_READER_state;
 
 typedef struct {
     char instance_name[16];
-    ARINC_SENDER_state state;
+    ARINC_PORT_READER_state state;
     struct {
     } in;
     struct {
@@ -51,19 +53,19 @@ typedef struct {
                 self_t *owner;
             } portA;
     } out;
-} ARINC_SENDER;
+} ARINC_PORT_READER;
 
 
 
 
-      ret_t ARINC_SENDER_call_portA_send(ARINC_SENDER *, char *, size_t, size_t);
-      ret_t ARINC_SENDER_call_portA_flush(ARINC_SENDER *);
+      ret_t ARINC_PORT_READER_call_portA_send(ARINC_PORT_READER *, char *, size_t, size_t, size_t);
+      ret_t ARINC_PORT_READER_call_portA_flush(ARINC_PORT_READER *);
 
 
 
-    void arinc_sender_init(ARINC_SENDER *);
+    void arinc_port_reader_init(ARINC_PORT_READER *);
 
-    void arinc_sender_activity(ARINC_SENDER *);
+    void arinc_port_reader_activity(ARINC_PORT_READER *);
 
 
 #endif

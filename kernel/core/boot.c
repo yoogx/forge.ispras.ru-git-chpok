@@ -42,6 +42,11 @@ extern const char __archive2_begin; // Actual kernel config tree is here.
 #include <gdb.h>
 #endif
 
+#ifdef KERNEL_UNITTESTS
+#include <unity_fixture.h>
+void RunAllTests(void);
+#endif
+
 void jet_boot (void)
 {
    kernel_config_tree = (jet_pt_tree_t)&__archive2_begin;
@@ -72,5 +77,10 @@ void jet_boot (void)
   pok_trap();
 #endif
 
+#ifdef KERNEL_UNITTESTS
+  const char* argv[] = {"kernel", "-v"};
+  UnityMain(2, argv, RunAllTests);
+#else
   pok_sched_start();
+#endif
 }

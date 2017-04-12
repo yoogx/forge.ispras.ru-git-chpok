@@ -492,6 +492,10 @@ define_run_command('run-tap2',
     '$QEMU $QEMU_FLAGS -net nic,model=virtio,vlan=0 -net nic,model=virtio,vlan=1 -net tap,ifname=tap0,script=no,downscript=no,vlan=0 -net tap,ifname=tap1,script=no,downscript=no,vlan=1'
 )
 
+define_run_command('run-tap-rec',
+    '$QEMU $QEMU_FLAGS -net nic,model=virtio,vlan=0 -net nic,model=virtio,vlan=1 -net tap,ifname=tap2,script=no,downscript=no,vlan=0 -net tap,ifname=tap3,script=no,downscript=no,vlan=1'
+)
+
 define_run_command('run-tap-ne2k',
     '$QEMU $QEMU_FLAGS -net nic,model=ne2k_pci,vlan=0 -net nic,model=ne2k_pci,vlan=1 -net tap,ifname=tap0,script=no,downscript=no,vlan=0, -net tap,ifname=tap1,script=no,downscript=no,vlan=1'
 )

@@ -26,7 +26,7 @@
     #include <ret_type.h>
 
 typedef struct {
-    ret_t (*send)(self_t *, char *, size_t, size_t);
+    ret_t (*send)(self_t *, char *, size_t, size_t, size_t);
     ret_t (*flush)(self_t *);
 } preallocated_sender;
 

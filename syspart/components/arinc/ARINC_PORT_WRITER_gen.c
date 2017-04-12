@@ -19,27 +19,27 @@
  */
 
 #include <lib/common.h>
-#include "ARINC_RECEIVER_gen.h"
+#include "ARINC_PORT_WRITER_gen.h"
 
 
 
-    static ret_t __wrapper_arinc_receive_message(self_t *arg0, const char * arg1, size_t arg2)
+    static ret_t __wrapper_arinc_receive_message(self_t *arg0, const uint8_t * arg1, size_t arg2)
     {
-        return arinc_receive_message((ARINC_RECEIVER*) arg0, arg1, arg2);
+        return arinc_receive_message((ARINC_PORT_WRITER*) arg0, arg1, arg2);
     }
 
 
 
 
 
-void __ARINC_RECEIVER_init__(ARINC_RECEIVER *self)
+void __ARINC_PORT_WRITER_init__(ARINC_PORT_WRITER *self)
 {
             self->in.portA.ops.handle = __wrapper_arinc_receive_message;
 
-        arinc_receiver_init(self);
+        arinc_port_writer_init(self);
 }
 
-void __ARINC_RECEIVER_activity__(ARINC_RECEIVER *self)
+void __ARINC_PORT_WRITER_activity__(ARINC_PORT_WRITER *self)
 {
         (void) self; //suppress warning
 }
