@@ -18,7 +18,7 @@ SECTIONS
     {
         *(.rodata)
 
-        /* space for .archive2 section in sizes.o file */
+        . = ALIGN(4096);
         __archive2_begin = .;
         *(.archive2)
         __archive2_end = .;
