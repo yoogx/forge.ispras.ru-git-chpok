@@ -235,12 +235,6 @@ static void partition_arinc_start(void)
     part->kshd->partition_mode = part->mode;
 
     part->kshd->thread_entry_wrapper = NULL;
-    // Transfer data about intra communication to user space
-    part->kshd->arinc_config_nbuffers = part->arinc_config_nbuffers;
-    part->kshd->arinc_config_nblackboards = part->arinc_config_nblackboards;
-    part->kshd->arinc_config_nsemaphores = part->arinc_config_nsemaphores;
-    part->kshd->arinc_config_nevents = part->arinc_config_nevents;
-    part->kshd->arinc_config_messages_memory_size = part->arinc_config_messages_memory_size;
 
     sched_arinc_start();
 

@@ -13,10 +13,10 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-/* Some functions from POSIX arpa/inet.h which are needed for the kernel. */
+/* Some functions from POSIX arpa/inet.h which are needed for the libjet. */
 
-#ifndef __JET_ARPA_INET_H__
-#define __JET_ARPA_INET_H__
+#ifndef __LIBJET_ARPA_INET_H__
+#define __LIBJET_ARPA_INET_H__
 
 #include <stdint.h>
 
@@ -52,7 +52,6 @@ static inline uint64_t ntoh64(uint64_t x)
 {
     return __builtin_bswap64(x);
 }
-
 
 #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 
@@ -91,4 +90,4 @@ static inline uint64_t ntoh64(uint64_t x)
 #error "Unrecognized endianness"
 #endif /* __BYTE_ORDER__ */
 
-#endif /* __JET_ARPA_INET_H__ */
+#endif /* __LIBJET_ARPA_INET_H__ */

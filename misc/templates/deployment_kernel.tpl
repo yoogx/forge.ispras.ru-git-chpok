@@ -240,7 +240,7 @@ static const struct jet_partition_arinc_mb_addr_entry mb_addr_table_{{loop.index
 // {{part.name}} PARTITION memblock init list {{loop.index0}}
 static const struct memory_block* const memory_block_init_list_{{part.index}}_{{loop.index0}}[] =
 {
-{%for mb in init_entry.memory_blocks%}
+{%for mb in init_entry.get_memory_blocks_ordered()%}
     &memory_blocks_{{part.index}}[{{mb.index}}],
 {%endfor%}
     NULL
@@ -252,7 +252,7 @@ static const struct jet_partition_memory_block_init_entry memory_block_init_entr
 {%for init_entry in pmd.memory_block_init_entries['PARTITION']%}
     {
         .init_type = JET_MEMORY_BLOCK_INIT_{{init_entry.init_type}},
-        .source_id = {{init_entry.source_id}},
+        .source_id = {%if init_entry.source_id is not none%}"{{init_entry.source_id}}"{%else%}NULL{%endif%},
         .mblocks = memory_block_init_list_{{part.index}}_{{loop.index0}},
     },
 {%endfor%}
@@ -262,7 +262,7 @@ static const struct jet_partition_memory_block_init_entry memory_block_init_entr
 // {{part.name}} PARTITION:COLD memblock init list {{loop.index0}}
 static const struct memory_block* const memory_block_init_list_cold_{{part.index}}_{{loop.index0}}[] =
 {
-{%for mb in init_entry.memory_blocks%}
+{%for mb in init_entry.get_memory_blocks_ordered()%}
     &memory_blocks_{{part.index}}[{{mb.index}}],
 {%endfor%}
     NULL
@@ -274,7 +274,7 @@ static const struct jet_partition_memory_block_init_entry memory_block_init_entr
 {%for init_entry in pmd.memory_block_init_entries['PARTITION:COLD']%}
     {
         .init_type = JET_MEMORY_BLOCK_INIT_{{init_entry.init_type}},
-        .source_id = {{init_entry.source_id}},
+        .source_id = {%if init_entry.source_id is not none%}"{{init_entry.source_id}}"{%else%}NULL{%endif%},
         .mblocks = memory_block_init_list_cold_{{part.index}}_{{loop.index0}},
     },
 {%endfor%}
@@ -328,8 +328,6 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
 
         },
 
-        .elf_id = {{part.index}},
-
         .memory_blocks = memory_blocks_{{loop.index0}},
         .nmemory_blocks = {{pmd.memory_blocks | length}},
 
@@ -367,12 +365,6 @@ pok_partition_arinc_t pok_partitions_arinc[{{conf.partitions | length}}] = {
         .thread_error_info = &partition_thread_error_info_{{loop.index0}},
 
         .partition_hm_table = &partition_hm_table_{{loop.index0}},
-
-        .arinc_config_nbuffers = {{part.num_arinc653_buffers}},
-        .arinc_config_nblackboards = {{part.num_arinc653_blackboards}},
-        .arinc_config_nsemaphores = {{part.num_arinc653_semaphores}},
-        .arinc_config_nevents = {{part.num_arinc653_events}},
-        .arinc_config_messages_memory_size = {{part.buffer_data_size + part.blackboard_data_size}},
     },
 {%endfor%}{#partitions loop#}
 };
@@ -449,7 +441,7 @@ const pok_time_t pok_config_scheduling_major_frame = {{conf.major_frame}};
 // MODULE memblock init list {{loop.index0}}
 static const struct memory_block* const memory_block_init_list_module_{{loop.index0}}[] =
 {
-{%for mb in init_entry.memory_blocks%}
+{%for mb in init_entry.get_memory_blocks_ordered()%}
     &memory_blocks_{{init_entry.part_index}}[{{mb.index}}],
 {%endfor%}
     NULL
@@ -461,7 +453,7 @@ const struct jet_module_memory_block_init_entry module_memory_block_init_entries
 {%for init_entry in memory_definitions.memory_block_init_entries%}
     {
         .init_type = JET_MEMORY_BLOCK_INIT_{{init_entry.init_type}},
-        .source_id = {{init_entry.source_id}},
+        .source_id = {%if init_entry.source_id is not none%}"{{init_entry.source_id}}"{%else%}NULL{%endif%},
         .part = &pok_partitions_arinc[{{init_entry.part_index}}],
         .mblocks = memory_block_init_list_module_{{loop.index0}},
     },

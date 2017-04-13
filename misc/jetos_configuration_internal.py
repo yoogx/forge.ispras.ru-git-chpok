@@ -24,6 +24,7 @@ Internal configuration of the module.
 import chpok_configuration
 import types_requirements
 import memory_definition
+import os
 
 from text_serialization import *
 
@@ -143,7 +144,7 @@ class ConfigurationInternal(SerializableObject):
 
         return conf_internal
 
-    def create_memory_constraints(self, env, phys_total):
+    def create_memory_constraints(self, env, phys_total, partitions_elf_map, partitions_pt_map):
         """
         Create object ModuleMemoryDefinition as memory constraints.
         """
@@ -162,7 +163,7 @@ class ConfigurationInternal(SerializableObject):
             )
 
             # Memory blocks for ELF
-            segments = elf_info.elf_read_segments(env, env['PARTITIONS_ELF_MAP'][pmd.name])
+            segments = elf_info.elf_read_segments(env, partitions_elf_map[pmd.name])
 
             for i, segment in enumerate(segments):
                 elf_mbd = memory_definition.MemoryBlockDefinition(
@@ -176,6 +177,21 @@ class ConfigurationInternal(SerializableObject):
                 )
 
                 pmd.add_memory_block(elf_mbd)
+
+            # Partition's property tree.
+            part_prop_tree = partitions_pt_map[part.name]
+
+
+            part_mbd = memory_definition.MemoryBlockDefinition(
+                name = ".CONFIG_TREE",
+                size = os.path.getsize(part_prop_tree),
+                align = 16, # TODO: Alignment should be same as binary_data_align, but it is hardcoded.
+                access = "R",
+                init_source = "CONFIG_TREE",
+                init_stage = "PARTITION",
+            )
+
+            pmd.add_memory_block(part_mbd)
 
             # Memory block for heap
             heap_mbd = memory_definition.MemoryBlockDefinition(

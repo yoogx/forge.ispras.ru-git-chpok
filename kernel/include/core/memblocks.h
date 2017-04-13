@@ -81,14 +81,15 @@ void* __kuser jet_memory_block_get_kaddr(const struct memory_block* mblock,
 
 
 pok_ret_t jet_memory_block_get_status(
-        const char* __user name,
-        jet_memory_block_status_t* __user status);
+    const char* __user name,
+    jet_memory_block_status_t* __user status);
 
 /* How memory block may be initialized. */
 enum jet_memory_block_init_type
 {
     JET_MEMORY_BLOCK_INIT_ZERO, /* Fill with zero */
     JET_MEMORY_BLOCK_INIT_ELF, /* Fill from partition's elf. */
+    JET_MEMORY_BLOCK_INIT_BINARY, /* Fill from some binary area "as is". */
 };
 
 struct _pok_partition_arinc;
@@ -101,18 +102,18 @@ struct _pok_partition_arinc;
  * 
  * @part - partition to which memory blocks belongs.
  * @mblocks - NULL terminated array of pointers to memory blocks
- * @source_id - integer representing additional information of the initialization source.
+ * @source_id - string representing additional information of the initialization source.
  */
 void jet_memory_block_init(enum jet_memory_block_init_type init_type,
     struct _pok_partition_arinc* part,
     const struct memory_block* const* mblocks,
-    uint16_t source_id);
+    const char* source_id);
 
 /* One entry for initialize memory block(s) at MODULE stage. */
 struct jet_module_memory_block_init_entry
 {
     enum jet_memory_block_init_type init_type;
-    uint16_t source_id;
+    const char* source_id;
     struct _pok_partition_arinc* part;
     const struct memory_block* const* mblocks;
 };

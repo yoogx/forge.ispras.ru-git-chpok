@@ -1,0 +1,71 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+Import('libpok_env')
+
+def generate_proptree_implementation():
+    """
+    Generate user space property tree implementation from kernel one.
+    """
+    source_dir = libpok_env["JETOS_HOME"] + '/kernel/proptree/'
+    target_dir = libpok_env['JETOS_HOME'] + '/libpok/proptree/'
+
+    common_impl_names = [
+        'proptree_impl.h',
+        'proptree.c'
+    ]
+
+    common_impl = []
+    for common_impl_name in common_impl_names:
+        common_impl.extend(libpok_env.CopyWithTitle(
+            target = target_dir + common_impl_name,
+            source = source_dir + common_impl_name,
+            title = template_generation.copy_title_c))
+
+    libpok_env.Depends('regenerate', common_impl)
+
+    # Return something which will be stored globally.
+    return common_impl
+
+
+if libpok_env.get('jdeveloper'):
+    import sys
+    import os
+    sys.path.insert(1, os.path.join(os.environ["JETOS_HOME"], "misc"))
+    import template_generation
+    AddMethod(libpok_env, template_generation.CopyWithTitle)
+
+    # Implementation of the property tree in user space and in the kernel
+    # is the same.
+    #
+    # Copy user space implementation from kernel one.
+    libpok_env.getSharedTarget("libjet_proptree_implementation", generate_proptree_implementation)
+
+
+libjet_proptree = libpok_env.StaticObject(
+    target = 'proptree.o', # Explicitely specify target for generate it in the build tree, not in the source one.
+    source = [
+        # Full path is required here, as we need a dependency from the generated file.
+        libpok_env['JETOS_HOME'] + '/libpok/proptree/proptree.c'
+    ]
+)
+
+Return('libjet_proptree')
+
+# EOF

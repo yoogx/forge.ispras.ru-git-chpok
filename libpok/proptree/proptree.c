@@ -1,4 +1,9 @@
 /*
+ * COPIED! DO NOT MODIFY!
+ *
+ * Instead of modifying this file, modify original one (kernel/proptree/proptree.c).
+ */
+/*
  * Institute for System Programming of the Russian Academy of Sciences
  * Copyright (C) 2017 ISPRAS
  *
