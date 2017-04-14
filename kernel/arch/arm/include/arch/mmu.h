@@ -60,7 +60,8 @@
 #define L1_TABLE_SIZE 0x4000 // 4096 of 4 byte
 #define L2_TABLE_SIZE 0x400 // 256 of 4 byte
 
-#define L1_IDX(va) (((uint32_t) va) >> 20)
+#define L1_IDX_SHIFT (20)
+#define L1_IDX(va) (((uint32_t) va) >> L1_IDX_SHIFT)
 
 #define L2_IDX(va) ((((uint32_t) va) >> 12) & 0xff)
 
