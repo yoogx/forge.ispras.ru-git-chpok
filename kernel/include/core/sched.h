@@ -21,7 +21,6 @@
 
 #include <types.h>
 #include <errno.h>
-#include <core/schedvalues.h>
 #include <core/partition.h>
 #include <common.h>
 
@@ -61,8 +60,8 @@ extern pok_partition_t partition_gdb;
 
 typedef struct
 {
-    uint64_t duration; // Set in deployment.c
-    uint64_t offset; // Set in deployment.c
+    pok_time_t duration; // Set in deployment.c
+    pok_time_t offset; // Set in deployment.c
 
     pok_partition_t* partition; // Set in deployment.c
 
@@ -133,6 +132,13 @@ void __pok_preemption_enable(void);
  */
 void pok_sched_invalidate(void);
 
+/* 
+ * Partition which owns current timeslot.
+ * 
+ * May differ from current_partition in case of IPPC call.
+ */
+extern pok_partition_t* base_partition;
+
 /**
  * Disables preemption in interrupt handler.
  * 
@@ -145,14 +151,6 @@ void pok_sched_invalidate(void);
  * this will return TRUE always.
  */
 pok_bool_t pok_preemption_disable_from_interrupt(void);
-
-/**
- * Set `invalidate` flag for scheduler.
- * 
- * Can be called outside of critical section. So scheduler will found
- * the flag set on the next call.
- */
-void pok_sched_invalidate(void);
 
 /**
  * Disable preemption before scheduler (re)start.
@@ -216,9 +214,9 @@ pok_time_t get_next_periodic_processing_start(void);
  * preemption-related things. Because of enabled local preemption
  * all pending callbacks for partition are triggered.
  */
-void pok_partition_jump_user(void* __user entry,
-    void* __user stack_addr,
-    struct dStack* stack_kernel);
+void pok_partition_jump_user(void (* __user entry)(void),
+    uintptr_t stack_user,
+    jet_stack_t stack_kernel);
 
 /*
  * Return to the user space.
@@ -231,17 +229,6 @@ void pok_partition_jump_user(void* __user entry,
  * all pending callbacks for partition are triggered.
  */
 void pok_partition_return_user(void);
-
-/*
- * Whether we are in user space.
- * 
- * This variable is set when we jump/return to user space and cleared
- * on return from there.
- * 
- * This variable is checked in interrupts handlers for decide, whether
- * need to store 'global_thread_stack' localy.
- */
-extern volatile pok_bool_t pok_in_user_space;
 
 /** 
  * Restart current partition.

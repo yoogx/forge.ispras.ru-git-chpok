@@ -20,9 +20,9 @@
 
 #include <gcov.h>
 
-#include <bsp_common.h>
-#include <arch.h>
+#include <asp/arch.h>
 #include <core/partition_arinc.h>
+#include <cons.h>
 
 
 #ifdef POK_NEEDS_NETWORKING
@@ -34,7 +34,7 @@ static void pok_network_thread_init(void)
 #endif
 
 
-#define NCOMMANDS sizeof(commands)/sizeof(commands[0])
+#define NCOMMANDS ((int)(sizeof(commands)/sizeof(commands[0])))
 
 
 
@@ -57,7 +57,7 @@ int atoi(char * s)
     return n;
 }
 
-/* 
+/*
  * N-th bit means that N-th ARINC partition should paused when
  * monitor leaves active mode.
  */
@@ -66,9 +66,9 @@ static uint32_t partition_on_pause_bits = 0;
 static void partition_pause_set(pok_partition_id_t id, uint8_t is_paused)
 {
     assert(id < 32);
-    
+
     uint32_t mask = 1 << id;
-    
+
     if(is_paused)
         partition_on_pause_bits |= mask;
     else
@@ -77,11 +77,11 @@ static void partition_pause_set(pok_partition_id_t id, uint8_t is_paused)
 static uint8_t partition_pause_get(pok_partition_id_t id)
 {
     assert(id < 32);
-    
+
     return partition_on_pause_bits >> id & 1;
 }
 
-pok_bool_t want_to_exit=FALSE; 
+pok_bool_t want_to_exit=FALSE;
 
 int mon_help(int argc, char **argv);
 
@@ -89,7 +89,7 @@ int help_about(int argc,char **argv);
 
 int print_partition(int argc, char **argv); // List of partition
 
-int pause_N(int argc, char **argv);// pause partition N. 
+int pause_N(int argc, char **argv);// pause partition N.
 
 int resume_N(int argc, char **argv); // continue partition N
 
@@ -123,7 +123,7 @@ static struct Command commands[] = {
     {"dump", "", "Dump gcov data", dump_gcov}
 };
 
-/* 
+/*
  * Implementations of monitor commands
  */
 
@@ -142,7 +142,7 @@ mon_help(int argc, char **argv)
     return 0;
 }
 
-int 
+int
 help_about(int argc,char **argv)
 {
     if (argc > 2){
@@ -152,18 +152,18 @@ help_about(int argc,char **argv)
     if (argc == 1){
         printf("Missing parameter - Name of command!\n");
         return 0;
-    }    
+    }
     for (int i = 0; i < NCOMMANDS; i++) {
         if (strcmp(argv[1], commands[i].name) == 0){
             printf("%s\n",commands[i].desc);
-            return 0;            
-        }    
+            return 0;
+        }
     }
     printf("There is no such command!\n");
     return 0;
 }
 
-int 
+int
 print_partition(int argc, char **argv){
 
     if (argc > 1){
@@ -171,15 +171,15 @@ print_partition(int argc, char **argv){
         return 0;
     }
 
-    if (pok_partitions_arinc_n > 1) 
+    if (pok_partitions_arinc_n > 1)
         printf("There are %d partitions:\n", pok_partitions_arinc_n);
-    else 
+    else
         printf("There is %d partition:\n", pok_partitions_arinc_n);
-   
+
     for (int i = 0 ; i < pok_partitions_arinc_n ; i++){
         pok_partition_arinc_t* part = &pok_partitions_arinc[i];
         printf("Partition %d: %s", i, part->base_part.name);
-        printf("\n");    
+        printf("\n");
     }
 
     (void) argc;
@@ -195,42 +195,42 @@ int info_partition(int argc,char **argv){
     if (argc == 1){
         printf("Missing parameter - Number of partition!\n");
         return 0;
-    }    
+    }
 
     int number=0;
     number=atoi(argv[1]);
     if (number >= pok_partitions_arinc_n) {
         printf("There is no such partition!\n");
-        return 0;        
+        return 0;
     }
-    
+
     pok_partition_arinc_t* part = &pok_partitions_arinc[number];
-    
+
     printf("\n\n");
     printf("Info about partition #%d\n",number);
     printf("is_paused = %d\n", partition_pause_get(number));
-    printf("base_addr = 0x%lx\n", part->base_addr);
-    printf("base_vaddr = 0x%lx\n", part->base_vaddr);
-    printf("size = 0x%lx\n", part->size);
+    //printf("base_addr = 0x%lx\n", (unsigned long)space_layout.kernel_addr);
+    //printf("base_vaddr = 0x%lx\n", (unsigned long)space_layout.user_addr);
+    //printf("size = 0x%zx\n", space_layout.size);
     printf("name = %s\n", part->base_part.name);
-    printf("nthreads = %lu\n", part->nthreads);
-    printf("period = %lu\n", part->base_part.period);
-    printf("duration = %lu\n", part->base_part.duration);
+    printf("nthreads = %d\n", part->nthreads);
+    printf("period = %lld\n", part->base_part.period);
+    printf("duration = %lld\n", part->base_part.duration);
     //printf("activation = %llu\n", part->base_part.activation);
     printf("lock_level = %u\n", (unsigned) part->lock_level);
     printf("prev_thread = %u\n", part->lock_level ? (unsigned)(part->thread_locked - part->threads) : (unsigned)-1);
     printf("current_thread = %u\n", (unsigned)(part->thread_current - part->threads));
     printf("thread_main = %u\n", POK_PARTITION_ARINC_MAIN_THREAD_ID);
 #ifdef POK_NEEDS_IO
-    //printf("io_min = %d\n",pok_partitions[number].io_min);        
-    //printf("io_max = %d\n",pok_partitions[number].io_max);        
+    //printf("io_min = %d\n",pok_partitions[number].io_min);
+    //printf("io_max = %d\n",pok_partitions[number].io_max);
 #endif
     printf("\n\n");
 
     return 0;
 }
 
-int 
+int
 pause_N(int argc, char **argv){
     if (argc > 2){
         printf("Too many arguments for pause!\n");
@@ -239,12 +239,12 @@ pause_N(int argc, char **argv){
     if (argc == 1){
         printf("Missing parameter - Number of partition!\n");
         return 0;
-    }    
+    }
     int number=0;
     number=atoi(argv[1]);
     if (number >= pok_partitions_arinc_n) {
         printf("There is no such partition!\n");
-        return 0;        
+        return 0;
     }
     //Change mode of this partition to paused
     partition_pause_set(number, 1);
@@ -253,7 +253,7 @@ pause_N(int argc, char **argv){
     return 0;
 }
 
-int 
+int
 resume_N(int argc, char **argv){
 
     if (argc > 2){
@@ -263,13 +263,13 @@ resume_N(int argc, char **argv){
     if (argc == 1){
         printf("Missing parameter - Number of partition!\n");
         return 0;
-    }    
+    }
 
     int number=0;
     number=atoi(argv[1]);
     if (number >= pok_partitions_arinc_n) {
         printf("There is no such partition!\n");
-        return 0;        
+        return 0;
     }
     //Change mode of this partition to not paused
     partition_pause_set(number, 0);
@@ -277,7 +277,7 @@ resume_N(int argc, char **argv){
     return 0;
 }
 
-int 
+int
 restart_N(int argc, char **argv){
 
     if (argc > 2){
@@ -287,13 +287,13 @@ restart_N(int argc, char **argv){
     if (argc == 1){
         printf("Missing parameter - Number of partition!\n");
         return 0;
-    }    
+    }
 
     int number=0;
     number=atoi(argv[1]);
     if (number >= pok_partitions_arinc_n) {
         printf("There is no such partition!\n");
-        return 0;        
+        return 0;
     }
 
     // Restart partition via global scheduler.
@@ -304,7 +304,7 @@ restart_N(int argc, char **argv){
     return 0;
 }
 
-int 
+int
 exit_from_monitor(int argc, char **argv){
 
     (void) argc;
@@ -333,7 +333,7 @@ int cpu_reset(int argc, char **argv)
     (void) argc;
     (void) argv;
     printf("Rebooting\n");
-    pok_arch_cpu_reset();
+    ja_cpu_reset();
 
     return 0;
 }
@@ -348,7 +348,7 @@ int cpu_reset(int argc, char **argv)
 #define MAXARGS 16
 
 static int
-runcmd(char *buf) 
+runcmd(char *buf)
 {
     int argc;
     char *argv[MAXARGS];
@@ -400,7 +400,7 @@ monitor()
         if (buf != NULL)
             if (runcmd(buf) < 0)
                 break;
-            
+
     }
 }
 
@@ -413,23 +413,23 @@ void monitor_start_func(void)
     for (;;) {
         if (data_to_read_0() == 1) {
             /*
-             * Set all partition on pause
+             * Set all partitions on pause
              */
             pok_preemption_disable();
             for (int i=0; i < pok_partitions_arinc_n; i++){
                 pok_partition_arinc_t* part = &pok_partitions_arinc[i];
-                if (!part->base_part.is_paused){ 
+                if (!part->base_part.is_paused){
                     partition_pause_set(i, 0);
                     part->base_part.is_paused=TRUE;
                 }
             }
             pok_preemption_enable();
-            
+
             monitor();
 
             pok_preemption_disable();
             for (int i=0; i < pok_partitions_arinc_n; i++){
-                if (!partition_pause_get(i)){ 
+                if (!partition_pause_get(i)){
                     pok_partitions_arinc[i].base_part.is_paused=FALSE;
                 }
             }
@@ -443,6 +443,10 @@ void monitor_process_error(pok_system_state_t partition_state,
         uint8_t state_byte_preempt_local,
         void* failed_address)
 {
+    (void) failed_address;
+    (void) partition_state;
+    (void) error_id;
+    (void) state_byte_preempt_local;
     pok_fatal("Error in monitor");
 }
 
@@ -455,9 +459,11 @@ static const struct pok_partition_operations monitor_operations =
 void pok_monitor_thread_init()
 {
 #ifdef POK_NEEDS_MONITOR
+    pok_partition_init(&partition_monitor);
+
     partition_monitor.part_sched_ops = &partition_sched_ops_kernel;
     partition_monitor.part_ops = &monitor_operations;
-    pok_dstack_alloc(&partition_monitor.initial_sp, 4096);
+    partition_monitor.initial_sp = pok_stack_alloc(4096);
 #endif
 }
 

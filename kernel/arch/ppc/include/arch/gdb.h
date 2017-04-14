@@ -30,4 +30,15 @@ r14, r15, r16, r17, r18, r19, r20, r21, r22, r23, r24, r25, r26, r27, r28, r29,
 r30, r31, pc, msr, cr, lr, ctr, xer 
 };
 
+#define ja_GDB_INSTR_SIZE 4
+
+
+/*
+ * This provides definition of 'struct jet_interrupt_context' for
+ * arch-independent code.
+ * 
+ * TODO: should be removed when no longer needed.
+ */
+#include <../arch/ppc/interrupt_context.h>
+
 #endif /* __JET_PPC_GDB_H__ */

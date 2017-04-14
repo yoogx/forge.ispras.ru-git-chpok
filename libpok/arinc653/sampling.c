@@ -18,8 +18,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_SAMPLING
-
 #include <types.h>
 #include <middleware/port.h>
 #include <arinc653/types.h>
@@ -39,7 +37,6 @@ void CREATE_SAMPLING_PORT (
 			 /*out*/ SAMPLING_PORT_ID_TYPE      *SAMPLING_PORT_ID,
 			 /*out*/ RETURN_CODE_TYPE           *RETURN_CODE )
 {
-	 strtoupper(SAMPLING_PORT_NAME);
 	 pok_port_direction_t core_direction;
 	 pok_port_id_t        core_id;
 	 pok_ret_t            core_ret;
@@ -65,25 +62,28 @@ void CREATE_SAMPLING_PORT (
 				 return;
 	 }
 
-     if (REFRESH_PERIOD < 0) {
-        *RETURN_CODE = INVALID_CONFIG;
-        return;
-     }
-
-     pok_time_t refresh_ms = arinc_time_to_ms(REFRESH_PERIOD);
-     if (refresh_ms < 0 || refresh_ms > UINT32_MAX) {
+     /* 
+      * We treat refresh period which is more than MAX_INT32 of milliseconds as invalid.
+      * 
+      * TODO: Why? This is not implied by ARINC.
+     if(REFRESH_PERIOD > (((uint64_t)1 << 32) - 1) * 1000000)
+     {
          *RETURN_CODE = INVALID_CONFIG;
          return;
      }
-     core_ret = pok_port_sampling_create (SAMPLING_PORT_NAME, MAX_MESSAGE_SIZE, core_direction, &refresh_ms, &core_id);
+     */
+
+     core_ret = pok_port_sampling_create (SAMPLING_PORT_NAME, MAX_MESSAGE_SIZE, core_direction, &REFRESH_PERIOD, &core_id);
 
 	 *SAMPLING_PORT_ID = core_id + 1;
 
    switch (core_ret) {
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
+      // For this function any error in parameter is treated as INVALID_CONFIG
+      MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG);
       MAP_ERROR(POK_ERRNO_EXISTS, NO_ACTION);
       MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
-      MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
+      MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen
    }
 }
 
@@ -108,8 +108,8 @@ void WRITE_SAMPLING_MESSAGE (
       MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
       MAP_ERROR(POK_ERRNO_PORT, INVALID_PARAM); // port doesn't exists
       MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG); // incorrect length
-      MAP_ERROR(POK_ERRNO_DIRECTION, INVALID_MODE); 
-      MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
+      MAP_ERROR(POK_ERRNO_DIRECTION, INVALID_MODE);
+      MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen
     }
 }
 
@@ -122,7 +122,7 @@ void READ_SAMPLING_MESSAGE (
 {
     pok_ret_t core_ret;
     pok_bool_t core_validity;
-    
+
     if (SAMPLING_PORT_ID <= 0) {
         *RETURN_CODE = INVALID_PARAM;
         return;
@@ -138,8 +138,8 @@ void READ_SAMPLING_MESSAGE (
         MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
         MAP_ERROR(POK_ERRNO_EMPTY, NO_ACTION);
         MAP_ERROR(POK_ERRNO_EINVAL, INVALID_PARAM);
-        MAP_ERROR(POK_ERRNO_DIRECTION, INVALID_MODE); 
-        MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen 
+        MAP_ERROR(POK_ERRNO_DIRECTION, INVALID_MODE);
+        MAP_ERROR_DEFAULT(INVALID_CONFIG); // random error status, should never happen
     }
 }
 
@@ -148,7 +148,6 @@ void GET_SAMPLING_PORT_ID (
 			 /*out*/ SAMPLING_PORT_ID_TYPE      *SAMPLING_PORT_ID,
 			 /*out*/ RETURN_CODE_TYPE           *RETURN_CODE )
 {
-    strtoupper(SAMPLING_PORT_NAME);
     pok_ret_t core_ret;
     pok_port_id_t id;
 
@@ -174,9 +173,9 @@ void GET_SAMPLING_PORT_STATUS (
     }
 
     core_ret = pok_port_sampling_status(SAMPLING_PORT_ID - 1, &status);
-    
+
     if (core_ret == POK_ERRNO_OK) {
-        SAMPLING_PORT_STATUS->REFRESH_PERIOD = ms_to_arinc_time(status.refresh);
+        SAMPLING_PORT_STATUS->REFRESH_PERIOD = status.refresh;
         SAMPLING_PORT_STATUS->MAX_MESSAGE_SIZE = status.size;
         SAMPLING_PORT_STATUS->PORT_DIRECTION = (status.direction == POK_PORT_DIRECTION_OUT) ? SOURCE : DESTINATION;
         SAMPLING_PORT_STATUS->LAST_MSG_VALIDITY = status.validity? VALID : INVALID;
@@ -193,5 +192,3 @@ pok_bool_t SYS_SAMPLING_PORT_CHECK_IS_NEW_DATA(
 {
     return pok_port_sampling_check(SAMPLING_PORT_ID - 1);
 }
-
-#endif

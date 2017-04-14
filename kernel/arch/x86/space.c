@@ -19,64 +19,84 @@
 #include <types.h>
 #include <errno.h>
 #include <libc.h>
-#include <bsp_common.h>
 #include <assert.h>
 
-#include <arch.h>
-
 #include "interrupt.h"
+#include <asp/arch.h>
+#include <arch/deployment.h>
 
 #include "gdt.h"
 #include "tss.h"
 
 #include "space.h"
 #include <core/sched.h>
-#include <core/partition.h>
-#include <core/partition_arinc.h>
+
+#include <asp/alloc.h>
+#include <arch/memlayout.h>
+#include <arch/mmu.h>
+#include "regs.h"
+
+#include "kernel_pgdir.h"
+#include <alloc.h>
 
 #define KERNEL_STACK_SIZE 8192
 
-uint8_t current_space_id = (uint8_t)(-1);
+size_t ja_ustack_get_alignment(void)
+{
+    return 16;
+}
 
 /*
- * Arguments of this function must match the layout 
- * of space_context_t
+ * All segments has RWX access. So kernel may write to them at any time.
  */
-static void pok_dispatch_space(
-         uint8_t space_id,
-         uint32_t user_pc,
-         uint32_t user_sp,
-         uint32_t kernel_sp,
-         uint32_t arg1,
-         uint32_t arg2)
+void ja_uspace_grant_access(void) {}
+void ja_uspace_revoke_access(void) {}
+
+void ja_uspace_grant_access_local(jet_space_id space_id) {(void)space_id;}
+void ja_uspace_revoke_access_local(jet_space_id space_id) {(void)space_id;}
+
+
+jet_space_id current_space_id = 0;
+
+void ja_user_space_jump(
+    jet_stack_t stack_kernel,
+    jet_space_id space_id,
+    void (__user * entry_user)(void),
+    uintptr_t stack_user)
 {
+    assert(space_id > 0);
+    assert(space_id <= ja_partitions_pages_nb);
+
+    /*
+     * Reuse layout of interrupt_frame structure, allocated on stack,
+     * for own purposes.
+     *
+     * Usage of this structure here is unrelated to interrupts
+     * because it is allocated not at the *beginning* of the stack.
+     */
    interrupt_frame   ctx;
    uint32_t          code_sel;
    uint32_t          data_sel;
    uint32_t          sp;
 
-   assert(space_id < pok_partitions_arinc_n); //TODO: fix comparision
-
-   code_sel = GDT_BUILD_SELECTOR (GDT_PARTITION_CODE_SEGMENT (space_id), 0, 3);
-   data_sel = GDT_BUILD_SELECTOR (GDT_PARTITION_DATA_SEGMENT (space_id), 0, 3);
+   code_sel = GDT_BUILD_SELECTOR(GDT_PARTITION_CODE_SEGMENT, 0, 3);
+   data_sel = GDT_BUILD_SELECTOR(GDT_PARTITION_DATA_SEGMENT, 0, 3);
 
    sp = (uint32_t) &ctx;
 
    memset (&ctx, 0, sizeof (interrupt_frame));
 
-   pok_arch_preempt_disable ();
-
    ctx.es = ctx.ds = ctx.ss = data_sel;
 
-   ctx.__esp   = (uint32_t) (&ctx.error); /* for pusha */
-   ctx.eip     = user_pc;
-   ctx.eax     = arg1;
-   ctx.ebx     = arg2;
+   // ctx.__esp   = (uint32_t) (&ctx.error); /* for pusha */
+   ctx.eip     = (uint32_t)entry_user;
+   //ctx.eax     = arg1;
+   //ctx.ebx     = arg2;
    ctx.cs      = code_sel;
    ctx.eflags  = 1 << 9 | 3<<12;
-   ctx.esp     = user_sp;
+   ctx.esp     = stack_user;
 
-   tss_set_esp0 (kernel_sp);
+   tss_set_esp0 (stack_kernel);
 
    asm ("mov %0, %%esp		\n"
         "pop %%es		\n"
@@ -89,88 +109,98 @@ static void pok_dispatch_space(
        );
 }
 
-pok_ret_t ja_space_create (uint8_t space_id,
-                            uintptr_t addr,
-                            size_t size)
+/* insert page mapping to pgdir, allocate page table is needed */
+static void pgdir_insert_page(uint32_t *pgdir, struct page *page)
 {
-   gdt_set_segment (GDT_PARTITION_CODE_SEGMENT (space_id),
-         addr, size, GDTE_CODE, 3);
+    if (page->is_big) {
+        //4MB page
+        pgdir[PDX(page->vaddr)] = page->paddr_and_flags | PAGE_P | PAGE_U;
+    } else {
+        // 4KB page
+        if (pgdir[PDX(page->vaddr)] != 0) {
+            //already allocated page table
+            uint32_t *pgtable = (uint32_t *)VIRT(PT_ADDR(pgdir[PDX(page->vaddr)]));
+            pgtable[PTX(page->vaddr)] = page->paddr_and_flags | PAGE_P | PAGE_U;
+        } else {
+            //page table hasn't been created yet
+            uint32_t *pgtable = ja_mem_alloc_aligned(PAGE_SIZE, PAGE_SIZE);
+            memset(pgtable, 0, PAGE_SIZE);
+            pgdir[PDX(page->vaddr)] = PHYS(pgtable) | PAGE_P | PAGE_RW| PAGE_U;
 
-   gdt_set_segment (GDT_PARTITION_DATA_SEGMENT (space_id),
-         addr, size, GDTE_DATA, 3);
-
-   spaces[space_id].size = size;
-
-   return (POK_ERRNO_OK);
+            pgtable[PTX(page->vaddr)] = page->paddr_and_flags | PAGE_P | PAGE_U;
+        }
+    }
 }
 
-pok_ret_t ja_space_switch (uint8_t space_id)
-{
-    // For kernel space-only partitions do not change space at all.
-    if(space_id != (uint8_t)(-1)) return POK_ERRNO_OK;
+uint32_t **pgdirs; //array of pointers to pgdirs
 
-    if(current_space_id != (uint8_t)(-1)) {
-        gdt_disable (GDT_PARTITION_CODE_SEGMENT(current_space_id));
-        gdt_disable (GDT_PARTITION_DATA_SEGMENT(current_space_id));
+void ja_space_init(void)
+{
+    pgdirs = jet_mem_alloc(ja_partitions_pages_nb*sizeof(*pgdirs));
+
+    for (unsigned i = 0; i < ja_partitions_pages_nb; i++) {
+        uint32_t *pgdir = ja_mem_alloc_aligned(PAGE_SIZE, PAGE_SIZE);
+        memset(pgdir, 0, PAGE_SIZE);
+        pgdirs[i] = pgdir;
+
+        /* user mapping */
+        for (unsigned j = 0; j < ja_partitions_pages[i].len; j++) {
+            pgdir_insert_page(pgdir, &ja_partitions_pages[i].pages[j]);
+        }
+
+        /* kernel mapping */
+        pgdir_insert_kernel_mapping(pgdir);
     }
-    gdt_enable (GDT_PARTITION_CODE_SEGMENT(space_id));
-    gdt_enable (GDT_PARTITION_DATA_SEGMENT(space_id));
+}
+
+void ja_space_switch (jet_space_id space_id)
+{
+    if (space_id != 0) {
+        asm volatile("movl %0,%%cr3" : : "r" (PHYS(pgdirs[space_id - 1])));
+    }
 
     current_space_id = space_id;
-
-    return (POK_ERRNO_OK);
 }
 
-uint32_t	ja_space_base_vaddr (uint32_t addr)
+jet_space_id ja_space_get_current (void)
 {
-   (void) addr;
-   return (0);
+    return current_space_id;
 }
 
-uint32_t
-ja_space_context_init(
-        uint32_t stack_addr, /*should be `sp`, but it alredy used in code. */
-        uint8_t space_id,
-        uint32_t entry_rel,
-        uint32_t stack_rel,
-        uint32_t arg1,
-        uint32_t arg2)
+// TODO: Storage for floating point registers and operations with them.
+struct jet_fp_store
 {
-    space_context_t *sp = (space_context_t*)(stack_addr - sizeof(space_context_t) - 4);
-    memset (sp, 0, sizeof(*sp));
-    
-    sp->ctx.__esp  = (uint32_t)(&sp->ctx.eip); /* for pusha */
-    sp->ctx.eip    = (uint32_t)pok_dispatch_space;
-    sp->ctx.cs     = GDT_CORE_CODE_SEGMENT << 3;
-    sp->ctx.eflags = 1 << 9 | 3<<12;
-    
-    sp->arg1          = arg1;
-    sp->arg2          = arg2;
-    sp->kernel_sp     = (uint32_t)sp;
-    sp->user_sp       = stack_rel;
-    sp->user_pc       = entry_rel;
-    sp->partition_id  = space_id;
-    
-    return (uint32_t)sp;
+  int todo;
+};
+
+/* 
+ * Allocate place for store floating point registers.
+ * 
+ * May be called only during OS init.
+ */
+struct jet_fp_store* ja_alloc_fp_store(void)
+{
+    struct jet_fp_store* res = ja_mem_alloc_aligned(sizeof(*res), 4);
+
+    return res;
 }
 
-//Double check here because these function are called not only in syscall
-//(where there is checking), but also inside kernel
-//TODO: maybe rename to pok_arch_?
-uintptr_t pok_virt_to_phys(uintptr_t virt) {
-    if (POK_CHECK_PTR_IN_PARTITION(pok_current_partition, virt)) {
-        printf("pok_virt_to_phys: wrong virtual address %p\n", (void*)virt);
-        pok_fatal("wrong pointer in pok_virt_to_phys\n");
-    }
-    return virt + current_partition_arinc->base_addr;
+/* Save floating point registers into given place. */
+void ja_fp_save(struct jet_fp_store* fp_store)
+{
+    // TODO
+    (void)fp_store;
 }
 
-uintptr_t pok_phys_to_virt(uintptr_t phys) {
-    uintptr_t virt = phys - current_partition_arinc->base_addr;
+/* Restore floating point registers into given place. */
+void ja_fp_restore(struct jet_fp_store* fp_store)
+{
+    // TODO
+    (void)fp_store;
+}
 
-    if (POK_CHECK_PTR_IN_PARTITION(pok_current_partition, virt)) {
-        printf("pok_phys_to_virt: wrong virtual address %p\n", (void*)virt);
-        pok_fatal("wrong pointer in pok_phys_to_virt\n");
-    }
-    return virt;
+/* Initialize floating point registers with zero. */
+void ja_fp_init(void)
+{
+    // TODO
 }

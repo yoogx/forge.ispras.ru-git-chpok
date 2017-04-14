@@ -19,7 +19,30 @@
 
 Import('arch_env')
 
-arch = arch_env.StaticObject(source = Glob('*.[Sc]'))
+arch_env.Append(CPPPATH=Dir('.').srcnode().abspath)
+
+exception_sources = SConscript('exceptions/SConscript')
+
+arch = arch_env.StaticObject(source = exception_sources + Glob('*.[Sc]'))
+
+if arch_env.get('jdeveloper'):
+    import sys
+    import os
+    sys.path.insert(1, os.path.join(os.environ["JETOS_HOME"], "misc"))
+    import template_generation
+    AddMethod(arch_env, template_generation.BuildAsmOffsets)
+
+    current_source_dir = arch_env.Dir('.').srcnode().path
+
+    asm_offsets = [
+        arch_env.BuildAsmOffsets(
+            current_source_dir + "/asm_offsets_interrupt_context.h",
+            "asm_offsets_interrupt_context.def",
+            title = template_generation.generate_title_c),
+    ]
+
+    arch_env.Depends('regenerate', asm_offsets)
+
 
 Return('arch')
 

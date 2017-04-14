@@ -1,0 +1,30 @@
+- name: VIRTIO_NET_DEV
+  additional_h_files: ['"virtio_network_device.h"']
+  state_struct:
+      pci_bus: uint8_t
+      pci_dev: uint8_t
+      pci_fn: uint8_t
+
+      #not inited by glue
+      info: struct virtio_network_device
+  init_func: virtio_init
+  memory_blocks:
+      - name: Heap
+        size: "0xc3000"
+        contiguous: true
+        cachepolicy: IO
+
+        is_per_instance: true
+
+
+  in_ports:
+      - name: portA
+        type: preallocated_sender
+        implementation:
+            send: send_frame
+            flush: flush_send
+  out_ports:
+      - name: portB
+        type: message_handler
+
+  activity: virtio_receive_activity

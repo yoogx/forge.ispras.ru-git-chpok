@@ -36,6 +36,13 @@
  */
 #define __user
 
+/*
+ * Kernel-space address of user memory area.
+ * 
+ * The address can be accessed only while being in corresponded space.
+ */
+#define __kuser
+
 /**
  * Casts pointer to member of structure to pointer to structure itself.
  * 
@@ -50,24 +57,14 @@
     (type *)( (char*) __mptr - offsetof(type, member) ); })
 
 /*
- * Return minimal value, which is greater-or-equal than size
+ * Return minimal value, which is greater-or-equal than given value
  * and has corresponded alignment.
  * 
  * @align should be constant and be power of 2.
  */
-static inline unsigned long ALIGN_SIZE(unsigned long size, unsigned long align)
+static inline unsigned long ALIGN_VAL(unsigned long val, unsigned long align)
 {
-    return (size + align - 1) & (~(align - 1));
-}
-
-/*
- * Infinite loop using some CPU relaxing features.
- */
-// TODO: This should be arch-specific asm code.
-static inline void wait_infinitely(void)
-{
-    while(1) 
-        barrier();
+    return (val + align - 1) & (~(align - 1));
 }
 
 #endif /* !__POK_COMMON_H__ */

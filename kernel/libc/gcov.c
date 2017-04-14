@@ -21,7 +21,6 @@
 
 #include <libc.h>
 #include <gcov.h>
-#include <arch.h>
 #include <core/partition.h>
 
 #ifdef POK_NEEDS_GCOV
@@ -42,7 +41,7 @@ static size_t store_gcov_u32(void *buffer, size_t off, uint32_t v)
     uint32_t *data;
 
     if (buffer) {
-        data = buffer + off;
+        data = (uint32_t*)((uint32_t)buffer + off);
         *data = v;
     }
 
@@ -66,7 +65,7 @@ static size_t store_gcov_u64(void *buffer, size_t off, uint64_t v)
     uint32_t *data;
 
     if (buffer) {
-        data = buffer + off;
+        data = (uint32_t*)((uint32_t)buffer + off);
 
         data[0] = (v & 0xffffffffUL);
         data[1] = (v >> 32);
@@ -140,7 +139,7 @@ static size_t convert_to_gcda(unsigned char *buffer, struct gcov_info *info)
 #define DEFAULT_GCOV_ENTRY_COUNT 400
 #define GCOV_HEXDUMP_BUF_SIZE 10000
 
-#define GCOV_MAX_DATA_SIZE GCOV_HEXDUMP_BUF_SIZE * DEFAULT_GCOV_ENTRY_COUNT
+#define GCOV_MAX_DATA_SIZE (GCOV_HEXDUMP_BUF_SIZE * DEFAULT_GCOV_ENTRY_COUNT)
 
 unsigned char data[GCOV_MAX_DATA_SIZE];
 
@@ -178,7 +177,7 @@ static size_t dump_gcov_entry(unsigned char *to_buffer, struct gcov_info *info)
     return sz;
 }
 
-#define POK_MAX_NB_PARTITIONS 16
+#define JET_MAX_NB_PARTITIONS 16
 
 struct gcov_partition {
     pok_partition_id_t part_id;
@@ -186,7 +185,7 @@ struct gcov_partition {
     size_t idx_end;
 };
 
-struct gcov_partition part[POK_MAX_NB_PARTITIONS];
+struct gcov_partition part[JET_MAX_NB_PARTITIONS];
 static size_t num_used_partitions = 1;
 
 void gcov_dump(void)
@@ -245,9 +244,7 @@ void __gcov_init(struct gcov_info *info)
     gcov_info_head[num_used_gcov_entries++] = info;
 }
 
-#define USER_TO_KERNEL(x) if (!!x) (x) = (typeof(x))((uint32_t)(x) + infos->base_addr)
-
-void gcov_init_libpok(struct gcov_info **data, size_t num_entries, const pok_syscall_info_t *infos) {
+void gcov_init_libpok(struct gcov_info **data, size_t num_entries) {
 #ifdef __PPC__
     asm volatile("mfspr %0,0x030" : "=r"(part[num_used_partitions].part_id));
 #endif
@@ -255,25 +252,9 @@ void gcov_init_libpok(struct gcov_info **data, size_t num_entries, const pok_sys
     part[num_used_partitions].idx_end = part[num_used_partitions].idx_start + num_entries;
     num_used_partitions++;
 
-    size_t i, j;
+    size_t i;
     for (i = 0; i < num_entries; i++) {
-        struct gcov_info *info_ptr = data[i];
-        USER_TO_KERNEL(info_ptr);
-        USER_TO_KERNEL(info_ptr->next);
-        USER_TO_KERNEL(info_ptr->filename);
-
-        for (j = 0; j < GCOV_COUNTERS; j++) {
-            USER_TO_KERNEL(info_ptr->merge[j]);
-        }
-
-        USER_TO_KERNEL(info_ptr->functions);
-        for (j = 0; j < info_ptr->n_functions; j++) {
-            USER_TO_KERNEL(*(info_ptr->functions + j));
-            USER_TO_KERNEL((**(info_ptr->functions + j)).key);
-            USER_TO_KERNEL((**(info_ptr->functions + j)).ctrs[0].values);
-        }
-
-        __gcov_init(info_ptr);
+        __gcov_init(data[i]);
     }
 }
 

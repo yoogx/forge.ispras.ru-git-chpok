@@ -1,0 +1,100 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2017 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+# Generate documentation in different formats.
+
+import os
+import re
+
+env = Environment(ENV=os.environ)
+
+pandoc_path = env.WhereIs('pandoc')
+
+if pandoc_path is None:
+    print "ERROR: Building documentation requires 'pandoc' utility, but it is not found in the system."
+    print "HINT: Normally, you may install 'pandoc' utility via package manager."
+    Exit(1)
+
+class FileNotFoundException(Exception):
+    pass
+
+INCLUDE_REGEX = re.compile(r'^\\include\{(.+)\}', re.M)
+
+def include_scanner(node, env, path):
+    contents = node.get_contents()
+    includes = INCLUDE_REGEX.findall(contents)
+    return includes
+
+include_scanner = Scanner(function = include_scanner)
+
+class IncludePreprocessor:
+    def __init__(self, target_fd):
+        self.target_fd = target_fd
+    
+    def preprocess(self, filename):
+        if not os.path.exists(filename):
+            raise FileNotFoundException()
+        
+        self.preprocess_file(filename)
+    
+    def preprocess_file(self, filename):
+        with open(filename, 'r') as f:
+            for i,l in enumerate(f):
+                m = INCLUDE_REGEX.match(l)
+                if m is not None:
+                    include_filename = m.group(1)
+                    
+                    if not os.path.exists(include_filename):
+                        print "ERROR: %s:%d: Include directive refers to non-existent file '%s'." % (filename, i + 1, include_filename)
+                        raise FileNotFoundException()
+
+                    self.preprocess_file(include_filename)
+                else:
+                    self.target_fd.write(l)
+
+def include_preprocessor_action(target, source, env):
+    with open(target[0].path, 'w') as target_fd:
+        try:
+            include_preprocessor = IncludePreprocessor(target_fd)
+            include_preprocessor.preprocess(source[0].path)
+        except FileNotFoundException as fnf:
+            return 1
+
+
+instruction_manual_preprocessed = env.Command('build/instruction_manual_preprocessed.md',
+    'instruction_manual.md',
+    action = include_preprocessor_action,
+    source_scanner = include_scanner)
+
+instruction_manual_html = env.Command('build/instruction_manual.html', instruction_manual_preprocessed,
+    "pandoc --toc --toc-depth=2 --number-sections -o $TARGET -s -S $SOURCE")
+
+doc_html = env.Alias('doc-html', instruction_manual_html)
+
+instruction_manual_odt = env.Command('build/instruction_manual.odt', instruction_manual_preprocessed,
+    "pandoc --toc --toc-depth=2 --reference-odt=template/ref.odt -o $TARGET -s -S $SOURCE")
+
+doc_odt = env.Alias('doc-odt', instruction_manual_odt)
+
+instruction_manual_odt = env.Command('build/instruction_manual.pdf', instruction_manual_preprocessed,
+    "pandoc --latex-engine=xelatex -V mainfont='DejaVu Sans' --variable geometry:margin=1in --number-sections  -o $TARGET -s -S $SOURCE")
+
+doc_odt = env.Alias('doc-pdf', instruction_manual_odt)
+
+env.Default(doc_html)

@@ -16,15 +16,14 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_ERROR
 #include <types.h>
 #include <errno.h>
 #include <arinc653/types.h>
 #include <arinc653/error.h>
 #include <core/error.h>
 #include <core/syscall.h>
-#include <libc/string.h>
-#include <libc/stdio.h>
+#include <string.h>
+#include <stdio.h>
 
 #define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
 #define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
@@ -127,5 +126,3 @@ void RAISE_APPLICATION_ERROR (ERROR_CODE_TYPE            ERROR_CODE,
     
     *RETURN_CODE = NO_ERROR;
 }
-
-#endif

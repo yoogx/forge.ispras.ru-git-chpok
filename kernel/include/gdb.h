@@ -20,6 +20,24 @@
 #include <asp/gdb.h>
 
 #define NUMREGBYTES (NUMREGS * 4)
+//~ #define DEBUG_GDB
+#define QEMU
+
+#ifdef DEBUG_GDB
+#define printf_GDB printf
+#else
+#define printf_GDB(fmt, ...) do {} while (0)
+#endif
+/*
+ * Whether we are in user space.
+ * 
+ * This variable is set when we jump/return to user space and cleared
+ * on return from there.
+ * 
+ * This variable is checked in interrupts handlers for decide, whether
+ * need to store 'global_thread_stack' localy.
+ */
+extern volatile pok_bool_t pok_in_user_space;
 
 /* Callback function for append string(or other data) into
  * some stream.

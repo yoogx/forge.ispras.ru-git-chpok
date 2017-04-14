@@ -16,8 +16,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_PARTITION
-
 #include <arinc653/types.h>
 #include <arinc653/process.h>
 
@@ -56,6 +54,4 @@ extern void GET_PARTITION_STATUS (
 extern void SET_PARTITION_MODE (
       /*in */ OPERATING_MODE_TYPE       OPERATING_MODE,
       /*out*/ RETURN_CODE_TYPE          *RETURN_CODE );
-#endif
-
 #endif

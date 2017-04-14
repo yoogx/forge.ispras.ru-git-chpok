@@ -21,8 +21,6 @@
 
 #include <config.h>
 
-#include <core/dependencies.h>
-
 #include <types.h>
 #include <errno.h>
 

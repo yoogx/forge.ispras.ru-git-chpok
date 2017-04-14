@@ -21,32 +21,17 @@
 #include <types.h>
 #include <asp/cswitch.h>
 
-typedef struct
+struct jet_context
 {
   uint32_t edi;
   uint32_t esi;
-  uint32_t ebp;
-  uint32_t __esp;
   uint32_t ebx;
-  uint32_t edx;
-  uint32_t ecx;
-  uint32_t eax;
 
-  uint32_t eip;
-  uint32_t cs;
   uint32_t eflags;
 
-} context_t;
-
-typedef struct
-{
-  context_t ctx;
-  uint32_t fake_ret;
-  uint32_t entry;
-  uint32_t id;
-} start_context_t;
-
-
+  uint32_t ebp;
+  uint32_t ret;
+};
 
 #endif /* !__POK_X86_THREAD_H__ */
 

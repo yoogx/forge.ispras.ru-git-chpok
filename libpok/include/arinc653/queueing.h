@@ -16,12 +16,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_QUEUEING
-
-#ifndef POK_NEEDS_ARINC653_PROCESS
-#define POK_NEEDS_ARINC653_PROCESS
-#endif
-
 #include <arinc653/process.h>
 #include <arinc653/types.h>
 
@@ -75,8 +69,5 @@ extern void GET_QUEUING_PORT_STATUS (
 extern void CLEAR_QUEUING_PORT (
       /*in */ QUEUING_PORT_ID_TYPE      QUEUING_PORT_ID,
       /*out*/ RETURN_CODE_TYPE          *RETURN_CODE );
-
-#endif
-
 
 #endif

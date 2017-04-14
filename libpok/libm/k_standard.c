@@ -32,18 +32,8 @@
 #include "math_private.h"
 #include <errno.h>
 
-#ifndef _USE_WRITE
-#ifdef POK_NEEDS_LIBC_STDIO
-#include <libc/stdio.h>
-#define	WRITE2(u,v)	printf (u)
-#else
-#define	WRITE2(u,v)
-#endif /* POK_NEEDS_STDIO */
-#else	/* !defined(_USE_WRITE) */
-#include <unistd.h>			/* write */
-#define	WRITE2(u,v)	write(2, u, v)
-#undef fflush
-#endif	/* !defined(_USE_WRITE) */
+#include <stdio.h>
+#define WRITE2(u,v) printf (u)
 
 static const double zero = 0.0;	/* used as const */
 
@@ -108,9 +98,6 @@ __kernel_standard(double x, double y, int type)
 	SET_HIGH_WORD(inf,0x7ff00000);	/* set inf to infinite */
 #endif
 
-#ifdef _USE_WRITE
-	(void) fflush(stdout);
-#endif
 	exc.arg1 = x;
 	exc.arg2 = y;
 	switch(type) {

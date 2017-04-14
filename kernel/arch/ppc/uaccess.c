@@ -16,24 +16,12 @@
 #include <asp/uaccess.h>
 #include "space.h"
 
-// TODO: Revisit (see also pok_space_* code in arch.h)
-pok_bool_t ppc_check_access(const void* __user addr, size_t size)
-{
-    unsigned long start = (unsigned long)addr;
-    unsigned long end = start + size;
-    
-    return start >= POK_PARTITION_MEMORY_BASE
-        && end >= start
-        && end < (POK_PARTITION_MEMORY_BASE + POK_PARTITION_MEMORY_SIZE);
-}
+#define POK_PARTITION_MEMORY_BASE 0x80000000ULL
 
-pok_bool_t ja_check_access_read(const void* __user addr, size_t size)
+pok_bool_t ja_access_ok(const void* __user addr, size_t size)
 {
-     return ppc_check_access(addr, size);
-}
+    uint32_t vaddr = (uint32_t)addr;
 
-
-pok_bool_t ja_check_access_write(void* __user addr, size_t size)
-{
-     return ppc_check_access(addr, size);
+    return (vaddr >= POK_PARTITION_MEMORY_BASE)
+        && (vaddr + size > vaddr); //check overflow
 }

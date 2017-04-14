@@ -29,16 +29,19 @@ int memcmp(const void *, const void *, size_t n);
 /*__attribute__ ((weak))*/
 void  *memset(void *dest, unsigned char val, size_t count);
 
-int   strlen (const char* str);
-int   strnlen (const char* str, size_t n);
+size_t   strlen (const char* str);
+size_t   strnlen (const char* str, size_t n);
 
 char* strncpy(char* dest, const char* src, size_t n);
 
 int   strcmp (const char *s1, const char *s2);
 int   strncmp(const char *s1, const char *s2, size_t size);
+int   strncasecmp(const char *s1, const char *s2, size_t size);
 
 char *strchr(const char *s, int c);
 char *strrchr(const char *s, int c);
+
+char *strstr(const char *s1, const char *s2);
 
 void *memchr(const void *s, int c, size_t n);
 
@@ -46,7 +49,7 @@ typedef void (*t_putc)(int val, void *out);
 // Generic printf-like function.
 void vprintf(t_putc putc, void *out, const char* format, va_list *args) __attribute__ ((format(printf, 3, 0)));
 
-#if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
+#if defined (POK_NEEDS_CONSOLE) || defined (POK_NEEDS_DEBUG)
 
 int printf(const char *format, ...)__attribute__ ((format(printf, 1, 2)));
 
@@ -64,6 +67,7 @@ int getchar(void);
 int getchar2(void);
 void monitor();
 
+/*
 struct  regs{
 #ifdef __PPC__
     uint32_t r1;
@@ -130,6 +134,7 @@ struct  regs{
   uint32_t ss;
 #endif  
 };
+*/
 
 struct T_breakpoint{
     /*
@@ -169,8 +174,14 @@ struct T_breakpoint{
 #endif
 };
 
-void handle_exception (int exceptionVector, struct regs * ea);
+struct jet_interrupt_context;
 
+
+
+char *gdb_strcpy(char *dest, const char *str);
+void handle_exception (int exceptionVector, struct jet_interrupt_context* ea);
+char * hex2mem (char *buf, char *mem, int count);
+char * mem2hex (const char *mem, char *buf, int count);
 void pok_monitor_thread(void);
 void pok_monitor_thread_init(void);
 void pok_gdb_thread(void);

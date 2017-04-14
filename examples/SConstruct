@@ -1,0 +1,92 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+# List tuples described examples.
+#
+# First element of the tuple is an example's directory,
+# other elements - subdirectories with partitions.
+
+vars = Variables()
+vars.AddVariables(
+    BoolVariable('jdeveloper', 'Enables developer mode', 0),
+)
+
+env = Environment(variables = vars)
+
+if not env.get('jdeveloper', False):
+    print "Error: This SConstruct is only for JetOS developers ['jdeveloper' option should be true]."
+    Exit(1)
+
+# Do not use JETOS_HOME environment variable, as we are definitely in our package
+JETOS_HOME = Dir('..').abspath
+
+import sys
+import os
+sys.path.insert(1, os.path.join(JETOS_HOME, "misc"))
+import template_generation
+
+example_copy_title = """# COPIED! DO NOT MODIFY!
+# Instead of modifying this file, modify original one (%source%).
+#
+# When copy a file outside of JetOS project, remove this line and the lines above.
+"""
+
+examples_dir = os.path.join(JETOS_HOME, "examples")
+
+def update_sconstructs(target, source, env):
+    """
+    Update SConscruct files for every example.
+    """
+    # Unconditionally copy original files. So, use action function directly.
+    copy_sconstruct_action = template_generation.CopyWithTitleAction(example_copy_title, JETOS_HOME)
+    # Sources for action, as list of Nodes.
+    module_sconstruct_source = [File(os.path.join(examples_dir, "SConstruct_module"))]
+    partition_sconstruct_source = [File(os.path.join(examples_dir, "SConstruct_partition"))]
+
+    for example_dir in os.listdir(examples_dir):
+        module_abs_dir = os.path.join(examples_dir, example_dir)
+        module_sconstruct = os.path.join(module_abs_dir, "SConstruct")
+        if not os.path.exists(module_sconstruct):
+            # Not an example. Ignore.
+            continue
+
+        print "Update module's SConstruct file: %s" % module_sconstruct
+
+        copy_sconstruct_action(
+            target = [File(module_sconstruct)],
+            source = module_sconstruct_source,
+            env = env)
+
+        for partition_dir in os.listdir(module_abs_dir):
+            partition_abs_dir = os.path.join(module_abs_dir, partition_dir)
+            partition_sconstruct = os.path.join(partition_abs_dir, "SConstruct")
+            if not os.path.exists(partition_sconstruct):
+                # Not a partition or it is not intended to be built separately. Ignore.
+                continue
+
+            print "Update partition's SConstruct file: %s" % partition_sconstruct
+
+            copy_sconstruct_action(
+                target = [File(partition_sconstruct)],
+                source = partition_sconstruct_source,
+                env = env)
+
+update_sconstructs_cmd = env.Command("update-sconstructs", [],
+    Action(update_sconstructs, "Update 'SConstruct' files"))
+env.Default(update_sconstructs_cmd)

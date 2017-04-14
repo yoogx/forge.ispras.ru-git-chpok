@@ -1,0 +1,57 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+Import('arch_env')
+
+import os
+
+exception_source_filenames = [
+    'exception_entries.S',
+    'exception_handlers.c'
+]
+
+source_dir = Dir('.').srcnode().abspath
+exception_sources = [os.path.join(source_dir, filename) for filename in exception_source_filenames]
+
+if arch_env.get('jdeveloper'):
+    import sys
+    sys.path.insert(1, os.path.join(os.environ["JETOS_HOME"], "misc"))
+    import template_generation
+    AddMethod(arch_env, template_generation.TemplateRender)
+    
+    import yaml
+    
+    def parse_yaml(source, env):
+        return yaml.load(file(source[0].path, "r"))
+    
+    for exception_source, template_name in zip(exception_sources, ['exception_entries', 'exception_handlers']):
+        arch_env.TemplateRender(
+            target = exception_source,
+            source = 'exceptions.yaml',
+            template_file = os.path.join(Dir('.').srcnode().path, 'templates', template_name + '.tpl'),
+            create_context = parse_yaml,
+            title = template_generation.generate_title_c
+        )
+
+    arch_env.Depends('regenerate', exception_sources)
+
+res = Glob('*.[Sc]')
+Return('res')
+
+# EOF

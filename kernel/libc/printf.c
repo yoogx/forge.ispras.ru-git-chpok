@@ -15,13 +15,13 @@
 
 #include <config.h>
 
-#if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_INSTRUMENTATION) || defined (POK_NEEDS_COVERAGE_INFOS)
+#if defined (POK_NEEDS_DEBUG)
 
 #include <types.h>
 #include <libc.h>
 #include <stdarg.h>
-#include <bsp_common.h>
-#include <arch.h>
+#include <asp/arch.h>
+#include <cons.h>
 
 static const char digits[] = "0123456789abcdef";
 
@@ -54,13 +54,13 @@ static void buf_flush(struct s_file *file)
      * 
      * Disable interrupts if they are not currently disabled.
      */
-    pok_bool_t need_critical_section = pok_arch_preempt_enabled();
+    pok_bool_t need_critical_section = ja_preempt_enabled();
     
     if(need_critical_section)
-        pok_arch_preempt_disable();
+        ja_preempt_disable();
     pok_cons_write (file->buff, file->pos);
     if(need_critical_section)
-        pok_arch_preempt_enable();
+        ja_preempt_enable();
 
     file->pos = 0;
 }
@@ -327,6 +327,9 @@ void vprintf(t_putc putc, void *out, const char* format, va_list *args)
 //Why no void?!
 int printf(const char *format, ...)
 {
+    pok_bool_t preempt_enabled = ja_preempt_enabled();
+    ja_preempt_disable();
+
     va_list args;
     struct s_file* out_file = init_buffered_output();
 
@@ -335,6 +338,10 @@ int printf(const char *format, ...)
     va_end(args);
 
     close_buffered_output(out_file);
+
+    if(preempt_enabled)
+        ja_preempt_enable();
+
     return 0;
 }
 

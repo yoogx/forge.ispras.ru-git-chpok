@@ -1,0 +1,68 @@
+Scenario for waiting several processes on msection.
+Some of these processes may timeouted or being killed (STOP()) while waiting.
+
+6 processes are created within single partition:
+
+1. notify process - It do some work and notify waiters
+2. first waiter - waits for work being complete
+3. second waiter - waits for work being complete
+4. timeouted waiter - waits for work being complete, but timeouted
+5. killed waiter - waits for work being complete, but stopped
+
+6. killer process - kills "killed waiter" after some time.
+
+Both timeouting and killing occures during notify process is performing
+work under msection. Because of that timeouted and killed waiters
+are not be treated by notify process as being notified.
+
+
+Possible partition's output is:
+
+---
+process 'Notifier' created (id 2)
+process 'Notifier' "started" (it won't actually run until operating mode becomes NORMAL)
+process 'First waiter' created (id 3)
+process 'First waiter' "started" (it won't actually run until operating mode becomes NORMAL)
+process 'Second waiter' created (id 4)
+process 'Second waiter' "started" (it won't actually run until operating mode becomes NORMAL)
+process 'Timeouted waiter' created (id 5)
+process 'Timeouted waiter' "started" (it won't actually run until operating mode becomes NORMAL)
+process 'Killed waiter' created (id 6)
+process 'Killed waiter' "started" (it won't actually run until operating mode becomes NORMAL)
+process 'Killer process' created (id 7)
+process 'Killer process' "started" (it won't actually run until operating mode becomes NORMAL)
+Wait process 3 starts.
+Wait process 3 waits on waitqueue ...
+Wait process 4 starts.
+Wait process 4 waits on waitqueue ...
+Wait process 5 starts.
+Wait process 5 waits on waitqueue ...
+Wait process 6 starts.
+Wait process 6 waits on waitqueue ...
+Killer process starts.
+Notify process starts.
+Killing process 6
+Work is done.
+Notify processes:
+- 3
+- 4
+Wait process 3 resumes because has been notified.
+Wait process 3 is finishing.
+Wait process 4 resumes because has been notified.
+Wait process 4 is finishing.
+Wait process 5 resumes because timeout.
+Wait process 5 is finishing.
+Wait process 6 resumes because has been killed.
+Killer process finishing.
+Notify process is finishing.
+---
+
+NOTE: Timing is subtle. Given scenario (and output) is achived, if
+
+--
+Notify process starts.
+Killing process 6
+Work is done.
+--
+are executed **exactly in given order**.
+If order is different, one may try to tune timeouts in the example's code.

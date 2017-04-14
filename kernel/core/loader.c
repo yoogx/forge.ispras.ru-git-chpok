@@ -1,80 +1,114 @@
 /*
- *                               POK header
- * 
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2016 ISPRAS
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *                                      Copyright (c) 2007-2009 POK team 
- *
- * Created by julien on Thu Jan 15 23:34:13 2009 
+ * See the GNU General Public License version 3 for more details.
  */
 
-/**
- * \file loader.c
- * \author Julian Pidancet
- * \author Julien Delange
- * \date 2008-2009
- *
- * Contains all needed stuff to load partitions (elf files).
- * This needs the partitioning service (POK_NEEDS_PARTITIONS must
- * be defined) to work.
- */
-
-#include <config.h>
-
-#ifdef POK_NEEDS_PARTITIONS
-
-#include <errno.h>
 #include <types.h>
 #include <libc.h>
-#include <core/cpio.h>
 #include <core/error.h>
 #include <core/partition.h>
-#include <core/debug.h>
 #include <elf.h>
 
-/**
- * Load an ELF file.
- *
- *  @param file
- */
-pok_ret_t pok_loader_elf_load   (char* file,
-                                 ptrdiff_t offset,
-                                 uintptr_t* entry)
+#include <core/loader.h>
+
+#include <core/memblocks.h>
+#include <core/uaccess.h>
+
+#include <conftree.h>
+
+static const struct memory_block* get_memory_block_for_addr(
+    const struct memory_block* const* mblocks,
+    void* __user addr,
+    size_t size
+    )
 {
-   Elf32_Ehdr*  elf_header;
-   Elf32_Phdr*  elf_phdr;
-   unsigned int i;
-   char*        dest;
+    uintptr_t vaddr = (uintptr_t)addr;
 
-   elf_header = (Elf32_Ehdr*)file;
+    for(const struct memory_block* const* p_mblock = mblocks;
+        *p_mblock != NULL;
+        p_mblock++)
+    {
+        const struct memory_block* mblock = *p_mblock;
 
-   if (elf_header->e_ident[0] != 0x7f ||
-       elf_header->e_ident[1] != 'E' ||
-       elf_header->e_ident[2] != 'L' ||
-       elf_header->e_ident[3] != 'F')
-   {
-      return POK_ERRNO_NOTFOUND;
-   }
+        if(mblock->vaddr > vaddr) break;
+        if(mblock->vaddr + mblock->size > vaddr) {
+            // Maximum size available to the end of the block.
+            uint64_t rest_size = mblock->vaddr + mblock->size - vaddr;
 
-   *entry = (uintptr_t) elf_header->e_entry;
+            // Check that end of range is not after the end of the block.
+            if(size > rest_size) return NULL;
 
-   elf_phdr = (Elf32_Phdr*)(file + elf_header->e_phoff);
+            return mblock;
+        }
 
-   for (i = 0; i < elf_header->e_phnum; ++i)
-   {
-      dest = (char *)elf_phdr[i].p_vaddr + offset;
+    }
 
-      memcpy (dest, elf_phdr[i].p_offset + file, elf_phdr[i].p_filesz);
-      memset (dest + elf_phdr[i].p_filesz, 0, elf_phdr[i].p_memsz - elf_phdr[i].p_filesz);
-   }
-
-   return POK_ERRNO_OK;
+    return NULL;
 }
 
-#endif /* POK_NEEDS_PARTITIONS */
+void jet_loader_elf_load   (uint8_t elf_id,
+                                 pok_partition_arinc_t* part,
+                                 const struct memory_block* const* mblocks,
+                                 void (** entry)(void))
+{
+    jet_pt_node_t elf_node = jet_pt_get_child(kernel_config_tree, JET_PT_ROOT, elf_id);
+    const char* elf_start = jet_pt_get_binary(kernel_config_tree, elf_node, NULL, NULL);
+
+    Elf32_Ehdr*  elf_header;
+    Elf32_Phdr*  elf_phdr;
+
+    elf_header = (Elf32_Ehdr*)elf_start;
+
+    if (elf_header->e_ident[0] != 0x7f ||
+         elf_header->e_ident[1] != 'E' ||
+         elf_header->e_ident[2] != 'L' ||
+         elf_header->e_ident[3] != 'F')
+    {
+        printf("Partition's ELF has incorrect format");
+        pok_raise_error(POK_ERROR_ID_PARTLOAD_ERROR, FALSE, NULL);
+    }
+
+    *entry = (void (*)(void)) elf_header->e_entry;
+
+    elf_phdr = (Elf32_Phdr*)(elf_start + elf_header->e_phoff);
+
+    // Iterate over ELF segments.
+    for (int i = 0; i < elf_header->e_phnum; ++i)
+    {
+        char* __user vstart = (char * __user)elf_phdr[i].p_vaddr;
+        size_t memsz = elf_phdr[i].p_memsz;
+
+        if(memsz == 0) continue; // Skip zero-length segments.
+
+        const struct memory_block* mblock = get_memory_block_for_addr(
+            mblocks, vstart, memsz);
+
+        if(mblock == NULL) {
+            printf("ELF segment %d of partition '%s' isn't contained in any memory block.\n",
+                i, part->base_part.name);
+            pok_raise_error(POK_ERROR_ID_PARTLOAD_ERROR, FALSE, NULL);
+        }
+
+        char* __kuser kstart = jet_memory_block_get_kaddr(mblock, vstart);
+
+        size_t filesz = elf_phdr[i].p_filesz;
+
+        if(filesz) {
+            memcpy(kstart, (const char*)elf_start + elf_phdr[i].p_offset,
+                filesz);
+        }
+        if(memsz > filesz) {
+            memset(kstart + filesz, 0, memsz - filesz);
+        }
+    }
+}

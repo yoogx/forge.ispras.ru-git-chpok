@@ -17,87 +17,103 @@
 #define __JET_ASP_SPACE_H__
 
 #include <types.h>
+#include <asp/cswitch.h>
+#include <common.h>
+#include <errno.h>
+#include <uapi/kernel_shared_data.h>
 
-/**
- * Return current partition id
+/* 
+ * Identificator for the (memory) space.
+ * 
+ * Value 0 corresponds to kernel space.
+ * Non-zero values correspond to user spaces.
  */
-int ja_current_segment(void);
-
-/**
- * Create TLB descriptor, which maps physical addresses in range
- * 
- * [addr;addr+size)
- * 
- * into user space.
- * 
- * Descriptor will be accessible via its identificator (@space_id).
- */
-pok_ret_t   ja_space_create (uint8_t space_id, uintptr_t addr, size_t size);
-
-/**
- * Return base virtual address for space mapping.
- * 
- * @addr is currently unused.
- * 
- */
-uintptr_t	   ja_space_base_vaddr (uintptr_t addr);
-
-/**
- * Initialize context which can be used with pok_context_switch()
- * 
- * for jump into user space.
- */
-uint32_t ja_space_context_init(
-        uint32_t sp,
-        uint8_t space_id,
-        uint32_t entry_rel,
-        uint32_t stack_rel,
-        uint32_t arg1,
-        uint32_t arg2);
-
-/**
- * Switch to given (user) space.
- * 
- * Space with index 0 is kernel space.
- */
-pok_ret_t   ja_space_switch (uint8_t new_space_id);
-
-uint8_t ja_space_get_current (void);
-
-/**
- * Returns the stack address for the thread in a partition.
- *
- * @arg space_id indicates space for the partition that contains
- * the thread.
- * 
- * @arg stack_size indicates size of requested stack.
- *
- * @arg state should either
- * 
- *    - points to 0, which denotes first allocation request
- *                (all previous allocations are invalidated)
- *    - be value, passed to previous call to the function.
- *
- * On success function returns head to the stack and update value
- * pointed by @state.
- * 
- * On fail (e.g., insufficient space for requested stack) function
- * returns 0 and leave value pointed by @state unchanged.
- */
-uint32_t    ja_thread_stack_addr   (uint8_t    space_id,
-                                     uint32_t stack_size,
-                                     uint32_t* state);
+typedef uint8_t jet_space_id;
 
 /*
- * Load given elf into given user space to given ARINC partition.
+ * Grant or revoke rw access from kernel space to memory for all
+ * user spaces.
  * 
- * After the call @entry will be filled with address of start function.
+ * Initially global access is granted.
+ * 
+ * Implementation may assume that access is always toggled, that is
+ * _grant_ is called only when access is not granted and
+ * _revoke_ is called only when access is granted.
+ * 
+ * Called with global preemption disabled.
  */
-struct _pok_patition_arinc;
-void ja_load_partition(struct _pok_patition_arinc* part,
-        uint8_t elf_id,
-        uint8_t space_id,
-        uintptr_t *entry);
+void ja_uspace_grant_access(void);
+void ja_uspace_revoke_access(void);
+
+/* 
+ * Grant or revoke rw access from kernel space to memory local to given
+ * user space.
+ * 
+ * Initially local access is granted for all user spaces.
+ * 
+ * Implementation may assume that access is always toggled, that is
+ * _grant_ is called only when access is not granted and
+ * _revoke_ is called only when access is granted.
+ * 
+ * Called with global(!) preemption disabled.
+ * 
+ * PRE: space_id is not 0.
+ * 
+ * NOTE: Local access isn't affected by global switch; e.g.
+ * ja_uspace_revoke_access() doesn't cancel effect of
+ * ja_uspace_grant_access_local() for particular space.
+ */
+void ja_uspace_grant_access_local(jet_space_id space_id);
+void ja_uspace_revoke_access_local(jet_space_id space_id);
+
+/**
+ * Jump to the user space.
+ * 
+ * Kernel stack passed as 'stack_kernel' will be used in interrupts/syscalls.
+ */
+void ja_user_space_jump(
+    jet_stack_t stack_kernel,
+    jet_space_id space_id, /* Actually, unused (should already be set with ja_space_switch). */
+    void (__user * entry_user)(void),
+    uintptr_t stack_user);
+
+/**
+ * Switch to given space.
+ */
+void   ja_space_switch (jet_space_id new_space_id);
+
+/*
+ * Return id of current space.
+ */
+jet_space_id ja_space_get_current (void);
+
+/* Return alignment suitable for user space stack. */
+size_t ja_ustack_get_alignment(void);
+
+/*
+ * Place for store floating point registers.
+ * 
+ * Kernel code doesn't use floating point operations,
+ * so floating point registers needs to be stored only when switching
+ * to other user space thread.
+ */
+struct jet_fp_store;
+
+/* 
+ * Allocate place for store floating point registers.
+ * 
+ * May be called only during OS init.
+ */
+struct jet_fp_store* ja_alloc_fp_store(void);
+
+/* Save floating point registers into given place. */
+void ja_fp_save(struct jet_fp_store* fp_store);
+
+/* Restore floating point registers into given place. */
+void ja_fp_restore(struct jet_fp_store* fp_store);
+
+/* Initialize floating point registers with zero. */
+void ja_fp_init(void);
 
 
 #endif /* __JET_ASP_SPACE_H__ */

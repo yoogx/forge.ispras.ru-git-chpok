@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<JetModule>
+    <Schedule>
+        <Slot Type="Partition" PartitionNameRef="P1" Duration="35ms" PeriodicProcessingStart="true" />
+        <Slot Type="Monitor" Duration="1ms" />
+        <Slot Type="GDB" Duration="1ms" />
+    </Schedule>
+</JetModule>

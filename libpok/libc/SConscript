@@ -23,7 +23,9 @@ gcov   = SConscript('gcov/SConscript')
 stdio  = SConscript('stdio/SConscript')
 string = SConscript('string/SConscript')
 stdlib = SConscript('stdlib/SConscript')
+ctype = SConscript('ctype/SConscript')
+time_lib =  SConscript('time/SConscript')
 
-Return('gcov', 'stdio', 'string', 'stdlib')
+Return('gcov', 'stdio', 'string', 'stdlib', 'ctype', 'time_lib')
 
 # EOF

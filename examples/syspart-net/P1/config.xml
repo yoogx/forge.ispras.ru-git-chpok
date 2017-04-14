@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Partition>
+    <Definition Name="P1" />
+    <!-- Amount of ram required for ELF -->
+    <Memory Bytes="1M" />
+
+    <Threads Count="10" />
+
+    <ARINC653_Buffers Data_Size="4096" Count="16" />
+    <ARINC653_Blackboards Data_Size="4096" Count="16" />
+    <ARINC653_Events Count="16" />
+    <ARINC653_Semaphores Count="16" />
+
+    <ARINC653_Ports>
+        <Queueing_Port Name="QP1" MaxMessageSize="64" Direction="SOURCE" MaxNbMessage="10" />
+        <Queueing_Port Name="QP2" MaxMessageSize="64" Direction="DESTINATION" MaxNbMessage="10" />
+    </ARINC653_Ports>
+</Partition>

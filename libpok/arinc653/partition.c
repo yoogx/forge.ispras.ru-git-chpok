@@ -16,8 +16,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_PARTITION
-
 #include <arinc653/types.h>
 #include <arinc653/partition.h>
 
@@ -37,8 +35,8 @@ void GET_PARTITION_STATUS (PARTITION_STATUS_TYPE *partition_status,
   pok_current_partition_get_status(&core_status);
 
   partition_status->IDENTIFIER = core_status.id;
-  partition_status->PERIOD = ms_to_arinc_time(core_status.period);
-  partition_status->DURATION = ms_to_arinc_time(core_status.duration);
+  partition_status->PERIOD = core_status.period;
+  partition_status->DURATION = core_status.duration;
   partition_status->LOCK_LEVEL = core_status.lock_level;
 
 #define MAP(from, to) case (from): partition_status->OPERATING_MODE = (to); break
@@ -93,5 +91,3 @@ void SET_PARTITION_MODE (OPERATING_MODE_TYPE operating_mode,
       MAP_ERROR_DEFAULT(INVALID_PARAM);
    }
 }
-
-#endif

@@ -14,71 +14,84 @@
  */
 
 #include <core/delayed_event.h>
+#include <libc.h>
 
 void delayed_event_queue_init(struct delayed_event_queue* q)
 {
-	INIT_LIST_HEAD(&q->events);
+    q->first_event = NULL;
 }
 
-/**
- * Emit all events which have time expired.
- * 
- * For each such event @process_event is called, and event is removed
- * from the queue.
- */
-void delayed_event_queue_check(struct delayed_event_queue* q, pok_time_t time,
-	process_event_t process_event)
+void delayed_event_queue_check(struct delayed_event_queue* q,
+    pok_time_t time)
 {
-	while(!list_empty(&q->events))
-	{
-		struct delayed_event* event = list_first_entry(&q->events, struct delayed_event, elem);
-		if(event->timepoint > time) break;
-		
-		list_del_init(&event->elem);
-		process_event(event);
-	}
+    struct delayed_event* event;
+    while((event = q->first_event) != NULL)
+    {
+        if(event->timepoint > time) break;
+
+        delayed_event_remove(q, event);
+
+        event->process_event(event->handler_id);
+    }
 }
 
-/**
- *  Initialize delayed event.
- * 
- * Initially event doesn't belong to any queue.
- */
 void delayed_event_init(struct delayed_event* event)
 {
-	INIT_LIST_HEAD(&event->elem);
+    event->pprev_event = NULL;
 }
 
-/** 
- * Add delayed event to the queue.
- * 
- * Initially event should either be not added to any timer,
- * or should be added to queue `q`.
- * 
- * In the last case event will (possibly) be reordered in the queue.
- */
-void delayed_event_add(struct delayed_event* event, pok_time_t timepoint,
-	struct delayed_event_queue* q)
+void delayed_event_add(struct delayed_event_queue* q,
+    struct delayed_event* event, pok_time_t timepoint,
+    uint16_t handler_id, process_event_t process_event)
 {
-	list_del_init(&event->elem); // Remove event from queue, if it was.
-	
-	event->timepoint = timepoint;
-	struct delayed_event* event_other;
-	
-	list_for_each_entry(event_other, &q->events, elem)
-	{
-		if(event_other->timepoint >= event->timepoint)
-		{
-			list_add_tail(&event->elem, &event_other->elem);
-			return;
-		}
-	}
-	
-	list_add_tail(&event->elem, &q->events);
+    /*
+     * Remove event from queue, if it was.
+     */
+    delayed_event_remove(q, event);
+
+    event->timepoint = timepoint;
+    event->handler_id = handler_id;
+    event->process_event = process_event;
+
+    struct delayed_event** insertion_point;
+    struct delayed_event* next_event;
+
+    for(insertion_point = &q->first_event, next_event = *insertion_point;
+        next_event != NULL;
+        insertion_point = &next_event->next_event, next_event = *insertion_point)
+    {
+        if(next_event->timepoint > timepoint) break;
+    }
+
+    event->next_event = next_event;
+    event->pprev_event = insertion_point;
+
+    *insertion_point = event;
+    if(next_event)
+        next_event->pprev_event = &event->next_event;
 }
 
-/** Delete event from the queue. */
-void delayed_event_remove(struct delayed_event* event)
+void delayed_event_remove(struct delayed_event_queue* q,
+    struct delayed_event* event)
 {
-	list_del_init(&event->elem);
+    (void) q;
+    if(event->pprev_event == NULL) return; // Event is not in the queue.
+
+    struct delayed_event* next_event = event->next_event;
+
+    *(event->pprev_event) = next_event;
+    if(next_event)
+        next_event->pprev_event = event->pprev_event;
+
+    event->pprev_event = NULL;
+}
+
+pok_time_t delayed_event_queue_get_check_time(struct delayed_event_queue* q)
+{
+    if(q->first_event != NULL) {
+        return q->first_event->timepoint;
+    }
+    else {
+        return 0;
+    }
 }

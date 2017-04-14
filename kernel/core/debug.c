@@ -21,10 +21,10 @@
 
 #ifdef POK_NEEDS_DEBUG
 
-#include <arch.h>
+#include <asp/arch.h>
 #include <errno.h>
 #include <core/debug.h>
-#include <core/cons.h>
+#include <cons.h>
 #include <core/sched.h>
 #include <core/thread.h>
 #include <core/partition.h>
@@ -48,7 +48,6 @@ void pok_debug_print_current_state ()
    printf ("-------------\n");
    printf ("Kernel thread        : %d\n", KERNEL_THREAD);
    printf ("Idle thread          : %d\n", IDLE_THREAD);
-#ifdef POK_NEEDS_PARTITIONS
    printf ("Current partition    : %d\n", POK_SCHED_CURRENT_PARTITION);
    printf ("Thread index         : %lu\n",   (unsigned long) POK_CURRENT_PARTITION.thread_index);
    printf ("Thread low           : %lu\n",   (unsigned long) POK_CURRENT_PARTITION.thread_index_low);
@@ -68,7 +67,6 @@ void pok_debug_print_current_state ()
    }
    printf ("\n");
    printf ("-------------\n");
-#endif
    printf ("Current thread    : %d\n", POK_SCHED_CURRENT_THREAD);
    printf ("Period            : %lld\n", (long long) POK_CURRENT_THREAD.period);
    printf ("Deadline          : %d\n", POK_CURRENT_THREAD.deadline);
@@ -84,13 +82,13 @@ void pok_fatal (const char* message)
   // with preemption enabled
   // also, some bugs somehow reenable preemption
   // where it shouldn't be enabled
-  pok_arch_preempt_disable();
+  ja_preempt_disable();
 
-  pok_write ("FATAL ERROR: \n", 13);
-  pok_write (message , debug_strlen(message));
+  jet_console_write ("FATAL ERROR: \n", 13);
+  jet_console_write (message , debug_strlen(message));
 
   POK_DEBUG_PRINT_CURRENT_STATE
-  pok_arch_inf_loop();
+  ja_inf_loop();
 
   __builtin_unreachable();
 }

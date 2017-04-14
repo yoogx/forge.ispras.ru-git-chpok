@@ -25,11 +25,14 @@
 #include <types.h>
 #include <errno.h>
 #include <core/error.h>
-#include <arch.h>
 
 #include <gdb.h>
 
 #include <uapi/partition_types.h>
+
+#include <asp/cswitch.h>
+
+#include <asp/space.h>
 
 struct _pok_partition;
 
@@ -50,7 +53,8 @@ struct pok_partition_sched_operations
      */
     void (*on_event)(void);
 
-    /* 
+#ifdef POK_NEEDS_GDB
+    /*
      * Return number of threads for given partition.
      *
      * NOTE: Called (possibly) outside of partition's timeslot, so
@@ -70,7 +74,7 @@ struct pok_partition_sched_operations
      */
     int (*get_current_thread_index)(struct _pok_partition* part);
 
-    /* 
+    /*
      * Return 0 if thread with given index exists. Fill 'private' with
      * value, which will be passed for callbacks below.
      */
@@ -89,31 +93,43 @@ struct pok_partition_sched_operations
         print_cb_t print_cb, void* cb_data);
 
     /*
-     * Get (architecture-specific) registers for non-current thread.
+     * Get interrupt context for non-current thread. It is used for extract registers.
      *
      * Returning NULL means that thread has no registers assosiated with it.
+     *
+     * TODO: naming is bad.
      */
-    struct regs* (*get_thread_registers)(struct _pok_partition* part, int index, void* private);
+    struct jet_interrupt_context* (*get_thread_registers)(struct _pok_partition* part, int index, void* private);
+
+    /*
+     * Resolve user address for gdb access.
+     *
+     * Return NULL if given range is not accessible for gdb.
+     *
+     * If partition doesn't work with user space, never called.
+     */
+    void* __kuser (*uaddr_to_gdb)(struct _pok_partition* part, const void* __user addr, size_t size);
+#endif /* POK_NEEDS_GDB */
 };
 
 struct pok_partition_operations
 {
-    /* 
+    /*
      * Called when partition is (re)started.
-     * 
+     *
      * Local preemption is disabled.
-     * 
+     *
      * Cannot be NULL.
      */
     void (*start)(void);  /**< The entry-point for the partition's thread. */
 
-    /* 
+    /*
      * Process sync error related to given partition.
-     * 
+     *
      * Local preemption is disabled.
-     * 
+     *
      * Previous local preemption state is passed as parameter.
-     * 
+     *
      * Cannot be NULL.
      */
     void (*process_partition_error)(pok_system_state_t partition_state,
@@ -124,6 +140,41 @@ struct pok_partition_operations
 
 /* Non-zero number, which is incremented every time partition is started. */
 typedef uint32_t pok_partition_generation_t;
+
+/* Type of outer event for partition. */
+enum jet_partition_event_type
+{
+    /* Partition's timer is expired. */
+    JET_PARTITION_EVENT_TYPE_TIMER,
+    /* Space is available for send message into the queuing port. */
+    JET_PARTITION_EVENT_TYPE_PORT_SEND_AVAILABLE,
+    /* Message is available for receive it from the queuing port. */
+    JET_PARTITION_EVENT_TYPE_PORT_RECEIVE_AVAILABLE,
+    /*
+     * IPPC connection is paused.
+     *
+     * Two PAUSED events cannot be raised without execute() between them.
+     */
+    JET_PARTITION_EVENT_TYPE_IPPC_PAUSED,
+    /*
+     * IPPC connection is resumed after pausing.
+     *
+     * Two UNPAUSED events cannot be raised without execute() between them.
+     */
+    JET_PARTITION_EVENT_TYPE_IPPC_UNPAUSED,
+    /*
+     * IPPC connection is cancelled. This event is for server.
+     */
+    JET_PARTITION_EVENT_TYPE_IPPC_CANCELLED,
+
+};
+
+/* Outer event for partition. */
+struct jet_partition_event
+{
+    uint16_t handler_id;
+    enum jet_partition_event_type event_type;
+};
 
 /*!
  * \struct pok_partition_t
@@ -137,63 +188,93 @@ typedef struct _pok_partition
 
     const struct pok_partition_sched_operations* part_sched_ops;
     const struct pok_partition_operations* part_ops;
-    
-    /* 
-     * State of the partition.
-     * 
-     * This is like "state register" notion used for architectures.
-     */
-    union {
-        /* 
-         * State flags (bytes). Can be 0 or 1.
-         * 
-         * Because flags are bytes (not bits), they can be (re)set
-         * atomically without locked operations.
-         */
-        struct {
-            /*
-             * Set when time is changed.
-             */
-            uint8_t time_changed;
-            /*
-             * Set after time slot is changed from other partition to given one.
-             */
-            uint8_t control_returned;
-            /*
-             * Set when some event in out-of-partition time is generated.
-             * E.g., when receive message on the port we are waited on.
-             */
-            uint8_t outer_notification;
 
-            uint8_t unused;
-        } bytes;
-        /* 
-         * All flags at once.
-         * 
-         * This value may be checked by partition after enabling preemption
-         * for ensure, that it hasn't miss other flags.
-         */
-        uint32_t bytes_all;
-    } state;
+    /*
+     * Circular buffer with partition events.
+     *
+     * Allocated on initialization.
+     */
+    struct jet_partition_event* partition_events;
+
+    /* Maximum number of incoming events. Set in deployment.c. */
+    uint16_t partition_event_max;
+    /* Index of the first event for receive. */
+    uint16_t partition_event_begin;
+    /* Index after the last event for receive. */
+    uint16_t partition_event_end;
+
+    /*
+     * If this field is positive, partition will receive event
+     * (with handler_id = 0) when current time will be equal-or-more
+     * than this value.
+     *
+     * When timer event is fired, the field is reset to 0.
+     *
+     * DEV: There are 2 slots for timer events. So it is allowable to
+     * set this field without preliminary reseting it and checking for
+     * events.
+     */
+    volatile pok_time_t timer;
+
+    /*
+     * Whether event has been fired.
+     *
+     * This field is set when event is added to empty queue.
+     *
+     * The field should be reset to 0 by partition before last event is
+     * consumed.
+     */
+    pok_bool_t is_event;
+
+    /*
+     * IPPC request which should be handled by the partition.
+     *
+     * If partition is executed normally (in its time), this is NULL.
+     *
+     * This field is set by the global scheduler, and should be checked
+     * by the local one.
+     */
+    struct jet_ippc_connection* ippc_handled;
+
+    /*
+     * IPPC request which is currently handled by the partition.
+     *
+     * Inequality of difference given one and '.ippc_handled' means
+     * that rescheduling is needed.
+     *
+     * Set by the local scheduler, checked by both global and local schedulers.
+     */
+    struct jet_ippc_connection* ippc_handled_actual;
+
+    /*
+     * When jet_ippc_execute() is called, this is set to its connection.
+     *
+     * Such a way, IPPC request execution becomes a *state* of the partition,
+     * not a simple function call which should be restarted after timer
+     * interrupt.
+     *
+     * This field is only for global scheduler.
+     */
+    struct jet_ippc_connection* ippc_executed;
 
     /*
      * Whether local preemption is disabled.
-     * 
+     *
      * Flag can be read, modified or cleared by the partition itself.
-     * 
+     *
      * Flag is set and checked by the global scheduler,
      * when it need to call partition's callbacks.
      */
     uint8_t preempt_local_disabled;
-    
+
     pok_partition_generation_t partition_generation;
 
-    /* 
+    /*
      * Whether currently executed *user space* process is error handler.
-     * 
+     *
      * This field is used for determine system level in case when
      * error is catched via interrupt.
-     * 
+     *
      * Reseted to false when partition starts.
      */
     pok_bool_t               is_error_handler;
@@ -201,50 +282,61 @@ typedef struct _pok_partition
     const char               *name;          /**< Name of the partition */
 
     // Should be set in deployment.c.
-    uint32_t                 period;         /**< Period of the partition, unused at this time */
-    uint32_t                 duration;       /**< Duration of the partition, unused at this time */
+    pok_time_t               period;         /**< Period of the partition, unused at this time */
+    pok_time_t               duration;       /**< Duration of the partition, unused at this time */
     pok_partition_id_t       partition_id;
 
     /*
      * Kernel stack address which is used for enter into the partition.
-     * 
+     *
      * 0 value in this field means that partition needs to be (re)started.
      *
      */
-    uint32_t	        	 sp; 
+    struct jet_context*     sp;
 
     /*
      * Initial value of kernel stack (when it was allocated).
      *
      * Used for restarting partition.
-     * 
+     *
      * Set by particular partition's implementation.
      */
-    struct dStack            initial_sp;
-
-    /* 
-     * Identificator of (user) space, corresponded to given partition.
-     * Special value 0xff means that no user space is used by this partition.
-     * 
-     * Set in deployment.c
-     * 
-     * Used by scheduler when it switch into partition.
-     */
-    uint8_t                  space_id;
+    jet_stack_t            initial_sp;
 
     /*
+     * Identificator of (user) space, corresponded to given partition.
+     * Special value 0 means that no user space is used by this partition.
+     *
+     * Set in deployment.c
+     *
+     * Used by scheduler when it switch into partition.
+     */
+    jet_space_id                  space_id;
+
+    /*
+     * Pointer to area for save floating point registers for current
+     * (user) thread.
+     *
+     * Local scheduler should set this field before jumping or returning
+     * into user space.
+     */
+    struct jet_fp_store*    fp_store_current;
+
+#ifdef POK_NEEDS_GDB
+    /*
      * Pointer to the user space registers array, stored for given partition.
-     * 
+     *
      * Set by global scheduler, used (may be cleared) by partition.
      */
-    uint32_t                entry_sp_user;
+    struct jet_interrupt_context* entry_sp_user;
 
     /*
      * Pointer to the registers array, stored for given partition when switched off.
-     * 
+     *
      * Used only by global scheduler.
      */
-    uint32_t                entry_sp;
+    struct jet_interrupt_context* entry_sp;
+#endif /* POK_NEEDS_GDB */
 
 #ifdef POK_NEEDS_IO
   uint16_t		    io_min;             /**< If the partition is allowed to perform I/O, the lower bound of the I/O */
@@ -254,41 +346,82 @@ typedef struct _pok_partition
   pok_start_condition_t	    start_condition;
 
   /* Set if partition is restarted by outside.
-   * 
+   *
    * Partition may clear this flag in its `start()` callback. */
   pok_bool_t restarted_externally;
 
-  /* 
+  /*
    * Pointer to Multi partition HM selector.
-   * 
+   *
    * Bit's value 0 means module level error, 1 - partition level error.
-   * 
+   *
    * Set in deployment.c
    */
   const pok_error_level_selector_t* multi_partition_hm_selector;
   /*
    * Pointer to Multi partition HM table.
-   * 
+   *
    * Set in deployment.c
    */
   const pok_error_module_action_table_t* multi_partition_hm_table;
+
+  /*
+   * Whether access is granted to memory local to given partition.
+   *
+   * Have a sence only if .space_id != 0.
+   */
+  pok_bool_t is_local_access_granted;
 } pok_partition_t;
 
 /**
  * Pointer to the current partition.
- * 
+ *
  * DEV: Readonly for all except scheduler-related stuff.
  */
 extern pok_partition_t* current_partition;
+
+/*
+ * Add event to partition's queue and notify it if needed.
+ *
+ * Should be called with global preemption disabled.
+ *
+ * Note: May affect on scheduling, so preemption shouldn't be enabled using
+ * __pok_preemption_enable().
+ */
+void pok_partition_add_event(pok_partition_t* part,
+    enum jet_partition_event_type event_type,
+    uint16_t handler_id);
+
+/*
+ * Consume event from current partition's queue.
+ *
+ * Return TRUE on success, FALSE if the queue is empty.
+ *
+ * Should be called with local preemption disabled.
+ */
+pok_bool_t pok_partition_get_event(struct jet_partition_event* event);
+
+/*
+ * Set timer for given partition.
+ * Setting to 0 means reseting.
+ *
+ * Event queue should be drained before setting timer once more.
+ */
+void pok_partition_set_timer(pok_partition_t* part,
+    pok_time_t timer_new);
+
+
+/* Initialize partition. */
+void pok_partition_init(pok_partition_t* part);
 
 /**
  * Execute given function for each partition.
  */
 void for_each_partition(void (*f)(pok_partition_t* part));
 
-/* 
+/*
  * Ready-made scheduler operations for partition with single kernel thread.
- * 
+ *
  * '.start' function for such partition shouldn't enable local preemption.
  */
 extern const struct pok_partition_sched_operations partition_sched_ops_kernel;

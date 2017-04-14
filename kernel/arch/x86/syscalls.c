@@ -22,43 +22,27 @@
  * \author Laurent Lec
  */
 
-#include <errno.h>
 #include <core/debug.h>
-#include <core/partition.h>
-#include <core/partition_arinc.h>
 #include <core/syscall.h>
+#include <core/uaccess.h>
+#include <interrupt.h>
 
-#include "gdt.h"
-#include "event.h"
-
-#define PARTITION_ID(cs) (((cs >> 3) - 4) / 2)
-
-INTERRUPT_HANDLER_syscall(syscall_gate)
+void process_syscall(interrupt_frame* frame)
 {
-   pok_syscall_info_t   syscall_info;
    pok_ret_t            syscall_ret;
    pok_syscall_args_t*  syscall_args;
    pok_syscall_id_t     syscall_id;
-
-   /*
-    * Give informations about syscalls: which partition, thread
-    * initiates the syscall, the base addr of the partition and so on.
-    */
-   syscall_info.partition = PARTITION_ID (frame->cs);
-   syscall_info.base_addr = current_partition_arinc->base_addr;
-   syscall_info.thread    = 0; // Has no sence with new scheduler
-
-   syscall_args = (pok_syscall_args_t*) (frame->ebx + syscall_info.base_addr);
 
    /*
     * Get the syscall id in the eax register
     */
    syscall_id = (pok_syscall_id_t) frame->eax;
 
-   /*
-    * Check that pointer is inside the adress space
-    */
-   if (POK_CHECK_PTR_IN_PARTITION(syscall_info.partition, syscall_args) == 0)
+   // Address of the array of args is passed through ebx register.
+   pok_syscall_args_t* __user syscall_args_user = (void*)frame->ebx;
+   // Get kernel address of them.
+   syscall_args = jet_user_to_kernel_typed(syscall_args_user);
+   if(syscall_args == NULL)
    {
          syscall_ret = POK_ERRNO_EINVAL;
    }
@@ -67,28 +51,11 @@ INTERRUPT_HANDLER_syscall(syscall_gate)
       /*
        * Perform the syscall baby !
        */
-      syscall_ret = pok_core_syscall (syscall_id, syscall_args, &syscall_info);
+      syscall_ret = pok_core_syscall (syscall_id, syscall_args);
    }
 
    /*
     * And finally, put the return value in eax register
     */
-   asm ("movl %0, %%eax  \n"
-	:
-	: "m" (syscall_ret));
+   frame->eax = syscall_ret;
 }
-
-/**
- * Init system calls
- */
-pok_ret_t pok_syscall_init ()
-{
-   pok_idt_set_gate (POK_SYSCALL_INT_NUMBER,
-                     GDT_CORE_CODE_SEGMENT << 3,
-                     (uint32_t) syscall_gate,
-                     IDTE_INTERRUPT,
-                     3);
-
-   return (POK_ERRNO_OK);
-}
-

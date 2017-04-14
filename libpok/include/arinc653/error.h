@@ -16,13 +16,8 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ARINC653_ERROR
 #ifndef APEX_ERROR
 #define APEX_ERROR
-
-#ifndef POK_NEEDS_ARINC653_PROCESS
-#define POK_NEEDS_ARINC653_PROCESS 1
-#endif
 
 #include <arinc653/process.h>
 
@@ -80,4 +75,3 @@ extern void RAISE_APPLICATION_ERROR (ERROR_CODE_TYPE            ERROR_CODE,
                                      ERROR_MESSAGE_SIZE_TYPE    LENGTH,
                                      RETURN_CODE_TYPE           *RETURN_CODE);
 #endif
-#endif 

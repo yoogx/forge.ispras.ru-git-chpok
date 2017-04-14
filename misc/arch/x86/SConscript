@@ -1,0 +1,225 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+"""
+Environment definitions for x86 architecture.
+"""
+from __future__ import division
+
+import os
+import memory_definition
+import template_generation
+from text_serialization import *
+
+Import('env')
+
+env['PREFIX'] = 'i386-elf-'
+
+env['QEMU'] = 'qemu-system-i386'
+
+env['LDSCRIPT_KERNEL']    = env['JETOS_HOME'] + '/kernel/arch/x86/ldscripts/kernel.lds'
+env['LDSCRIPT_PARTITION'] = env['JETOS_HOME'] + '/kernel/arch/x86/ldscripts/partition.lds'
+
+env['ELF_FORMAT_KERNEL'] = 'elf32-i386'
+env['ELF_ARCH_KERNEL'] = 'i386'
+
+#env.Append(CFLAGS = ' -DPOK_DISABLE_GDB')
+#env.Append(ASFLAGS = ' -DPOK_DISABLE_GDB')
+
+arch_dir = Dir('.').srcnode().abspath
+
+
+# Below is an implementation of arch deployment functionality.
+from board_deploy_simple import *
+from text_serialization import *
+def align_val(val, align):
+    return ((val + align - 1) // align) * align
+
+def is_aligned(val, align):
+    return (val % align) == 0
+
+class MBmap_common(SerializableObject):
+    copy_slots = [
+        'vaddr',
+        'access',
+        'cache_policy',
+        'space_id',
+        'paddr',
+        'size',
+        'align'
+    ]
+
+    def __init__(self, **kargs):
+        copy_constructor(self, kargs)
+
+class PhysMemoryBlock_common(PhysMemoryBlock):
+
+    def __init__(self, paddr, size, align):
+        PhysMemoryBlock.__init__(self, paddr, size, align)
+
+    def createMBmap(self, vaddr, access, cache_policy, space_id):
+        return MBmap_common(
+                vaddr = vaddr,
+                access = access,
+                cache_policy = cache_policy,
+                space_id = space_id,
+                paddr = self.paddr,
+                size = self.size,
+                align = self.align
+                )
+
+
+PAGE_SIZES = [4*2**10, 4*2**20]
+
+class PhysMemoryType_x86(PhysMemoryType):
+    def isCacheSupported(self, cache_policy):
+        return cache_policy in ["DEFAULT", "IO"]
+
+    def allocPhysBlock(self, paddr, size):
+        """
+        Allocate physical memory block.
+        """
+
+        align = min(PAGE_SIZES)
+        size_real = align_val(size, align)
+        paddr_real = align_val(paddr, align)
+
+        return PhysMemoryBlock_common(
+            paddr = paddr_real,
+            size = size_real,
+            align = align,
+        )
+
+class Page_x86(SerializableObject):
+    yaml_tag = '!Page'
+
+    copy_slots = [
+        'vaddr',
+        'paddr',
+        'flags',
+        'is_big'
+    ]
+
+    def __init__(self, **kargs):
+        copy_constructor(self, kargs)
+
+def is_big_page(page_size):
+    return page_size == 4 * 2**20
+
+def get_flags_str(access, cache_policy, is_big):
+    flags = []
+    if 'RW' in access:
+        flags.append("PAGE_RW")
+
+    if cache_policy == 'IO':
+        flags.append('PAGE_CD')
+
+    if is_big:
+        flags.append('PAGE_S')
+
+    return '|'.join(flags)
+
+def MBmap_to_pages(MBmap):
+    size = MBmap.size
+    vaddr = MBmap.vaddr
+    paddr = MBmap.paddr
+
+    page_sizes = list(PAGE_SIZES)
+    page_sizes.sort(reverse = True)
+    pages = []
+    while size > 0:
+        cur_page_size = 0
+        for page_size in page_sizes:
+            if is_aligned(size, page_size) and is_aligned(vaddr, page_size) and is_aligned(paddr, page_size):
+                cur_page_size = page_size
+        assert(cur_page_size != 0)
+
+        pages.append(Page_x86(
+            vaddr = vaddr,
+            paddr = paddr,
+            flags = get_flags_str(MBmap.access, MBmap.cache_policy, is_big_page(cur_page_size)),
+            is_big = is_big_page(cur_page_size)
+            ))
+        size  -= cur_page_size
+        vaddr += cur_page_size
+        paddr += cur_page_size
+
+    return pages
+
+def deploy_func_unsafe(env, target, source):
+    mc = memory_definition.ModuleMemoryDefinition.load_from_file(source[0].abspath)
+
+    memory_type = PhysMemoryType_x86()
+    phys_segment = PhysSegment(
+        paddr_start = 64 * 2**20,
+        paddr_end = mc.phys_total,
+        memory_type = memory_type,
+    )
+
+    partitions_MBmaps = allocateMemoryBlocksSimple(
+        mc,
+        phys_segments = [phys_segment],
+        memory_type_default = memory_type,
+        vaddr_start_all = 0, # Hardcoded in ldscript.
+    )
+
+    mc.save_to_file(target[0].abspath)
+
+
+    # divide MBmap in pages
+    partitions_pages = [] #each page table is a list of pages
+    for partitionMBmaps in partitions_MBmaps:
+        part_pages = []
+        for MBmap in partitionMBmaps.MBmaps_list:
+            part_pages.extend(MBmap_to_pages(MBmap))
+        partitions_pages.append(part_pages)
+
+    serialize_as_text(partitions_pages, target[1].abspath, 'partitions_pages')
+
+def deploy_func(env, target, source):
+    # Just calls deploy_func_unsafe and catch exceptions
+    try:
+        deploy_func_unsafe(env, target, source)
+    except RuntimeError as e:
+        print "Error occured while deploy memory blocks: %s." % e.message
+        return 1
+
+def create_definitions_for_deployment(source, env):
+    return {'partitions_pages': deserialize_from_text(source[0].abspath, 'partitions_pages')}
+
+def deploy(env, memory_definitions_file, memory_constraints):
+
+    arch_deployment_kernel_yaml = os.path.join(env['MODULE_BUILD_DIR'], "x86pages.yaml")
+
+    env.Command(target = [memory_definitions_file, arch_deployment_kernel_yaml],
+        source = memory_constraints,
+        action = Action(deploy_func, '$ARCH_DEPLOY_FUNC_COMSTR')
+    )
+
+    env.AddMethod(template_generation.TemplateRender)
+
+    env['BOARD_DEPLOYMENT_SOURCES'] += env.TemplateRender(
+        target = os.path.join(env['MODULE_BUILD_DIR'], "x86pages.c"),
+        source = arch_deployment_kernel_yaml,
+        create_context = create_definitions_for_deployment,
+        template_file = arch_dir + "/templates/x86pages_c.tpl",
+        title = template_generation.generate_title_c
+    )
+
+env['BOARD_DEPLOY'] = deploy

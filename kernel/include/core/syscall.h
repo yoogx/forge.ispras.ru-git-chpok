@@ -37,14 +37,7 @@ typedef struct
    uint32_t             arg5;
 } pok_syscall_args_t;
 
-typedef struct
-{
-   pok_partition_id_t   partition;
-   uint32_t             thread;
-   uint32_t             base_addr;
-}pok_syscall_info_t;
-
-// Should come after definitions of types 'pok_syscall_args_t' and 'pok_syscall_info_t'
+// Should come after definitions of types 'pok_syscall_args_t'
 #include <uapi/syscall_map_arinc.h>
 
 
@@ -70,8 +63,7 @@ typedef struct
  */
 
 pok_ret_t	pok_core_syscall (const pok_syscall_id_t     syscall_id,
-                              const pok_syscall_args_t*  args,
-                              const pok_syscall_info_t*  infos);
+                              const pok_syscall_args_t*  args);
 
 /*
  * Initiate syscalls.
@@ -79,13 +71,5 @@ pok_ret_t	pok_core_syscall (const pok_syscall_id_t     syscall_id,
  * initiate the syscall in a different way.
  */
 pok_ret_t pok_syscall_init();
-
-#define POK_CHECK_PTR_OR_RETURN(pid,ptr)	\
-   if (!POK_CHECK_PTR_IN_PARTITION(pid,ptr))	\
-{						\
-   return POK_ERRNO_EINVAL;					\
-}
-
-extern uintptr_t global_thread_stack;
 
 #endif /* __POK_SYSCALL_H__ */

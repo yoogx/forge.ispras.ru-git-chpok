@@ -23,8 +23,7 @@
 
 #include <config.h>
 
-#include <arch.h>
-#include <bsp_common.h>
+#include <cons.h>
 
 #include <core/time.h>
 #include <core/thread.h>
@@ -32,78 +31,63 @@
 #include <core/partition.h>
 #include <core/partition_arinc.h>
 #include <core/channel.h>
-#include <core/boot.h>
-#include <gcov.h>
+#include <asp/entries.h>
 #include <libc.h>
+#include <conftree.h>
 
-#include <core/instrumentation.h>
+jet_pt_tree_t kernel_config_tree;
+extern const char __archive2_begin; // Actual kernel config tree is here.
 
-void pok_boot ()
-{
-   kernel_state = POK_SYSTEM_STATE_OS_MOD; // TODO: is this choice for state right?
-   pok_arch_init();
-   pok_bsp_init();
+#ifdef POK_NEEDS_GDB
+#include <gdb.h>
+#endif
 
 #ifdef POK_NEEDS_GCOV
-   pok_gcov_init();
+#include <gcov.h>
 #endif
 
-#ifdef POK_NEEDS_NETWORKING
-   pok_network_init();
+#ifdef KERNEL_UNITTESTS
+#include <unity_fixture.h>
+void RunAllTests(void);
 #endif
 
-#if defined (POK_NEEDS_TIME) || defined (POK_NEEDS_SCHED) || defined (POK_NEEDS_THREADS)
-   pok_time_init();
-#endif
-#ifdef POK_NEEDS_PARTITIONS
+void jet_boot (void)
+{
+   kernel_config_tree = (jet_pt_tree_t)&__archive2_begin;
+
+   if(jet_pt_check_magic(kernel_config_tree)) {
+       pok_fatal("Magic field for kernel config tree is incorrect\n");
+   }
+
+   kernel_state = POK_SYSTEM_STATE_OS_MOD; // TODO: is this choice for state right?
+
    pok_partition_arinc_init_all();
-#endif
 #ifdef POK_NEEDS_MONITOR
    pok_monitor_thread_init();
 #endif
 #ifdef POK_NEEDS_GDB
    pok_gdb_thread_init();
 #endif
+#ifdef POK_NEEDS_GCOV
+   pok_gcov_init();
+#endif
 
-#if defined (POK_NEEDS_SCHED) || defined (POK_NEEDS_THREADS)
    pok_sched_init ();
-#endif
-#if defined (POK_NEEDS_PORTS_QUEUEING) || defined (POK_NEEDS_PORTS_SAMPLING)
+
    pok_channels_init_all ();
-#endif
 
-#if defined (POK_NEEDS_DEBUG) || defined (POK_NEEDS_CONSOLE)
-  pok_cons_write ("POK kernel initialized\n", 23);
-#endif
+   printf("POK kernel initialized\n");
 
-#ifdef POK_NEEDS_INSTRUMENTATION
-  uint32_t tmp;
-   printf ("[INSTRUMENTATION][CHEDDAR] <event_table>\n");
-   printf ("[INSTRUMENTATION][CHEDDAR] <processor>\n");
-   printf ("[INSTRUMENTATION][CHEDDAR] <name>pok_kernel</name>\n");
-
-   for (tmp = 0 ; tmp < POK_CONFIG_NB_THREADS ; tmp++)
-   {
-      printf ("[INSTRUMENTATION][CHEDDAR] <task_activation>   0   task %lu</task_activation>\n", tmp);
-   }
-#endif
-
-
-#ifdef POK_NEEDS_PARTITIONS
-#ifdef POK_NEEDS_WAIT_FOR_GDB
+#if defined(POK_NEEDS_GDB) && defined(POK_NEEDS_WAIT_FOR_GDB)
   printf("Waiting for GDB connection ...\n");
   printf("\n");
   pok_trap();
 #endif
-  pok_sched_start();
-#else
-  pok_arch_preempt_enable();
 
-  /**
-   * If we don't use partitioning service, we execute a main
-   * function. In that case, POK is acting like an executive,
-   * not a real kernel
-   */
-  main ();
+#ifdef KERNEL_UNITTESTS
+  const char* argv[] = {"kernel", "-v"};
+  UnityMain(2, argv, RunAllTests);
+#else
+  pok_sched_start();
 #endif
 }

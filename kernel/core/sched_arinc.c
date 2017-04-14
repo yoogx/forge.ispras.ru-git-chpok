@@ -18,14 +18,34 @@
 #include <core/thread.h>
 #include "thread_internal.h"
 
+#include <cswitch.h>
+#include <core/space.h>
+#include <asp/arch.h>
+#include <core/syscall.h>
+#include <core/uaccess.h>
+
+#include <uapi/kernel_shared_data.h>
+
 static void thread_start_func(void)
 {
-    pok_thread_t* thread_current = current_thread;
+    pok_partition_arinc_t* part = current_partition_arinc;
+    pok_thread_t* thread_current = part->thread_current;
+
+    void (*thread_entry)(void) = thread_current->entry;
+
+    int thread_id = thread_current - part->threads;
+
+    if((thread_id != POK_PARTITION_ARINC_MAIN_THREAD_ID)
+        && part->kshd->thread_entry_wrapper) {
+        // If 'thread_start_wrapper' is set, it is used for all non-main threads.
+        part->kshd->tshd[thread_id].thread_entry_point = thread_entry;
+        thread_entry = part->kshd->thread_entry_wrapper;
+    }
 
     pok_partition_jump_user(
-        thread_current->entry,
+        thread_entry,
         thread_current->init_stack_addr,
-        &thread_current->initial_sp);
+        thread_current->initial_sp);
 }
 
 void sched_arinc_start(void)
@@ -36,33 +56,22 @@ void sched_arinc_start(void)
 
     pok_thread_t* thread_main
         = &part->threads[POK_PARTITION_ARINC_MAIN_THREAD_ID];
-
-    thread_main->entry_sp_user = 0;
-
+#ifdef POK_NEEDS_GDB
+    thread_main->entry_sp_user = NULL;
+#endif
     part->lock_level = 1;
 	part->thread_locked = thread_main;
 
 	thread_main->state = POK_STATE_RUNNABLE;
     part->thread_current = thread_main;
+    // Update kernel shared data.
+    part->kshd->current_thread_id = POK_PARTITION_ARINC_MAIN_THREAD_ID;
 
 	// Direct jump into main thread.
-	pok_context_restart(&thread_main->initial_sp, &thread_start_func,
-        &thread_main->sp);
-}
+    part->base_part.fp_store_current = thread_main->fp_store;
 
-static void thread_deadline_occured(struct delayed_event* event)
-{
-    pok_thread_t* thread = container_of(event, typeof(*thread), thread_deadline_event);
-    printf_debug("Deadline occured for thread %s (%d)\n", thread->name, (int)(thread - current_partition_arinc->threads));
-    pok_thread_emit_deadline_missed(thread);
-    
-    // TODO: if error was ignored, what to do?
-}
-
-static void thread_delayed_event_func(struct delayed_event* event)
-{
-    pok_thread_t* thread = container_of(event, typeof(*thread), thread_delayed_event);
-    thread->thread_delayed_func(thread);
+	jet_context_restart_and_save(thread_main->initial_sp,
+        &thread_start_func, &thread_main->sp);
 }
 
 
@@ -74,39 +83,31 @@ static void port_queuing_fired(pok_port_queuing_t* port_queuing)
         while(!pok_thread_wq_is_empty(&port_queuing->waiters))
         {
             pok_thread_t* t;
-            int n;
-            
-            if(!pok_channel_queuing_r_get_message(port_queuing->channel, TRUE))
+            pok_message_size_t message_size; // Just for function's call.
+
+            if(!pok_channel_queuing_r_get_message(port_queuing->channel,
+                &message_size, TRUE))
                 break; // wait again
-            
-            n = pok_channel_queuing_r_n_messages(port_queuing->channel);
-            
-            for(; n > 0; n--)
-            {
-                t = pok_thread_wq_wake_up(&port_queuing->waiters);
-                if(!t) break;
-                
-                port_queuing_receive(port_queuing, t);
-            }
+
+            t = pok_thread_wq_wake_up(&port_queuing->waiters);
+
+            port_queuing_receive(port_queuing, t);
         }
     }
     else // if(port_queuing->direction == POK_PORT_DIRECTION_OUT)
     {
         while(!pok_thread_wq_is_empty(&port_queuing->waiters))
         {
-            pok_message_t* m;
             pok_thread_t* t;
-            
-            m = pok_channel_queuing_s_get_message(port_queuing->channel, TRUE);
-            if(!m) break; // wait again
-            
+
+            if(!pok_channel_queuing_s_get_message(port_queuing->channel, TRUE))
+                break; // wait again
+
             t = pok_thread_wq_wake_up(&port_queuing->waiters);
-            assert(t);
-            
+
             port_queuing_send(port_queuing, t);
         }
     }
-
 }
 
 /*
@@ -116,53 +117,22 @@ static void port_queuing_fired(pok_port_queuing_t* port_queuing)
 static void do_nothing_func(void)
 {
     pok_preemption_local_enable();
-    
-    wait_infinitely();
+
+    ja_inf_loop();
 }
 
-
-// Called with local preemption disabled.
-static void sched_arinc(void)
+/*
+ * For current partition select thread according to scheduling in normal
+ * mode, that is when partition is executed in its timeslot.
+ */
+static pok_thread_t* select_thread_normal(void)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
-    
-    if(flag_test_and_reset(part->base_part.state.bytes.control_returned))
-    {
-        // Currently ignore this flag
-        // As if time has been changed too.
-        flag_set(part->base_part.state.bytes.time_changed);
-    }
-
-    if(flag_test_and_reset(part->base_part.state.bytes.outer_notification))
-    {
-        pok_port_queuing_t* port_queuing = part->ports_queuing;
-        pok_port_queuing_t* port_queuing_end = port_queuing + part->nports_queuing;
-        
-        for(;port_queuing < port_queuing_end; port_queuing++)
-        {
-            port_queuing_fired(port_queuing);
-        }
-    }
-
-    if(flag_test_and_reset(part->base_part.state.bytes.time_changed))
-    {
-        pok_time_t now = POK_GETTICK();
-        
-        delayed_event_queue_check(&part->queue_deadline, now, &thread_deadline_occured);
-        
-        delayed_event_queue_check(&part->queue_delayed, now, &thread_delayed_event_func);
-    }
-    
-    if(!flag_test_and_reset(part->sched_local_recheck_needed)) return;
 
     part->base_part.is_error_handler = FALSE; // Will be set if needed.
 
-    pok_thread_t* old_thread = part->thread_current;
     pok_thread_t* new_thread;
 
-
-    assert(part->mode != POK_PARTITION_MODE_IDLE); // Idle mode is implemented via function with preemption disabled.
-    
     if(part->mode != POK_PARTITION_MODE_NORMAL)
     {
         new_thread = &part->threads[POK_PARTITION_ARINC_MAIN_THREAD_ID];
@@ -170,15 +140,14 @@ static void sched_arinc(void)
         {
             /*
              * Stopped main thread means that partition can do nothing.
-             * 
+             *
              * But ARINC doesn't specify this state as IDLE.
-             * 
+             *
              * So we treat this case as general "none of the threads are ready now".
              */
             new_thread = NULL;
         }
     }
-#ifdef POK_NEEDS_ERROR_HANDLING
     else if(part->thread_error && part->thread_error->state != POK_STATE_STOPPED)
     {
         // Continue error handler
@@ -189,15 +158,14 @@ static void sched_arinc(void)
     {
         // Start error handler (aperiodic, no timeout).
         new_thread = part->thread_error;
-        
+
         new_thread->priority = new_thread->base_priority;
-        new_thread->sp = 0;
-      
+        new_thread->sp = NULL;
+
         new_thread->state = POK_STATE_RUNNABLE;
-        
+
         part->base_part.is_error_handler = TRUE;
     }
-#endif
     else if(part->lock_level)
     {
         new_thread = part->thread_locked;
@@ -212,39 +180,246 @@ static void sched_arinc(void)
         new_thread = NULL;
     }
 
+    return new_thread;
+}
+
+/*
+ * For current partition select thread according to scheduling in server
+ * mode, that is when partition is executed in client's time.
+ */
+static pok_thread_t* select_thread_server(struct jet_ippc_connection* ippc_handled)
+{
+    pok_partition_arinc_t* part = current_partition_arinc;
+
+    pok_thread_t* new_thread;
+
+    if(part->mode != POK_PARTITION_MODE_NORMAL) {
+        // IPPC requests cannot be obtained in IDLE mode, as all portals are in JET_IPPC_PORTAL_STATE_UNUSABLE state.
+        assert(part->mode != POK_PARTITION_MODE_IDLE);
+        // For init mode always execute main function.
+        new_thread = &part->threads[POK_PARTITION_ARINC_MAIN_THREAD_ID];
+        // IPPC requests cannot be obtained when main thread is stopped, as all portals are in JET_IPPC_PORTAL_STATE_UNUSABLE state.
+        assert(new_thread->state != POK_STATE_STOPPED);
+    }
+    else {
+        new_thread = &part->threads[ippc_handled->server_handler_id];
+
+        if(new_thread->state == POK_STATE_STOPPED) {
+            // Start the server thread.
+            thread_start_prepare(new_thread);
+            thread_start(new_thread);
+            // Pass parameters to it.
+            struct jet_thread_shared_data* tshd = &part->kshd->tshd[new_thread - part->threads];
+
+            memcpy(tshd->ippc_input_params, ippc_handled->input_params,
+                sizeof(ippc_handled->input_params[0]) * ippc_handled->input_params_n);
+            tshd->ippc_input_params_n = ippc_handled->input_params_n;
+        }
+        else if(new_thread->state == POK_STATE_WAITING) {
+            if(ippc_handled->is_cancelled) {
+                // Client cancels the IPPC request in WAITING state.
+                thread_wait_cancel(new_thread);
+            }
+            else {
+                // Timeout occures.
+                thread_wait_timeout(new_thread);
+            }
+        }
+    }
+
+    return new_thread;
+}
+
+
+/*
+ * Given runnable thread, return thread which should actually be executed
+ * for allow given thread to make a progress.
+ */
+static pok_thread_t* continuable_thread(pok_thread_t* selected_thread)
+{
+    pok_partition_arinc_t* part = current_partition_arinc;
+
+    part->thread_selected = selected_thread;
+    if(part->waiting_section)
+    {
+        // Clear waiting section for possibly set it after.
+        part->waiting_section->msection_kernel_flags = 0;
+        part->waiting_section = NULL;
+    }
+
+    if(selected_thread == NULL) return NULL;
+
+    pok_thread_t* new_thread = selected_thread;
+
+    if(new_thread->relations_stop.donate_target)
+    {
+        /* We should wait for other thread to stop. */
+        new_thread = new_thread->relations_stop.donate_target;
+    }
+
+    // Check that given thread is able to continue.
+    struct msection* waiting_section = new_thread->msection_entering;
+    if(waiting_section != NULL)
+    {
+        /* Limit number of attempts to determine current thread. TODO: this should be configurable constant. */
+        int n_attempts = 5;
+
+        do {
+            pok_thread_id_t owner = waiting_section->owner;
+            if(owner == JET_THREAD_ID_NONE || owner == (new_thread - part->threads))
+            {
+                waiting_section->owner = (new_thread - part->threads);
+                new_thread->msection_entering = NULL;
+                break;
+            }
+
+            assert_os(owner < part->nthreads_used);
+            // Contention on msection is possible only in NORMAL mode, when main thread is not executed.
+            assert_os(owner > POK_PARTITION_ARINC_MAIN_THREAD_ID);
+
+            new_thread = part->threads + owner;
+            assert_os(new_thread->state == POK_STATE_RUNNABLE);
+            // TODO: other consistency checks
+            part->waiting_section = waiting_section;
+
+            waiting_section = new_thread->msection_entering;
+
+            assert(n_attempts);
+            n_attempts--;
+
+        } while(waiting_section != NULL);
+    }
+
+    if(part->waiting_section)
+    {
+        part->waiting_section->msection_kernel_flags = MSECTION_KERNEL_FLAG_RESCHED_AFTER_LEAVE;
+    }
+
+    return new_thread;
+}
+
+// Called with local preemption disabled.
+static void sched_arinc(void)
+{
+    pok_partition_arinc_t* part = current_partition_arinc;
+    pok_thread_t* new_thread;
+
+    struct jet_ippc_connection* ippc_handled = ACCESS_ONCE(part->base_part.ippc_handled);
+
+    if(part->base_part.ippc_handled_actual != ippc_handled) {
+        ACCESS_ONCE(part->base_part.ippc_handled_actual) = ippc_handled;
+        pok_sched_local_invalidate();
+    }
+
+    if(ippc_handled == NULL)
+    {
+        // Normal mode. Process events first.
+again:
+        if(flag_test_and_reset(part->base_part.is_event))
+        {
+            struct jet_partition_event event;
+
+            while(pok_partition_get_event(&event))
+            {
+                switch(event.event_type) {
+                    case JET_PARTITION_EVENT_TYPE_TIMER:
+                        delayed_event_queue_check(&part->partition_delayed_events, jet_system_time());
+                        break;
+                    case JET_PARTITION_EVENT_TYPE_PORT_SEND_AVAILABLE:
+                    case JET_PARTITION_EVENT_TYPE_PORT_RECEIVE_AVAILABLE:
+                        port_queuing_fired(&part->ports_queuing[event.handler_id]);
+                        break;
+                    case JET_PARTITION_EVENT_TYPE_IPPC_PAUSED:
+                        {
+                            pok_thread_t* t = &part->threads[event.handler_id];
+                            if(t->ippc_connection) {
+                                pok_time_t timeout = t->ippc_connection->timeout;
+                                if(timeout < 0) thread_wait(t);
+                                else thread_wait_timed(t, timeout);
+                            }
+                        }
+                        break;
+                    case JET_PARTITION_EVENT_TYPE_IPPC_UNPAUSED:
+                        {
+                            pok_thread_t* t = &part->threads[event.handler_id];
+                            if(t->ippc_connection) {
+                                if(t->state == POK_STATE_WAITING)
+                                    thread_wake_up(t);
+                            }
+                        }
+                        break;
+                    default:
+                        unreachable();
+                }
+            }
+        }
+
+        // Update timer.
+        pok_time_t timer_new = delayed_event_queue_get_check_time(
+            &part->partition_delayed_events);
+
+        pok_partition_set_timer(&part->base_part, timer_new);
+
+        if(timer_new != 0) {
+            /*
+             * Check wether timer is not expired before we set it.
+             *
+             * Such a way we eliminate consiquenses of possible race between
+             * setting the timer and checking it in the global scheduler.
+             */
+            pok_time_t time_now = jet_system_time();
+            if(time_now >= timer_new) {
+                // Recheck delayed events.
+                delayed_event_queue_check(&part->partition_delayed_events, time_now);
+                // Need to redrain events before setting timer again.
+                goto again;
+            }
+        }
+    }
+
+    if(!flag_test_and_reset(part->sched_local_recheck_needed)) return;
+
+    assert(part->mode != POK_PARTITION_MODE_IDLE); // Idle mode is implemented via function with preemption disabled.
+
+    pok_thread_t* old_thread = part->thread_current;
+
+    if(ippc_handled == NULL){
+        new_thread = select_thread_normal();
+    }
+    else {
+        new_thread = select_thread_server(ippc_handled);
+    }
+
+    new_thread = continuable_thread(new_thread);
+
     if(new_thread == old_thread)
     {
         if(new_thread == NULL) return; // "do_nothing" continues
 
         if(new_thread->sp != 0) return; // Thread continues its execution.
-        
-        /* 
-         * None common thread can restart itself: someone *other* should
-         * call START function for it.
-         * 
-         * The only exception is error handler: If it calls STOP and
-         * error list is not empty, error handler is automatically restarted.
-         */
-        assert(new_thread == part->thread_error);
-        
-        new_thread->entry_sp_user = 0;
-        pok_context_restart(&new_thread->initial_sp, &thread_start_func,
-            &new_thread->sp);
+
+#ifdef POK_NEEDS_GDB
+        new_thread->entry_sp_user = NULL;
+#endif
+        jet_context_restart_and_save(new_thread->initial_sp,
+            &thread_start_func, &new_thread->sp);
     }
 
     // Switch between different threads
     part->thread_current = new_thread;
-    
-    uint32_t* old_sp = old_thread? &old_thread->sp : &part->idle_sp;
-    uint32_t new_sp;
-    
+    // Update kernel shared data
+    if(new_thread)
+        part->kshd->current_thread_id = new_thread - part->threads;
+
+    struct jet_context** old_sp = old_thread? &old_thread->sp : &part->idle_sp;
+    struct jet_context* new_sp;
+
     if(new_thread)
     {
         new_sp = new_thread->sp;
-        if(new_sp == 0)
+        if(new_sp == NULL)
         {
-            new_sp = pok_context_init(
-                pok_dstack_get_stack(&new_thread->initial_sp),
+            new_sp = jet_context_init(new_thread->initial_sp,
                 &thread_start_func);
             new_thread->sp = new_sp;
         }
@@ -253,10 +428,9 @@ static void sched_arinc(void)
     {
         // New thread is "do_nothing"
         new_sp = part->idle_sp;
-        if(new_sp ==0)
+        if(new_sp == NULL)
         {
-            new_sp = pok_context_init(
-                pok_dstack_get_stack(&part->base_part.initial_sp),
+            new_sp = jet_context_init(part->base_part.initial_sp,
                 &do_nothing_func);
             part->idle_sp = new_sp;
         }
@@ -266,8 +440,9 @@ static void sched_arinc(void)
      * If old_thread->sp is 0, this should be processed upon
      * returning to given thread, not now.
      */
-    if(*old_sp == 0) old_sp = NULL;
+    if(*old_sp == NULL) old_sp = NULL;
 
+#ifdef POK_NEEDS_GDB
     if(old_thread && part->base_part.entry_sp_user)
     {
         /*
@@ -275,56 +450,116 @@ static void sched_arinc(void)
          * and clear original.
          */
         old_thread->entry_sp_user = part->base_part.entry_sp_user;
-        part->base_part.entry_sp_user = 0;
+        part->base_part.entry_sp_user = NULL;
     }
-    
+#endif /* POK_NEEDS_GDB */
+    if (new_thread != NULL)
+        part->base_part.fp_store_current = new_thread->fp_store;
+    else
+        part->base_part.fp_store_current = NULL;
+
     if(old_sp)
     {
-        pok_context_switch(old_sp, new_sp);
+        jet_context_switch(old_sp, new_sp);
     }
     else
     {
-        pok_context_jump(new_sp);
+        jet_context_jump(new_sp);
     }
 }
 
 void pok_preemption_local_disable(void)
 {
     assert(!current_partition_arinc->base_part.preempt_local_disabled);
-    
+
     flag_set(current_partition_arinc->base_part.preempt_local_disabled);
 }
 
 void pok_preemption_local_enable(void)
 {
-    assert(current_partition_arinc->base_part.preempt_local_disabled);
-    
-    sched_arinc();
-    
-    barrier();
-    
-    flag_reset(current_partition_arinc->base_part.preempt_local_disabled);
-    
-    // Check that we do not miss events since sched_arinc() starts.
-    
-    while(ACCESS_ONCE(current_partition_arinc->base_part.state.bytes_all))
-    {
-        flag_set(current_partition_arinc->base_part.preempt_local_disabled);
+    pok_partition_arinc_t* part = current_partition_arinc;
 
-        sched_arinc();
-        
-        barrier();
-        
+    assert(part->base_part.preempt_local_disabled);
+
+again:
+
+    sched_arinc();
+
+    barrier();
+
+    flag_reset(part->base_part.preempt_local_disabled);
+
+    // Check that we do not miss events since sched_arinc() starts.
+
+    struct jet_ippc_connection* ippc_handled = ACCESS_ONCE(part->base_part.ippc_handled);
+
+    if((ACCESS_ONCE(part->base_part.ippc_handled_actual) != ippc_handled)
+        || ((ippc_handled == NULL) && (ACCESS_ONCE(part->base_part.is_event))))
+    {
+        // Disable preemption and repeat scheduling.
         flag_reset(current_partition_arinc->base_part.preempt_local_disabled);
+
+        goto again;
     }
 }
 
 void pok_sched_arinc_on_event(void)
 {
+    pok_partition_arinc_t* part = current_partition_arinc;
+    pok_thread_t* thread_current = part->thread_current;
+
+    if(thread_current)
+    {
+        //Update information according to current kernel shared data.
+        struct jet_thread_shared_data* tshd_current = part->kshd->tshd
+            + (thread_current - part->threads);
+
+        if(tshd_current->msection_entering != NULL)
+        {
+            struct msection * __kuser msection_entering =
+                jet_user_to_kernel_typed(tshd_current->msection_entering);
+
+            assert_os(msection_entering);
+
+            thread_current->msection_entering = msection_entering;
+        }
+    }
     sched_arinc();
 }
 
 void pok_sched_local_invalidate(void)
 {
     flag_set(current_partition_arinc->sched_local_recheck_needed);
+}
+
+void pok_sched_local_invalidate_main(void)
+{
+    if(!current_partition->ippc_handled_actual)
+        pok_sched_local_invalidate();
+}
+
+pok_ret_t jet_resched(void)
+{
+    pok_partition_arinc_t* part = current_partition_arinc;
+
+    pok_thread_t* thread_current = part->thread_current;
+
+    struct jet_thread_shared_data* tshd_current = part->kshd->tshd
+        + (thread_current - part->threads);
+
+    pok_preemption_local_disable();
+
+    if(part->waiting_section != NULL && part->waiting_section->owner == JET_THREAD_ID_NONE)
+        pok_sched_local_invalidate(); // msection we await for has been released.
+
+    if(thread_current->relations_stop.first_donator != NULL
+        && tshd_current->msection_count == 0)
+    {
+        // It is safe to terminate thread now.
+        thread_stop(thread_current);
+    }
+
+    pok_preemption_local_enable();
+
+    return POK_ERRNO_OK;
 }

@@ -25,71 +25,23 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_THREADS
-
 // Note: Should come before possible inclusion of <core/partition.h>
 
 #include <uapi/thread_types.h>
 
 #include <types.h>
 #include <errno.h>
-//#include <core/sched.h>
+
 #include <core/delayed_event.h>
-#include <arch.h>
 #include <list.h>
 
+#include <asp/cswitch.h>
 
+#include <core/space.h>
+#include <core/ippc.h>
 
-/*
- * In POK, we add a kernel thread and an idle thread. The kernel
- * thread is used to execute kernel code while the idle thread
- * is used to save processor resources.
- *
- * Additionally, if networking is enabled, 
- * there's another thread that polls the network card.
- */
-
-
-#ifdef POK_NEEDS_NETWORKING
-
-#define NETWORK_THREAD POK_CONFIG_NB_THREADS-4
-#define POK_KERNEL_THREADS 4
-
-#else
-
-#define POK_KERNEL_THREADS 3
-
-#endif
-
-
-#define MONITOR_THREAD POK_CONFIG_NB_THREADS-3
-#define KERNEL_THREAD		POK_CONFIG_NB_THREADS -2
-#define IDLE_THREAD        POK_CONFIG_NB_THREADS -1
-
-#define POK_THREAD_DEFAULT_TIME_CAPACITY 10
-
-/*
- * Maximum priority value available to "ordinary" threads.
- *
- * Must be less than maximum value of priority type,
- * otherwise, priority for error handler will overflow
- * (which is defined to be larger than maximum).
- */
-#define POK_THREAD_MAX_PRIORITY  200
-
-
-/*
- * IDLE_STACK_SIZE is the stack size of the idle thread
- * DEFAULT_STACK_SIZE if the stack size of regulard threads
- */
-#define IDLE_STACK_SIZE		1024
+/* Default stack size for main process */
 #define DEFAULT_STACK_SIZE	4096
-
-#ifndef POK_USER_STACK_SIZE
-#define POK_USER_STACK_SIZE 8192
-#endif
-
-#ifdef POK_NEEDS_ERROR_HANDLING
 
 /* 
  * Bits signalled about different *sources* of error.
@@ -114,11 +66,11 @@ typedef uint8_t pok_thread_error_bits_t;
  * 
  * Fault address is stored in partition.sync_error_fault_address.
  *
- * In case of application error thread.wait_private points to
- * `message_send_t` structure with error message. 
+ * In case of application error thread.wait_buffer.src points to the
+ * message and thread.wait_len contains length of that message.
  * 
- * NOTE: Neither thread's kernel stack nor value of `message_send_t`
- * is destroyed on `thread_stop`/`thread_start` calls.
+ * NOTE: Thread's fields 'wait_buffer' and 'wait_len' are not reseted on
+ * 'thread_stop()'/'thread_start()' calls.
  * So, information about error remains while error handler is executed.
  */
 #define POK_THREAD_ERROR_BIT_SYNC 1
@@ -144,8 +96,6 @@ typedef uint8_t pok_thread_error_bits_t;
 #define POK_THREAD_ERROR_BIT_DEADLINE_OOR 4
 
 
-#endif /* POK_NEEDS_ERROR_HANDLING */
-
 typedef struct _pok_thread
 {
     /*
@@ -154,7 +104,7 @@ typedef struct _pok_thread
      * Final after create_process().
      */
     uint8_t             base_priority;
-    
+
     /*
      * Current priority (can be adjusted with SET_PRIORITY).
      *
@@ -176,15 +126,15 @@ typedef struct _pok_thread
      * As per ARINC-653, it's only used only by error handling process,
      * and the interpretation is up to programmer.
      */
-    pok_deadline_t      deadline; 
-    
+    pok_deadline_t      deadline;
+
     /*
      * If process has time is limited, this is (positive) time capacity.
      * Otherwise this is POK_TIME_INFINITY.
      *
      * Final after create_process().
      */
-    pok_time_t          time_capacity; 
+    pok_time_t          time_capacity;
 
     /*
      * Deadline event (called DEADLINE_TIME in ARINC-653).
@@ -195,7 +145,7 @@ typedef struct _pok_thread
      * Empty list if the process (currently) has no deadline.
      */
     struct delayed_event thread_deadline_event;
-    
+
     /* 
      * Any other event delayed for a time.
      * 
@@ -210,14 +160,13 @@ typedef struct _pok_thread
      */
     pok_time_t delayed_time;
 
-    
     /* 
-     * Function, processing delayed event in @thread_deadline_event.
+     * Function, processing delayed event in @thread_delayed_event.
      * 
      * Used only in conjunction with that field.
      */
     void (*thread_delayed_func)(struct _pok_thread* t);
-    
+
     /**
      * Element in the wait queue on some object.
      * 
@@ -234,31 +183,43 @@ typedef struct _pok_thread
     uint8_t wait_priority;
 
     /**
-     * Used by wait queue for some objects as input/output parameter.
+     * If wait on queuing port, this is pointer to the message which
+     * should be sent/received from it.
      * 
      * Used only in conjunction with @wait_elem.
-     * 
-     * NOTE: If waiting on some object has been canceled because of
-     * timeout, this field is set to `ERR_PTR(POK_ERRNO_TIMEOUT)`.
      */
-    void* wait_private;
+    union {
+        const void* src;
+        void* dest;
+    } wait_buffer;
 
-    /*
-     * Next activation for periodic process (called "release point" in ARINC-653).
-     *
-     * It's calculated when:
-     *  - START/DELAYED_START is called in NORMAL mode
-     *  - SET_PARTITION_MODE is called, and START/DELAYED start was 
-     *    already called before
-     *  - TIMED_WAIT (pok_sched_end_period) is called
+    /**
+     * If wait on port, this is length of the message.
+     * This is OUT parameter for receive port and IN - for send port.
      * 
-     * This also implies that for currently active periodic process,
-     * next_activation actually refers to time of _current_ activation.
-     *
-     * Is not defined for aperiodic processes,
-     * and when process is not yet started (or not in normal mode).
+     * Used only in conjunction with @wait_elem.
      */
-    uint64_t            next_activation; 
+    size_t wait_len;
+
+    /**
+     * If wait on something, here will be stored result of this wait.
+     */
+    pok_ret_t wait_result;
+
+    /* 
+     * For server thread this is a IPPC connection initialized with
+     * given thread. For normal threads this is NULL. 
+     */
+    struct jet_ippc_connection* ippc_server_connection;
+
+    /* 
+     * If thread initiates (opens) connection, this is a pointer to it
+     * Otherwise this is NULL. 
+     */
+    struct jet_ippc_connection* ippc_connection;
+
+    /* Time when (next period of the) process starts. */
+    pok_time_t release_point;
 
     /*
      * Process state.
@@ -268,14 +229,82 @@ typedef struct _pok_thread
     /*
      * The flag is set if process is suspended.
      *
-     * It cannot be implemented as a separate state because 
+     * It cannot be implemented as a separate state because
      * process can be suspended in any state, and it must return
      * to that state when it's resumed.
      *
-     * If suspension was implemented with states, it would require 
+     * If suspension was implemented with states, it would require
      * something like "state stack", which would be overkill.
      */
     pok_bool_t          suspended;
+
+    /*
+     * If preempted process entering the msection, it is a pointer to it.
+     * 
+     * Otherwise NULL.
+     * 
+     * When process continues to execute, it enters msection automatically.
+     * 
+     * This field is also set when the process waits via 'msection_wait()'.
+     */
+    struct msection* __kuser msection_entering;
+
+    /*
+     * Relations between callers and targets of STOP() function.
+     * 
+     * Relation is initiated when the target of STOP() function needs to
+     * execute code (until it leaves the last msection) before terminating.
+     * 
+     * Such execution may be performed on *donating* basis:
+     * thread, which needs some other one to terminate, donates its time for
+     * other thread.
+     * 
+     * 
+     * General form of such relation is a list of threads (STOP() *callers*),
+     * each of them may continue to work, when a single thread
+     * (STOP() *target*) is stopped.
+     * 
+     * If any thread in the list is a target for some STOP() call, then
+     * caller of that function should be *after* given thread in the list.
+     * 
+     * Such list organization is possible, because:
+     * 1. After being STOP() *target*, thread cannot call STOP().
+     *     (calling STOP() within msection is prohibited).
+     */
+    struct {
+        /* 
+         * First element in the list, which needs to donate execution time
+         * to us for being able to do any progress.
+         * 
+         * Invariant (if not NULL):
+         *   t->relations_stop.first_donator->donate_target == t
+         * 
+         * NULL if no one STOP()'s us.
+         */
+        struct _pok_thread* first_donator;
+        /* 
+         * Next element in the list, which needs to donate execution time
+         * to the same '.donate_target' as we have.
+         * 
+         * Has a sence only if '.donate_target' is not NULL.
+         * 
+         * Invariant(if not NULL):
+         *   t->relations_stop.donate_target ==
+         *   t->relations_stop.next_donator->relations_stop.donate_target
+         * 
+         * NULL if there is no other threads.
+         */
+        struct _pok_thread* next_donator;
+        /* 
+         * Target for our donation.
+         * 
+         * Whenever this field is cleared for part->thread_selected,
+         * pok_sched_local_invalidate() should be called.
+         * 
+         * NULL if we need no one to terminate.
+         */
+        struct _pok_thread* donate_target;
+    } relations_stop;
 
     /*
      * Process entry point.
@@ -293,7 +322,7 @@ typedef struct _pok_thread
      * and updated by pok_context_switch.
      *
      */
-    uint32_t	        sp; 
+    struct jet_context*	        sp;
 
     /*
      * Initial value of kernel stack (when it was allocated).
@@ -302,19 +331,24 @@ typedef struct _pok_thread
      * 
      * Final after thread's initialization.
      */
-    struct dStack       initial_sp;
+    uintptr_t         initial_sp;
 
     /*
-     * ???
+     * Pointer to area for save floating point registers for given thread.
+     * It is allocated at partition's initialization.
+     */
+
+    struct jet_fp_store*    fp_store;
+
+    /*
+     * Initial virtual address of user stack.
      *
-     * Apparently, it's initial virtual address of user stack. 
-     *
-     * It's supposed to be used when thread is restarted (I think).
+     * It's supposed to be used when thread is restarted.
      * 
      * Final after create_process().
      */
-    void* __user        init_stack_addr;
-    
+    uintptr_t        init_stack_addr;
+
     /*
      * Size of the user space stack.
      */
@@ -326,23 +360,21 @@ typedef struct _pok_thread
      * If the process is not eligible, then empty list.
      */
     struct list_head       eligible_elem;
-    
-#ifdef POK_NEEDS_ERROR_HANDLING
+
     struct list_head       error_elem;       /** Linkage for partition's `.error_list`. */
     pok_thread_error_bits_t error_bits;
-#endif
 
     // Whether thread is in unrecoverable error state.
     pok_bool_t is_unrecoverable;
 
+#ifdef POK_NEEDS_GDB
     /*
-     * Stack from entry.S for PPC and from interrupt.h for i386
-     * where all user space registers have been saved.
+     * Interrupt context where all user space registers have been saved.
      * 
      * If user space has never been called yet, this is 0.
      */
-    uint32_t            entry_sp_user;
-
+    struct jet_interrupt_context* entry_sp_user;
+#endif /* POK_NEEDS_GDB */
     /* 
      * Name of the process.
      * 
@@ -420,13 +452,13 @@ int pok_thread_wq_get_nwaits(pok_thread_wq_t* wq);
 pok_bool_t pok_thread_wq_is_empty(pok_thread_wq_t* wq);
 
 // macro-like utitility functions
-static inline 
+static inline
 pok_bool_t pok_thread_is_periodic(const pok_thread_t *thread)
 {
     return !pok_time_is_infinity(thread->period);
 }
 
-static inline 
+static inline
 pok_bool_t pok_thread_is_runnable(const pok_thread_t *thread)
 {
     return thread->state == POK_STATE_RUNNABLE && !thread->suspended;
@@ -462,13 +494,7 @@ pok_ret_t pok_thread_get_status(pok_thread_id_t id,
 pok_ret_t pok_thread_set_priority(pok_thread_id_t id, const uint32_t priority);
 pok_ret_t pok_thread_resume(pok_thread_id_t id);
 
-#ifdef POK_NEEDS_THREAD_SLEEP
 pok_ret_t pok_thread_sleep(const pok_time_t* __user time);
-#endif
-
-#ifdef POK_NEEDS_THREAD_SLEEP_UNTIL
-pok_ret_t pok_thread_sleep_until(const pok_time_t* __user time);
-#endif
 
 /* Find thread by its name. GET_PROCESS_ID in ARINC. */
 pok_ret_t pok_thread_find(const char* __user name, pok_thread_id_t* id);
@@ -477,8 +503,5 @@ pok_ret_t pok_sched_end_period(void);
 pok_ret_t pok_sched_replenish(const pok_time_t* __user budget);
 
 pok_ret_t pok_sched_get_current(pok_thread_id_t* __user thread_id);
-
-
-#endif /* __POK_NEEDS_THREADS */
 
 #endif /* __POK_THREAD_H__ */

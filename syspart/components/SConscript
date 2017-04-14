@@ -1,0 +1,146 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+import os
+
+Import('syspart_env')
+
+COMPONENTS_DIRS = [
+        'arinc'
+        ,'udp_ip'
+        ,'mac'
+        ,'virtio'
+        ,'arp'
+        ,'ppc_dtsec'
+        ]
+COMPONENTS_PATH = os.path.join(syspart_env["JETOS_HOME"], "syspart/components")
+CONFIG = "config.yaml"
+INTERFACES_DIR = os.path.join(syspart_env["JETOS_HOME"], "syspart/include/interfaces/")
+
+
+comp_env = syspart_env.Clone()
+comp_objs = []
+
+def get_interfaces_config(cwd):
+    """
+    Return dictionary. Keys are interface names. Value are dictionary representing
+    config of interface.
+    """
+    config_list = glob.glob(os.path.join(cwd, '*.yaml'))
+
+    interfaces_dict = {}
+    for config_file in config_list:
+        config = yaml.load(open(config_file))
+        for interface in config:
+            interfaces_dict[interface['name']] = interface
+
+    return interfaces_dict
+
+class Context_creator:
+    """
+    Context_creator(_context) create a callable object, if you call it, it will
+    return _context
+    """
+    def __init__(self, _dict):
+        self.dict = _dict
+    def __call__(self, source, env):
+        return self.dict
+
+def generate_interfaces():
+    cwd = INTERFACES_DIR
+    config_list = glob.glob(os.path.join(cwd, '*.yaml'))
+
+    for config_file in config_list:
+        path_without_ext = os.path.splitext(config_file)[0]
+        config = yaml.load(open(config_file))
+        for interface in config:
+            jinja_env = {'interface': interface}
+            gen_file = interface['name'] + '_gen.h'
+            t = comp_env.TemplateRender(
+                target = os.path.join(cwd, gen_file),
+                source = os.path.join(cwd, config_file),
+                create_context = Context_creator(jinja_env),
+                template_file = os.path.join(comp_env['JETOS_HOME'],"misc/templates") + '/interfaces.h.tpl',
+                title = template_generation.generate_title_c
+                )
+            comp_env.Depends(COMPONENTS_DEFAULT_TARGET, t)
+
+def has_per_instance_mb(component):
+    if not 'memory_blocks' in component:
+        return False
+    mb_list = component['memory_blocks']
+
+    if any(mb.get('is_per_instance', False) for mb in mb_list):
+        return True
+    return False
+
+def generate_component_files():
+    interfaces =  get_interfaces_config(INTERFACES_DIR)
+
+    for cwd in COMPONENTS_DIRS:
+        cwd_path = os.path.join(COMPONENTS_PATH, cwd)
+        cur_config_file = os.path.join(cwd_path, CONFIG)
+        cur_config = yaml.load(open(cur_config_file))
+
+        for component in cur_config:
+            jinja_env = {
+                    'component': component,
+                    'interfaces': interfaces,
+                    'has_per_instance_memory_block': has_per_instance_mb(component)
+                    }
+
+            t = comp_env.TemplateRender(
+                    target = os.path.join(cwd_path, component['name'] + "_gen.c"),
+                    source = cur_config_file,
+                    create_context = Context_creator(jinja_env),
+                    template_file = os.path.join(comp_env['JETOS_HOME'],"misc/templates") + '/component.c.tpl',
+                    title = template_generation.generate_title_c
+                    )
+            comp_env.Depends(COMPONENTS_DEFAULT_TARGET, t)
+
+            t = comp_env.TemplateRender(
+                    target = os.path.join(cwd_path, component['name'] + "_gen.h"),
+                    source = cur_config_file,
+                    create_context = Context_creator(jinja_env),
+                    template_file = os.path.join(comp_env['JETOS_HOME'],"misc/templates") + '/component.h.tpl',
+                    title = template_generation.generate_title_c
+                    )
+            comp_env.Depends(COMPONENTS_DEFAULT_TARGET, t)
+
+if syspart_env.get('cdeveloper'):
+    import sys
+    import yaml
+    import glob
+    sys.path.insert(1, os.path.join(comp_env["JETOS_HOME"], "misc"))
+    import template_generation
+    AddMethod(comp_env, template_generation.TemplateRender)
+
+    COMPONENTS_DEFAULT_TARGET = comp_env.Command( '#/generate_components_files', [], '')
+    Default(COMPONENTS_DEFAULT_TARGET)
+
+    generate_component_files()
+    generate_interfaces()
+
+
+
+for comp in COMPONENTS_DIRS:
+    objs = SConscript(os.path.join(comp, 'SConscript'),
+                          exports=['comp_env'])
+    comp_objs.append(objs)
+Return('comp_objs')

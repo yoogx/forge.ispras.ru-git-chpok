@@ -15,17 +15,20 @@
  */
 
 
-#ifndef __POK_LOADER_H__
-#define __POK_LOADER_H__
+#ifndef __JET_LOADER_H__
+#define __JET_LOADER_H__
 
 #include <types.h>
-#include <errno.h>
+#include <core/partition_arinc.h>
 
 /**
- *
+ * Load elf for given partition.
+ * 
+ * Entry point is returned via 'entry' parameter.
  */
-pok_ret_t pok_loader_elf_load   (char* file,
-                                 ptrdiff_t offset,
-                                 uintptr_t* entry);
-#endif /* !__POK_LOADER_H__ */
+void jet_loader_elf_load   (uint8_t elf_id,
+                                 pok_partition_arinc_t* part,
+                                 const struct memory_block* const* mblocks,
+                                 void (** entry)(void));
+#endif /* __JET_LOADER_H__ */
 

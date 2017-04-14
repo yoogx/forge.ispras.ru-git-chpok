@@ -16,8 +16,6 @@
 
 #include <config.h>
 
-#ifdef POK_NEEDS_ERROR_HANDLING
-
 void pok_kernel_restart (void)
 {
    /*
@@ -31,4 +29,3 @@ void pok_kernel_stop (void)
     * Needs to be implemented
     */
 }
-#endif

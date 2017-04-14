@@ -17,38 +17,172 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-Import('env')
-Import('part_dir')
-Import('part_build_dir')
-Import('part_is_system')
+"""
+Build single partition according to definition script.
+"""
 
-part_env = env.Clone()
-part_env['CPPPATH'] = part_env['LIBPOK_CPPPATH']
+# This script may be called either from SConscript, when it builds single
+# partition, or from SConscript_module for every partition.
+#
+# The script Import()s variable 'part_env' prepared to build user-space
+# components.
+#
+# When script is called as a part of the module's building process,
+# environment variable part_env['PARTITION_INDEX'] contains index of
+# the partition (counted from 0), otherwise this variable is not set.
+#
+# Also, imported invironment should contain following variables:
+#
+# - 'PARTITION_SOURCE_DIR' - where partition's sources are resided.
+# (Absolute path).
+#
+# - 'PARTITION_BUILD_DIR' - where partition's elf should be built.
+# (Absolute path).
+#
+# - 'PARTITION_CLEAN_DIRS' - which directories should be clean on `scons -c local` and `scons clean`.
+# (Absolute path or list of absolute paths; by default equal to PARTITION_BUILD_DIR).
+#
+# - 'PARTITION_DISTCLEAN_DIRS' - which directories should be clean on `scons -c all` and `scons distclean`.
+# (Absolute path or list of absolute paths; by default equal to PARTITION_BUILD_DIR).
+#
+# After that, it executes SConscript located under 'PARTITION_SOURCE_DIR'.
+# This script is called with variant dir equal to 'PARTITION_BUILD_DIR'.
+#
+# Then, if 'PARTITION_POST_PROCESS' variable is set, it is interpreted
+# as a function accepting 'part_env' parameter, and is executed.
+#
+# After that, following variables, described partition's components and
+# configuraton, are expected to be set:
+#
+# - 'PARTITION_NAME' - name of the partition, as in module's configuration.
+#   This field needs to be set only when build the whole module.
+#
+# - 'PARTITION_XML' - xml or other file(s), from which configuration of partition
+# may be extracted.
+# (Single element or list of element; element could be absolute path, relative (against source dir) or object of type 'File').
+#
+# - 'PARTITION_PARSE_CONFIGURATION' - parser of files listed in 'XML', which should
+# return object of type 'chpok_configuration.Partition'.
+# (Function with signature '(sources, part_env)').
+#
+# - 'PARTITION_SOURCES' - list of files, from which partition should be
+# built. Any file may be source file, contained the code, or object one,
+# obtained e.g. with part_env.StaticLibrary().
+# (Single element or list of element; element could be absolute path, relative (against build dir) or object of type 'File').
+#
+#
+# If partition is a system one, you need to mark it with
+# part_env.SystemPartition() call.
+#
+# Executed SConscript may check variable
+# part_env['PARTITION_INDEX'] for differentiate modes (single partition
+# or the whole module) and for extract partition's index in the second case.
+#
+# Return target which builds partition's elf.
 
-if part_is_system:
-    part_env.Append(CPPPATH = part_env['POK_PATH']+'/syspart/include')
+import os
 
-part_env.Append(CFLAGS = ' -include '+part_env['POK_PATH']+'libpok/include/config.h')
+Import('part_env')
 
-ldscript = part_env['POK_PATH']+'boards/'+part_env['BSP']+'/ldscripts/partition.lds'
-part_env['LINKFLAGS'] = str(' -T '+ldscript+' -Map '+part_build_dir+'part.elf.map')
+part_build_dir = part_env['PARTITION_BUILD_DIR']
 
-libpok = part_env['POK_PATH']+'build/'+part_env['BSP']+'/libpok/libpok.a'
+# Build libjet into given variant_dir.
+#
+# If variant_dir is not given or None, use 'libjet/' subdirectory
+# in the partition's build dir.
+def BuildLibJet(part_env, variant_dir = None):
+	if variant_dir is None:
+		variant_dir = part_build_dir + '/libjet'
+	libpok_env = part_env.Clone()
+	return SConscript(part_env['JETOS_HOME'] + '/libpok/SConscript',
+		exports = 'libpok_env',
+		variant_dir = variant_dir,
+		duplicate = 0
+	)
 
-syspart_lo = []
-if part_is_system:
-    syspart_lo = part_env['POK_PATH']+'build/'+part_env['BSP']+'/syspart/syspart.lo'
+part_env.AddMethod(BuildLibJet)
 
-VariantDir(part_build_dir, part_dir, duplicate = 0)
+# Build common part of system partition into given variant_dir.
+#
+# If variant_dir is not given or None, use 'syspart/' subdirectory
+# in the partition's build dir.
+def BuildSyspart(part_env, variant_dir = None):
+	syspart_env = part_env.Clone()
+	if variant_dir is None:
+		variant_dir = part_build_dir + '/syspart'
+	return SConscript(part_env['JETOS_HOME'] + '/syspart/SConscript',
+		exports = 'syspart_env',
+		variant_dir = variant_dir,
+		duplicate = 0
+	)
 
-part_elf = part_env.Program(target = part_build_dir+'part.elf', source = [
-Glob(part_build_dir+'*.c'),
-syspart_lo,
-libpok,
-part_env['LIBGCOV'],
-part_env['LIBGCC']])
-part_env.Depends(part_elf, ldscript)
+part_env.AddMethod(BuildSyspart)
 
-part_env.Depends(part_elf, part_build_dir + "deployment.c")
+def SystemPartition(part_env):
+	part_env.Append(CPPPATH = part_env['JETOS_HOME']+'/syspart/include')
+	part_env['PARTITION_IS_SYSTEM'] = True
+
+part_env.AddMethod(SystemPartition)
+
+# Execute script with partition definitions
+part_env.SConscript(dirs = part_env['PARTITION_SOURCE_DIR'],
+	exports = 'part_env',
+	variant_dir = part_build_dir,
+	duplicate = 0)
+
+
+partition_post_process = part_env.get('PARTITION_POST_PROCESS', None)
+if partition_post_process is not None:
+	partition_post_process(part_env)
+
+part_env['PARTITION_SOURCES'] = part_env.toAbsPathList(
+	part_env['PARTITION_SOURCES'],
+	part_build_dir
+)
+
+libjet_target = part_env.get('LIBJET_TARGET', None)
+
+# By default, build libjet library locally to the partition.
+if libjet_target is None:
+	libjet_target = part_env.BuildLibJet()
+
+
+part_elf_env = part_env.Clone()
+
+ldscript_partition = part_env['LDSCRIPT_PARTITION']
+
+if part_env.get('PARTITION_IS_SYSTEM', default = False):
+	syspart_target = part_env.get('SYSPART_TARGET', None)
+	# By default, build syspart locally to the partition.
+	if syspart_target is None:
+		syspart_target = part_env.BuildSyspart()
+else:
+	syspart_target = []
+
+part_elf = part_elf_env.Program(target = part_build_dir+'/part.elf',
+	source = part_env['PARTITION_SOURCES']
+		+ syspart_target
+		+ libjet_target
+		+ [part_env['LIBGCC'], part_env['LIBGCOV']])
+
+part_elf_env.Depends(part_elf, ldscript_partition)
+
+
+part_clean_dirs = part_env.CanonicalCleanList('PARTITION_CLEAN_DIRS', part_build_dir)
+part_distclean_dirs = part_env.CanonicalCleanList('PARTITION_DISTCLEAN_DIRS', part_build_dir)
+
+if 'part_index' in part_env:
+	# If build as a part of the module, SConscript_module cares about
+	# deletion of partition's build directory.
+	pass
+else:
+	part_env.RemoveDirectories('part_clean_cmd', part_clean_dirs)
+	part_env.RemoveDirectories('part_distclean_cmd', part_distclean_dirs)
+	part_env.Alias('clean', 'part_clean_cmd')
+	part_env.Alias('distclean', 'part_distclean_cmd')
+	part_env.Clean('#/local', part_clean_dirs)
+	part_env.Clean('#/all', part_distclean_dirs)
+
+Return('part_elf')
 
 # EOF
