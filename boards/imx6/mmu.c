@@ -23,8 +23,7 @@
 
 // 1KB aligned
 __attribute__ ((aligned(L2_TABLE_SIZE))) uint32_t vector_l2_table[L2_TABLE_SIZE] = {
-    [L2_IDX(VECTOR_HIGH_ADDR)] = ((KERNBASE_PADDR + 0x3fff000)&0xfffff000) |
-        L2_SECT_PRIVILEGED_RW | L2_SECT_MEM_DEFAULT | L2_SECT_NON_SUPER,
+    [L2_IDX(VECTOR_HIGH_VADDR)] = (VECTOR_PADDR) | L2_SECT_PRIVILEGED_RW | L2_SECT_MEM_DEFAULT | L2_SECT_NON_SUPER,
 };
 
  //aligned by 16K
@@ -32,7 +31,7 @@ __attribute__ ((aligned(L2_TABLE_SIZE))) uint32_t vector_l2_table[L2_TABLE_SIZE]
  // and address of vector_l2_table leads to "error: initializer element is not constant"
 __attribute__ ((aligned(L1_TABLE_SIZE))) uint32_t entry_l1_table[L1_TABLE_SIZE] = {
     // vector table
-    [L1_IDX(VECTOR_HIGH_ADDR)] = PHYS(vector_l2_table) + L1_TYPE_TABLE,
+    [L1_IDX(VECTOR_HIGH_VADDR)] = PHYS(vector_l2_table) + L1_TYPE_TABLE,
 
     // kernel low address
     // Map VA's [0, 1MB) to PA's [0, 1MB). Hope this will be enough
@@ -56,7 +55,7 @@ __attribute__ ((aligned(L1_TABLE_SIZE))) uint32_t entry_l1_table[L1_TABLE_SIZE] 
 void insert_kernel_mapping_into_table(uint32_t *l1_table)
 {
     //vector_table
-    l1_table[L1_IDX(VECTOR_HIGH_ADDR)] = PHYS(vector_l2_table) + L1_TYPE_TABLE;
+    l1_table[L1_IDX(VECTOR_HIGH_VADDR)] = PHYS(vector_l2_table) + L1_TYPE_TABLE;
 
     // kernel high address
     l1_table[L1_IDX(KERNBASE_VADDR)]     = (KERNBASE_PADDR) | L1_SECT_PRIVILEGED_RW | L1_SECT_MEM_DEFAULT | L1_TYPE_SECT;

@@ -34,8 +34,8 @@ void floating_point_enable(void);
 static void copy_vector_table(void)
 {
     printf("copy vector table to %p, from %p, size (0x%x)\n",
-            (void *)VECTOR_HIGH_ADDR, __vector_table_start, __vector_table_end - __vector_table_start);
-    memcpy((void *)VECTOR_HIGH_ADDR, __vector_table_start, __vector_table_end - __vector_table_start);
+            (void *)VECTOR_HIGH_VADDR, __vector_table_start, __vector_table_end - __vector_table_start);
+    memcpy((void *)VECTOR_HIGH_VADDR, __vector_table_start, __vector_table_end - __vector_table_start);
 
     sctlr_set(sctlr_get()|SCTLR_V);
 

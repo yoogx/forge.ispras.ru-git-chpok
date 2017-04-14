@@ -24,7 +24,8 @@
 #define KERNBASE_VADDR 0xc0000000
 
 /* addr of interrupt vector table */
-#define VECTOR_HIGH_ADDR 0xffff0000
+#define VECTOR_HIGH_VADDR 0xffff0000
+#define VECTOR_PADDR (KERNBASE_PADDR + 0x3fff000)
 
 
 #ifdef __ASSEMBLER__
