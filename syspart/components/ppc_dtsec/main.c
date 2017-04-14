@@ -5,9 +5,10 @@ int fm_eth_send(DTSEC_NET_DEV *self, void *buf, int len);
 void dtsec_init(DTSEC_NET_DEV *self);
 int fm_eth_recv(DTSEC_NET_DEV *self);
 
-ret_t dtsec_send_frame(DTSEC_NET_DEV *self, char *buffer, size_t size, size_t max_back_step)
+ret_t dtsec_send_frame(DTSEC_NET_DEV *self, char *buffer, size_t size, size_t prepend_max_size, size_t append_max_size)
 {
-    (void) max_back_step; //should be not access max_back_step!=0
+    (void) prepend_max_size;
+    (void) append_max_size;
 #ifdef __PPC__
     printf("DTSEC %s\n", __func__);
 

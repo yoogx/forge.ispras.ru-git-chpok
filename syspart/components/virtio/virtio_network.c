@@ -66,8 +66,8 @@ static void unlock_preemption()
 }
 
 static pok_bool_t setup_virtqueue(
-        struct virtio_network_device *dev, 
-        int16_t index, 
+        struct virtio_network_device *dev,
+        int16_t index,
         struct virtio_virtqueue *vq)
 {
     // queue selector
@@ -150,9 +150,9 @@ static void use_receive_buffer(struct virtio_network_device *dev, struct receive
 
     int avail = vq->vring.avail->idx & (vq->vring.num-1); // wrap around
     vq->vring.avail->ring[avail] = head;
-    
+
     __sync_synchronize();
-    
+
     vq->vring.avail->idx++;
 }
 
@@ -173,13 +173,17 @@ static void setup_receive_buffers(struct virtio_network_device *dev)
 
 ret_t send_frame(VIRTIO_NET_DEV * self,
         char *buffer,
-        size_t size,
-        size_t max_back_step)
+        const size_t size,
+        const size_t prepend_max_size,
+        const size_t append_max_size)
 {
     if (!self->state.info.inited)
         return EINVAL; //FIXME
 
-    if (max_back_step != 0)
+    if (prepend_max_size != 0)
+        return EINVAL;
+
+    if (append_max_size != 0)
         return EINVAL;
 
     struct vring_desc *desc;
@@ -193,7 +197,7 @@ ret_t send_frame(VIRTIO_NET_DEV * self,
     struct virtio_virtqueue *vq = &dev->tx_vq;
     if (vq->num_free < 1) {
         PRINTF("no free TX descriptors\n");
-        return FALSE;
+        return EINVAL;
     }
 
     //Just in case zero virtio_net_hdr fields
@@ -217,7 +221,7 @@ ret_t send_frame(VIRTIO_NET_DEV * self,
     /*
     if (desc->addr == 0) {
         PRINTF("%s: jet_virt_to_phys kvirtual address is wrong\n", __func__);
-        return FALSE;
+        return EINVAL;
     }
     */
     desc->len = size;
@@ -233,17 +237,17 @@ ret_t send_frame(VIRTIO_NET_DEV * self,
 
     vq->vring.avail->idx++;
 
-    return TRUE;
+    return EOK;
 }
 
 static void reclaim_send_buffers(struct virtio_network_device *info)
 {
     struct virtio_virtqueue *vq = &(info->tx_vq);
-    
+
     // this function can be called by any thread
     // callbacks don't do much work, so we can run them all
     // in single critical section without worrying too much
-    
+
     lock_preemption();
     while (vq->last_seen_used != vq->vring.used->idx) {
         uint16_t index = vq->last_seen_used & (vq->vring.num-1);
@@ -259,14 +263,14 @@ static void reclaim_send_buffers(struct virtio_network_device *info)
         }
 
         vq->num_free += total_descriptors;
-        
+
         // insert chain in the beginning of the free desc. list
-        tail->next = vq->free_index; 
+        tail->next = vq->free_index;
         vq->free_index = e->id; // id of head
 
         vq->last_seen_used++;
     }
-    
+
     unlock_preemption();
 }
 
@@ -278,7 +282,6 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
     lock_preemption();
 
     uint16_t old_last_seen_used = vq->last_seen_used;
-
     while (vq->last_seen_used != vq->vring.used->idx) {
         uint16_t index = vq->last_seen_used & (vq->vring.num-1);
         struct vring_used_elem *e = &vq->vring.used->ring[index];
@@ -292,8 +295,7 @@ static void reclaim_receive_buffers(VIRTIO_NET_DEV *self)
             return;
         }
         */
-
-        VIRTIO_NET_DEV_call_portB_handle(self, (const char *)&buf->packet, e->len - sizeof(struct virtio_net_hdr));
+        VIRTIO_NET_DEV_call_portB_handle(self, (const uint8_t *)&buf->packet, e->len - sizeof(struct virtio_net_hdr));
 
         // reclaim descriptor
         // FIXME support chained descriptors as well
@@ -355,7 +357,6 @@ static pok_bool_t init_device(VIRTIO_NET_DEV_state *state)
     //subsystem = pci_read_reg(dev, PCI_REG_SUBSYSTEM) >> 16;
     //if (subsystem != VIRTIO_ID_NET)
     //    printf("WARNING: wrong subsystem in virtio net device");
-
 
     // 1. Reset the device
     outb(dev->pci_device.resources[PCI_RESOURCE_BAR0].addr + VIRTIO_PCI_STATUS, 0x0);
@@ -431,6 +432,7 @@ void virtio_receive_activity(VIRTIO_NET_DEV *self)
 /*
  * init
  */
+
 void virtio_init(VIRTIO_NET_DEV *self)
 {
     pok_ret_t ret = VIRTIO_NET_DEV_get_memory_block_status(self, "Heap", &self->state.info.heapmb);

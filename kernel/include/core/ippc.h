@@ -64,6 +64,14 @@ enum jet_ippc_connection_terminate_status
     JET_IPPC_CONNECTION_TERMINATE_STATUS_CANCELLED,
 };
 
+
+/* Internal representation of struct jet_ippc_client_access_window. */
+struct jet_ippc_access_range{
+    const void* __user start;
+    const void* __user end;
+    pok_bool_t is_writable;
+};
+
 /* Single IPPC connection between client and server partitions. */
 struct jet_ippc_connection
 {
@@ -105,6 +113,9 @@ struct jet_ippc_connection
     int input_params_n;
     uintptr_t output_params[IPPC_MAX_OUTPUT_PARAMS_N];
     int output_params_n;
+
+    struct jet_ippc_access_range access_ranges[IPPC_MAX_ACCESS_WINDOWS_N];
+    int access_ranges_n;
 
     /* Set in deployment.c */
     pok_partition_t* server_part;
@@ -215,6 +226,25 @@ jet_ippc_connection_first(struct jet_ippc_connection* connection);
 enum jet_ippc_connection_state
 jet_ippc_connection_get_state(struct jet_ippc_connection* connection);
 
+/*
+ * Set access windows for given connection.
+ *
+ * Called by the client after connection opening but before
+ * executing it.
+ *
+ * Return POK_ERRNO_OK on success.
+ *
+ * Return POK_ERRNO_EINVAL if *format* of parameters is incorrect:
+ * some window has zero size, some window's are overlapped, or there are
+ * too many windows.
+ *
+ * Note, that accessibility of given windows by the client isn't
+ * checked here: it will be checked on access attempt.
+ */
+pok_ret_t jet_ippc_connection_set_access_windows(
+    struct jet_ippc_connection* connection,
+    const struct jet_ippc_client_access_window* access_windows,
+    int n);
 
 /*
  * Execute IPPC request through given connection.
@@ -324,6 +354,74 @@ pok_bool_t jet_ippc_connection_unpause(struct jet_ippc_connection* connection);
  * was in ACTIVE state (e.g., unpause()'d by the server).
  */
 pok_bool_t jet_ippc_connection_continue(struct jet_ippc_connection* connection);
+
+/* State of copiing to/from client. */
+struct jet_ippc_remote_access_state
+{
+    union {
+        char* dst;
+        char* __remote dst_remote;
+    };
+    union {
+        const char* src;
+        const char* __remote src_remote;
+    };
+
+    size_t n;
+
+    pok_bool_t is_to_client;
+
+    size_t n_processed;
+
+    // Whether access is completed.
+    pok_bool_t is_completed;
+    /*
+     * Connection has been cancelled.
+     *
+     * This field has a sence only in "completed" state.
+     */
+    pok_bool_t is_cancelled;
+};
+
+/*
+ * Prepare for copyiing to the client.
+ *
+ * Return POK_ERRNO_OK on success.
+ *
+ * Return POK_ERRNO_EFAULT if access to the client range is forbidden.
+ */
+pok_ret_t jet_ippc_connection_copy_to_client_init(
+    struct jet_ippc_connection* connection,
+    struct jet_ippc_remote_access_state* ra_state,
+    void* __user dst, // User address in the client
+    const void* src, // Kernel(!) address in the server
+    size_t n);
+
+/*
+ * Prepare for copyiing from the client.
+ *
+ * Return POK_ERRNO_OK on success.
+ *
+ * Return POK_ERRNO_EFAULT if access to the client range is forbidden.
+ */
+pok_ret_t jet_ippc_connection_copy_from_client_init(
+    struct jet_ippc_connection* connection,
+    struct jet_ippc_remote_access_state* ra_state,
+    void* dst, // Kernel(!) address in the server
+    const void* __user src, // User address in the client
+    size_t n);
+
+
+/*
+ * Execute given remote access.
+ *
+ * The function tends to complete access, but may return in incomplete state.
+ *
+ * Currently, the function returns only after the completing the request.
+ */
+void jet_ippc_connection_remote_access_execute(
+    struct jet_ippc_connection* connection,
+    struct jet_ippc_remote_access_state* ra_state);
 
 /* State of the IPPC portal. */
 enum jet_ippc_portal_state {

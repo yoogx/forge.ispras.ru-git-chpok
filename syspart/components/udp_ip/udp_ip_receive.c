@@ -22,7 +22,7 @@
 
 #define C_NAME "UDP_RECEIVER: "
 
-ret_t udp_receive(UDP_RECEIVER *self, const char *data, size_t len)
+ret_t udp_receive(UDP_RECEIVER *self, const uint8_t *data, size_t len)
 {
     const struct ip_hdr *ip_hdr = (const struct ip_hdr *) data;
 
@@ -68,7 +68,7 @@ ret_t udp_receive(UDP_RECEIVER *self, const char *data, size_t len)
     }
 
     return UDP_RECEIVER_call_portB_udp_message_handle(self,
-            udp_hdr->payload,
+            (const uint8_t *)udp_hdr->payload,
             len-sizeof(struct udp_hdr),
             ntoh32(ip_hdr->dst),
             ntoh16(udp_hdr->dst_port));

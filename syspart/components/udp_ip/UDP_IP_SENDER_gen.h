@@ -54,10 +54,10 @@ typedef struct {
 
 
 
-      ret_t udp_ip_send(UDP_IP_SENDER *, char *, size_t, size_t);
+      ret_t udp_ip_send(UDP_IP_SENDER *, char *, size_t, size_t, size_t);
       ret_t udp_ip_flush(UDP_IP_SENDER *);
 
-      ret_t UDP_IP_SENDER_call_portB_mac_send(UDP_IP_SENDER *, char *, size_t, size_t, uint8_t *, enum ethertype);
+      ret_t UDP_IP_SENDER_call_portB_mac_send(UDP_IP_SENDER *, char *, size_t, size_t, size_t, uint8_t *, enum ethertype);
       ret_t UDP_IP_SENDER_call_portB_flush(UDP_IP_SENDER *);
 
 

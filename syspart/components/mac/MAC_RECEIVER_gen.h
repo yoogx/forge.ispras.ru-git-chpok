@@ -54,10 +54,10 @@ typedef struct {
 
 
 
-      ret_t mac_receive(MAC_RECEIVER *, const char *, size_t);
+      ret_t mac_receive(MAC_RECEIVER *, const uint8_t *, size_t);
 
-      ret_t MAC_RECEIVER_call_port_UDP_handle(MAC_RECEIVER *, const char *, size_t);
-      ret_t MAC_RECEIVER_call_port_ARP_handle(MAC_RECEIVER *, const char *, size_t);
+      ret_t MAC_RECEIVER_call_port_UDP_handle(MAC_RECEIVER *, const uint8_t *, size_t);
+      ret_t MAC_RECEIVER_call_port_ARP_handle(MAC_RECEIVER *, const uint8_t *, size_t);
 
 
 

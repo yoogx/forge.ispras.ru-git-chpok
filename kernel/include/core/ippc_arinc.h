@@ -35,7 +35,9 @@ pok_ret_t jet_ippc_partition_arinc_init_portal(const char* __user portal_name,
  *
  * Used by the client.
  */
-pok_ret_t jet_ippc_partition_arinc_call(int portal_id);
+pok_ret_t jet_ippc_partition_arinc_call(int portal_id,
+    const struct jet_ippc_client_access_window* __user access_windows,
+    int access_windows_n);
 
 /*
  * Return information about given portal type.
@@ -91,5 +93,11 @@ pok_ret_t jet_ippc_partition_arinc_create_connections(
  * 'ippc_input_params_server' and 'ippc_input_params_server_n'.
  */
 pok_ret_t jet_ippc_partition_arinc_return(void);
+
+pok_ret_t jet_ippc_partition_arinc_copy_to_client(
+    void* __user dst, const void* __user src, size_t n);
+
+pok_ret_t jet_ippc_partition_arinc_copy_from_client(
+    void* __user dst, const void* __user src, size_t n);
 
 #endif /* __POK_CORE_IPPC_ARINC_H__ */

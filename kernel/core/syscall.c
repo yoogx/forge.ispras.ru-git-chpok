@@ -22,8 +22,9 @@
 #include <asp/bsp_common.h>
 #include <types.h>
 #include <libc.h>
+
 #include <gcov.h>
-#include <ioports.h>
+//~ #include <ioports.h>
 
 #include <errno.h>
 #include <core/debug.h>
@@ -136,6 +137,8 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
    SYSCALL_ENTRY(POK_SYSCALL_IPPC_GET_PORTAL_INFO)
    SYSCALL_ENTRY(POK_SYSCALL_IPPC_CREATE_CONNECTIONS)
    SYSCALL_ENTRY(POK_SYSCALL_IPPC_RETURN)
+   SYSCALL_ENTRY(POK_SYSCALL_IPPC_COPY_TO_CLIENT)
+   SYSCALL_ENTRY(POK_SYSCALL_IPPC_COPY_FROM_CLIENT)
 
 #ifdef POK_NEEDS_GCOV
       case POK_SYSCALL_GCOV_INIT:

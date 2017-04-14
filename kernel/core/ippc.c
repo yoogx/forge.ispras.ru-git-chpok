@@ -16,6 +16,7 @@
 #include <core/ippc.h>
 #include <core/sched.h>
 #include <core/debug.h>
+#include <core/memblocks.h>
 
 /* Return true if connection is in active state, that is can be terminated. */
 static pok_bool_t connection_is_active(struct jet_ippc_connection* connection)
@@ -182,6 +183,142 @@ pok_bool_t jet_ippc_connection_continue(struct jet_ippc_connection* connection)
 }
 
 
+/* Check that client allows access to given range. */
+static pok_bool_t ippc_check_access(struct jet_ippc_connection* connection,
+    const void* __user addr, size_t size, pok_bool_t is_write)
+{
+    const void* __user addr_end = (const char* __user)addr + size;
+
+    if(addr_end <= addr) return FALSE;
+
+    for(int i = 0; i < connection->access_ranges_n; i++) {
+        const struct jet_ippc_access_range* access_range = &connection->access_ranges[i];
+        if(addr < access_range->start) continue;
+        if(addr_end > access_range->end) continue;
+
+        return !is_write || access_range->is_writable;
+    }
+
+    return FALSE;
+}
+
+/*
+ * Prepare for copyiing to the client.
+ *
+ * Return POK_ERRNO_OK on success.
+ *
+ * Return POK_ERRNO_EFAULT if access to the client range is forbidden.
+ */
+pok_ret_t jet_ippc_connection_copy_to_client_init(
+    struct jet_ippc_connection* connection,
+    struct jet_ippc_remote_access_state* ra_state,
+    void* __user dst, // User address in the client
+    const void* src, // Kernel(!) address in the server
+    size_t n)
+{
+    if(!ippc_check_access(connection, dst, n, TRUE)) return POK_ERRNO_EFAULT;
+
+    const struct memory_block* mb = jet_partition_get_memory_block_for_addr(
+        connection->client_part, dst, n);
+
+    if((mb->maccess & MEMORY_BLOCK_ACCESS_WRITE) == 0) return POK_ERRNO_EFAULT;
+
+    void* __remote dst_remote = jet_memory_block_get_remote_addr(mb, dst);
+
+    ra_state->dst_remote = dst_remote;
+    ra_state->src = src;
+    ra_state->n = n;
+    ra_state->is_to_client = TRUE;
+
+    ra_state->n_processed = 0;
+    ra_state->is_completed = FALSE;
+    ra_state->is_cancelled = FALSE;
+
+    return POK_ERRNO_OK;
+}
+
+/*
+ * Prepare for copyiing from the client.
+ *
+ * Return POK_ERRNO_OK on success.
+ *
+ * Return POK_ERRNO_EFAULT if access to the client range is forbidden.
+ */
+pok_ret_t jet_ippc_connection_copy_from_client_init(
+    struct jet_ippc_connection* connection,
+    struct jet_ippc_remote_access_state* ra_state,
+    void* dst, // Kernel(!) address in the server
+    const void* __user src, // User address in the client
+    size_t n)
+{
+    if(!ippc_check_access(connection, src, n, FALSE)) return POK_ERRNO_EFAULT;
+
+    const struct memory_block* mb = jet_partition_get_memory_block_for_addr(
+        connection->client_part, src, n);
+
+    if((mb->maccess & MEMORY_BLOCK_ACCESS_READ) == 0) return POK_ERRNO_EFAULT;
+
+    void* __remote src_remote = jet_memory_block_get_remote_addr(mb, src);
+
+    ra_state->dst = dst;
+    ra_state->src_remote = src_remote;
+    ra_state->n = n;
+    ra_state->is_to_client = FALSE;
+
+    ra_state->n_processed = 0;
+    ra_state->is_completed = FALSE;
+    ra_state->is_cancelled = FALSE;
+
+    return POK_ERRNO_OK;
+}
+
+/*
+ * Execute given remote access.
+ *
+ * The function tends to complete access, but may return in incomplete state.
+ *
+ * Currently, the function returns only after the completing the request.
+ */
+void jet_ippc_connection_remote_access_execute(
+    struct jet_ippc_connection* connection,
+    struct jet_ippc_remote_access_state* ra_state)
+{
+    size_t chunk_size; // Size of the data we copy atomically, with preemption disabled.
+
+    if(ra_state->is_completed) return;
+
+    for(;ra_state->n_processed < ra_state->n; ra_state->n_processed += chunk_size) {
+        chunk_size = ra_state->n - ra_state->n_processed;
+        if(chunk_size > 4096) chunk_size = 4096;
+
+        pok_preemption_disable();
+
+        if(connection->is_cancelled) {
+            ra_state->is_completed = TRUE;
+            ra_state->is_cancelled = TRUE;
+            pok_preemption_enable();
+            return;
+        }
+
+        if(ra_state->is_to_client) {
+            ja_copy_to_remote(connection->client_part->space_id,
+                ra_state->dst_remote + ra_state->n_processed,
+                ra_state->src + ra_state->n_processed,
+                chunk_size);
+        }
+        else {
+            ja_copy_from_remote(connection->client_part->space_id,
+                ra_state->dst + ra_state->n_processed,
+                ra_state->src_remote + ra_state->n_processed,
+                chunk_size);
+        }
+
+        pok_preemption_enable();
+    }
+
+    ra_state->is_completed = TRUE;
+    ra_state->is_cancelled = FALSE;
+}
 
 
 /* Open connection (generic steps). */
@@ -194,6 +331,7 @@ static void connection_open(struct jet_ippc_connection* connection,
     connection->client_handler_id = client_handler_id;
     connection->input_params_n = 0;
     connection->output_params_n = 0;
+    connection->access_ranges_n = 0;
     connection->is_cancelled = FALSE;
     connection->is_fixed = FALSE;
     connection->cannot_wait = connection->server_handler_is_shared;
@@ -287,6 +425,35 @@ jet_ippc_connection_get_state(struct jet_ippc_connection* connection)
 
     return ret;
 }
+
+pok_ret_t jet_ippc_connection_set_access_windows(
+    struct jet_ippc_connection* connection,
+    const struct jet_ippc_client_access_window* access_windows,
+    int n)
+{
+    if((n < 0) || (n > IPPC_MAX_ACCESS_WINDOWS_N)) return POK_ERRNO_EINVAL;
+
+    // TODO: Currently created array is unordered.
+    // Checks for interleaving are missed too.
+
+    for(int i = 0; i < n; i++)
+    {
+        const struct jet_ippc_client_access_window* access_window
+            = &access_windows[i];
+        struct jet_ippc_access_range* access_range = &connection->access_ranges[i];
+        access_range->start = access_window->start;
+        access_range->end = (const char* __user)access_window->start + access_window->size;
+
+        if(access_range->end <= access_range->start) return POK_ERRNO_EINVAL;
+
+        access_range->is_writable = access_window->is_writable;
+    }
+
+    connection->access_ranges_n = n;
+
+    return POK_ERRNO_OK;
+}
+
 
 void jet_ippc_portal_create(struct jet_ippc_portal* portal,
     uint16_t init_server_handler_id)

@@ -63,6 +63,30 @@ jet_space_id ja_space_get_current (void)
     return (jet_space_id)mfspr(SPRN_PID);
 }
 
+/* Copy data to non-current address space. */
+void ja_copy_to_remote(jet_space_id remote_space_id, void* __remote dst,
+    const void* src, size_t size)
+{
+    char* dst_used = (char*)dst; // Remove __remote attribute via explicit cast.
+    const char* src_used = src;
+    mtspr(SPRN_EPSC, remote_space_id);
+    for(size_t i = 0; i < size; i++, dst_used++, src_used++) {
+        asm ("stbepx %0, 0, %1" : : "r" (*src_used), "r" (dst_used) : "memory");
+    }
+}
+
+/* Copy data from non-current address space. */
+void ja_copy_from_remote(jet_space_id remote_space_id, void* dst,
+    const void* __remote src, size_t size)
+{
+    char* dst_used = dst;
+    const char* src_used = (const char*)src; // Remove __remote attribute via explicit cast.
+    mtspr(SPRN_EPLC, remote_space_id);
+    for(size_t i = 0; i < size; i++, dst_used++, src_used++) {
+        asm ("lbepx %0, 0, %1" : "=r" (*dst_used) : "r" (src_used) : "memory");
+    }
+}
+
 
 static unsigned next_resident = 0;
 static unsigned next_non_resident = 0;
@@ -190,7 +214,7 @@ void pok_arch_space_init (void)
         0,
         0,
         E500MC_PGSIZE_256M,  //TODO make smaller
-        MAS3_SW | MAS3_SR | MAS3_SX,
+        MAS3_SW | MAS3_SR | MAS3_SX, // MAS3_UX
         0,
         0, // any pid
         TRUE

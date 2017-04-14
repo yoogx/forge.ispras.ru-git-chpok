@@ -24,4 +24,15 @@
 #define IPPC_MAX_INPUT_PARAMS_N 6 // Request identificator as function's selector plus (at most) 5 function parameters.
 #define IPPC_MAX_OUTPUT_PARAMS_N 2 // Return status plus (at most) 1 OUT function's parameter.
 
+/* Address range in the client which can be accessed from the server. */
+struct jet_ippc_client_access_window
+{
+    const void* start;
+    size_t size;
+
+    pok_bool_t is_writable;
+};
+
+#define IPPC_MAX_ACCESS_WINDOWS_N 5 // Maximum number of access windows for single IPPC request.
+
 #endif /* __JET_UAPI_IPPC_TYPES_H__ */

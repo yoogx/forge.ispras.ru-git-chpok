@@ -26,7 +26,7 @@
     #include <ret_type.h>
 
 typedef struct {
-    ret_t (*handle)(self_t *, const char *, size_t);
+    ret_t (*handle)(self_t *, const uint8_t *, size_t);
 } message_handler;
 
 

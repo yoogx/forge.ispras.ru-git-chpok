@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<JetModule>
+    <Schedule>
+        <Slot Type="Partition" PartitionNameRef="P1" Duration="50ms" PeriodicProcessingStart="true" />
+        <Slot Type="Partition" PartitionNameRef="P2" Duration="50ms" PeriodicProcessingStart="true" />
+
+    </Schedule>
+
+    <Connection_Table>
+        <Channel>
+            <Source>
+                <Port_Ref PartitionNameRef="P1" PortNameRef="QP1" />
+            </Source>
+            <Destination>
+                <Port_Ref PartitionNameRef="P2" PortNameRef="UOUT" />
+            </Destination>
+        </Channel>
+        <Channel>
+            <Source>
+                <Port_Ref PartitionNameRef="P2" PortNameRef="UIN" />
+            </Source>
+            <Destination>
+                <Port_Ref PartitionNameRef="P1" PortNameRef="QP2" />
+            </Destination>
+        </Channel>
+        <Channel>
+            <Source>
+                <Port_Ref PartitionNameRef="P1" PortNameRef="QP3" />
+            </Source>
+            <Destination>
+                <Port_Ref PartitionNameRef="P2" PortNameRef="UOUT2" />
+            </Destination>
+        </Channel>
+    </Connection_Table>
+</JetModule>

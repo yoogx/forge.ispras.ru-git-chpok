@@ -19,7 +19,7 @@
  * SPDX-License-Identifier: GPL-2.0+
  */
 /*
- * This file is based on u-boot driver. In new versions of u-boot they have added support 
+ * This file is based on u-boot driver. In new versions of u-boot they have added support
  * of different endianess and 64-bit platforms. This file is from older u-boot version. Be aware!
  *
  * XXX Also this code expected to be running after u-boot correctly initialize all devices
@@ -173,7 +173,7 @@ int fm_eth_recv(DTSEC_NET_DEV *self)
         if (!(status & RxBD_ERROR)) {
             data = jet_phys_to_virt(&self->state.dev_state.heap_mb, rxbd->buf_ptr_lo);
             len = rxbd->len;
-            DTSEC_NET_DEV_call_portB_handle(self, data, len);
+            DTSEC_NET_DEV_call_portB_handle(self, (uint8_t *)data, len);
         } else {
             printf("%s: Rx error\n", DRV_NAME);
             ret = 0;

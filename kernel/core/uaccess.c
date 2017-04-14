@@ -23,8 +23,8 @@
 
 void* __kuser jet_user_to_kernel(void* __user addr, size_t size)
 {
-    const struct memory_block* mblock = jet_partition_arinc_get_memory_block_for_addr(
-        current_partition_arinc, addr, size);
+    const struct memory_block* mblock = jet_partition_get_memory_block_for_addr(
+        current_partition, addr, size);
 
     if(mblock && mblock->maccess & MEMORY_BLOCK_ACCESS_WRITE)
         return jet_memory_block_get_kaddr(mblock, addr);
@@ -40,8 +40,8 @@ void* __kuser jet_user_to_kernel(void* __user addr, size_t size)
  */
 const void* __kuser jet_user_to_kernel_ro(const void* __user addr, size_t size)
 {
-    const struct memory_block* mblock = jet_partition_arinc_get_memory_block_for_addr(
-        current_partition_arinc, addr, size);
+    const struct memory_block* mblock = jet_partition_get_memory_block_for_addr(
+        current_partition, addr, size);
 
     if(mblock && mblock->maccess & MEMORY_BLOCK_ACCESS_READ)
         return jet_memory_block_get_kaddr(mblock, addr);
@@ -58,8 +58,8 @@ const void* __kuser jet_user_to_kernel_ro(const void* __user addr, size_t size)
  */
 pok_bool_t jet_check_access_exec(void* __user addr)
 {
-    const struct memory_block* mblock = jet_partition_arinc_get_memory_block_for_addr(
-        current_partition_arinc, addr, 1);
+    const struct memory_block* mblock = jet_partition_get_memory_block_for_addr(
+        current_partition, addr, 1);
 
     if(mblock && mblock->maccess & MEMORY_BLOCK_ACCESS_EXEC)
         return TRUE;
@@ -72,8 +72,8 @@ void* kstrncpy(char* dest, const char* __user src, size_t n)
     uintptr_t vaddr = (uintptr_t)src;
 
     // At least one byte should be mapped.
-    const struct memory_block* mblock = jet_partition_arinc_get_memory_block_for_addr(
-        current_partition_arinc, src, 1);
+    const struct memory_block* mblock = jet_partition_get_memory_block_for_addr(
+        current_partition, src, 1);
 
     if(!mblock) return NULL;
 

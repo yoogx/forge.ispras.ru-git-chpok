@@ -82,6 +82,14 @@ void ja_user_space_jump(
  */
 void   ja_space_switch (jet_space_id new_space_id);
 
+/* Copy data to non-current address space. */
+void ja_copy_to_remote(jet_space_id remote_space_id, void* __remote dst,
+    const void* src, size_t size);
+
+/* Copy data from non-current address space. */
+void ja_copy_from_remote(jet_space_id remote_space_id, void* dst,
+    const void* __remote src, size_t size);
+
 /*
  * Return id of current space.
  */

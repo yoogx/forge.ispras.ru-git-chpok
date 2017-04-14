@@ -26,7 +26,7 @@
  * 
  * Entry point is returned via 'entry' parameter.
  */
-void jet_loader_elf_load   (uint8_t elf_id,
+void jet_loader_elf_load   (const void* elf_image,
                                  pok_partition_arinc_t* part,
                                  const struct memory_block* const* mblocks,
                                  void (** entry)(void));

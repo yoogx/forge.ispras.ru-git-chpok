@@ -27,6 +27,7 @@
 #include <uapi/error_arinc_types.h>
 #include <uapi/memblock_types.h>
 #include <uapi/msection.h>
+#include <uapi/ippc_types.h>
 
 pok_ret_t pok_thread_create(const char* name,
     void* entry,
@@ -161,7 +162,9 @@ pok_ret_t jet_memory_block_get_status(const char* name,
 pok_ret_t jet_ippc_partition_arinc_init_portal(const char* portal_name,
     int* portal_id);
 
-pok_ret_t jet_ippc_partition_arinc_call(int portal_id);
+pok_ret_t jet_ippc_partition_arinc_call(int portal_id,
+    const struct jet_ippc_client_access_window* access_windows,
+    int access_windows_n);
 
 pok_ret_t jet_ippc_partition_arinc_get_portal_type_info(const char* portal_name,
     int* portal_type_id,
@@ -177,3 +180,11 @@ pok_ret_t jet_ippc_partition_arinc_create_connections(int server_portal_id,
     pok_thread_id_t* thread_id);
 
 pok_ret_t jet_ippc_partition_arinc_return(void);
+
+pok_ret_t jet_ippc_partition_arinc_copy_to_client(void* dst,
+    const void* src,
+    size_t n);
+
+pok_ret_t jet_ippc_partition_arinc_copy_from_client(void* dst,
+    const void* src,
+    size_t n);

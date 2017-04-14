@@ -23,14 +23,14 @@
 
 
 
-    static ret_t __wrapper_receive_packet(self_t *arg0, const char * arg1, size_t arg2, uint32_t arg3, uint16_t arg4)
+    static ret_t __wrapper_receive_packet(self_t *arg0, const uint8_t * arg1, size_t arg2, uint32_t arg3, uint16_t arg4)
     {
         return receive_packet((ROUTER*) arg0, arg1, arg2, arg3, arg4);
     }
 
 
 
-      ret_t ROUTER_call_portArray_handle_by_index(int idx, ROUTER *self, const char * arg1, size_t arg2)
+      ret_t _ROUTER_call_portArray_handle_by_index_impl(int idx, ROUTER *self, const uint8_t * arg1, size_t arg2)
       {
          if (self->out.portArray[idx].ops == NULL) {
              printf("WRONG CONFIG: out port portArray of component ROUTER was not initialized\n");
@@ -38,6 +38,8 @@
          }
          return self->out.portArray[idx].ops->handle(self->out.portArray[idx].owner, arg1, arg2);
       }
+      ret_t ROUTER_call_portArray_handle_by_index(int idx, ROUTER *self, const uint8_t * arg1, size_t arg2)
+      __attribute__ ((weak, alias ("_ROUTER_call_portArray_handle_by_index_impl")));
 
 
 void __ROUTER_init__(ROUTER *self)

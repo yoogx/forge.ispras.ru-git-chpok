@@ -23,9 +23,9 @@
 
 
 
-    static ret_t __wrapper_udp_ip_send(self_t *arg0, char * arg1, size_t arg2, size_t arg3)
+    static ret_t __wrapper_udp_ip_send(self_t *arg0, char * arg1, size_t arg2, size_t arg3, size_t arg4)
     {
-        return udp_ip_send((UDP_IP_SENDER*) arg0, arg1, arg2, arg3);
+        return udp_ip_send((UDP_IP_SENDER*) arg0, arg1, arg2, arg3, arg4);
     }
 
     static ret_t __wrapper_udp_ip_flush(self_t *arg0)
@@ -35,15 +35,17 @@
 
 
 
-      ret_t UDP_IP_SENDER_call_portB_mac_send(UDP_IP_SENDER *self, char * arg1, size_t arg2, size_t arg3, uint8_t * arg4, enum ethertype arg5)
+      ret_t _UDP_IP_SENDER_call_portB_mac_send_impl(UDP_IP_SENDER *self, char * arg1, size_t arg2, size_t arg3, size_t arg4, uint8_t * arg5, enum ethertype arg6)
       {
          if (self->out.portB.ops == NULL) {
              printf("WRONG CONFIG: out port portB of component UDP_IP_SENDER was not initialized\n");
              //fatal_error?
          }
-         return self->out.portB.ops->mac_send(self->out.portB.owner, arg1, arg2, arg3, arg4, arg5);
+         return self->out.portB.ops->mac_send(self->out.portB.owner, arg1, arg2, arg3, arg4, arg5, arg6);
       }
-      ret_t UDP_IP_SENDER_call_portB_flush(UDP_IP_SENDER *self)
+      ret_t UDP_IP_SENDER_call_portB_mac_send(UDP_IP_SENDER *self, char * arg1, size_t arg2, size_t arg3, size_t arg4, uint8_t * arg5, enum ethertype arg6)
+      __attribute__ ((weak, alias ("_UDP_IP_SENDER_call_portB_mac_send_impl")));
+      ret_t _UDP_IP_SENDER_call_portB_flush_impl(UDP_IP_SENDER *self)
       {
          if (self->out.portB.ops == NULL) {
              printf("WRONG CONFIG: out port portB of component UDP_IP_SENDER was not initialized\n");
@@ -51,6 +53,8 @@
          }
          return self->out.portB.ops->flush(self->out.portB.owner);
       }
+      ret_t UDP_IP_SENDER_call_portB_flush(UDP_IP_SENDER *self)
+      __attribute__ ((weak, alias ("_UDP_IP_SENDER_call_portB_flush_impl")));
 
 
 void __UDP_IP_SENDER_init__(UDP_IP_SENDER *self)
