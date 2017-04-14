@@ -73,10 +73,25 @@ struct memory_block
      * not only in user space, but in kernel space too.
      */
     uintptr_t kaddr;
+
+    /*
+     * Address which is used when access given memory block from other
+     * partition.
+     *
+     * This address is used only for calls copy_to_client()/copy_from_client().
+     *
+     * Note: This implies, that memory block is always virtually contiguous
+     * in "remote address space".
+     */
+    uintptr_t remote_addr;
 };
 
 /* Translate user address to kernel address for given memory block. */
 void* __kuser jet_memory_block_get_kaddr(const struct memory_block* mblock,
+    const void* __user addr);
+
+/* Translate user address to remote address for given memory block. */
+void* __remote jet_memory_block_get_remote_addr(const struct memory_block* mblock,
     const void* __user addr);
 
 

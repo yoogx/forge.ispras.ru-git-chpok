@@ -53,6 +53,17 @@ struct pok_partition_sched_operations
      */
     void (*on_event)(void);
 
+    /*
+     * Find memory block for given virtual(user) address range.
+     *
+     * Return NULL if none block contains the range.
+     *
+     * Used by copy_to_client/copy_from_client.
+     */
+    const struct memory_block* (*get_memory_block_for_addr)(
+        struct _pok_partition* part, const void* __user addr, size_t size);
+
+
 #ifdef POK_NEEDS_GDB
     /*
      * Return number of threads for given partition.
@@ -409,6 +420,17 @@ pok_bool_t pok_partition_get_event(struct jet_partition_event* event);
  */
 void pok_partition_set_timer(pok_partition_t* part,
     pok_time_t timer_new);
+
+
+/*
+ * Find memory block for given virtual(user) address range.
+ *
+ * Return NULL if none block contains the range.
+ *
+ * Return NULL if feature isn't supported by the partition.
+ */
+const struct memory_block* jet_partition_get_memory_block_for_addr(
+    pok_partition_t* part, const void* __user addr, size_t size);
 
 
 /* Initialize partition. */

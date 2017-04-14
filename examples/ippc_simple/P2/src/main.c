@@ -28,7 +28,7 @@ static void first_process(void)
     while (1) {
         printf("PR2: Executing IPPC ...\n");
 
-        ret_internal = jet_ippc_partition_arinc_call(portal_id);
+        ret_internal = jet_ippc_partition_arinc_call(portal_id, NULL, 0);
         if(ret_internal) {
             printf("IPPC call failed: %d\n", ret);
             STOP_SELF();

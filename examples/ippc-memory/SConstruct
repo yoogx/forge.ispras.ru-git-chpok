@@ -1,3 +1,7 @@
+# COPIED! DO NOT MODIFY!
+# Instead of modifying this file, modify original one (examples/SConstruct_module).
+#
+# When copy a file outside of JetOS project, remove this line and the lines above.
 #******************************************************************
 #
 # Institute for System Programming of the Russian Academy of Sciences
@@ -17,32 +21,13 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-Import('libpok_env')
+import os
 
-normal_sources = [
-    "assert_os.c",
-    "errno.c",
-    "main.c",
-    "msection.c",
-    "process.c",
-    "smalloc.c"
-]
+jetos_home = os.environ.get('JETOS_HOME', "")
 
-generated_sources_base = [
-    "syscall_map_arinc.c"
-]
+if jetos_home == "":
+	print "ERROR: Environment variable 'JETOS_HOME' is not set."
+	print "HINT:Environment variable 'JETOS_HOME' should point to the JetOS root directory."
+	Exit(1)
 
-libpok_core = libpok_env.StaticObject(source = normal_sources)
-
-for generated_source_base in generated_sources_base:
-    libpok_core += libpok_env.StaticObject(
-        target = generated_source_base[0:-1] + 'o', # Explicitely specify target for generate it in the build tree, not in the source one.
-        source = [
-            # Full path is required here, as we need a dependency from the generated file.
-            libpok_env['JETOS_HOME'] + '/libpok/core/' + generated_source_base
-        ]
-    )
-
-Return('libpok_core')
-
-# EOF
+env = SConscript(jetos_home+'/misc/SConscript_example_module')

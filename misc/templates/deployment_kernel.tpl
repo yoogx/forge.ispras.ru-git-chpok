@@ -220,6 +220,7 @@ static const struct memory_block memory_blocks_{{loop.index0}}[{{pmd.memory_bloc
         .is_shared = {%if mbd.is_shared%}TRUE{%else%}FALSE{%endif%},
         //.kaddr = {{"0x%x"|format(mbd.kaddr)}},
         .kaddr = {{"0x%x"|format(mbd.vaddr)}},
+        .remote_addr = {{"0x%x"|format(mbd.vaddr)}},
     },
 {%endfor%}
 };

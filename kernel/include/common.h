@@ -43,6 +43,14 @@
  */
 #define __kuser
 
+/*
+ * Kernel-space address used for remote access.
+ *
+ * The address can only be used in copy_to_client()/copy_from_client() calls.
+ */
+#define __remote
+
+
 /**
  * Casts pointer to member of structure to pointer to structure itself.
  * 

@@ -29,6 +29,7 @@
 #include <uapi/error_arinc_types.h>
 #include <uapi/memblock_types.h>
 #include <uapi/msection.h>
+#include <uapi/ippc_types.h>
 
 pok_ret_t _pok_thread_create_impl(const char* name,
     void* entry,
@@ -537,13 +538,19 @@ pok_ret_t jet_ippc_partition_arinc_init_portal(const char* portal_name,
     int* portal_id)
 __attribute__ ((weak, alias ("_jet_ippc_partition_arinc_init_portal_impl")));
 
-pok_ret_t _jet_ippc_partition_arinc_call_impl(int portal_id)
+pok_ret_t _jet_ippc_partition_arinc_call_impl(int portal_id,
+    const struct jet_ippc_client_access_window* access_windows,
+    int access_windows_n)
 {
-    return pok_syscall1(POK_SYSCALL_IPPC_CALL,
-        (uint32_t)portal_id);
+    return pok_syscall3(POK_SYSCALL_IPPC_CALL,
+        (uint32_t)portal_id,
+        (uint32_t)access_windows,
+        (uint32_t)access_windows_n);
 }
 
-pok_ret_t jet_ippc_partition_arinc_call(int portal_id)
+pok_ret_t jet_ippc_partition_arinc_call(int portal_id,
+    const struct jet_ippc_client_access_window* access_windows,
+    int access_windows_n)
 __attribute__ ((weak, alias ("_jet_ippc_partition_arinc_call_impl")));
 
 pok_ret_t _jet_ippc_partition_arinc_get_portal_type_info_impl(const char* portal_name,
@@ -601,3 +608,33 @@ pok_ret_t _jet_ippc_partition_arinc_return_impl(void)
 
 pok_ret_t jet_ippc_partition_arinc_return(void)
 __attribute__ ((weak, alias ("_jet_ippc_partition_arinc_return_impl")));
+
+pok_ret_t _jet_ippc_partition_arinc_copy_to_client_impl(void* dst,
+    const void* src,
+    size_t n)
+{
+    return pok_syscall3(POK_SYSCALL_IPPC_COPY_TO_CLIENT,
+        (uint32_t)dst,
+        (uint32_t)src,
+        (uint32_t)n);
+}
+
+pok_ret_t jet_ippc_partition_arinc_copy_to_client(void* dst,
+    const void* src,
+    size_t n)
+__attribute__ ((weak, alias ("_jet_ippc_partition_arinc_copy_to_client_impl")));
+
+pok_ret_t _jet_ippc_partition_arinc_copy_from_client_impl(void* dst,
+    const void* src,
+    size_t n)
+{
+    return pok_syscall3(POK_SYSCALL_IPPC_COPY_FROM_CLIENT,
+        (uint32_t)dst,
+        (uint32_t)src,
+        (uint32_t)n);
+}
+
+pok_ret_t jet_ippc_partition_arinc_copy_from_client(void* dst,
+    const void* src,
+    size_t n)
+__attribute__ ((weak, alias ("_jet_ippc_partition_arinc_copy_from_client_impl")));
