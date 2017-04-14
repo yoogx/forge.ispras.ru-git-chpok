@@ -1,8 +1,9 @@
+#include <arch/memlayout.h>
+
 ENTRY(jet_start)
 
-/* __KERNBASE_ values should be aligned by 1MB */
-__KERNBASE_PADDR = 0x10000000;
-__KERNBASE_VADDR = 0xc0000000;
+__KERNBASE_PADDR = KERNBASE_PADDR;
+__KERNBASE_VADDR = KERNBASE_VADDR;
 
 SECTIONS
 {

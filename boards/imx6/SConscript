@@ -17,12 +17,10 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-Import('kernel_env')
+Import('board_env')
 
-board_env = kernel_env.Clone()
-Export('board_env')
+SConscript('ldscripts/SConscript')
 
-board = SConscript(board_env['BSP'] + '/SConscript')
+objs = board_env.StaticObject(source = Glob('*.[Sc]'))
 
-Return('board')
-# EOF
+Return('objs')

@@ -17,12 +17,18 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-Import('kernel_env')
+Import('board_env')
 
-board_env = kernel_env.Clone()
-Export('board_env')
+cur_dir = Dir('.').srcnode().abspath
 
-board = SConscript(board_env['BSP'] + '/SConscript')
+file_with_title = board_env['JETOS_HOME'] + "/misc/generated.h"
 
-Return('board')
-# EOF
+board_env.Command(
+    target = cur_dir+'/kernel.lds',
+    source = board_env['JETOS_HOME']+'/kernel/arch/arm/ldscripts/kernel.lds.S',
+    action = Action(
+        "$CC $ASPPFLAGS $CPPFLAGS $_CPPDEFFLAGS $_CPPINCFLAGS " + #based on ASPPCOM
+            "-C -P -include " + file_with_title + " -E -o $TARGET $SOURCES",
+        '$CPPCOMSTR'
+        )
+)
