@@ -226,7 +226,7 @@ class ArincConfigParser:
         for logbook in logbooks_root.findall("Logbook"):
             lg_instance = {
                 'name' : logbook.attrib["Name"],
-                'max_message_size' : parse_bytes(logbook.attrib["MaxMessageSize"]),
+                'max_message_size' : int(logbook.attrib["MaxMessageSize"]),
                 'max_nb_in_progress_messages' : int(logbook.attrib["MaxNbInProgressMessages"]),
                 'max_nb_logged_messages' : int(logbook.attrib["MaxNbLoggedMessages"])
             }

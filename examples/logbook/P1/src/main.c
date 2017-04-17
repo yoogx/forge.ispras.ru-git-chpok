@@ -129,9 +129,12 @@ static int real_main(void)
 
     STOP_SELF();
     return 0;
+
 }
 
 void main(void) {
+
+    list_of_logbooks();
     real_main();
     STOP_SELF();
 }  

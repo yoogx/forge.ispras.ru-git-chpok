@@ -36,6 +36,8 @@ extern size_t arinc_config_nevents;
 // Memory for messages, used by buffers and blackboards. Set in deployment.c.
 extern size_t arinc_config_messages_memory_size;
 
+// Maximum number of logbooks.
+extern size_t arinc_config_nlogbooks;
 
 
 #endif /* __LIBJET_ARINC_CONFIG_H__ */

@@ -19,6 +19,7 @@
     
     <ARINC653_Logbooks>
         <Logbook Name="Test" MaxMessageSize="25" MaxNbInProgressMessages="3" MaxNbLoggedMessages="3"/>
+        <Logbook Name="Test2" MaxMessageSize="25" MaxNbInProgressMessages="3" MaxNbLoggedMessages="3"/>
     
     </ARINC653_Logbooks>
 </Partition>
