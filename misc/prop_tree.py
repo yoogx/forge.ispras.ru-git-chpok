@@ -28,42 +28,191 @@ import struct
 import os
 import shutil
 
-from text_serialization import *
+import yaml
 
-class PropertyTreeBinaryNode(SerializableObject):
-    yaml_tag = '!BinaryNode'
+class PropertyTreeLeafNode(yaml.YAMLObject):
+    """
+    Base class for property tree leaf node.
+    """
 
-    copy_slots = [
-        'value', # Immediate value of the node, if given.
-        'filename', # File with value of the node, if given.
-        'align', # Alignment of the value
-    ]
+    @abc.abstractmethod
+    def fill_node(self, node, prop_tree_impl):
+        """
+        Set value of the node in _PropertyTreeImpl object.
+        """
+        pass
 
-    default_slots = {
-        'value': None,
-        'filename': None
-    }
+class PropertyTreeNodeInt32(PropertyTreeLeafNode):
+    """
+    32-bit integer node in property tree.
 
-    def __init__(self, **kargs):
-        copy_constructor_with_default(self, kargs)
+    Can be given in YAML with '!int32' tag.
+    """
+    yaml_tag = '!int32'
 
-        # At least one of 'value' and 'filename' should be given
-        assert(self.value is not None or self.filename is not None)
+    def __init__(self, value):
+        self.value = value
+
+    def fill_node(self, node, prop_tree_impl):
+        node.value = _PropertyTreeNodeValueInteger32(self.value)
+
+    @classmethod
+    def from_yaml(cls, loader, node):
+        value = int(loader.construct_scalar(node), 0)
+        return cls(value)
+
+    @classmethod
+    def to_yaml(cls, dumper, data):
+        return dumper.represent_scalar(cls.yaml_tag, "%d" % data.value)
+
+class PropertyTreeNodeUInt32(PropertyTreeLeafNode):
+    """
+    32-bit unsigned integer node in property tree.
+
+    Can be given in YAML with '!uint32' tag.
+    """
+    yaml_tag = '!uint32'
+
+    def __init__(self, value):
+        self.value = value
+
+    def fill_node(self, node, prop_tree_impl):
+        node.value = _PropertyTreeNodeValueUnsigned32(self.value)
+
+    @classmethod
+    def from_yaml(cls, loader, node):
+        value = int(loader.construct_scalar(node), 0)
+        return cls(value)
+
+    @classmethod
+    def to_yaml(cls, dumper, data):
+        return dumper.represent_scalar(cls.yaml_tag, "%u" % data.value)
+
+class PropertyTreeNodeInt64(PropertyTreeLeafNode):
+    """
+    64-bit integer node in property tree.
+
+    Can be given in YAML with '!int64' tag.
+    """
+    yaml_tag = '!int64'
+
+    def __init__(self, value):
+        self.value = value
+
+    def fill_node(self, node, prop_tree_impl):
+        node.value = _PropertyTreeNodeValueInteger64(self.value)
+
+    @classmethod
+    def from_yaml(cls, loader, node):
+        value = int(loader.construct_scalar(node), 0)
+        return cls(value)
+    @classmethod
+    def to_yaml(cls, dumper, data):
+        return dumper.represent_scalar(cls.yaml_tag, "%d" % data.value)
+
+class PropertyTreeNodeUInt64(PropertyTreeLeafNode):
+    """
+    64-bit unsigned integer node in property tree.
+
+    Can be given in YAML with '!uint64' tag.
+    """
+    yaml_tag = '!uint64'
+
+    def __init__(self, value):
+        self.value = value
+
+    def fill_node(self, node, prop_tree_impl):
+        node.value = _PropertyTreeNodeValueUnsigned64(self.value)
+
+    @classmethod
+    def from_yaml(cls, loader, node):
+        value = int(loader.construct_scalar(node), 0)
+        return cls(value)
+
+    @classmethod
+    def to_yaml(cls, dumper, data):
+        return dumper.represent_scalar(cls.yaml_tag, "%u" % data.value)
+
+class PropertyTreeNodeBinaryFile(PropertyTreeLeafNode):
+    """
+    Binary data node. Data are contained in the given file.
+
+    Can be given in YAML with '!binary_file' tag.
+    """
+    yaml_tag = '!binary_file'
+
+    def __init__(self, filename):
+        self.filename = filename
+
+    def fill_node(self, node, prop_tree_impl):
+        binary_node = prop_tree_impl.alloc_binary(value = None, filename = self.filename)
+        node.value = binary_node
+
+    @classmethod
+    def from_yaml(cls, loader, node):
+        filename = loader.construct_scalar(node)
+        return cls(filename)
+
+    @classmethod
+    def to_yaml(cls, dumper, data):
+        return dumper.represent_scalar(cls.yaml_tag, data.filename)
 
 
-class _PropertyTreeWriter:
-    __slots__ = [
-        'is_big_endian', # True for big endian False for little endian
-        'byte_order_format', # Format character corresponded to byte order.
-    ]
+class PropertyTreeNodeBinaryData(PropertyTreeLeafNode):
+    """
+    Binary data node. Data are given directly.
 
-    def __init__(self, is_big_endian):
-        self.is_big_endian = is_big_endian
-        if self.is_big_endian:
-            self.byte_order_format = '>'
-        else:
-            self.byte_order_format = '<'
+    Can be given in YAML with '!binary_data' tag.
+    """
+    yaml_tag = '!binary_data'
 
+    def __init__(self, value):
+        self.value = value
+
+    def fill_node(self, node, prop_tree_impl):
+        binary_node = prop_tree_impl.alloc_binary(value = self.value, filename = None)
+        node.value = binary_node
+
+    @classmethod
+    def from_yaml(cls, loader, node):
+        value = loader.construct_scalar(node)
+        return cls(value)
+
+    @classmethod
+    def to_yaml(cls, dumper, data):
+        return dumper.represent_scalar(cls.yaml_tag, data.value)
+
+
+def property_tree_write(obj, filename, binary_data_align):
+    """
+    Write property tree, corresponded to given object, into the binary file.
+    """
+    impl = _PropertyTreeImpl(binary_data_align)
+
+    impl.load(obj)
+
+    impl.write(filename)
+
+
+def property_tree_serialize(obj, filename):
+    """
+    Serialize property tree into the file.
+    """
+    with open(filename, "w") as yaml_file:
+        yaml.dump({'root': obj}, yaml_file)
+
+def property_tree_deserialize(filename):
+    """
+    Deserialize property tree from the file.
+
+    Return property tree extracted.
+    """
+    with open(filename, "r") as yaml_file:
+        yaml_content = yaml.load(yaml_file)
+
+    return yaml_content['root']
+
+############################# Implementation ###########################
 class _PropertyTreeNodeValueBase:
 
     # Types constants.
@@ -87,7 +236,7 @@ class _PropertyTreeNodeValueBase:
         pass
 
     @abc.abstractmethod
-    def get_value_bytes(self, tree_writer):
+    def get_value_bytes(self):
         """
         Return 8 bytes represented the value.
         """
@@ -109,14 +258,81 @@ class _PropertyTreeNodeValueString(_PropertyTreeNodeValueBase):
         'string_record',
     ]
 
+    struct_II = struct.Struct("!II")
+
     def __init__(self, string_record):
         self.string_record = string_record
 
     def get_type(self):
         return self.JET_PT_STRING
 
-    def get_value_bytes(self, tree_writer):
-        return struct.pack(tree_writer.byte_order_format + "II", self.string_record.offset, 0)
+    def get_value_bytes(self):
+        return self.struct_II.pack(self.string_record.offset, 0)
+
+class _PropertyTreeNodeValueInteger32(_PropertyTreeNodeValueBase):
+    __slots__ = [
+        'value',
+    ]
+
+    struct_iI = struct.Struct("!iI")
+
+    def __init__(self, value):
+        self.value = value
+
+    def get_type(self):
+        return self.JET_PT_INTEGER32
+
+    def get_value_bytes(self):
+        return self.struct_iI.pack(self.value, 0)
+
+class _PropertyTreeNodeValueUnsigned32(_PropertyTreeNodeValueBase):
+    __slots__ = [
+        'value',
+    ]
+
+    struct_II = struct.Struct("!II")
+
+    def __init__(self, value):
+        self.value = value
+
+    def get_type(self):
+        return self.JET_PT_UNSIGNED32
+
+    def get_value_bytes(self):
+        return self.struct_II.pack(self.value, 0)
+
+class _PropertyTreeNodeValueInteger64(_PropertyTreeNodeValueBase):
+    __slots__ = [
+        'value',
+    ]
+
+    struct_q = struct.Struct("!q")
+
+    def __init__(self, value):
+        self.value = value
+
+    def get_type(self):
+        return self.JET_PT_INTEGER64
+
+    def get_value_bytes(self):
+        return self.struct_q.pack(self.value)
+
+class _PropertyTreeNodeValueUnsigned64(_PropertyTreeNodeValueBase):
+    __slots__ = [
+        'value',
+    ]
+
+    struct_Q = struct.Struct("!Q")
+
+    def __init__(self, value):
+        self.value = value
+
+    def get_type(self):
+        return self.JET_PT_UNSIGNED64
+
+    def get_value_bytes(self):
+        return self.struct_Q.pack(self.value)
+
 
 class _PropertyTreeBinaryRecord:
     __slots__ = [
@@ -124,12 +340,12 @@ class _PropertyTreeBinaryRecord:
         'filename', # File with value, if given.
         'size', # Size of the value
 
-        'offset', # Offset in the block of strings.
+        'offset', # Offset in the block of binary data.
     ]
 
-    def __init__(self, binary_node, offset):
-        self.value = binary_node.value
-        self.filename = binary_node.filename
+    def __init__(self, value, filename, offset):
+        self.value = value
+        self.filename = filename
         self.offset = offset
 
         if self.value is not None:
@@ -142,19 +358,23 @@ class _PropertyTreeNodeValueBinary(_PropertyTreeNodeValueBase):
         'binary_record',
     ]
 
+    struct_II = struct.Struct("!II")
+
     def __init__(self, binary_record):
         self.binary_record = binary_record
 
     def get_type(self):
         return self.JET_PT_BINARY
 
-    def get_value_bytes(self, tree_writer):
-        return struct.pack(tree_writer.byte_order_format + "II", self.binary_record.offset, self.binary_record.size)
+    def get_value_bytes(self):
+        return self.struct_II.pack(self.binary_record.offset, self.binary_record.size)
 
 class _PropertyTreeNodeValueTree(_PropertyTreeNodeValueBase):
     __slots__ = [
         'n_children',
     ]
+
+    struct_II = struct.Struct("!II")
 
     def __init__(self, n_children, first_child):
         self.n_children = n_children
@@ -163,18 +383,20 @@ class _PropertyTreeNodeValueTree(_PropertyTreeNodeValueBase):
     def get_type(self):
         return self.JET_PT_TREE
 
-    def get_value_bytes(self, tree_writer):
+    def get_value_bytes(self):
         if self.first_child is not None:
             first_child_index = self.first_child.index
         else:
             first_child_index = JET_PT_INVALID_NODE
-        return struct.pack(tree_writer.byte_order_format + "II", self.n_children, first_child_index)
+        return self.struct_II.pack(self.n_children, first_child_index)
 
 def align_val(val, align):
     return ((val + align - 1) // align) * align
 
 class _PropertyTreeNodeRecord:
     FLAG_HAS_NEXT_SIBLING = 1
+
+    struct_HHI = struct.Struct("!HHI")
 
     __slots__ = [
         'index', # Index in the block of nodes.
@@ -189,7 +411,7 @@ class _PropertyTreeNodeRecord:
         self.has_next_sibling = False # May be set later
         self.value = None # Should be set later
 
-    def get_bytes(self, tree_writer):
+    def get_bytes(self):
         node_type = self.value.get_type()
         flags = 0
 
@@ -198,13 +420,11 @@ class _PropertyTreeNodeRecord:
 
         name_int = self.name_record.offset
 
-        value_bytes = self.value.get_value_bytes(tree_writer)
+        value_bytes = self.value.get_value_bytes()
 
-        return struct.pack(tree_writer.byte_order_format + "HHI", node_type, flags, name_int) + value_bytes
+        return self.struct_HHI.pack(node_type, flags, name_int) + value_bytes
 
 class _PropertyTreeImpl:
-
-
     __slots__ = [
         'nodes', # List of nodes
         'string_records', # List of string records
@@ -214,17 +434,15 @@ class _PropertyTreeImpl:
         'binary_data_align', # Total alignment of binary data.
 
         'string_records_dict', # Dictionary of existed string records, for reuse them.
-
-        'tree_writer',
     ]
 
-    def __init__(self):
+    def __init__(self, binary_data_align):
         self.nodes = []
         self.string_records = []
         self.strings_size = 0
         self.binary_records = []
         self.binary_data_size = 0
-        self.binary_data_align = 1
+        self.binary_data_align = binary_data_align
 
         self.string_records_dict = {}
 
@@ -235,7 +453,7 @@ class _PropertyTreeImpl:
         node = self.alloc_node("root")
         self.load_node(node, obj)
 
-    def write(self, filename, tree_writer):
+    def write(self, filename):
         """
         Write property tree into the file in binary format.
         """
@@ -248,7 +466,7 @@ class _PropertyTreeImpl:
         offset = 0
         with open(filename, "wb") as fd:
             # Write header
-            header_bytes = struct.pack(tree_writer.byte_order_format + "LLLLLLLL",
+            header_bytes = struct.pack("!LLLLLLLL",
                 0x50725472,
                 nodes_offset, len(self.nodes),
                 strings_offset, self.strings_size,
@@ -261,31 +479,31 @@ class _PropertyTreeImpl:
 
             # Write nodes
             assert(offset == nodes_offset)
-            offset += self.write_nodes(fd, tree_writer)
+            offset += self.write_nodes(fd)
 
             # Write strings
             assert(offset == strings_offset)
             offset += self.write_strings(fd)
 
-            # Write binary data
-            offset += self.write_pad(offset, binary_offset, fd)
-            offset += self.write_binaries(fd)
-
-
+            if self.binary_data_size > 0:
+                # Write binary data
+                offset += self.write_pad(offset, binary_offset, fd)
+                offset += self.write_binaries(fd)
 
     def write_pad(self, offset, required_offset, fd):
         if offset != required_offset:
             n_bytes = required_offset - offset
             assert(n_bytes)
 
-            fd.write("\n" * n_bytes)
+            fd.write("\0" * n_bytes)
+
             return n_bytes
 
         return 0
 
-    def write_nodes(self, fd, tree_writer):
+    def write_nodes(self, fd):
         for node in self.nodes:
-            fd.write(node.get_bytes(tree_writer))
+            fd.write(node.get_bytes())
 
         return len(self.nodes) * 16
 
@@ -301,7 +519,7 @@ class _PropertyTreeImpl:
         offset = 0
 
         for binary_record in self.binary_records:
-            self.write_pad(offset, binary_record.offset, fd)
+            offset += self.write_pad(offset, binary_record.offset, fd)
 
             if binary_record.value is not None:
                 fd.write(binary_record.value)
@@ -321,10 +539,9 @@ class _PropertyTreeImpl:
             # print "Interpret object '%s' as string" % str(obj)
             string_record = self.alloc_string(obj)
             node.value = _PropertyTreeNodeValueString(string_record)
-        elif isinstance(obj, PropertyTreeBinaryNode):
-            # print "Interpret object '%s' as binary node" % str(obj)
-            binary_node = self.alloc_binary(obj)
-            node.value = binary_node
+        elif isinstance(obj, PropertyTreeLeafNode):
+            # print "Interpret object '%s' as leaf node" % str(obj)
+            obj.fill_node(node, self)
         elif isinstance(obj, collections.Mapping):
             # print "Interpret object '%s' as mapping" % str(obj)
             children_nodes = []
@@ -382,30 +599,34 @@ class _PropertyTreeImpl:
             string_record = _PropertyTreeStringRecord(value, self.strings_size)
             self.strings_size += len(value) + 1 # Do not forget terminated null symbol
             self.string_records.append(string_record)
+            self.string_records_dict[value] = string_record
 
         return string_record
 
-    def alloc_binary(self, binary_node):
-        if self.binary_data_align < binary_node.align:
-            self.binary_data_align = binary_node.align
+    def alloc_binary(self, value, filename):
+        self.binary_data_size = align_val(self.binary_data_size, self.binary_data_align)
 
-        self.binary_data_size = align_val(self.binary_data_size, binary_node.align)
-
-        binary_record = _PropertyTreeBinaryRecord(binary_node, self.binary_data_size)
+        binary_record = _PropertyTreeBinaryRecord(value, filename, self.binary_data_size)
 
         self.binary_records.append(binary_record)
         self.binary_data_size += binary_record.size
 
         return _PropertyTreeNodeValueBinary(binary_record)
 
-def property_tree_write(obj, filename, is_big_endian):
-    """
-    Write property tree, corresponded to given object, into the binary file.
-    """
-    impl = _PropertyTreeImpl()
+if __name__ == '__main__':
 
-    impl.load(obj)
+    import sys
+    import yaml
+    if len(sys.argv) <= 2:
+        print ("Usage: prop_tree.py <input-yaml-file> <output-bin-file>")
+        exit(1)
 
-    tree_writer = _PropertyTreeWriter(is_big_endian)
+    input_yaml_file = sys.argv[1]
+    output_bin_file = sys.argv[2]
 
-    impl.write(filename, tree_writer)
+    with open(input_yaml_file, "r") as source_file:
+        yaml_content = yaml.load(source_file)
+
+    property_tree_write(yaml_content, output_bin_file, 16)
+
+    print "Property tree has been written into '%s'" % output_bin_file

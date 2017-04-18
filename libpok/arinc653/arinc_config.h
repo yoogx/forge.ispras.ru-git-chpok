@@ -21,21 +21,19 @@
 #include <config.h>
 #include <types.h>
 
-// Maximum number of buffers. Set in deployment.c
-extern size_t arinc_config_nbuffers;
+// Maximum number of buffers. Set in configuration.
+extern uint32_t arinc_config_nbuffers;
 
-// Maximum number of blackboards. Set in deployment.c
-extern size_t arinc_config_nblackboards;
+// Maximum number of blackboards. Set in configuration.
+extern uint32_t arinc_config_nblackboards;
 
-// Maximum number of semaphores. Set in deployment.c
-extern size_t arinc_config_nsemaphores;
+// Maximum number of semaphores. Set in configuration.
+extern uint32_t arinc_config_nsemaphores;
 
-// Maximum number of events. Set in deployment.c
-extern size_t arinc_config_nevents;
+// Maximum number of events. Set in configuration.
+extern uint32_t arinc_config_nevents;
 
-// Memory for messages, used by buffers and blackboards. Set in deployment.c.
-extern size_t arinc_config_messages_memory_size;
-
-
+// Memory for messages, used by buffers and blackboards. Set in configuration.
+extern uint32_t arinc_config_messages_memory_size;
 
 #endif /* __LIBJET_ARINC_CONFIG_H__ */

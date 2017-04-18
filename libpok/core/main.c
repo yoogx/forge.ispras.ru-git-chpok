@@ -20,8 +20,10 @@
 #include <stdlib.h>
 #include <arinc653/process.h>
 #include <stdio.h>
+#include <conftree.h>
 
 struct jet_kernel_shared_data* kshd;
+jet_pt_tree_t part_config_tree;
 
 void main(void);
 
@@ -87,6 +89,20 @@ int __pok_partition_start (void)
    // Setup user-only fields of kernel shared data.
    kshd->main_thread_id = kshd->current_thread_id;
    kshd->error_thread_id = JET_THREAD_ID_NONE;
+
+   jet_memory_block_status_t config_status;
+
+   if(jet_memory_block_get_status(".CONFIG_TREE", &config_status) != POK_ERRNO_OK) {
+       printf("ERROR: No '.CONFIG_TREE' memory block which contains partition's configuration tree");
+       abort();
+   }
+
+   part_config_tree = (const void*)config_status.addr;
+
+   if(jet_pt_check_magic(part_config_tree)) {
+       printf("ERROR: Invalid format of the partition's configuration tree");
+       abort();
+   }
 
    smalloc_init();
 

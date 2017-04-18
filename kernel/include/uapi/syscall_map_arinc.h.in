@@ -41,6 +41,7 @@
 #include <uapi/error_arinc_types.h>
 #include <uapi/memblock_types.h>
 #include <uapi/msection.h>
+#include <uapi/ippc_types.h>
 
 SYSCALL_DECLARE(POK_SYSCALL_THREAD_CREATE, pok_thread_create,
    const char*, name,
@@ -226,7 +227,9 @@ SYSCALL_DECLARE(POK_SYSCALL_IPPC_INIT_PORTAL, jet_ippc_partition_arinc_init_port
     int*, portal_id)
 
 SYSCALL_DECLARE(POK_SYSCALL_IPPC_CALL, jet_ippc_partition_arinc_call,
-    int, portal_id)
+    int, portal_id,
+    const struct jet_ippc_client_access_window*, access_windows,
+    int, access_windows_n)
 
 SYSCALL_DECLARE(POK_SYSCALL_IPPC_GET_PORTAL_TYPE_INFO, jet_ippc_partition_arinc_get_portal_type_info,
     const char*, portal_name,
@@ -245,3 +248,13 @@ SYSCALL_DECLARE(POK_SYSCALL_IPPC_CREATE_CONNECTIONS, jet_ippc_partition_arinc_cr
     pok_thread_id_t*, thread_id)
 
 SYSCALL_DECLARE(POK_SYSCALL_IPPC_RETURN, jet_ippc_partition_arinc_return)
+
+SYSCALL_DECLARE(POK_SYSCALL_IPPC_COPY_TO_CLIENT, jet_ippc_partition_arinc_copy_to_client,
+    void*, dst,
+    const void*, src,
+    size_t, n)
+
+SYSCALL_DECLARE(POK_SYSCALL_IPPC_COPY_FROM_CLIENT, jet_ippc_partition_arinc_copy_from_client,
+    void*, dst,
+    const void*, src,
+    size_t, n)

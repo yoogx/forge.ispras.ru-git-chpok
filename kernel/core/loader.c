@@ -24,8 +24,6 @@
 #include <core/memblocks.h>
 #include <core/uaccess.h>
 
-#include <conftree.h>
-
 static const struct memory_block* get_memory_block_for_addr(
     const struct memory_block* const* mblocks,
     void* __user addr,
@@ -56,18 +54,15 @@ static const struct memory_block* get_memory_block_for_addr(
     return NULL;
 }
 
-void jet_loader_elf_load   (uint8_t elf_id,
+void jet_loader_elf_load   (const void* elf_image,
                                  pok_partition_arinc_t* part,
                                  const struct memory_block* const* mblocks,
                                  void (** entry)(void))
 {
-    jet_pt_node_t elf_node = jet_pt_get_child(kernel_config_tree, JET_PT_ROOT, elf_id);
-    const char* elf_start = jet_pt_get_binary(kernel_config_tree, elf_node, NULL, NULL);
+    const Elf32_Ehdr*  elf_header;
+    const Elf32_Phdr*  elf_phdr;
 
-    Elf32_Ehdr*  elf_header;
-    Elf32_Phdr*  elf_phdr;
-
-    elf_header = (Elf32_Ehdr*)elf_start;
+    elf_header = (Elf32_Ehdr*)elf_image;
 
     if (elf_header->e_ident[0] != 0x7f ||
          elf_header->e_ident[1] != 'E' ||
@@ -80,7 +75,7 @@ void jet_loader_elf_load   (uint8_t elf_id,
 
     *entry = (void (*)(void)) elf_header->e_entry;
 
-    elf_phdr = (Elf32_Phdr*)(elf_start + elf_header->e_phoff);
+    elf_phdr = (Elf32_Phdr*)((const char*)elf_image + elf_header->e_phoff);
 
     // Iterate over ELF segments.
     for (int i = 0; i < elf_header->e_phnum; ++i)
@@ -104,7 +99,7 @@ void jet_loader_elf_load   (uint8_t elf_id,
         size_t filesz = elf_phdr[i].p_filesz;
 
         if(filesz) {
-            memcpy(kstart, (const char*)elf_start + elf_phdr[i].p_offset,
+            memcpy(kstart, (const char*)elf_image + elf_phdr[i].p_offset,
                 filesz);
         }
         if(memsz > filesz) {

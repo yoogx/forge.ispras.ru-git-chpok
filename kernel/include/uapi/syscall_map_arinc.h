@@ -27,6 +27,7 @@
 #include <uapi/error_arinc_types.h>
 #include <uapi/memblock_types.h>
 #include <uapi/msection.h>
+#include <uapi/ippc_types.h>
 
 pok_ret_t pok_thread_create(const char* __user name,
     void* __user entry,
@@ -413,11 +414,15 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_INIT_PORTAL(const p
         (int* __user)args->arg2);
 }
 
-pok_ret_t jet_ippc_partition_arinc_call(int portal_id);
+pok_ret_t jet_ippc_partition_arinc_call(int portal_id,
+    const struct jet_ippc_client_access_window* __user access_windows,
+    int access_windows_n);
 static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_CALL(const pok_syscall_args_t* args)
 {
     return jet_ippc_partition_arinc_call(
-        (int)args->arg1);
+        (int)args->arg1,
+        (const struct jet_ippc_client_access_window* __user)args->arg2,
+        (int)args->arg3);
 }
 
 pok_ret_t jet_ippc_partition_arinc_get_portal_type_info(const char* __user portal_name,
@@ -460,4 +465,26 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_RETURN(const pok_sy
 {
     (void) args;
     return jet_ippc_partition_arinc_return();
+}
+
+pok_ret_t jet_ippc_partition_arinc_copy_to_client(void* __user dst,
+    const void* __user src,
+    size_t n);
+static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_COPY_TO_CLIENT(const pok_syscall_args_t* args)
+{
+    return jet_ippc_partition_arinc_copy_to_client(
+        (void* __user)args->arg1,
+        (const void* __user)args->arg2,
+        (size_t)args->arg3);
+}
+
+pok_ret_t jet_ippc_partition_arinc_copy_from_client(void* __user dst,
+    const void* __user src,
+    size_t n);
+static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_COPY_FROM_CLIENT(const pok_syscall_args_t* args)
+{
+    return jet_ippc_partition_arinc_copy_from_client(
+        (void* __user)args->arg1,
+        (const void* __user)args->arg2,
+        (size_t)args->arg3);
 }

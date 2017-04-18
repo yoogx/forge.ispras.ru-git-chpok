@@ -21,7 +21,7 @@ SECTIONS
         __archive_begin = .;
         *(.archive)
         __archive_end = .;
-        . = ALIGN(4096);
+        . = ALIGN(16);
         __archive2_begin = .;
         *(.archive2)
         __archive2_end = .;

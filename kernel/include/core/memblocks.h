@@ -73,22 +73,38 @@ struct memory_block
      * not only in user space, but in kernel space too.
      */
     uintptr_t kaddr;
+
+    /*
+     * Address which is used when access given memory block from other
+     * partition.
+     *
+     * This address is used only for calls copy_to_client()/copy_from_client().
+     *
+     * Note: This implies, that memory block is always virtually contiguous
+     * in "remote address space".
+     */
+    uintptr_t remote_addr;
 };
 
 /* Translate user address to kernel address for given memory block. */
 void* __kuser jet_memory_block_get_kaddr(const struct memory_block* mblock,
     const void* __user addr);
 
+/* Translate user address to remote address for given memory block. */
+void* __remote jet_memory_block_get_remote_addr(const struct memory_block* mblock,
+    const void* __user addr);
+
 
 pok_ret_t jet_memory_block_get_status(
-        const char* __user name,
-        jet_memory_block_status_t* __user status);
+    const char* __user name,
+    jet_memory_block_status_t* __user status);
 
 /* How memory block may be initialized. */
 enum jet_memory_block_init_type
 {
     JET_MEMORY_BLOCK_INIT_ZERO, /* Fill with zero */
     JET_MEMORY_BLOCK_INIT_ELF, /* Fill from partition's elf. */
+    JET_MEMORY_BLOCK_INIT_BINARY, /* Fill from some binary area "as is". */
 };
 
 struct _pok_partition_arinc;
@@ -101,18 +117,18 @@ struct _pok_partition_arinc;
  * 
  * @part - partition to which memory blocks belongs.
  * @mblocks - NULL terminated array of pointers to memory blocks
- * @source_id - integer representing additional information of the initialization source.
+ * @source_id - string representing additional information of the initialization source.
  */
 void jet_memory_block_init(enum jet_memory_block_init_type init_type,
     struct _pok_partition_arinc* part,
     const struct memory_block* const* mblocks,
-    uint16_t source_id);
+    const char* source_id);
 
 /* One entry for initialize memory block(s) at MODULE stage. */
 struct jet_module_memory_block_init_entry
 {
     enum jet_memory_block_init_type init_type;
-    uint16_t source_id;
+    const char* source_id;
     struct _pok_partition_arinc* part;
     const struct memory_block* const* mblocks;
 };
