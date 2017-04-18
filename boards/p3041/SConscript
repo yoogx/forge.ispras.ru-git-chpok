@@ -19,8 +19,6 @@
 
 Import('board_env')
 
-SConscript('ldscripts/SConscript')
-
 objs = board_env.StaticObject(source = Glob('*.[Sc]'))
 
 Return('objs')
