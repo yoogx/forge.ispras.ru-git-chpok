@@ -28,7 +28,7 @@
 #define VECTOR_PADDR (KERNBASE_PADDR + 0x3fff000)
 
 #define IO_VADDR 0xf0000000
-#define VIRT_IO(pa) ((uintptr_t)(pa) + IO_VADDR)
+#define VIRT_IO(pa) ((uintptr_t)(pa) - IO_BASE_PADDR + IO_VADDR)
 
 
 #ifdef __ASSEMBLER__

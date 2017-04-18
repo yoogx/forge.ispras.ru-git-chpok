@@ -18,13 +18,15 @@
 #include "irq.h"
 #include <core/debug.h>
 #include "timer.h"
+#include <arch/memlayout.h>
+
 
 /* BCM2836 (raspberry pi 2) local interrupt controller */
 
-#define CORE0_TIMER_IRQCNTL 0x40000040
-#define CORE1_TIMER_IRQCNTL 0x40000044
-#define CORE2_TIMER_IRQCNTL 0x40000048
-#define CORE3_TIMER_IRQCNTL 0x4000004C
+#define CORE0_TIMER_IRQCNTL VIRT_IO(0x40000040)
+#define CORE1_TIMER_IRQCNTL VIRT_IO(0x40000044)
+#define CORE2_TIMER_IRQCNTL VIRT_IO(0x40000048)
+#define CORE3_TIMER_IRQCNTL VIRT_IO(0x4000004C)
 
 #define TIMER0_IRQ 0x01
 #define TIMER1_IRQ 0x02

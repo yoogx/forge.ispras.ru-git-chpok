@@ -16,7 +16,9 @@
 #ifndef __ARM_IMX6_RAM_H__
 #define __ARM_IMX6_RAM_H__
 
-/* should be at least 1MB aligned */
+/* should be 1MB aligned */
 #define RAM_START_ADDR 0x10000000
+
+#define IO_BASE_PADDR 0x0
 
 #endif

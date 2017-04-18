@@ -20,11 +20,12 @@
 
 #include <libc.h>
 #include <arch/ioports.h>
+#include <arch/memlayout.h>
 
 enum
 {
     // The GPIO registers base address.
-    GPIO_BASE = 0x3F200000, // for raspi2 and raspi3
+    GPIO_BASE = VIRT_IO(0x3F200000), // for raspi2 and raspi3
 
     // The offsets for reach register.
 
@@ -35,7 +36,7 @@ enum
     GPPUDCLK0 = (GPIO_BASE + 0x98),
 
     // The base address for UART.
-    UART0_BASE = 0x3F201000, // for raspi 2 and raspi3
+    UART0_BASE = VIRT_IO(0x3F201000), // for raspi 2 and raspi3
 
     // The offsets for reach register for the UART.
     UART0_DR     = (UART0_BASE + 0x00),

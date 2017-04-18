@@ -21,11 +21,12 @@
 #include <assert.h>
 #include <asp/entries.h>
 #include <common.h>
+#include <arch/memlayout.h>
 
 /* The Generic Timer BCM2836 specific part */
 
-#define CONTROL 0x40000000 // Control register
-#define CORE_TIMER_PRESCALER 0x40000008
+#define CONTROL               VIRT_IO(0x40000000) // Control register
+#define CORE_TIMER_PRESCALER  VIRT_IO(0x40000008)
 
 
 void bcm2836_init_timer(void)
