@@ -22,6 +22,7 @@
 #include <asp/time.h>
 #include <assert.h>
 #include <asp/entries.h>
+#include <arch/memlayout.h>
 
 
 //TODO: should we enable bits in CCM_CCGR1? to use this clock source?
@@ -44,16 +45,16 @@ static time_t base_calendar_time = 1480330081; // On 28.11.2016
 
 #define GIC_GPT_IRQ 87 //irq vector
 
-#define GPT_CR   0x2098000 //GPT Control Register
-#define GPT_PR   0x2098004 //GPT Prescaler Register
-#define GPT_SR   0x2098008 //GPT Status Register
-#define GPT_IR   0x209800C //GPT Interrupt Register
-#define GPT_OCR1 0x2098010 //GPT Output Compare Register 1
-#define GPT_OCR2 0x2098014 //GPT Output Compare Register 2
-#define GPT_OCR3 0x2098018 //GPT Output Compare Register 3
-#define GPT_ICR1 0x209801C //GPT Input Capture Register 1
-#define GPT_ICR2 0x2098020 //GPT Input Capture Register 2
-#define GPT_CNT  0x2098024 //GPT Counter Register
+#define GPT_CR   VIRT_IO(0x2098000) //GPT Control Register
+#define GPT_PR   VIRT_IO(0x2098004) //GPT Prescaler Register
+#define GPT_SR   VIRT_IO(0x2098008) //GPT Status Register
+#define GPT_IR   VIRT_IO(0x209800C) //GPT Interrupt Register
+#define GPT_OCR1 VIRT_IO(0x2098010) //GPT Output Compare Register 1
+#define GPT_OCR2 VIRT_IO(0x2098014) //GPT Output Compare Register 2
+#define GPT_OCR3 VIRT_IO(0x2098018) //GPT Output Compare Register 3
+#define GPT_ICR1 VIRT_IO(0x209801C) //GPT Input Capture Register 1
+#define GPT_ICR2 VIRT_IO(0x2098020) //GPT Input Capture Register 2
+#define GPT_CNT  VIRT_IO(0x2098024) //GPT Counter Register
 
 #define GPT_CR_EN (1<<0) //enable bit
 #define GPT_CR_ENMOD (1<<1)

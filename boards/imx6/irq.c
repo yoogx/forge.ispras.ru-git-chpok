@@ -15,7 +15,9 @@
 
 /* Generic Interrupt Controller (GIC) */
 
-#define SCU_BASE 0xa00000 //Snoop Control Unit address
+#include <arch/memlayout.h>
+
+#define SCU_BASE VIRT_IO(0xa00000) //Snoop Control Unit address
 #define GIC_CPU_BASE  (SCU_BASE + 0x100) //GIC 'CPU Interface' registers
 #define GIC_DIST_BASE (SCU_BASE + 0x1000) //GIC 'Distributor' registers
 

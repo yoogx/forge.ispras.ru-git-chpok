@@ -21,10 +21,11 @@
 
 #include <libc.h>
 #include <arch/ioports.h>
+#include <arch/memlayout.h>
 
 // The base address for UART.
-#define UART1_BASE 0x2020000
-#define UART2_BASE 0x21E8000
+#define UART1_BASE VIRT_IO(0x2020000)
+#define UART2_BASE VIRT_IO(0x21E8000)
 
 /* Register definitions */
 #define URXD 0x0  /* Receiver Register */

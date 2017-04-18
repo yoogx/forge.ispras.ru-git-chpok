@@ -27,13 +27,16 @@
 #define VECTOR_HIGH_VADDR 0xffff0000
 #define VECTOR_PADDR (KERNBASE_PADDR + 0x3fff000)
 
+#define IO_VADDR 0xf0000000
+#define VIRT_IO(pa) ((uintptr_t)(pa) + IO_VADDR)
+
 
 #ifdef __ASSEMBLER__
-#define PHYS(pa) ((pa) - KERNBASE_VADDR + KERNBASE_PADDR)
-#define VIRT(va) ((va) - KERNBASE_PADDR + KERNBASE_VADDR)
+#define PHYS(va) ((va) - KERNBASE_VADDR + KERNBASE_PADDR)
+#define VIRT(pa) ((pa) - KERNBASE_PADDR + KERNBASE_VADDR)
 #else
-#define PHYS(pa) ((uintptr_t)(pa) - KERNBASE_VADDR + KERNBASE_PADDR)
-#define VIRT(va) ((uintptr_t)(va) - KERNBASE_PADDR + KERNBASE_VADDR)
+#define PHYS(va) ((uintptr_t)(va) - KERNBASE_VADDR + KERNBASE_PADDR)
+#define VIRT(pa) ((uintptr_t)(pa) - KERNBASE_PADDR + KERNBASE_VADDR)
 #endif
 
 
