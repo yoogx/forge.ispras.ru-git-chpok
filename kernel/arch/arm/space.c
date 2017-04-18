@@ -104,3 +104,25 @@ void space_init()
         l1_tables[i] = l1_table;
     }
 }
+
+/* Copy data to non-current address space. */
+void ja_copy_to_remote(jet_space_id remote_space_id, void* __remote dst,
+    const void* src, size_t size)
+{
+    // TODO
+    (void)remote_space_id;
+    (void)dst;
+    (void)src;
+    (void)size;
+}
+
+/* Copy data from non-current address space. */
+void ja_copy_from_remote(jet_space_id remote_space_id, void* dst,
+    const void* __remote src, size_t size)
+{
+    // TODO
+    (void)remote_space_id;
+    (void)dst;
+    (void)src;
+    (void)size;
+}
