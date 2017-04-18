@@ -18,8 +18,12 @@
 #include <libc.h>
 #include <arch/mmu.h>
 #include <arch/memlayout.h>
+#include <assert.h>
 
-//TODO check alignment
+
+STATIC_ASSERT(KERNBASE_PADDR%0x100000 == 0); //should be 1MB aligned
+STATIC_ASSERT(KERNBASE_VADDR%0x100000 == 0); //should be 1MB aligned
+
 
 // 1KB aligned
 __attribute__ ((aligned(L2_TABLE_SIZE))) uint32_t vector_l2_table_rw[L2_TABLE_SIZE] = {
