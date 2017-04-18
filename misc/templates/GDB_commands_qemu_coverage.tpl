@@ -41,6 +41,7 @@ load_partition() # register command
 end
 
 define gcov_dump
+    p gcov_dump()
     set $i = 0
     while $i < num_used_partitions
         set $j = part[$i].idx_start
