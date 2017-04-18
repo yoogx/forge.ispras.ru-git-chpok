@@ -20,6 +20,8 @@
 #include <arch/memlayout.h>
 #include <assert.h>
 
+#include <bsp/memory_mapping.h>
+
 
 STATIC_ASSERT(KERNBASE_PADDR%0x100000 == 0); //should be 1MB aligned
 STATIC_ASSERT(KERNBASE_VADDR%0x100000 == 0); //should be 1MB aligned

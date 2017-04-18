@@ -17,24 +17,17 @@
 #
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-"""
-Environment definitions for 'Raspberry Pi 2' board based on Cortex-A7 processor
-"""
+Import('board_env')
 
-Import('env')
+cur_dir = Dir('.').srcnode().abspath
 
-env['ARCH'] = 'arm'
+file_with_title = board_env['JETOS_HOME'] + "/misc/generated.h"
 
-SConscript(env['JETOS_HOME'] + '/misc/arch/arm/SConscript', exports = 'env')
-
-env.Append(CFLAGS = ' -mcpu=cortex-a7')
-env.Append(ASFLAGS = ' -mcpu=cortex-a7')
-
-#env.Append(CFLAGS_USER = ' -mfpu=neon -mfloat-abi=softfp')
-
-env['LDSCRIPT_KERNEL'] = env['JETOS_HOME'] + '/boards/raspi2/ldscripts/kernel.lds'
-
-env['BOARD_IS_EMULATED'] = True
-env.Append(QEMU_FLAGS = ' -M raspi2')
-
-env['BOARD_RAM_START_ADDR'] = 0x0
+board_env.Command(
+    target = cur_dir+'/kernel.lds',
+    source = board_env['JETOS_HOME']+'/kernel/arch/arm/ldscripts/kernel.lds.S',
+    action = Action(
+        "$CC $ASPPFLAGS $CPPFLAGS $_CPPDEFFLAGS $_CPPINCFLAGS -E $SOURCES -P | cat " + file_with_title + " - >$TARGET",
+        '$CPPCOMSTR'
+        )
+)
