@@ -16,7 +16,7 @@
 #ifndef __ARM_MEMLAYOUT_H__
 #define __ARM_MEMLAYOUT_H__
 
-#include <board/ram.h>
+#include <board/memory.h>
 
 /* KERNBASE_ values should be aligned by 1MB */
 #define KERNBASE_PADDR RAM_START_ADDR
