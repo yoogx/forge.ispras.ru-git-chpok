@@ -1,6 +1,7 @@
 /*
  * Automaticaly generated file; DO NOT EDIT.
  */
+
 ENTRY(jet_start)
 __KERNBASE_PADDR = 0x10000000;
 __KERNBASE_VADDR = 0xc0000000;
