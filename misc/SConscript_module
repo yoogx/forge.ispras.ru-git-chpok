@@ -630,6 +630,16 @@ env.Command('coverage_cmd', [], action=[
 env.AlwaysBuild('coverage')
 env.Alias('coverage', 'coverage_cmd')
 
+# TODO: perhaps print some more info
+def print_info(target, source, env):
+    print('arch: ' + env['ARCH'])
+    print('bsp: ' + env['BSP'])
+    print('prefix: ' + env['PREFIX'])
+    print('qemu: ' + env['QEMU'])
+
+env.Command('info_cmd', [], action=Action(print_info, 'info:'))
+env.Alias('info', 'info_cmd')
+
 module_clean_dirs = env.CanonicalCleanList('MODULE_CLEAN_DIRS', module_build_dir)
 module_distclean_dirs = env.CanonicalCleanList('MODULE_DISTCLEAN_DIRS', module_build_dir)
 
