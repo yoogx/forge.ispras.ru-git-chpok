@@ -27,8 +27,7 @@ board_env.Command(
     target = cur_dir+'/kernel.lds',
     source = board_env['JETOS_HOME']+'/kernel/arch/arm/ldscripts/kernel.lds.S',
     action = Action(
-        "$CC $ASPPFLAGS $CPPFLAGS $_CPPDEFFLAGS $_CPPINCFLAGS " + #based on ASPPCOM
-            "-C -P -include " + file_with_title + " -E -o $TARGET $SOURCES",
+        "$CC $ASPPFLAGS $CPPFLAGS $_CPPDEFFLAGS $_CPPINCFLAGS -E $SOURCES -P | cat " + file_with_title + " - >$TARGET",
         '$CPPCOMSTR'
         )
 )
