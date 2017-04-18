@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <asp/entries.h>
 #include <common.h>
+#include "bcm2836_timer.h"
 
 /* The Generic Timer */
 /* Timer has physical and virtual counters. AFAIU QEMU doesn't check

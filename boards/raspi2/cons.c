@@ -126,6 +126,8 @@ void uart_init()
 static size_t iostream_write_common(const char* s, size_t length, int flag)
 {
     (void) flag;
+    (void) length;
+
     char c = *s;
     if (c != '\n')
         uart_putc(c);
@@ -140,6 +142,7 @@ static size_t iostream_write_common(const char* s, size_t length, int flag)
 static size_t iostream_read_common(char* s, size_t length, int flag)
 {
     (void) flag;
+    (void) length;
 
     // Check if there is something
     if (ioread32(UART0_FR) & (1 << 4))
