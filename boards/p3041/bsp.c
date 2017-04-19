@@ -29,8 +29,7 @@ pok_bsp_t pok_bsp = {
     .dcfg_offset = 0xE0000ULL,
     .serial0_regs_offset = 0x11C500ULL,
     .serial1_regs_offset = 0x11C600ULL,
-    /* U-Boot claims that CCB freq (equal to platform clock freq) = 606.061 MHz
-     * Timebase freq = platform_clock/32 */
+    /* True value for MUPD2G is 75757575/4 */
     .timebase_freq = 18939406,
     .pci_bridge = {
         .cfg_addr = 0xfe200000,
