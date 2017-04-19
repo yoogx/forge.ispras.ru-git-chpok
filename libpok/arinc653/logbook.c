@@ -57,7 +57,7 @@ static struct arinc_logbook* find_logbook(const char* name)
 // Debug function: todelete in the future
 void list_of_logbooks()
 {
-    printf("CALL OF LIST_OF_LOGBOOKS():\n");
+    printf("LIST_OF_LOGBOOKS:\n");
     unsigned i = 0;
     for (i = 0; i < arinc_config_nlogbooks; i++)
     {
@@ -184,8 +184,12 @@ void CREATE_LOGBOOK(
     logbook->nb_logged_messages = 0;
     logbook->nb_in_progress_messages = 0;
     logbook->nb_aborted_messages = 0;
+    
+    logbook->is_created = TRUE;
 
     *LOGBOOK_ID = index_to_id(nlogbooks_used);
+    nlogbooks_used++;
+    
     *RETURN_CODE = NO_ERROR;
 }
 
@@ -232,7 +236,13 @@ void GET_LOGBOOK_ID(
     LOGBOOK_ID_TYPE       *LOGBOOK_ID,
     RETURN_CODE_TYPE      *RETURN_CODE)
 {
-	*LOGBOOK_ID = 1;
+    struct arinc_logbook* logbook = find_logbook(LOGBOOK_NAME);
+    if (logbook == NULL)
+    {
+        *RETURN_CODE = INVALID_CONFIG;
+    }
+    
+	*LOGBOOK_ID = index_to_id(logbook - arinc_logbooks);
 	*RETURN_CODE = NO_ERROR;
 }
 
@@ -241,11 +251,28 @@ void GET_LOGBOOK_STATUS(
     LOGBOOK_STATUS_TYPE    *LOGBOOK_STATUS,
     RETURN_CODE_TYPE       *RETURN_CODE)
 {
-	LOGBOOK_STATUS->MAX_MESSAGE_SIZE = 1;
-	LOGBOOK_STATUS->MAX_NB_LOGGED_MESSAGES = 1;
-	LOGBOOK_STATUS->MAX_NB_IN_PROGRESS_MESSAGES = 1;
-	LOGBOOK_STATUS->NB_LOGGED_MESSAGES = 1;
-	LOGBOOK_STATUS->NB_IN_PROGRESS_MESSAGES = 1;
-	LOGBOOK_STATUS->NB_ABORTED_MESSAGES = 1;
+    
+    unsigned index = id_to_index(LOGBOOK_ID);
+    if (index >= nlogbooks_used) 
+    {
+        // Incorrect logbook identificator.
+        *RETURN_CODE = INVALID_PARAM;
+        return;
+    }
+    
+    struct arinc_logbook *logbook = &arinc_logbooks[index];
+    
+    // MUTEX_ENTER
+    // NEED TO ADD!
+
+	LOGBOOK_STATUS->MAX_MESSAGE_SIZE = logbook->max_message_size;
+	LOGBOOK_STATUS->MAX_NB_LOGGED_MESSAGES = logbook->max_nb_logged_messages;
+	LOGBOOK_STATUS->MAX_NB_IN_PROGRESS_MESSAGES = logbook->max_nb_in_progress_messages;
+	LOGBOOK_STATUS->NB_LOGGED_MESSAGES = logbook->nb_logged_messages;
+	LOGBOOK_STATUS->NB_IN_PROGRESS_MESSAGES = logbook->nb_in_progress_messages;
+	LOGBOOK_STATUS->NB_ABORTED_MESSAGES = logbook->nb_aborted_messages;
 	*RETURN_CODE = NO_ERROR;
+    
+    // MUTEX_LEAVE
+    // NEED TO ADD!
 }
