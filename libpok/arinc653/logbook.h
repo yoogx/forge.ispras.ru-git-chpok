@@ -24,7 +24,7 @@
 
 typedef
     enum {
-        ABORTED_ENTRY           = 0,
+        FREE_OR_ABORTED_ENTRY   = 0,
         IN_PROGRESS_ENTRY       = 1,
         COMPLETE_ENTRY          = 2,
         TRANSPORTING_TO_LOGBOOK = 3,
@@ -32,22 +32,9 @@ typedef
 } MESSAGE_STATUS_TYPE;
 
 struct arinc_logbook {
-//  const char          *name;          // Area name, Указывается в конфигурации
-//  const char          *device_name;   // Указывается в конфигурации
     LOGBOOK_NAME_TYPE   logbook_name;
-//  PARTITION_ID_TYPE   partition_id,   // Указывается в конфигурации
-    const char          *owner_partition_name; // Указывается в конфигурации
-    // Поля name, device_name, logbook_name, partition_id с одной стороны почти бесполезны
-    // С другой стороны, их нужно где-то хранить.
-    // Есть в конфигурировании в стиле oc2000
 
-
-//  LOGBOOK_ID_TYPE         logbook_id,                 // В буферах id не хранится
-                                                        // Там id переводится в index -- индекс в массиве буферов
-                                                        // В портах какое-то неэлегантное решение
-                                                        // Но в принципе там тоже id -- индекс в массиве
-                                                        // Можно обойтись без ID бортового журнала в структуре
-    // Следующие три поля инициализируются при конфигурировании и проверяются при создании:
+    // Следующие три поля связаны с размерами, инициализируются при конфигурировании и проверяются при создании:
     MESSAGE_SIZE_TYPE   max_message_size;
     MESSAGE_RANGE_TYPE  max_nb_logged_messages;
     MESSAGE_RANGE_TYPE  max_nb_in_progress_messages;
@@ -71,12 +58,18 @@ struct arinc_logbook {
     // Массив сообщений в буфере и их размеров:
     char* buffer_messages;
     MESSAGE_SIZE_TYPE* buffer_messages_size;
+
+    // База смещения в массиве сообщений в буфере
+    MESSAGE_RANGE_TYPE buffer_base_offset;
+
         
     // Массив сообщений в "NVM" и их размеров:
     char* nvm_messages;
     MESSAGE_SIZE_TYPE* nvm_messages_size;
+    // База смещения в массиве сообщений в NVM
+    MESSAGE_RANGE_TYPE nvm_base_offset;
     MESSAGE_STATUS_TYPE* nvm_messages_status;
-    // MESSAGE_STATUS_TYPE -- придуманный тип, надо будет описать
+    // MESSAGE_STATUS_TYPE -- придуманный тип
     
     // Подумать о массиве статусов сообщений
     // И о защите (запись в уже записываемые ячейки, чтение еще недозаписанных сообщений и т.д.)

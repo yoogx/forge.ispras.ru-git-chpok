@@ -54,6 +54,44 @@ static struct arinc_logbook* find_logbook(const char* name)
    return NULL;
 }
 
+/* Возвращает индекс сообщения в буфере, соответствующего указанному смещению. */
+static MESSAGE_RANGE_TYPE
+buffer_message_index(struct arinc_logbook* logbook, MESSAGE_RANGE_TYPE offset)
+{
+    MESSAGE_RANGE_TYPE res = logbook->buffer_base_offset + offset;
+
+    if (res >= logbook->max_nb_in_progress_messages) 
+        res -= logbook->max_nb_in_progress_messages;
+
+    return res;
+}
+
+/* Возвращает индекс сообщения в NVM, соответствующего указанному смещению. */
+static MESSAGE_RANGE_TYPE
+nvm_message_index(struct arinc_logbook* logbook, MESSAGE_RANGE_TYPE offset)
+{
+    MESSAGE_RANGE_TYPE res = logbook->nvm_base_offset + offset;
+
+    if (res >= logbook->max_nb_logged_messages) 
+        res -= logbook->max_nb_logged_messages;
+
+    return res;
+}
+
+/* Возвращает указатель на сообщение по данному индексу в in-progress-буфере*/
+static char*
+buffer_message_at(struct arinc_logbook* logbook, MESSAGE_RANGE_TYPE index)
+{
+   return logbook->buffer_messages + (logbook->message_stride * index);
+}
+
+/* Возвращает указатель на сообщение по данному индексу в nvm*/
+static char*
+nvm_message_at(struct arinc_logbook* logbook, MESSAGE_RANGE_TYPE index)
+{
+   return logbook->nvm_messages + (logbook->message_stride * index);
+}
+
 // Debug function: todelete in the future
 void list_of_logbooks()
 {
@@ -199,6 +237,51 @@ void WRITE_LOGBOOK(
     MESSAGE_SIZE_TYPE    LENGTH,
     RETURN_CODE_TYPE     *RETURN_CODE)
 {
+    unsigned index = id_to_index(LOGBOOK_ID);
+    if (index >= nlogbooks_used) 
+    {
+        // Incorrect logbook identificator
+        printf("Incorrect identificator\n");
+        *RETURN_CODE = INVALID_PARAM;
+        return;
+    }
+    
+    struct arinc_logbook *logbook = &arinc_logbooks[index];
+    
+    if (LENGTH <= 0 || LENGTH > logbook->max_message_size) 
+    {
+        // LENGTH is non-positive or too big.
+        printf("Incorrect LENGTH\n");
+        *RETURN_CODE = INVALID_PARAM;
+        return;
+    }
+    
+    if (logbook->nb_in_progress_messages == logbook->max_nb_in_progress_messages)
+    {
+        // The underlying NVM is busy
+        *RETURN_CODE = NOT_AVAILABLE;
+        return;
+    }
+    
+    MESSAGE_RANGE_TYPE message_index = buffer_message_index(logbook, logbook->nb_in_progress_messages);
+    char* message_dest = buffer_message_at(logbook, message_index);
+    
+    memcpy(message_dest, MESSAGE_ADDR, LENGTH);
+    logbook->buffer_messages_size[message_index] = LENGTH;
+    logbook->nb_in_progress_messages++;
+
+
+    // What should do with transmition to the NVM?
+    
+    /*
+    message_index = nvm_message_index(logbook, logbook->nb_logged_messages);
+    char* message_dest = nvm_message_at(logbook, message_index);
+    
+    memcpy(message_dest, MESSAGE_ADDR, LENGTH);
+    logbook->nvm_messages_size[message_index] = LENGTH;
+    logbook->nb_logged_messages++;
+    */
+   
 	*RETURN_CODE = NO_ERROR;
 }
 
