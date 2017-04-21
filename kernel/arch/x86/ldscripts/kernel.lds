@@ -52,7 +52,7 @@ SECTIONS
         jet_entry_stack = .;
 
         jet_heap_start = . ;
-        jet_heap_end = . + 0x40000; /* 256 KB for heap  */
+        jet_heap_end = . + 0x500000; /* 5 MB for heap  */
         ASSERT (jet_heap_end < __KERNBASE + 0x800000, "ERROR: KERNEL SIZE > 8MB. If you want more then you should change this check and add pages in kernel_pgdir.c (you should update both entry_pgdir and pgdir_insert_kernel_mapping)");
     }
 
