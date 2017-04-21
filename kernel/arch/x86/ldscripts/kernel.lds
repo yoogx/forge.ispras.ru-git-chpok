@@ -32,6 +32,15 @@ SECTIONS
         *(.data)
     }
 
+    .ctors :
+    {
+        __CTOR_START__ = .;
+        LONG((__CTOR_END__ - __CTOR_START__) / 4 - 2)
+        *(SORT(.ctors))
+        LONG(0)
+        __CTOR_END__ = .;
+    }
+
     .bss :
     {
         *(.bss)
