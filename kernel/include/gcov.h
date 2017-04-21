@@ -119,6 +119,17 @@ struct gcov_shared_data {
     struct gcov_info *gcov_info_head[];
 };
 
+#define DEFAULT_GCOV_ENTRY_COUNT 400
+#define GCOV_HEXDUMP_BUF_SIZE 10000
+#define GCOV_MAX_DATA_SIZE (GCOV_HEXDUMP_BUF_SIZE * DEFAULT_GCOV_ENTRY_COUNT)
+#define GCOV_MAX_FILENAME_LENGTH 200
+
+struct gcov_entry_t {
+    uint32_t data_start;
+    uint32_t data_end;
+    char *filename;
+};
+
 // call the coverage initializers if not done by startup code
 void pok_gcov_init(void);
 

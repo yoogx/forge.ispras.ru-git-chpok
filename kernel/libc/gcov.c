@@ -19,6 +19,7 @@
 
 #include <config.h>
 
+#include <alloc.h>
 #include <libc.h>
 #include <gcov.h>
 #include <core/partition_arinc.h>
@@ -137,31 +138,6 @@ static size_t convert_to_gcda(unsigned char *buffer, struct gcov_info *info)
     return pos;
 }
 
-#define DEFAULT_GCOV_ENTRY_COUNT 400
-#define GCOV_HEXDUMP_BUF_SIZE 10000
-
-#define GCOV_MAX_DATA_SIZE (GCOV_HEXDUMP_BUF_SIZE * DEFAULT_GCOV_ENTRY_COUNT)
-
-unsigned char data[GCOV_MAX_DATA_SIZE];
-
-#define GCOV_MAX_FILENAME_LENGTH 200
-char filenames[DEFAULT_GCOV_ENTRY_COUNT * GCOV_MAX_FILENAME_LENGTH];
-static size_t name_offset = 0;
-static size_t total_size = 0;
-
-struct gcov_entry_t {
-    char *filename;
-    uint32_t data_start;
-    uint32_t data_end;
-};
-
-struct gcov_entry_t entry[DEFAULT_GCOV_ENTRY_COUNT];
-
-static struct gcov_info *gcov_info_head[DEFAULT_GCOV_ENTRY_COUNT];
-
-static size_t num_entries_kernel = 0;
-static size_t num_entries_partitions = 0;
-
 static size_t dump_gcov_entry(unsigned char *to_buffer, struct gcov_info *info)
 {
     if (info == NULL) {
@@ -180,11 +156,19 @@ static size_t dump_gcov_entry(unsigned char *to_buffer, struct gcov_info *info)
     return sz;
 }
 
+static unsigned char *data;
+
+static struct gcov_entry_t *entry;
+
+static struct gcov_info **gcov_info_head;
+
+static size_t total_size = 0;
+static size_t num_entries_kernel = 0;
+static size_t num_entries_partitions = 0;
+
 void fill_entry(struct gcov_info *info, size_t offset)
 {
-    entry[offset].filename = filenames + name_offset;
     memcpy(entry[offset].filename, info->filename, strlen(info->filename) + 1);
-    name_offset += strlen(info->filename) + 1;
 
     // offset in common buffer
     entry[offset].data_start = (uint32_t)data + total_size;
@@ -251,6 +235,24 @@ void __gcov_init(struct gcov_info *info)
 
 /* Call the coverage initializers if not done by startup code */
 void pok_gcov_init(void) {
+    data = ja_mem_alloc_aligned(
+        GCOV_MAX_DATA_SIZE * sizeof(unsigned char),
+        __alignof__(unsigned char));
+
+    entry = ja_mem_alloc_aligned(
+        DEFAULT_GCOV_ENTRY_COUNT * sizeof(struct gcov_entry_t),
+        __alignof__(struct gcov_entry_t));
+
+    for (size_t i = 0; i < DEFAULT_GCOV_ENTRY_COUNT; i++) {
+        entry[i].filename = ja_mem_alloc_aligned(
+            GCOV_MAX_FILENAME_LENGTH * sizeof(char),
+            __alignof__(char));
+    }
+
+    gcov_info_head = ja_mem_alloc_aligned(
+        DEFAULT_GCOV_ENTRY_COUNT * sizeof(struct gcov_info*),
+        __alignof__(struct gcov_info*));
+
     extern uint32_t __CTOR_START__, __CTOR_END__; // linker defined symbols
     uint32_t start = (uint32_t)(&__CTOR_START__ + 1);
     uint32_t end = (uint32_t)(&__CTOR_END__ - 1);
