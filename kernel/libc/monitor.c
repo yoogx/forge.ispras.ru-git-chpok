@@ -101,8 +101,6 @@ int cpu_reset(int argc, char **argv); //cpu reset
 
 int info_partition(int argc,char ** argv);
 
-int dump_gcov(int argc,char ** argv);
-
 struct Command {
     const char *name;
     const char *argc;
@@ -120,7 +118,6 @@ static struct Command commands[] = {
     {"restart", "/N/" ,"Restart partition N",restart_N},
     {"reset", "" ,"reset cpu", cpu_reset},
     {"exit", "" ,"Exit from console",exit_from_monitor},
-    {"dump", "", "Dump gcov data", dump_gcov}
 };
 
 /*
@@ -312,20 +309,6 @@ exit_from_monitor(int argc, char **argv){
     want_to_exit=TRUE;
     return 0;
 
-}
-
-int
-dump_gcov(int argc, char **argv)
-{
-    if (argc > 1) {
-        printf("Too many arguments for dump_gcov!\n");
-        return 0;
-    }
-
-    (void) argv;
-    gcov_dump();
-    printf("You can now call 'gcov_dump' in gdb\n");
-    return 0;
 }
 
 int cpu_reset(int argc, char **argv)
