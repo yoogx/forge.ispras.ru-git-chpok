@@ -330,6 +330,17 @@ void thread_stop(pok_thread_t* t)
     }
 }
 
+/*
+ * Whether current thread is allowed to wait.
+ *
+ * Things which prohibit waiting:
+ *
+ *  - thread holds preemption lock
+ *  - thread is an error handler
+ *  - [IPPC] thread is an IPPC handler and its client thread cannot wait.
+ *
+ * [msection] - attempt to wait under msection cause partition's error.
+ */
 pok_bool_t thread_is_waiting_allowed(void)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
@@ -430,7 +441,7 @@ static void server_thread_wait_generic(pok_thread_t* t, pok_time_t timeout)
         // The only reason of failing to stop is cancelled state.
         // In case of .cannot_wait flag waiting shouldn't be attempted.
         assert(t->ippc_server_connection->is_cancelled);
-        t->wait_result = POK_ERRNO_CANCELLED;
+        t->wait_result = JET_CANCELLED;
     }
 }
 
@@ -449,7 +460,7 @@ void thread_wait(pok_thread_t* t)
 
 void thread_wait_timeout(pok_thread_t* t)
 {
-    pok_ret_t wait_result = POK_ERRNO_TIMEOUT;
+    jet_ret_t wait_result = ETIMEDOUT;
 
     assert(t->state == POK_STATE_WAITING);
 
@@ -462,7 +473,7 @@ void thread_wait_timeout(pok_thread_t* t)
 
     if(t->ippc_connection) {
         if(!jet_ippc_connection_continue(t->ippc_connection)) {
-            wait_result = POK_ERRNO_OK; // Actually, in case of IPPC request wait result has no sence.
+            wait_result = EOK; // Actually, in case of IPPC request wait result has no sence.
         }
     }
 
@@ -475,7 +486,7 @@ void thread_wait_timeout(pok_thread_t* t)
 
 void thread_wait_cancel(pok_thread_t* t)
 {
-    pok_ret_t wait_result = POK_ERRNO_CANCELLED;
+    jet_ret_t wait_result = JET_CANCELLED;
 
     assert(t->state == POK_STATE_WAITING);
 
@@ -495,7 +506,7 @@ void thread_wait_cancel(pok_thread_t* t)
     if(t->ippc_server_connection) {
         if(!jet_ippc_connection_unpause(t->ippc_server_connection)) {
             if(!t->ippc_server_connection->is_cancelled) {
-                wait_result = POK_ERRNO_TIMEOUT;
+                wait_result = ETIMEDOUT;
             }
         }
     }
@@ -513,21 +524,21 @@ void thread_wake_up(pok_thread_t* t)
 
     t->state = POK_STATE_RUNNABLE;
 
-    pok_ret_t wait_result = POK_ERRNO_OK;
+    jet_ret_t wait_result = EOK;
 
     if(t->ippc_server_connection) {
         struct jet_ippc_connection* connection = t->ippc_server_connection;
 
         if(!jet_ippc_connection_unpause(connection)) {
             wait_result = connection->is_cancelled
-                ? POK_ERRNO_CANCELLED
-                : POK_ERRNO_TIMEOUT;
+                ? JET_CANCELLED
+                : ETIMEDOUT;
         }
     }
     else {
         // Cancel possible timeout.
         thread_delay_event_cancel(t);
-        wait_result = POK_ERRNO_OK;
+        wait_result = EOK;
 
         if(!t->suspended) {
             thread_set_eligible(t);
@@ -570,7 +581,7 @@ static void thread_resume_waited(pok_thread_t* t)
     t->state = POK_STATE_RUNNABLE;
 
     // Set flag that we has been interrupted by timeout.
-    t->wait_result = POK_ERRNO_TIMEOUT;
+    t->wait_result = ETIMEDOUT;
 
     thread_set_eligible(t);
 }
@@ -595,7 +606,7 @@ void thread_resume(pok_thread_t* t)
         thread_delay_event_cancel(t);
 
             // Set flag that we doesn't hit timeout.
-            t->wait_result = POK_ERRNO_OK;
+            t->wait_result = EOK;
     }
 
     if(t->state == POK_STATE_RUNNABLE)

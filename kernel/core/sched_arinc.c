@@ -545,7 +545,7 @@ void pok_sched_local_invalidate_main(void)
         pok_sched_local_invalidate();
 }
 
-pok_ret_t jet_resched(void)
+jet_ret_t jet_resched(void)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
 
@@ -568,5 +568,5 @@ pok_ret_t jet_resched(void)
 
     pok_preemption_local_enable();
 
-    return POK_ERRNO_OK;
+    return EOK;
 }

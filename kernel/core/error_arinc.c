@@ -46,7 +46,19 @@ const char* error_thread_name = "Error_Handler";
 
 #define ERROR_THREAD_PRIORITY 254
 
-pok_ret_t pok_error_thread_create (uint32_t stack_size, void* __user entry)
+/*
+ * Create error thread.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - JET_INVALID_MODE - mode is NORMAL
+ *  - EEXIST - error thread already exists.
+ *  - EINVAL - 'entry' cannot be executed. [Not in ARINC]
+ *  - JET_INVALID_CONFIG - cannot create thread with given stack.
+ */
+jet_ret_t pok_error_thread_create (uint32_t stack_size, void* __user entry)
 {
     pok_thread_t* t;
     pok_partition_arinc_t* part = current_partition_arinc;
@@ -55,18 +67,18 @@ pok_ret_t pok_error_thread_create (uint32_t stack_size, void* __user entry)
      * We can create a thread only if the partition is in INIT mode
      */
     if (part->mode == POK_PARTITION_MODE_NORMAL) {
-        return POK_ERRNO_PARTITION_MODE;
+        return JET_INVALID_MODE;
     }
 
     if(part->thread_error)
-        return POK_ERRNO_EXISTS;
+        return EEXIST;
 
     // There is always a place for the error thread.
     assert(part->nthreads_used < part->nthreads);
 
     // do at least basic check of entry point
     if (!jet_check_access_exec(entry)) {
-        return POK_ERRNO_PARAM;
+        return EINVAL;
     }
 
 
@@ -81,7 +93,7 @@ pok_ret_t pok_error_thread_create (uint32_t stack_size, void* __user entry)
     t->user_stack_size = stack_size;
 
     if(!thread_create(t))
-       return POK_ERRNO_UNAVAILABLE;
+       return JET_INVALID_CONFIG;
 
     // Update kernel shared data
     part->kshd->error_thread_id = part->nthreads_used;
@@ -90,7 +102,7 @@ pok_ret_t pok_error_thread_create (uint32_t stack_size, void* __user entry)
 
     part->thread_error = t;
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
 // Should be called with local preemption disabled.
@@ -292,7 +304,17 @@ void pok_thread_emit_deadline_oor(pok_thread_t* thread)
     thread_add_error_bit(thread, POK_THREAD_ERROR_BIT_DEADLINE_OOR);
 }
 
-pok_ret_t pok_error_raise_application_error (const char* __user msg, size_t msg_size)
+/*
+ * Raise application error for HM.
+ *
+ * Return EOK on success (or doesn't return at all).
+ *
+ * Possible error codes:
+ *
+ *  - EFAULT - 'msg' refers to inaccessible memory.
+ *  - EINVAL - msg_size is 0 or more than maximumm allowable error message size.
+ */
+jet_ret_t pok_error_raise_application_error (const char* __user msg, size_t msg_size)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
     pok_thread_t* thread = part->thread_current;
@@ -301,12 +323,12 @@ pok_ret_t pok_error_raise_application_error (const char* __user msg, size_t msg_
     const char* __kuser k_msg;
 
     if (msg_size > POK_ERROR_MAX_MSG_SIZE || msg_size == 0) {
-        return POK_ERRNO_EINVAL;
+        return EINVAL;
     }
 
     k_msg = jet_user_to_kernel_ro(msg, msg_size);
 
-    if (!k_msg) return POK_ERRNO_EFAULT;
+    if (!k_msg) return EFAULT;
 
     if(thread == part->thread_error)
     {
@@ -318,7 +340,7 @@ pok_ret_t pok_error_raise_application_error (const char* __user msg, size_t msg_
     }
 
     if(process_error_partition(partition_state, POK_ERROR_ID_APPLICATION_ERROR))
-        return POK_ERRNO_OK;
+        return EOK;
 
     assert(part->thread_error);
     assert(part->thread_current != part->thread_error);
@@ -332,10 +354,10 @@ pok_ret_t pok_error_raise_application_error (const char* __user msg, size_t msg_
 
     pok_preemption_local_enable();
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
-pok_ret_t pok_error_raise_os_error (const char* __user msg, size_t msg_size)
+jet_ret_t pok_error_raise_os_error (const char* __user msg, size_t msg_size)
 {
     const char* __kuser k_msg;
 
@@ -349,7 +371,7 @@ pok_ret_t pok_error_raise_os_error (const char* __user msg, size_t msg_size)
 
 out:
     if(process_error_partition(POK_SYSTEM_STATE_OS_PART, POK_ERROR_ID_APPLICATION_ERROR))
-        return POK_ERRNO_OK;
+        return EOK;
 
     // Should never return.
     while(1)
@@ -394,7 +416,18 @@ static void copy_error_to_user(pok_error_id_t error_id,
     k_status->error_kind = get_error_kind(error_id);
 }
 
-pok_ret_t pok_error_get (pok_error_status_t* __user status,
+/*
+ * Extract status of the last non-processed error and mark it as processed.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - JET_INVALID_MODE - current thread is not an error thread.
+ *  - EFAULT - 'status' or 'msg' points to inaccessible memory.
+ *  - EAGAIN - there is no errors in the queue.
+ */
+jet_ret_t pok_error_get (pok_error_status_t* __user status,
     void* __user msg)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
@@ -404,16 +437,16 @@ pok_ret_t pok_error_get (pok_error_status_t* __user status,
     void* __user failed_addr = NULL;
 
     if (part->thread_current != part->thread_error) {
-        return POK_ERRNO_THREAD;
+        return JET_INVALID_MODE;
     }
 
-    if(list_empty(&part->error_list)) return POK_ERRNO_UNAVAILABLE;
+    if(list_empty(&part->error_list)) return EAGAIN;
 
     pok_error_status_t* __kuser k_status = jet_user_to_kernel_typed(status);
-    if(!k_status) return POK_ERRNO_EFAULT;
+    if(!k_status) return EFAULT;
 
     void* __kuser k_msg = jet_user_to_kernel(msg, POK_ERROR_MAX_MSG_SIZE);
-    if(!k_msg) return POK_ERRNO_EFAULT;
+    if(!k_msg) return EFAULT;
 
     thread = list_first_entry(&part->error_list, pok_thread_t, error_elem);
 
@@ -457,7 +490,7 @@ pok_ret_t pok_error_get (pok_error_status_t* __user status,
     k_status->failed_thread = thread - part->threads;
     k_status->failed_addr =  (uintptr_t)failed_addr;
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
 void error_ignore_sync(void)

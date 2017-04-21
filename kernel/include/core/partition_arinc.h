@@ -340,13 +340,13 @@ void pok_partition_arinc_reset(pok_partition_mode_t mode);
  */
 void pok_partition_arinc_idle(void);
 
-pok_ret_t pok_partition_set_mode_current (const pok_partition_mode_t mode);
+jet_ret_t pok_partition_set_mode_current (const pok_partition_mode_t mode);
 
-pok_ret_t pok_current_partition_get_status (pok_partition_status_t* status);
+jet_ret_t pok_current_partition_get_status (pok_partition_status_t* status);
 
-pok_ret_t pok_current_partition_inc_lock_level(int32_t *lock_level);
+jet_ret_t pok_current_partition_inc_lock_level(int32_t *lock_level);
 
-pok_ret_t pok_current_partition_dec_lock_level(int32_t *lock_level);
+jet_ret_t pok_current_partition_dec_lock_level(int32_t *lock_level);
 
 
 /*

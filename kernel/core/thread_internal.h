@@ -124,9 +124,9 @@ static inline void thread_wait_common(pok_thread_t* t, pok_time_t duration)
  *
  * Thread is removed from delayed_event queue and all "conditions" queues.
  *
- * Wait result (normally, POK_ERRNO_CANCELLED) is written to .wait_result field.
+ * Wait result (normally, JET_CANCELLED) is written to .wait_result field.
  * Exception could be in case when thread executes some IPPC request which
- * has been timeouted by the client. In that case POK_ERRNO_TIMEOUT is used.
+ * has been timeouted by the client. In that case ETIMEDOUT is used.
  */
 void thread_wait_cancel(pok_thread_t* t);
 /*
@@ -134,7 +134,7 @@ void thread_wait_cancel(pok_thread_t* t);
  *
  * Thread should be already removed from delayed_event queue.
  *
- * Wait result POK_ERRNO_TIMEOUT is written to .wait_result field.
+ * Wait result ETIMEDOUT is written to .wait_result field.
  *
  * The function can be used for IPPC timeouts obtained from the client.
  */
@@ -146,10 +146,10 @@ void thread_wait_timeout(pok_thread_t* t);
  * It is assumed that thread has already deleted itself from queue
  * which is fired.
  *
- * Wait result (normally, POK_ERRNO_OK) is written to .wait_result field.
+ * Wait result (normally, EOK) is written to .wait_result field.
  * Exception could be in case when thread executes some IPPC request which
  * has been timeouted/cancelled by the client. For such cases result is
- * POK_ERRNO_TIMEOUT/POK_ERRNO_CANCELLED correspondingly.
+ * ETIMEDOUT/JET_CANCELLED correspondingly.
  *
  * This function can be used when:
  *   1. Thread sleeps (on `thread_delayed_event`),

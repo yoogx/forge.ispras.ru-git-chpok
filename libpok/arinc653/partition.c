@@ -24,14 +24,14 @@
 #include <errno.h>
 #include <utils.h>
 
-#define MAP_ERROR(from, to) case (from): *return_code = (to); break
-#define MAP_ERROR_DEFAULT(to) default: *return_code = (to); break
+#include "map_error.h"
 
 void GET_PARTITION_STATUS (PARTITION_STATUS_TYPE *partition_status,
-                           RETURN_CODE_TYPE      *return_code)
+                           RETURN_CODE_TYPE      *RETURN_CODE)
 {
   pok_partition_status_t core_status;
 
+  // EFAULT is impossible here.
   pok_current_partition_get_status(&core_status);
 
   partition_status->IDENTIFIER = core_status.id;
@@ -50,14 +50,14 @@ void GET_PARTITION_STATUS (PARTITION_STATUS_TYPE *partition_status,
 
   partition_status->START_CONDITION = core_status.start_condition; // TODO proper conversion
 
-  *return_code = NO_ERROR;
+  *RETURN_CODE = NO_ERROR;
 }
 
 void SET_PARTITION_MODE (OPERATING_MODE_TYPE operating_mode,
-                         RETURN_CODE_TYPE *return_code)
+                         RETURN_CODE_TYPE *RETURN_CODE)
 {
   pok_partition_mode_t core_mode;
-  pok_ret_t            core_ret;
+  jet_ret_t            core_ret;
 
    switch (operating_mode)
    {
@@ -78,16 +78,17 @@ void SET_PARTITION_MODE (OPERATING_MODE_TYPE operating_mode,
          break;
 
       default:
-         *return_code = INVALID_PARAM;
+         *RETURN_CODE = INVALID_PARAM;
          return;
    }
 
    core_ret = pok_partition_set_mode (core_mode);
 
-   switch (core_ret) {
-      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-      MAP_ERROR(POK_ERRNO_UNAVAILABLE, NO_ACTION);
-      MAP_ERROR(POK_ERRNO_PARTITION_MODE, INVALID_MODE);
-      MAP_ERROR_DEFAULT(INVALID_PARAM);
-   }
+   MAP_ERROR_BEGIN (core_ret)
+      MAP_ERROR(EOK, NO_ERROR);
+      MAP_ERROR(JET_NOACTION, NO_ACTION);
+      MAP_ERROR(JET_INVALID_MODE, INVALID_MODE);
+      // EINVAL is impossible
+      MAP_ERROR_DEFAULT();
+   MAP_ERROR_END()
 }

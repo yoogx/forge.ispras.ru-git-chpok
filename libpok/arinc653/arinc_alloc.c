@@ -28,10 +28,10 @@ void arinc_allocator_init(void)
 {
     jet_memory_block_status_t arinc_heap_status;
 
-    pok_ret_t ret = jet_memory_block_get_status(".ARINC_HEAP",
+    jet_ret_t ret = jet_memory_block_get_status(".ARINC_HEAP",
         &arinc_heap_status);
 
-    if(ret != POK_ERRNO_OK) {
+    if(ret != EOK) {
         printf("ERROR: Memory block for ARINC heap is not created.\n");
         printf("NOTE: Report this error to the developers.\n");
         abort();

@@ -29,6 +29,8 @@
 #include "arinc_config.h"
 #include "arinc_process_queue.h"
 
+#include "map_error.h"
+
 static unsigned nblackboards_used = 0;
 
 static inline BLACKBOARD_ID_TYPE index_to_id(unsigned index)
@@ -140,7 +142,7 @@ void DISPLAY_BLACKBOARD (
    blackboard->message_size = LENGTH;
 
    if(msection_wq_notify(&blackboard->section, &blackboard->process_queue, TRUE)
-      == POK_ERRNO_OK) {
+      == EOK) {
       // There are processes waiting on an empty blackboard.
       // We are already woken up them.
       pok_thread_id_t t = blackboard->process_queue.first;
@@ -167,7 +169,7 @@ void READ_BLACKBOARD (
        /*out*/ MESSAGE_SIZE_TYPE        *LENGTH,
        /*out*/ RETURN_CODE_TYPE         *RETURN_CODE )
 {
-    unsigned index = id_to_index(BLACKBOARD_ID);
+   unsigned index = id_to_index(BLACKBOARD_ID);
    if (index >= nblackboards_used) {
       // Incorrect blackboard identificator.
       *RETURN_CODE = INVALID_PARAM;
@@ -199,31 +201,34 @@ void READ_BLACKBOARD (
 
       /*
        * ARINC explicitely says, that:
-       * 
+       *
        * If processes were waiting on the empty blackboard, the
        * processes will be released on a priority followed by FIFO (when
        * priorities are equal) basis.
        */
       arinc_process_queue_add_common(&blackboard->process_queue, PRIORITY);
 
-      switch(msection_wait(&blackboard->section, TIME_OUT))
+      jet_ret_t core_ret = msection_wait(&blackboard->section, TIME_OUT);
+
+      MAP_ERROR_BEGIN(core_ret)
+         MAP_ERROR(EOK, NO_ERROR);
+         MAP_ERROR(JET_INVALID_MODE, INVALID_MODE);
+         MAP_ERROR(ETIMEDOUT, TIMED_OUT);
+         MAP_ERROR_CANCELLED();
+         MAP_ERROR_DEFAULT();
+      MAP_ERROR_END()
+
+      switch(core_ret)
       {
-      case POK_ERRNO_OK:
+      case EOK:
          // Message is already copied from the blackboard by the notifier.
          *LENGTH = kshd->tshd[t].wq_len;
-         *RETURN_CODE = NO_ERROR;
          break;
-      case POK_ERRNO_MODE: // Waiting is not allowed
-      case POK_ERRNO_CANCELLED: // Thread has been STOP()-ed or [IPPC] server thread has been cancelled.
+      case JET_INVALID_MODE: // Waiting is not allowed
+      case JET_CANCELLED: // Thread has been STOP()-ed or [IPPC] server thread has been cancelled.
+      case ETIMEDOUT: // Timeout
          msection_wq_del(&blackboard->process_queue, t);
          *LENGTH = 0;
-         *RETURN_CODE = INVALID_MODE;
-         break;
-      case POK_ERRNO_TIMEOUT:
-         // Timeout
-         msection_wq_del(&blackboard->process_queue, t);
-         *LENGTH = 0;
-         *RETURN_CODE = TIMED_OUT;
          break;
       default:
          assert_os(FALSE);

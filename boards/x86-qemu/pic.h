@@ -31,7 +31,7 @@
 #define PIC_SLAVE_ICW3 0x02
 #define PIC_SLAVE_ICW4 0x01
 
-int		pok_pic_init();
+void		pok_pic_init(void);
 int		pok_pic_mask(uint8_t irq);
 int		pok_pic_unmask(uint8_t irq);
 void		pok_pic_eoi(uint8_t irq);

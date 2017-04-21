@@ -205,23 +205,23 @@ static pok_bool_t ippc_check_access(struct jet_ippc_connection* connection,
 /*
  * Prepare for copyiing to the client.
  *
- * Return POK_ERRNO_OK on success.
+ * Return EOK on success.
  *
- * Return POK_ERRNO_EFAULT if access to the client range is forbidden.
+ * Return EFAULT if access to the client range is forbidden.
  */
-pok_ret_t jet_ippc_connection_copy_to_client_init(
+jet_ret_t jet_ippc_connection_copy_to_client_init(
     struct jet_ippc_connection* connection,
     struct jet_ippc_remote_access_state* ra_state,
     void* __user dst, // User address in the client
     const void* src, // Kernel(!) address in the server
     size_t n)
 {
-    if(!ippc_check_access(connection, dst, n, TRUE)) return POK_ERRNO_EFAULT;
+    if(!ippc_check_access(connection, dst, n, TRUE)) return EFAULT;
 
     const struct memory_block* mb = jet_partition_get_memory_block_for_addr(
         connection->client_part, dst, n);
 
-    if((mb->maccess & MEMORY_BLOCK_ACCESS_WRITE) == 0) return POK_ERRNO_EFAULT;
+    if((mb->maccess & MEMORY_BLOCK_ACCESS_WRITE) == 0) return EFAULT;
 
     void* __remote dst_remote = jet_memory_block_get_remote_addr(mb, dst);
 
@@ -234,29 +234,29 @@ pok_ret_t jet_ippc_connection_copy_to_client_init(
     ra_state->is_completed = FALSE;
     ra_state->is_cancelled = FALSE;
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
 /*
  * Prepare for copyiing from the client.
  *
- * Return POK_ERRNO_OK on success.
+ * Return EOK on success.
  *
- * Return POK_ERRNO_EFAULT if access to the client range is forbidden.
+ * Return EFAULT if access to the client range is forbidden.
  */
-pok_ret_t jet_ippc_connection_copy_from_client_init(
+jet_ret_t jet_ippc_connection_copy_from_client_init(
     struct jet_ippc_connection* connection,
     struct jet_ippc_remote_access_state* ra_state,
     void* dst, // Kernel(!) address in the server
     const void* __user src, // User address in the client
     size_t n)
 {
-    if(!ippc_check_access(connection, src, n, FALSE)) return POK_ERRNO_EFAULT;
+    if(!ippc_check_access(connection, src, n, FALSE)) return EFAULT;
 
     const struct memory_block* mb = jet_partition_get_memory_block_for_addr(
         connection->client_part, src, n);
 
-    if((mb->maccess & MEMORY_BLOCK_ACCESS_READ) == 0) return POK_ERRNO_EFAULT;
+    if((mb->maccess & MEMORY_BLOCK_ACCESS_READ) == 0) return EFAULT;
 
     void* __remote src_remote = jet_memory_block_get_remote_addr(mb, src);
 
@@ -269,7 +269,7 @@ pok_ret_t jet_ippc_connection_copy_from_client_init(
     ra_state->is_completed = FALSE;
     ra_state->is_cancelled = FALSE;
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
 /*
@@ -426,12 +426,12 @@ jet_ippc_connection_get_state(struct jet_ippc_connection* connection)
     return ret;
 }
 
-pok_ret_t jet_ippc_connection_set_access_windows(
+jet_ret_t jet_ippc_connection_set_access_windows(
     struct jet_ippc_connection* connection,
     const struct jet_ippc_client_access_window* access_windows,
     int n)
 {
-    if((n < 0) || (n > IPPC_MAX_ACCESS_WINDOWS_N)) return POK_ERRNO_EINVAL;
+    if((n < 0) || (n > IPPC_MAX_ACCESS_WINDOWS_N)) return EINVAL;
 
     // TODO: Currently created array is unordered.
     // Checks for interleaving are missed too.
@@ -444,14 +444,14 @@ pok_ret_t jet_ippc_connection_set_access_windows(
         access_range->start = access_window->start;
         access_range->end = (const char* __user)access_window->start + access_window->size;
 
-        if(access_range->end <= access_range->start) return POK_ERRNO_EINVAL;
+        if(access_range->end <= access_range->start) return EINVAL;
 
         access_range->is_writable = access_window->is_writable;
     }
 
     connection->access_ranges_n = n;
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
 

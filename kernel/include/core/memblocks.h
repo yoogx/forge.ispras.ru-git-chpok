@@ -95,7 +95,7 @@ void* __remote jet_memory_block_get_remote_addr(const struct memory_block* mbloc
     const void* __user addr);
 
 
-pok_ret_t jet_memory_block_get_status(
+jet_ret_t jet_memory_block_get_status(
     const char* __user name,
     jet_memory_block_status_t* __user status);
 
