@@ -91,8 +91,6 @@ typedef enum
      POK_SYSCALL_IPPC_RETURN                         = 755,
      POK_SYSCALL_IPPC_COPY_TO_CLIENT                 = 756,
      POK_SYSCALL_IPPC_COPY_FROM_CLIENT               = 757,
-
-     POK_SYSCALL_GCOV_INIT                           = 801,
 } pok_syscall_id_t;
 
 #endif /* __LIBJET_SYSCALL_TYPES_H__ */

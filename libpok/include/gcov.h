@@ -21,6 +21,7 @@
 #define __POK_LIBPOK_GCOV_H__
 
 #include <config.h>
+#include <stddef.h>
 
 #ifdef POK_NEEDS_GCOV
 
@@ -112,6 +113,13 @@ struct gcov_info {
     unsigned int n_functions;
     struct gcov_fn_info **functions;
 };
+
+struct gcov_shared_data {
+    size_t num_used_gcov_entries;
+    struct gcov_info *gcov_info_head[];
+};
+
+extern struct gcov_shared_data* gcov_part_data;
 
 // call the coverage initializers if not done by startup code
 void pok_gcov_init(void);

@@ -23,11 +23,12 @@
 #include <conftree.h>
 
 #ifdef POK_NEEDS_GCOV
-#include <libc/gcov.h>
+#include <gcov.h>
 #endif
 
 struct jet_kernel_shared_data* kshd;
 jet_pt_tree_t part_config_tree;
+struct gcov_shared_data* gcov_part_data;
 
 void main(void);
 
@@ -81,10 +82,6 @@ static void default_thread_entry_wrapper(void)
 
 int __pok_partition_start (void)
 {
-#ifdef POK_NEEDS_GCOV
-   pok_gcov_init();
-#endif
-
    jet_memory_block_status_t kshd_status;
 
    if(jet_memory_block_get_status(".KSHD", &kshd_status) != POK_ERRNO_OK) {
@@ -111,6 +108,19 @@ int __pok_partition_start (void)
        printf("ERROR: Invalid format of the partition's configuration tree");
        abort();
    }
+
+   jet_memory_block_status_t gcov_status;
+
+   if(jet_memory_block_get_status(".GCOV", &gcov_status) != POK_ERRNO_OK) {
+       printf("ERROR: No '.GCOV' memory block");
+       abort();
+   }
+
+   gcov_part_data = (void*)gcov_status.addr;
+
+#ifdef POK_NEEDS_GCOV
+   pok_gcov_init();
+#endif
 
    smalloc_init();
 

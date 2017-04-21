@@ -43,20 +43,16 @@ end
 define gcov_dump
     p gcov_dump()
     set $i = 0
-    while $i < num_used_partitions
-        set $j = part[$i].idx_start
-        while $j < part[$i].idx_end
-            set $filename = entry[$j].filename
+    while $i < num_entries_kernel + num_entries_partitions
+        set $filename = entry[$i].filename
 
             python
 # filename looks like 0x1e6359 <filenames+497> "absolute_file_path"
 name = str(gdb.parse_and_eval("$filename")).partition("\"")[2]
 name = name.replace("\"", "")
-gdb.execute('eval "dump binary memory ' + name + ' 0x%x 0x%x", entry[$j].data_start, entry[$j].data_end')
-            end
-
-            set $j++
+gdb.execute('eval "dump binary memory ' + name + ' 0x%x 0x%x", entry[$i].data_start, entry[$i].data_end')
         end
+
         set $i++
     end
     

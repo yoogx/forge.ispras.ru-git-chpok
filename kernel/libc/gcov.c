@@ -21,7 +21,8 @@
 
 #include <libc.h>
 #include <gcov.h>
-#include <core/partition.h>
+#include <core/partition_arinc.h>
+#include <core/uaccess.h>
 
 #ifdef POK_NEEDS_GCOV
 
@@ -145,10 +146,10 @@ unsigned char data[GCOV_MAX_DATA_SIZE];
 
 #define GCOV_MAX_FILENAME_LENGTH 200
 char filenames[DEFAULT_GCOV_ENTRY_COUNT * GCOV_MAX_FILENAME_LENGTH];
-size_t name_offset = 0;
+static size_t name_offset = 0;
+static size_t total_size = 0;
 
 struct gcov_entry_t {
-    pok_partition_id_t part_id;
     char *filename;
     uint32_t data_start;
     uint32_t data_end;
@@ -157,7 +158,9 @@ struct gcov_entry_t {
 struct gcov_entry_t entry[DEFAULT_GCOV_ENTRY_COUNT];
 
 static struct gcov_info *gcov_info_head[DEFAULT_GCOV_ENTRY_COUNT];
-static size_t num_used_gcov_entries = 0;
+
+static size_t num_entries_kernel = 0;
+static size_t num_entries_partitions = 0;
 
 static size_t dump_gcov_entry(unsigned char *to_buffer, struct gcov_info *info)
 {
@@ -177,51 +180,53 @@ static size_t dump_gcov_entry(unsigned char *to_buffer, struct gcov_info *info)
     return sz;
 }
 
-#define JET_MAX_NB_PARTITIONS 16
-
-struct gcov_partition {
-    pok_partition_id_t part_id;
-    size_t idx_start;
-    size_t idx_end;
-};
-
-struct gcov_partition part[JET_MAX_NB_PARTITIONS];
-static size_t num_used_partitions = 1;
-
-void gcov_dump(void)
+void fill_entry(struct gcov_info *info, size_t offset)
 {
-    size_t i, sz;
-    size_t size = 0;
+    entry[offset].filename = filenames + name_offset;
+    memcpy(entry[offset].filename, info->filename, strlen(info->filename) + 1);
+    name_offset += strlen(info->filename) + 1;
 
-    if (gcov_info_head == NULL) {
+    // offset in common buffer
+    entry[offset].data_start = (uint32_t)data + total_size;
+
+    size_t sz = dump_gcov_entry(data + total_size, info);
+    total_size += sz;
+    entry[offset].data_end = entry[offset].data_start + sz;
+}
+
+void dump_kernel(void)
+{
+    for (size_t i = 0; i < num_entries_kernel; i++) {
+        fill_entry(gcov_info_head[i], i);
+    }
+}
+
+void dump_partition(pok_partition_arinc_t *part)
+{
+    pok_space_switch(part->base_part.space_id);
+    struct gcov_info **info_head = part->gcov_part_data->gcov_info_head;
+    size_t num_entries = part->gcov_part_data->num_used_gcov_entries;
+
+    if (info_head == NULL) {
+        printf("kernel: %s: NULL info_head\n", __func__);
         return;
     }
 
-    size_t j;
-    for (j = 0; j < num_used_partitions; j++) {
-#ifdef __PPC__
-        if (j > 0) {
-            asm volatile("mtspr 0x030,%0" :: "r"(part[j].part_id) : "memory");
-        }
-#endif
-        for (i = part[j].idx_start; i < part[j].idx_end; i++) {
-            struct gcov_info *info = gcov_info_head[i];
-            entry[i].part_id = part[j].part_id;
-
-            entry[i].filename = filenames + name_offset;
-            memcpy(entry[i].filename, info->filename, strlen(info->filename) + 1);
-            name_offset += strlen(info->filename) + 1;
-
-            // offset in common buffer
-            entry[i].data_start = (uint32_t)data + size;
-
-            sz = dump_gcov_entry(data + size, info);
-            size += sz; // total size
-            entry[i].data_end = entry[i].data_start + sz;
-        }
+    for (size_t i = 0; i < num_entries; i++) {
+        fill_entry(jet_user_to_kernel(info_head[i], sizeof(struct gcov_info*)),
+            i + num_entries_kernel + num_entries_partitions);
     }
-    printf("total size:   %zu\n", size);
-    printf("entries used: %zu\n", num_used_gcov_entries);
+    num_entries_partitions += num_entries;
+}
+
+void gcov_dump(void)
+{
+    dump_kernel();
+    for(uint8_t i = 0; i < pok_partitions_arinc_n; i++) {
+        dump_partition(&pok_partitions_arinc[i]);
+    }
+    printf("total entries: %zu\n", num_entries_kernel + num_entries_partitions);
+    printf("total size:    %zu\n", total_size);
 }
 
 /*
@@ -235,27 +240,13 @@ void __gcov_init(struct gcov_info *info)
         return;
     }
 
-    if (num_used_gcov_entries >= DEFAULT_GCOV_ENTRY_COUNT) {
+    if (num_entries_kernel >= DEFAULT_GCOV_ENTRY_COUNT) {
         printf("kernel: %s: gcov_info_head is full, all %zd entries used\n",
-                __func__, num_used_gcov_entries);
+                __func__, num_entries_kernel);
         return;
     }
 
-    gcov_info_head[num_used_gcov_entries++] = info;
-}
-
-void gcov_init_libpok(struct gcov_info **data, size_t num_entries) {
-#ifdef __PPC__
-    asm volatile("mfspr %0,0x030" : "=r"(part[num_used_partitions].part_id));
-#endif
-    part[num_used_partitions].idx_start = num_used_gcov_entries;
-    part[num_used_partitions].idx_end = part[num_used_partitions].idx_start + num_entries;
-    num_used_partitions++;
-
-    size_t i;
-    for (i = 0; i < num_entries; i++) {
-        __gcov_init(data[i]);
-    }
+    gcov_info_head[num_entries_kernel++] = info;
 }
 
 /* Call the coverage initializers if not done by startup code */
@@ -271,8 +262,6 @@ void pok_gcov_init(void) {
         (*p)(); // call constructor
         start += sizeof(p);
     }
-    part[0].idx_start = 0;
-    part[0].idx_end = num_used_gcov_entries;
 }
 
 #endif /* POK_NEEDS_GCOV */

@@ -13,17 +13,14 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#include <libc/gcov.h>
-#include <core/syscall.h>
-
+#include <stdint.h>
 #include <stdio.h>
+
+#include <gcov.h>
 
 #ifdef POK_NEEDS_GCOV
 
 #define DEFAULT_GCOV_ENTRY_COUNT 200
-
-static struct gcov_info *gcov_info_head[DEFAULT_GCOV_ENTRY_COUNT];
-static size_t num_used_gcov_entries = 0;
 
 void pok_gcov_init(void) {
     extern uint32_t __PARTITION_CTOR_START__, __PARTITION_CTOR_END__; // linker defined symbols
@@ -37,7 +34,6 @@ void pok_gcov_init(void) {
         (*p)(); // call constructor
         start += sizeof(p);
     }
-    pok_syscall2(POK_SYSCALL_GCOV_INIT, (uint32_t) gcov_info_head, num_used_gcov_entries);
 }
 
 void __gcov_init(struct gcov_info *info) {
@@ -46,13 +42,13 @@ void __gcov_init(struct gcov_info *info) {
         return;
     }
 
-    if (num_used_gcov_entries >= DEFAULT_GCOV_ENTRY_COUNT) {
+    if (gcov_part_data->num_used_gcov_entries >= DEFAULT_GCOV_ENTRY_COUNT) {
         printf("libpok: %s: gcov_info_head is full, all %zd entries used\n",
-                __func__, num_used_gcov_entries);
+                __func__, gcov_part_data->num_used_gcov_entries);
         return;
     }
 
-    gcov_info_head[num_used_gcov_entries++] = info;
+    gcov_part_data->gcov_info_head[gcov_part_data->num_used_gcov_entries++] = info;
 }
 
 #endif /* POK_NEEDS_GCOV */

@@ -23,7 +23,6 @@
 #include <types.h>
 #include <libc.h>
 
-#include <gcov.h>
 //~ #include <ioports.h>
 
 #include <errno.h>
@@ -139,13 +138,6 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
    SYSCALL_ENTRY(POK_SYSCALL_IPPC_RETURN)
    SYSCALL_ENTRY(POK_SYSCALL_IPPC_COPY_TO_CLIENT)
    SYSCALL_ENTRY(POK_SYSCALL_IPPC_COPY_FROM_CLIENT)
-
-#ifdef POK_NEEDS_GCOV
-      case POK_SYSCALL_GCOV_INIT:
-          gcov_init_libpok((struct gcov_info**) (args->arg1), (size_t) args->arg2);
-          return POK_ERRNO_OK;
-      break;
-#endif /* POK_NEEDS_GCOV */
 
       default:
        /*

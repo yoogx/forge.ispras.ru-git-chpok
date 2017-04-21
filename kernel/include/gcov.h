@@ -114,15 +114,19 @@ struct gcov_info {
     struct gcov_fn_info **functions;
 };
 
+struct gcov_shared_data {
+    size_t num_used_gcov_entries;
+    struct gcov_info *gcov_info_head[];
+};
+
 // call the coverage initializers if not done by startup code
 void pok_gcov_init(void);
 
 // called by coverage initializers
 void __gcov_init(struct gcov_info *info);
 
-void gcov_init_libpok(struct gcov_info **data, size_t num_entries);
-
 void gcov_dump(void);
+
 #endif /* POK_NEEDS_GCOV */
 
 #endif /* __POK_KERNEL_GCOV_H__ */

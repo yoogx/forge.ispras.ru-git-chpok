@@ -188,6 +188,14 @@ static void partition_arinc_start(void)
 
     part->stacks_current = part->stacks_start;
 
+    /* Setup memory for gcov data. */
+    const struct memory_block* mblock_gcov = jet_partition_arinc_find_memory_block(
+        part, ".GCOV");
+
+    assert(mblock_gcov);
+
+    part->gcov_part_data = (void* __kuser)mblock_gcov->kaddr;
+
     jet_uspace_revoke_access_local(&part->base_part);
 
     for(unsigned i = 0; i < part->nports_queuing; i++)

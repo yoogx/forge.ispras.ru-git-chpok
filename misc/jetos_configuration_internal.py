@@ -229,6 +229,15 @@ class ConfigurationInternal(SerializableObject):
 
             pmd.add_memory_block(stacks_mbd)
 
+            # Memory block for gcov data
+            gcov_mbd = memory_definition.MemoryBlockDefinition(
+                name = ".GCOV",
+                size = 4096,
+                align = 4096
+            )
+
+            pmd.add_memory_block(gcov_mbd)
+
             md.partitions.append(pmd)
 
         for memory_block_sharing in self.memory_block_sharings:
