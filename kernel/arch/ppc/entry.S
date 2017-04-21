@@ -433,9 +433,6 @@ _pok_reset:
 2:
 */
         /* Call C functions */
-        mfmsr %r7
-        ori %r7,%r7,MSR_FP
-        mtmsr %r7
         bl pok_arch_init
 
         bl jet_boot /* shouldn't return */
