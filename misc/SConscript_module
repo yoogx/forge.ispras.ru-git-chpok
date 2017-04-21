@@ -621,10 +621,14 @@ env.Alias('gdb', 'gdb_cmd')
 
 env['COVERAGE_DIR'] = os.path.join(env['MODULE_SOURCE_DIR'], 'coverage', env['BSP'], '')
 
+coverage_source_dirs = ' -d ' + module_build_dir
+for pdir in partition_build_dirs:
+    coverage_source_dirs += ' -d ' + pdir
+
 env.Command('coverage_cmd', [], action=[
     Delete(env['COVERAGE_DIR']),
     Mkdir(env['COVERAGE_DIR']),
-    'lcov -q --gcov-tool '+env['GCOV']+' -c -d '+env['MODULE_SOURCE_DIR']+' -o '+env['COVERAGE_DIR']+env['BSP']+'.info',
+    'lcov -q --gcov-tool '+env['GCOV']+' -c'+coverage_source_dirs+' -o '+env['COVERAGE_DIR']+env['BSP']+'.info',
     'genhtml -q '+env['COVERAGE_DIR']+env['BSP']+'.info -o '+env['COVERAGE_DIR']
 ])
 env.AlwaysBuild('coverage')
