@@ -38,9 +38,9 @@
 /*  sizes must match the sizes used by the implementation of the            */
 /*  underlying Operating System.                                            */
 typedef   unsigned char    APEX_BYTE;               /* 8-bit unsigned */
-typedef   long    APEX_INTEGER;            /* 32-bit signed */
-typedef   unsigned long   APEX_UNSIGNED;           /* 32-bit unsigned */
-typedef   long long    APEX_LONG_INTEGER;       /* 64-bit signed */
+typedef   long             APEX_INTEGER;            /* 32-bit signed */
+typedef   unsigned long    APEX_UNSIGNED;           /* 32-bit unsigned */
+typedef   long long        APEX_LONG_INTEGER;       /* 64-bit signed */
 /*----------------------*/
 /* General APEX types     */
 /*----------------------*/

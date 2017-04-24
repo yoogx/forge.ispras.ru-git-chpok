@@ -9,9 +9,9 @@
 #define MULTIPROCESS
 
 /*
- * For e500mc: qemu-system-ppc -serial stdio -serial pty -M ppce500 -cpu e500mc -kernel pok.elf
+ * For e500mc: ~/qemu/ppc-softmmu/qemu-system-ppc -serial stdio -serial pty -M ppce500 -cpu e500mc -kernel pok.elf
  *
- * For i386:   qemu-system-i386 -serial stdio -serial pty -kernel pok.elf
+ * For i386:  qemu-system-i386 -serial stdio -serial pty -kernel pok.elf
  *
  */
 
@@ -781,7 +781,6 @@ hexToInt (char **ptr, uintptr_t *intValue)
     return (numChars);
 }
 
-
 static char * trap;
 
 #define max_breakpoints  20
@@ -1055,7 +1054,6 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
     int length;
     char *ptr;
 
-
     /*
      * Resore instructions if single step was used
      */
@@ -1201,7 +1199,7 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
                     if (hexToInt(&ptr, &addr)) {
                         //ea->srr0 = addr;
                     }
-
+ 
                     GDB_DECREASE_PC(ea);
                     return;
                 }
@@ -1449,7 +1447,8 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
                 ptr = &remcomInBuffer[1];
                 if (hexToInt(&ptr, &addr)) {
                     registers[pc] = addr;
-               }
+
+                }
                 return;
             }         
             Connect_to_new_inferior = 1;
@@ -1529,7 +1528,6 @@ CONTINUE:
             {
                 if (regno_offset >= 0 && regno_offset < NUMREGS * 8) /* 8 - max length of each register*/
                 {
-
                     mem2hex ((char *) &registers[regno_offset >> 3], remcomOutBuffer, GDB_INSTR_SIZE);
                     break;
                 }
