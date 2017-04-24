@@ -150,3 +150,25 @@ void pok_arch_handle_page_fault(
 #endif
     pok_raise_error(POK_ERROR_ID_MEMORY_VIOLATION, vctx->STATUS & CP0_STATUS_KSU_1, (void*) faulting_address);
 }
+
+/* Copy data to non-current address space. */
+void ja_copy_to_remote(jet_space_id remote_space_id, void* __remote dst,
+    const void* src, size_t size)
+{
+    // TODO
+    (void)remote_space_id;
+    (void)dst;
+    (void)src;
+    (void)size;
+}
+    
+/* Copy data from non-current address space. */
+void ja_copy_from_remote(jet_space_id remote_space_id, void* dst,
+    const void* __remote src, size_t size)
+{
+    // TODO
+    (void)remote_space_id;
+    (void)dst;
+    (void)src;
+    (void)size;
+}

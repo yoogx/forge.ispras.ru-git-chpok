@@ -74,14 +74,14 @@
 
 
 
-#define mfc0(rn)       ({unsigned long rval; \
+#define mfc0(rn)       ({uint32_t rval; \
                                 asm volatile("mfc0 %0, " __stringify(rn) \
                                                                     : "=r" (rval)); rval;})
                                                                     
 
 #define mtc0(rn, v)    asm volatile("mtc0 %0, " __stringify(rn)";"       \
                                              " nop; nop; nop;":          \
-                                             : "r" ((unsigned long)(v))  \
+                                             : "r" ((uint32_t)(v))  \
                                              : "memory")
 
 #define dmtc0(rn, addrhi, addrlo)  asm volatile(".set mips64;"                     \
@@ -95,13 +95,13 @@
                                              : "memory")
 
 
-#define mfc1(rn)       ({unsigned long rval; \
+#define mfc1(rn)       ({uint32_t rval; \
                                 asm volatile("mfc1 %0, " __stringify(rn) \
                                                                     : "=r" (rval)); rval;})
                                                                     
 #define mtc1(rn, v)    asm volatile("mtc1 %0, " __stringify(rn)";"       \
                                              " nop;":                    \
-                                             : "r" ((unsigned long)(v))  \
+                                             : "r" ((uint32_t)(v))  \
                                              : "memory")
 
 #define mfsr()         mfc0(CP0_STATUS)

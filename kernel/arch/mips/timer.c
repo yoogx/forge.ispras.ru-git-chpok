@@ -61,7 +61,7 @@ static int set_decrementer(void)
     // that delta already expired
     /*Clear time count, because we saved it in time_last*/
     mtc0(CP0_COUNT, 0x0);
-    return POK_ERRNO_EINVAL;
+    return EINVAL;
   }
   else{
     mtc0(CP0_COMPARE, delta);
@@ -69,7 +69,7 @@ static int set_decrementer(void)
     //~ printf("TIMER: mfc0(CP0_COUNT) before = 0x%lx\n", mfc0(CP0_COUNT));
     //~ printf("TIMER: mfc0(CP0_COMPARE) = 0x%lx\n", mfc0(CP0_COMPARE));
     mtc0(CP0_COUNT, 0x0);
-    return POK_ERRNO_OK;
+    return EOK;
   }  //~ printf("TIMER: mfc0(CP0_COUNT) after = 0x%lx\n", mfc0(CP0_COUNT));
 }
 
@@ -80,8 +80,7 @@ void pok_arch_decr_int (void)
   do
   {
     err = set_decrementer();
-    //~ printf("Error\n");
-  } while (err != POK_ERRNO_OK);
+  } while (err != EOK);
 
   jet_on_tick();
 }
