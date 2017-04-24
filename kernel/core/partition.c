@@ -31,10 +31,10 @@ void pok_partition_init(pok_partition_t* part)
    {
       /*
        * DEV: Allocate one element more than required.
-       * 
+       *
        * This simplifies implementation of ring buffer, when
        * extracting messages may be concurrent with adding them.
-       */ 
+       */
       part->partition_events = ja_mem_alloc_aligned(
          sizeof(*part->partition_events) * (part->partition_event_max + 1),
          __alignof__(*part->partition_events));
@@ -64,9 +64,9 @@ void for_each_partition(void (*f)(pok_partition_t* part))
    }
 }
 
-/* 
+/*
  * Add event to partition's queue and notify it if needed.
- * 
+ *
  * Should be called with global preemption disabled.
  */
 void pok_partition_add_event(pok_partition_t* part,
@@ -76,7 +76,7 @@ void pok_partition_add_event(pok_partition_t* part,
    // Whether it is needed to set is_event flag for partition.
    pok_bool_t set_event =
       (part->partition_event_end == part->partition_event_begin);
-   /* 
+   /*
     * TODO: This is a result of configuration error, when partition
     * doesn't expect events at all.
     */
@@ -105,11 +105,11 @@ void pok_partition_add_event(pok_partition_t* part,
 }
 
 
-/* 
+/*
  * Consume event from current partition's queue.
- * 
+ *
  * Return TRUE on success, FALSE if the queue is empty.
- * 
+ *
  * Should be called with local preemption disabled.
  */
 pok_bool_t pok_partition_get_event(struct jet_partition_event* event)
@@ -134,6 +134,14 @@ void pok_partition_set_timer(pok_partition_t* part,
     pok_time_t timer_new)
 {
     part->timer = timer_new;
+}
+
+const struct memory_block* jet_partition_get_memory_block_for_addr(
+    pok_partition_t* part, const void* __user addr, size_t size)
+{
+    if(!part->part_sched_ops->get_memory_block_for_addr) return NULL;
+
+    return part->part_sched_ops->get_memory_block_for_addr(part, addr, size);
 }
 
 

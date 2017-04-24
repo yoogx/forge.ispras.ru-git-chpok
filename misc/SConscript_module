@@ -154,7 +154,52 @@ partition_build_dirs = []
 partition_clean_dirs = []
 partition_distclean_dirs = []
 partition_elfs = []
-partitions_elf_map = dict()
+partitions_elf_map = {}
+partitions_pt_map = {}
+
+configuration_file = os.path.join(module_build_dir, "conf_total.yaml")
+
+def write_prop_tree(target, source, env):
+    """
+    Read property tree from yaml file and write it in binary format.
+    """
+    prop_tree_instance = prop_tree.property_tree_deserialize(source[0].abspath)
+
+    # TODO: binary_data_align is hardcoded here.
+    prop_tree.property_tree_write(prop_tree_instance, target[0].abspath, 16)
+
+
+class CreatePropTreePartition:
+    """
+    Create property tree for partition (callable object).
+    """
+
+    __slots__ = [
+        'part_index'
+    ]
+
+    def __init__(self, part_index):
+        self.part_index = part_index
+
+    def __call__(self, target, source, env):
+        # Source is a YAML file with jetos internal configuration.
+        conf_internal = jetos_configuration_internal.ConfigurationInternal.load_from_file(source[0].abspath)
+
+        part_internal = conf_internal.partitions[self.part_index]
+
+        prop_tree_arinc = {
+            'buffers_n': prop_tree.PropertyTreeNodeUInt32(part_internal.num_arinc653_buffers),
+            'blackboards_n': prop_tree.PropertyTreeNodeUInt32(part_internal.num_arinc653_blackboards),
+            'semaphores_n': prop_tree.PropertyTreeNodeUInt32(part_internal.num_arinc653_semaphores),
+            'events_n': prop_tree.PropertyTreeNodeUInt32(part_internal.num_arinc653_events),
+            'messages_memory_size': prop_tree.PropertyTreeNodeUInt32(part_internal.buffer_data_size + part_internal.blackboard_data_size),
+        }
+
+        part_prop_tree = {
+            'ARINC': prop_tree_arinc
+        }
+
+        prop_tree.property_tree_serialize(part_prop_tree, target[0].abspath)
 
 for part_index in range(env['PARTITIONS_NUMBER']):
     part_env = env.PartitionEnvironment()
@@ -162,11 +207,29 @@ for part_index in range(env['PARTITIONS_NUMBER']):
     env['PARTITION_FILL'](part_env, part_index)
 
     part_elf = SConscript('SConscript_partition', exports = 'part_env')
+    part_name = part_env['PARTITION_NAME']
+
     partition_elfs.append(part_elf)
-    partitions_elf_map[part_env['PARTITION_NAME']] = part_elf[0].abspath
+    partitions_elf_map[part_name] = part_elf[0].abspath
     partition_build_dirs.append(part_env['PARTITION_BUILD_DIR'])
     partition_clean_dirs.extend(part_env['PARTITION_CLEAN_DIRS'])
     partition_distclean_dirs.extend(part_env['PARTITION_DISTCLEAN_DIRS'])
+
+    # Generate partition's property tree using configuration file created below
+    part_prop_tree_yaml = env.Command(
+        target = "%s/part_%s_pt.yaml" % (env['MODULE_BUILD_DIR'], part_name),
+        source = configuration_file,
+        action = CreatePropTreePartition(part_index)
+    )
+
+    part_prop_tree = "%s/part_%s_pt.bin" % (env['MODULE_BUILD_DIR'], part_name)
+
+    part_env.Command(target = part_prop_tree,
+        source = part_prop_tree_yaml,
+        action = write_prop_tree
+    )
+
+    partitions_pt_map[part_name] = part_prop_tree
 
 env['PARTITIONS_ELF_MAP'] = partitions_elf_map
 
@@ -197,8 +260,6 @@ def write_configuration(env, configuration, configuration_file):
 
     conf_internal.save_to_file(configuration_file)
 
-configuration_file = os.path.join(module_build_dir, "conf_total.yaml")
-
 env['MODULE_CONFIGURATION_FUNC'](env, configuration_file, write_configuration)
 
 env.Depends(configuration_file, env['TYPES_REQUIREMENTS_YAML'])
@@ -213,7 +274,7 @@ def create_memory_constraints(source, target, env):
     conf = jetos_configuration_internal.ConfigurationInternal.load_from_file(source[0].abspath)
     phys_total = int(source[1].get_contents()) # Extracts value from Node.
 
-    md = conf.create_memory_constraints(env, phys_total)
+    md = conf.create_memory_constraints(env, phys_total, partitions_elf_map, partitions_pt_map)
 
     md.save_to_file(target[0].abspath)
 
@@ -227,6 +288,7 @@ memory_constraints = env.Command(
 )
 
 env.Depends(memory_constraints, partition_elfs)
+env.Depends(memory_constraints, partitions_pt_map.values())
 
 memory_definitions_file = os.path.join(module_build_dir, "memory_definitions.yaml")
 
@@ -240,22 +302,47 @@ class MemoryBlockInitEntry:
     General initialization entry for memory blocks.
     """
     __slots__ = [
-        'init_type', # Type of the initialization, 'ZERO' or 'ELF'.
+        'init_type', # Type of the initialization, 'ZERO', 'ELF' or 'BINARY'.
         'source_id', # Identificator of the source for given initialization type.
         'part_index', # Index of the partition to which memory blocks belong to.
-        'memory_blocks', # Non-empty list of memory blocks from the same partition.
+        # Non-empty list of memory blocks from the same partition.
+        # List may be modified after creation.
+        'memory_blocks',
     ]
     def __init__(self, init_type, source_id, part_index, memory_blocks):
         self.init_type = init_type
         self.source_id = source_id
         self.part_index = part_index
+        self.memory_blocks = memory_blocks
 
+    def get_memory_blocks_ordered(self):
+        """
+        Return list of memory blocks in proper order.
+        """
         if self.init_type == "ELF":
             # For 'ELF' initialization memory blocks should be ordered by vaddr.
-            self.memory_blocks = sorted(memory_blocks)
+            return sorted(self.memory_blocks, key=lambda mb: mb.vaddr)
         else:
-            # For other initializations order of memory blocks is not required.
-            self.memory_blocks = memory_blocks
+            return self.memory_blocks
+
+    @classmethod
+    def from_memory_block(cls, mb, part):
+        """
+        Create initialization record for memory block.
+        """
+        if mb.init_source == "ELF":
+            init_type = "ELF"
+            source_id = "partitions/%s/ELF" % part.name
+        elif mb.init_source == "ZERO":
+            init_type = "ZERO"
+            source_id = None
+        elif mb.init_source == "CONFIG_TREE":
+            init_type = "BINARY"
+            source_id = "partitions/%s/CONFIG_TREE" % part.name
+        else:
+            raise RuntimeError("Unsupported initialization source '%s' for memory block '%s" % (mb.init_source, mb.name))
+
+        return MemoryBlockInitEntry(init_type, source_id, part.index, [mb])
 
 def create_definitions_for_deployment(source, env):
     """
@@ -301,49 +388,37 @@ def create_definitions_for_deployment(source, env):
         if module_init_source != "ZERO":
             raise RuntimeError("Only 'ZERO' initialization is allowed at 'MODULE' stage.")
 
+        mb_init_entry = MemoryBlockInitEntry.from_memory_block(first_mb, part)
 
-        # Initialize via the first memory block in the share.
-        mb_init_entry = MemoryBlockInitEntry(
-            init_type = module_init_source,
-            source_id = 0,
-            part_index = first_mb_ref.part_index,
-            memory_blocks = [first_mb]
-        )
         md.memory_block_init_entries.append(mb_init_entry)
 
     for part, pmd in zip(conf.partitions, md.partitions):
         # Create initialization records
         pmd.memory_block_init_entries = {'PARTITION': [], 'PARTITION:COLD': []} # Lists of MemoryBlockInitEntry
 
-        elf_blocks = {'MODULE': [], 'PARTITION': [], 'PARTITION:COLD': []}
-        zero_blocks = {'MODULE': [], 'PARTITION': [], 'PARTITION:COLD': []}
+        # Dictionary of already created init entries.
+        # Key is tuple: (init_stage, init_source)
+        init_entries_dict = {}
 
         for mbd in pmd.memory_blocks:
             if mbd.init_source is None:
                 continue
-            elif mbd.init_source == "ELF":
-                elf_blocks[mbd.init_stage].append(mbd)
-            elif mbd.init_source == "ZERO":
-                zero_blocks[mbd.init_stage].append(mbd)
 
-        for stage_id in ['PARTITION', 'PARTITION:COLD']:
-            if len(elf_blocks[stage_id]) > 0:
-                pmd.memory_block_init_entries[stage_id].append(
-                    MemoryBlockInitEntry('ELF', 0, part.index, elf_blocks[stage_id])
-                )
-            if len(zero_blocks[stage_id]) > 0:
-                pmd.memory_block_init_entries[stage_id].append(
-                    MemoryBlockInitEntry('ZERO', 0, part.index, zero_blocks[stage_id])
-                )
+            init_key = (mbd.init_stage, mbd.init_source)
+            mbd_existed = init_entries_dict.get(init_key)
 
-        if len(elf_blocks['MODULE']) > 0:
-            md.memory_block_init_entries.append(
-                MemoryBlockInitEntryModule('ELF', 0, part.index, elf_blocks['MODULE'])
-            )
-        if len(zero_blocks['MODULE']) > 0:
-            md.memory_block_init_entries.append(
-                MemoryBlockInitEntryModule('ZERO', 0, part_index, zero_blocks['MODULE'])
-            )
+            if mbd_existed is not None:
+                mbd_existed.memory_blocks.append(mbd)
+                continue
+
+            mb_init_entry = MemoryBlockInitEntry.from_memory_block(mbd, part)
+
+            init_entries_dict[init_key] = mb_init_entry
+
+            if mbd.init_stage == "MODULE":
+                md.memory_block_init_entries.append(mb_init_entry)
+            else:
+                pmd.memory_block_init_entries[mbd.init_stage].append(mb_init_entry)
 
     return {'conf': conf, 'memory_definitions': md}
 
@@ -403,20 +478,39 @@ if kernel_target is None:
 
 pok_env = env.KernelEnvironment()
 
-def create_prop_tree(target, source, env):
+def create_prop_tree_kernel(target, source, env):
     """
     Creates kernel property tree from partition's elfs.
     """
-    prop_tree_instance = [prop_tree.PropertyTreeBinaryNode(align = 4096, filename = source_single.abspath) for source_single in source]
+    partitions_node = {}
 
-    prop_tree.property_tree_write(prop_tree_instance, target[0].abspath, True)
+    for part_name in partitions_elf_map.keys():
+        part_elf = partitions_elf_map[part_name]
+        part_prop_tree = partitions_pt_map[part_name]
 
+        part_node = {
+            'ELF': prop_tree.PropertyTreeNodeBinaryFile(part_elf),
+            'CONFIG_TREE': prop_tree.PropertyTreeNodeBinaryFile(part_prop_tree)
+        }
+
+        partitions_node[part_name] = part_node
+
+    kernel_prop_tree = {'partitions': partitions_node}
+
+    prop_tree.property_tree_serialize(kernel_prop_tree, target[0].abspath)
 
 # Create property tree from partition's elfs.
-prop_tree_file = pok_env.Command(target = module_build_dir+'/prop_tree.bin',
-    source = partition_elfs,
-    action = create_prop_tree
+prop_tree_file_yaml = pok_env.Command(target = module_build_dir+'/prop_tree.yaml',
+    source = None,
+    action = create_prop_tree_kernel
 )
+
+prop_tree_file = pok_env.Command(target = module_build_dir+'/prop_tree.bin',
+    source = prop_tree_file_yaml,
+    action = write_prop_tree
+)
+
+pok_env.Depends(prop_tree_file, partition_elfs + partitions_pt_map.values())
 
 # Transform property tree into the object for link it into the kernel image.
 prop_tree_file_o = pok_env.Command(
@@ -516,6 +610,16 @@ env.Command('gdb_cmd', [], action=[
     '$GDB '+pok_target_file+' -ex "source ' + gdb_commands_file + '"',
     ])
 env.Alias('gdb', 'gdb_cmd')
+
+# TODO: perhaps print some more info
+def print_info(target, source, env):
+    print('arch: ' + env['ARCH'])
+    print('bsp: ' + env['BSP'])
+    print('prefix: ' + env['PREFIX'])
+    print('qemu: ' + env['QEMU'])
+
+env.Command('info_cmd', [], action=Action(print_info, 'info:'))
+env.Alias('info', 'info_cmd')
 
 module_clean_dirs = env.CanonicalCleanList('MODULE_CLEAN_DIRS', module_build_dir)
 module_distclean_dirs = env.CanonicalCleanList('MODULE_DISTCLEAN_DIRS', module_build_dir)

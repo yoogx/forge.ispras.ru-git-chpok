@@ -33,6 +33,8 @@
 #include "arinc_config.h"
 #include "arinc_process_queue.h"
 
+#include "map_error.h"
+
 static unsigned nsemaphores_used = 0;
 static inline SEMAPHORE_ID_TYPE index_to_id(unsigned index)
 {
@@ -152,21 +154,25 @@ void WAIT_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
 
       arinc_process_queue_add_common(&semaphore->process_queue, semaphore->discipline);
 
-      switch(msection_wait(&semaphore->section, TIME_OUT))
+      jet_ret_t core_ret = msection_wait(&semaphore->section, TIME_OUT);
+
+      MAP_ERROR_BEGIN(core_ret)
+         MAP_ERROR(EOK, NO_ERROR);
+         MAP_ERROR(JET_INVALID_MODE, INVALID_MODE);
+         MAP_ERROR(ETIMEDOUT, TIMED_OUT);
+         MAP_ERROR_CANCELLED();
+         MAP_ERROR_DEFAULT();
+      MAP_ERROR_END()
+
+      switch(core_ret)
       {
-      case POK_ERRNO_OK:
+      case EOK:
          // Current value is already decremented for us by the notifier.
-         *RETURN_CODE = NO_ERROR;
          break;
-      case POK_ERRNO_MODE: // Waiting is not allowed
-      case POK_ERRNO_CANCELLED: // Thread has been STOP()-ed or [IPPC] server thread has been cancelled.
+      case JET_INVALID_MODE: // Waiting is not allowed
+      case JET_CANCELLED: // Thread has been STOP()-ed or [IPPC] server thread has been cancelled.
+      case ETIMEDOUT: // Timeout
          msection_wq_del(&semaphore->process_queue, t);
-         *RETURN_CODE = INVALID_MODE;
-         break;
-      case POK_ERRNO_TIMEOUT:
-         // Timeout
-         msection_wq_del(&semaphore->process_queue, t);
-         *RETURN_CODE = TIMED_OUT;
          break;
       default:
          assert_os(FALSE);
@@ -191,11 +197,11 @@ void SIGNAL_SEMAPHORE (SEMAPHORE_ID_TYPE SEMAPHORE_ID,
    msection_enter(&semaphore->section);
 
    if(msection_wq_notify(&semaphore->section,
-      &semaphore->process_queue, FALSE) == POK_ERRNO_OK) {
+      &semaphore->process_queue, FALSE) == EOK) {
       // There are waiters on semaphore. We have already awoken the first of them.
       /*
        * DEV: ARINC says to emit error if current_value == maximum_value.
-       * 
+       *
        * But we allow to signal such semaphore if someone waits on it.
        */
       pok_thread_id_t t_awoken = semaphore->process_queue.first;

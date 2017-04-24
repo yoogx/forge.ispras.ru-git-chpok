@@ -62,14 +62,7 @@ typedef struct
  *  Returns an error code, which is defined in include/errno.h
  */
 
-pok_ret_t	pok_core_syscall (const pok_syscall_id_t     syscall_id,
+jet_ret_t	pok_core_syscall (const pok_syscall_id_t     syscall_id,
                               const pok_syscall_args_t*  args);
-
-/*
- * Initiate syscalls.
- * This part is defined in low-level layers, each architecture/bsp
- * initiate the syscall in a different way.
- */
-pok_ret_t pok_syscall_init();
 
 #endif /* __POK_SYSCALL_H__ */

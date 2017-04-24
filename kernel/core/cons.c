@@ -126,15 +126,15 @@ size_t jet_console_write_debug(const char* s, size_t length)
 }
 
 
-pok_ret_t jet_console_write_user(const char* __user s, size_t length)
+jet_ret_t jet_console_write_user(const char* __user s, size_t length)
 {
    if(length != 0) {
       const char* __kuser k_s = jet_user_to_kernel_ro(s, length);
-      if(!k_s) return POK_ERRNO_EFAULT;
+      if(!k_s) return EFAULT;
 
       jet_console_write(k_s, length);
    }
-   return POK_ERRNO_OK;
+   return EOK;
 }
 
 

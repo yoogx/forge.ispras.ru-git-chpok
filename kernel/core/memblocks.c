@@ -21,13 +21,30 @@
 
 #include <types.h>
 
+#include <conftree.h>
+
 void* __kuser jet_memory_block_get_kaddr(const struct memory_block* mblock,
     const void* __user addr)
 {
     return (void* __kuser)((uintptr_t)addr - mblock->vaddr + mblock->kaddr);
 }
 
-pok_ret_t jet_memory_block_get_status(
+void* __remote jet_memory_block_get_remote_addr(const struct memory_block* mblock,
+    const void* __user addr)
+{
+    return (void* __remote)((uintptr_t)addr - mblock->vaddr + mblock->remote_addr);
+}
+
+/*
+ * Get information about memory block with given name.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EFAULT - 'name' or 'status' refers to inaccessible memory.
+ */
+jet_ret_t jet_memory_block_get_status(
     const char* __user name,
     jet_memory_block_status_t* __user status)
 {
@@ -35,25 +52,25 @@ pok_ret_t jet_memory_block_get_status(
 
     jet_memory_block_status_t* status_kernel = jet_user_to_kernel_typed(status);
 
-    if(status_kernel == NULL) return POK_ERRNO_EFAULT;
+    if(status_kernel == NULL) return EFAULT;
 
     // Assume name of the memory block at most MAX_NAME_LENGTH length.
     char name_kernel[MAX_NAME_LENGTH];
 
     if(kstrncpy(name_kernel, name, MAX_NAME_LENGTH) == NULL)
-        return POK_ERRNO_EFAULT;
+        return EFAULT;
 
     const struct memory_block* mblock = jet_partition_arinc_find_memory_block(part,
         name_kernel);
 
-    if(mblock == NULL) return POK_ERRNO_EINVAL;
+    if(mblock == NULL) return JET_INVALID_CONFIG;
 
     if(mblock->maccess | MEMORY_BLOCK_ACCESS_WRITE)
         status_kernel->mode = JET_MEMORY_BLOCK_READ_WRITE;
     else if(mblock->maccess | MEMORY_BLOCK_ACCESS_READ)
         status_kernel->mode = JET_MEMORY_BLOCK_READ;
     else
-        return POK_ERRNO_EINVAL; // Function returns only readable blocks.
+        return JET_INVALID_CONFIG; // Function returns only readable blocks.
 
     status_kernel->addr = mblock->vaddr;
     status_kernel->size = mblock->size;
@@ -67,41 +84,75 @@ pok_ret_t jet_memory_block_get_status(
         status_kernel->is_contiguous = FALSE;
     }
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
 static void jet_memory_block_init_zero(pok_partition_arinc_t* part,
     const struct memory_block* const* mblocks)
 {
-    (void) part; //ignore part
+    (void) part; //ignore partition
 
     for(const struct memory_block* const * p_mblock = mblocks;
         *p_mblock != NULL;
         p_mblock++)
     {
-        memset((void* __kuser)(*p_mblock)->kaddr, 0, (*p_mblock)->size);
+        const struct memory_block* mblock = *p_mblock;
+
+        memset((void* __kuser)mblock->kaddr, 0, mblock->size);
     }
 }
 
 static void jet_memory_block_init_elf(pok_partition_arinc_t* part,
-    const struct memory_block* const* mblocks)
+    const char* source_id, const struct memory_block* const* mblocks)
 {
-    jet_loader_elf_load(part->elf_id, part, mblocks, &part->main_entry);
+    /* source_id is a path in the configuration tree to the ELF image.*/
+    const void* elf_image = jet_pt_get_binary(kernel_config_tree, JET_PT_ROOT, source_id, NULL);
+    assert(elf_image);
+
+    jet_loader_elf_load(elf_image, part, mblocks, &part->main_entry);
 }
+
+static void jet_memory_block_init_binary(pok_partition_arinc_t* part,
+    const char* source_id, const struct memory_block* const* mblocks)
+{
+    (void) part; //ignore partition
+    /* source_id is a path in the configuration tree to the binary data.*/
+    size_t binary_size;
+    const void* binary_image = jet_pt_get_binary(kernel_config_tree, JET_PT_ROOT, source_id, &binary_size);
+    assert(binary_image);
+
+    /* Every memory block is filled with the same data. */
+    for(const struct memory_block* const * p_mblock = mblocks;
+        *p_mblock != NULL;
+        p_mblock++)
+    {
+        const struct memory_block* mblock = *p_mblock;
+
+        assert(mblock->size >= binary_size); //TODO: This should be INVALID_CONFIG HM error.
+        memcpy((char* __kuser)mblock->kaddr, binary_image, binary_size);
+
+        if(mblock->size > binary_size) {
+            // Fill the rest with zeros
+            memset((char* __kuser)mblock->kaddr + binary_size, 0, mblock->size - binary_size);
+        }
+    }
+}
+
 
 void jet_memory_block_init(enum jet_memory_block_init_type init_type,
     struct _pok_partition_arinc* part,
     const struct memory_block* const* mblocks,
-    uint16_t source_id)
+    const char* source_id)
 {
-    (void) source_id; //currently not used
-
     switch(init_type) {
         case JET_MEMORY_BLOCK_INIT_ZERO:
             jet_memory_block_init_zero(part, mblocks);
         break;
         case JET_MEMORY_BLOCK_INIT_ELF:
-            jet_memory_block_init_elf(part, mblocks);
+            jet_memory_block_init_elf(part, source_id, mblocks);
+        break;
+        case JET_MEMORY_BLOCK_INIT_BINARY:
+            jet_memory_block_init_binary(part, source_id, mblocks);
         break;
     }
 }

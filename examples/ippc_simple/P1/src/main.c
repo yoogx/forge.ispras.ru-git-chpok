@@ -22,14 +22,14 @@ static void server_handler(void)
 static int real_main(void)
 {
     RETURN_CODE_TYPE ret;
-    pok_ret_t ret_internal;
+    jet_ret_t ret_internal;
 
     // Extract identificator for portal type and number of client partitions.
     int portal_type_id;
     int n_clients;
     ret_internal = jet_ippc_partition_arinc_get_portal_type_info("Test", &portal_type_id, &n_clients);
 
-    if(ret_internal != POK_ERRNO_OK) {
+    if(ret_internal != EOK) {
         printf("Failed to get information about portal type: %d", ret_internal);
         STOP_SELF();
     }

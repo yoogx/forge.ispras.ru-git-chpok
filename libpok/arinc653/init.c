@@ -24,10 +24,10 @@
 #include "event.h"
 #include "semaphore.h"
 
-#include <kernel_shared_data.h>
-
 #include <stdio.h> /* for printf() */
 #include <stdlib.h> /* for abort() */
+
+#include <conftree.h>
 
 struct arinc_buffer* arinc_buffers;
 
@@ -64,21 +64,26 @@ static void* arinc_alloc_array(size_t n_elems, size_t elem_size, size_t alignmen
 
 #define ARINC_ALLOC_ARRAY(n_elems, type) (type*)arinc_alloc_array(n_elems, sizeof(type), __alignof__(type))
 
-size_t arinc_config_nbuffers;
-size_t arinc_config_nblackboards;
-size_t arinc_config_nsemaphores;
-size_t arinc_config_nevents;
-size_t arinc_config_messages_memory_size;
+// Explicitely initialize variables with default values.
+uint32_t arinc_config_nbuffers = 0;
+uint32_t arinc_config_nblackboards = 0;
+uint32_t arinc_config_nsemaphores = 0;
+uint32_t arinc_config_nevents = 0;
+uint32_t arinc_config_messages_memory_size = 0;
 
 void libjet_arinc_init(void)
 {
     arinc_allocator_init();
 
-    arinc_config_nbuffers = kshd->arinc_config_nbuffers;
-    arinc_config_nblackboards = kshd->arinc_config_nblackboards;
-    arinc_config_nsemaphores = kshd->arinc_config_nsemaphores;
-    arinc_config_nevents = kshd->arinc_config_nevents;
-    arinc_config_messages_memory_size = kshd->arinc_config_messages_memory_size;
+    jet_pt_node_t arinc_node = jet_pt_find(part_config_tree, JET_PT_ROOT, "ARINC");
+    if(arinc_node != JET_PT_INVALID_NODE) {
+        // Ignore error from get functions: variables already have default values.
+        (void)jet_pt_get_uint32(part_config_tree, arinc_node, "buffers_n", &arinc_config_nbuffers);
+        (void)jet_pt_get_uint32(part_config_tree, arinc_node, "blackboards_n", &arinc_config_nblackboards);
+        (void)jet_pt_get_uint32(part_config_tree, arinc_node, "semaphores_n", &arinc_config_nsemaphores);
+        (void)jet_pt_get_uint32(part_config_tree, arinc_node, "events_n", &arinc_config_nevents);
+        (void)jet_pt_get_uint32(part_config_tree, arinc_node, "messages_memory_size_n", &arinc_config_messages_memory_size);
+    }
 
     arinc_buffers = ARINC_ALLOC_ARRAY(arinc_config_nbuffers, struct arinc_buffer);
     arinc_blackboards = ARINC_ALLOC_ARRAY(arinc_config_nblackboards, struct arinc_blackboard);

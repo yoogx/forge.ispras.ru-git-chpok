@@ -27,7 +27,7 @@
  * Compute a deadline from now according to the first parameter.
  * This function is a facility to compute tasks' deadline.
  */
-pok_ret_t pok_time_compute_deadline (const pok_time_t relative, pok_time_t* absolute);
+jet_ret_t pok_time_compute_deadline (const pok_time_t relative, pok_time_t* absolute);
 
 /*
  * Get number of nanoseconds that passed since the system starts.

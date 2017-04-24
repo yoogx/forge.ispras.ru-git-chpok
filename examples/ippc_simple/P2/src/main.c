@@ -21,14 +21,14 @@ int portal_id;
 static void first_process(void)
 {
     RETURN_CODE_TYPE ret;
-    pok_ret_t ret_internal;
+    jet_ret_t ret_internal;
     
     struct jet_thread_shared_data* tshd = &kshd->tshd[kshd->current_thread_id];
     
     while (1) {
         printf("PR2: Executing IPPC ...\n");
 
-        ret_internal = jet_ippc_partition_arinc_call(portal_id);
+        ret_internal = jet_ippc_partition_arinc_call(portal_id, NULL, 0);
         if(ret_internal) {
             printf("IPPC call failed: %d\n", ret);
             STOP_SELF();
@@ -48,6 +48,7 @@ static void first_process(void)
 static int real_main(void)
 {
     RETURN_CODE_TYPE ret;
+    jet_ret_t core_ret;
     PROCESS_ID_TYPE pid;
     PROCESS_ATTRIBUTE_TYPE process_attrs = {
         .PERIOD = INFINITE_TIME_VALUE,
@@ -57,9 +58,9 @@ static int real_main(void)
         .DEADLINE = SOFT,
     };
 
-    ret = jet_ippc_partition_arinc_init_portal("Test", &portal_id);
-    if(ret) {
-        printf("Failed to init portal:%d\n", ret);
+    core_ret = jet_ippc_partition_arinc_init_portal("Test", &portal_id);
+    if(core_ret) {
+        printf("Failed to init portal:%d\n", core_ret);
         STOP_SELF();
     }
     

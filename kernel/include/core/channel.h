@@ -265,9 +265,9 @@ const char* pok_channel_sampling_r_get_message(
 void pok_channel_sampling_r_clear_message(pok_channel_sampling_t* channel);
 
 /*
- * Return POK_ERRNO_OK if new message has been arrive since we check(read).
+ * Return EOK if new message has been arrive since we check(read).
  * 
- * Return POK_ERRNO_EMPTY otherwise.
+ * Return EAGAIN otherwise.
  */
 pok_bool_t pok_channel_sampling_r_check_new_message(pok_channel_sampling_t* channel);
 

@@ -44,7 +44,7 @@ static struct jet_partition_arinc_ippc_portal* get_arinc_portal(int portal_id)
     return arinc_portal;
 }
 
-pok_ret_t jet_ippc_partition_arinc_init_portal(const char* __user portal_name,
+jet_ret_t jet_ippc_partition_arinc_init_portal(const char* __user portal_name,
     int* __user portal_id)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
@@ -52,20 +52,20 @@ pok_ret_t jet_ippc_partition_arinc_init_portal(const char* __user portal_name,
     char portal_name_k[MAX_NAME_LENGTH];
 
     if (kstrncpy(portal_name_k, portal_name, MAX_NAME_LENGTH) == NULL)
-        return POK_ERRNO_EFAULT;
+        return EFAULT;
 
     int* __kuser portal_id_k = jet_user_to_kernel_typed(portal_id);
 
     if(portal_id_k == NULL)
-        return POK_ERRNO_EFAULT;
+        return EFAULT;
 
     if (part->mode == POK_PARTITION_MODE_NORMAL)
-        return POK_ERRNO_PARTITION_MODE;
+        return JET_INVALID_MODE;
 
     struct jet_partition_arinc_ippc_portal* arinc_portal = find_arinc_portal(portal_name_k);
-    if(arinc_portal == NULL) return POK_ERRNO_NOTFOUND;
+    if(arinc_portal == NULL) return JET_INVALID_CONFIG;
 
-    if(arinc_portal->is_initialized) return POK_ERRNO_READY;
+    if(arinc_portal->is_initialized) return JET_NOACTION;
 
     struct jet_ippc_connection* init_connection
         = jet_ippc_portal_open_init_connection(arinc_portal->portal, 0);
@@ -75,17 +75,17 @@ pok_ret_t jet_ippc_partition_arinc_init_portal(const char* __user portal_name,
         jet_ippc_connection_execute(init_connection, part->base_part.ippc_handled_actual);
     }
 
-    pok_ret_t ret = POK_ERRNO_UNAVAILABLE;
+    jet_ret_t ret = EAGAIN; // This value will be rewritten in any case
 
     switch(init_connection->terminate_status) {
         case JET_IPPC_CONNECTION_TERMINATE_STATUS_OK:
             if(jet_ippc_portal_ready_state_from_init_connection(init_connection))
-                ret = POK_ERRNO_OK;
+                ret = EOK;
             else
-                ret = POK_ERRNO_UNAVAILABLE;
+                ret = JET_IPPC_FAILED;
             break;
         case JET_IPPC_CONNECTION_TERMINATE_STATUS_SERVICE_RESETED:
-            ret = POK_ERRNO_UNAVAILABLE;
+            ret = JET_IPPC_RESETED;
             break;
         default:
             unreachable();
@@ -93,7 +93,7 @@ pok_ret_t jet_ippc_partition_arinc_init_portal(const char* __user portal_name,
 
     jet_ippc_connection_close(init_connection);
 
-    if(ret == POK_ERRNO_OK) {
+    if(ret == EOK) {
         arinc_portal->is_initialized = TRUE;
         *portal_id_k = arinc_portal - part->portals;
     }
@@ -101,12 +101,15 @@ pok_ret_t jet_ippc_partition_arinc_init_portal(const char* __user portal_name,
     return ret;
 }
 
-pok_ret_t jet_ippc_partition_arinc_call(int portal_id)
+jet_ret_t jet_ippc_partition_arinc_call(int portal_id,
+    const struct jet_ippc_client_access_window* __user access_windows,
+    int access_windows_n)
 {
+    jet_ret_t ret = EOK;
     pok_partition_arinc_t* part = current_partition_arinc;
 
     struct jet_partition_arinc_ippc_portal* arinc_portal = get_arinc_portal(portal_id);
-    if(arinc_portal == NULL) return POK_ERRNO_EINVAL;
+    if(arinc_portal == NULL) return EINVAL;
 
     pok_thread_t* t = part->thread_current;
 
@@ -116,7 +119,19 @@ pok_ret_t jet_ippc_partition_arinc_call(int portal_id)
     int input_params_n = tshd_current->ippc_input_params_n;
 
     if(input_params_n < 0 || input_params_n > IPPC_MAX_INPUT_PARAMS_N)
-        return POK_ERRNO_EINVAL;
+        return EINVAL;
+
+    const struct jet_ippc_client_access_window* k_access_windows = NULL;
+
+    if((access_windows_n < 0) || (access_windows_n > IPPC_MAX_ACCESS_WINDOWS_N))
+        return EINVAL;
+
+    if(access_windows_n > 0) {
+        k_access_windows = jet_user_to_kernel_ro(access_windows,
+            sizeof(*access_windows) * access_windows_n);
+
+        if(!k_access_windows) return EFAULT;
+    }
 
     pok_preemption_local_disable();
 
@@ -126,7 +141,7 @@ pok_ret_t jet_ippc_partition_arinc_call(int portal_id)
 
     pok_preemption_local_enable();
 
-    if(t->ippc_connection == NULL) return POK_ERRNO_UNAVAILABLE;
+    if(t->ippc_connection == NULL) return EAGAIN;
 
     if(input_params_n > 0) {
         t->ippc_connection->input_params_n = input_params_n;
@@ -134,6 +149,19 @@ pok_ret_t jet_ippc_partition_arinc_call(int portal_id)
             tshd_current->ippc_input_params,
             input_params_n * sizeof(*t->ippc_connection->input_params)
         );
+    }
+
+    if(access_windows_n > 0) {
+        ret = jet_ippc_connection_set_access_windows(t->ippc_connection,
+            k_access_windows, access_windows_n);
+
+        if(ret) {
+            jet_ippc_connection_cancel(t->ippc_connection);
+            // Cancelling connection before execution leads to terminating it.
+            assert(jet_ippc_connection_get_state(t->ippc_connection) == JET_IPPC_CONNECTION_STATE_TERMINATED);
+
+            goto out;
+        }
     }
 
     if(!thread_is_waiting_allowed())
@@ -148,11 +176,9 @@ pok_ret_t jet_ippc_partition_arinc_call(int portal_id)
         // if(state == JET_IPPC_CONNECTION_STATE_PAUSED) unreachable(); // TODO
     }
 
-    pok_ret_t ret = POK_ERRNO_OK;
-
     switch(t->ippc_connection->terminate_status) {
         case JET_IPPC_CONNECTION_TERMINATE_STATUS_OK:
-            ret = POK_ERRNO_OK;
+            ret = EOK;
 
             int output_params_n = t->ippc_connection->output_params_n;
             tshd_current->ippc_output_params_n = output_params_n;
@@ -164,14 +190,18 @@ pok_ret_t jet_ippc_partition_arinc_call(int portal_id)
             }
             break;
         case JET_IPPC_CONNECTION_TERMINATE_STATUS_SERVICE_RESETED:
+            ret = JET_IPPC_RESETED;
+            break;
         case JET_IPPC_CONNECTION_TERMINATE_STATUS_FAILED:
+            ret = JET_IPPC_FAILED;
         case JET_IPPC_CONNECTION_TERMINATE_STATUS_CANCELLED:
-            ret = POK_ERRNO_UNAVAILABLE;
+            ret = JET_CANCELLED;
             break;
         default:
             unreachable();
     }
 
+out:
     pok_preemption_local_disable();
     jet_ippc_connection_close(t->ippc_connection);
     t->ippc_connection = NULL;
@@ -228,7 +258,7 @@ static struct jet_ippc_portal* get_server_portal(
 }
 
 
-pok_ret_t jet_ippc_partition_arinc_get_portal_type_info(
+jet_ret_t jet_ippc_partition_arinc_get_portal_type_info(
     const char* __user portal_name,
     int* __user portal_type_id,
     int* __user n_clients)
@@ -238,42 +268,42 @@ pok_ret_t jet_ippc_partition_arinc_get_portal_type_info(
     char portal_name_k[MAX_NAME_LENGTH];
 
     if(kstrncpy(portal_name_k, portal_name, MAX_NAME_LENGTH) == NULL)
-        return POK_ERRNO_EFAULT;
+        return EFAULT;
 
     int* __kuser portal_type_id_k = jet_user_to_kernel_typed(portal_type_id);
-    if(portal_type_id_k == NULL) return POK_ERRNO_EFAULT;
+    if(portal_type_id_k == NULL) return EFAULT;
 
     int* __kuser n_clients_k = jet_user_to_kernel_typed(n_clients);
-    if(n_clients_k == NULL) return POK_ERRNO_EFAULT;
+    if(n_clients_k == NULL) return EFAULT;
 
     struct jet_partition_arinc_ippc_portal_type* arinc_portal_type
         = find_arinc_portal_type(portal_name_k);
 
-    if(arinc_portal_type == NULL) return POK_ERRNO_NOTFOUND;
+    if(arinc_portal_type == NULL) return JET_INVALID_CONFIG;
 
     *portal_type_id_k = arinc_portal_type - part->portal_types;
     *n_clients_k = arinc_portal_type->portal_type->n_portals;
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
-pok_ret_t jet_ippc_partition_arinc_get_portal_info(
+jet_ret_t jet_ippc_partition_arinc_get_portal_info(
     int server_portal_id,
     int* __user n_connections)
 {
     int* __kuser n_connections_k = jet_user_to_kernel_typed(n_connections);
-    if(n_connections_k == NULL) return POK_ERRNO_EFAULT;
+    if(n_connections_k == NULL) return EFAULT;
 
     struct jet_ippc_portal* portal = get_server_portal(server_portal_id);
 
-    if(portal == NULL) return POK_ERRNO_EINVAL;
+    if(portal == NULL) return EINVAL;
 
     *n_connections_k = portal->n_connections;
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
-pok_ret_t jet_ippc_partition_arinc_create_connections(
+jet_ret_t jet_ippc_partition_arinc_create_connections(
     int server_portal_id,
     void* __user entry,
     size_t user_stack_size,
@@ -283,22 +313,22 @@ pok_ret_t jet_ippc_partition_arinc_create_connections(
     pok_partition_arinc_t* part = current_partition_arinc;
 
     pok_thread_id_t* __kuser thread_id_k = jet_user_to_kernel_typed(thread_id);
-    if(thread_id_k == NULL) return POK_ERRNO_EFAULT;
+    if(thread_id_k == NULL) return EFAULT;
 
     /*
      * We can create threads only if the partition is in INIT mode.
      */
     if (part->mode == POK_PARTITION_MODE_NORMAL) {
-        return POK_ERRNO_PARTITION_MODE;
+        return JET_INVALID_MODE;
     }
 
     struct jet_ippc_portal* portal = get_server_portal(server_portal_id);
-    if(portal == NULL) return POK_ERRNO_EINVAL;
+    if(portal == NULL) return EINVAL;
 
-    if(n_connections <= 0) return POK_ERRNO_EINVAL;
+    if(n_connections <= 0) return EINVAL;
 
     if(portal->n_connections_ready + n_connections > portal->n_connections)
-        return POK_ERRNO_TOOMANY;
+        return JET_INVALID_CONFIG;
 
     pok_thread_id_t thread_id_first = part->nthreads_used;
 
@@ -320,7 +350,7 @@ pok_ret_t jet_ippc_partition_arinc_create_connections(
     }
 
     if(!thread_create_several(&part->threads[thread_id_first], n_connections))
-        return POK_ERRNO_UNAVAILABLE;
+        return JET_INVALID_CONFIG;
 
     for(int i = 0; i < n_connections; i++) {
         struct jet_ippc_connection* connection
@@ -333,18 +363,18 @@ pok_ret_t jet_ippc_partition_arinc_create_connections(
 
     *thread_id_k = thread_id_first;
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
-pok_ret_t jet_ippc_partition_arinc_return(void)
+jet_ret_t jet_ippc_partition_arinc_return(void)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
     pok_thread_t* t = current_thread;
 
-    struct jet_ippc_connection* connection = current_thread->ippc_server_connection;
+    struct jet_ippc_connection* connection = t->ippc_server_connection;
 
     if(connection == NULL)
-        return POK_ERRNO_MODE; // Not a server thread.
+        return JET_INVALID_MODE; // Not a server thread.
 
     struct jet_thread_shared_data* tshd_current = part->kshd->tshd
         + (t - part->threads);
@@ -352,7 +382,7 @@ pok_ret_t jet_ippc_partition_arinc_return(void)
     int output_params_n = tshd_current->ippc_output_params_server_n;
 
     if(output_params_n < 0 || output_params_n > IPPC_MAX_OUTPUT_PARAMS_N)
-        return POK_ERRNO_EINVAL;
+        return EINVAL;
 
     connection->output_params_n = output_params_n;
 
@@ -379,5 +409,63 @@ pok_ret_t jet_ippc_partition_arinc_return(void)
 
     pok_preemption_local_enable();
 
-    return POK_ERRNO_OK;
+    return EOK;
+}
+
+jet_ret_t jet_ippc_partition_arinc_copy_to_client(
+    void* __user dst, const void* __user src, size_t n)
+{
+    jet_ret_t ret;
+    struct jet_ippc_remote_access_state ra_state;
+
+    pok_thread_t* t = current_thread;
+    struct jet_ippc_connection* connection = t->ippc_server_connection;
+
+    if(connection == NULL)
+        return JET_INVALID_MODE; // Not a server thread.
+
+    const void* __kuser k_src = jet_user_to_kernel_ro(src, n);
+    if(!k_src) return EFAULT;
+
+    ret = jet_ippc_connection_copy_to_client_init(connection,
+        &ra_state, dst, k_src, n);
+
+    if(ret) return ret;
+
+    while(!ra_state.is_completed) {
+        jet_ippc_connection_remote_access_execute(connection, &ra_state);
+    }
+
+    if(ra_state.is_cancelled) return JET_CANCELLED;
+
+    return EOK;
+}
+
+jet_ret_t jet_ippc_partition_arinc_copy_from_client(
+    void* __user dst, const void* __user src, size_t n)
+{
+    jet_ret_t ret;
+    struct jet_ippc_remote_access_state ra_state;
+
+    pok_thread_t* t = current_thread;
+    struct jet_ippc_connection* connection = t->ippc_server_connection;
+
+    if(connection == NULL)
+        return JET_INVALID_MODE; // Not a server thread.
+
+    void* __kuser k_dst = jet_user_to_kernel(dst, n);
+    if(!k_dst) return EFAULT;
+
+    ret = jet_ippc_connection_copy_from_client_init(connection,
+        &ra_state, k_dst, src, n);
+
+    if(ret) return ret;
+
+    while(!ra_state.is_completed) {
+        jet_ippc_connection_remote_access_execute(connection, &ra_state);
+    }
+
+    if(ra_state.is_cancelled) return JET_CANCELLED;
+
+    return EOK;
 }

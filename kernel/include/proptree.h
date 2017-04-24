@@ -15,6 +15,10 @@
 
 #pragma once
 
+
+#include <stddef.h> /* size_t defition. */
+#include <stdint.h> /* int32_t and other defitions. */
+
 /** Прозрачный тип дерева параметров. Не используется явно. */
 struct jet_pt_header_struct;
 

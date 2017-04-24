@@ -27,7 +27,7 @@ int memcmp(const void *, const void *, size_t n);
 
 /* avoid errors for windows */
 /*__attribute__ ((weak))*/
-void  *memset(void *dest, unsigned char val, size_t count);
+void  *memset(void *dest, int val, size_t count);
 
 size_t   strlen (const char* str);
 size_t   strnlen (const char* str, size_t n);

@@ -47,4 +47,4 @@ struct partition_pages {
 extern struct partition_pages ja_partitions_pages[];
 extern size_t ja_partitions_pages_nb;
 
-#endif /* __JET_PPC_DEPLOYMENT_H__ */
+#endif /* __JET_X86_DEPLOYMENT_H__ */

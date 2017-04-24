@@ -42,6 +42,18 @@ static inline uint32_t ntohl(uint32_t x)
     return __builtin_bswap32(x);
 }
 
+// Extension for 64-bit integers.
+static inline uint64_t hton64(uint64_t x)
+{
+    return __builtin_bswap64(x);
+}
+
+static inline uint64_t ntoh64(uint64_t x)
+{
+    return __builtin_bswap64(x);
+}
+
+
 #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 
 static inline uint16_t htons(uint16_t x)
@@ -60,6 +72,17 @@ static inline uint32_t htonl(uint32_t x)
 }
 
 static inline uint32_t ntohl(uint32_t x)
+{
+    return x;
+}
+
+// Extension for 64-bit integers.
+static inline uint64_t hton64(uint64_t x)
+{
+    return x;
+}
+
+static inline uint64_t ntoh64(uint64_t x)
 {
     return x;
 }

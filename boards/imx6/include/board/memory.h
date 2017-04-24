@@ -1,6 +1,6 @@
 /*
  * Institute for System Programming of the Russian Academy of Sciences
- * Copyright (C) 2016 ISPRAS
+ * Copyright (C) 2017 ISPRAS
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -13,16 +13,12 @@
  * See the GNU General Public License version 3 for more details.
  */
 
-#ifndef __POK_IOPORTS_H__
-#define __POK_IOPORTS_H__
+#ifndef __ARM_IMX6_RAM_H__
+#define __ARM_IMX6_RAM_H__
 
-#include <arch/ioports.h>
+/* should be 1MB aligned */
+#define RAM_START_ADDR 0x10000000
 
-#define outb ja_outb
-#define inb ja_inb
-#define outw ja_outw
-#define inw ja_inw
-#define outl ja_outl
-#define inl ja_inl
+#define IO_BASE_PADDR 0x0
 
-#endif /* __POK_IOPORTS_H__ */
+#endif

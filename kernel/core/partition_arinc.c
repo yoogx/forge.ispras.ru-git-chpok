@@ -235,12 +235,6 @@ static void partition_arinc_start(void)
     part->kshd->partition_mode = part->mode;
 
     part->kshd->thread_entry_wrapper = NULL;
-    // Transfer data about intra communication to user space
-    part->kshd->arinc_config_nbuffers = part->arinc_config_nbuffers;
-    part->kshd->arinc_config_nblackboards = part->arinc_config_nblackboards;
-    part->kshd->arinc_config_nsemaphores = part->arinc_config_nsemaphores;
-    part->kshd->arinc_config_nevents = part->arinc_config_nevents;
-    part->kshd->arinc_config_messages_memory_size = part->arinc_config_messages_memory_size;
 
     sched_arinc_start();
 
@@ -268,6 +262,35 @@ void pok_partition_arinc_reset(pok_partition_mode_t mode)
     partition_arinc_connections_cancel();
 
     pok_partition_restart();
+}
+
+static const struct memory_block* partition_arinc_get_memory_block_for_addr(
+    pok_partition_t* part,
+    const void* __user addr,
+    size_t size)
+{
+    pok_partition_arinc_t* part_arinc = container_of(part, pok_partition_arinc_t, base_part);
+
+    uintptr_t vaddr = (uintptr_t)addr;
+
+    for(int i = 0; i < part_arinc->nmemory_blocks; i++)
+    {
+        const struct jet_partition_arinc_mb_addr_entry* mb_addr_entry = &part_arinc->mb_addr_table[i];
+
+        if(mb_addr_entry->vaddr > vaddr) break;
+        if(mb_addr_entry->vaddr + mb_addr_entry->size > vaddr) {
+            // Maximum size available to the end of the block.
+            uint64_t rest_size = mb_addr_entry->vaddr + mb_addr_entry->size - vaddr;
+
+            // Check that end of range is not after the end of the block.
+            if(size > rest_size) return NULL;
+
+            return mb_addr_entry->mblock;
+        }
+
+    }
+
+    return NULL;
 }
 
 #if POK_NEEDS_GDB
@@ -381,10 +404,8 @@ static struct jet_interrupt_context* pok_sched_arinc_get_thread_registers(pok_pa
 static void* __kuser pok_sched_arinc_uaddr_to_gdb(
     struct _pok_partition* part, const void* __user addr, size_t size)
 {
-    pok_partition_arinc_t* part_arinc = container_of(part, typeof(*part_arinc), base_part);
-
-    const struct memory_block* mblock = jet_partition_arinc_get_memory_block_for_addr(
-        part_arinc, addr, size);
+    const struct memory_block* mblock = jet_partition_get_memory_block_for_addr(
+        part, addr, size);
 
     if(mblock) return jet_memory_block_get_kaddr(mblock, addr);
 
@@ -395,6 +416,7 @@ static void* __kuser pok_sched_arinc_uaddr_to_gdb(
 
 static const struct pok_partition_sched_operations arinc_sched_ops = {
     .on_event = &pok_sched_arinc_on_event,
+    .get_memory_block_for_addr = &partition_arinc_get_memory_block_for_addr,
 #if POK_NEEDS_GDB
     .get_number_of_threads = &pok_sched_arinc_get_number_of_threads,
     .get_current_thread_index = &pok_sched_arinc_get_current_thread_index,
@@ -434,6 +456,8 @@ void pok_partition_arinc_init(pok_partition_arinc_t* part)
             portal->init_connection->server_handler_is_shared = TRUE;
         }
     }
+
+    part->mode = POK_PARTITION_MODE_INIT_COLD;
 }
 
 /*
@@ -476,8 +500,18 @@ static void partition_set_mode_normal(void)
     }
 }
 
-// Executed with local preemption disabled.
-static pok_ret_t partition_set_mode_internal (const pok_partition_mode_t mode)
+/*
+ * Set partition's mode. Executed with local preemption disabled.
+ *
+ * Return EOK on success. (Do not return on success actually).
+ *
+ * Possible error codes:
+ *
+ *  - JET_INVALID_MODE - Attempt to switch from INIT_COLD to INIT_WARM
+ *  - JET_NOACTION - Attempt to switch from NORMAL to NORMAL
+ *  - EINVAL - 'mode' is incorrect.
+ */
+static jet_ret_t partition_set_mode_internal (pok_partition_mode_t mode)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
 
@@ -485,7 +519,7 @@ static pok_ret_t partition_set_mode_internal (const pok_partition_mode_t mode)
     {
     case POK_PARTITION_MODE_INIT_WARM:
         if(part->mode == POK_PARTITION_MODE_INIT_COLD)
-            return POK_ERRNO_PARTITION_MODE;
+            return JET_INVALID_MODE;
     // Walkthrough
     case POK_PARTITION_MODE_INIT_COLD:
         part->base_part.start_condition = POK_START_CONDITION_PARTITION_RESTART;
@@ -496,22 +530,32 @@ static pok_ret_t partition_set_mode_internal (const pok_partition_mode_t mode)
     break;
     case POK_PARTITION_MODE_NORMAL:
         if(part->mode == POK_PARTITION_MODE_NORMAL)
-            return POK_ERRNO_UNAVAILABLE; //TODO: revise error code
+            return JET_NOACTION;
         partition_set_mode_normal();
     break;
     default:
-        return POK_ERRNO_EINVAL;
+        return EINVAL;
     }
 
     // Update kernel shared data
     part->kshd->partition_mode = part->mode;
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
-pok_ret_t pok_partition_set_mode_current (const pok_partition_mode_t mode)
+/*
+ * Set partition's mode.
+ *
+ * Return EOK on success. (Do not return on success actually).
+ *
+ * Possible error codes:
+ *
+ *  - JET_INVALID_MODE - Attempt to switch from INIT_COLD to INIT_WARM
+ *  - JET_NOACTION - Attempt to switch from NORMAL to NORMAL
+ */
+jet_ret_t pok_partition_set_mode_current (pok_partition_mode_t mode)
 {
-    pok_ret_t res;
+    jet_ret_t res;
 
     pok_preemption_local_disable();
     res = partition_set_mode_internal(mode);
@@ -521,13 +565,19 @@ pok_ret_t pok_partition_set_mode_current (const pok_partition_mode_t mode)
 }
 
 /**
- * Get partition information. Used for ARINC GET_PARTITION_STATUS function.
+ * Get information about partition.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EFAULT - 'status' points to inaccessible memory.
  */
-pok_ret_t pok_current_partition_get_status(pok_partition_status_t * __user status)
+jet_ret_t pok_current_partition_get_status(pok_partition_status_t * __user status)
 {
     pok_partition_status_t* __kuser k_status =
         jet_user_to_kernel_typed(status);
-    if(!k_status) return POK_ERRNO_EFAULT;
+    if(!k_status) return EFAULT;
 
     k_status->id = current_partition->partition_id;
     k_status->period = current_partition->period;
@@ -536,7 +586,7 @@ pok_ret_t pok_current_partition_get_status(pok_partition_status_t * __user statu
     k_status->lock_level = current_partition_arinc->lock_level;
     k_status->start_condition = current_partition->start_condition;
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
 /*
@@ -551,17 +601,28 @@ static pok_bool_t is_lock_level_blocked(void)
       part->thread_current == part->thread_error;
 }
 
-pok_ret_t pok_current_partition_inc_lock_level(int32_t * __user lock_level)
+/*
+ * Increment lock level for partition.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EFAULT - 'lock_level' points to inaccessible memory
+ *  - JET_NOACTION - lock level cannot be changed in given mode (main thread or error handler)
+ *  - JET_INVALID_CONFIG - lock level has maximum value
+ */
+jet_ret_t pok_current_partition_inc_lock_level(int32_t * __user lock_level)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
 
     if(is_lock_level_blocked())
-        return POK_ERRNO_PARTITION_MODE;
+        return JET_NOACTION;
     if(part->lock_level == MAX_LOCK_LEVEL)
-        return POK_ERRNO_EINVAL;
+        return JET_INVALID_CONFIG;
 
     uint32_t* __kuser k_lock_level = jet_user_to_kernel_typed(lock_level);
-    if(!k_lock_level) return POK_ERRNO_EFAULT;
+    if(!k_lock_level) return EFAULT;
 
     pok_preemption_local_disable();
     part->lock_level++;
@@ -571,18 +632,30 @@ pok_ret_t pok_current_partition_inc_lock_level(int32_t * __user lock_level)
 
     *k_lock_level = current_partition_arinc->lock_level;
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
-pok_ret_t pok_current_partition_dec_lock_level(int32_t * __user lock_level)
+/*
+ * Decrement lock level for partition.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EFAULT - 'lock_level' points to inaccessible memory
+ *  - JET_NOACTION
+ *    -- lock level cannot be changed in given mode (main thread or error handler)
+ *    -- lock level is zero
+ */
+jet_ret_t pok_current_partition_dec_lock_level(int32_t * __user lock_level)
 {
     if(is_lock_level_blocked())
-        return POK_ERRNO_PARTITION_MODE;
+        return JET_NOACTION;
     if(current_partition_arinc->lock_level == 0)
-        return POK_ERRNO_EINVAL;
+        return JET_NOACTION;
 
     uint32_t* __kuser k_lock_level = jet_user_to_kernel_typed(lock_level);
-    if(!k_lock_level) return POK_ERRNO_EFAULT;
+    if(!k_lock_level) return EFAULT;
 
     pok_preemption_local_disable();
     if(--current_partition_arinc->lock_level == 0)
@@ -597,7 +670,7 @@ pok_ret_t pok_current_partition_dec_lock_level(int32_t * __user lock_level)
 
     *k_lock_level = current_partition_arinc->lock_level;
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
 
@@ -616,33 +689,6 @@ const struct memory_block* jet_partition_arinc_find_memory_block(
         const struct memory_block* mblock = &part->memory_blocks[i];
 
         if(strcmp(mblock->name, name) == 0) return mblock;
-    }
-
-    return NULL;
-}
-
-const struct memory_block* jet_partition_arinc_get_memory_block_for_addr(
-    pok_partition_arinc_t* part,
-    const void* __user addr,
-    size_t size)
-{
-    uintptr_t vaddr = (uintptr_t)addr;
-
-    for(int i = 0; i < part->nmemory_blocks; i++)
-    {
-        const struct jet_partition_arinc_mb_addr_entry* mb_addr_entry = &part->mb_addr_table[i];
-
-        if(mb_addr_entry->vaddr > vaddr) break;
-        if(mb_addr_entry->vaddr + mb_addr_entry->size > vaddr) {
-            // Maximum size available to the end of the block.
-            uint64_t rest_size = mb_addr_entry->vaddr + mb_addr_entry->size - vaddr;
-
-            // Check that end of range is not after the end of the block.
-            if(size > rest_size) return NULL;
-
-            return mb_addr_entry->mblock;
-        }
-
     }
 
     return NULL;

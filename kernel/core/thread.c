@@ -78,7 +78,29 @@ static pok_thread_t* get_thread_by_id(pok_thread_id_t id)
 }
 
 
-pok_ret_t pok_thread_create (const char* __user name,
+/*
+ * Create thread with given name and parameters.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - JET_INVALID_MODE - current partition mode is NORMAL
+ *  - EFAULT - 'name', 'attr' or 'thread_id' points to inaccessible memory.
+ *  - JET_INVALID_CONFIG
+ *    -- no more threads can be created
+ *    -- thread's stack of given size cannot be created
+ *    -- thread's period isn't multiplied of partition's period
+ *  - EINVAL
+ *    -- thread's period is 0
+ *    -- thread's capacity is 0
+ *    -- or thread's period is given (positive), but capacity is not or
+ *       capacity is less than period.
+ *    -- incorrect value for base_priority has been given
+ *    -- entry point cannot be executed [NON-ARINC]
+ *  - EEXIST - thread with given name already exists.
+ */
+jet_ret_t pok_thread_create (const char* __user name,
     void* __user                    entry,
     const pok_thread_attr_t* __user attr,
     pok_thread_id_t* __user         thread_id)
@@ -90,21 +112,21 @@ pok_ret_t pok_thread_create (const char* __user name,
      * We can create a thread only if the partition is in INIT mode
      */
     if (part->mode == POK_PARTITION_MODE_NORMAL) {
-        return POK_ERRNO_PARTITION_MODE;
+        return JET_INVALID_MODE;
     }
 
     const pok_thread_attr_t* __kuser k_attr = jet_user_to_kernel_typed_ro(attr);
-    if(!k_attr) return POK_ERRNO_EFAULT;
+    if(!k_attr) return EFAULT;
 
     pok_thread_id_t* __kuser k_thread_id = jet_user_to_kernel_typed(thread_id);
-    if(!k_thread_id) return POK_ERRNO_EFAULT;
+    if(!k_thread_id) return EFAULT;
 
     const char* __kuser k_name = jet_user_to_kernel_ro(name, MAX_NAME_LENGTH);
-    if(!k_name) return POK_ERRNO_EFAULT;
+    if(!k_name) return EFAULT;
 
     // Check quota for normal threads
     if (part->nthreads_normal_used == part->nthreads_normal) {
-        return POK_ERRNO_TOOMANY;
+        return JET_INVALID_CONFIG;
     }
 
     assert(part->nthreads_used < part->nthreads);
@@ -118,72 +140,83 @@ pok_ret_t pok_thread_create (const char* __user name,
     t->deadline = k_attr->deadline;
 
     if (t->base_priority > MAX_PRIORITY_VALUE ||
-        t->base_priority < MIN_PRIORITY_VALUE) return POK_ERRNO_EINVAL;
+        t->base_priority < MIN_PRIORITY_VALUE) return EINVAL;
 
     if (t->period == 0) {
-        return POK_ERRNO_PARAM;
+        return EINVAL;
     }
     if (t->time_capacity == 0) {
-        return POK_ERRNO_PARAM;
+        return EINVAL;
     }
 
     if(!pok_time_is_infinity(t->period))
     {
         if(pok_time_is_infinity(t->time_capacity)) {
             // periodic process must have definite time capacity
-            return POK_ERRNO_PARAM;
+            return EINVAL;
         }
 
         if(t->time_capacity > t->period) {
             // for periodic process, time capacity <= period
-            return POK_ERRNO_PARAM;
+            return EINVAL;
         }
 
 
         if(t->period % part->base_part.period) {
             // Process period should be multiple to partition's period.
-            return POK_ERRNO_THREADATTR; // TODO: Name is bad
+            return JET_INVALID_CONFIG;
         }
    }
 
     // do at least basic check of entry point
     if (!jet_check_access_exec(t->entry)) {
-        return POK_ERRNO_PARAM;
+        return EINVAL;
     }
 
     memcpy(t->name, k_name, MAX_NAME_LENGTH);
 
-    if(find_thread(t->name)) return POK_ERRNO_EXISTS;
+    if(find_thread(t->name)) return EEXIST;
 
     t->user_stack_size = k_attr->stack_size;
 
-    if(!thread_create(t)) return POK_ERRNO_UNAVAILABLE;
+    if(!thread_create(t)) return JET_INVALID_CONFIG;
 
     *k_thread_id = part->nthreads_used;
 
     part->nthreads_used++;
     part->nthreads_normal_used++;
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
 /*
- * Turn current thread into the sleep for a while.
+ * Turn current thread into the sleep for a while or forever.
  *
- * NOTE: It is possible to sleep forever(ARINC prohibits that).
+ * (ARINC prohibits sleeping without timeout; this should be checked in user space).
+ *
+ * Return EOK if time is zero and thread yielding has been performed.
+ * Return ETIMEDOUT if timeout expires.
+ * Return JET_CANCELLED if thread has been STOP()ed or IPPC handler has
+ * been cancelled.
+ *
+ * Possible error codes:
+ *
+ *  - JET_INVALID_MODE - thread is not allowed to sleep.
+ *  - EFAULT - 'time' points to inaccessible memory.
  */
-pok_ret_t pok_thread_sleep(const pok_time_t* __user time)
+jet_ret_t pok_thread_sleep(const pok_time_t* __user time)
 {
-    if(!thread_is_waiting_allowed()) return POK_ERRNO_MODE;
+    if(!thread_is_waiting_allowed()) return JET_INVALID_MODE;
 
     const pok_time_t* __kuser k_time = jet_user_to_kernel_typed_ro(time);
-    if(!k_time) return POK_ERRNO_EFAULT;
+    if(!k_time) return EFAULT;
     pok_time_t kernel_time = *k_time;
 
     pok_preemption_local_disable();
 
     if(kernel_time == 0) {
         thread_yield(current_thread);
+        current_thread->wait_result = EOK;
     }
     else {
         thread_wait_common(current_thread, kernel_time);
@@ -191,33 +224,42 @@ pok_ret_t pok_thread_sleep(const pok_time_t* __user time)
 
     pok_preemption_local_enable();
 
-    return POK_ERRNO_OK;
+    return current_thread->wait_result;
 }
 
-pok_ret_t pok_thread_yield (void)
+/*
+ * Give a chance for other threads to execute.
+ *
+ * Return EOK.
+ */
+jet_ret_t pok_thread_yield (void)
 {
     pok_preemption_local_disable();
     thread_yield(current_thread);
     pok_preemption_local_enable();
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
 
 // Called with local preemption disabled
-static pok_ret_t thread_delayed_start_internal (pok_thread_t* thread,
+static jet_ret_t thread_delayed_start_internal (pok_thread_t* thread,
                                                 pok_time_t delay)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
 
     assert(!pok_time_is_infinity(delay));
 
+    if(thread->ippc_server_connection != NULL) {
+        return JET_INVALID_MODE_TARGET;
+    }
+
     if (thread->state != POK_STATE_STOPPED) {
-        return POK_ERRNO_UNAVAILABLE;
+        return JET_NOACTION;
     }
 
     if (!pok_time_is_infinity(thread->period) && delay >= thread->period) {
-        return POK_ERRNO_EINVAL;
+        return EINVAL;
     }
 
     thread_start_prepare(thread);
@@ -228,29 +270,45 @@ static pok_ret_t thread_delayed_start_internal (pok_thread_t* thread,
         thread->delayed_time = delay;
         thread->state = POK_STATE_WAITING;
 
-        return POK_ERRNO_OK;
+        return EOK;
     }
 
     // Normal mode.
     thread_start_normal(thread, delay);
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
-pok_ret_t pok_thread_delayed_start (pok_thread_id_t id,
+/*
+ * Start given thread with a delay.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EINVAL
+ *    -- thread identificator is incorrect.
+ *    -- 'delay_time' is infinite.
+ *    -- thread is periodic, and 'delay_time' is more than period.
+ *  - EFAULT - 'delay_time' points to inaccessible memory.
+ *  - JET_NOACTION - thread is not in DORMANT state.
+ *  - [IPPC] JET_INVALID_MODE_TARGET - thread is an IPPC handler.
+ *
+ */
+jet_ret_t pok_thread_delayed_start (pok_thread_id_t id,
     const pok_time_t* __user delay_time)
 {
-    pok_ret_t ret;
+    jet_ret_t ret;
 
     pok_thread_t *thread = get_thread_by_id(id);
-    if(!thread) return POK_ERRNO_PARAM;
+    if(!thread) return EINVAL;
 
     const pok_time_t* __kuser k_delay_time = jet_user_to_kernel_typed_ro(delay_time);
-    if(!k_delay_time) return POK_ERRNO_EFAULT;
+    if(!k_delay_time) return EFAULT;
     pok_time_t kernel_delay_time = *k_delay_time;
 
     if (pok_time_is_infinity(kernel_delay_time))
-        return POK_ERRNO_EINVAL;
+        return EINVAL;
 
     pok_preemption_local_disable();
     ret = thread_delayed_start_internal(thread, kernel_delay_time);
@@ -259,12 +317,24 @@ pok_ret_t pok_thread_delayed_start (pok_thread_id_t id,
     return ret;
 }
 
-pok_ret_t pok_thread_start (pok_thread_id_t id)
+/*
+ * Start given thread.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EINVAL
+ *    -- thread identificator is incorrect.
+ *  - JET_NOACTION - thread is not in DORMANT state.
+ *  - [IPPC] JET_INVALID_MODE_TARGET - thread is an IPPC handler.
+ */
+jet_ret_t pok_thread_start (pok_thread_id_t id)
 {
-    pok_ret_t ret;
+    jet_ret_t ret;
 
     pok_thread_t *thread = get_thread_by_id(id);
-    if(!thread) return POK_ERRNO_PARAM;
+    if(!thread) return EINVAL;
 
     pok_preemption_local_disable();
     ret = thread_delayed_start_internal(thread, 0);
@@ -273,23 +343,33 @@ pok_ret_t pok_thread_start (pok_thread_id_t id)
     return ret;
 }
 
-
-pok_ret_t pok_thread_get_status (pok_thread_id_t id,
+/*
+ * Get status of given thread.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EINVAL
+ *    -- thread identificator is incorrect.
+ *  - EFAULT - 'name', 'entry' or 'status' points to inaccessible memory.
+ */
+jet_ret_t pok_thread_get_status (pok_thread_id_t id,
     char* __user name,
     void* __user *entry,
     pok_thread_status_t* __user status)
 {
     pok_thread_t *t = get_thread_by_id(id);
-    if(!t) return POK_ERRNO_PARAM;
+    if(!t) return EINVAL;
 
     pok_thread_status_t* __kuser k_status = jet_user_to_kernel_typed(status);
-    if(!k_status) return POK_ERRNO_EFAULT;
+    if(!k_status) return EFAULT;
 
     void* __kuser *k_entry = jet_user_to_kernel_typed(entry);
-    if(!k_entry) return POK_ERRNO_EFAULT;
+    if(!k_entry) return EFAULT;
 
     char* __kuser k_name = jet_user_to_kernel(name, MAX_NAME_LENGTH);
-    if(!k_name) return POK_ERRNO_EFAULT;
+    if(!k_name) return EFAULT;
 
     memcpy(k_name, t->name, MAX_NAME_LENGTH);
     *k_entry = t->entry;
@@ -322,26 +402,39 @@ pok_ret_t pok_thread_get_status (pok_thread_id_t id,
 
     pok_preemption_local_enable();
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
-pok_ret_t pok_thread_set_priority(pok_thread_id_t id, uint32_t priority)
+/*
+ * Set priority for given thread.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EINVAL
+ *    -- thread identificator is incorrect
+ *    -- priority value is incorrect
+ *  - JET_INVALID_MODE_TARGET - thread is not started.
+ *  - [IPPC] JET_INVALID_MODE_TARGET - thread is an IPPC handler.
+ */
+jet_ret_t pok_thread_set_priority(pok_thread_id_t id, uint32_t priority)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
 
-    pok_ret_t ret;
+    jet_ret_t ret;
 
     pok_thread_t *t = get_thread_by_id(id);
-    if(!t) return POK_ERRNO_PARAM;
+    if(!t) return EINVAL;
 
-    if(t->ippc_server_connection) return POK_ERRNO_PARAM; // Priority has no sence for server threads.
+    if(t->ippc_server_connection) return JET_INVALID_MODE_TARGET; // Priority has no sence for server threads.
 
-    if(priority > MAX_PRIORITY_VALUE) return POK_ERRNO_PARAM;
-    if(priority < MIN_PRIORITY_VALUE) return POK_ERRNO_PARAM;
+    if(priority > MAX_PRIORITY_VALUE) return EINVAL;
+    if(priority < MIN_PRIORITY_VALUE) return EINVAL;
 
     pok_preemption_local_disable();
 
-    ret = POK_ERRNO_UNAVAILABLE;
+    ret = JET_INVALID_MODE_TARGET;
     if (t->state == POK_STATE_STOPPED) goto out;
 
     t->priority = priority;
@@ -352,66 +445,96 @@ pok_ret_t pok_thread_set_priority(pok_thread_id_t id, uint32_t priority)
 
     thread_yield(t);
 
-    ret = POK_ERRNO_OK;
+    ret = EOK;
 out:
     pok_preemption_local_enable();
 
     return ret;
 }
 
-pok_ret_t pok_thread_resume(pok_thread_id_t id)
+/*
+ * Resume given thread.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EINVAL
+ *    -- thread identificator is incorrect
+ *    -- thread is a current thread
+ *  - JET_INVALID_MODE_TARGET
+ *    -- thread is not started
+ *    -- thread is periodic
+ *  - JET_NOACTION - thread is not suspended
+ */
+jet_ret_t pok_thread_resume(pok_thread_id_t id)
 {
-    pok_ret_t ret;
+    jet_ret_t ret;
 
     pok_thread_t *t = get_thread_by_id(id);
-    if(!t) return POK_ERRNO_PARAM;
+    if(!t) return EINVAL;
 
     // can't resume self, lol
-    if (t == current_thread) return POK_ERRNO_THREADATTR;
+    if (t == current_thread) return EINVAL;
 
     // although periodic process can never be suspended anyway,
     // ARINC-653 requires different error code
-    if (pok_thread_is_periodic(t)) return POK_ERRNO_MODE;
+    if (pok_thread_is_periodic(t)) return JET_INVALID_MODE_TARGET;
 
     pok_preemption_local_disable();
 
-    ret = POK_ERRNO_MODE;
+    ret = JET_INVALID_MODE_TARGET;
     if (t->state == POK_STATE_STOPPED) goto out;
 
-    ret = POK_ERRNO_UNAVAILABLE;
+    ret = JET_NOACTION;
     if (!t->suspended) goto out;
 
     thread_resume(t);
 
-    ret = POK_ERRNO_OK;
+    ret = EOK;
 out:
     pok_preemption_local_enable();
 
     return ret;
 }
 
-pok_ret_t pok_thread_suspend_target(pok_thread_id_t id)
+/*
+ * Suspend given thread.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EINVAL
+ *    -- thread identificator is incorrect
+ *    -- thread is the current thread
+ *  - JET_INVALID_MODE_TARGET
+ *    -- thread is periodic
+ *    -- thread is not started
+ *    -- thread holds preemption lock
+ *  - JET_NOACTION - thread is already suspended
+ *  - [IPPC] JET_INVALID_MODE_TARGET - thread is an IPPC handler
+ */
+jet_ret_t pok_thread_suspend_target(pok_thread_id_t id)
 {
-    pok_ret_t ret;
+    jet_ret_t ret;
 
     pok_thread_t *t = get_thread_by_id(id);
-    if(!t) return POK_ERRNO_PARAM;
+    if(!t) return EINVAL;
 
     // can't suspend current process
     // _using this function_
     // (use pok_thread_suspend instead)
-    if (t == current_thread) return POK_ERRNO_THREADATTR;
+    if (t == current_thread) return EINVAL;
 
-    // although periodic process can never be suspended anyway,
-    // ARINC-653 requires different error code
-    if (pok_thread_is_periodic(t)) return POK_ERRNO_MODE;
+    if (pok_thread_is_periodic(t)) return JET_INVALID_MODE_TARGET;
 
     // Server threads cannot be suspended.
-    if (t->ippc_server_connection) return POK_ERRNO_MODE;
+    if (t->ippc_server_connection) return JET_INVALID_MODE_TARGET;
 
     pok_preemption_local_disable();
 
-    ret = POK_ERRNO_MODE;
+    ret = JET_INVALID_MODE_TARGET;
     // can't suspend stopped (dormant) process
     if (t->state == POK_STATE_STOPPED) goto out;
 
@@ -419,35 +542,52 @@ pok_ret_t pok_thread_suspend_target(pok_thread_id_t id)
     if (current_partition_arinc->lock_level > 0
         && current_partition_arinc->thread_locked == t) goto out;
 
-    ret = POK_ERRNO_UNAVAILABLE;
+    ret = JET_NOACTION;
     if (t->suspended) goto out;
 
     thread_suspend(t);
 
-    ret = POK_ERRNO_OK;
+    ret = EOK;
 out:
     pok_preemption_local_enable();
 
     return ret;
 }
 
-pok_ret_t pok_thread_suspend(const pok_time_t* __user time)
+/*
+ * Suspend current thread with a possible timeout.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EFAULT - 'time' points to inaccessible memory
+ *  - EINVAL
+ *    -- thread is the current thread
+ *  - JET_INVALID_MODE
+ *    -- thread is periodic
+ *    -- thread holds preemption lock
+ *    -- thread is an error handler
+ *  - JET_NOACTION - thread is already suspended
+ *  - [IPPC] JET_INVALID_MODE - thread is an IPPC handler
+ */
+jet_ret_t pok_thread_suspend(const pok_time_t* __user time)
 {
     pok_thread_t *t = current_thread;
 
     const pok_time_t* __kuser k_time = jet_user_to_kernel_typed_ro(time);
-    if(!k_time) return POK_ERRNO_EFAULT;
+    if(!k_time) return EFAULT;
 
     pok_time_t kernel_time = *k_time;
 
     // although periodic process can never be suspended anyway,
     // ARINC-653 requires different error code
-    if (pok_thread_is_periodic(t)) return POK_ERRNO_MODE;
+    if (pok_thread_is_periodic(t)) return JET_INVALID_MODE;
 
     // Server threads cannot be suspended.
-    if (t->ippc_server_connection) return POK_ERRNO_MODE;
+    if (t->ippc_server_connection) return JET_INVALID_MODE;
 
-    if (!thread_is_waiting_allowed()) return POK_ERRNO_MODE;
+    if (!thread_is_waiting_allowed()) return JET_INVALID_MODE;
 
     pok_preemption_local_disable();
 
@@ -460,7 +600,7 @@ pok_ret_t pok_thread_suspend(const pok_time_t* __user time)
 out:
     pok_preemption_local_enable();
 
-    return POK_ERRNO_OK;
+    return EOK;
 
 suspend_timed:
     thread_suspend_timed(t, kernel_time);
@@ -470,37 +610,50 @@ suspend_timed:
     return t->wait_result;
 }
 
-pok_ret_t pok_thread_stop_target(pok_thread_id_t id)
+/*
+ * Stop given thread.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EINVAL
+ *    -- thread identificator is invalid
+ *    -- thread is a current thread
+ *
+ *  - JET_NOACTION - target thread is already stopped.
+ */
+jet_ret_t pok_thread_stop_target(pok_thread_id_t id)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
 
-    pok_ret_t ret = POK_ERRNO_PARAM;
+    jet_ret_t ret = EINVAL;
 
     pok_thread_t *t = get_thread_by_id(id);
-    if(!t) return POK_ERRNO_PARAM;
+    if(!t) return EINVAL;
 
     pok_thread_t* thread_current = part->thread_current;
 
     // can's stop self
     // use pok_thread_stop to do that
-    if (t == thread_current) return POK_ERRNO_THREADATTR;
+    if (t == thread_current) return EINVAL;
 
     struct jet_thread_shared_data* tshd_target = part->kshd->tshd
         + (t - part->threads);
 
     pok_preemption_local_disable();
 
-    ret = POK_ERRNO_UNAVAILABLE;
+    ret = JET_NOACTION;
     if (t->state == POK_STATE_STOPPED)
     {
         // Target process is already stopped.
         goto out;
     }
-    else if(t->state == POK_STATE_WAITING) {
+
+    if(t->state == POK_STATE_WAITING) {
         // Interrupt waiting.
         thread_wait_cancel(t);
     }
-
 
     if(t->relations_stop.donate_target != NULL)
     {
@@ -508,7 +661,7 @@ pok_ret_t pok_thread_stop_target(pok_thread_id_t id)
         if(!t->relations_stop.first_donator)
         {
             t->relations_stop.first_donator = thread_current;
-            ret = POK_ERRNO_OK;
+            ret = EOK;
         }
 
         // Add ourselves into the list of "donators" *after* the target.
@@ -536,7 +689,7 @@ pok_ret_t pok_thread_stop_target(pok_thread_id_t id)
         thread_current->relations_stop.next_donator = NULL;
         t->relations_stop.first_donator = thread_current;
 
-        ret = POK_ERRNO_OK;
+        ret = EOK;
     }
     else if(tshd_target->msection_count != 0)
     {
@@ -545,14 +698,14 @@ pok_ret_t pok_thread_stop_target(pok_thread_id_t id)
         thread_current->relations_stop.next_donator = NULL;
         t->relations_stop.first_donator = thread_current;
 
-        ret = POK_ERRNO_OK;
+        ret = EOK;
 
         tshd_target->thread_kernel_flags = THREAD_KERNEL_FLAG_KILLED;
     }
     else
     {
         // Target thread can be stopped immediately.
-        ret = POK_ERRNO_OK;
+        ret = EOK;
         thread_stop(t);
 
         goto out;
@@ -566,7 +719,12 @@ out:
     return ret;
 }
 
-pok_ret_t pok_thread_stop(void)
+/*
+ * Stop current thread.
+ *
+ * Return EOK on success (never returns actually).
+ */
+jet_ret_t pok_thread_stop(void)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
     pok_thread_t* t = part->thread_current;
@@ -595,40 +753,59 @@ pok_ret_t pok_thread_stop(void)
     pok_sched_local_invalidate();
     pok_preemption_local_enable();
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
-pok_ret_t pok_thread_find(const char* __user name, pok_thread_id_t* __user id)
+/*
+ * Find a thread by the name.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EFAULT - 'name' or 'id' points to inaccessible memory.
+ *  - JET_INVALID_CONFIG - there is no thread with given name.
+ */
+jet_ret_t pok_thread_find(const char* __user name, pok_thread_id_t* __user id)
 {
     char kernel_name[MAX_NAME_LENGTH];
     pok_thread_t* t;
 
     const char* __kuser k_name = jet_user_to_kernel_ro(name, MAX_NAME_LENGTH);
-    if(!k_name) return POK_ERRNO_EFAULT;
+    if(!k_name) return EFAULT;
 
     pok_thread_id_t* __kuser k_id = jet_user_to_kernel_typed(id);
-    if(!k_id) return POK_ERRNO_EFAULT;
+    if(!k_id) return EFAULT;
 
     memcpy(kernel_name, k_name, MAX_NAME_LENGTH);
 
     t = find_thread(kernel_name);
 
-    if(!t) return POK_ERRNO_EINVAL; // TODO: INVALID_CONFIG for ARINC
+    if(!t) return JET_INVALID_CONFIG;
 
     *k_id = t - current_partition_arinc->threads;
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
-// called by periodic process when it's done its work
-// ARINC-653 PERIODIC_WAIT
-pok_ret_t pok_sched_end_period(void)
+/*
+ * Make current thread waiting for the next period.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - JET_INVALID_MODE
+ *    -- thread is not periodic
+ *    -- thread doesn't allowed to wait
+ */
+jet_ret_t pok_sched_end_period(void)
 {
     pok_thread_t* t = current_thread;
 
-    if(!pok_thread_is_periodic(t)) return POK_ERRNO_MODE;
+    if(!pok_thread_is_periodic(t)) return JET_INVALID_MODE;
 
-    if(!thread_is_waiting_allowed()) return POK_ERRNO_MODE;
+    if(!thread_is_waiting_allowed()) return JET_INVALID_MODE;
 
     pok_preemption_local_disable();
 
@@ -639,27 +816,39 @@ pok_ret_t pok_sched_end_period(void)
 
     pok_preemption_local_enable();
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
-pok_ret_t pok_sched_replenish(const pok_time_t* __user budget)
+/*
+ * Replenish budget time for current thread.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EFAULT - 'budget' points to inaccessible memory.
+ *  - JET_NOACTION - Current is main or error handler.
+ *  - JET_INVALID_MODE - thread is periodic, and its deadline would
+ *     exceed next release point. This includes "'budget' is infinity" case.
+ */
+jet_ret_t pok_sched_replenish(const pok_time_t* __user budget)
 {
-    pok_ret_t ret;
+    jet_ret_t ret;
 
     pok_partition_arinc_t* part = current_partition_arinc;
 
     const pok_time_t* __kuser k_budget = jet_user_to_kernel_typed_ro(budget);
-    if(!k_budget) return POK_ERRNO_EFAULT;
+    if(!k_budget) return EFAULT;
     pok_time_t kernel_budget = *k_budget;
 
     pok_thread_t* t = current_thread;
 
-    if(t == part->thread_error) return POK_ERRNO_UNAVAILABLE;
+    if(t == part->thread_error) return JET_NOACTION;
 
     if(part->mode != POK_PARTITION_MODE_NORMAL)
-        return POK_ERRNO_UNAVAILABLE;
+        return JET_NOACTION;
 
-    if(pok_time_is_infinity(t->time_capacity)) return POK_ERRNO_OK; //nothing to do
+    if(pok_time_is_infinity(t->time_capacity)) return EOK; //nothing to do
 
     pok_preemption_local_disable();
 
@@ -667,13 +856,13 @@ pok_ret_t pok_sched_replenish(const pok_time_t* __user budget)
     {
         if(!pok_time_is_infinity(t->period))
         {
-            ret = POK_ERRNO_MODE;
+            ret = JET_INVALID_MODE;
             goto out;
         }
 
         delayed_event_remove(&part->partition_delayed_events,
             &t->thread_deadline_event);
-        ret = POK_ERRNO_OK;
+        ret = EOK;
     }
     else
     {
@@ -683,12 +872,12 @@ pok_ret_t pok_sched_replenish(const pok_time_t* __user budget)
             && (calculated_deadline >= (t->release_point + t->period)))
         {
             // For periodic process new deadline will exceed next release point.
-            ret = POK_ERRNO_MODE;
+            ret = JET_INVALID_MODE;
             goto out;
         }
 
         thread_set_deadline(t, calculated_deadline);
-        ret = POK_ERRNO_OK;
+        ret = EOK;
     }
 out:
     pok_preemption_local_enable();
@@ -704,7 +893,7 @@ static void assert_thread_id(pok_thread_id_t id)
     assert_os(id < part->nthreads_used);
 }
 
-pok_ret_t jet_msection_enter_helper(struct msection* __user section)
+jet_ret_t jet_msection_enter_helper(struct msection* __user section)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
     pok_thread_t* thread_current = part->thread_current;
@@ -726,10 +915,24 @@ pok_ret_t jet_msection_enter_helper(struct msection* __user section)
 
     pok_preemption_local_enable();
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
-pok_ret_t jet_msection_wait(struct msection* __user section,
+/*
+ * Wait on given msection with possible timeout.
+ *
+ * Return EOK if waiting has been interrupted by notify.
+ * Return ETIMEDOUT if timeout has been expired.
+ * Return JET_CANCELLED if thread has been STOP()ed or IPPC handler has
+ * been cancelled.
+ *
+ * Possible error codes:
+ *
+ *  - EFAULT - 'timeout' points to inaccessible memory.
+ *  - JET_INVALID_MODE - thread is not allowed to wait
+ *
+ */
+jet_ret_t jet_msection_wait(struct msection* __user section,
     const pok_time_t* __user timeout)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
@@ -737,7 +940,7 @@ pok_ret_t jet_msection_wait(struct msection* __user section,
 
     const pok_time_t* __kuser kernel_timeout = jet_user_to_kernel_typed_ro(timeout);
 
-    if(kernel_timeout == NULL) return POK_ERRNO_EFAULT;
+    if(kernel_timeout == NULL) return EFAULT;
 
     struct msection* __kuser msection_entering = jet_user_to_kernel_typed(section);
 
@@ -755,14 +958,14 @@ pok_ret_t jet_msection_wait(struct msection* __user section,
     if(part->lock_level // In the INIT_* mode lock level is positive, no need to check it explicitely.
         || part->thread_error == thread_current /* error thread cannot wait */
     ) {
-        return POK_ERRNO_MODE;
+        return JET_INVALID_MODE;
     }
 
     pok_preemption_local_disable();
 
     if(thread_current->relations_stop.first_donator != NULL)
     {
-        thread_current->wait_result = POK_ERRNO_CANCELLED;
+        thread_current->wait_result = JET_CANCELLED;
         goto out;
     }
 
@@ -792,10 +995,19 @@ out:
     return thread_current->wait_result;
 }
 
-pok_ret_t jet_msection_notify(struct msection* __user section,
+/*
+ * Notify given thread.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - JET_NOACTION - thread has already been awoked.
+ */
+jet_ret_t jet_msection_notify(struct msection* __user section,
     pok_thread_id_t thread_id)
 {
-    pok_ret_t ret = POK_ERRNO_EXISTS;
+    jet_ret_t ret = JET_NOACTION;
 
     struct msection* __kuser section_kernel = jet_user_to_kernel_typed(section);
 
@@ -823,8 +1035,8 @@ pok_ret_t jet_msection_notify(struct msection* __user section,
 
     thread_wake_up(t);
 
-    if(t->wait_result == POK_ERRNO_OK)
-        ret = POK_ERRNO_OK;
+    if(t->wait_result == EOK)
+        ret = EOK;
 
 out:
     pok_preemption_local_enable();
@@ -885,14 +1097,14 @@ static void msection_wq_del(struct msection_wq* wq,
  *
  * Returns:
  *
- *     POK_ERRNO_OK - at least on thread has been notified.
- *     POK_ERRNO_EMPTY - there is no waiting threads in the waitqueue.
+ *     EOK - at least on thread has been notified.
+ *     JET_NOACTION - there is no waiting threads in the waitqueue.
  */
-pok_ret_t jet_msection_wq_notify(struct msection* __user section,
+jet_ret_t jet_msection_wq_notify(struct msection* __user section,
    struct msection_wq* __user wq,
    pok_bool_t is_all)
 {
-    pok_ret_t ret = POK_ERRNO_EMPTY;
+    jet_ret_t ret = JET_NOACTION;
 
     struct msection* __kuser section_kernel = jet_user_to_kernel_typed(section);
     assert_os(section_kernel);
@@ -923,8 +1135,8 @@ pok_ret_t jet_msection_wq_notify(struct msection* __user section,
 
         if(t->state == POK_STATE_WAITING) {
             thread_wake_up(t);
-            if(t->wait_result == POK_ERRNO_OK) {
-                ret = POK_ERRNO_OK;
+            if(t->wait_result == EOK) {
+                ret = EOK;
                 if(!is_all) break;
                 continue;
             }
@@ -944,9 +1156,9 @@ pok_ret_t jet_msection_wq_notify(struct msection* __user section,
  * Every thread in the queue which hasn't waited at the function's call
  * is removed from the queue.
  *
- * Returns: POK_ERRNO_OK.
+ * Returns: EOK.
  */
-pok_ret_t jet_msection_wq_size(struct msection* __user section,
+jet_ret_t jet_msection_wq_size(struct msection* __user section,
    struct msection_wq* __user wq,
    size_t* __user size)
 {
@@ -996,7 +1208,7 @@ pok_ret_t jet_msection_wq_size(struct msection* __user section,
 
     *size_kernel = count;
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
 
@@ -1045,7 +1257,7 @@ pok_thread_t* pok_thread_wq_wake_up(pok_thread_wq_t* wq)
         list_del_init(&t->wait_elem);
         thread_wake_up(t);
 
-        assert(t->wait_result == POK_ERRNO_OK);
+        assert(t->wait_result == EOK);
 
         return t;
     }

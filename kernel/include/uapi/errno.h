@@ -1,6 +1,6 @@
 /*
  * Institute for System Programming of the Russian Academy of Sciences
- * Copyright (C) 2016 ISPRAS
+ * Copyright (C) 2017 ISPRAS
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -11,9 +11,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
  * See the GNU General Public License version 3 for more details.
- *
- * This file also incorporates work covered by POK License.
- * Copyright (c) 2007-2009 POK team
  */
 
 #ifndef __JET_UAPI_ERRNO_H__
@@ -21,47 +18,27 @@
 
 typedef enum
 {
-		POK_ERRNO_OK                    =   0,
-		POK_ERRNO_EINVAL                =   1,
+    EOK = 0,
+    EINVAL,
+    EDOM,
+    EILSEQ,
+    ERANGE,
+    EFAULT, //page fault
+    EEXIST, //instance (of any type) already exists
+    ETIMEDOUT, // Timeout
+    EAGAIN, // resource currently is not available.
 
-		POK_ERRNO_UNAVAILABLE           =   2,
-		POK_ERRNO_PARAM									=   3,
-		POK_ERRNO_TOOMANY               =   5,
-		POK_ERRNO_EPERM                 =   6,
-		POK_ERRNO_EXISTS                =   7,
+    /* Jet specific errors */
+    JET_INVALID_CONFIG = 256,
+    JET_INVALID_MODE, //wrong mode of current thread (partition, lock_preemption, etc)
+    JET_INVALID_MODE_TARGET, //wrong mode of target thread (port, etc)
+    JET_NOACTION, // object state remains unchanged.
+    JET_CANCELLED, // stopped thread inside msection, cancelled IPPC call
 
-		POK_ERRNO_ERANGE                =   8,
-		POK_ERRNO_EDOM                  =   9,
-		POK_ERRNO_HUGE_VAL              =  10,
+    /* IPPC specific errors */
+    JET_IPPC_RESETED,
+    JET_IPPC_FAILED
 
-		POK_ERRNO_EFAULT                =  11,
-
-		POK_ERRNO_THREAD                =  49,
-		POK_ERRNO_THREADATTR            =  50,
-
-		POK_ERRNO_TIME                 =  100,
-
-		POK_ERRNO_PARTITION_ATTR        = 200,
-
-		POK_ERRNO_PORT                 =  301,
-		POK_ERRNO_NOTFOUND             =  302,
-		POK_ERRNO_DIRECTION            =  303,
-		POK_ERRNO_SIZE                 =  304,
-		POK_ERRNO_DISCIPLINE           =  305,
-		POK_ERRNO_PORTPART             =  307,
-		POK_ERRNO_EMPTY                =  308,
-		POK_ERRNO_KIND                 =  309,
-		POK_ERRNO_FULL                 =  311,
-		POK_ERRNO_READY                =  310,
-		POK_ERRNO_TIMEOUT              =  250,
-		POK_ERRNO_MODE                 =  251,
-
-		/* Native thread is STOP()-ed or server thread is cancelled. */
-		POK_ERRNO_CANCELLED            =  500,
-
-		POK_ERRNO_PARTITION_MODE       =  601,
-
-		POK_ERRNO_PARTITION            =  401
-} pok_ret_t;
+} jet_ret_t;
 
 #endif /* __JET_UAPI_ERRNO_H__ */

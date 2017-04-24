@@ -30,7 +30,7 @@
 struct jet_partition_memory_block_init_entry
 {
     enum jet_memory_block_init_type init_type;
-    uint16_t source_id;
+    const char* source_id;
     const struct memory_block* const* mblocks;
 };
 
@@ -76,13 +76,6 @@ typedef struct _pok_partition_arinc
 
 
     pok_partition_mode_t   mode;           /**< Current mode of the partition */
-
-    /*
-     * Index in the elf array where partition's image is contained.
-     *
-     * Set in deployment.c.
-     */
-    uint8_t                 elf_id;
 
     pok_time_t             activation; // Not used now
 
@@ -259,14 +252,6 @@ typedef struct _pok_partition_arinc
      * This is context pointer for switch to it.
      */
     struct jet_context*               idle_sp;
-
-    /* For passing to user space via kernel shared data. */
-    size_t arinc_config_nbuffers;
-    size_t arinc_config_nblackboards;
-    size_t arinc_config_nsemaphores;
-    size_t arinc_config_nevents;
-    size_t arinc_config_messages_memory_size;
-
 } pok_partition_arinc_t;
 
 #define current_partition_arinc container_of(current_partition, pok_partition_arinc_t, base_part)
@@ -355,13 +340,13 @@ void pok_partition_arinc_reset(pok_partition_mode_t mode);
  */
 void pok_partition_arinc_idle(void);
 
-pok_ret_t pok_partition_set_mode_current (const pok_partition_mode_t mode);
+jet_ret_t pok_partition_set_mode_current (const pok_partition_mode_t mode);
 
-pok_ret_t pok_current_partition_get_status (pok_partition_status_t* status);
+jet_ret_t pok_current_partition_get_status (pok_partition_status_t* status);
 
-pok_ret_t pok_current_partition_inc_lock_level(int32_t *lock_level);
+jet_ret_t pok_current_partition_inc_lock_level(int32_t *lock_level);
 
-pok_ret_t pok_current_partition_dec_lock_level(int32_t *lock_level);
+jet_ret_t pok_current_partition_dec_lock_level(int32_t *lock_level);
 
 
 /*

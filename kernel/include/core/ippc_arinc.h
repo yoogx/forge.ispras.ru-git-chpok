@@ -25,7 +25,7 @@
  *
  * Used by the client.
  */
-pok_ret_t jet_ippc_partition_arinc_init_portal(const char* __user portal_name,
+jet_ret_t jet_ippc_partition_arinc_init_portal(const char* __user portal_name,
     int* __user portal_id);
 
 /*
@@ -35,7 +35,9 @@ pok_ret_t jet_ippc_partition_arinc_init_portal(const char* __user portal_name,
  *
  * Used by the client.
  */
-pok_ret_t jet_ippc_partition_arinc_call(int portal_id);
+jet_ret_t jet_ippc_partition_arinc_call(int portal_id,
+    const struct jet_ippc_client_access_window* __user access_windows,
+    int access_windows_n);
 
 /*
  * Return information about given portal type.
@@ -45,7 +47,7 @@ pok_ret_t jet_ippc_partition_arinc_call(int portal_id);
  *
  * Used by the server.
  */
-pok_ret_t jet_ippc_partition_arinc_get_portal_type_info(
+jet_ret_t jet_ippc_partition_arinc_get_portal_type_info(
     const char* __user portal_name,
     int* __user portal_type_id,
     int* __user n_clients);
@@ -60,7 +62,7 @@ pok_ret_t jet_ippc_partition_arinc_get_portal_type_info(
  *
  * Used by the server.
  */
-pok_ret_t jet_ippc_partition_arinc_get_portal_info(
+jet_ret_t jet_ippc_partition_arinc_get_portal_info(
     int server_portal_id,
     int* __user n_connections);
 
@@ -77,7 +79,7 @@ pok_ret_t jet_ippc_partition_arinc_get_portal_info(
  *
  * Used by the server.
  */
-pok_ret_t jet_ippc_partition_arinc_create_connections(
+jet_ret_t jet_ippc_partition_arinc_create_connections(
     int server_portal_id,
     void* __user entry,
     size_t user_stack_size,
@@ -90,6 +92,12 @@ pok_ret_t jet_ippc_partition_arinc_create_connections(
  * Output parameters should be set in thread shared data before:
  * 'ippc_input_params_server' and 'ippc_input_params_server_n'.
  */
-pok_ret_t jet_ippc_partition_arinc_return(void);
+jet_ret_t jet_ippc_partition_arinc_return(void);
+
+jet_ret_t jet_ippc_partition_arinc_copy_to_client(
+    void* __user dst, const void* __user src, size_t n);
+
+jet_ret_t jet_ippc_partition_arinc_copy_from_client(
+    void* __user dst, const void* __user src, size_t n);
 
 #endif /* __POK_CORE_IPPC_ARINC_H__ */

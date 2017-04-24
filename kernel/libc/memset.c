@@ -18,13 +18,13 @@
 #include <libc.h>
 
 __attribute__ ((weak))
-void* memset (void *dest, unsigned char val, size_t count)
+void* memset (void *dest, int val, size_t count)
 {
   unsigned char *d = (unsigned char *) dest;
 
   while (count--)
   {
-    *d++ = val;
+    *d++ = (unsigned char)val;
   }
 
   return dest;

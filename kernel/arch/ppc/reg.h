@@ -82,6 +82,9 @@
 #define SPRN_MAS6       0x276   /* MMU Assist Register 6 */
 #define SPRN_MAS7       0x3B0   /* MMU Assist Register 7 */
 
+#define SPRN_EPLC       0x3b3   /* External PID Load Context Register */
+#define SPRN_EPSC       0x3b4   /* External PID Store Context Register */
+
 #define SPRN_ESR_PIL    1 << 27 /* Illegal instruction exception */
 #define SPRN_ESR_PPR    1 << 26 /* Privileged instruction exception */
 #define SPRN_ESR_PTR    1 << 25 /* Trap exception */
@@ -95,11 +98,13 @@
 #endif
 
 
-#define mfspr(rn)       ({unsigned long rval; \
-                                asm volatile("mfspr %0," __stringify(rn) \
-                                                                    : "=r" (rval)); rval;})
+#define mfspr(rn) ({uint32_t rval; \
+        asm volatile("mfspr %0," __stringify(rn) \
+                : "=r" (rval) \
+                :: "memory");\
+        rval;})
 #define mtspr(rn, v)    asm volatile("mtspr " __stringify(rn) ",%0" : \
-                                             : "r" ((unsigned long)(v)) \
+                                             : "r" ((uint32_t)(v)) \
                                              : "memory")
 #endif // __ASSEMBLY__
 

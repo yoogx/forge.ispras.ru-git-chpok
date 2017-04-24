@@ -47,13 +47,13 @@ void msection_leave(struct msection* section);
  * 
  * Returns:
  * 
- *     POK_ERRNO_OK: Process has been awoken by msection_notify().
- *     POK_ERRNO_TIMEOUT: Process has been awoken by timeout.
- *     POK_ERRNO_CANCELLED: Someone calls STOP() for us.
+ *     EOK: Process has been awoken by msection_notify().
+ *     ETIMEDOUT: Process has been awoken by timeout.
+ *     JET_CANCELLED: Someone calls STOP() for us or server IPPC handler has been cancelled.
  * 
- *     POK_ERRNO_MODE: Waiting is not allowed in given mode.
+ *     JET_INVALID_MODE: Waiting is not allowed in given mode.
  */
-pok_ret_t msection_wait(struct msection* section, pok_time_t timeout);
+jet_ret_t msection_wait(struct msection* section, pok_time_t timeout);
 
 
 /*
@@ -64,12 +64,10 @@ pok_ret_t msection_wait(struct msection* section, pok_time_t timeout);
  * 
  * Returns:
  * 
- *     POK_ERRNO_OK: Thread had wait on the section and we have awoken it.
- *     POK_ERRNO_EXISTS: Thread is not waited.
- * 
- *     POK_ERRNO_UNAVAILABLE: thread_id is invalid.
+ *     EOK: Thread had wait on the section and we have awoken it.
+ *     JET_NOACTION: Thread is not waited.
  */
-pok_ret_t msection_notify(struct msection* section, pok_thread_id_t thread_id);
+jet_ret_t msection_notify(struct msection* section, pok_thread_id_t thread_id);
 
 
 /* Initialize waitqueue. */
@@ -113,10 +111,10 @@ void msection_wq_del(struct msection_wq* wq, pok_thread_id_t thread);
  * 
  * Returns:
  * 
- *     POK_ERRNO_OK - at least on thread has been notified.
- *     POK_ERRNO_EMPTY - there is no waiting threads in the waitqueue.
+ *     EOK - at least on thread has been notified.
+ *     JET_NOACTION - there is no waiting threads in the waitqueue.
  */
-pok_ret_t msection_wq_notify(struct msection* section,
+jet_ret_t msection_wq_notify(struct msection* section,
     struct msection_wq* wq,
     pok_bool_t is_all);
 

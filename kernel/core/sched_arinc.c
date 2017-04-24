@@ -211,9 +211,15 @@ static pok_thread_t* select_thread_server(struct jet_ippc_connection* ippc_handl
             // Pass parameters to it.
             struct jet_thread_shared_data* tshd = &part->kshd->tshd[new_thread - part->threads];
 
-            memcpy(tshd->ippc_input_params, ippc_handled->input_params,
-                sizeof(ippc_handled->input_params[0]) * ippc_handled->input_params_n);
-            tshd->ippc_input_params_n = ippc_handled->input_params_n;
+            tshd->ippc_input_params_server_n = ippc_handled->input_params_n;
+
+            if(ippc_handled->input_params_n) {
+                memcpy(tshd->ippc_input_params_server, ippc_handled->input_params,
+                    sizeof(ippc_handled->input_params[0]) * ippc_handled->input_params_n);
+            }
+
+            // Reset output parameters.
+            tshd->ippc_output_params_server_n = 0;
         }
         else if(new_thread->state == POK_STATE_WAITING) {
             if(ippc_handled->is_cancelled) {
@@ -464,6 +470,7 @@ again:
     else
     {
         jet_context_jump(new_sp);
+        unreachable();
     }
 }
 
@@ -537,7 +544,7 @@ void pok_sched_local_invalidate_main(void)
         pok_sched_local_invalidate();
 }
 
-pok_ret_t jet_resched(void)
+jet_ret_t jet_resched(void)
 {
     pok_partition_arinc_t* part = current_partition_arinc;
 
@@ -560,5 +567,5 @@ pok_ret_t jet_resched(void)
 
     pok_preemption_local_enable();
 
-    return POK_ERRNO_OK;
+    return EOK;
 }

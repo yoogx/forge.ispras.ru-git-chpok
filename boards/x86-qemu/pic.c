@@ -18,11 +18,11 @@
 #include <types.h>
 #include <errno.h>
 
-#include <ioports.h>
+#include <arch/ioports.h>
 
 #include "pic.h"
 
-int pok_pic_init ()
+void pok_pic_init (void)
 {
    outb (PIC_MASTER_BASE, PIC_MASTER_ICW1);
    outb (PIC_SLAVE_BASE, PIC_SLAVE_ICW1);
@@ -39,8 +39,6 @@ int pok_pic_init ()
    /* Mask everything */
    outb (PIC_MASTER_BASE + 1, 0xfb);
    outb (PIC_SLAVE_BASE + 1, 0xff);
-
-   return (POK_ERRNO_OK);
 }
 
 int pok_pic_mask (uint8_t irq)
@@ -49,7 +47,7 @@ int pok_pic_mask (uint8_t irq)
 
    if (irq > 15)
    {
-      return (POK_ERRNO_EINVAL);
+      return (EINVAL);
    }
 
    if (irq < 8)
@@ -63,7 +61,7 @@ int pok_pic_mask (uint8_t irq)
       outb (PIC_SLAVE_BASE + 1, mask | (1 << (irq - 8)));
    }
 
-   return (POK_ERRNO_OK);
+   return (EOK);
 }
 
 int pok_pic_unmask(uint8_t irq)
@@ -71,7 +69,7 @@ int pok_pic_unmask(uint8_t irq)
    uint8_t mask;
 
    if (irq > 15)
-      return (POK_ERRNO_EINVAL);
+      return (EINVAL);
 
    if (irq < 8)
    {
@@ -84,7 +82,7 @@ int pok_pic_unmask(uint8_t irq)
       outb(PIC_SLAVE_BASE + 1, mask & ~(1 << (irq - 8)));
    }
 
-   return (POK_ERRNO_OK);
+   return (EOK);
 }
 
 void pok_pic_eoi (uint8_t irq)

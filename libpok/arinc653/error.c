@@ -1,17 +1,16 @@
 /*
- *                               POK header
- * 
- * The following file is a part of the POK project. Any modification should
- * made according to the POK licence. You CANNOT use this file or a part of
- * this file is this part of a file for your own project
+ * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (C) 2017 ISPRAS
  *
- * For more information on the POK licence, please see our LICENCE FILE
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, Version 3.
  *
- * Please follow the coding guidelines described in doc/CODING_GUIDELINES
+ * This program is distributed in the hope # that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *                                      Copyright (c) 2007-2009 POK team 
- *
- * Created by julien on Thu Jan 15 23:34:13 2009 
+ * See the GNU General Public License version 3 for more details.
  */
 
 #include <config.h>
@@ -25,8 +24,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
-#define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
+#include "map_error.h"
 
 static ERROR_CODE_TYPE error_pok_to_arinc(int pok_error)
 {
@@ -46,10 +44,7 @@ static ERROR_CODE_TYPE error_pok_to_arinc(int pok_error)
 }
 
 /**
- * At this time, it is implemented to have the same behavior as 
- * RAISE_APPLICATION_ERROR. Should change that in the future
- *
- * XXX If I understand this correctly, it's essentially 
+ * If I understand this correctly, it's essentially
  * a logging function, and shouldn't raise any errors.
  */
 void REPORT_APPLICATION_MESSAGE (MESSAGE_ADDR_TYPE    MESSAGE,
@@ -71,40 +66,39 @@ void CREATE_ERROR_HANDLER (SYSTEM_ADDRESS_TYPE  ENTRY_POINT,
                            STACK_SIZE_TYPE      STACK_SIZE,
                            RETURN_CODE_TYPE     *RETURN_CODE)
 {
-    pok_ret_t core_ret = pok_error_thread_create(STACK_SIZE, (void*)ENTRY_POINT);
-    //core_ret = pok_syscall2 (POK_SYSCALL_ERROR_HANDLER_CREATE, (uint32_t)STACK_SIZE, (uint32_t)ENTRY_POINT);
+    jet_ret_t core_ret = pok_error_thread_create(STACK_SIZE, (void*)ENTRY_POINT);
 
-    switch (core_ret) {
-        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-        MAP_ERROR(POK_ERRNO_EXISTS, NO_ACTION);
-        MAP_ERROR(POK_ERRNO_PARTITION_MODE, INVALID_MODE);
-        MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG);
-        MAP_ERROR_DEFAULT(INVALID_CONFIG);
-    }
+    MAP_ERROR_BEGIN(core_ret)
+        MAP_ERROR(EOK, NO_ERROR);
+        MAP_ERROR(EEXIST, NO_ACTION);
+        MAP_ERROR(JET_INVALID_MODE, INVALID_MODE);
+        MAP_ERROR(JET_INVALID_CONFIG, INVALID_CONFIG);
+        MAP_ERROR_DEFAULT();
+    MAP_ERROR_END()
 }
 
 void GET_ERROR_STATUS (ERROR_STATUS_TYPE  *ERROR_STATUS,
                        RETURN_CODE_TYPE   *RETURN_CODE )
 {
     pok_error_status_t   core_status;
-    pok_ret_t            core_ret;
+    jet_ret_t            core_ret;
 
     core_ret = pok_error_get (&core_status, ERROR_STATUS->MESSAGE);
 
-    if (core_ret == POK_ERRNO_OK) {
+    MAP_ERROR_BEGIN(core_ret)
+        MAP_ERROR(EOK, NO_ERROR);
+        MAP_ERROR(JET_INVALID_MODE, INVALID_CONFIG); // Yes, ARINC treats non-error thread as INVALID_CONFIG.
+        MAP_ERROR(EAGAIN, NO_ACTION);
+        MAP_ERROR_EFAULT();
+        MAP_ERROR_DEFAULT();
+    MAP_ERROR_END()
+
+    if (core_ret == EOK) {
         ERROR_STATUS->ERROR_CODE = error_pok_to_arinc(core_status.error_kind);
         ERROR_STATUS->LENGTH = core_status.msg_size;
         ERROR_STATUS->FAILED_PROCESS_ID = core_status.failed_thread + 1; // ARINC process IDs are one higher
         ERROR_STATUS->FAILED_ADDRESS = (SYSTEM_ADDRESS_TYPE)core_status.failed_addr;
     }
-
-    switch (core_ret) {
-        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-        MAP_ERROR(POK_ERRNO_THREAD, INVALID_CONFIG);
-        MAP_ERROR(POK_ERRNO_UNAVAILABLE, NO_ACTION);
-        MAP_ERROR_DEFAULT(NOT_AVAILABLE);
-    }
-
 }
 
 void RAISE_APPLICATION_ERROR (ERROR_CODE_TYPE            ERROR_CODE,
@@ -112,17 +106,21 @@ void RAISE_APPLICATION_ERROR (ERROR_CODE_TYPE            ERROR_CODE,
                               ERROR_MESSAGE_SIZE_TYPE    LENGTH,
                               RETURN_CODE_TYPE           *RETURN_CODE)
 {
-    if (LENGTH < 0 || LENGTH > MAX_ERROR_MESSAGE_SIZE) {
-        *RETURN_CODE = INVALID_PARAM;
-        return;
-    }
-    
+    jet_ret_t core_ret;
+
     if ((ERROR_CODE != APPLICATION_ERROR)) {
         *RETURN_CODE = INVALID_PARAM;
         return;
     }
-    
-    pok_error_raise_application_error ((char*) MESSAGE, LENGTH);
-    
+
+    core_ret = pok_error_raise_application_error ((char*) MESSAGE, LENGTH);
+
+    MAP_ERROR_BEGIN(core_ret)
+        MAP_ERROR(EOK, NO_ERROR);
+        MAP_ERROR(EINVAL, INVALID_PARAM);
+        MAP_ERROR_EFAULT();
+        MAP_ERROR_DEFAULT();
+    MAP_ERROR_END()
+
     *RETURN_CODE = NO_ERROR;
 }

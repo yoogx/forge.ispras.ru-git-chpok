@@ -22,7 +22,6 @@
 #include <asp/bsp_common.h>
 #include <types.h>
 #include <libc.h>
-#include <ioports.h>
 
 #include <errno.h>
 #include <core/debug.h>
@@ -37,11 +36,11 @@
 #include <core/port.h>
 
 /* Call given function without protection(with enabled interrupts). */
-static pok_ret_t unprotected_syscall(
-   pok_ret_t (*f)(const pok_syscall_args_t* args),
+static jet_ret_t unprotected_syscall(
+   jet_ret_t (*f)(const pok_syscall_args_t* args),
    const pok_syscall_args_t*    args)
 {
-   pok_ret_t ret;
+   jet_ret_t ret;
    ja_preempt_enable();
    ret = f(args);
    pok_partition_return_user();
@@ -56,7 +55,7 @@ static pok_ret_t unprotected_syscall(
  * \author Julien Delange
  */
 
-static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       syscall_id,
+static inline jet_ret_t pok_core_syscall_internal (const pok_syscall_id_t       syscall_id,
                             const pok_syscall_args_t*    args)
 {
    switch (syscall_id)
@@ -135,6 +134,8 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
    SYSCALL_ENTRY(POK_SYSCALL_IPPC_GET_PORTAL_INFO)
    SYSCALL_ENTRY(POK_SYSCALL_IPPC_CREATE_CONNECTIONS)
    SYSCALL_ENTRY(POK_SYSCALL_IPPC_RETURN)
+   SYSCALL_ENTRY(POK_SYSCALL_IPPC_COPY_TO_CLIENT)
+   SYSCALL_ENTRY(POK_SYSCALL_IPPC_COPY_FROM_CLIENT)
 
       default:
        /*
@@ -147,13 +148,13 @@ static inline pok_ret_t pok_core_syscall_internal (const pok_syscall_id_t       
          break;
    }
 
-   return POK_ERRNO_EINVAL; // TODO: Unreachable?
+   return EINVAL; // TODO: Unreachable?
 }
 
-pok_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
+jet_ret_t pok_core_syscall (const pok_syscall_id_t       syscall_id,
                             const pok_syscall_args_t*    args)
 {
-    pok_ret_t ret;
+    jet_ret_t ret;
 #ifdef POK_NEEDS_GDB
     current_partition->entry_sp_user = global_thread_stack;
     pok_in_user_space = FALSE;

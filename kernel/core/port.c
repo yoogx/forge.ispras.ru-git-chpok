@@ -20,9 +20,9 @@
 #include <core/uaccess.h>
 #include <core/sched_arinc.h>
 
-/* 
+/*
  * Find *configured* queuing port by name, which comes from user space.
- * 
+ *
  * NOTE: Name should be checked before!
  */
 static pok_port_queuing_t* find_port_queuing(const char* __kuser k_name)
@@ -47,7 +47,7 @@ static pok_port_queuing_t* find_port_queuing(const char* __kuser k_name)
 }
 
 
-/* 
+/*
  * Get *created* queuing port by id.
  */
 static pok_port_queuing_t* get_port_queuing(pok_port_id_t id)
@@ -78,7 +78,7 @@ void port_queuing_receive(pok_port_queuing_t* port, pok_thread_t* t)
     pok_bool_t message_discarded;
     pok_channel_queuing_r_consume_message(port->channel, &message_discarded);
 
-    t->wait_result = message_discarded? POK_ERRNO_TOOMANY : POK_ERRNO_OK;
+    t->wait_result = message_discarded? JET_INVALID_CONFIG : EOK;
 }
 
 void port_queuing_send(pok_port_queuing_t* port, pok_thread_t* t)
@@ -90,7 +90,7 @@ void port_queuing_send(pok_port_queuing_t* port, pok_thread_t* t)
 
     pok_channel_queuing_s_produce_message(port->channel, t->wait_len);
 
-    t->wait_result = POK_ERRNO_OK;
+    t->wait_result = EOK;
 }
 
 void pok_port_queuing_init(pok_port_queuing_t* port_queuing)
@@ -101,7 +101,24 @@ void pok_port_queuing_init(pok_port_queuing_t* port_queuing)
 }
 
 
-pok_ret_t pok_port_queuing_create(
+/*
+ * Create queuing port.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EFAULT - 'name' or 'id' point to inaccessible memory
+ *  - EEXIST - port with given name is already created.
+ *  - JET_INVALID_CONFIG
+ *    -- there is no queuing port with given name
+ *    -- 'message_size' is incorrect or doesn't corresponded to configuration value.
+ *    -- 'max_nb_message' is incorrect or doesn't corresponded to configuration value.
+ *    -- 'direction' is incorrect or doesn't corresponded to configuration value.
+ *    -- 'discipline' is incorrect or doesn't corresponded to configuration value.
+ *  - JET_INVALID_MODE - mode is NORMAL
+ */
+jet_ret_t pok_port_queuing_create(
     const char* __user              name,
     pok_port_size_t                 message_size,
     pok_port_size_t                 max_nb_message,
@@ -112,36 +129,36 @@ pok_ret_t pok_port_queuing_create(
     pok_port_queuing_t* port_queuing;
 
     const char* __kuser k_name = jet_user_to_kernel_ro(name, MAX_NAME_LENGTH);
-    if(!k_name) return POK_ERRNO_EFAULT;
+    if(!k_name) return EFAULT;
 
     pok_port_id_t* __kuser k_id = jet_user_to_kernel_typed(id);
-    if(!k_id) return POK_ERRNO_EFAULT;
+    if(!k_id) return EFAULT;
 
     port_queuing = find_port_queuing(k_name);
 
-    if(!port_queuing) return POK_ERRNO_UNAVAILABLE;
+    if(!port_queuing) return JET_INVALID_CONFIG;
 
-    if(port_queuing->is_created) return POK_ERRNO_EXISTS;
+    if(port_queuing->is_created) return EEXIST;
 
     if(message_size != port_queuing->channel->max_message_size)
-        return POK_ERRNO_EINVAL;
+        return JET_INVALID_CONFIG;
     if(direction != port_queuing->direction)
-        return POK_ERRNO_EINVAL;
+        return JET_INVALID_CONFIG;
 
     if(direction == POK_PORT_DIRECTION_IN)
     {
         if(max_nb_message != port_queuing->channel->recv.max_nb_message)
-            return POK_ERRNO_EINVAL;
+            return JET_INVALID_CONFIG;
     }
     else // (direction == POK_PORT_DIRECTION_OUT)
     {
         if(max_nb_message != port_queuing->channel->send.max_nb_message)
-            return POK_ERRNO_EINVAL;
+            return JET_INVALID_CONFIG;
     }
 
 
     if(current_partition_arinc->mode == POK_PARTITION_MODE_NORMAL)
-        return POK_ERRNO_MODE;
+        return JET_INVALID_MODE;
 
     port_queuing->is_created = TRUE;
     port_queuing->discipline = discipline;
@@ -160,17 +177,17 @@ pok_ret_t pok_port_queuing_create(
 
     *k_id = port_queuing - current_partition_arinc->ports_queuing;
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
-pok_ret_t pok_port_queuing_create_packed(
+jet_ret_t pok_port_queuing_create_packed(
     const char* __user              name,
     const pok_port_queuing_create_arg_t* __user arg,
     pok_port_id_t* __user           id)
 {
     const pok_port_queuing_create_arg_t* __kuser k_arg =
         jet_user_to_kernel_typed_ro(arg);
-    if(!k_arg) return POK_ERRNO_EFAULT;
+    if(!k_arg) return EFAULT;
 
     return pok_port_queuing_create(
        name,
@@ -182,31 +199,48 @@ pok_ret_t pok_port_queuing_create_packed(
 }
 
 
-pok_ret_t pok_port_queuing_receive(
+/*
+ * Receive message from the queuing port.
+ *
+ * On success return EOK or INVALID_CONFIG if some message has been lost
+ * in the port because of overflow.
+ *
+ * Possible error codes:
+ *
+ *  - EINVAL - id is incorrect
+ *  - EFAULT - 'timeout', 'data' or 'len' refers to inaccessible memory
+ *  - JET_INVALID_MODE_TARGET - attempt to read from OUT port.
+ *  - EAGAIN - no message in the port message queue and timeout is 0.
+ *  - JET_INVALID_MODE
+ *     -- timeout is non-zero, waiting is required, but it is not allowed in given mode.
+ *     -- [IPPC] timeout is non-zero, waiting is required, but thread is an IPPC handler.
+ *  - ETIMEDOUT - timeout has been expired while waiting message in the port message queue.
+ */
+jet_ret_t pok_port_queuing_receive(
     pok_port_id_t               id,
     const pok_time_t* __user    timeout,
     void* __user                data,
     pok_port_size_t* __user     len)
 {
     pok_port_queuing_t* port_queuing;
-    pok_ret_t ret;
+    jet_ret_t ret;
     pok_thread_t* t;
 
     port_queuing = get_port_queuing(id);
-    if(!port_queuing) return POK_ERRNO_PORT;
+    if(!port_queuing) return EINVAL;
 
     void* __kuser k_data = jet_user_to_kernel(data, port_queuing->channel->max_message_size);
-    if(!k_data) return POK_ERRNO_EFAULT;
+    if(!k_data) return EFAULT;
 
     pok_port_size_t* __kuser k_len = jet_user_to_kernel_typed(len);
-    if(!k_len) return POK_ERRNO_EFAULT;
+    if(!k_len) return EFAULT;
 
     const pok_time_t* __kuser k_timeout = jet_user_to_kernel_typed_ro(timeout);
-    if(!k_timeout) return POK_ERRNO_EFAULT;
+    if(!k_timeout) return EFAULT;
     pok_time_t kernel_timeout = *k_timeout;
 
     if(port_queuing->direction != POK_PORT_DIRECTION_IN)
-        return POK_ERRNO_MODE;
+        return JET_INVALID_MODE_TARGET;
 
     pok_preemption_local_disable();
 
@@ -215,30 +249,30 @@ pok_ret_t pok_port_queuing_receive(
     /*
      * We need to specify notification flag when trying get message
      * from the channel.
-     * 
+     *
      * One possible way is to not specify flag first time, and,
      * if receive fails, calculate flag for the second receive attempt.
-     * 
+     *
      * But here we calculate flag for the first (and the only) receive attempt.
-     * 
-     * If ret is not POK_ERRNO_OK, it contains error code to be returned
+     *
+     * If ret is not EOK, it contains error code to be returned
      * if channel is currently empty. Otherwise waiting is allowed.
      */
 
     if(kernel_timeout == 0)
-        ret = POK_ERRNO_EMPTY;
+        ret = EAGAIN;
     else if(!thread_is_waiting_allowed())
-        ret = POK_ERRNO_MODE;
+        ret = JET_INVALID_MODE;
     else if(t->ippc_server_connection)
-        ret = POK_ERRNO_MODE; // Server threads may not wait on ports.
+        ret = JET_INVALID_MODE; // Server threads may not wait on ports.
     else
-        ret = POK_ERRNO_OK;
+        ret = EOK;
 
     pok_message_size_t message_size; // Only for call r_get_message().
     if(!pok_thread_wq_is_empty(&port_queuing->waiters) ||
         !pok_channel_queuing_r_get_message(port_queuing->channel,
             &message_size,
-            ret == POK_ERRNO_OK))
+            ret == EOK))
     {
         if(ret)
         {
@@ -265,7 +299,7 @@ pok_ret_t pok_port_queuing_receive(
 out:
     pok_preemption_local_enable(); // Possible wait here
 
-    *k_len = (t->wait_result == POK_ERRNO_OK || t->wait_result == POK_ERRNO_TOOMANY)?
+    *k_len = (t->wait_result == EOK || t->wait_result == JET_INVALID_CONFIG)?
         t->wait_len: // Success.
         0; // Fail
 
@@ -278,35 +312,52 @@ err:
 }
 
 
-
-pok_ret_t pok_port_queuing_send(
+/*
+ * Send message into queuing port.
+ *
+ * Return EOF on success.
+ *
+ * Possible error codes:
+ *
+ *  - EINVAL
+ *    -- 'id' is incorrect.
+ *    -- 'len' is 0
+ *  - JET_INVALID_MODE_TARGET - attempt to send message into IN port.
+ *  - JET_INVALID_CONFIG - 'len' is more than max_message_size for given port.
+ *  - EFAULT - 'data' or 'timeout' points to inaccessible memory.
+ *  - EAGAIN - no space in the port message queue and timeout is 0.
+ *  - JET_INVALID_MODE
+ *     -- timeout is non-zero, waiting is required, but it is not allowed in given mode.
+ *     -- [IPPC] timeout is non-zero, waiting is required, but thread is an IPPC handler.
+ *  - ETIMEDOUT - timeout has been expired while waiting for space in the port message queue.
+ */
+jet_ret_t pok_port_queuing_send(
     pok_port_id_t               id,
     const void* __user          data,
     pok_port_size_t             len,
     const pok_time_t* __user    timeout)
 {
     pok_port_queuing_t* port_queuing;
-    pok_ret_t ret;
+    jet_ret_t ret;
     pok_thread_t* t = current_thread;
 
     port_queuing = get_port_queuing(id);
 
-    if(!port_queuing) return POK_ERRNO_PORT;
+    if(!port_queuing) return EINVAL;
 
     if(port_queuing->direction != POK_PORT_DIRECTION_OUT)
-        return POK_ERRNO_MODE;
+        return JET_INVALID_MODE_TARGET;
 
-    if(len == 0) return POK_ERRNO_EINVAL;
+    if(len == 0) return EINVAL;
 
-    // error should be INVALID_CONFIG
     if(len > port_queuing->channel->max_message_size)
-        return POK_ERRNO_EINVAL;
+        return JET_INVALID_CONFIG;
 
     const void* __kuser k_data = jet_user_to_kernel_ro(data, len);
-    if(!k_data) return POK_ERRNO_EFAULT;
+    if(!k_data) return EFAULT;
 
     const pok_time_t* __kuser k_timeout = jet_user_to_kernel_typed_ro(timeout);
-    if(!k_timeout) return POK_ERRNO_EFAULT;
+    if(!k_timeout) return EFAULT;
 
     pok_time_t kernel_timeout = *k_timeout;
 
@@ -318,24 +369,24 @@ pok_ret_t pok_port_queuing_send(
      *
      * One possible way is to not specify flag first time, and,
      * if send fails, calculate flag for the second receive attempt.
-     * 
+     *
      * But here we calculate flag for the first (and the only) receive attempt.
-     * 
-     * If ret is not POK_ERRNO_OK, it contains error code to be returned
+     *
+     * If ret is not EOK, it contains error code to be returned
      * if channel is currently full. Otherwise waiting is allowed.
      */
 
     if(kernel_timeout == 0)
-        ret = POK_ERRNO_FULL;
+        ret = EAGAIN;
     else if(!thread_is_waiting_allowed())
-        ret = POK_ERRNO_MODE;
+        ret = JET_INVALID_MODE;
     else if(t->ippc_server_connection)
-        ret = POK_ERRNO_MODE; // Server threads may not wait on ports.
+        ret = JET_INVALID_MODE; // Server threads may not wait on ports.
     else
-        ret = POK_ERRNO_OK;
+        ret = EOK;
 
     if(!pok_thread_wq_is_empty(&port_queuing->waiters)
-        || !pok_channel_queuing_s_get_message(port_queuing->channel, ret == POK_ERRNO_OK))
+        || !pok_channel_queuing_s_get_message(port_queuing->channel, ret == EOK))
     {
         if(ret)
         {
@@ -367,11 +418,22 @@ out:
 
 err:
     pok_preemption_local_enable();
+
     return ret;
 }
 
 
-pok_ret_t pok_port_queuing_status(
+/*
+ * Extract status of the queuing port.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EFAULT - 'status' points to inaccessible memory.
+ *  - EINVAL - 'id' is incorrect.
+ */
+jet_ret_t pok_port_queuing_status(
     pok_port_id_t               id,
     pok_port_queuing_status_t * __user status)
 {
@@ -379,11 +441,11 @@ pok_ret_t pok_port_queuing_status(
     pok_channel_queuing_t* channel;
 
     pok_port_queuing_status_t* __kuser k_status = jet_user_to_kernel_typed(status);
-    if(!k_status) return POK_ERRNO_EFAULT;
+    if(!k_status) return EFAULT;
 
     port_queuing = get_port_queuing(id);
 
-    if(!port_queuing) return POK_ERRNO_PORT;
+    if(!port_queuing) return EINVAL;
 
     channel = port_queuing->channel;
 
@@ -406,39 +468,59 @@ pok_ret_t pok_port_queuing_status(
 
     pok_preemption_local_enable();
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
-pok_ret_t pok_port_queuing_id(
+/*
+ * Find queuing port by name.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EFAULT - 'name' or 'id' points to inaccessible memory.
+ *  - JET_INVALID_CONFIG - 'name' doesn't corresponds to create queuing port.
+ */
+jet_ret_t pok_port_queuing_id(
     const char* __user name,
     pok_port_id_t* __user id)
 {
     pok_port_queuing_t* port_queuing;
 
     const char* __kuser k_name = jet_user_to_kernel_ro(name, MAX_NAME_LENGTH);
-    if(!k_name) return POK_ERRNO_EFAULT;
+    if(!k_name) return EFAULT;
 
     pok_port_id_t* __kuser k_id = jet_user_to_kernel_typed(id);
-    if(!k_id) return POK_ERRNO_EFAULT;
+    if(!k_id) return EFAULT;
 
     port_queuing = find_port_queuing(k_name);
 
-    if(!port_queuing) return POK_ERRNO_UNAVAILABLE;
-    if(!port_queuing->is_created) return POK_ERRNO_UNAVAILABLE;
+    if(!port_queuing) return JET_INVALID_CONFIG;
+    if(!port_queuing->is_created) return JET_INVALID_CONFIG;
 
     *k_id = port_queuing - current_partition_arinc->ports_queuing;
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
-pok_ret_t pok_port_queuing_clear(pok_port_id_t id)
+/*
+ * Clear queuing port.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EINVAL - 'id' is incorrect.
+ *  - JET_INVALID_MODE_TARGET - port is OUT.
+ */
+jet_ret_t pok_port_queuing_clear(pok_port_id_t id)
 {
     pok_port_queuing_t* port_queuing = get_port_queuing(id);
 
-    if(!port_queuing) return POK_ERRNO_PORT;
+    if(!port_queuing) return EINVAL;
 
     if(port_queuing->direction != POK_PORT_DIRECTION_IN)
-        return POK_ERRNO_MODE;
+        return JET_INVALID_MODE_TARGET;
 
     pok_preemption_local_disable();
     pok_channel_queuing_side_init(port_queuing->channel,
@@ -446,11 +528,11 @@ pok_ret_t pok_port_queuing_clear(pok_port_id_t id)
             port_queuing - current_partition_arinc->ports_queuing);
     pok_preemption_local_enable();
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
 /**********************************************************************/
-/* 
+/*
  * Find *configured* sampling port by name, which comes from user space.
  */
 static pok_port_sampling_t* find_port_sampling(const char* __kuser k_name)
@@ -475,7 +557,7 @@ static pok_port_sampling_t* find_port_sampling(const char* __kuser k_name)
 }
 
 
-/* 
+/*
  * Get *created* sampling port by id.
  */
 static pok_port_sampling_t* get_port_sampling(pok_port_id_t id)
@@ -495,7 +577,23 @@ void pok_port_sampling_init(pok_port_sampling_t* port_sampling)
 }
 
 
-pok_ret_t pok_port_sampling_create(
+/*
+ * Create sampling port.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - JET_INVALID_MODE - mode is NORMAL
+ *  - EFAULT - 'name', 'refresh' or 'id' points to inaccessible memory
+ *  - JET_INVALID_CONFIG
+ *    -- there is not sampling port with given name
+ *    -- 'direction' is invalid or doesn't correspond to configuration one
+ *    -- 'size' is invalid or doesn't correspond to configuration one
+ *  - EINVAL - refresh period is not positive.
+ *  - EEXIST - port with given name is already created.
+ */
+jet_ret_t pok_port_sampling_create(
     const char* __user          name,
     pok_port_size_t             size,
     pok_port_direction_t        direction,
@@ -506,31 +604,31 @@ pok_ret_t pok_port_sampling_create(
     pok_port_sampling_t* port_sampling;
 
     if(current_partition_arinc->mode == POK_PARTITION_MODE_NORMAL)
-        return POK_ERRNO_MODE;
+        return JET_INVALID_MODE;
 
     const char* __kuser k_name = jet_user_to_kernel_ro(name, MAX_NAME_LENGTH);
-    if(!k_name) return POK_ERRNO_EFAULT;
+    if(!k_name) return EFAULT;
 
     const pok_time_t* __kuser k_refresh = jet_user_to_kernel_typed_ro(refresh);
-    if(!k_refresh) return POK_ERRNO_EFAULT;
+    if(!k_refresh) return EFAULT;
 
     pok_port_id_t* __kuser k_id = jet_user_to_kernel_typed(id);
-    if(!k_id) return POK_ERRNO_EFAULT;
+    if(!k_id) return EFAULT;
 
     pok_time_t kernel_refresh = *k_refresh;
 
     port_sampling = find_port_sampling(k_name);
 
-    if(!port_sampling) return POK_ERRNO_UNAVAILABLE;
-    if(port_sampling->is_created) return POK_ERRNO_EXISTS;
+    if(!port_sampling) return JET_INVALID_CONFIG;
+    if(port_sampling->is_created) return EEXIST;
 
     if(size != port_sampling->channel->max_message_size)
-        return POK_ERRNO_EINVAL;
+        return JET_INVALID_CONFIG;
     if(direction != port_sampling->direction)
-        return POK_ERRNO_EINVAL;
+        return JET_INVALID_CONFIG;
     // ARINC specifies to check refresh period for any direction.
     if(pok_time_is_infinity(kernel_refresh) || kernel_refresh == 0)
-        return POK_ERRNO_EINVAL;
+        return EINVAL;
 
     port_sampling->is_created = TRUE;
 
@@ -549,10 +647,24 @@ pok_ret_t pok_port_sampling_create(
 
     *k_id = port_sampling - current_partition_arinc->ports_sampling;
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
-pok_ret_t pok_port_sampling_write(
+/*
+ * Write message into sampling port.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EINVAL
+ *    -- 'id' is incorrect
+ *    -- len is 0
+ *  - JET_INVALID_CONFIG - 'len' is more than max_message_size.
+ *  - JET_INVALID_MODE_TARGET - attempt to write into IN port
+ *  - EFAULT - 'data' points to inaccessible memory.
+ */
+jet_ret_t pok_port_sampling_write(
     pok_port_id_t           id,
     const void* __user      data,
     pok_port_size_t         len)
@@ -563,16 +675,16 @@ pok_ret_t pok_port_sampling_write(
 
     port_sampling = get_port_sampling(id);
 
-    if(!port_sampling) return POK_ERRNO_PORT;
+    if(!port_sampling) return EINVAL;
 
-    if(len == 0 || len > port_sampling->channel->max_message_size)
-        return POK_ERRNO_EINVAL;
+    if(len == 0) return EINVAL;
+    if(len > port_sampling->channel->max_message_size) return JET_INVALID_CONFIG;
 
     if(port_sampling->direction != POK_PORT_DIRECTION_OUT)
-        return POK_ERRNO_MODE;
+        return JET_INVALID_MODE_TARGET;
 
     const void* __kuser k_data = jet_user_to_kernel_ro(data, len);
-    if(!k_data) return POK_ERRNO_EFAULT;
+    if(!k_data) return EFAULT;
 
     pok_preemption_local_disable();
 
@@ -584,17 +696,29 @@ pok_ret_t pok_port_sampling_write(
 
     pok_preemption_local_enable();
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
-pok_ret_t pok_port_sampling_read(
+/*
+ * Read sampling message.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EINVAL - 'id' is incorrect
+ *  - EFAULT - 'data', 'len' or 'valid' points to inaccessible memory.
+ *  - JET_INVALID_MODE_TARGET - attempt to read from OUT port.
+ *  - EAGAIN - no message in the port.
+ */
+jet_ret_t pok_port_sampling_read(
     pok_port_id_t           id,
     void* __user            data,
     pok_port_size_t* __user len,
     pok_bool_t* __user      valid)
 {
     pok_port_sampling_t* port_sampling;
-    pok_ret_t ret;
+    jet_ret_t ret;
     pok_time_t ts;
 
     const char* message;
@@ -602,19 +726,19 @@ pok_ret_t pok_port_sampling_read(
 
     port_sampling = get_port_sampling(id);
 
-    if(!port_sampling) return POK_ERRNO_PORT;
+    if(!port_sampling) return EINVAL;
 
     if(port_sampling->direction != POK_PORT_DIRECTION_IN)
-        return POK_ERRNO_DIRECTION;
+        return JET_INVALID_MODE_TARGET;
 
     void* __kuser k_data = jet_user_to_kernel(data, port_sampling->channel->max_message_size);
-    if(!k_data) return POK_ERRNO_EFAULT;
+    if(!k_data) return EFAULT;
 
     pok_port_size_t* __kuser k_len = jet_user_to_kernel_typed(len);
-    if(!k_len) return POK_ERRNO_EFAULT;
+    if(!k_len) return EFAULT;
 
     pok_bool_t* __kuser k_valid = jet_user_to_kernel_typed(valid);
-    if(!k_len) return POK_ERRNO_EFAULT;
+    if(!k_len) return EFAULT;
 
     pok_preemption_local_disable();
 
@@ -630,13 +754,13 @@ pok_ret_t pok_port_sampling_read(
         port_sampling->last_message_validity =
             ((ts + port_sampling->refresh_period) >= current_time)
             ? TRUE: FALSE;
-        ret = POK_ERRNO_OK;
+        ret = EOK;
     }
     else
     {
         *k_len = 0;
         port_sampling->last_message_validity = FALSE;
-        ret = POK_ERRNO_EMPTY;
+        ret = EAGAIN;
     }
 
     *k_valid = port_sampling->last_message_validity;
@@ -646,7 +770,17 @@ pok_ret_t pok_port_sampling_read(
     return ret;
 }
 
-pok_ret_t pok_port_sampling_id(
+/*
+ * Find sampling port by name.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EFAULT - 'name' or 'id' points to inaccessible memory.
+ *  - JET_INVALID_CONFIG - there is no port with given name created.
+ */
+jet_ret_t pok_port_sampling_id(
     const char* __user     name,
     pok_port_id_t* __user  id
 )
@@ -654,22 +788,32 @@ pok_ret_t pok_port_sampling_id(
     pok_port_sampling_t* port_sampling;
 
     const char* __kuser k_name = jet_user_to_kernel_ro(name, MAX_NAME_LENGTH);
-    if(!k_name) return POK_ERRNO_EFAULT;
+    if(!k_name) return EFAULT;
 
     pok_port_id_t* __kuser k_id = jet_user_to_kernel_typed(id);
-    if(!k_id) return POK_ERRNO_EFAULT;
+    if(!k_id) return EFAULT;
 
     port_sampling = find_port_sampling(k_name);
 
-    if(!port_sampling) return POK_ERRNO_UNAVAILABLE;
-    if(!port_sampling->is_created) return POK_ERRNO_UNAVAILABLE;
+    if(!port_sampling) return JET_INVALID_CONFIG;
+    if(!port_sampling->is_created) return JET_INVALID_CONFIG;
 
     *k_id = port_sampling - current_partition_arinc->ports_sampling;
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
-pok_ret_t pok_port_sampling_status (
+/*
+ * Extract status of the given sampling port.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EINVAL - 'id' is invalid
+ *  - EFAULT - 'status' points to inaccessible memory.
+ */
+jet_ret_t pok_port_sampling_status (
     pok_port_id_t                       id,
     pok_port_sampling_status_t* __user  status
 )
@@ -678,10 +822,10 @@ pok_ret_t pok_port_sampling_status (
 
     port_sampling = get_port_sampling(id);
 
-    if(!port_sampling) return POK_ERRNO_PORT;
+    if(!port_sampling) return EINVAL;
 
     pok_port_sampling_status_t* __kuser k_status = jet_user_to_kernel_typed(status);
-    if(!k_status) return POK_ERRNO_EFAULT;
+    if(!k_status) return EFAULT;
 
     pok_preemption_local_disable();
 
@@ -692,28 +836,38 @@ pok_ret_t pok_port_sampling_status (
 
     pok_preemption_local_enable();
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
-// TODO: This should be transformed into READ_UPDATED_SAMPLING_MESSAGE eventually.
-pok_ret_t pok_port_sampling_check(pok_port_id_t id)
+/*
+ * Check whether new message in the port exist.
+ *
+ * Return EOK if message exist, EAGAIN if not.
+ *
+ * Possible error codes:
+ *
+ *  - EINVAL - 'id' is incorrect.
+ *
+ * TODO: This should be transformed into READ_UPDATED_SAMPLING_MESSAGE eventually.
+ */
+jet_ret_t pok_port_sampling_check(pok_port_id_t id)
 {
-    pok_ret_t ret;
+    jet_ret_t ret;
 
     pok_port_sampling_t* port_sampling;
 
     port_sampling = get_port_sampling(id);
 
-    if(!port_sampling) return POK_ERRNO_PORT;
+    if(!port_sampling) return EINVAL;
 
     if(port_sampling->direction != POK_PORT_DIRECTION_IN)
-        return POK_ERRNO_MODE;
+        return JET_INVALID_MODE_TARGET;
 
 
     pok_preemption_local_disable();
     ret = pok_channel_sampling_r_check_new_message(port_sampling->channel)
-        ? POK_ERRNO_OK
-        : POK_ERRNO_EMPTY;
+        ? EOK
+        : EAGAIN;
     pok_preemption_local_enable();
 
     return ret;

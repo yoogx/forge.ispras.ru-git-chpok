@@ -327,8 +327,8 @@ void vprintf(t_putc putc, void *out, const char* format, va_list *args)
 //Why no void?!
 int printf(const char *format, ...)
 {
-    pok_bool_t preempt_enabled = ja_preempt_enabled();
-    ja_preempt_disable();
+//    pok_bool_t preempt_enabled = ja_preempt_enabled();
+//    ja_preempt_disable();
 
     va_list args;
     struct s_file* out_file = init_buffered_output();
@@ -339,8 +339,8 @@ int printf(const char *format, ...)
 
     close_buffered_output(out_file);
 
-    if(preempt_enabled)
-        ja_preempt_enable();
+//    if(preempt_enabled)
+//        ja_preempt_enable();
 
     return 0;
 }

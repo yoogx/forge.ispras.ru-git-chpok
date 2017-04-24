@@ -183,24 +183,6 @@ struct jet_kernel_shared_data
      */
     void (*thread_entry_wrapper)(void);
 
-    /*
-     * Configuration for ARINC intra communication.
-     *
-     * Used only by user space.
-     *
-     * DEV: This should be passed as property tree for user space.
-     */
-    // Maximum number of buffers.
-    size_t arinc_config_nbuffers;
-    // Maximum number of blackboards.
-    size_t arinc_config_nblackboards;
-    // Maximum number of semaphores.
-    size_t arinc_config_nsemaphores;
-    // Maximum number of events.
-    size_t arinc_config_nevents;
-    // Memory for messages, used by buffers and blackboards.
-    size_t arinc_config_messages_memory_size;
-
     /* Open-bounds array of thread shared data. */
     struct jet_thread_shared_data tshd[];
 };

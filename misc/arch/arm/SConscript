@@ -1,0 +1,253 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+from __future__ import division
+from board_deploy_simple import *
+from text_serialization import *
+import template_generation
+import os
+
+
+"""
+Environment definitions for ARM architecture.
+"""
+
+Import('env')
+
+env['PREFIX'] = 'arm-eabi-'
+
+env['QEMU'] = 'qemu-system-arm'
+
+env.Append(CFLAGS = ' -DPOK_DISABLE_GDB')
+env.Append(ASFLAGS = ' -DPOK_DISABLE_GDB')
+
+env.Append(CFLAGS_KERNEL = ' -msoft-float')
+
+env['LDSCRIPT_PARTITION'] = env['JETOS_HOME'] + '/kernel/arch/arm/ldscripts/partition.lds'
+
+env['ELF_FORMAT_KERNEL'] = 'elf32-littlearm'
+env['ELF_ARCH_KERNEL'] = 'arm'
+
+# Below is an implementation of arch deployment functionality.
+arch_dir = Dir('.').srcnode().abspath
+
+def align_val(val, align):
+    return ((val + align - 1) // align) * align
+
+def is_aligned(val, align):
+    return (val % align) == 0
+
+class MBmap_common(SerializableObject):
+    copy_slots = [
+        'vaddr',
+        'access',
+        'cache_policy',
+        'space_id',
+        'paddr',
+        'size',
+        'align'
+    ]
+
+    def __init__(self, **kargs):
+        copy_constructor(self, kargs)
+
+class PhysMemoryBlock_common(PhysMemoryBlock):
+
+    def __init__(self, paddr, size, align):
+        PhysMemoryBlock.__init__(self, paddr, size, align)
+
+    def createMBmap(self, vaddr, access, cache_policy, space_id):
+        return MBmap_common(
+                vaddr = vaddr,
+                access = access,
+                cache_policy = cache_policy,
+                space_id = space_id,
+                paddr = self.paddr,
+                size = self.size,
+                align = self.align
+                )
+
+
+PAGE_SIZE_MAP = {
+        4*2**10  : "PAGE_SIZE_4K",
+        64*2**10 : "PAGE_SIZE_64K",
+        2**20    : "PAGE_SIZE_1M",
+        16*2**20 : "PAGE_SIZE_16M"
+        }
+
+PAGE_SIZES = PAGE_SIZE_MAP.keys()
+
+class PhysMemoryType_x86(PhysMemoryType):
+    def isCacheSupported(self, cache_policy):
+        return cache_policy in ["DEFAULT", "IO"]
+
+    def allocPhysBlock(self, paddr, size):
+        """
+        Allocate physical memory block.
+        """
+
+        align = min(PAGE_SIZES)
+        size_real = align_val(size, align)
+        paddr_real = align_val(paddr, align)
+
+        return PhysMemoryBlock_common(
+            paddr = paddr_real,
+            size = size_real,
+            align = align,
+        )
+
+class Page(SerializableObject):
+    yaml_tag = '!Page'
+
+    copy_slots = [
+        'vaddr',
+        'paddr',
+        'flags',
+        'size'
+    ]
+
+    def __init__(self, **kargs):
+        copy_constructor(self, kargs)
+
+def get_flags_str(access, cache_policy, size):
+    flags = []
+    if (size >= 2**20):
+        #L1 table entry
+        if not 'X' in access:
+            flags.append("L1_SECT_XN")
+
+        if 'RW' in access:
+            flags.append("L1_SECT_USER_RW")
+        elif 'R' in access:
+            # read only
+            flags.append("L1_SECT_USER_RO")
+
+        if cache_policy == 'DEFAULT':
+            flags.append("L1_SECT_MEM_DEFAULT")
+        elif cache_policy == 'IO':
+            flags.append("L1_SECT_MEM_DEVICE")
+    else:
+        #L2 table entry
+        if not 'X' in access:
+            flags.append("L2_SECT_XN")
+
+        if 'RW' in access:
+            flags.append("L2_SECT_USER_RW")
+        elif 'R' in access:
+            # read only
+            flags.append("L2_SECT_USER_RO")
+
+        if cache_policy == 'DEFAULT':
+            flags.append("L2_SECT_MEM_DEFAULT")
+        elif cache_policy == 'IO':
+            flags.append("L2_SECT_MEM_DEVICE")
+
+    return '|'.join(flags)
+
+def get_size_str(size):
+    return PAGE_SIZE_MAP[size]
+
+def MBmap_to_pages(MBmap):
+    size = MBmap.size
+    vaddr = MBmap.vaddr
+    paddr = MBmap.paddr
+
+    page_sizes = list(PAGE_SIZES)
+    page_sizes.sort(reverse = True)
+    pages = []
+    while size > 0:
+        cur_page_size = 0
+        for page_size in page_sizes:
+            if is_aligned(size, page_size) and is_aligned(vaddr, page_size) and is_aligned(paddr, page_size):
+                cur_page_size = page_size
+        assert(cur_page_size != 0)
+
+        pages.append(Page(
+            vaddr = vaddr,
+            paddr = paddr,
+            flags = get_flags_str(MBmap.access, MBmap.cache_policy, cur_page_size),
+            size = get_size_str(cur_page_size)
+            ))
+        size  -= cur_page_size
+        vaddr += cur_page_size
+        paddr += cur_page_size
+
+    return pages
+
+def deploy_func_unsafe(env, target, source):
+    mc = memory_definition.ModuleMemoryDefinition.load_from_file(source[0].abspath)
+
+    memory_type = PhysMemoryType_x86()
+    phys_segment = PhysSegment(
+        paddr_start = env['BOARD_RAM_START_ADDR'] + 64 * 2**20,
+        paddr_end   = env['BOARD_RAM_START_ADDR'] + mc.phys_total,
+        memory_type = memory_type,
+    )
+
+    partitions_MBmaps = allocateMemoryBlocksSimple(
+        mc,
+        phys_segments = [phys_segment],
+        memory_type_default = memory_type,
+        vaddr_start_all = 0, # Hardcoded in ldscript.
+    )
+
+    mc.save_to_file(target[0].abspath)
+
+
+    # divide MBmap in pages
+    partitions_pages = [] #each page table is a list of pages
+    for partitionMBmaps in partitions_MBmaps:
+        part_pages = []
+        for MBmap in partitionMBmaps.MBmaps_list:
+            part_pages.extend(MBmap_to_pages(MBmap))
+        partitions_pages.append(part_pages)
+
+    serialize_as_text(partitions_pages, target[1].abspath, 'partitions_pages')
+
+def deploy_func(env, target, source):
+    # Just calls deploy_func_unsafe and catch exceptions
+    try:
+        deploy_func_unsafe(env, target, source)
+    except RuntimeError as e:
+        print "Error occured while deploy memory blocks: %s." % e.message
+        return 1
+
+def create_definitions_for_deployment(source, env):
+    return {'partitions_pages': deserialize_from_text(source[0].abspath, 'partitions_pages')}
+
+def deploy(env, memory_definitions_file, memory_constraints):
+
+    arch_deployment_kernel_yaml = os.path.join(env['MODULE_BUILD_DIR'], "pages.yaml")
+
+    env.Command(target = [memory_definitions_file, arch_deployment_kernel_yaml],
+        source = memory_constraints,
+        action = Action(deploy_func, '$ARCH_DEPLOY_FUNC_COMSTR')
+    )
+
+    env.AddMethod(template_generation.TemplateRender)
+
+    env['BOARD_DEPLOYMENT_SOURCES'] += env.TemplateRender(
+        target = os.path.join(env['MODULE_BUILD_DIR'], "pages.c"),
+        source = arch_deployment_kernel_yaml,
+        create_context = create_definitions_for_deployment,
+        template_file = arch_dir + "/templates/pages_c.tpl",
+        title = template_generation.generate_title_c
+    )
+
+env['BOARD_DEPLOY'] = deploy

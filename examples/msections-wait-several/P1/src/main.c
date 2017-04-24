@@ -41,7 +41,7 @@ static void notify_process(void)
     
     completion = 1;
     
-    if(msection_wq_notify(&section, &waitqueue, TRUE) == POK_ERRNO_OK)
+    if(msection_wq_notify(&section, &waitqueue, TRUE) == EOK)
     {
         pok_thread_id_t t = waitqueue.first;
         
@@ -84,14 +84,14 @@ static void wait_process_common(SYSTEM_TIME_TYPE timeout)
         
         switch(msection_wait(&section, timeout >= 0 ? timeout / 1000000 : INFINITE_TIME_VALUE))
         {
-        case POK_ERRNO_OK:
+        case EOK:
             printf ("Wait process %d resumes because has been notified.\n", t + 1);
             break;
-        case POK_ERRNO_CANCELLED:
+        case JET_CANCELLED:
             printf ("Wait process %d resumes because has been killed.\n", t + 1);
             msection_wq_del(&waitqueue, t);
             break;
-        case POK_ERRNO_TIMEOUT:
+        case ETIMEDOUT:
             printf ("Wait process %d resumes because timeout.\n", t + 1);
             msection_wq_del(&waitqueue, t);
             break;

@@ -29,7 +29,7 @@
 
 void process_syscall(interrupt_frame* frame)
 {
-   pok_ret_t            syscall_ret;
+   jet_ret_t            syscall_ret;
    pok_syscall_args_t*  syscall_args;
    pok_syscall_id_t     syscall_id;
 
@@ -44,7 +44,7 @@ void process_syscall(interrupt_frame* frame)
    syscall_args = jet_user_to_kernel_typed(syscall_args_user);
    if(syscall_args == NULL)
    {
-         syscall_ret = POK_ERRNO_EINVAL;
+         syscall_ret = EINVAL;
    }
    else
    {

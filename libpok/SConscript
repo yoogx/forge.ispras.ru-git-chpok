@@ -26,6 +26,7 @@ user_objects = []
 user_objects += SConscript('arch/SConscript')
 user_objects += SConscript('arinc653/SConscript')
 user_objects += SConscript('core/SConscript')
+user_objects += SConscript('proptree/SConscript')
 user_objects += SConscript('libc/SConscript')
 user_objects += SConscript('libm/SConscript')
 user_objects += SConscript('utils/SConscript')
@@ -88,6 +89,30 @@ def generate_uapi_headers():
     # Return something which will be stored globally.
     return user_syscall_headers + uapi_copy_headers
 
+def generate_common_headers():
+    """
+    Generate user space headers from kernel ones.
+    """
+    source_dir = libpok_env["JETOS_HOME"] + '/kernel/include/'
+    target_dir = libpok_env['JETOS_HOME'] + '/libpok/include/'
+
+    common_header_names = [
+        'proptree.h'
+    ]
+
+    common_headers = []
+    for common_header_name in common_header_names:
+        common_headers.extend(libpok_env.CopyWithTitle(
+            target = target_dir + common_header_name,
+            source = source_dir + common_header_name,
+            title = template_generation.copy_title_c))
+
+    libpok_env.Depends('regenerate', common_headers)
+
+    # Return something which will be stored globally.
+    return common_headers
+
+
 if libpok_env.get('jdeveloper'):
     import sys
     import os
@@ -101,6 +126,12 @@ if libpok_env.get('jdeveloper'):
     #
     # Return value is ignored ('.c' files depends from '.h' files indirectly).
     libpok_env.getSharedTarget("libjet_uapi_headers", generate_uapi_headers)
+
+    # Some user space headers are same as kernel ones
+    # (but their are not for user-kernel interaction, as uapi headers).
+    #
+    # Copy them here.
+    libpok_env.getSharedTarget("libjet_common_headers", generate_common_headers)
 
 Return('libpok_target')
 # EOF

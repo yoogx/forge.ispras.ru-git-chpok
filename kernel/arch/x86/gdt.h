@@ -52,8 +52,8 @@ typedef struct
 #define GDT_BUILD_SELECTOR(seg, local, rpl)	\
    ((seg << 3) | ((local & 0x1) << 2) | (rpl & 0x3))
 
-pok_ret_t   pok_gdt_init();
-int         pok_tss_init();
+void   pok_gdt_init();
+void         pok_tss_init();
 
 void        tss_set_esp0(uint32_t esp0);
 

@@ -32,13 +32,13 @@ void jet_on_tick(void)
 /**
  * Get the current ticks value, store it in
  * \a clk_val
- * Returns POK_ERRNO_OK
+ * Returns EOK
  * Need the GETTICK service (POK_NEEDS_GETTICKS maccro)
  */
-pok_ret_t   pok_clock_gettime (clockid_t clk_id, pok_time_t* __user val)
+jet_ret_t   pok_clock_gettime (clockid_t clk_id, pok_time_t* __user val)
 {
    pok_time_t* __kuser k_val = jet_user_to_kernel_typed(val);
-   if(!k_val) return POK_ERRNO_EFAULT;
+   if(!k_val) return EFAULT;
    
    switch(clk_id) {
       case CLOCK_REALTIME:
@@ -46,18 +46,18 @@ pok_ret_t   pok_clock_gettime (clockid_t clk_id, pok_time_t* __user val)
          break;
       default:
          *k_val = -1; // Not supported
-         return POK_ERRNO_EINVAL;
+         return EINVAL;
    }
 
-   return POK_ERRNO_OK;
+   return EOK;
 }
 
-pok_ret_t   jet_time(time_t* __user val)
+jet_ret_t   jet_time(time_t* __user val)
 {
    time_t* __kuser k_val = jet_user_to_kernel_typed(val);
-   if(!k_val) return POK_ERRNO_EFAULT;
+   if(!k_val) return EFAULT;
 
    *k_val =  jet_calendar_time();
 
-   return POK_ERRNO_OK;
+   return EOK;
 }

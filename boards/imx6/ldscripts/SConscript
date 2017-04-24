@@ -1,0 +1,33 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+Import('board_env')
+
+cur_dir = Dir('.').srcnode().abspath
+
+file_with_title = board_env['JETOS_HOME'] + "/misc/generated.h"
+
+board_env.Command(
+    target = cur_dir+'/kernel.lds',
+    source = board_env['JETOS_HOME']+'/kernel/arch/arm/ldscripts/kernel.lds.S',
+    action = Action(
+        "$CC $ASPPFLAGS $CPPFLAGS $_CPPDEFFLAGS $_CPPINCFLAGS -E $SOURCES -P | cat " + file_with_title + " - >$TARGET",
+        '$CPPCOMSTR'
+        )
+)
