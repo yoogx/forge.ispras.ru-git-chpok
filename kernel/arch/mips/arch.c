@@ -21,7 +21,7 @@
 #include <errno.h>
 #include <core/partition.h>
 #include "reg.h"
-#include "msr.h"
+#include "cp0.h"
 #include "space.h"
 #include "devtree.h"
 #include "bsp/bsp.h"

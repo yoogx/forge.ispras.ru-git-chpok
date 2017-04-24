@@ -16,7 +16,7 @@
 #include <types.h>
 #include "mmu.h"
 #include "reg.h"
-#include "msr.h"
+#include "cp0.h"
 
 #include <assert.h>
 

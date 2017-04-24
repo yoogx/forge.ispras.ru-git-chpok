@@ -24,7 +24,7 @@
 #include <core/debug.h>
 #include <libc.h>
 #include "reg.h"
-#include "msr.h"
+#include "cp0.h"
 
 #include "space.h"
 #include "timer.h"

@@ -16,7 +16,7 @@
  * Copyright (c) 2007-2009 POK team
  */
 
-#include "msr.h"
+#include "cp0.h"
 #include "asm_offsets_fp_store.h" 
 
 #define SAVE_two_FP(num0, num1) sdc1 $f##num0,(OFFSETOF_jet_fp_store_big_fp_regs + 8*num0)($a0); \

@@ -14,8 +14,8 @@
  * Created by julien on Thu Jan 15 23:34:13 2009 
  */
 
-#ifndef __POK_MIPS_MSR_H__
-#define __POK_MIPS_MSR_H__
+#ifndef __POK_MIPS_CP0_H__
+#define __POK_MIPS_CP0_H__
 
 #define Status_XX_LG       31              /* Разрешает выполнение вещественных инструкций с кодом COP1X*/
 #define Status_CU2_LG      30              /* Разрешается доступ к сопроцессору 2 */

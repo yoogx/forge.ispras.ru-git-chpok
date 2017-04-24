@@ -19,7 +19,7 @@
 #include <core/sched.h>
 #include <core/debug.h>
 #include "reg.h"
-#include "msr.h"
+#include "cp0.h"
 #include "timer.h"
 #include <cons.h>
 #include <asp/entries.h>

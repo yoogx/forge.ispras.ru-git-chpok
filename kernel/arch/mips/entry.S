@@ -16,7 +16,7 @@
  * Copyright (c) 2007-2009 POK team
  */
 
-#include "msr.h"
+#include "cp0.h"
 #include "reg.h"
 
 #include "asm_offsets_interrupt_context.h"
