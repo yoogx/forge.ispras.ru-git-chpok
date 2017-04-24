@@ -138,7 +138,7 @@ void pok_mips_tlb_read_entry(
 
 
 
-//~ #define DIV_ROUND_UP(n,d) (((n) + (d) - 1) / (d))
+// #define DIV_ROUND_UP(n,d) (((n) + (d) - 1) / (d))
 
 void dump_tlb(int first, int last)
 {
@@ -147,21 +147,21 @@ void dump_tlb(int first, int last)
         uint32_t s_index, s_pagemask;
         uint32_t pagemask, c0, c1;
         uint32_t asidmask = 0xff;
-        //~ int asidwidth = DIV_ROUND_UP(ilog2(asidmask) + 1, 4);
-//~ #ifdef CONFIG_32BIT
-        //~ bool xpa = cpu_has_xpa && (read_c0_pagegrain() & PG_ELPA);
-        //~ int pwidth = 8;// xpa ? 11 : 8;
-        //~ int vwidth = 8;
-//~ #else
-        //~ bool xpa = false;
-        //~ int pwidth = 11;
-        //~ int vwidth = 11;
-//~ #endif
+        // int asidwidth = DIV_ROUND_UP(ilog2(asidmask) + 1, 4);
+// #ifdef CONFIG_32BIT
+        // bool xpa = cpu_has_xpa && (read_c0_pagegrain() & PG_ELPA);
+        // int pwidth = 8;// xpa ? 11 : 8;
+        // int vwidth = 8;
+// #else
+        // bool xpa = false;
+        // int pwidth = 11;
+        // int vwidth = 11;
+// #endif
 
         s_pagemask = mfc0(CP0_PAGEMASK);
         s_entryhi  = mfc0(CP0_ENTRYHI);
         s_index    = mfc0(CP0_INDEX);
-        //~ asid = s_entryhi & asidmask;
+        // asid = s_entryhi & asidmask;
 
         for (int i = first; i <= last; i++) {
                 mtc0(CP0_INDEX, i);
@@ -175,8 +175,8 @@ void dump_tlb(int first, int last)
                  * Prior to tlbinv, unused entries have a virtual address of
                  * CKSEG0.
                  */
-                //~ if ((entryhi & ~0x1ffffUL) == CKSEG0)
-                        //~ continue;
+                // if ((entryhi & ~0x1ffffUL) == CKSEG0)
+                //        continue;
                 
                 /*
                  * ASID takes effect in absence of G (global) bit.
@@ -185,9 +185,10 @@ void dump_tlb(int first, int last)
                  * leave only a single G bit set after a machine check exception
                  * due to duplicate TLB entry.
                  */
-                //~ if (!((entrylo0 | entrylo1) & CP0_ENTRYLO_G) &&
-                    //~ (entryhi & asidmask) != asid)
-                        //~ continue;
+                // if (!((entrylo0 | entrylo1) & CP0_ENTRYLO_G) &&
+                //  (entryhi & asidmask) != asid)
+                //      continue;
+                //      continue;
 
                 /*
                  * Only print entries in use

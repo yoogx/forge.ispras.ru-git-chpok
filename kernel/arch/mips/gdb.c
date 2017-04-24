@@ -92,10 +92,11 @@ char trap[8] = "0000000d";
 
 pok_bool_t ja_gdb_single_step(struct jet_interrupt_context* ea, uint32_t* registers)
 {
+    /*
+     * GDB uses breakpoints at the next instruction on MIPS, so we don't need it.
+     */
     (void) ea;
     (void) registers;
-    //~ uint32_t inst = *((uint32_t *)registers[pc]);
-    //~ uint32_t c_inst = registers[pc];
 /*
  *  If it's a 'b' instruction
  */
@@ -151,9 +152,9 @@ char * ja_gdb_write_regs(char * ptr, const uint32_t* registers, const uint32_t* 
     hex2mem(ptr, (char *)&registers[cp0_status], 6*4);/* cp0: status, lo, hi, badvaddr, cause, epc */
     hex2mem(ptr, (char *)fp_registers, 32*8);
     hex2mem(ptr, (char *)&registers[cp1_fcsr], 2*4); /* cp1: fcsr, fir*/
-    //~ hex2mem(ptr, (char *)&registers[r30], 2*4);         /* framepointer and dummy (unused) */
-    //~ hex2mem(ptr, (char *)&registers[cp0_index], 16*4); /* cp0: index, random, entrylo0, entrylo1, context, pagemask, wired, reg7,
-                                                                      //~ reg8, reg9, entryhi, reg11, reg12, reg13, reg14, prid*/
+    // hex2mem(ptr, (char *)&registers[r30], 2*4);         /* framepointer and dummy (unused) */
+    // hex2mem(ptr, (char *)&registers[cp0_index], 16*4); /* cp0: index, random, entrylo0, entrylo1, context, pagemask, wired, reg7,
+                                                                      // reg8, reg9, entryhi, reg11, reg12, reg13, reg14, prid*/
     return ptr;
 }
 
@@ -164,8 +165,9 @@ char * ja_gdb_read_regs(char * ptr, const uint32_t* registers, const uint32_t* f
     ptr = mem2hex((char *)&registers[cp0_status], ptr, 6*4); /* cp0: status, lo, hi, badvaddr, cause, epc */
     ptr = mem2hex((char *)fp_registers, ptr, 32*4); /* f0...31 */
     ptr = mem2hex((char *)&registers[cp1_fcsr], ptr, 2*4); /* cp1: fcsr, fir*/
-    //~ ptr = mem2hex((char *)&registers[r30], ptr, 2*4); /* framepointer and dummy (unused) */
-    //~ ptr = mem2hex((char *)&registers[cp0_index], ptr, 16*4); /* cp0: index, random, entrylo0, entrylo1, context, pagemask, wired, reg7,
+    // ptr = mem2hex((char *)&registers[r30], ptr, 2*4); /* framepointer and dummy (unused) */
+    // ptr = mem2hex((char *)&registers[cp0_index], ptr, 16*4); /* cp0: index, random, entrylo0, entrylo1, context, pagemask, wired, reg7,
+                                                                      // reg8, reg9, entryhi, reg11, reg12, reg13, reg14, prid*/
     return ptr;
 }
 

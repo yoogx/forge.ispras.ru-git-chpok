@@ -124,7 +124,7 @@ void pok_arch_space_init (void)
             TRUE
             );
     }
-    //~ pok_mips_tlb_print();
+    //pok_mips_tlb_print();
 }
 
 void pok_arch_handle_page_fault(

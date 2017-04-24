@@ -109,9 +109,11 @@
 
 
 
-
-//~ #define INT_ENABLE     asm("ei");
-//~ #define INT_DISABLE    asm("di");
+/*
+ * This version of MIPS doesn't support this instructions
+ */
+// #define INT_ENABLE     asm("ei");
+// #define INT_DISABLE    asm("di");
 
 #define INT_ENABLE     mtsr(mfsr() | CP0_STATUS_IE);
 #define INT_DISABLE    mtsr(mfsr() & (~CP0_STATUS_IE));

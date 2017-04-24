@@ -56,7 +56,6 @@ static int set_decrementer(void)
   uint64_t time_cur = get_timebase();
   int32_t delta = time_new - time_cur;
   time_last = time_new;
-  //~ printf("time_new = %lld; time_cur = %lld; delta = %d;\n", time_new, time_cur, delta);
   if (delta < 0){
     // that delta already expired
     /*Clear time count, because we saved it in time_last*/
@@ -65,12 +64,9 @@ static int set_decrementer(void)
   }
   else{
     mtc0(CP0_COMPARE, delta);
-    //~ printf("TIMER: STATUS = 0x%lx\n", mfsr());
-    //~ printf("TIMER: mfc0(CP0_COUNT) before = 0x%lx\n", mfc0(CP0_COUNT));
-    //~ printf("TIMER: mfc0(CP0_COMPARE) = 0x%lx\n", mfc0(CP0_COMPARE));
     mtc0(CP0_COUNT, 0x0);
     return EOK;
-  }  //~ printf("TIMER: mfc0(CP0_COUNT) after = 0x%lx\n", mfc0(CP0_COUNT));
+  }
 }
 
 /* Called by the interrupt handled.  */
