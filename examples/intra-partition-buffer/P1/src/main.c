@@ -23,50 +23,23 @@ static BUFFER_ID_TYPE global_buffer_id;
 
 static void first_process(void)
 {
-    //~ RETURN_CODE_TYPE ret;
-    //~ int k = 0;
-    //~ uint32_t rval;
-    //~ while ( 1 == 1){
-        //~ for (int i = 0; i < 100000000; i++){
-            //~ k++;
-        //~ }
- //~ 
-        //~ asm volatile("move %0, $sp" : "=r" (rval));
-        //~ printf("First Part!\n");//             sp = 0x%x\n", rval);
-        //~ rval = 0;
-        //~ TIMED_WAIT(1000LL, &ret);
-    //~ }
     RETURN_CODE_TYPE ret;
     int i = 0;
     while (1) {
-        printf("Ready for send\n");
         SEND_BUFFER(global_buffer_id, (MESSAGE_ADDR_TYPE) &i, sizeof(i), 0, &ret);
         if (ret != NO_ERROR) {
             printf("couldn't send to the buffer: %d\n", (int) ret);
             break;
         } 
         i++;
-        TIMED_WAIT(10000LL, &ret);
+        TIMED_WAIT(1000000000LL, &ret);
     }
 }
 
 static void second_process(void)
 {
-    //~ RETURN_CODE_TYPE ret;
-    //~ int k = 0;
-    //~ uint32_t rval;
-    //~ while ( 1 == 1){
-        //~ for (int i = 0; i < 100000000; i++){
-            //~ k++;
-        //~ }
-        //~ asm volatile("move %0, $sp" : "=r" (rval));
-        //~ printf("Second Part!\n");// sp = 0x%x\n", rval);
-        //~ rval = 0;
-        //~ TIMED_WAIT(1000LL, &ret);
-    //~ }
     RETURN_CODE_TYPE ret;
     while (1) {
-        printf("Ready for receive\n");
         int i;
         MESSAGE_SIZE_TYPE len;
 
@@ -159,15 +132,6 @@ static int real_main(void)
 }
 
 void main(void) {
-    printf("- I'm alive! - said Part 1\n"); 
-    //~ int k = 0;
-    //~ while ( 1 == 1){
-        //~ for (int i = 0; i < 100000000; i++){
-            //~ k++;
-        //~ }
-        //~ printf("I'm still alive!\n");
-        //~ printf("    - I'm still alive! - said Part 1\n"); 
-    //~ }
     real_main();
     STOP_SELF();
 }  
