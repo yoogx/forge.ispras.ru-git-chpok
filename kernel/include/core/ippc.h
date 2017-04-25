@@ -232,16 +232,16 @@ jet_ippc_connection_get_state(struct jet_ippc_connection* connection);
  * Called by the client after connection opening but before
  * executing it.
  *
- * Return POK_ERRNO_OK on success.
+ * Return EOK on success.
  *
- * Return POK_ERRNO_EINVAL if *format* of parameters is incorrect:
+ * Return EINVAL if *format* of parameters is incorrect:
  * some window has zero size, some window's are overlapped, or there are
  * too many windows.
  *
  * Note, that accessibility of given windows by the client isn't
  * checked here: it will be checked on access attempt.
  */
-pok_ret_t jet_ippc_connection_set_access_windows(
+jet_ret_t jet_ippc_connection_set_access_windows(
     struct jet_ippc_connection* connection,
     const struct jet_ippc_client_access_window* access_windows,
     int n);
@@ -386,11 +386,11 @@ struct jet_ippc_remote_access_state
 /*
  * Prepare for copyiing to the client.
  *
- * Return POK_ERRNO_OK on success.
+ * Return EOK on success.
  *
- * Return POK_ERRNO_EFAULT if access to the client range is forbidden.
+ * Return EFAULT if access to the client range is forbidden.
  */
-pok_ret_t jet_ippc_connection_copy_to_client_init(
+jet_ret_t jet_ippc_connection_copy_to_client_init(
     struct jet_ippc_connection* connection,
     struct jet_ippc_remote_access_state* ra_state,
     void* __user dst, // User address in the client
@@ -400,11 +400,11 @@ pok_ret_t jet_ippc_connection_copy_to_client_init(
 /*
  * Prepare for copyiing from the client.
  *
- * Return POK_ERRNO_OK on success.
+ * Return EOK on success.
  *
- * Return POK_ERRNO_EFAULT if access to the client range is forbidden.
+ * Return EFAULT if access to the client range is forbidden.
  */
-pok_ret_t jet_ippc_connection_copy_from_client_init(
+jet_ret_t jet_ippc_connection_copy_from_client_init(
     struct jet_ippc_connection* connection,
     struct jet_ippc_remote_access_state* ra_state,
     void* dst, // Kernel(!) address in the server

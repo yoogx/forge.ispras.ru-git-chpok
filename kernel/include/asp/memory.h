@@ -1,6 +1,7 @@
 #ifndef __POK_MEM_H__
 #define __POK_MEM_H__
 
+#include <stdint.h>
 /* TODO: Whole header should be removed when functionality becomes not needed. */
 
 /* 

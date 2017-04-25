@@ -41,52 +41,57 @@
 #include <core/time.h>
 #include <types.h>
 
-#define MAP_ERROR(from, to) case (from): *return_code = (to); break
-#define MAP_ERROR_DEFAULT(to) default: *return_code = (to); break
+#include "map_error.h"
 
-void TIMED_WAIT (SYSTEM_TIME_TYPE delay_time, RETURN_CODE_TYPE *return_code)
+void TIMED_WAIT (SYSTEM_TIME_TYPE delay_time, RETURN_CODE_TYPE *RETURN_CODE)
 {
    if (delay_time < 0) {
-       // arinc doesn't allow infinite sleep
-       *return_code = INVALID_PARAM;
+       // ARINC doesn't allow infinite sleep
+       *RETURN_CODE = INVALID_PARAM;
        return;
    }
 
-   pok_ret_t core_ret;
+   jet_ret_t core_ret;
    core_ret = pok_thread_sleep(&delay_time);
     
-   switch (core_ret) {
-      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-      MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
-      MAP_ERROR_DEFAULT(INVALID_PARAM);
-   }
+   MAP_ERROR_BEGIN(core_ret)
+      MAP_ERROR(EOK, NO_ERROR);
+      MAP_ERROR(ETIMEDOUT, NO_ERROR);
+      MAP_ERROR(JET_CANCELLED, NO_ERROR);
+      MAP_ERROR(JET_INVALID_MODE, INVALID_MODE);
+      // EFAULT is impossible
+      MAP_ERROR_CANCELLED();
+      MAP_ERROR_DEFAULT();
+   MAP_ERROR_END()
 }
 
-void PERIODIC_WAIT (RETURN_CODE_TYPE *return_code)
+void PERIODIC_WAIT (RETURN_CODE_TYPE *RETURN_CODE)
 {
-   pok_ret_t core_ret;
+   jet_ret_t core_ret;
    core_ret = pok_thread_period ();
-   switch (core_ret) {
-      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-      MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
-      MAP_ERROR_DEFAULT(INVALID_PARAM);
-   }
+
+   MAP_ERROR_BEGIN(core_ret)
+      MAP_ERROR(EOK, NO_ERROR);
+      MAP_ERROR(JET_INVALID_MODE, INVALID_MODE);
+      MAP_ERROR_DEFAULT();
+   MAP_ERROR_END()
 }
 
-void GET_TIME (SYSTEM_TIME_TYPE *system_time, RETURN_CODE_TYPE *return_code)
+void GET_TIME (SYSTEM_TIME_TYPE *system_time, RETURN_CODE_TYPE *RETURN_CODE)
 {
    *system_time = pok_time_get();
-   *return_code = NO_ERROR;
+   *RETURN_CODE = NO_ERROR;
 }
 
-void REPLENISH (SYSTEM_TIME_TYPE budget_time, RETURN_CODE_TYPE *return_code)
+void REPLENISH (SYSTEM_TIME_TYPE budget_time, RETURN_CODE_TYPE *RETURN_CODE)
 {
-    pok_ret_t core_ret = pok_thread_replenish(&budget_time);
+    jet_ret_t core_ret = pok_thread_replenish(&budget_time);
 
-    switch (core_ret) {
-        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-        MAP_ERROR(POK_ERRNO_UNAVAILABLE, NO_ACTION);
-        MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
-        MAP_ERROR_DEFAULT(INVALID_PARAM);
-    }
+    MAP_ERROR_BEGIN(core_ret)
+        MAP_ERROR(EOK, NO_ERROR);
+        MAP_ERROR(JET_NOACTION, NO_ACTION);
+        MAP_ERROR(JET_INVALID_MODE, INVALID_MODE);
+        // EFAULT is impossible
+        MAP_ERROR_DEFAULT();
+    MAP_ERROR_END()
 }

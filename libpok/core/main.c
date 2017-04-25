@@ -84,7 +84,7 @@ int __pok_partition_start (void)
 {
    jet_memory_block_status_t kshd_status;
 
-   if(jet_memory_block_get_status(".KSHD", &kshd_status) != POK_ERRNO_OK) {
+   if(jet_memory_block_get_status(".KSHD", &kshd_status) != EOK) {
        // Without kshd many things are not worked, even printf.
        abort();
    }
@@ -97,7 +97,7 @@ int __pok_partition_start (void)
 
    jet_memory_block_status_t config_status;
 
-   if(jet_memory_block_get_status(".CONFIG_TREE", &config_status) != POK_ERRNO_OK) {
+   if(jet_memory_block_get_status(".CONFIG_TREE", &config_status) != EOK) {
        printf("ERROR: No '.CONFIG_TREE' memory block which contains partition's configuration tree");
        abort();
    }
@@ -112,7 +112,7 @@ int __pok_partition_start (void)
 #ifdef POK_NEEDS_GCOV
    jet_memory_block_status_t gcov_status;
 
-   if(jet_memory_block_get_status(".GCOV", &gcov_status) != POK_ERRNO_OK) {
+   if(jet_memory_block_get_status(".GCOV", &gcov_status) != EOK) {
        printf("ERROR: No '.GCOV' memory block");
        abort();
    }

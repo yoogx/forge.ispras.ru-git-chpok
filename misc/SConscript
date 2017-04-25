@@ -155,7 +155,7 @@ SConsignFile(None)
 #CacheDir(env['JETOS_HOME']+'/cache')
 
 if ARGUMENTS.get('VERBOSE') != "1":
-    env['CCCOMSTR'] = "CC $TARGET",
+    env['CCCOMSTR'] = "CC $TARGET"
     env['LINKCOMSTR'] = "LD $TARGET"
     env['ARCOMSTR'] = "AR $TARGET"
     env['ASCOMSTR'] = "AS $TARGET"
@@ -169,6 +169,7 @@ if ARGUMENTS.get('VERBOSE') != "1":
     env['MEMORY_CONSTRAINTS_COMSTR'] = "create memory constraints $TARGET"
     env['ARCH_DEPLOY_FUNC_COMSTR'] = "Arch creates memory mapping: $TARGETS"
     env['GDB_COMMANDS_COMSTR'] = "Generate GDB_commands file $TARGET"
+    env['CPPCOMSTR'] = "CPP $TARGET" #preprocessor
 
 
 # Flags common for all architectures

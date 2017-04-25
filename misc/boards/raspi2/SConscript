@@ -1,0 +1,40 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+"""
+Environment definitions for 'Raspberry Pi 2' board based on Cortex-A7 processor
+"""
+
+Import('env')
+
+env['ARCH'] = 'arm'
+
+SConscript(env['JETOS_HOME'] + '/misc/arch/arm/SConscript', exports = 'env')
+
+env.Append(CFLAGS = ' -mcpu=cortex-a7')
+env.Append(ASFLAGS = ' -mcpu=cortex-a7')
+
+#env.Append(CFLAGS_USER = ' -mfpu=neon -mfloat-abi=softfp')
+
+env['LDSCRIPT_KERNEL'] = env['JETOS_HOME'] + '/boards/raspi2/ldscripts/kernel.lds'
+
+env['BOARD_IS_EMULATED'] = True
+env.Append(QEMU_FLAGS = ' -M raspi2')
+
+env['BOARD_RAM_START_ADDR'] = 0x0

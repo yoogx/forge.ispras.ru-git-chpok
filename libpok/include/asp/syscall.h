@@ -30,27 +30,27 @@
  * If arch defines macro 'LIBJET_ARCH_DECLARE_SYSCALL', it should provide
  * definitions with same usage.
  */
-pok_ret_t lja_syscall0  (pok_syscall_id_t syscall_id);
+jet_ret_t lja_syscall0  (pok_syscall_id_t syscall_id);
 
-pok_ret_t lja_syscall1  (pok_syscall_id_t syscall_id,
+jet_ret_t lja_syscall1  (pok_syscall_id_t syscall_id,
         uint32_t arg1);
 
-pok_ret_t lja_syscall2  (pok_syscall_id_t syscall_id,
+jet_ret_t lja_syscall2  (pok_syscall_id_t syscall_id,
         uint32_t         arg1,
         uint32_t         arg2);
 
-pok_ret_t lja_syscall3 (pok_syscall_id_t  syscall_id,
+jet_ret_t lja_syscall3 (pok_syscall_id_t  syscall_id,
         uint32_t          arg1,
         uint32_t          arg2,
         uint32_t          arg3);
 
-pok_ret_t lja_syscall4 (pok_syscall_id_t  syscall_id,
+jet_ret_t lja_syscall4 (pok_syscall_id_t  syscall_id,
         uint32_t          arg1,
         uint32_t          arg2,
         uint32_t          arg3,
         uint32_t          arg4);
 
-pok_ret_t lja_syscall5 (pok_syscall_id_t  syscall_id,
+jet_ret_t lja_syscall5 (pok_syscall_id_t  syscall_id,
         uint32_t arg1,
         uint32_t arg2,
         uint32_t arg3,

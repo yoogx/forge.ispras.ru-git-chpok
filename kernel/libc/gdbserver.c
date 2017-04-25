@@ -883,7 +883,7 @@ static void gdb_state_store_registers(struct gdb_state* tc)
     {
         ea = tc->current_ea;
     }
-    printf("Flush registers. pc = 0x%lx\n", registers[pc]);
+    //~ printf("Flush registers. pc = 0x%lx\n", registers[pc]);
 
     gdb_get_regs(ea, registers);
 }
@@ -1089,7 +1089,7 @@ handle_exception (int exceptionVector, struct jet_interrupt_context* ea)
         *ptr++ = 'h';
         *ptr++ = ':';
         addr =  mfspr(SPRN_DAC1);
-        ptr = mem2hex( (char *)&addr, ptr, 4, 0); 
+        ptr = mem2hex( (char *)&addr, ptr, 4); 
         *ptr++ = ';';
     }        
 #endif

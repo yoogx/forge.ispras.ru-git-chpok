@@ -1,0 +1,58 @@
+ VIRTUAL MEMORY
++-------------------------+ <- 4 GB
+|                         |
+            ...
+|                         |
++-------------------------+ <- VECTOR_HIGH_ADDR+4K(0xffff1000)
+|       vector table      |
++-------------------------+ <- VECTOR_HIGH_ADDR(0xffff0000)
+|                         |
+            ...
+|                         |
++-------------------------+
+|       IO memory         |
+|  (for device access)    |
++-------------------------+ <- IO_VADDR(0xf0000000)
+|                         |
+            ...
+|                         |
++-------------------------+ <- jet_heap_end
+|       kernel heap       |
++-------------------------+ <- jet_heap_start
+|                         |
+|       kernel text,      |
+|        data,stack       |
+|                         |
++-------------------------+ <- KERNBASE_VADDR(0xc0000000)
+|                         |
+    (partitions memory)
+|                         |
++-------------------------+ <- 0
+
+
+
+  PHYSICAL MEMORY
++-------------------------+ <- 4 GB
+|                         |
+            ...
+    (partitions memory)
+|                         |
++-------------------------+ <- KERNBASE_PADDR + 64M (0x14000000)
+|       vector table      |
++-------------------------+ <- KERNBASE_PADDR+64M-4K
+|                         |
+            ...
+|                         |
++-------------------------+ <- PHYS(jet_heap_end)
+|       kernel heap       |
++-------------------------+ <- PHYS(jet_heap_start)
+|                         |
+|       kernel text,      |
+|        data,stack       |
+|                         |
++-------------------------+ <- KERNBASE_PADDR(0x10000000)
+|                         |
+|       IO memory         |
+|  (for device access)    |
+|                         |
++-------------------------+ <- 0

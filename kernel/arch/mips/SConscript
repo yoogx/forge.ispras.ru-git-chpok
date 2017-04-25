@@ -1,0 +1,65 @@
+#******************************************************************
+#
+# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (C) 2016 ISPRAS
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope # that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# See the GNU General Public License version 3 for more details.
+#
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+Import('arch_env')
+
+arch = arch_env.StaticObject(source = Glob('*.[Sc]'))
+
+if arch_env.get('jdeveloper'):
+    import sys
+    import os
+    sys.path.insert(1, os.path.join(os.environ["JETOS_HOME"], "misc"))
+    import template_generation
+    AddMethod(arch_env, template_generation.BuildAsmOffsets)
+
+    current_source_dir = arch_env.Dir('.').srcnode().path
+
+    asm_offsets = [
+        arch_env.BuildAsmOffsets(
+            current_source_dir + "/asm_offsets_stack_frame.h",
+            "asm_offsets_stack_frame.def",
+            title = template_generation.generate_title_c),
+
+        arch_env.BuildAsmOffsets(
+            current_source_dir + "/asm_offsets_context.h",
+            "asm_offsets_context.def",
+            title = template_generation.generate_title_c),
+
+        arch_env.BuildAsmOffsets(
+            current_source_dir + "/asm_offsets_interrupt_context_gdb_off.h",
+            "asm_offsets_interrupt_context.def",
+            title = template_generation.generate_title_c),
+
+        arch_env.BuildAsmOffsets(
+            current_source_dir + "/asm_offsets_fp_store.h",
+            "asm_offsets_fp_store.def",
+            title = template_generation.generate_title_c),
+
+        arch_env.BuildAsmOffsets(
+            current_source_dir + "/asm_offsets_interrupt_context_gdb_on.h",
+            "asm_offsets_interrupt_context.def",
+            title = template_generation.generate_title_c,
+            CFLAGS = arch_env['CFLAGS'] + " -DPOK_NEEDS_GDB"),
+    ]
+
+    arch_env.Depends('regenerate', asm_offsets)
+
+Return('arch')
+
+# EOF

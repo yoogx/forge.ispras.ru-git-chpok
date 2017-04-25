@@ -15,7 +15,7 @@ static uint32_t add_value_by_ref(const uint32_t* value, uint32_t addition)
 {
     uint32_t value_my = 0;
     
-    pok_ret_t ret_internal;
+    jet_ret_t ret_internal;
     
     ret_internal = jet_ippc_partition_arinc_copy_from_client(&value_my, value, sizeof(*value));
     
@@ -35,7 +35,7 @@ static void inc_value(uint32_t* value, uint32_t addition)
 {
     uint32_t value_my = 0;
     
-    pok_ret_t ret_internal;
+    jet_ret_t ret_internal;
     
     ret_internal = jet_ippc_partition_arinc_copy_from_client(&value_my, value, sizeof(*value));
     
@@ -89,7 +89,7 @@ static void server_handler(void)
 static int real_main(void)
 {
     RETURN_CODE_TYPE ret;
-    pok_ret_t ret_internal;
+    jet_ret_t ret_internal;
 
     // Extract identificator for portal type and number of client partitions.
     int portal_type_id;

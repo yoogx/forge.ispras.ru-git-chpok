@@ -18,9 +18,9 @@
 #include <arch/syscall.h>
 #include <types.h>
 
-pok_ret_t lja_do_syscall (pok_syscall_id_t syscall_id, pok_syscall_args_t* args)
+jet_ret_t lja_do_syscall (pok_syscall_id_t syscall_id, pok_syscall_args_t* args)
 {
-   pok_ret_t   ret;
+   jet_ret_t   ret;
    uint32_t    args_addr;
    uint32_t    id;
 

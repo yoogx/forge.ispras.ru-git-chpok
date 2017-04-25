@@ -29,11 +29,11 @@
 #include <uapi/msection.h>
 #include <uapi/ippc_types.h>
 
-pok_ret_t pok_thread_create(const char* __user name,
+jet_ret_t pok_thread_create(const char* __user name,
     void* __user entry,
     const pok_thread_attr_t* __user attr,
     pok_thread_id_t* __user thread_id);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_CREATE(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_CREATE(const pok_syscall_args_t* args)
 {
     return pok_thread_create(
         (const char* __user)args->arg1,
@@ -42,32 +42,32 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_CREATE(const pok_
         (pok_thread_id_t* __user)args->arg4);
 }
 
-pok_ret_t pok_thread_sleep(const pok_time_t* __user time);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_SLEEP(const pok_syscall_args_t* args)
+jet_ret_t pok_thread_sleep(const pok_time_t* __user time);
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_SLEEP(const pok_syscall_args_t* args)
 {
     return pok_thread_sleep(
         (const pok_time_t* __user)args->arg1);
 }
 
-pok_ret_t pok_sched_end_period(void);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_PERIOD(const pok_syscall_args_t* args)
+jet_ret_t pok_sched_end_period(void);
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_PERIOD(const pok_syscall_args_t* args)
 {
     (void) args;
     return pok_sched_end_period();
 }
 
-pok_ret_t pok_thread_suspend(const pok_time_t* __user time);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_SUSPEND(const pok_syscall_args_t* args)
+jet_ret_t pok_thread_suspend(const pok_time_t* __user time);
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_SUSPEND(const pok_syscall_args_t* args)
 {
     return pok_thread_suspend(
         (const pok_time_t* __user)args->arg1);
 }
 
-pok_ret_t pok_thread_get_status(pok_thread_id_t thread_id,
+jet_ret_t pok_thread_get_status(pok_thread_id_t thread_id,
     char* __user name,
     void** __user entry,
     pok_thread_status_t* __user status);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_STATUS(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_STATUS(const pok_syscall_args_t* args)
 {
     return pok_thread_get_status(
         (pok_thread_id_t)args->arg1,
@@ -76,69 +76,69 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_STATUS(const pok_
         (pok_thread_status_t* __user)args->arg4);
 }
 
-pok_ret_t pok_thread_delayed_start(pok_thread_id_t thread_id,
+jet_ret_t pok_thread_delayed_start(pok_thread_id_t thread_id,
     const pok_time_t* __user time);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_DELAYED_START(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_DELAYED_START(const pok_syscall_args_t* args)
 {
     return pok_thread_delayed_start(
         (pok_thread_id_t)args->arg1,
         (const pok_time_t* __user)args->arg2);
 }
 
-pok_ret_t pok_thread_set_priority(pok_thread_id_t thread_id,
+jet_ret_t pok_thread_set_priority(pok_thread_id_t thread_id,
     uint32_t priority);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_SET_PRIORITY(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_SET_PRIORITY(const pok_syscall_args_t* args)
 {
     return pok_thread_set_priority(
         (pok_thread_id_t)args->arg1,
         (uint32_t)args->arg2);
 }
 
-pok_ret_t pok_thread_resume(pok_thread_id_t thread_id);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_RESUME(const pok_syscall_args_t* args)
+jet_ret_t pok_thread_resume(pok_thread_id_t thread_id);
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_RESUME(const pok_syscall_args_t* args)
 {
     return pok_thread_resume(
         (pok_thread_id_t)args->arg1);
 }
 
-pok_ret_t pok_thread_suspend_target(pok_thread_id_t thread_id);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_SUSPEND_TARGET(const pok_syscall_args_t* args)
+jet_ret_t pok_thread_suspend_target(pok_thread_id_t thread_id);
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_SUSPEND_TARGET(const pok_syscall_args_t* args)
 {
     return pok_thread_suspend_target(
         (pok_thread_id_t)args->arg1);
 }
 
-pok_ret_t pok_thread_yield(void);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_YIELD(const pok_syscall_args_t* args)
+jet_ret_t pok_thread_yield(void);
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_YIELD(const pok_syscall_args_t* args)
 {
     (void) args;
     return pok_thread_yield();
 }
 
-pok_ret_t pok_sched_replenish(const pok_time_t* __user budget);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_REPLENISH(const pok_syscall_args_t* args)
+jet_ret_t pok_sched_replenish(const pok_time_t* __user budget);
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_REPLENISH(const pok_syscall_args_t* args)
 {
     return pok_sched_replenish(
         (const pok_time_t* __user)args->arg1);
 }
 
-pok_ret_t pok_thread_stop_target(pok_thread_id_t thread_id);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_STOP(const pok_syscall_args_t* args)
+jet_ret_t pok_thread_stop_target(pok_thread_id_t thread_id);
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_STOP(const pok_syscall_args_t* args)
 {
     return pok_thread_stop_target(
         (pok_thread_id_t)args->arg1);
 }
 
-pok_ret_t pok_thread_stop(void);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_STOPSELF(const pok_syscall_args_t* args)
+jet_ret_t pok_thread_stop(void);
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_STOPSELF(const pok_syscall_args_t* args)
 {
     (void) args;
     return pok_thread_stop();
 }
 
-pok_ret_t pok_thread_find(const char* __user name,
+jet_ret_t pok_thread_find(const char* __user name,
     pok_thread_id_t* __user id);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_FIND(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_FIND(const pok_syscall_args_t* args)
 {
     return pok_thread_find(
         (const char* __user)args->arg1,
@@ -146,42 +146,42 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_THREAD_FIND(const pok_sy
 }
 
 
-pok_ret_t jet_resched(void);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_RESCHED(const pok_syscall_args_t* args)
+jet_ret_t jet_resched(void);
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_RESCHED(const pok_syscall_args_t* args)
 {
     (void) args;
     return jet_resched();
 }
 
-pok_ret_t jet_msection_enter_helper(struct msection* __user section);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MSECTION_ENTER_HELPER(const pok_syscall_args_t* args)
+jet_ret_t jet_msection_enter_helper(struct msection* __user section);
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_MSECTION_ENTER_HELPER(const pok_syscall_args_t* args)
 {
     return jet_msection_enter_helper(
         (struct msection* __user)args->arg1);
 }
 
-pok_ret_t jet_msection_wait(struct msection* __user section,
+jet_ret_t jet_msection_wait(struct msection* __user section,
     const pok_time_t* __user timeout);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MSECTION_WAIT(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_MSECTION_WAIT(const pok_syscall_args_t* args)
 {
     return jet_msection_wait(
         (struct msection* __user)args->arg1,
         (const pok_time_t* __user)args->arg2);
 }
 
-pok_ret_t jet_msection_notify(struct msection* __user section,
+jet_ret_t jet_msection_notify(struct msection* __user section,
     pok_thread_id_t thread_id);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MSECTION_NOTIFY(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_MSECTION_NOTIFY(const pok_syscall_args_t* args)
 {
     return jet_msection_notify(
         (struct msection* __user)args->arg1,
         (pok_thread_id_t)args->arg2);
 }
 
-pok_ret_t jet_msection_wq_notify(struct msection* __user section,
+jet_ret_t jet_msection_wq_notify(struct msection* __user section,
     struct msection_wq* __user wq,
     pok_bool_t is_all);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MSECTION_WQ_NOTIFY(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_MSECTION_WQ_NOTIFY(const pok_syscall_args_t* args)
 {
     return jet_msection_wq_notify(
         (struct msection* __user)args->arg1,
@@ -189,10 +189,10 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MSECTION_WQ_NOTIFY(const
         (pok_bool_t)args->arg3);
 }
 
-pok_ret_t jet_msection_wq_size(struct msection* __user section,
+jet_ret_t jet_msection_wq_size(struct msection* __user section,
     struct msection_wq* __user wq,
     size_t* __user size);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MSECTION_WQ_SIZE(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_MSECTION_WQ_SIZE(const pok_syscall_args_t* args)
 {
     return jet_msection_wq_size(
         (struct msection* __user)args->arg1,
@@ -201,65 +201,65 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MSECTION_WQ_SIZE(const p
 }
 
 
-pok_ret_t pok_partition_set_mode_current(pok_partition_mode_t mode);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_PARTITION_SET_MODE(const pok_syscall_args_t* args)
+jet_ret_t pok_partition_set_mode_current(pok_partition_mode_t mode);
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_PARTITION_SET_MODE(const pok_syscall_args_t* args)
 {
     return pok_partition_set_mode_current(
         (pok_partition_mode_t)args->arg1);
 }
 
-pok_ret_t pok_current_partition_get_status(pok_partition_status_t* __user status);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_PARTITION_GET_STATUS(const pok_syscall_args_t* args)
+jet_ret_t pok_current_partition_get_status(pok_partition_status_t* __user status);
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_PARTITION_GET_STATUS(const pok_syscall_args_t* args)
 {
     return pok_current_partition_get_status(
         (pok_partition_status_t* __user)args->arg1);
 }
 
-pok_ret_t pok_current_partition_inc_lock_level(int32_t* __user lock_level);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_PARTITION_INC_LOCK_LEVEL(const pok_syscall_args_t* args)
+jet_ret_t pok_current_partition_inc_lock_level(int32_t* __user lock_level);
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_PARTITION_INC_LOCK_LEVEL(const pok_syscall_args_t* args)
 {
     return pok_current_partition_inc_lock_level(
         (int32_t* __user)args->arg1);
 }
 
-pok_ret_t pok_current_partition_dec_lock_level(int32_t* __user lock_level);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_PARTITION_DEC_LOCK_LEVEL(const pok_syscall_args_t* args)
+jet_ret_t pok_current_partition_dec_lock_level(int32_t* __user lock_level);
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_PARTITION_DEC_LOCK_LEVEL(const pok_syscall_args_t* args)
 {
     return pok_current_partition_dec_lock_level(
         (int32_t* __user)args->arg1);
 }
 
 
-pok_ret_t pok_error_thread_create(uint32_t stack_size,
+jet_ret_t pok_error_thread_create(uint32_t stack_size,
     void* __user entry);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_ERROR_HANDLER_CREATE(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_ERROR_HANDLER_CREATE(const pok_syscall_args_t* args)
 {
     return pok_error_thread_create(
         (uint32_t)args->arg1,
         (void* __user)args->arg2);
 }
 
-pok_ret_t pok_error_raise_application_error(const char* __user msg,
+jet_ret_t pok_error_raise_application_error(const char* __user msg,
     size_t msg_size);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_ERROR_RAISE_APPLICATION_ERROR(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_ERROR_RAISE_APPLICATION_ERROR(const pok_syscall_args_t* args)
 {
     return pok_error_raise_application_error(
         (const char* __user)args->arg1,
         (size_t)args->arg2);
 }
 
-pok_ret_t pok_error_get(pok_error_status_t* __user status,
+jet_ret_t pok_error_get(pok_error_status_t* __user status,
     void* __user msg);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_ERROR_GET(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_ERROR_GET(const pok_syscall_args_t* args)
 {
     return pok_error_get(
         (pok_error_status_t* __user)args->arg1,
         (void* __user)args->arg2);
 }
 
-pok_ret_t pok_error_raise_os_error(const char* __user msg,
+jet_ret_t pok_error_raise_os_error(const char* __user msg,
     size_t msg_size);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_ERROR_RAISE_OS_ERROR(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_ERROR_RAISE_OS_ERROR(const pok_syscall_args_t* args)
 {
     return pok_error_raise_os_error(
         (const char* __user)args->arg1,
@@ -268,12 +268,12 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_ERROR_RAISE_OS_ERROR(con
 
 
    /* Middleware syscalls */
-pok_ret_t pok_port_sampling_create(const char* __user name,
+jet_ret_t pok_port_sampling_create(const char* __user name,
     pok_port_size_t size,
     pok_port_direction_t direction,
     const pok_time_t* __user refresh,
     pok_port_id_t* __user id);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_SAMPLING_CREATE(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_SAMPLING_CREATE(const pok_syscall_args_t* args)
 {
     return pok_port_sampling_create(
         (const char* __user)args->arg1,
@@ -283,10 +283,10 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_SAMPLING_CREA
         (pok_port_id_t* __user)args->arg5);
 }
 
-pok_ret_t pok_port_sampling_write(pok_port_id_t id,
+jet_ret_t pok_port_sampling_write(pok_port_id_t id,
     const void* __user data,
     pok_port_size_t len);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_SAMPLING_WRITE(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_SAMPLING_WRITE(const pok_syscall_args_t* args)
 {
     return pok_port_sampling_write(
         (pok_port_id_t)args->arg1,
@@ -294,11 +294,11 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_SAMPLING_WRIT
         (pok_port_size_t)args->arg3);
 }
 
-pok_ret_t pok_port_sampling_read(pok_port_id_t id,
+jet_ret_t pok_port_sampling_read(pok_port_id_t id,
     void* __user data,
     pok_port_size_t* __user len,
     pok_bool_t* __user valid);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_SAMPLING_READ(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_SAMPLING_READ(const pok_syscall_args_t* args)
 {
     return pok_port_sampling_read(
         (pok_port_id_t)args->arg1,
@@ -307,35 +307,35 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_SAMPLING_READ
         (pok_bool_t* __user)args->arg4);
 }
 
-pok_ret_t pok_port_sampling_id(const char* __user name,
+jet_ret_t pok_port_sampling_id(const char* __user name,
     pok_port_id_t* __user id);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_SAMPLING_ID(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_SAMPLING_ID(const pok_syscall_args_t* args)
 {
     return pok_port_sampling_id(
         (const char* __user)args->arg1,
         (pok_port_id_t* __user)args->arg2);
 }
 
-pok_ret_t pok_port_sampling_status(pok_port_id_t id,
+jet_ret_t pok_port_sampling_status(pok_port_id_t id,
     pok_port_sampling_status_t* __user status);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_SAMPLING_STATUS(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_SAMPLING_STATUS(const pok_syscall_args_t* args)
 {
     return pok_port_sampling_status(
         (pok_port_id_t)args->arg1,
         (pok_port_sampling_status_t* __user)args->arg2);
 }
 
-pok_ret_t pok_port_sampling_check(pok_port_id_t id);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_SAMPLING_CHECK(const pok_syscall_args_t* args)
+jet_ret_t pok_port_sampling_check(pok_port_id_t id);
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_SAMPLING_CHECK(const pok_syscall_args_t* args)
 {
     return pok_port_sampling_check(
         (pok_port_id_t)args->arg1);
 }
 
-pok_ret_t pok_port_queuing_create_packed(const char* __user name,
+jet_ret_t pok_port_queuing_create_packed(const char* __user name,
     const pok_port_queuing_create_arg_t* __user arg,
     pok_port_id_t* __user id);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_QUEUEING_CREATE(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_QUEUEING_CREATE(const pok_syscall_args_t* args)
 {
     return pok_port_queuing_create_packed(
         (const char* __user)args->arg1,
@@ -343,11 +343,11 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_QUEUEING_CREA
         (pok_port_id_t* __user)args->arg3);
 }
 
-pok_ret_t pok_port_queuing_send(pok_port_id_t id,
+jet_ret_t pok_port_queuing_send(pok_port_id_t id,
     const void* __user data,
     pok_port_size_t len,
     const pok_time_t* __user timeout);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_QUEUEING_SEND(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_QUEUEING_SEND(const pok_syscall_args_t* args)
 {
     return pok_port_queuing_send(
         (pok_port_id_t)args->arg1,
@@ -356,11 +356,11 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_QUEUEING_SEND
         (const pok_time_t* __user)args->arg4);
 }
 
-pok_ret_t pok_port_queuing_receive(pok_port_id_t id,
+jet_ret_t pok_port_queuing_receive(pok_port_id_t id,
     const pok_time_t* __user timeout,
     void* __user data,
     pok_port_size_t* __user len);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_QUEUEING_RECEIVE(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_QUEUEING_RECEIVE(const pok_syscall_args_t* args)
 {
     return pok_port_queuing_receive(
         (pok_port_id_t)args->arg1,
@@ -369,26 +369,26 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_QUEUEING_RECE
         (pok_port_size_t* __user)args->arg4);
 }
 
-pok_ret_t pok_port_queuing_id(const char* __user name,
+jet_ret_t pok_port_queuing_id(const char* __user name,
     pok_port_id_t* __user id);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_QUEUEING_ID(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_QUEUEING_ID(const pok_syscall_args_t* args)
 {
     return pok_port_queuing_id(
         (const char* __user)args->arg1,
         (pok_port_id_t* __user)args->arg2);
 }
 
-pok_ret_t pok_port_queuing_status(pok_port_id_t id,
+jet_ret_t pok_port_queuing_status(pok_port_id_t id,
     pok_port_queuing_status_t* __user status);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_QUEUEING_STATUS(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_QUEUEING_STATUS(const pok_syscall_args_t* args)
 {
     return pok_port_queuing_status(
         (pok_port_id_t)args->arg1,
         (pok_port_queuing_status_t* __user)args->arg2);
 }
 
-pok_ret_t pok_port_queuing_clear(pok_port_id_t id);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_QUEUEING_CLEAR(const pok_syscall_args_t* args)
+jet_ret_t pok_port_queuing_clear(pok_port_id_t id);
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_QUEUEING_CLEAR(const pok_syscall_args_t* args)
 {
     return pok_port_queuing_clear(
         (pok_port_id_t)args->arg1);
@@ -396,28 +396,28 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MIDDLEWARE_QUEUEING_CLEA
 
 
 
-pok_ret_t jet_memory_block_get_status(const char* __user name,
+jet_ret_t jet_memory_block_get_status(const char* __user name,
     jet_memory_block_status_t* __user status);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_MEMORY_BLOCK_GET_STATUS(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_MEMORY_BLOCK_GET_STATUS(const pok_syscall_args_t* args)
 {
     return jet_memory_block_get_status(
         (const char* __user)args->arg1,
         (jet_memory_block_status_t* __user)args->arg2);
 }
 
-pok_ret_t jet_ippc_partition_arinc_init_portal(const char* __user portal_name,
+jet_ret_t jet_ippc_partition_arinc_init_portal(const char* __user portal_name,
     int* __user portal_id);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_INIT_PORTAL(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_INIT_PORTAL(const pok_syscall_args_t* args)
 {
     return jet_ippc_partition_arinc_init_portal(
         (const char* __user)args->arg1,
         (int* __user)args->arg2);
 }
 
-pok_ret_t jet_ippc_partition_arinc_call(int portal_id,
+jet_ret_t jet_ippc_partition_arinc_call(int portal_id,
     const struct jet_ippc_client_access_window* __user access_windows,
     int access_windows_n);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_CALL(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_CALL(const pok_syscall_args_t* args)
 {
     return jet_ippc_partition_arinc_call(
         (int)args->arg1,
@@ -425,10 +425,10 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_CALL(const pok_sysc
         (int)args->arg3);
 }
 
-pok_ret_t jet_ippc_partition_arinc_get_portal_type_info(const char* __user portal_name,
+jet_ret_t jet_ippc_partition_arinc_get_portal_type_info(const char* __user portal_name,
     int* __user portal_type_id,
     int* __user n_clients);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_GET_PORTAL_TYPE_INFO(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_GET_PORTAL_TYPE_INFO(const pok_syscall_args_t* args)
 {
     return jet_ippc_partition_arinc_get_portal_type_info(
         (const char* __user)args->arg1,
@@ -436,21 +436,21 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_GET_PORTAL_TYPE_INF
         (int* __user)args->arg3);
 }
 
-pok_ret_t jet_ippc_partition_arinc_get_portal_info(int server_portal_id,
+jet_ret_t jet_ippc_partition_arinc_get_portal_info(int server_portal_id,
     int* __user n_connections);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_GET_PORTAL_INFO(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_GET_PORTAL_INFO(const pok_syscall_args_t* args)
 {
     return jet_ippc_partition_arinc_get_portal_info(
         (int)args->arg1,
         (int* __user)args->arg2);
 }
 
-pok_ret_t jet_ippc_partition_arinc_create_connections(int server_portal_id,
+jet_ret_t jet_ippc_partition_arinc_create_connections(int server_portal_id,
     void* __user entry,
     size_t stack_size,
     int n_connections,
     pok_thread_id_t* __user thread_id);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_CREATE_CONNECTIONS(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_CREATE_CONNECTIONS(const pok_syscall_args_t* args)
 {
     return jet_ippc_partition_arinc_create_connections(
         (int)args->arg1,
@@ -460,17 +460,17 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_CREATE_CONNECTIONS(
         (pok_thread_id_t* __user)args->arg5);
 }
 
-pok_ret_t jet_ippc_partition_arinc_return(void);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_RETURN(const pok_syscall_args_t* args)
+jet_ret_t jet_ippc_partition_arinc_return(void);
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_RETURN(const pok_syscall_args_t* args)
 {
     (void) args;
     return jet_ippc_partition_arinc_return();
 }
 
-pok_ret_t jet_ippc_partition_arinc_copy_to_client(void* __user dst,
+jet_ret_t jet_ippc_partition_arinc_copy_to_client(void* __user dst,
     const void* __user src,
     size_t n);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_COPY_TO_CLIENT(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_COPY_TO_CLIENT(const pok_syscall_args_t* args)
 {
     return jet_ippc_partition_arinc_copy_to_client(
         (void* __user)args->arg1,
@@ -478,10 +478,10 @@ static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_COPY_TO_CLIENT(cons
         (size_t)args->arg3);
 }
 
-pok_ret_t jet_ippc_partition_arinc_copy_from_client(void* __user dst,
+jet_ret_t jet_ippc_partition_arinc_copy_from_client(void* __user dst,
     const void* __user src,
     size_t n);
-static inline pok_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_COPY_FROM_CLIENT(const pok_syscall_args_t* args)
+static inline jet_ret_t pok_syscall_wrapper_POK_SYSCALL_IPPC_COPY_FROM_CLIENT(const pok_syscall_args_t* args)
 {
     return jet_ippc_partition_arinc_copy_from_client(
         (void* __user)args->arg1,

@@ -66,12 +66,12 @@ void msection_leave(struct msection* section)
     }
 }
 
-pok_ret_t msection_wait(struct msection* section, SYSTEM_TIME_TYPE timeout)
+jet_ret_t msection_wait(struct msection* section, SYSTEM_TIME_TYPE timeout)
 {
     return jet_msection_wait(section, &timeout);
 }
 
-pok_ret_t msection_notify(struct msection* section, pok_thread_id_t thread_id)
+jet_ret_t msection_notify(struct msection* section, pok_thread_id_t thread_id)
 {
     return jet_msection_notify(section, thread_id);
 }
@@ -143,7 +143,7 @@ void msection_wq_del(struct msection_wq* wq, pok_thread_id_t thread)
 }
 
 
-pok_ret_t msection_wq_notify(struct msection* section,
+jet_ret_t msection_wq_notify(struct msection* section,
     struct msection_wq* wq,
     pok_bool_t is_all)
 {

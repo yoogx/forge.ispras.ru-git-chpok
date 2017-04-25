@@ -39,7 +39,7 @@ typedef struct
  * only one function to perform the syscall, the other are just maccro
  * This optimization was done only for x86 architecture.
  */
-pok_ret_t lja_do_syscall (pok_syscall_id_t syscall_id, pok_syscall_args_t* args);
+jet_ret_t lja_do_syscall (pok_syscall_id_t syscall_id, pok_syscall_args_t* args);
 
 #define lja_syscall0(sid) \
 			 lja_do_syscall(sid,&((pok_syscall_args_t){0,0,0,0,0,0}))

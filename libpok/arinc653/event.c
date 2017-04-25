@@ -29,6 +29,8 @@
 #include "arinc_config.h"
 #include "arinc_process_queue.h"
 
+#include "map_error.h"
+
 static unsigned nevents_used = 0;
 static inline EVENT_ID_TYPE index_to_id(unsigned index)
 {
@@ -109,7 +111,7 @@ void SET_EVENT (EVENT_ID_TYPE EVENT_ID,
    event->event_state = UP;
 
    if(msection_wq_notify(&event->section, &event->process_queue, TRUE)
-      == POK_ERRNO_OK) {
+      == EOK) {
       // There are processes waiting for event.
       // We are already woken up them, so just cleanup the process queue.
       pok_thread_id_t t = event->process_queue.first;
@@ -183,21 +185,25 @@ void WAIT_EVENT (EVENT_ID_TYPE EVENT_ID,
        */
       arinc_process_queue_add_common(&event->process_queue, PRIORITY);
 
-      switch(msection_wait(&event->section, TIME_OUT))
+      jet_ret_t core_ret = msection_wait(&event->section, TIME_OUT);
+
+      MAP_ERROR_BEGIN(core_ret)
+         MAP_ERROR(EOK, NO_ERROR);
+         MAP_ERROR(JET_INVALID_MODE, INVALID_MODE);
+         MAP_ERROR(ETIMEDOUT, TIMED_OUT);
+         MAP_ERROR_CANCELLED();
+         MAP_ERROR_DEFAULT();
+      MAP_ERROR_END()
+
+      switch(core_ret)
       {
-      case POK_ERRNO_OK:
+      case EOK:
          // Event become UP.
-         *RETURN_CODE = NO_ERROR;
          break;
-      case POK_ERRNO_MODE: // Waiting is not allowed
-      case POK_ERRNO_CANCELLED: // Thread has been STOP()-ed or [IPPC] server thread has been cancelled.
+      case JET_INVALID_MODE: // Waiting is not allowed
+      case JET_CANCELLED: // Thread has been STOP()-ed or [IPPC] server thread has been cancelled.
+      case ETIMEDOUT: // Timeout
          msection_wq_del(&event->process_queue, t);
-         *RETURN_CODE = INVALID_MODE;
-         break;
-      case POK_ERRNO_TIMEOUT:
-         // Timeout
-         msection_wq_del(&event->process_queue, t);
-         *RETURN_CODE = TIMED_OUT;
          break;
       default:
          assert_os(FALSE);

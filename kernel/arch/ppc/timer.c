@@ -68,12 +68,12 @@ static int set_decrementer(void)
   if (delta < 0)
   {
     // that delta already expired
-    return POK_ERRNO_EINVAL;
+    return EINVAL;
   }
   else
   {
     mtspr(SPRN_DEC, delta);
-    return POK_ERRNO_OK;
+    return EOK;
   }
 }
 
@@ -88,7 +88,7 @@ void pok_arch_decr_int (void)
   do
   {
     err = set_decrementer();
-  } while (err != POK_ERRNO_OK);
+  } while (err != EOK);
 
   jet_on_tick();
 }

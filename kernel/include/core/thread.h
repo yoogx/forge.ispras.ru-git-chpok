@@ -204,7 +204,7 @@ typedef struct _pok_thread
     /**
      * If wait on something, here will be stored result of this wait.
      */
-    pok_ret_t wait_result;
+    jet_ret_t wait_result;
 
     /* 
      * For server thread this is a IPPC connection initialized with
@@ -467,41 +467,41 @@ pok_bool_t pok_thread_is_runnable(const pok_thread_t *thread)
 
 /**
  * Create a thread inside a partition
- * Return POK_ERRNO_OK if no error.
- * Return POK_ERRNO_TOOMANY if the partition cannot contain
+ * Return EOK if no error.
+ * Return JET_INVALID_CONFIG if the partition cannot contain
  * more threads.
  */
-pok_ret_t pok_thread_create (const char* __user name,
+jet_ret_t pok_thread_create (const char* __user name,
     void* __user entry,
     const pok_thread_attr_t* __user attr,
     pok_thread_id_t* __user thread_id);
 
-pok_ret_t pok_thread_start(pok_thread_id_t thread_id);
-pok_ret_t pok_thread_suspend(const pok_time_t* time);
-pok_ret_t pok_thread_suspend_target(pok_thread_id_t id);
-pok_ret_t pok_thread_yield (void);
-pok_ret_t pok_thread_stop(void);
-pok_ret_t pok_thread_stop_target(pok_thread_id_t thread_id);
-pok_ret_t pok_thread_delayed_start (pok_thread_id_t id, const pok_time_t* __user delay_time);
-pok_ret_t pok_thread_get_id_self(pok_thread_id_t* __user thread_id);
-pok_ret_t pok_thread_get_id(const char* __user name, pok_thread_id_t* __user thread_id);
+jet_ret_t pok_thread_start(pok_thread_id_t thread_id);
+jet_ret_t pok_thread_suspend(const pok_time_t* time);
+jet_ret_t pok_thread_suspend_target(pok_thread_id_t id);
+jet_ret_t pok_thread_yield (void);
+jet_ret_t pok_thread_stop(void);
+jet_ret_t pok_thread_stop_target(pok_thread_id_t thread_id);
+jet_ret_t pok_thread_delayed_start (pok_thread_id_t id, const pok_time_t* __user delay_time);
+jet_ret_t pok_thread_get_id_self(pok_thread_id_t* __user thread_id);
+jet_ret_t pok_thread_get_id(const char* __user name, pok_thread_id_t* __user thread_id);
 
-pok_ret_t pok_thread_get_status(pok_thread_id_t id,
+jet_ret_t pok_thread_get_status(pok_thread_id_t id,
     char* __user name,
     void** __user entry,
     pok_thread_status_t* __user attr);
 
-pok_ret_t pok_thread_set_priority(pok_thread_id_t id, const uint32_t priority);
-pok_ret_t pok_thread_resume(pok_thread_id_t id);
+jet_ret_t pok_thread_set_priority(pok_thread_id_t id, const uint32_t priority);
+jet_ret_t pok_thread_resume(pok_thread_id_t id);
 
-pok_ret_t pok_thread_sleep(const pok_time_t* __user time);
+jet_ret_t pok_thread_sleep(const pok_time_t* __user time);
 
 /* Find thread by its name. GET_PROCESS_ID in ARINC. */
-pok_ret_t pok_thread_find(const char* __user name, pok_thread_id_t* id);
+jet_ret_t pok_thread_find(const char* __user name, pok_thread_id_t* id);
 
-pok_ret_t pok_sched_end_period(void);
-pok_ret_t pok_sched_replenish(const pok_time_t* __user budget);
+jet_ret_t pok_sched_end_period(void);
+jet_ret_t pok_sched_replenish(const pok_time_t* __user budget);
 
-pok_ret_t pok_sched_get_current(pok_thread_id_t* __user thread_id);
+jet_ret_t pok_sched_get_current(pok_thread_id_t* __user thread_id);
 
 #endif /* __POK_THREAD_H__ */

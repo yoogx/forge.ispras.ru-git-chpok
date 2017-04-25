@@ -30,6 +30,8 @@
 #include "arinc_config.h"
 #include "arinc_process_queue.h"
 
+#include "map_error.h"
+
 static unsigned nbuffers_used = 0;
 static inline BUFFER_ID_TYPE index_to_id(unsigned index)
 {
@@ -183,7 +185,7 @@ void SEND_BUFFER (
    {
       // Buffer is not full.
       if(msection_wq_notify(&buffer->section,
-         &buffer->process_queue, FALSE) == POK_ERRNO_OK) {
+         &buffer->process_queue, FALSE) == EOK) {
          // There are waiters on buffer. We have already awoken the first of them.
          pok_thread_id_t t_awoken = buffer->process_queue.first;
 
@@ -223,21 +225,25 @@ void SEND_BUFFER (
 
       arinc_process_queue_add_common(&buffer->process_queue, buffer->discipline);
 
-      switch(msection_wait(&buffer->section, TIME_OUT))
+      jet_ret_t core_ret = msection_wait(&buffer->section, TIME_OUT);
+
+      MAP_ERROR_BEGIN(core_ret)
+         MAP_ERROR(EOK, NO_ERROR);
+         MAP_ERROR(JET_INVALID_MODE, INVALID_MODE);
+         MAP_ERROR(ETIMEDOUT, TIMED_OUT);
+         MAP_ERROR_CANCELLED();
+         MAP_ERROR_DEFAULT();
+      MAP_ERROR_END()
+
+      switch(core_ret)
       {
-      case POK_ERRNO_OK:
+      case EOK:
          // Message is already copied into the buffer by the notifier.
-         *RETURN_CODE = NO_ERROR;
          break;
-      case POK_ERRNO_MODE: // Waiting is not allowed
-      case POK_ERRNO_CANCELLED: // Thread has been STOP()-ed or [IPPC] server thread has been cancelled.
+      case JET_INVALID_MODE: // Waiting is not allowed
+      case JET_CANCELLED: // Thread has been STOP()-ed or [IPPC] server thread has been cancelled.
+      case ETIMEDOUT: // Timeout
          msection_wq_del(&buffer->process_queue, t);
-         *RETURN_CODE = INVALID_MODE;
-         break;
-      case POK_ERRNO_TIMEOUT:
-         // Timeout
-         msection_wq_del(&buffer->process_queue, t);
-         *RETURN_CODE = TIMED_OUT;
          break;
       default:
          assert_os(FALSE);
@@ -281,7 +287,7 @@ void RECEIVE_BUFFER (
       *LENGTH = len;
 
       if(msection_wq_notify(&buffer->section,
-         &buffer->process_queue, FALSE) == POK_ERRNO_OK) {
+         &buffer->process_queue, FALSE) == EOK) {
          // There are waiters on buffer. We have already awoken the first of them.
          pok_thread_id_t t_awoken = buffer->process_queue.first;
 
@@ -313,24 +319,27 @@ void RECEIVE_BUFFER (
 
       arinc_process_queue_add_common(&buffer->process_queue, buffer->discipline);
 
-      switch(msection_wait(&buffer->section, TIME_OUT))
+      jet_ret_t core_ret = msection_wait(&buffer->section, TIME_OUT);
+
+      MAP_ERROR_BEGIN(core_ret)
+         MAP_ERROR(EOK, NO_ERROR);
+         MAP_ERROR(JET_INVALID_MODE, INVALID_MODE);
+         MAP_ERROR(ETIMEDOUT, TIMED_OUT);
+         MAP_ERROR_CANCELLED();
+         MAP_ERROR_DEFAULT();
+      MAP_ERROR_END()
+
+      switch(core_ret)
       {
-      case POK_ERRNO_OK:
+      case EOK:
          // Message is already copied from the buffer by the notifier.
          *LENGTH = kshd->tshd[t].wq_len;
-         *RETURN_CODE = NO_ERROR;
          break;
-      case POK_ERRNO_MODE: // Waiting is not allowed
-      case POK_ERRNO_CANCELLED: // Thread has been STOP()-ed or [IPPC] server thread has been cancelled.
+      case JET_INVALID_MODE: // Waiting is not allowed
+      case JET_CANCELLED: // Thread has been STOP()-ed or [IPPC] server thread has been cancelled.
+      case ETIMEDOUT: // Timeout
          msection_wq_del(&buffer->process_queue, t);
          *LENGTH = 0;
-         *RETURN_CODE = INVALID_MODE;
-         break;
-      case POK_ERRNO_TIMEOUT:
-         // Timeout
-         msection_wq_del(&buffer->process_queue, t);
-         *LENGTH = 0;
-         *RETURN_CODE = TIMED_OUT;
          break;
       default:
          assert_os(FALSE);

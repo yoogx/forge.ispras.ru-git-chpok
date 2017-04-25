@@ -77,7 +77,7 @@ size_t jet_console_write_debug(const char* s, size_t length);
 
 
 /* Syscall for write into main console from user space. */
-pok_ret_t jet_console_write_user(const char* __user s, size_t length);
+jet_ret_t jet_console_write_user(const char* __user s, size_t length);
 
 
 // Functions for backward compatibility. TODO: Remove them and their usage.

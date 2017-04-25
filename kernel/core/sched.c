@@ -149,6 +149,7 @@ static void intra_partition_switch(void)
              * Perform jump instead of switch.
              */
              jet_context_jump(*new_sp);
+             unreachable();
              return;
         }
         else if(*new_sp == NULL)
@@ -223,6 +224,7 @@ static void inter_partition_switch(pok_partition_t* part)
     if(*old_sp == NULL)
     {
         jet_context_jump(*new_sp);
+        unreachable();
     }
     else
     {
@@ -272,6 +274,7 @@ void pok_sched_restart (void)
 
     kernel_state = POK_SYSTEM_STATE_OS_PART;
     jet_context_jump(*new_sp);
+    unreachable();
 }
 
 void pok_sched_start (void)

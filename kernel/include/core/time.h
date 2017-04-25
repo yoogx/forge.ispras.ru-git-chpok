@@ -37,8 +37,8 @@
 /* Return calendar time, in seconds since Epoch. */
 #define jet_calendar_time() ja_calendar_time()
 
-pok_ret_t pok_clock_gettime (clockid_t clk_id, pok_time_t* __user val);
+jet_ret_t pok_clock_gettime (clockid_t clk_id, pok_time_t* __user val);
 
-pok_ret_t jet_time(time_t* __user val);
+jet_ret_t jet_time(time_t* __user val);
 
 #endif  /* __POK_TIME_H__ */

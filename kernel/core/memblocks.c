@@ -35,7 +35,16 @@ void* __remote jet_memory_block_get_remote_addr(const struct memory_block* mbloc
     return (void* __remote)((uintptr_t)addr - mblock->vaddr + mblock->remote_addr);
 }
 
-pok_ret_t jet_memory_block_get_status(
+/*
+ * Get information about memory block with given name.
+ *
+ * Return EOK on success.
+ *
+ * Possible error codes:
+ *
+ *  - EFAULT - 'name' or 'status' refers to inaccessible memory.
+ */
+jet_ret_t jet_memory_block_get_status(
     const char* __user name,
     jet_memory_block_status_t* __user status)
 {
@@ -43,25 +52,25 @@ pok_ret_t jet_memory_block_get_status(
 
     jet_memory_block_status_t* status_kernel = jet_user_to_kernel_typed(status);
 
-    if(status_kernel == NULL) return POK_ERRNO_EFAULT;
+    if(status_kernel == NULL) return EFAULT;
 
     // Assume name of the memory block at most MAX_NAME_LENGTH length.
     char name_kernel[MAX_NAME_LENGTH];
 
     if(kstrncpy(name_kernel, name, MAX_NAME_LENGTH) == NULL)
-        return POK_ERRNO_EFAULT;
+        return EFAULT;
 
     const struct memory_block* mblock = jet_partition_arinc_find_memory_block(part,
         name_kernel);
 
-    if(mblock == NULL) return POK_ERRNO_EINVAL;
+    if(mblock == NULL) return JET_INVALID_CONFIG;
 
     if(mblock->maccess | MEMORY_BLOCK_ACCESS_WRITE)
         status_kernel->mode = JET_MEMORY_BLOCK_READ_WRITE;
     else if(mblock->maccess | MEMORY_BLOCK_ACCESS_READ)
         status_kernel->mode = JET_MEMORY_BLOCK_READ;
     else
-        return POK_ERRNO_EINVAL; // Function returns only readable blocks.
+        return JET_INVALID_CONFIG; // Function returns only readable blocks.
 
     status_kernel->addr = mblock->vaddr;
     status_kernel->size = mblock->size;
@@ -75,7 +84,7 @@ pok_ret_t jet_memory_block_get_status(
         status_kernel->is_contiguous = FALSE;
     }
 
-    return POK_ERRNO_OK;
+    return EOK;
 }
 
 static void jet_memory_block_init_zero(pok_partition_arinc_t* part,

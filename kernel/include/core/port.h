@@ -70,7 +70,7 @@ typedef struct
 void pok_port_queuing_init(pok_port_queuing_t* port_queuing);
 
 
-pok_ret_t pok_port_queuing_create(
+jet_ret_t pok_port_queuing_create(
     const char* __user              name,
     pok_port_size_t                 message_size,
     pok_port_size_t                 max_nb_message,
@@ -79,35 +79,35 @@ pok_ret_t pok_port_queuing_create(
     pok_port_id_t* __user           id);
 
 
-pok_ret_t pok_port_queuing_create_packed(
+jet_ret_t pok_port_queuing_create_packed(
     const char* __user              name,
     const pok_port_queuing_create_arg_t* __user arg,
     pok_port_id_t* __user           id);
     
 
-pok_ret_t pok_port_queuing_receive(
+jet_ret_t pok_port_queuing_receive(
     pok_port_id_t               id, 
     const pok_time_t* __user    timeout, 
     void* __user                data, 
     pok_port_size_t* __user     len);
 
 
-pok_ret_t pok_port_queuing_send(
+jet_ret_t pok_port_queuing_send(
     pok_port_id_t               id, 
     const void* __user          data,
     pok_port_size_t             len,
     const pok_time_t* __user    timeout);
 
 
-pok_ret_t pok_port_queuing_status(
+jet_ret_t pok_port_queuing_status(
     pok_port_id_t               id,
     pok_port_queuing_status_t* __user status);
 
-pok_ret_t pok_port_queuing_id(
+jet_ret_t pok_port_queuing_id(
     const char* __user name,
     pok_port_id_t* __user id);
 
-pok_ret_t pok_port_queuing_clear(pok_port_id_t id);
+jet_ret_t pok_port_queuing_clear(pok_port_id_t id);
 
 /* 
  * Receive message from the port into specified process.
@@ -119,7 +119,7 @@ pok_ret_t pok_port_queuing_clear(pok_port_id_t id);
  * 
  * After call:
  * t->wait_len - length of stored message
- * t->wait_result - result of wait (POK_ERRNO_OK or POK_ERRNO_TOOMANY).
+ * t->wait_result - result of wait (EOK or JET_INVALID_CONFIG).
  * 
  * Should be called with local preemption disabled.
  */
@@ -135,7 +135,7 @@ void port_queuing_receive(pok_port_queuing_t* port, pok_thread_t* t);
  * t->wait_len - length of the message
  * 
  * After call:
- * t->wait_result - result of wait (POK_ERRNO_OK)
+ * t->wait_result - result of wait (EOK)
  * 
  * Should be called with local preemption disabled.
  */
@@ -184,7 +184,7 @@ typedef struct
 // Initialize sampling port
 void pok_port_sampling_init(pok_port_sampling_t* port_sampling);
 
-pok_ret_t pok_port_sampling_create(
+jet_ret_t pok_port_sampling_create(
     const char* __user          name,
     pok_port_size_t             size,
     pok_port_direction_t        direction,
@@ -192,29 +192,29 @@ pok_ret_t pok_port_sampling_create(
     pok_port_id_t               *id
 );
 
-pok_ret_t pok_port_sampling_write(
+jet_ret_t pok_port_sampling_write(
     pok_port_id_t           id,
     const void __user       *data,
     pok_port_size_t         len
 );
 
-pok_ret_t pok_port_sampling_read(
+jet_ret_t pok_port_sampling_read(
     pok_port_id_t           id,
     void __user             *data,
     pok_port_size_t __user  *len,
     pok_bool_t __user       *valid
 );
 
-pok_ret_t pok_port_sampling_id(
+jet_ret_t pok_port_sampling_id(
     const char __user       *name,
     pok_port_id_t           *id
 );
 
-pok_ret_t pok_port_sampling_status (
+jet_ret_t pok_port_sampling_status (
     pok_port_id_t                      id,
     pok_port_sampling_status_t __user   *status
 );
 
-pok_ret_t pok_port_sampling_check(pok_port_id_t id);
+jet_ret_t pok_port_sampling_check(pok_port_id_t id);
 
 #endif /* __POK_KERNEL_PORT_H__ */

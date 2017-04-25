@@ -43,72 +43,68 @@
 #include <core/partition.h>
 
 #include <kernel_shared_data.h>
-
-#define MAP_ERROR(from, to) case (from): *return_code = (to); break
-#define MAP_ERROR_DEFAULT(to) default: *return_code = (to); break
-
-#define CHECK_PROCESS_ID() \
-    if (process_id <= 0) { \
-        *return_code = INVALID_PARAM; \
-        return; \
-    }
+#include "map_error.h"
 
 void GET_PROCESS_ID(
     PROCESS_NAME_TYPE process_name,
     PROCESS_ID_TYPE   *process_id,
-    RETURN_CODE_TYPE  *return_code)
+    RETURN_CODE_TYPE  *RETURN_CODE)
 {
     pok_thread_id_t id;
-    pok_ret_t core_ret;
+    jet_ret_t core_ret;
 
     core_ret = pok_thread_find(process_name, &id);
 
-    if (core_ret == POK_ERRNO_OK) {
+    MAP_ERROR_BEGIN(core_ret)
+        MAP_ERROR(EOK, NO_ERROR);
+        MAP_ERROR(JET_INVALID_CONFIG, INVALID_CONFIG);
+        MAP_ERROR_EFAULT();
+        MAP_ERROR_DEFAULT();
+    MAP_ERROR_END()
+
+    if (core_ret == EOK)
         *process_id = id + 1;
-        *return_code = NO_ERROR;
-    } else {
-        *return_code = INVALID_CONFIG;
-    }
 }
 
 void GET_MY_ID (PROCESS_ID_TYPE   *process_id,
-		RETURN_CODE_TYPE  *return_code )
+		RETURN_CODE_TYPE  *RETURN_CODE )
 {
     if(kshd->partition_mode != POK_PARTITION_MODE_NORMAL)
     {
         // Main thread has no id.
-        *return_code = INVALID_MODE;
+        *RETURN_CODE = INVALID_MODE;
     }
     else if(kshd->current_thread_id == kshd->error_thread_id)
     {
         // Error thread has no id.
-        *return_code = INVALID_MODE;
+        *RETURN_CODE = INVALID_MODE;
     }
     else
     {
         *process_id = kshd->current_thread_id + 1;
-        *return_code = NO_ERROR;
+        *RETURN_CODE = NO_ERROR;
     }
 }
 
 void GET_PROCESS_STATUS (
     PROCESS_ID_TYPE     process_id,
     PROCESS_STATUS_TYPE *process_status,
-    RETURN_CODE_TYPE    *return_code)
+    RETURN_CODE_TYPE    *RETURN_CODE)
 {
     pok_thread_status_t status;
-    pok_ret_t           core_ret;
+    jet_ret_t           core_ret;
 
     core_ret = pok_thread_get_status(process_id - 1,
         process_status->ATTRIBUTES.NAME, &process_status->ATTRIBUTES.ENTRY_POINT,
         &status);
 
-    switch (core_ret) {
-        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-        MAP_ERROR_DEFAULT(INVALID_PARAM);
-    }
+    MAP_ERROR_BEGIN (core_ret)
+        MAP_ERROR(EOK, NO_ERROR);
+        MAP_ERROR_EFAULT();
+        MAP_ERROR_DEFAULT();
+    MAP_ERROR_END()
 
-    if (core_ret != POK_ERRNO_OK) {
+    if (core_ret != EOK) {
         return;
     }
 
@@ -135,15 +131,15 @@ void GET_PROCESS_STATUS (
 void CREATE_PROCESS (
     PROCESS_ATTRIBUTE_TYPE  *attributes,
     PROCESS_ID_TYPE         *process_id,
-    RETURN_CODE_TYPE        *return_code)
+    RETURN_CODE_TYPE        *RETURN_CODE)
 {
     pok_thread_attr_t core_attr;
-    pok_ret_t         core_ret;
+    jet_ret_t         core_ret;
     pok_thread_id_t   core_process_id;
 
     if (attributes->NAME[0] == '\0') {
         // empty names are not allowed
-        *return_code = INVALID_PARAM;
+        *RETURN_CODE = INVALID_PARAM;
         return;
     }
 
@@ -154,26 +150,25 @@ void CREATE_PROCESS (
     } else if (attributes->DEADLINE == HARD) {
         core_attr.deadline = DEADLINE_HARD;
     } else {
-        *return_code = INVALID_PARAM;
+        *RETURN_CODE = INVALID_PARAM;
         return;
     }
     core_attr.time_capacity   = attributes->TIME_CAPACITY;
     core_attr.stack_size      = attributes->STACK_SIZE;
     core_ret = pok_thread_create (attributes->NAME, attributes->ENTRY_POINT,
         &core_attr, &core_process_id);
-    switch (core_ret) {
-        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-        MAP_ERROR(POK_ERRNO_EXISTS, NO_ACTION);
-        MAP_ERROR(POK_ERRNO_PARAM, INVALID_PARAM);
-        MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG);
-        MAP_ERROR(POK_ERRNO_UNAVAILABLE, INVALID_CONFIG);
-        MAP_ERROR(POK_ERRNO_TOOMANY, INVALID_CONFIG);
-        MAP_ERROR(POK_ERRNO_PARTITION_MODE, INVALID_MODE);
-        MAP_ERROR_DEFAULT(INVALID_PARAM);
-    }
+    MAP_ERROR_BEGIN(core_ret)
+        MAP_ERROR(EOK, NO_ERROR);
+        MAP_ERROR(EEXIST, NO_ACTION);
+        MAP_ERROR(EINVAL, INVALID_PARAM);
+        MAP_ERROR(JET_INVALID_CONFIG, INVALID_CONFIG);
+        MAP_ERROR(JET_INVALID_MODE, INVALID_MODE);
+        MAP_ERROR_EFAULT();
+        MAP_ERROR_DEFAULT();
+    MAP_ERROR_END()
 
-    if (core_ret != POK_ERRNO_OK) return;
-    
+    if (core_ret != EOK) return;
+
     kshd->tshd[core_process_id].private_data = NULL;
     *process_id = core_process_id + 1;
 }
@@ -187,121 +182,127 @@ void STOP_SELF ()
 void SET_PRIORITY (
     PROCESS_ID_TYPE  process_id,
     PRIORITY_TYPE    priority,
-    RETURN_CODE_TYPE *return_code)
+    RETURN_CODE_TYPE *RETURN_CODE)
 {
-    CHECK_PROCESS_ID();
-
     if (priority < MIN_PRIORITY_VALUE || priority > MAX_PRIORITY_VALUE) {
-        *return_code = INVALID_PARAM;
+        *RETURN_CODE = INVALID_PARAM;
         return;
     }
 
-    pok_ret_t core_ret = pok_thread_set_priority(process_id - 1, priority);
-    switch (core_ret) {
-        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-        MAP_ERROR(POK_ERRNO_UNAVAILABLE, INVALID_MODE);
-        MAP_ERROR_DEFAULT(INVALID_PARAM);
-    }
+    jet_ret_t core_ret = pok_thread_set_priority(process_id - 1, priority);
+    MAP_ERROR_BEGIN(core_ret)
+        MAP_ERROR(EOK, NO_ERROR);
+        MAP_ERROR(EINVAL, INVALID_PARAM);
+        MAP_ERROR(JET_INVALID_MODE, INVALID_MODE);
+        MAP_ERROR_DEFAULT();
+    MAP_ERROR_END()
 }
 
 void SUSPEND_SELF (
     SYSTEM_TIME_TYPE time_out,
-    RETURN_CODE_TYPE *return_code)
+    RETURN_CODE_TYPE *RETURN_CODE)
 {
-    pok_ret_t core_ret = pok_thread_suspend(&time_out);
+    jet_ret_t core_ret = pok_thread_suspend(&time_out);
 
-    switch (core_ret) {
-        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-        MAP_ERROR(POK_ERRNO_TIMEOUT, TIMED_OUT);
-        MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
-        MAP_ERROR_DEFAULT(INVALID_PARAM);
-    }
+    MAP_ERROR_BEGIN(core_ret)
+        MAP_ERROR(EOK, NO_ERROR);
+        MAP_ERROR(ETIMEDOUT, TIMED_OUT);
+        MAP_ERROR(JET_INVALID_MODE, INVALID_MODE);
+        MAP_ERROR(EINVAL, INVALID_PARAM);
+        // EFAULT is impossible
+        MAP_ERROR_DEFAULT();
+    MAP_ERROR_END()
 }
 
 void SUSPEND (
     PROCESS_ID_TYPE     process_id,
-    RETURN_CODE_TYPE    *return_code)
+    RETURN_CODE_TYPE    *RETURN_CODE)
 {
-    CHECK_PROCESS_ID();
+    jet_ret_t core_ret = pok_thread_suspend_target(process_id - 1);
 
-    pok_ret_t core_ret = pok_thread_suspend_target(process_id - 1);
-    switch (core_ret) {
-        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-        MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
-        MAP_ERROR(POK_ERRNO_UNAVAILABLE, NO_ACTION);
-        MAP_ERROR_DEFAULT(INVALID_PARAM);
-    }
+    MAP_ERROR_BEGIN(core_ret)
+        MAP_ERROR(EOK, NO_ERROR);
+        MAP_ERROR(EINVAL, INVALID_PARAM);
+        MAP_ERROR(JET_INVALID_MODE_TARGET, INVALID_MODE);
+        MAP_ERROR(JET_NOACTION, NO_ACTION);
+        MAP_ERROR_DEFAULT();
+    MAP_ERROR_END()
 }
 
 void RESUME (
     PROCESS_ID_TYPE     process_id,
-    RETURN_CODE_TYPE    *return_code)
+    RETURN_CODE_TYPE    *RETURN_CODE)
 {
-    CHECK_PROCESS_ID();
+    jet_ret_t core_ret = pok_thread_resume(process_id - 1);
 
-    pok_ret_t core_ret = pok_thread_resume(process_id - 1);
-    switch (core_ret) {
-        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-        MAP_ERROR(POK_ERRNO_UNAVAILABLE, NO_ACTION);
-        MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
-        MAP_ERROR_DEFAULT(INVALID_PARAM);
-    }
+    MAP_ERROR_BEGIN(core_ret)
+        MAP_ERROR(EOK, NO_ERROR);
+        MAP_ERROR(EINVAL, INVALID_PARAM);
+        MAP_ERROR(JET_INVALID_MODE_TARGET, INVALID_MODE);
+        MAP_ERROR(JET_NOACTION, NO_ACTION);
+        MAP_ERROR_DEFAULT();
+    MAP_ERROR_END()
 }
 
 void START (
     PROCESS_ID_TYPE     process_id,
-    RETURN_CODE_TYPE    *return_code)
+    RETURN_CODE_TYPE    *RETURN_CODE)
 {
-    DELAYED_START(process_id, 0, return_code);
+    DELAYED_START(process_id, 0, RETURN_CODE);
 }
 
 void STOP(
     PROCESS_ID_TYPE     process_id,
-    RETURN_CODE_TYPE    *return_code)
+    RETURN_CODE_TYPE    *RETURN_CODE)
 {
-    CHECK_PROCESS_ID();
+    jet_ret_t core_ret = pok_thread_stop_target(process_id - 1);
 
-    pok_ret_t core_ret = pok_thread_stop_target(process_id - 1);
-    switch (core_ret) {
-        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-        MAP_ERROR(POK_ERRNO_UNAVAILABLE, NO_ACTION);
-        MAP_ERROR_DEFAULT(INVALID_PARAM);
-    }
+    MAP_ERROR_BEGIN (core_ret)
+        MAP_ERROR(EOK, NO_ERROR);
+        MAP_ERROR(EINVAL, INVALID_PARAM);
+        MAP_ERROR(JET_NOACTION, NO_ACTION);
+        MAP_ERROR_DEFAULT();
+    MAP_ERROR_END()
 }
 
 void DELAYED_START(
     PROCESS_ID_TYPE   process_id,
     SYSTEM_TIME_TYPE  delay_time,
-    RETURN_CODE_TYPE *return_code)
+    RETURN_CODE_TYPE *RETURN_CODE)
 {
-    CHECK_PROCESS_ID();
+    jet_ret_t core_ret = pok_thread_delayed_start(process_id - 1, &delay_time);
 
-    pok_ret_t core_ret = pok_thread_delayed_start(process_id - 1, &delay_time);
-    switch (core_ret) {
-        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-        MAP_ERROR(POK_ERRNO_UNAVAILABLE, NO_ACTION);
-        MAP_ERROR_DEFAULT(INVALID_PARAM);
-    }
+    MAP_ERROR_BEGIN (core_ret)
+        MAP_ERROR(EOK, NO_ERROR);
+        MAP_ERROR(EINVAL, INVALID_PARAM);
+        // EFAULT is impossible
+        MAP_ERROR(JET_NOACTION, NO_ACTION);
+        MAP_ERROR(JET_INVALID_MODE_TARGET, INVALID_MODE); //[IPPC]
+        MAP_ERROR_DEFAULT();
+    MAP_ERROR_END()
 }
 
-void LOCK_PREEMPTION (LOCK_LEVEL_TYPE *LOCK_LEVEL, RETURN_CODE_TYPE *return_code)
+void LOCK_PREEMPTION (LOCK_LEVEL_TYPE *LOCK_LEVEL, RETURN_CODE_TYPE *RETURN_CODE)
 {
-    pok_ret_t ret = pok_partition_inc_lock_level(LOCK_LEVEL);
-    switch (ret) {
-        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-        MAP_ERROR(POK_ERRNO_PARTITION_MODE, NO_ACTION);
-        MAP_ERROR(POK_ERRNO_EINVAL, INVALID_CONFIG); // yes, it's an error here...
-        MAP_ERROR_DEFAULT(INVALID_PARAM); // shouldn't happen
-    }
+    jet_ret_t core_ret = pok_partition_inc_lock_level(LOCK_LEVEL);
+
+    MAP_ERROR_BEGIN(core_ret)
+        MAP_ERROR(EOK, NO_ERROR);
+        MAP_ERROR(JET_NOACTION, NO_ACTION);
+        MAP_ERROR(JET_INVALID_CONFIG, INVALID_CONFIG);
+        MAP_ERROR_EFAULT();
+        MAP_ERROR_DEFAULT();
+    MAP_ERROR_END()
 }
 
-void UNLOCK_PREEMPTION (LOCK_LEVEL_TYPE *LOCK_LEVEL, RETURN_CODE_TYPE *return_code)
+void UNLOCK_PREEMPTION (LOCK_LEVEL_TYPE *LOCK_LEVEL, RETURN_CODE_TYPE *RETURN_CODE)
 {
-    pok_ret_t ret = pok_partition_dec_lock_level(LOCK_LEVEL);
-    switch (ret) {
-        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-        MAP_ERROR(POK_ERRNO_PARTITION_MODE, NO_ACTION);
-        MAP_ERROR(POK_ERRNO_EINVAL, NO_ACTION); // ...but here it's just NO_ACTION
-        MAP_ERROR_DEFAULT(INVALID_PARAM); // shouldn't happen
-    }
+    jet_ret_t core_ret = pok_partition_dec_lock_level(LOCK_LEVEL);
+
+    MAP_ERROR_BEGIN(core_ret)
+        MAP_ERROR(EOK, NO_ERROR);
+        MAP_ERROR(JET_NOACTION, NO_ACTION);
+        MAP_ERROR_EFAULT();
+        MAP_ERROR_DEFAULT();
+    MAP_ERROR_END()
 }

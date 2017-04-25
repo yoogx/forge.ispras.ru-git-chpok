@@ -32,7 +32,7 @@ gdt_entry_t	pok_gdt[GDT_SIZE];
 
 tss_t	pok_tss;
 
-pok_ret_t pok_gdt_init()
+void pok_gdt_init()
 {
    sysdesc_t sysdesc;
 
@@ -72,11 +72,9 @@ pok_ret_t pok_gdt_init()
          : "eax");
 
    pok_tss_init();
-
-   return (POK_ERRNO_OK);
 }
 
-int pok_tss_init()
+void pok_tss_init()
 {
    uint16_t sel = GDT_BUILD_SELECTOR(GDT_TSS_SEGMENT, 0, 0);
 
@@ -88,7 +86,6 @@ int pok_tss_init()
          sizeof (tss_t), GDTE_TSS, 0);
 
    asm ("ltr %0" : :"m"(sel));
-   return (POK_ERRNO_OK);
 }
 
 void tss_set_esp0(uint32_t esp0)

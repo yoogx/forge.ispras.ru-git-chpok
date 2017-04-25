@@ -24,8 +24,7 @@
 #include <arinc653/queueing.h>
 #include <utils.h>
 
-#define MAP_ERROR(from, to) case (from): *RETURN_CODE = (to); break
-#define MAP_ERROR_DEFAULT(to) default: *RETURN_CODE = (to); break
+#include "map_error.h"
 
 void CREATE_QUEUING_PORT (
       /*in */ QUEUING_PORT_NAME_TYPE    QUEUING_PORT_NAME,
@@ -36,7 +35,7 @@ void CREATE_QUEUING_PORT (
       /*out*/ QUEUING_PORT_ID_TYPE      *QUEUING_PORT_ID,
       /*out*/ RETURN_CODE_TYPE          *RETURN_CODE)
 {
-   pok_ret_t                        core_ret;
+   jet_ret_t                        core_ret;
    pok_port_id_t                    core_id;
    pok_queuing_discipline_t         core_discipline;
    pok_port_direction_t             core_direction;
@@ -61,7 +60,7 @@ void CREATE_QUEUING_PORT (
       case SOURCE:
          core_direction = POK_PORT_DIRECTION_OUT;
          break;
-      
+
       case DESTINATION:
          core_direction = POK_PORT_DIRECTION_IN;
          break;
@@ -77,12 +76,14 @@ void CREATE_QUEUING_PORT (
 
    *QUEUING_PORT_ID = core_id + 1;
 
-   switch (core_ret) {
-      MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-      MAP_ERROR(POK_ERRNO_EXISTS, NO_ACTION);
-      MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
-      MAP_ERROR_DEFAULT(INVALID_CONFIG);
-   }
+   MAP_ERROR_BEGIN (core_ret)
+      MAP_ERROR(EOK, NO_ERROR);
+      MAP_ERROR(EEXIST, NO_ACTION);
+      MAP_ERROR(JET_INVALID_CONFIG, INVALID_CONFIG);
+      MAP_ERROR(JET_INVALID_MODE, INVALID_MODE);
+      MAP_ERROR_EFAULT();
+      MAP_ERROR_DEFAULT();
+   MAP_ERROR_END();
 }
 
 void SEND_QUEUING_MESSAGE (
@@ -92,24 +93,20 @@ void SEND_QUEUING_MESSAGE (
       /*in */ SYSTEM_TIME_TYPE          TIME_OUT,
       /*out*/ RETURN_CODE_TYPE          *RETURN_CODE)
 {
-    pok_ret_t core_ret;
-
-    if (QUEUING_PORT_ID <= 0) {
-        *RETURN_CODE = INVALID_PARAM;
-        return;
-    }
+    jet_ret_t core_ret;
 
     core_ret = pok_port_queuing_send (QUEUING_PORT_ID - 1, MESSAGE_ADDR, LENGTH, &TIME_OUT);
 
-    switch (core_ret) {
-        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-        MAP_ERROR(POK_ERRNO_DIRECTION, INVALID_MODE);
-        MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
-        MAP_ERROR(POK_ERRNO_FULL, NOT_AVAILABLE);
-        MAP_ERROR(POK_ERRNO_TIMEOUT, TIMED_OUT); 
-        MAP_ERROR(POK_ERRNO_PARAM, INVALID_CONFIG); 
-        MAP_ERROR_DEFAULT(INVALID_CONFIG);
-    }
+    MAP_ERROR_BEGIN(core_ret)
+        MAP_ERROR(EOK, NO_ERROR);
+        MAP_ERROR(JET_INVALID_MODE_TARGET, INVALID_MODE);
+        MAP_ERROR(JET_INVALID_MODE, INVALID_MODE);
+        MAP_ERROR(EAGAIN, NOT_AVAILABLE);
+        MAP_ERROR(ETIMEDOUT, TIMED_OUT);
+        MAP_ERROR(EINVAL, INVALID_PARAM);
+        MAP_ERROR_EFAULT();
+        MAP_ERROR_DEFAULT();
+    MAP_ERROR_END()
 }
 
 void RECEIVE_QUEUING_MESSAGE (
@@ -119,24 +116,21 @@ void RECEIVE_QUEUING_MESSAGE (
       /*out*/ MESSAGE_SIZE_TYPE         *LENGTH,
       /*out*/ RETURN_CODE_TYPE          *RETURN_CODE )
 {
-   pok_ret_t core_ret;
+   jet_ret_t core_ret;
 
-   if (QUEUING_PORT_ID <= 0) {
-       *RETURN_CODE = INVALID_PARAM;
-       return;
-   }
-   
    core_ret = pok_port_queuing_receive (QUEUING_PORT_ID - 1, &TIME_OUT, MESSAGE_ADDR, (pok_port_size_t*)LENGTH);
 
-   switch (core_ret) {
-        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-        MAP_ERROR(POK_ERRNO_DIRECTION, INVALID_MODE);
-        MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
-        MAP_ERROR(POK_ERRNO_EMPTY, NOT_AVAILABLE);
-        MAP_ERROR(POK_ERRNO_TIMEOUT, TIMED_OUT);
-        MAP_ERROR(POK_ERRNO_TOOMANY, INVALID_CONFIG);
-        MAP_ERROR_DEFAULT(INVALID_CONFIG);
-    }
+   MAP_ERROR_BEGIN(core_ret)
+        MAP_ERROR(EOK, NO_ERROR);
+        MAP_ERROR(EINVAL, INVALID_PARAM);
+        MAP_ERROR(JET_INVALID_MODE_TARGET, INVALID_MODE);
+        MAP_ERROR(JET_INVALID_MODE, INVALID_MODE);
+        MAP_ERROR(EAGAIN, NOT_AVAILABLE);
+        MAP_ERROR(ETIMEDOUT, TIMED_OUT);
+        MAP_ERROR(JET_INVALID_CONFIG, INVALID_CONFIG);
+        MAP_ERROR_EFAULT();
+        MAP_ERROR_DEFAULT();
+    MAP_ERROR_END();
 }
 
 void GET_QUEUING_PORT_ID (
@@ -144,18 +138,20 @@ void GET_QUEUING_PORT_ID (
       /*out*/ QUEUING_PORT_ID_TYPE      *QUEUING_PORT_ID,
       /*out*/ RETURN_CODE_TYPE          *RETURN_CODE)
 {
-    pok_ret_t core_ret;
+    jet_ret_t core_ret;
     pok_port_id_t id;
 
     core_ret = pok_port_queuing_id(QUEUING_PORT_NAME, &id);
 
-    if (core_ret == POK_ERRNO_OK) {
+    MAP_ERROR_BEGIN(core_ret)
+        MAP_ERROR(EOK, NO_ERROR);
+        MAP_ERROR(JET_INVALID_CONFIG, INVALID_CONFIG);
+        MAP_ERROR_EFAULT();
+        MAP_ERROR_DEFAULT();
+    MAP_ERROR_END()
+
+    if (core_ret == EOK) {
         *QUEUING_PORT_ID = id + 1;
-    }
-   
-    switch (core_ret) {
-        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-        MAP_ERROR_DEFAULT(INVALID_CONFIG);
     }
 }
 
@@ -164,46 +160,46 @@ void GET_QUEUING_PORT_STATUS (
       /*out*/ QUEUING_PORT_STATUS_TYPE *QUEUING_PORT_STATUS,
       /*out*/ RETURN_CODE_TYPE          *RETURN_CODE)
 {
-  pok_ret_t core_ret;
-  pok_port_queuing_status_t status;
-  
-    if (QUEUING_PORT_ID <= 0) {
-       *RETURN_CODE = INVALID_PARAM;
-       return;
-    }
+    jet_ret_t core_ret;
+    pok_port_queuing_status_t status;
 
-   core_ret = pok_port_queuing_status(QUEUING_PORT_ID - 1, &status);
-   if (core_ret == POK_ERRNO_OK) {
-       QUEUING_PORT_STATUS->NB_MESSAGE = status.nb_message;
-       QUEUING_PORT_STATUS->MAX_NB_MESSAGE = status.max_nb_message;
-       QUEUING_PORT_STATUS->MAX_MESSAGE_SIZE = status.max_message_size;
-       switch (status.direction) {
-         case POK_PORT_DIRECTION_OUT:
-          QUEUING_PORT_STATUS->PORT_DIRECTION = SOURCE;
-          break;
-         case POK_PORT_DIRECTION_IN:
-          QUEUING_PORT_STATUS->PORT_DIRECTION = DESTINATION;
-          break;
-         default:
-          break; // XXX assert(0)
-       }
-       QUEUING_PORT_STATUS->WAITING_PROCESSES = status.waiting_processes;
-       *RETURN_CODE = NO_ERROR;
-   } else {
-       *RETURN_CODE = INVALID_PARAM;
-   }
+    core_ret = pok_port_queuing_status(QUEUING_PORT_ID - 1, &status);
+
+    MAP_ERROR_BEGIN(core_ret)
+        MAP_ERROR(EOK, NO_ERROR);
+        MAP_ERROR(EINVAL, INVALID_PARAM);
+        // EFAULT is not possible
+        MAP_ERROR_DEFAULT();
+    MAP_ERROR_END()
+
+    if (core_ret == EOK) {
+        QUEUING_PORT_STATUS->NB_MESSAGE = status.nb_message;
+        QUEUING_PORT_STATUS->MAX_NB_MESSAGE = status.max_nb_message;
+        QUEUING_PORT_STATUS->MAX_MESSAGE_SIZE = status.max_message_size;
+        switch (status.direction) {
+            case POK_PORT_DIRECTION_OUT:
+                QUEUING_PORT_STATUS->PORT_DIRECTION = SOURCE;
+            break;
+            case POK_PORT_DIRECTION_IN:
+                QUEUING_PORT_STATUS->PORT_DIRECTION = DESTINATION;
+            break;
+            default:
+               break; // XXX assert(0)
+        }
+        QUEUING_PORT_STATUS->WAITING_PROCESSES = status.waiting_processes;
+    }
 }
 
 void CLEAR_QUEUING_PORT (
       /*in */ QUEUING_PORT_ID_TYPE      QUEUING_PORT_ID,
       /*out*/ RETURN_CODE_TYPE          *RETURN_CODE)
 {
-   pok_ret_t core_ret = pok_port_queuing_clear(QUEUING_PORT_ID - 1);
+   jet_ret_t core_ret = pok_port_queuing_clear(QUEUING_PORT_ID - 1);
 
-   switch (core_ret) {
-        MAP_ERROR(POK_ERRNO_OK, NO_ERROR);
-        MAP_ERROR(POK_ERRNO_PORT, INVALID_PARAM);
-        MAP_ERROR(POK_ERRNO_MODE, INVALID_MODE);
-        MAP_ERROR_DEFAULT(INVALID_CONFIG);
-    }
+   MAP_ERROR_BEGIN (core_ret)
+        MAP_ERROR(EOK, NO_ERROR);
+        MAP_ERROR(EINVAL, INVALID_PARAM);
+        MAP_ERROR(JET_INVALID_MODE_TARGET, INVALID_MODE);
+        MAP_ERROR_DEFAULT();
+   MAP_ERROR_END()
 }
