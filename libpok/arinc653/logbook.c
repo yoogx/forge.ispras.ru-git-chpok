@@ -241,7 +241,7 @@ void WRITE_LOGBOOK(
     if (index >= nlogbooks_used) 
     {
         // Incorrect logbook identificator
-        printf("Incorrect identificator\n");
+        printf("Incorrect identificator\n"); // Todelete
         *RETURN_CODE = INVALID_PARAM;
         return;
     }
@@ -251,7 +251,7 @@ void WRITE_LOGBOOK(
     if (LENGTH <= 0 || LENGTH > logbook->max_message_size) 
     {
         // LENGTH is non-positive or too big.
-        printf("Incorrect LENGTH\n");
+        printf("Incorrect LENGTH\n"); // Todelete
         *RETURN_CODE = INVALID_PARAM;
         return;
     }
@@ -291,6 +291,58 @@ void OVERWRITE_LOGBOOK(
     MESSAGE_SIZE_TYPE    LENGTH,
     RETURN_CODE_TYPE    *RETURN_CODE)
 {
+
+    unsigned index = id_to_index(LOGBOOK_ID);
+    if (index >= nlogbooks_used) 
+    {
+        // Incorrect logbook identificator
+        printf("Incorrect identificator\n"); // Todelete
+        *RETURN_CODE = INVALID_PARAM;
+        return;
+    }
+    
+    struct arinc_logbook *logbook = &arinc_logbooks[index];
+
+    if (logbook->max_nb_in_progress_messages < 2)
+    {
+        *RETURN_CODE = INVALID_CONFIG;
+        return;
+    }
+    
+    if (LENGTH <= 0 || LENGTH > logbook->max_message_size) 
+    {
+        // LENGTH is non-positive or too big.
+        printf("Incorrect LENGTH\n"); // Todelete
+        *RETURN_CODE = INVALID_PARAM;
+        return;
+    }
+    
+    
+    if (logbook->max_nb_in_progress_messages == logbook->nb_in_progress_messages)
+    {
+        // overwrite most recent message (index = 0, actually that is the last message in 
+        // used data structure)
+        
+        // Actually this branch of if is similar to the next, so it is possible to unite them
+        MESSAGE_RANGE_TYPE message_index = buffer_message_index(logbook, logbook->nb_in_progress_messages);
+        char* message_dest = buffer_message_at(logbook, message_index);
+    
+        memcpy(message_dest, MESSAGE_ADDR, LENGTH);
+        logbook->buffer_messages_size[message_index] = LENGTH;
+        logbook->nb_in_progress_messages++; 
+        
+    }
+    else
+    {
+        // similar to WRITE_LOGBOOK
+        MESSAGE_RANGE_TYPE message_index = buffer_message_index(logbook, logbook->nb_in_progress_messages);
+        char* message_dest = buffer_message_at(logbook, message_index);
+    
+        memcpy(message_dest, MESSAGE_ADDR, LENGTH);
+        logbook->buffer_messages_size[message_index] = LENGTH;
+        logbook->nb_in_progress_messages++;
+    }
+
 	*RETURN_CODE = NO_ERROR;
 }
 
@@ -311,6 +363,31 @@ void CLEAR_LOGBOOK(
     LOGBOOK_ID_TYPE       LOGBOOK_ID,
     RETURN_CODE_TYPE      *RETURN_CODE)
 {
+    
+    /*
+    Как это делается в blackboard-ах:
+    
+        void CLEAR_BLACKBOARD (
+           /*in  BLACKBOARD_ID_TYPE       BLACKBOARD_ID,
+           /*out RETURN_CODE_TYPE         *RETURN_CODE )
+    {
+        unsigned index = id_to_index(BLACKBOARD_ID);
+       if (index >= nblackboards_used) {
+          // Incorrect blackboard identificator.
+          *RETURN_CODE = INVALID_PARAM;
+          return;
+       }
+
+       struct arinc_blackboard* blackboard = &arinc_blackboards[index];
+
+       msection_enter(&blackboard->section);
+       blackboard->message_size = 0;
+       msection_leave(&blackboard->section);
+
+       *RETURN_CODE = NO_ERROR;
+    }
+    */
+    
 	*RETURN_CODE = NO_ERROR;
 }
 
