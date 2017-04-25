@@ -22,13 +22,13 @@
 #include <stdio.h>
 #include <conftree.h>
 
-#ifdef POK_NEEDS_GCOV
-#include <gcov.h>
-#endif
-
 struct jet_kernel_shared_data* kshd;
 jet_pt_tree_t part_config_tree;
+
+#ifdef POK_NEEDS_GCOV
+#include <gcov.h>
 struct gcov_shared_data* gcov_part_data;
+#endif
 
 void main(void);
 
@@ -109,6 +109,7 @@ int __pok_partition_start (void)
        abort();
    }
 
+#ifdef POK_NEEDS_GCOV
    jet_memory_block_status_t gcov_status;
 
    if(jet_memory_block_get_status(".GCOV", &gcov_status) != POK_ERRNO_OK) {
@@ -118,7 +119,6 @@ int __pok_partition_start (void)
 
    gcov_part_data = (void*)gcov_status.addr;
 
-#ifdef POK_NEEDS_GCOV
    pok_gcov_init();
 #endif
 

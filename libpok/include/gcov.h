@@ -20,10 +20,9 @@
 #ifndef __POK_LIBPOK_GCOV_H__
 #define __POK_LIBPOK_GCOV_H__
 
-#include <config.h>
-#include <stddef.h>
-
 #ifdef POK_NEEDS_GCOV
+
+#include <stddef.h>
 
 #if __GNUC__ == 5 && __GNUC_MINOR__ >= 1
 #define GCOV_COUNTERS           10

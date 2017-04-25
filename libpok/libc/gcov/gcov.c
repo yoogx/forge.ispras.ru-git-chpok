@@ -13,12 +13,12 @@
  * See the GNU General Public License version 3 for more details.
  */
 
+#ifdef POK_NEEDS_GCOV
+
 #include <stdint.h>
 #include <stdio.h>
 
 #include <gcov.h>
-
-#ifdef POK_NEEDS_GCOV
 
 #define DEFAULT_GCOV_ENTRY_COUNT 200
 

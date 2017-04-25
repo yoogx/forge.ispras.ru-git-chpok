@@ -208,7 +208,9 @@ typedef struct _pok_partition_arinc
     /* Currently used memory for stacks. */
     uintptr_t stacks_current;
 
+#ifdef POK_NEEDS_GCOV
     struct gcov_shared_data *gcov_part_data;
+#endif
 
     /*
      * Pointer to partition HM table.

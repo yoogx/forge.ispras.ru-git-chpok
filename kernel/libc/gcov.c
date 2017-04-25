@@ -17,15 +17,13 @@
  * Author(s): Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
  */
 
-#include <config.h>
+#ifdef POK_NEEDS_GCOV
 
 #include <alloc.h>
 #include <libc.h>
 #include <gcov.h>
 #include <core/partition_arinc.h>
 #include <core/uaccess.h>
-
-#ifdef POK_NEEDS_GCOV
 
 /**
  * store_gcov_u32 - store 32 bit number in gcov format to buffer

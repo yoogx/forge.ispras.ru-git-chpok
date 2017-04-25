@@ -18,8 +18,6 @@
 
 #include <libc.h>
 
-#include <gcov.h>
-
 #include <asp/arch.h>
 #include <core/partition_arinc.h>
 #include <cons.h>

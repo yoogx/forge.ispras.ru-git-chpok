@@ -16,7 +16,6 @@
 #define POK_NEEDS_DEBUG        1
 #define POK_NEEDS_CONSOLE      1
 #define POK_NEEDS_MONITOR      1
-#define POK_NEEDS_GCOV         1
 
 // Quick and dirty hack:
 //
