@@ -50,6 +50,11 @@ module or debug it.
 #    If set to True, it enables unittests mode in libpok.
 #    In this mode, some additional files are added to libjet.a.
 #
+#  coverage_enable - enables code coverage collecting for JetOS.
+#    In this mode, compiler generates a .gcno file
+#    for each object file during build.
+#    Also, coverage counters are added to the code.
+#
 # Environment variables which affects on building:
 #
 #  JETOS_BSP - specified BSP for build (if 'bsp' scons parameter is absent).
@@ -99,7 +104,8 @@ vars.AddVariables(
     BoolVariable('jdeveloper', 'Enables developer mode', False),
     BoolVariable('cdeveloper', 'Enables component developer mode', False),
     BoolVariable('kerneltests', 'Enables kernel unittests mode', False),
-    BoolVariable('libpoktests', 'Enables libpok unittests mode', False)
+    BoolVariable('libpoktests', 'Enables libpok unittests mode', False),
+    BoolVariable('coverage_enable', 'Enables code coverage collecting', False)
 )
 
 env = Environment(variables = vars, ENV = os.environ)
@@ -169,7 +175,10 @@ if ARGUMENTS.get('VERBOSE') != "1":
 env.Append(QEMU_FLAGS = ' -serial stdio')
 
 env['CFLAGS'] = '-std=gnu99 -iwithprefix include -Wall -Wuninitialized -ffreestanding -nostdlib -nostdinc -g -Wextra -Wpointer-arith'
-env.Append(CFLAGS = ' -fprofile-arcs -ftest-coverage')
+
+if env.get('coverage_enable'):
+    env.Append(CFLAGS = ' -fprofile-arcs -ftest-coverage -DPOK_NEEDS_GCOV')
+
 env['ASFLAGS'] = env['CFLAGS']
 env['CFLAGS_KERNEL'] = '-Werror'
 env['CFLAGS_USER'] = '-include '+ env['JETOS_HOME']+'/libpok/include/config.h'
