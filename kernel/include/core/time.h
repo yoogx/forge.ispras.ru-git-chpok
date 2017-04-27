@@ -31,11 +31,23 @@
  */
 #define POK_TIMER_FREQUENCY 1000
 
+#ifndef POK_NEEDS_TIME_SHIFT
+
 /* Return current system time, in nanoseconds. */
 #define jet_system_time() ja_system_time()
 
 /* Return calendar time, in seconds since Epoch. */
 #define jet_calendar_time() ja_calendar_time()
+
+#else // POK_NEEDS_TIME_SHIFT
+
+/* Return current system time, in nanoseconds. */
+pok_time_t jet_system_time(void);
+
+/* Return calendar time, in seconds since Epoch. */
+time_t jet_calendar_time(void);
+
+#endif // POK_NEEDS_TIME_SHIFT
 
 jet_ret_t pok_clock_gettime (clockid_t clk_id, pok_time_t* __user val);
 

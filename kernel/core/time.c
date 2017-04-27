@@ -61,3 +61,17 @@ jet_ret_t   jet_time(time_t* __user val)
 
    return EOK;
 }
+
+#ifdef POK_NEEDS_TIME_SHIFT
+
+// Returns the current system time in nanoseconds.
+pok_time_t jet_system_time(void) {
+    return ja_system_time();
+}
+
+// Returns the calendar time in seconds since the Epoch.
+time_t jet_calendar_time(void) {
+    return ja_calendar_time();
+}
+
+#endif // POK_NEEDS_TIME_SHIFT
