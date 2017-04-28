@@ -24,3 +24,5 @@
 #ifndef POK_DISABLE_GDB
 #define POK_NEEDS_GDB 1
 #endif
+
+#define POK_NEEDS_TIME_SHIFT 1
