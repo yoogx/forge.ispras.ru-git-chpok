@@ -47,6 +47,11 @@ pok_time_t jet_system_time(void);
 /* Return calendar time, in seconds since Epoch. */
 time_t jet_calendar_time(void);
 
+void jet_suspend_systime_now();
+void jet_suspend_systime_at(pok_time_t systime);
+
+void jet_resume_systime();
+
 #endif // POK_NEEDS_TIME_SHIFT
 
 jet_ret_t pok_clock_gettime (clockid_t clk_id, pok_time_t* __user val);

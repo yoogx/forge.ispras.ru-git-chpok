@@ -24,8 +24,44 @@
 
 #include <asp/entries.h> /* jet_on_tick() declaration. */
 
+#ifdef POK_NEEDS_TIME_SHIFT
+
+/* Terms for this piece of code:
+   - asptime -- physical time, time that is given by ja_system_time();
+   - systime -- system time, time that is given by jet_system_time();
+ */
+
+// Overall shift for all already ended periods of waiting.
+static pok_time_t total_already_finished_shift;
+
+// ASP time of real stop for the last time. POK_TIME_INFINITY when not applicable.
+static pok_time_t asptime_of_stopped;
+
+// System time after which the system should stop its time automatically.
+static pok_time_t systime_when_to_stop;
+
+// TODO to get rid of situation of pretty complex invariant of asptime_of_stopped == POK_TIME_INFINITY <==> systime_when_to_stop != POK_TIME_INFINITY && vice versa.
+
+#endif // POK_NEEDS_TIME_SHIFT
+
 void jet_on_tick(void)
 {
+#ifdef POK_NEEDS_TIME_SHIFT
+    pok_time_t curr_asptime = ja_system_time();
+
+    if (systime_when_to_stop != POK_TIME_INFINITY && systime_when_to_stop >= curr_asptime - total_already_finished_shift) {
+        asptime_of_stopped = curr_asptime;
+        systime_when_to_stop = POK_TIME_INFINITY;
+    }
+    if (asptime_of_stopped != POK_TIME_INFINITY) {
+        if (asptime_of_stopped <= curr_asptime) {
+            // TODO to schedule idle partition and quit
+        } else {
+            // An error situation.
+        }
+    }
+#endif // POK_NEEDS_TIME_SHIFT
+
     pok_sched_on_time_changed();
 }
 
@@ -64,9 +100,26 @@ jet_ret_t   jet_time(time_t* __user val)
 
 #ifdef POK_NEEDS_TIME_SHIFT
 
+void jet_suspend_systime_now() {
+    jet_suspend_systime_at(jet_system_time());
+    // It seems that this implementation works also nicely:
+    //jet_suspend_systime_at(BEGINNING_OF_THE_TIME);
+}
+
+void jet_suspend_systime_at(pok_time_t systime) {
+    // TODO to check whether the next stop is greater.
+    systime_when_to_stop = systime;
+}
+
+void jet_resume_systime() {
+    systime_when_to_stop = POK_TIME_INFINITY;
+    total_already_finished_shift += (ja_system_time() - asptime_of_stopped);
+    asptime_of_stopped = POK_TIME_INFINITY;
+}
+
 // Returns the current system time in nanoseconds.
 pok_time_t jet_system_time(void) {
-    return ja_system_time();
+    return (asptime_of_stopped == POK_TIME_INFINITY ? ja_system_time() : asptime_of_stopped) - total_already_finished_shift;
 }
 
 // Returns the calendar time in seconds since the Epoch.
