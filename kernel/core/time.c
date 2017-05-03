@@ -31,18 +31,30 @@
    - systime -- system time, time that is given by jet_system_time();
  */
 
-// Overall shift for all already ended periods of waiting.
+/*
+   Overall shift for all already ended periods of waiting.
+
+   That is, when stopped_now is false, this is the total shift value,
+   when stopped_now is true, this is the total shift of all but the current periods of waiting.
+ */
 static pok_time_t total_already_finished_shift;
 
-// ASP time of real stop for the last time. POK_TIME_INFINITY when not applicable.
-static pok_time_t asptime_of_stopped;
+// Whether at this moment the system is idling (and thus shifting time) or not.
+static pok_bool_t stopped_now;
 
-// System time after which the system should stop its time automatically.
-static pok_time_t systime_when_to_stop;
+/*
+   When stopped_now is true, this is the value of ASP time of real stop for the last time; must not be POK_TIME_INFINITY.
+   When stopped_now is false, this is the value of ASP time when system needs to stop or POK_TIME_INFINITY when it should not.
+*/
+static pok_time_t stop_asptime;
 
 // TODO to initialize these values.
 
-// TODO to get rid of situation of pretty complex invariant of asptime_of_stopped == POK_TIME_INFINITY <==> systime_when_to_stop != POK_TIME_INFINITY && vice versa.
+/*@
+    global invariant time_shift_state_consistency:
+        asptime_of_stop == POK_TIME_INFINITY ==> !stopped_now &&
+        stopped_now ==> stop_asptime < ja_system_time();
+ */
 
 #endif // POK_NEEDS_TIME_SHIFT
 
@@ -51,17 +63,15 @@ void jet_on_tick(void)
 #ifdef POK_NEEDS_TIME_SHIFT
     pok_time_t curr_asptime = ja_system_time();
 
-    if (systime_when_to_stop != POK_TIME_INFINITY && systime_when_to_stop >= curr_asptime - total_already_finished_shift) {
-        asptime_of_stopped = curr_asptime;
-        systime_when_to_stop = POK_TIME_INFINITY;
+    if (!stopped_now && stop_asptime != POK_TIME_INFINITY && stop_asptime >= curr_asptime) {
+        // These two assignments must be done atomically, with no preemption.
+        // Since, we are in `jet_on_tick', interruptions must be disabled, I hope.
+        stopped_now = TRUE;
+        stop_asptime = curr_asptime;
     }
-    if (asptime_of_stopped != POK_TIME_INFINITY) {
-        if (asptime_of_stopped <= curr_asptime) {
-            switch_to_idle_partition();
-            return; // This line must be unreachable, in fact.
-        } else {
-            // An error situation.
-        }
+    if (stopped_now) {
+        switch_to_idle_partition();
+        return; // This line must be unreachable, in fact.
     }
 #endif // POK_NEEDS_TIME_SHIFT
 
@@ -110,19 +120,31 @@ void jet_suspend_systime_now() {
 }
 
 void jet_suspend_systime_at(pok_time_t systime) {
-    // TODO to check whether the next stop is greater.
-    systime_when_to_stop = systime;
+    assert(!stopped_now);
+
+    // In case of turned off asserts, the following code should not execute.
+    // TODO to think whether this should be reported or kernel fail should be done instead.
+    if (stopped_now) {
+        stop_asptime = systime + total_already_finished_shift;
+    }
 }
 
 void jet_resume_systime() {
-    systime_when_to_stop = POK_TIME_INFINITY;
-    total_already_finished_shift += (ja_system_time() - asptime_of_stopped);
-    asptime_of_stopped = POK_TIME_INFINITY;
+    assert(stopped_now);
+
+    // In case of turned off asserts, the following code should not execute.
+    // TODO to think whether this should be reported or kernel fail should be done instead.
+    if (!stopped_now) {
+        total_already_finished_shift += (ja_system_time() - stop_asptime);
+        // TODO These two assignments must be atomic (noone guarantees this for now), otherwise, invariant is not hold.
+        stop_asptime = POK_TIME_INFINITY;
+        stopped_now = FALSE;
+    }
 }
 
 // Returns the current system time in nanoseconds.
 pok_time_t jet_system_time(void) {
-    return (asptime_of_stopped == POK_TIME_INFINITY ? ja_system_time() : asptime_of_stopped) - total_already_finished_shift;
+    return (!stopped_now ? ja_system_time() : stop_asptime) - total_already_finished_shift;
 }
 
 // Returns the calendar time in seconds since the Epoch.
