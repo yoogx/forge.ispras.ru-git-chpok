@@ -40,6 +40,8 @@ static pok_time_t asptime_of_stopped;
 // System time after which the system should stop its time automatically.
 static pok_time_t systime_when_to_stop;
 
+// TODO to initialize these values.
+
 // TODO to get rid of situation of pretty complex invariant of asptime_of_stopped == POK_TIME_INFINITY <==> systime_when_to_stop != POK_TIME_INFINITY && vice versa.
 
 #endif // POK_NEEDS_TIME_SHIFT
@@ -125,6 +127,7 @@ pok_time_t jet_system_time(void) {
 
 // Returns the calendar time in seconds since the Epoch.
 time_t jet_calendar_time(void) {
+    // TODO to apply shift to calendar time too.
     return ja_calendar_time();
 }
 
