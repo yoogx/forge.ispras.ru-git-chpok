@@ -238,5 +238,8 @@ void pok_partition_return_user(void);
  */
 void pok_partition_restart(void);
 
+#ifdef POK_NEEDS_TIME_SHIFT
+void switch_to_idle_partition();
+#endif //POK_NEEDS_TIME_SHIFT
 
 #endif /* !__POK_SCHED_H__ */

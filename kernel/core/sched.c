@@ -232,6 +232,11 @@ static void inter_partition_switch(pok_partition_t* part)
     }
 }
 
+#ifdef POK_NEEDS_TIME_SHIFT
+void switch_to_idle_partition() {
+    inter_partition_switch(&partition_idle);
+}
+#endif //POK_NEEDS_TIME_SHIFT
 
 void pok_sched_restart (void)
 {

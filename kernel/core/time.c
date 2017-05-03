@@ -55,7 +55,8 @@ void jet_on_tick(void)
     }
     if (asptime_of_stopped != POK_TIME_INFINITY) {
         if (asptime_of_stopped <= curr_asptime) {
-            // TODO to schedule idle partition and quit
+            switch_to_idle_partition();
+            return; // This line must be unreachable, in fact.
         } else {
             // An error situation.
         }
