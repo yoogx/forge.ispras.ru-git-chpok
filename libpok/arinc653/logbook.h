@@ -60,14 +60,18 @@ struct arinc_logbook {
     MESSAGE_SIZE_TYPE* buffer_messages_size;
 
     // База смещения в массиве сообщений в буфере
+    // т.е. номер первого сообщения в массиве сообщений
     MESSAGE_RANGE_TYPE buffer_base_offset;
 
         
     // Массив сообщений в "NVM" и их размеров:
     char* nvm_messages;
     MESSAGE_SIZE_TYPE* nvm_messages_size;
+
     // База смещения в массиве сообщений в NVM
+    // т.е. номер первого сообщения в массиве сообщений
     MESSAGE_RANGE_TYPE nvm_base_offset;
+
     MESSAGE_STATUS_TYPE* nvm_messages_status;
     // MESSAGE_STATUS_TYPE -- придуманный тип
     

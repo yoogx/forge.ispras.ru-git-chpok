@@ -92,6 +92,47 @@ nvm_message_at(struct arinc_logbook* logbook, MESSAGE_RANGE_TYPE index)
    return logbook->nvm_messages + (logbook->message_stride * index);
 }
 
+static int get_entry(struct arinc_logbook* logbook, MESSAGE_RANGE_TYPE message_entry, 
+                        WRITE_STATUS_TYPE *write_status, MESSAGE_SIZE_TYPE *LENGTH, 
+                        MESSAGE_ADDR_TYPE MESSAGE_ADDR)
+{
+    MESSAGE_RANGE_TYPE message_index;
+    
+    if (message_entry < logbook->nb_in_progress_messages)
+    {
+        *write_status = IN_PROGRESS;
+        message_index = logbook->buffer_base_offset + message_entry;
+        if (message_index > + logbook->nb_in_progress_messages)
+            message_index -= logbook->nb_in_progress_messages;
+            
+        *LENGTH = logbook->buffer_messages_size[message_index];
+        char* message_src = buffer_message_at(logbook, message_index);
+        memcpy(MESSAGE_ADDR, message_src, *LENGTH);
+        return 0;
+
+    }
+    else if (message_entry < logbook->nb_logged_messages + logbook->nb_in_progress_messages)
+    {
+        *write_status = COMPLETE;
+        message_index = logbook->nvm_base_offset + message_entry - logbook->nb_in_progress_messages;
+        if (message_index > + logbook->nb_logged_messages)
+            message_index -= logbook->nb_logged_messages;
+            
+        *LENGTH = logbook->nvm_messages_size[message_index];
+        char* message_src = nvm_message_at(logbook, message_index);
+        memcpy(MESSAGE_ADDR, message_src, *LENGTH);
+        return 0;
+        
+        
+    }
+    else
+    {
+        *write_status = ABORTED;
+        *LENGTH = 0;
+        return -1;
+    }
+}
+
 // Debug function: todelete in the future
 void list_of_logbooks()
 {
@@ -354,8 +395,30 @@ void READ_LOGBOOK(
     WRITE_STATUS_TYPE     *WRITE_STATUS,
     RETURN_CODE_TYPE      *RETURN_CODE)
 {
-    *LENGTH = 1;
-    *WRITE_STATUS = ABORTED;
+    unsigned index = id_to_index(LOGBOOK_ID);
+    if (index >= nlogbooks_used) 
+    {
+        // Incorrect logbook identificator
+        printf("Incorrect identificator\n"); // Todelete
+        *RETURN_CODE = INVALID_PARAM;
+        return;
+    }
+    
+    struct arinc_logbook *logbook = &arinc_logbooks[index];
+
+    
+    if (LOGBOOK_ENTRY >= logbook->max_nb_logged_messages)
+    {
+        *RETURN_CODE = INVALID_PARAM;
+        return;
+    }
+    
+    int status = get_entry(logbook, LOGBOOK_ENTRY, WRITE_STATUS, LENGTH, MESSAGE_ADDR);
+    if (status == -1)
+    {
+        *RETURN_CODE = NO_ACTION;
+        return;
+    }
     *RETURN_CODE = NO_ERROR;
 }
 
