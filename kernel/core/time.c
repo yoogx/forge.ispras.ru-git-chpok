@@ -26,6 +26,13 @@
 
 #ifdef POK_NEEDS_TIME_SHIFT
 
+// Coefficient of pok_time_t (nanoseconds for now) to time_t (seconds for now).
+#define POK_TIME_TO_TIME 1000000000
+
+static inline time_t poktime_to_sec(pok_time_t pok_time) {
+    return pok_time / POK_TIME_TO_TIME;
+}
+
 /* Terms for this piece of code:
    - asptime -- physical time, time that is given by ja_system_time();
    - systime -- system time, time that is given by jet_system_time();
@@ -149,8 +156,9 @@ pok_time_t jet_system_time(void) {
 
 // Returns the calendar time in seconds since the Epoch.
 time_t jet_calendar_time(void) {
-    // TODO to apply shift to calendar time too.
-    return ja_calendar_time();
+    return !stopped_now
+        ? ja_calendar_time() - poktime_to_sec(total_already_finished_shift)
+        : poktime_to_sec(stop_asptime - total_already_finished_shift);
 }
 
 #endif // POK_NEEDS_TIME_SHIFT
